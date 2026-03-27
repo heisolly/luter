@@ -118,7 +118,7 @@ h2, h3, h4 {
   .full-width-mobile { width: 100% !important; max-width: 100% !important; }
   
   /* Shared Navbar Adjustments */
-  .navbar { padding: 0 20px !important; height: 72px !important; }
+  .navbar { padding: 0 24px !important; height: 80px !important; }
   
   /* Hero Section Adjustments */
   .hero-section { padding-top: 100px !important; }
@@ -138,8 +138,10 @@ h2, h3, h4 {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 100;
+  z-index: 200;
   width: 100%;
+  background: transparent;
+  border: none;
 }
 
 /* ===========================

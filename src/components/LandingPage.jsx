@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import LuterLogo from './shared/LuterLogo';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, ArrowRight, Brain, Zap, FileText, GraduationCap,
   ChevronRight, Clock, Star, Check, BookOpen, Cpu,
@@ -99,16 +100,39 @@ export default function LandingPage() {
   /* mobile nav */
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Placeholder for RevealDiv - assuming it's defined elsewhere or will be added.
+  // For the purpose of this change, we'll just use a simple div.
+  const RevealDiv = ({ children, delay = 0 }) => {
+    const ref = useRef(null);
+    useEffect(() => {
+      gsap.fromTo(ref.current, 
+        { y: 40, opacity: 0 }, 
+        { y: 0, opacity: 1, duration: 0.9, ease: 'power2.out', delay: delay }
+      );
+    }, [delay]);
+    return <div ref={ref}>{children}</div>;
+  };
+
+
   return (
     <div ref={containerRef} style={{ background: '#fff', minHeight: '100vh' }}>
 
       {/* ═══════════════ NAVBAR ═══════════════ */}
       <nav className="navbar" style={{ 
-        padding: '20px 40px', 
+        padding: '0 24px', 
         background: 'transparent', 
+        paddingTop: 12,
+        fontFamily: 'var(--font-varela)',
         zIndex: 200,
         position: 'absolute',
-        top: 0, left: 0, right: 0
+        top: 0, left: 0, right: 0,
+        height: 80,
+        display: 'flex',
+        alignItems: 'center',
+        border: 'none',
+        boxShadow: 'none',
+        backdropFilter: 'none',
+        WebkitBackdropFilter: 'none'
       }}>
         {/* Desktop Navbar - Locked to md+ screens */}
         <div className="hidden md:flex" style={{ 
@@ -141,14 +165,22 @@ export default function LandingPage() {
         <div className="flex md:hidden" style={{ 
           alignItems: 'center', 
           justifyContent: 'space-between', 
-          width: '100%' 
+          width: '100%'
         }}>
           <Link to="/" style={{ textDecoration: 'none' }} onClick={() => setMobileOpen(false)}>
-            <LuterLogo size={32} fontSize={24} />
+            <LuterLogo size={28} fontSize={22} />
           </Link>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Link to="/signup" className="btn-primary" style={{ padding: '8px 16px', fontSize: 13, textDecoration: 'none' }}>
+            <Link to="/signup" className="btn-primary" style={{ 
+              padding: '8px 18px', 
+              fontSize: 13, 
+              textDecoration: 'none', 
+              fontFamily: 'var(--font-varela)',
+              borderRadius: 10,
+              boxShadow: '0 4px 15px rgba(151, 24, 251, 0.3)',
+              fontWeight: 800
+            }}>
               Get Started
             </Link>
             <button 
@@ -164,209 +196,242 @@ export default function LandingPage() {
                 cursor: 'pointer'
               }}
             >
-              <div style={{ width: 22, height: 2, background: '#111', borderRadius: 2, transition: '0.3s', transform: mobileOpen ? 'rotate(45deg) translate(5px, 5px)' : 'none' }} />
-              <div style={{ width: 16, height: 2, background: '#111', borderRadius: 2, transition: '0.3s', opacity: mobileOpen ? 0 : 1 }} />
-              <div style={{ width: 22, height: 2, background: '#111', borderRadius: 2, transition: '0.3s', transform: mobileOpen ? 'rotate(-45deg) translate(5px, -5px)' : 'none' }} />
+              <div style={{ width: 22, height: 2, background: '#111', borderRadius: 2 }} />
+              <div style={{ width: 22, height: 2, background: '#111', borderRadius: 2 }} />
+              <div style={{ width: 22, height: 2, background: '#111', borderRadius: 2 }} />
             </button>
           </div>
         </div>
       </nav>
 
       {/* Mobile Menu Overlay */}
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(255,255,255,0.98)',
-        backdropFilter: 'blur(10px)',
-        zIndex: 150,
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '120px 40px 40px',
-        transition: '0.5s cubic-bezier(0.23, 1, 0.32, 1)',
-        transform: mobileOpen ? 'translateY(0)' : 'translateY(-100%)',
-        opacity: mobileOpen ? 1 : 0,
-        pointerEvents: mobileOpen ? 'all' : 'none'
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {[['Features','/features'],['How it works','/how-it-works'],['Pricing','/pricing'],['About','/about'],['Sign In','/signin']].map(([l,p]) => (
-            <Link 
-              key={l} 
-              to={p} 
-              onClick={() => setMobileOpen(false)}
-              style={{ 
-                fontSize: 32, 
-                fontWeight: 800, 
-                color: '#111',
-                textDecoration: 'none',
-                fontFamily: 'var(--font-besley)'
-              }}
-            >
-              {l}
-            </Link>
-          ))}
-        </div>
-
-        <div style={{ marginTop: 'auto' }}>
-          <Link 
-            to="/signup" 
-            onClick={() => setMobileOpen(false)}
-            className="btn-primary" 
-            style={{ width: '100%', justifyContent: 'center', padding: '18px', fontSize: 16, borderRadius: 16 }}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(255,255,255,0.98)',
+              backdropFilter: 'blur(15px)',
+              zIndex: 150,
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '110px 24px 40px',
+              fontFamily: 'var(--font-varela)'
+            }}
           >
-            Start Free Today
-          </Link>
-        </div>
-      </div>
+            {/* Top divider line */}
+            <div style={{ position: 'absolute', top: 90, left: 24, right: 24, height: 1, background: 'rgba(0,0,0,0.05)' }} />
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[
+                { l: 'Features', p: '/features', i: <Layers size={22} /> },
+                { l: 'How it works', p: '/how-it-works', i: <BookOpen size={22} /> },
+                { l: 'Pricing', p: '/pricing', i: <Zap size={22} /> },
+                { l: 'About', p: '/about', i: <Users size={22} /> },
+                { l: 'Sign In', p: '/signin', i: <TrendingUp size={22} /> }
+              ].map((item, idx) => (
+                <motion.div
+                  key={item.l}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 + idx * 0.05 }}
+                >
+                  <Link 
+                    to={item.p} 
+                    onClick={() => setMobileOpen(false)}
+                    style={{ 
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 16,
+                      fontSize: 18, 
+                      fontWeight: 700, 
+                      color: '#111',
+                      textDecoration: 'none',
+                      padding: '16px 20px',
+                      borderRadius: 16,
+                      background: 'rgba(0,0,0,0.02)',
+                      border: '1px solid rgba(0,0,0,0.03)'
+                    }}
+                  >
+                    <div style={{ 
+                      width: 40, height: 40, borderRadius: 12, background: 'white', 
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.05)', color: 'var(--primary)'
+                    }}>
+                      {item.i}
+                    </div>
+                    {item.l}
+                    <ChevronRight size={18} style={{ marginLeft: 'auto', opacity: 0.3 }} />
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              style={{ marginTop: 'auto', padding: '0 4px' }}
+            >
+              <div style={{ 
+                background: 'var(--primary-bg)', 
+                padding: 20, borderRadius: 24, marginBottom: 20,
+                border: '1px solid rgba(151,24,251,0.1)'
+              }}>
+                <h4 style={{ fontSize: 16, fontWeight: 800, color: 'var(--primary)', marginBottom: 4 }}>Level Up Your Grades</h4>
+                <p style={{ fontSize: 13, color: 'var(--primary)', opacity: 0.7, fontWeight: 500 }}>Join 5M+ students using AI to master their curriculum.</p>
+              </div>
+              <Link 
+                to="/signup" 
+                onClick={() => setMobileOpen(false)}
+                className="btn-primary" 
+                style={{ width: '100%', justifyContent: 'center', padding: '18px', fontSize: 16, borderRadius: 16, fontFamily: 'var(--font-varela)', boxShadow: '0 10px 30px rgba(151,24,251,0.3)' }}
+              >
+                Start Free Today <ArrowRight size={18} style={{ marginLeft: 8 }} />
+              </Link>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ═══════════════ HERO ═══════════════ */}
-      <section className="hero-section" style={{ paddingTop: 120 }}>
+      <section className="hero-section" style={{ paddingTop: 80, position: 'relative' }}>
         <div className="hero-bg">
           <div className="hero-bg-grid" />
         </div>
 
-        <div className="hero-content">
-          {/* Social proof row */}
-          <div className="hero-social-proof">
-            <AvatarGroup />
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
-              <Stars />
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#888' }}>
-                <span style={{ color: '#111', fontWeight: 700 }}>5M+ students</span> · Studying smarter
-              </span>
-            </div>
-          </div>
-
-          {/* Badge */}
-          <div className="hero-badge">
-            <div className="hero-badge-dot" />
-            AI-Powered Study Platform
-          </div>
-
-          {/* Headline */}
-          <h1 style={{ fontSize: 'clamp(2.4rem, 5vw, 4rem)', marginBottom: 20, maxWidth: 700, margin: '0 auto 20px' }}>
-            Learn 10× Faster.{' '}
-            <span style={{ color: 'var(--primary)', fontStyle: 'italic' }}>Remember More.</span>{' '}
-            Stress Less.
-          </h1>
-
-          {/* Sub */}
-          <p style={{ fontSize: 18, color: '#666', fontWeight: 450, maxWidth: 560, margin: '0 auto 36px', lineHeight: 1.7 }}>
-            Upload any lecture, PDF, or video — Luter instantly builds notes, flashcards, and
-            mock exams tailored to <em>your</em> curriculum.
-          </p>
-
-          {/* CTA row */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginBottom: 12 }}>
-            <Link to="/signup" className="btn-primary" style={{ padding: '15px 28px', fontSize: 15, textDecoration: 'none' }}>
-              Start Free — No Card Needed <ArrowRight style={{ width: 16, height: 16 }} />
-            </Link>
-            <button className="btn-secondary" style={{ padding: '15px 24px', fontSize: 15 }}>
-              <Play style={{ width: 15, height: 15, fill: 'currentColor' }} /> Watch Demo
-            </button>
-          </div>
-          <p style={{ fontSize: 12, color: '#bbb', fontWeight: 500 }}>Free forever tier · No credit card</p>
-        </div>
-
-        {/* ── Dashboard Mockup ── */}
-        <div className="hidden md:block" style={{ width: '100%', maxWidth: 1100, margin: '0 auto' }}>
-          <div className="dashboard-wrapper">
-            <div className="dashboard-content" style={{ height: 560 }}>
-              {/* Header bar */}
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:'1px solid #ebe9f5', background:'white' }}>
-                <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-                  <LuterLogo size={22} fontSize={18} />
-                  <div style={{ borderLeft: '1px solid #e8e8ec', height: 20, margin: '0 4px' }} />
-                  <div style={{ width:1, height:20, background:'#e8e8ec' }} />
-                  <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'#7180FE' }}>
-                    <span>Home</span>
-                    <ChevronRight style={{ width:12, height:12, color:'#bbb' }} />
-                    <span style={{ color:'#111', fontWeight:600, textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:3 }}>Earth Wiki Session</span>
+        <div className="container-custom" style={{ textAlign: 'center', position: 'relative', zIndex: 1, padding: '0 20px' }}>
+          {/* Social Proof */}
+          <RevealDiv>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 28 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <AvatarGroup />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <Stars />
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>
+                    5M+ students <span style={{ color: '#aaa', fontWeight: 500 }}>· Studying smarter</span>
                   </div>
                 </div>
-                <button style={{ background:'#7180FE', color:'white', padding:'7px 14px', borderRadius:8, fontSize:12, fontWeight:700, display:'flex', alignItems:'center', gap:6, border:'none', cursor:'pointer' }}>
-                  <Plus style={{ width:13, height:13 }} /> New Session
-                </button>
               </div>
+            </div>
+          </RevealDiv>
 
-              {/* Body */}
-              <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
-                {/* Left sidebar */}
-                <div style={{ width:56, borderRight:'1px solid #ebe9f5', background:'white', display:'flex', flexDirection:'column', alignItems:'center', padding:'12px 0', gap:20 }}>
-                  {[BookOpen, Layers, Brain, BarChart2, MessageSquare].map((Icon, i) => (
-                    <div key={i} style={{ width:32, height:32, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', background: i===0 ? 'var(--primary-bg)' : 'transparent', cursor:'pointer' }}>
-                      <Icon style={{ width:16, height:16, color: i===0 ? 'var(--primary)' : '#bbb' }} />
+          <RevealDiv delay={0.1}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 99, background: 'rgba(151,24,251,0.05)', border: '1px solid rgba(151,24,251,0.1)', marginBottom: 32 }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)' }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.01em' }}>AI-Powered Study Platform</span>
+            </div>
+          </RevealDiv>
+          
+          <RevealDiv delay={0.2}>
+            <h1 style={{ fontSize: 'clamp(2.4rem, 9vw, 4.5rem)', fontWeight: 900, fontFamily: 'var(--font-varela)', color: '#111', marginBottom: 24, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+              Learn 10× Faster.<br />
+              <span style={{ color: 'var(--primary)', fontStyle: 'italic' }}>Remember More.</span><br />
+              Stress Less.
+            </h1>
+          </RevealDiv>
+          
+          <RevealDiv delay={0.3}>
+            <p style={{ fontSize: 'clamp(1rem, 4.5vw, 1.2rem)', color: '#555', maxWidth: 620, margin: '0 auto 40px', fontWeight: 500, lineHeight: 1.6 }}>
+              Upload any lecture, PDF, or video — Luter instantly builds notes, flashcards, and mock exams tailored to <em>your</em> curriculum.
+            </p>
+          </RevealDiv>
+
+          <RevealDiv delay={0.4}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+              <Link to="/signup" className="btn-primary" style={{ 
+                padding: '18px 36px', 
+                fontSize: 16, 
+                textDecoration: 'none', 
+                borderRadius: 16,
+                width: '100%',
+                maxWidth: 320,
+                boxShadow: '0 15px 35px rgba(151, 24, 251, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                fontWeight: 800
+              }}>
+                Start Free — No Card Needed <ArrowRight size={18} />
+              </Link>
+              <button className="btn-secondary" style={{ 
+                padding: '16px 32px', 
+                fontSize: 15, 
+                borderRadius: 16,
+                background: '#fff',
+                border: '1px solid #eee',
+                width: '100%',
+                maxWidth: 240,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                fontWeight: 700,
+                color: '#444'
+              }}>
+                <Play size={16} fill="currentColor" /> Watch Demo
+              </button>
+              <p style={{ fontSize: 14, color: '#aaa', fontWeight: 500, marginTop: 8 }}>Free forever tier · No credit card</p>
+            </div>
+          </RevealDiv>
+        </div>
+
+        {/* Dashboard Mockup */}
+        <div className="hidden md:block" style={{ width: '100%', maxWidth: 1100, margin: '60px auto 0' }}>
+          <div className="dashboard-wrapper">
+             <div className="dashboard-content" style={{ height: 560 }}>
+                {/* Header bar */}
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:'1px solid #ebe9f5', background:'white' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+                    <LuterLogo size={22} fontSize={18} />
+                    <div style={{ borderLeft: '1px solid #e8e8ec', height: 20, margin: '0 4px' }} />
+                    <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'#7180FE' }}>
+                      <span>Home</span>
+                      <ChevronRight style={{ width:12, height:12, color:'#bbb' }} />
+                      <span style={{ color:'#111', fontWeight:600, textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:3 }}>Earth Wiki Session</span>
                     </div>
-                  ))}
+                  </div>
+                  <button style={{ background:'#7180FE', color:'white', padding:'7px 14px', borderRadius:8, fontSize:12, fontWeight:700, display:'flex', alignItems:'center', gap:6, border:'none', cursor:'pointer' }}>
+                    <Plus style={{ width:13, height:13 }} /> New Session
+                  </button>
                 </div>
 
-                {/* Main content */}
-                <div style={{ flex:1, display:'flex', flexDirection:'column', background:'#F7F5FF' }}>
-                  <div style={{ display:'flex', gap:4, padding:'8px 8px 0', background:'transparent' }}>
-                    {['Original', 'AI Notes', 'AI Summary', 'Flashcards', 'AI Quiz'].map((tab, i) => (
-                      <div key={i} style={{
-                        padding:'6px 12px', borderRadius:'8px 8px 0 0', fontSize:11, fontWeight:700, cursor:'pointer',
-                        background: i===1 ? 'white' : 'transparent',
-                        color: i===1 ? '#7180FE' : '#aaa',
-                        boxShadow: i===1 ? '0 -1px 4px rgba(0,0,0,0.04)' : 'none'
-                      }}>
-                        {i>0 && <span style={{ color:'#A150FF', marginRight:3 }}>AI</span>}{tab.replace('AI ','')}
+                {/* Body */}
+                <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
+                  {/* Left sidebar */}
+                  <div style={{ width:56, borderRight:'1px solid #ebe9f5', background:'white', display:'flex', flexDirection:'column', alignItems:'center', padding:'12px 0', gap:20 }}>
+                    {[BookOpen, Layers, Brain, BarChart2, MessageSquare].map((Icon, i) => (
+                      <div key={i} style={{ width:32, height:32, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', background: i===1 ? 'var(--primary-bg)' : 'transparent', cursor:'pointer' }}>
+                        <Icon style={{ width:16, height:16, color: i===1 ? 'var(--primary)' : '#bbb' }} />
                       </div>
                     ))}
                   </div>
-                  <div style={{ flex:1, background:'white', margin:'0 8px 8px', borderRadius:12, padding:28, overflow:'auto' }}>
-                    <div style={{ maxWidth:560 }}>
-                      <h2 style={{ fontFamily:'var(--font-besley)', fontSize:26, marginBottom:10 }}>Earth</h2>
-                      <div style={{ display:'flex', gap:6, marginBottom:14 }}>
-                        {['🌍 Planet','🔬 Science','📅 Formation'].map(t => (
-                          <span key={t} style={{ fontSize:10, fontWeight:700, background:'#f3f4f6', padding:'3px 8px', borderRadius:99, color:'#777' }}>{t}</span>
-                        ))}
-                      </div>
-                      <p style={{ fontSize:13, color:'#666', lineHeight:1.8, marginBottom:16 }}>
-                        Earth is the <span style={{ background:'rgba(151,24,251,0.1)', color:'var(--primary)', borderRadius:3, padding:'1px 4px' }}>third planet</span> from the Sun and the only astronomical object known to harbor life. It is the largest of the four rocky planets...
-                      </p>
-                      {/* Simulated note bullets */}
-                      {['Formed ~4.5 billion years ago from solar nebula', 'Core is iron-nickel alloy, 5,200°C', 'Has one natural satellite: the Moon'].map((pt, i) => (
-                        <div key={i} style={{ display:'flex', gap:8, alignItems:'flex-start', marginBottom:8 }}>
-                          <div style={{ width:6, height:6, borderRadius:'50%', background:'var(--primary)', marginTop:6, flexShrink:0 }} />
-                          <span style={{ fontSize:13, color:'#555', lineHeight:1.6 }}>{pt}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
 
-                {/* AI Tutor sidebar */}
-                <div style={{ width:320, borderLeft:'1px solid #ebe9f5', background:'white', display:'flex', flexDirection:'column', padding:16 }}>
-                  <div style={{ fontSize:10, fontWeight:800, letterSpacing:'0.1em', color:'#ccc', textTransform:'uppercase', marginBottom:16 }}>AI Tutor</div>
-                  <div style={{ flex:1, display:'flex', flexDirection:'column', gap:14, overflow:'auto' }}>
-                    <div style={{ alignSelf:'flex-end', maxWidth:'85%', background:'#F2F4F7', padding:'10px 14px', borderRadius:'14px 14px 0 14px', fontSize:12, fontWeight:600, color:'#555' }}>
-                      What is the great oxidation event?
-                    </div>
-                    <div style={{ border:'1px solid #7180FE', padding:'14px 16px', borderRadius:'14px 14px 14px 0', fontSize:12, background:'white', boxShadow:'0 2px 8px rgba(113,128,254,0.1)' }}>
-                      <div style={{ display:'flex', gap:6, alignItems:'center', marginBottom:8 }}>
-                        <LuterLogo size={18} fontSize={14} />
-                      </div>
-                      <h4 style={{ fontWeight:700, fontSize:13, marginBottom:6, color:'#111' }}>The Great Oxidation Event</h4>
-                      <p style={{ fontSize:11, color:'#888', lineHeight:1.7, fontWeight:500 }}>A significant rise in Earth's atmospheric O₂ ~2.4 billion years ago, caused by cyanobacteria photosynthesis.</p>
-                    </div>
-                    {/* Suggestion chips */}
-                    <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                      {['Explain like I\'m 12', 'Give me examples', 'Quiz me on this'].map(chip => (
-                        <button key={chip} style={{ fontSize:10, fontWeight:600, background:'#f3f4f6', border:'1px solid #e5e7eb', borderRadius:99, padding:'4px 10px', cursor:'pointer', color:'#555' }}>
-                          {chip}
-                        </button>
+                  {/* Main section */}
+                  <div style={{ flex:1, display:'flex', flexDirection:'column', background:'#F7F5FF' }}>
+                    <div style={{ display:'flex', gap:4, padding:'8px 8px 0', background:'transparent' }}>
+                      {['Original', 'AI Notes', 'AI Summary', 'Flashcards', 'AI Quiz'].map((tab, i) => (
+                        <div key={i} style={{
+                          padding:'6px 12px', borderRadius:'8px 8px 0 0', fontSize:11, fontWeight:700, cursor:'pointer',
+                          background: i===1 ? 'white' : 'transparent',
+                          color: i===1 ? '#7180FE' : '#aaa'
+                        }}>{tab}</div>
                       ))}
                     </div>
-                  </div>
-                  <div style={{ marginTop:12, position:'relative' }}>
-                    <input placeholder="Ask Luter anything..." style={{ width:'100%', background:'#F5F6FF', fontSize:12, fontWeight:500, padding:'11px 38px 11px 14px', borderRadius:10, border:'1px solid #ebe9f5', outline:'none', fontFamily:'var(--font-inter)' }} />
-                    <div style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', width:24, height:24, background:'var(--primary)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-                      <ArrowRight style={{ width:12, height:12, color:'white' }} />
+                    <div style={{ flex:1, background:'white', margin:'0 8px 8px', borderRadius:12, padding:28, overflow:'auto' }}>
+                       <h2 style={{ fontFamily:'var(--font-besley)', fontSize:24, marginBottom:16 }}>The Big Bang Theory</h2>
+                       <p style={{ fontSize:14, color:'#666', lineHeight:1.7, marginBottom:16 }}>The Big Bang theory is the prevailing cosmological model explaining the existence of the observable universe from the earliest known periods through its subsequent large-scale evolution.</p>
+                       {[1,2,3].map(i => <div key={i} style={{ height:8, background:'#f3f4f6', borderRadius:4, marginBottom:10, width:`${90-i*10}%` }} />)}
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+             </div>
           </div>
         </div>
       </section>

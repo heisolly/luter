@@ -50,24 +50,24 @@ export default function SignIn() {
       {/* Hero Background */}
       <div className="hero-bg">
         <div className="hero-bg-grid" />
-        <div style={{ position: 'absolute', top: '15%', left: '10%', animation: 'float-up-down 6s ease-in-out infinite' }}>
-          <div style={{ width: 60, height: 60, background: 'rgba(151,24,251,0.1)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'rotate(-10deg)', border: '1px solid rgba(151,24,251,0.2)' }}>
-            <Sparkles size={28} color="var(--primary)" />
+        <div style={{ position: 'absolute', top: '12%', left: '5%', animation: 'float-up-down 6s ease-in-out infinite', opacity: 0.5 }}>
+          <div style={{ width: 50, height: 50, background: 'rgba(151,24,251,0.1)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'rotate(-10deg)', border: '1px solid rgba(151,24,251,0.2)' }}>
+            <Sparkles size={24} color="var(--primary)" />
           </div>
         </div>
-        <div style={{ position: 'absolute', bottom: '20%', right: '12%', animation: 'float-up-down 8s ease-in-out infinite reverse' }}>
-          <div style={{ width: 80, height: 80, background: 'rgba(2,132,199,0.08)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(2,132,199,0.15)' }}>
-            <BrainCircuit size={36} color="#0284c7" />
+        <div style={{ position: 'absolute', bottom: '15%', right: '5%', animation: 'float-up-down 8s ease-in-out infinite reverse', opacity: 0.5 }}>
+          <div style={{ width: 60, height: 60, background: 'rgba(2,132,199,0.08)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(2,132,199,0.15)' }}>
+            <BrainCircuit size={28} color="#0284c7" />
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 1, padding: '120px 20px 40px', width: '100%' }}>
-        <div style={{ width: '100%', maxWidth: 440 }}>
+      <div className="auth-content-mobile" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 1, width: '100%', padding: '20px' }}>
+        <div style={{ width: '100%', maxWidth: 440, paddingTop: '140px', paddingBottom: '60px' }}>
           
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <h2 style={{ fontSize: 'clamp(2rem, 5vw, 2.8rem)', fontWeight: 800, fontFamily: 'var(--font-besley)', color: '#111', marginBottom: 12, lineHeight: 1.2 }}>
+            <h2 style={{ fontSize: 'clamp(2.2rem, 5vw, 2.8rem)', fontWeight: 800, fontFamily: 'var(--font-varela)', color: '#111', marginBottom: 12, lineHeight: 1.2, letterSpacing: '-0.02em' }}>
               Welcome back
             </h2>
             <p style={{ fontSize: 16, color: '#666', fontWeight: 500 }}>Sign in to continue your study session.</p>

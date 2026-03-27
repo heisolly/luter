@@ -53,27 +53,27 @@ export default function SignUp() {
       {/* Hero Background */}
       <div className="hero-bg">
         <div className="hero-bg-grid" />
-        <div style={{ position: 'absolute', top: '18%', right: '15%', animation: 'float-up-down 7s ease-in-out infinite' }}>
-          <div style={{ width: 72, height: 72, background: 'rgba(5,150,105,0.08)', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'rotate(12deg)', border: '1px solid rgba(5,150,105,0.15)' }}>
-            <BookOpen size={32} color="#059669" />
+        <div style={{ position: 'absolute', top: '12%', right: '5%', animation: 'float-up-down 7s ease-in-out infinite', opacity: 0.5 }}>
+          <div style={{ width: 60, height: 60, background: 'rgba(5,150,105,0.08)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'rotate(12deg)', border: '1px solid rgba(5,150,105,0.15)' }}>
+            <BookOpen size={28} color="#059669" />
           </div>
         </div>
-        <div style={{ position: 'absolute', bottom: '15%', left: '8%', animation: 'float-up-down 5s ease-in-out infinite reverse' }}>
-          <div style={{ width: 64, height: 64, background: 'rgba(220,38,38,0.08)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(220,38,38,0.15)' }}>
-            <GraduationCap size={30} color="#dc2626" />
+        <div style={{ position: 'absolute', bottom: '15%', left: '5%', animation: 'float-up-down 5s ease-in-out infinite reverse', opacity: 0.5 }}>
+          <div style={{ width: 50, height: 50, background: 'rgba(220,38,38,0.08)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(220,38,38,0.15)' }}>
+            <GraduationCap size={24} color="#dc2626" />
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 1, padding: '120px 20px 40px', width: '100%' }}>
+      <div className="auth-content-mobile" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 1, width: '100%', padding: '20px' }}>
         
         {success ? (
-          <div style={{ width: '100%', maxWidth: 440, textAlign: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 440, textAlign: 'center', paddingTop: '100px' }}>
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(151,24,251,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
               <CheckCircle2 style={{ width: 32, height: 32, color: 'var(--primary)' }} />
             </div>
-            <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.2rem)', fontWeight: 800, fontFamily: 'var(--font-besley)', color: '#111', marginBottom: 12 }}>Check your inbox</h2>
+            <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.2rem)', fontWeight: 800, fontFamily: 'var(--font-varela)', color: '#111', marginBottom: 12 }}>Check your inbox</h2>
             <p style={{ fontSize: 16, color: '#666', lineHeight: 1.7, marginBottom: 32 }}>
               We sent a confirmation link to<br />
               <strong style={{ color: '#111' }}>{successEmail}</strong>
@@ -83,10 +83,10 @@ export default function SignUp() {
             </Link>
           </div>
         ) : (
-          <div style={{ width: '100%', maxWidth: 440 }}>
+          <div style={{ width: '100%', maxWidth: 440, paddingTop: '140px', paddingBottom: '60px' }}>
             
             <div style={{ textAlign: 'center', marginBottom: 40 }}>
-              <h2 style={{ fontSize: 'clamp(2rem, 5vw, 2.8rem)', fontWeight: 800, fontFamily: 'var(--font-besley)', color: '#111', marginBottom: 12, lineHeight: 1.2 }}>
+              <h2 style={{ fontSize: 'clamp(2.2rem, 5vw, 2.8rem)', fontWeight: 800, fontFamily: 'var(--font-varela)', color: '#111', marginBottom: 12, lineHeight: 1.2, letterSpacing: '-0.02em' }}>
                 Create an account
               </h2>
               <p style={{ fontSize: 16, color: '#666', fontWeight: 500 }}>Start studying 10x faster today.</p>

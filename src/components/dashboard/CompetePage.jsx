@@ -18,6 +18,7 @@ export default function CompetePage({ user, setActivePage }) {
   const [currentMatch, setCurrentMatch] = useState(null)
   const [matchingStep, setMatchingStep] = useState(0) 
   const [liveCount, setLiveCount] = useState(0)
+  const [players, setPlayers] = useState({ challenger: null, opponent: null })
 
   // 1. Initial Match Check (Deep Link)
   useEffect(() => {
@@ -41,11 +42,16 @@ export default function CompetePage({ user, setActivePage }) {
     if (m) {
       if (m.status === 'active' || m.opponent_id) {
          // Already active or joined
-         setSearchTarget(m.profiles?.full_name || 'Opponent')
-         setMatchingStep(2)
+         const { data: oppPrf } = await supabase.from('profiles').select('full_name').eq('id', m.opponent_id).single()
+         setPlayers({ 
+            challenger: m.profiles?.full_name || 'Challenger', 
+            opponent: oppPrf?.full_name || 'Joined Player' 
+         })
+         setMatchingStep(4) // Battle Lobby
          setCurrentMatch(m)
       } else if (m.challenger_id === user.id) {
          // I am the challenger
+         setPlayers(prev => ({ ...prev, challenger: user.user_metadata?.full_name || 'You' }))
          setCurrentMatch(m)
          setMatchingStep(3) // Waiting room
       } else {
@@ -61,8 +67,11 @@ export default function CompetePage({ user, setActivePage }) {
            .single()
 
          if (updated) {
-            setSearchTarget(updated.profiles?.full_name || 'Opponent')
-            setMatchingStep(2)
+            setPlayers({ 
+               challenger: updated.profiles?.full_name || 'Challenger', 
+               opponent: user.user_metadata?.full_name || 'You' 
+            })
+            setMatchingStep(4) // Battle Lobby
             setCurrentMatch(updated)
          }
       }
@@ -180,12 +189,13 @@ export default function CompetePage({ user, setActivePage }) {
            if (payload.new.opponent_id && payload.new.opponent_id !== user.id) {
               // Fetch opponent name
               const { data: oppPrf } = await supabase.from('profiles').select('full_name').eq('id', payload.new.opponent_id).single()
-              setSearchTarget(oppPrf?.full_name || "New Opponent")
-              setMatchingStep(2) 
-              setTimeout(() => {
-                 setMatchingStep(0)
-                 alert(`The battle with ${oppPrf?.full_name} is starting!`)
-              }, 2500)
+              const { data: chalPrf } = await supabase.from('profiles').select('full_name').eq('id', payload.new.challenger_id).single()
+              
+              setPlayers({
+                 challenger: chalPrf?.full_name || "Challenger",
+                 opponent: oppPrf?.full_name || "Joined Player"
+              })
+              setMatchingStep(4) // Battle Lobby
            }
          }
        ).subscribe()
@@ -256,28 +266,51 @@ export default function CompetePage({ user, setActivePage }) {
                </>
              )}
 
-             {matchingStep === 2 && (
-               <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-                 <div style={{ display: 'inline-flex', padding: 24, borderRadius: '50%', background: '#7a12cc', color: 'white', marginBottom: 32 }}>
-                   <Sword size={48} fill="white" />
+             {matchingStep === 4 && (
+               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                 <div style={{ marginBottom: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 60 }}>
+                    <div style={{ textAlign: 'center' }}>
+                       <div style={{ width: 100, height: 100, borderRadius: '50%', background: '#7a12cc', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 28, fontWeight: 900, border: '6px solid #f5eeff' }}>
+                          {players.challenger?.slice(0, 1).toUpperCase()}
+                       </div>
+                       <div style={{ fontWeight: 900, color: '#111' }}>{players.challenger}</div>
+                       <div style={{ fontSize: 11, fontWeight: 800, color: '#7a12cc', textTransform: 'uppercase', marginTop: 4 }}>Challenger</div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                       <div style={{ background: '#7a12cc', color: 'white', padding: '12px', borderRadius: '50%', boxShadow: '0 0 20px rgba(122, 18, 204, 0.4)' }}>
+                          <Sword size={32} fill="white" />
+                       </div>
+                       <div style={{ fontSize: 24, fontWeight: 1000, color: '#7a12cc' }}>VS</div>
+                    </div>
+
+                    <div style={{ textAlign: 'center' }}>
+                       <div style={{ width: 100, height: 100, borderRadius: '50%', background: '#111', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 28, fontWeight: 900, border: '6px solid #f8f8f8' }}>
+                          {players.opponent?.slice(0, 1).toUpperCase()}
+                       </div>
+                       <div style={{ fontWeight: 900, color: '#111' }}>{players.opponent}</div>
+                       <div style={{ fontSize: 11, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginTop: 4 }}>Opponent</div>
+                    </div>
                  </div>
-                 <h2 style={{ fontSize: 32, fontWeight: 1000, color: '#111', margin: '0 0 12px' }}>Match Found!</h2>
-                 <div style={{ fontSize: 20, fontWeight: 800, color: '#7a12cc' }}>VS {searchTarget}</div>
+
+                 <h2 style={{ fontSize: 32, fontWeight: 1000, color: '#111', margin: '0 0 32px' }}>Arena Ready</h2>
+                 
+                 <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
+                    <button 
+                      onClick={() => alert("Connecting to battle server...")}
+                      style={{ 
+                        background: '#7a12cc', color: 'white', border: 'none', 
+                        padding: '18px 48px', borderRadius: 20, fontSize: 16, 
+                        fontWeight: 900, cursor: 'pointer', boxShadow: '0 10px 25px rgba(122, 18, 204, 0.3)' 
+                      }}
+                    >
+                       START BATTLE
+                    </button>
+                 </div>
                </motion.div>
              )}
-
-             {matchingStep === 3 && (
-               <>
-                 <div style={{ display: 'inline-flex', padding: 32, borderRadius: '50%', background: '#fdfbff', border: '2.5px solid #7a12cc', marginBottom: 32 }}>
-                    <Loader2 className="animate-spin" size={48} color="#7a12cc" />
-                 </div>
-                 <h2 style={{ fontSize: 24, fontWeight: 900, color: '#111', margin: '0 0 12px' }}>Waiting for Opponent...</h2>
-                 <button onClick={createInviteLink} style={{ background: '#7a12cc', color: 'white', border: 'none', padding: '12px 24px', borderRadius: 16, fontSize: 13, fontWeight: 900, cursor: 'pointer' }}>
-                    <Copy size={16} style={{ marginRight: 8 }} /> {copiedLink ? 'COPIED' : 'COPY CHALLENGE LINK'}
-                 </button>
-               </>
-             )}
           </motion.div>
+
         ) : activeTab === 'leaderboard' ? (
           <motion.div key="leaderboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <div style={{ background: 'white', borderRadius: 32, border: '1.5px solid #7a12cc', overflow: 'hidden' }}>
