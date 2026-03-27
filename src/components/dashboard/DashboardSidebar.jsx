@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import {
   Home, BookOpen, FlaskConical, BarChart3, Trophy,
-  Settings, Flame, ChevronLeft, ChevronRight, Zap
+  Settings, Flame, ChevronLeft, ChevronRight, Zap, X
 } from 'lucide-react'
 import LuterLogo from '../shared/LuterLogo'
 
@@ -15,7 +15,7 @@ const NAV_ITEMS = [
   { id: 'upgrade',   icon: Zap,            label: 'Upgrade'    },
 ]
 
-export default function DashboardSidebar({ activePage, setActivePage, collapsed, setCollapsed, user }) {
+export default function DashboardSidebar({ activePage, setActivePage, collapsed, setCollapsed, user, isMobile, onClose }) {
   const [streak, setStreak] = useState(0)
 
   useEffect(() => {
@@ -35,23 +35,26 @@ export default function DashboardSidebar({ activePage, setActivePage, collapsed,
 
       {/* ── Logo row ── */}
       <div className="dsb-logo">
-        {/* logo only shows when expanded */}
-        {!collapsed && (
-          <div className="dsb-logo-inner">
-            <LuterLogo size={30} fontSize={22} />
-          </div>
-        )}
+        <div className="dsb-logo-inner">
+          <LuterLogo size={30} fontSize={22} />
+        </div>
 
-        {/* toggle — always visible */}
-        <button
-          className="dsb-collapse-btn"
-          onClick={() => setCollapsed(!collapsed)}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {collapsed
-            ? <ChevronRight size={16} strokeWidth={2.2} />
-            : <ChevronLeft  size={16} strokeWidth={2.2} />}
-        </button>
+        {/* toggle or close */}
+        {isMobile ? (
+          <button className="dsb-close-btn" onClick={onClose}>
+            <X size={20} strokeWidth={2.2} />
+          </button>
+        ) : (
+          <button
+            className="dsb-collapse-btn"
+            onClick={() => setCollapsed(!collapsed)}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed
+              ? <ChevronRight size={16} strokeWidth={2.2} />
+              : <ChevronLeft  size={16} strokeWidth={2.2} />}
+          </button>
+        )}
       </div>
 
       {/* ── Navigation ── */}

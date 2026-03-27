@@ -60,26 +60,133 @@ export function RevealDiv({ children, style = {}, delay = 0 }) {
 }
 
 /* Shared Navbar */
+/* Shared Navbar */
 export function SharedNavbar() {
   const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <nav className="navbar" style={{ padding: '0 40px', height: 80, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', fontFamily: 'var(--font-varela)' }}>
-      <Link to="/" style={{ textDecoration: 'none' }}>
-        <LuterLogo size={32} fontSize={24} />
-      </Link>
-      <div style={{ display: 'flex', gap: 32, fontSize: 15, fontWeight: 600 }}>
-        {[['Features','/features'],['How it works','/how-it-works'],['Pricing','/pricing'],['About','/about']].map(([l,p]) => (
-          <Link key={l} to={p} style={{ textDecoration: 'none', color: location.pathname === p ? 'var(--primary)' : '#555', transition: 'color 0.2s', borderBottom: location.pathname === p ? '2px solid var(--primary)' : '2px solid transparent', paddingBottom: 2 }}>{l}</Link>
-        ))}
+    <>
+      <nav className="navbar" style={{ 
+        padding: '20px 40px', 
+        background: 'transparent', 
+        fontFamily: 'var(--font-varela)',
+        zIndex: 200,
+        position: 'absolute',
+        top: 0, left: 0, right: 0
+      }}>
+        {/* Desktop Navbar */}
+        <div className="hidden md:flex" style={{ 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          width: '100%'
+        }}>
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <LuterLogo size={32} fontSize={24} />
+          </Link>
+
+          <div style={{ display: 'flex', gap: 32, fontSize: 15, fontWeight: 600 }}>
+            {[['Features','/features'],['How it works','/how-it-works'],['Pricing','/pricing'],['About','/about']].map(([l,p]) => (
+              <Link key={l} to={p} style={{ 
+                textDecoration: 'none', 
+                color: location.pathname === p ? 'var(--primary)' : '#555', 
+                transition: 'color 0.2s', 
+                borderBottom: location.pathname === p ? '2px solid var(--primary)' : '2px solid transparent', 
+                paddingBottom: 2 
+              }}>{l}</Link>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            <Link to="/signin" style={{ fontSize: 15, fontWeight: 600, color: '#555', textDecoration: 'none', transition: 'color 0.2s', marginRight: 16 }}>
+              Sign In
+            </Link>
+            <Link to="/signup" className="btn-primary" style={{ padding: '10px 20px', fontSize: 14, textDecoration: 'none' }}>
+              Get Started <ArrowRight style={{ width: 15, height: 15 }} />
+            </Link>
+          </div>
+        </div>
+
+        {/* Mobile Navbar */}
+        <div className="flex md:hidden" style={{ 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          width: '100%' 
+        }}>
+          <Link to="/" style={{ textDecoration: 'none' }} onClick={() => setIsOpen(false)}>
+            <LuterLogo size={30} fontSize={22} />
+          </Link>
+
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <Link to="/signup" className="btn-primary" style={{ padding: '8px 16px', fontSize: 13, textDecoration: 'none' }}>
+              Get Started
+            </Link>
+            
+            <button 
+              onClick={() => setIsOpen(!isOpen)} 
+              style={{ 
+                zIndex: 300, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: 5, 
+                padding: '8px',
+                background: 'transparent',
+                border: 'none'
+              }}
+            >
+              <div style={{ width: 22, height: 2, background: '#111', borderRadius: 2, transition: '0.3s', transform: isOpen ? 'rotate(45deg) translate(5px, 5px)' : 'none' }} />
+              <div style={{ width: 16, height: 2, background: '#111', borderRadius: 2, transition: '0.3s', opacity: isOpen ? 0 : 1 }} />
+              <div style={{ width: 22, height: 2, background: '#111', borderRadius: 2, transition: '0.3s', transform: isOpen ? 'rotate(-45deg) translate(5px, -5px)' : 'none' }} />
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Mobile Menu Overlay */}
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'white',
+        zIndex: 150,
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '120px 40px 40px',
+        transition: '0.4s cubic-bezier(0.23, 1, 0.32, 1)',
+        transform: isOpen ? 'translateY(0)' : 'translateY(-100%)',
+        opacity: isOpen ? 1 : 0,
+        pointerEvents: isOpen ? 'all' : 'none'
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {[['Features','/features'],['How it works','/how-it-works'],['Pricing','/pricing'],['About','/about'],['Sign In','/signin']].map(([l,p]) => (
+            <Link 
+              key={l} 
+              to={p} 
+              onClick={() => setIsOpen(false)}
+              style={{ 
+                fontSize: 32, 
+                fontWeight: 800, 
+                color: location.pathname === p ? 'var(--primary)' : '#111',
+                textDecoration: 'none',
+                fontFamily: 'var(--font-besley)'
+              }}
+            >
+              {l}
+            </Link>
+          ))}
+        </div>
+
+        <div style={{ marginTop: 'auto' }}>
+          <p style={{ fontSize: 14, color: '#888', marginBottom: 20 }}>Ready to unlock your potential?</p>
+          <Link 
+            to="/signup" 
+            onClick={() => setIsOpen(false)}
+            className="btn-primary" 
+            style={{ width: '100%', justifyContent: 'center', padding: '20px', fontSize: 18, borderRadius: 20 }}
+          >
+            Get Started Now
+          </Link>
+        </div>
       </div>
-      <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-        <Link to="/signin" style={{ fontSize: 15, fontWeight: 600, color: '#555', textDecoration: 'none', transition: 'color 0.2s' }}>
-          Sign In
-        </Link>
-        <Link to="/signup" className="btn-primary" style={{ padding: '10px 20px', fontSize: 14, textDecoration: 'none', fontFamily: 'var(--font-varela)' }}>
-          Get Started <ArrowRight style={{ width: 15, height: 15 }} />
-        </Link>
-      </div>
-    </nav>
+    </>
   );
 }

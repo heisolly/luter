@@ -13,6 +13,9 @@ export default function SignUp() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [successEmail, setSuccessEmail] = useState('');
+  
+  const queryParams = new URLSearchParams(window.location.search);
+  const redirectPath = queryParams.get('redirect') || '/onboarding';
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -20,7 +23,7 @@ export default function SignUp() {
     const { data, error: err } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/onboarding`
+        redirectTo: `${window.location.origin}${redirectPath}`
       }
     });
     setGoogleLoading(false);
@@ -37,7 +40,7 @@ export default function SignUp() {
     });
     setLoading(false);
     if (err) { setError(err.message); return; }
-    if (data?.session) { navigate('/onboarding'); }
+    if (data?.session) { navigate(redirectPath); }
     else { setSuccessEmail(email); setSuccess(true); }
   };
 

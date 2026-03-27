@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import DashboardSidebar from './DashboardSidebar'
 import DashboardHome from './DashboardHome'
@@ -17,12 +18,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 import './dashboard.css'
 
 export default function Dashboard() {
+  const location = useLocation()
+  const navigate = useNavigate()
   const [activePage, setActivePage] = useState('home')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeCourse, setActiveCourse] = useState(null)
   const [showInviteNotify, setShowInviteNotify] = useState(null)
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   useEffect(() => {
     let hb;
@@ -55,10 +60,21 @@ export default function Dashboard() {
             }
           })
           .subscribe();
+      } else {
+        // Redirect to signin if no session
+        const currentPath = window.location.pathname + window.location.search;
+        navigate(`/signin?redirect=${encodeURIComponent(currentPath)}`);
       }
       setLoading(false);
     };
 
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) setMobileSidebarOpen(false);
+    };
+
+    window.addEventListener('resize', handleResize);
     fetchUser();
 
     // ── Global Deep Link Listener ──
@@ -70,10 +86,18 @@ export default function Dashboard() {
     };
     window.addEventListener('DEEP_LINK_DASH', handleDeepLink);
 
+    // ── Handle Initial Route/Params ──
+    const params = new URLSearchParams(window.location.search);
+    const mId = params.get('matchId');
+    if (mId || window.location.pathname.includes('/compete')) {
+      setActivePage('compete');
+    }
+
     return () => {
       if (hb) clearInterval(hb);
       if (channel) supabase.removeChannel(channel);
       window.removeEventListener('DEEP_LINK_DASH', handleDeepLink);
+      window.removeEventListener('resize', handleResize);
     }
   }, []);
 
@@ -121,18 +145,58 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="dash-root">
-      <DashboardSidebar
-        activePage={activePage}
-        setActivePage={(page) => {
-          setActiveCourse(null)
-          setActivePage(page)
-        }}
-        collapsed={sidebarCollapsed}
-        setCollapsed={setSidebarCollapsed}
-        user={user}
-      />
-      <main className={`dash-main ${sidebarCollapsed ? 'collapsed' : ''}`}>
+    <div className={`dash-root ${isMobile ? 'dash-root--mobile' : ''}`}>
+      {/* ── Mobile Top Bar ── */}
+      {isMobile && (
+        <div className="mobile-topbar">
+          <button className="mobile-menu-btn" onClick={() => setMobileSidebarOpen(true)}>
+            <div className="menu-icon-bars">
+              <div className="menu-bar" />
+              <div className="menu-bar" style={{ width: '14px' }} />
+              <div className="menu-bar" />
+            </div>
+          </button>
+          
+          <div className="mobile-logo-wrap">
+            <LuterLogo size={24} fontSize={18} />
+          </div>
+
+          <div className="mobile-user-avatar" onClick={() => setActivePage('settings')}>
+            {user?.user_metadata?.full_name?.slice(0, 1).toUpperCase() || 'S'}
+          </div>
+        </div>
+      )}
+
+      {/* ── Sidebar Overlay (Mobile) ── */}
+      <AnimatePresence>
+        {isMobile && mobileSidebarOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="mobile-sidebar-overlay"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <div className={`dsb-container ${isMobile && mobileSidebarOpen ? 'dsb-container--open' : ''}`}>
+        <DashboardSidebar
+          activePage={activePage}
+          setActivePage={(page) => {
+            setActiveCourse(null)
+            setActivePage(page)
+            if (isMobile) setMobileSidebarOpen(false)
+          }}
+          collapsed={sidebarCollapsed}
+          setCollapsed={setSidebarCollapsed}
+          user={user}
+          isMobile={isMobile}
+          onClose={() => setMobileSidebarOpen(false)}
+        />
+      </div>
+
+      <main className={`dash-main ${sidebarCollapsed ? 'collapsed' : ''} ${isMobile ? 'dash-main--mobile' : ''}`}>
         {renderPage()}
       </main>
 

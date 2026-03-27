@@ -11,6 +11,9 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  const queryParams = new URLSearchParams(window.location.search);
+  const redirectPath = queryParams.get('redirect') || '/dashboard';
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -18,7 +21,7 @@ export default function SignIn() {
     const { data, error: err } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/dashboard`
+        redirectTo: `${window.location.origin}${redirectPath}`
       }
     });
     setGoogleLoading(false);
@@ -35,7 +38,7 @@ export default function SignIn() {
     });
     setLoading(false);
     if (err) { setError(err.message); return; }
-    if (data?.session) { navigate('/dashboard'); }
+    if (data?.session) { navigate(redirectPath); }
   };
 
   return (

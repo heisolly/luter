@@ -19,6 +19,57 @@ export default function CompetePage({ user, setActivePage }) {
   const [matchingStep, setMatchingStep] = useState(0) 
   const [liveCount, setLiveCount] = useState(0)
 
+  // 1. Initial Match Check (Deep Link)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const mId = params.get('matchId')
+    if (mId && user) {
+      joinInviteMatch(mId)
+    }
+  }, [user])
+
+  const joinInviteMatch = async (mId) => {
+    setLoading(true)
+    setMatchingStep(1) // Searching...
+    
+    const { data: m, error } = await supabase
+      .from('matches')
+      .select('*, profiles:challenger_id(full_name)')
+      .eq('session_id', mId)
+      .maybeSingle()
+
+    if (m) {
+      if (m.status === 'active' || m.opponent_id) {
+         // Already active or joined
+         setSearchTarget(m.profiles?.full_name || 'Opponent')
+         setMatchingStep(2)
+         setCurrentMatch(m)
+      } else if (m.challenger_id === user.id) {
+         // I am the challenger
+         setCurrentMatch(m)
+         setMatchingStep(3) // Waiting room
+      } else {
+         // Joining as opponent
+         const { data: updated } = await supabase
+           .from('matches')
+           .update({ 
+             opponent_id: user.id,
+             status: 'active'
+           })
+           .eq('id', m.id)
+           .select('*, profiles:challenger_id(full_name)')
+           .single()
+
+         if (updated) {
+            setSearchTarget(updated.profiles?.full_name || 'Opponent')
+            setMatchingStep(2)
+            setCurrentMatch(updated)
+         }
+      }
+    }
+    setLoading(false)
+  }
+
   useEffect(() => {
     const fetchLive = async () => {
        const fiveMinsAgo = new Date(Date.now() - 5 * 60000).toISOString()
@@ -125,18 +176,21 @@ export default function CompetePage({ user, setActivePage }) {
      const channel = supabase
        .channel(`match_${currentMatch.id}`)
        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'matches', filter: `id=eq.${currentMatch.id}` }, 
-         (payload) => {
-           if (payload.new.opponent_id) {
+         async (payload) => {
+           if (payload.new.opponent_id && payload.new.opponent_id !== user.id) {
+              // Fetch opponent name
+              const { data: oppPrf } = await supabase.from('profiles').select('full_name').eq('id', payload.new.opponent_id).single()
+              setSearchTarget(oppPrf?.full_name || "New Opponent")
               setMatchingStep(2) 
               setTimeout(() => {
-                 alert("Your opponent has arrived! Starting the battle...")
                  setMatchingStep(0)
-              }, 2000)
+                 alert(`The battle with ${oppPrf?.full_name} is starting!`)
+              }, 2500)
            }
          }
        ).subscribe()
      return () => { supabase.removeChannel(channel) }
-  }, [currentMatch])
+  }, [currentMatch, user])
 
   return (
     <div style={{ padding: '40px', maxWidth: 1000, margin: '0 auto', fontFamily: 'inherit' }}>

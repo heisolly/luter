@@ -103,27 +103,120 @@ export default function LandingPage() {
     <div ref={containerRef} style={{ background: '#fff', minHeight: '100vh' }}>
 
       {/* ═══════════════ NAVBAR ═══════════════ */}
-      <nav className="navbar" style={{ padding: '0 40px', background: 'transparent', height: 80, display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 100 }}>
-        <Link to="/" style={{ textDecoration: 'none' }}>
-          <LuterLogo size={36} fontSize={28} />
-        </Link>
+      <nav className="navbar" style={{ 
+        padding: '20px 40px', 
+        background: 'transparent', 
+        zIndex: 200,
+        position: 'absolute',
+        top: 0, left: 0, right: 0
+      }}>
+        {/* Desktop Navbar - Locked to md+ screens */}
+        <div className="hidden md:flex" style={{ 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          width: '100%',
+          fontFamily: 'var(--font-varela)'
+        }}>
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <LuterLogo size={36} fontSize={28} />
+          </Link>
 
-        <div className="hidden md:flex" style={{ gap: 32, fontSize: 14, fontWeight: 600, color: '#555' }}>
-          {[['Features','/features'],['How it works','/how-it-works'],['Pricing','/pricing'],['About','/about']].map(([l,h]) => (
-            <Link key={l} to={h} style={{ transition: 'color 0.2s', color: 'inherit', textDecoration: 'none' }}
-              onMouseEnter={e => e.target.style.color='#000'}
-              onMouseLeave={e => e.target.style.color='#555'}>{l}</Link>
+          <div style={{ display: 'flex', gap: 32, fontSize: 14, fontWeight: 600, color: '#555' }}>
+            {[['Features','#features'],['How it works','#howitworks'],['Pricing','/pricing'],['About','/about']].map(([l,h]) => (
+              <Link key={l} to={h} style={{ transition: 'color 0.2s', color: 'inherit', textDecoration: 'none' }}
+                onMouseEnter={e => e.target.style.color='#000'}
+                onMouseLeave={e => e.target.style.color='#555'}>{l}</Link>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <Link to="/signin" style={{ fontSize: 14, fontWeight: 600, color: '#444', textDecoration: 'none' }}>Log in</Link>
+            <Link to="/signup" className="btn-primary" style={{ padding: '10px 24px', fontSize: 14, textDecoration: 'none' }}>
+              Get Started <ArrowRight style={{ width: 15, height: 15 }} />
+            </Link>
+          </div>
+        </div>
+
+        {/* Mobile Navbar - Only on mobile screens */}
+        <div className="flex md:hidden" style={{ 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          width: '100%' 
+        }}>
+          <Link to="/" style={{ textDecoration: 'none' }} onClick={() => setMobileOpen(false)}>
+            <LuterLogo size={32} fontSize={24} />
+          </Link>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Link to="/signup" className="btn-primary" style={{ padding: '8px 16px', fontSize: 13, textDecoration: 'none' }}>
+              Get Started
+            </Link>
+            <button 
+              onClick={() => setMobileOpen(!mobileOpen)}
+              style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: 5, 
+                padding: '8px',
+                zIndex: 300,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{ width: 22, height: 2, background: '#111', borderRadius: 2, transition: '0.3s', transform: mobileOpen ? 'rotate(45deg) translate(5px, 5px)' : 'none' }} />
+              <div style={{ width: 16, height: 2, background: '#111', borderRadius: 2, transition: '0.3s', opacity: mobileOpen ? 0 : 1 }} />
+              <div style={{ width: 22, height: 2, background: '#111', borderRadius: 2, transition: '0.3s', transform: mobileOpen ? 'rotate(-45deg) translate(5px, -5px)' : 'none' }} />
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Mobile Menu Overlay */}
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(255,255,255,0.98)',
+        backdropFilter: 'blur(10px)',
+        zIndex: 150,
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '120px 40px 40px',
+        transition: '0.5s cubic-bezier(0.23, 1, 0.32, 1)',
+        transform: mobileOpen ? 'translateY(0)' : 'translateY(-100%)',
+        opacity: mobileOpen ? 1 : 0,
+        pointerEvents: mobileOpen ? 'all' : 'none'
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {[['Features','/features'],['How it works','/how-it-works'],['Pricing','/pricing'],['About','/about'],['Sign In','/signin']].map(([l,p]) => (
+            <Link 
+              key={l} 
+              to={p} 
+              onClick={() => setMobileOpen(false)}
+              style={{ 
+                fontSize: 32, 
+                fontWeight: 800, 
+                color: '#111',
+                textDecoration: 'none',
+                fontFamily: 'var(--font-besley)'
+              }}
+            >
+              {l}
+            </Link>
           ))}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link to="/signin" style={{ fontSize: 14, fontWeight: 600, color: '#444' }}
-            className="hidden md:block">Log in</Link>
-          <Link to="/signup" className="btn-primary" style={{ padding: '10px 20px', fontSize: 14, textDecoration: 'none' }}>
-            Get Started <ArrowRight style={{ width: 15, height: 15 }} />
+        <div style={{ marginTop: 'auto' }}>
+          <Link 
+            to="/signup" 
+            onClick={() => setMobileOpen(false)}
+            className="btn-primary" 
+            style={{ width: '100%', justifyContent: 'center', padding: '18px', fontSize: 16, borderRadius: 16 }}
+          >
+            Start Free Today
           </Link>
         </div>
-      </nav>
+      </div>
 
       {/* ═══════════════ HERO ═══════════════ */}
       <section className="hero-section" style={{ paddingTop: 120 }}>

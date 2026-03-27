@@ -388,7 +388,7 @@ export default function Onboarding() {
                 <h2 style={{ fontSize:26, fontWeight:900, color:'#111', letterSpacing:'-0.03em', margin:'0 0 4px' }}>Where do you study, {nickname}?</h2>
                 <p style={{ color:'#888', fontSize:13, margin:'0 0 26px' }}>Let's pull up your exact curriculum syllabus from our records.</p>
 
-                <div style={{ display:'flex', gap:32, alignItems:'flex-start' }}>
+                <div className="stack-on-mobile" style={{ display:'flex', gap:32, alignItems:'flex-start' }}>
                   <div style={{ flex:1, display:'flex', flexDirection:'column', gap:16 }}>
                     <div>
                       <label style={{ fontSize:11, fontWeight:800, color:'#555', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:6 }}>Country</label>
@@ -456,7 +456,9 @@ export default function Onboarding() {
                     </div>
                   </div>
 
-                  <IDCard name={nickname} university={university} course={courseOfStudy} level={level} />
+                  <div className="full-width-mobile" style={{ display: 'flex', justifyContent: 'center', width: 'auto' }}>
+                    <IDCard name={nickname} university={university} course={courseOfStudy} level={level} />
+                  </div>
                 </div>
               </div>
             )}

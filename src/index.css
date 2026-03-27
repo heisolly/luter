@@ -111,6 +111,23 @@ h2, h3, h4 {
   .container-custom {
     padding: 0 20px;
   }
+  
+  /* Generic Responsive Helpers */
+  .hide-on-mobile { display: none !important; }
+  .stack-on-mobile { flex-direction: column !important; }
+  .full-width-mobile { width: 100% !important; max-width: 100% !important; }
+  
+  /* Shared Navbar Adjustments */
+  .navbar { padding: 0 20px !important; height: 72px !important; }
+  
+  /* Hero Section Adjustments */
+  .hero-section { padding-top: 100px !important; }
+  .hero-content h1 { font-size: 2.5rem !important; }
+  .hero-content p { font-size: 1.1rem !important; }
+  
+  /* Dashboard Mockup on Landing */
+  .dashboard-wrapper { margin: 40px 10px 0 !important; }
+  .dashboard-content { height: 360px !important; }
 }
 
 /* ===========================
@@ -712,7 +729,9 @@ h2, h3, h4 {
 }
 
 @media (max-width: 640px) {
-  .section-16-grid { grid-template-columns: 1fr; }
+  .section-16-grid { grid-template-columns: 1fr; gap: 16px; }
+  .card, .card-dark, .pain-card, .role-card, .stat-card { padding: 24px 20px !important; }
+  .stat-number { font-size: 2.2rem !important; }
 }
 
 /* ===========================
@@ -1044,3 +1063,29 @@ h2, h3, h4 {
   box-shadow: 0 12px 48px rgba(151, 24, 251, 0.12);
 }
 
+/* ===========================
+   EXTRA RESPONSIVE FIXES
+   =========================== */
+@media (max-width: 768px) {
+  /* Pricing Cards Stacking */
+  [style*="justifyContent: 'center'"][style*="gap: 0"] {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 32px !important;
+  }
+  
+  [style*="flex: '1 1 300px'"] {
+    max-width: 100% !important;
+    margin: 0 !important;
+    transform: scale(1) !important;
+  }
+  
+  /* FAQ Padding */
+  .faq-question h4 { font-size: 15px !important; }
+  
+  /* Footer Stacking */
+  footer [style*="display: 'grid'"][style*="gridTemplateColumns: 'repeat(5, 1fr)'"] {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 40px 20px !important;
+  }
+}
