@@ -15,6 +15,7 @@ import ReferPage from './ReferPage'
 import CompetePage from './CompetePage'
 import { Loader2, Sword, X, ArrowRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import LuterLogo from '../shared/LuterLogo'
 import './dashboard.css'
 
 export default function Dashboard() {
