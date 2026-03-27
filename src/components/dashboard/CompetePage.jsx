@@ -161,7 +161,7 @@ export default function CompetePage({ user, setActivePage }) {
       .single()
 
     if (data) {
-      const link = `https://luterai.vercel.app/compete?matchId=${matchId}`
+      const link = `${window.location.origin}/compete?matchId=${matchId}`
        navigator.clipboard.writeText(link)
        setCopiedLink(true)
        setMatchingStep(3) 
