@@ -110,7 +110,7 @@ export default function CompetePage({ user, setActivePage }) {
       .single()
 
     if (data) {
-      const link = `https://luter.ai/compete?matchId=${matchId}`
+      const link = `https://luterai.vercel.app/compete?matchId=${matchId}`
        navigator.clipboard.writeText(link)
        setCopiedLink(true)
        setMatchingStep(3) 
@@ -158,7 +158,7 @@ export default function CompetePage({ user, setActivePage }) {
              </div>
            </div>
         </div>
-        
+
         <div style={{ display: 'flex', gap: 4, background: '#f5eeff50', padding: '6px', borderRadius: 20, border: '1.5px solid #f5eeff', backdropFilter: 'blur(10px)' }}>
             {['leaderboard', 'arena'].map(tab => (
               <button

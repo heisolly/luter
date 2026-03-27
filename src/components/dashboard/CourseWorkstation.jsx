@@ -369,7 +369,7 @@ function AINotebookTab({ course }) {
         headers: {
           'Authorization': `Bearer ${OPENROUTER_KEY}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://luter.ai',
+          'HTTP-Referer': 'https://luterai.vercel.app',
           'X-Title': 'Luter AI Tutor'
         },
         body: JSON.stringify({

@@ -8,7 +8,6 @@ import SignIn from './components/SignIn'
 import SignUp from './components/SignUp'
 import Onboarding from './components/Onboarding'
 import Dashboard from './components/dashboard/Dashboard'
-import './index.css'
 
 export default function App() {
   return (

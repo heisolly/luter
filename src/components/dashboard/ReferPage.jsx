@@ -11,9 +11,12 @@ const InstagramIcon = ({ size }) => (
   </svg>
 )
 
+const SHARE_LINK = 'https://luterai.vercel.app'
+const INVITE_BASE = 'https://luterai.vercel.app/signup'
+
 export default function ReferPage({ user }) {
   const [copied, setCopied] = useState(false)
-  const refLink = `https://luter.ai/ref/${user?.id?.slice(0,8) || 'student'}`
+  const refLink = `${INVITE_BASE}/ref/${user?.id?.slice(0,8) || 'student'}`
 
   const copyRef = () => {
     navigator.clipboard.writeText(refLink)

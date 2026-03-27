@@ -209,7 +209,6 @@ export default function MockExamPage({ user, preselectedCourse }) {
     ];
     return (
       <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap');`}</style>
         
         <div style={{ width: '100%', maxWidth: 440, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           
@@ -542,7 +541,6 @@ export default function MockExamPage({ user, preselectedCourse }) {
 
     return (
       <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'inherit' }}>
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap');`}</style>
         
         <div style={{ flex: 1, padding: '20px 20px 100px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
           <div style={{ width: '100%', maxWidth: 520, marginTop: '2vh' }}>
@@ -856,7 +854,7 @@ export default function MockExamPage({ user, preselectedCourse }) {
             {/* Social Share Tray (WhatsApp, Instagram, etc) */}
             <div style={{ display: 'flex', gap: 10 }}>
               <button
-                onClick={() => window.open(`https://wa.me/?text=I just scored ${score}/${SAMPLE_QUESTIONS.length} on Luter! 🎯 Lock in for your exams at: https://luter.ai`, '_blank')}
+                onClick={() => window.open(`https://wa.me/?text=I just scored ${score}/${SAMPLE_QUESTIONS.length} on Luter! 🎯 Lock in for your exams at: https://luterai.vercel.app`, '_blank')}
                 style={{
                   height: 54, width: 54, borderRadius: 22, background: '#22c55e10', color: '#22c55e', border: '1px solid #22c55e20',
                   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.1s'

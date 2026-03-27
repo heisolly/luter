@@ -7,7 +7,6 @@ export default function LuterLogo({ size = 32, fontSize = 28, showText = true, c
       className={`luter-logo-container ${className}`} 
       style={{ display: 'flex', alignItems: 'center', gap: 12 }}
     >
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap');`}</style>
       
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         <motion.img 
