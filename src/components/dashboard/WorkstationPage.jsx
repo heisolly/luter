@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { FileText, MessageSquare, Sparkles, Search, BookOpen } from 'lucide-react'
 
-export default function WorkstationPage({ isMobile }) {
+export default function WorkstationPage() {
+  const { isMobile } = useOutletContext()
   const [tab, setTab] = useState('notes')
   return (
     <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

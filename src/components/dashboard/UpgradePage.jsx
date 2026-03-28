@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Check, Sparkles, Zap } from 'lucide-react'
 
@@ -32,7 +33,8 @@ const plans = [
   }
 ]
 
-export default function UpgradePage({ isMobile }) {
+export default function UpgradePage() {
+  const { isMobile } = useOutletContext()
   const [isSemester, setIsSemester] = useState(true)
 
   return (

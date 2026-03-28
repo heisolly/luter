@@ -3,9 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   BookOpen, Zap, Clock, Bell, FileText,
   FlaskConical, CheckCircle, Flame,
-  Brain, Play, X, Camera, Trophy, Loader2, Users
+  Brain, Play, X, Camera, Trophy, Loader2, Users,
+  Sparkles, Layers, ArrowRight, Star, BarChart3
 } from 'lucide-react'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
+import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import './dhd.css'
 
 /* ── colour palette (cycles by index) ── */
@@ -32,7 +35,10 @@ function GhostBubble({ onDismiss }) {
 }
 
 /* ══ MAIN ══ */
-export default function DashboardHome({ setActivePage, user, onOpenCourse, isMobile }) {
+export default function DashboardHome() {
+  const navigate = useNavigate()
+  const { user, isMobile } = useOutletContext()
+  const { ready, bundle } = useDashboardPrefetch()
   const name = user?.user_metadata?.full_name?.split(' ')[0] || 'Student'
 
   const [courses,   setCourses]   = useState([])   // user's enrolled courses
@@ -40,50 +46,57 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
   const [loading,   setLoading]   = useState(true)
   const [showGhost, setShowGhost] = useState(false)
 
-  /* ── Fetch enrolled courses + stats ── */
   useEffect(() => {
     if (!user) return
+    const t = setTimeout(() => setShowGhost(true), 2000)
+    return () => clearTimeout(t)
+  }, [user])
 
-    const load = async () => {
-      // Enrolled courses joined with course info
+  /* ── Enrolled courses + stats (prefetched with dashboard bundle) ── */
+  useEffect(() => {
+    if (!user) return
+    if (!ready) return
+
+    const mapCourses = (uc) =>
+      uc.map((row, i) => ({
+        id:          row.course.id,
+        ucId:        row.id,
+        code:        row.course.code,
+        name:        row.course.name,
+        faculty:     row.course.faculty,
+        color:       PALETTE[i % PALETTE.length],
+        progress:    row.progress ?? 0,
+        lastStudied: row.last_studied_at
+          ? new Date(row.last_studied_at).toLocaleDateString('en-US', { month:'short', day:'numeric' })
+          : 'Not started',
+      }))
+
+    const loadRemote = async () => {
       const { data: uc } = await supabase
         .from('user_courses')
         .select('id, progress, last_studied_at, target_score, course:courses(id, code, name, faculty)')
         .eq('user_id', user.id)
         .order('created_at')
 
-      if (uc) {
-        setCourses(uc.map((row, i) => ({
-          id:          row.course.id,
-          ucId:        row.id,
-          code:        row.course.code,
-          name:        row.course.name,
-          faculty:     row.course.faculty,
-          color:       PALETTE[i % PALETTE.length],
-          progress:    row.progress ?? 0,
-          lastStudied: row.last_studied_at
-            ? new Date(row.last_studied_at).toLocaleDateString('en-US', { month:'short', day:'numeric' })
-            : 'Not started',
-        })))
-      }
+      if (uc) setCourses(mapCourses(uc))
 
-      // User stats
       const { data: st } = await supabase
         .from('user_stats')
         .select('total_xp, streak_days, lives')
         .eq('user_id', user.id)
         .maybeSingle()
       if (st) setStats(st)
-
       setLoading(false)
     }
 
-    load()
-
-    // Ghost tutorial after 2s if no courses touched yet
-    const t = setTimeout(() => setShowGhost(true), 2000)
-    return () => clearTimeout(t)
-  }, [user])
+    if (bundle?.uc && !bundle.uc.error && Array.isArray(bundle.uc.data)) {
+      setCourses(mapCourses(bundle.uc.data))
+      if (bundle.stats?.data) setStats(bundle.stats.data)
+      setLoading(false)
+      return
+    }
+    loadRemote()
+  }, [user, ready, bundle])
 
   const xp    = stats?.total_xp   ?? 0
   const streak= stats?.streak_days ?? 0
@@ -206,7 +219,7 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
                 overflow: 'hidden',
                 cursor: 'pointer'
               }}
-              onClick={() => onOpenCourse?.(active)}
+              onClick={() => navigate(`/dashboard/courses/${active.id}`)}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: `${active.color}10`, padding: '6px 12px', borderRadius: 12, border: `1.5px solid ${active.color}` }}>
@@ -257,7 +270,7 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
                 <p style={{ fontSize: 13, fontWeight: 600, color: '#888', margin: '4px 0 0' }}>Initialize your scholarship to begin.</p>
               </div>
               <button 
-                onClick={() => setActivePage('courses')}
+                onClick={() => navigate('/dashboard/courses')}
                 style={{ background: 'var(--primary)', color: '#fff', borderRadius: 16, border: 'none', padding: '14px 28px', fontSize: 14, fontWeight: 800, boxShadow: '0 8px 16px rgba(122,18,204,0.2)', cursor: 'pointer' }}
               >
                 BROWSE COURSES
@@ -279,7 +292,7 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
               justifyContent: 'center',
               cursor: 'pointer'
             }}
-            onClick={() => setActivePage('vault')}
+            onClick={() => navigate('/dashboard/workstation')}
           >
             <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--primary)', border: '1.5px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', marginBottom: 20, boxShadow: '0 4px 12px rgba(122,18,204,0.2)' }}>
               <Camera size={24} strokeWidth={3} />
@@ -302,7 +315,7 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <h4 style={{ fontSize: 11, fontWeight: 800, color: '#111', letterSpacing: '0.15em', textTransform: 'uppercase', margin: 0 }}>Current Enrollment</h4>
-            <button onClick={() => setActivePage('courses')} style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer' }}>VIEW ALL ({courses.length})</button>
+            <button onClick={() => navigate('/dashboard/courses')} style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer' }}>VIEW ALL ({courses.length})</button>
           </div>
           
           <div className="no-scrollbar" style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 10 }}>
@@ -310,7 +323,7 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
               <motion.div 
                 key={c.id} 
                 whileTap={{ scale: 0.96 }}
-                onClick={() => onOpenCourse?.(c)}
+                onClick={() => navigate(`/dashboard/courses/${c.id}`)}
                 style={{ 
                   flexShrink: 0, 
                   width: isMobile ? 180 : 220, 
@@ -333,7 +346,7 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
             ))}
             <div 
               style={{ flexShrink: 0, width: isMobile ? 140 : 160, borderRadius: 20, border: '1.5px dashed var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#999', cursor: 'pointer', background: '#fafafa' }}
-              onClick={() => setActivePage('courses')}
+              onClick={() => navigate('/dashboard/courses')}
             >
               <Zap size={20} style={{ marginBottom: 4 }} />
               <div style={{ fontSize: 11, fontWeight: 800 }}>ENROLL</div>
@@ -358,7 +371,7 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
               overflow: 'hidden',
               cursor: 'pointer'
             }}
-            onClick={() => setActivePage('compete')}
+            onClick={() => navigate('/dashboard/compete')}
           >
             <div style={{ position: 'absolute', top: -20, right: -20, opacity: 0.1 }}>
               <Trophy size={120} />

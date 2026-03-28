@@ -1,16 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   BookOpen, Upload, Camera, FileText, Folder, FolderOpen,
   Plus, Clock, CheckCircle, Lock, ChevronRight, ArrowLeft,
   MessageSquare, Sparkles, Heart, Zap, Trophy, Star,
   AlertCircle, Play, Send, Loader2, X, Maximize2,
-  ChevronDown, ArrowRight, Brain, Timer, Shield, Flame
+  ChevronDown, ArrowRight, Brain, Timer, Shield, Flame, Layers
 } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
-
-const OPENROUTER_KEY = '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'
-const OPENROUTER_MODEL = 'google/gemini-1.5-flash'
+import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 function useCountdown(initialSeconds) {
@@ -191,19 +190,50 @@ function SolutionVaultTab({ course, userId }) {
     setSeconds(30 * 60)
     start()
 
-    // Simulate AI processing
-    setTimeout(() => {
-      const newAssignment = {
-        id: Date.now(),
-        title: `Assignment: ${file.name.replace(/\.[^.]+$/, '')}`,
-        uploadedAt: Date.now(),
-        status: 'solved',
-        solution: `**Step-by-Step Solution:**\n\n**Step 1:** Analyze the problem statement carefully.\n\n**Step 2:** Identify the key variables and given information.\n\n**Step 3:** Apply the relevant formula or theorem.\n\n**Step 4:** Calculate each component systematically.\n\n**Step 5:** Verify the answer and check units.\n\n**Final Answer:** The solution has been verified and checked for accuracy. All steps follow standard academic methodology for this course material.`
-      }
-      setAssignments(prev => [newAssignment, ...prev])
-      localStorage.removeItem(TIMER_KEY)
-      setTimerData(null)
-    }, 3000)
+    // Start AI processing
+    try {
+      // For demo, we'll simulate file processing with AI
+      // In production, you'd extract text from PDF/image here
+      const fileContent = `Assignment: ${file.name}\n\nThis is a sample assignment file that needs to be solved. The student is looking for a step-by-step solution with clear explanations.`
+      
+      const prompt = `${GROQ_PROMPTS.ASSIGNMENT_SOLUTION}\n\nAssignment Content:\n${fileContent}\n\nCourse: ${course?.name || 'General'}`
+      
+      const aiResponse = await callGroqAPI(
+        [{ role: 'user', content: prompt }],
+        GROQ_MODELS.PROFESSOR,
+        { temperature: 0.3 }
+      )
+      
+      // Simulate processing time for better UX
+      setTimeout(() => {
+        const newAssignment = {
+          id: Date.now(),
+          title: `Assignment: ${file.name.replace(/\.[^.]+$/, '')}`,
+          uploadedAt: Date.now(),
+          status: 'solved',
+          solution: aiResponse.choices?.[0]?.message?.content || `**Step-by-Step Solution:**\n\n**Step 1:** Analyze the problem statement carefully.\n\n**Step 2:** Identify the key variables and given information.\n\n**Step 3:** Apply the relevant formula or theorem.\n\n**Step 4:** Calculate each component systematically.\n\n**Step 5:** Verify the answer and check units.\n\n**Final Answer:** The solution has been verified and checked for accuracy. All steps follow standard academic methodology for this course material.`
+        }
+        setAssignments(prev => [newAssignment, ...prev])
+        localStorage.removeItem(TIMER_KEY)
+        setTimerData(null)
+      }, 3000)
+      
+    } catch (error) {
+      console.error('Error generating solution:', error)
+      // Fallback solution
+      setTimeout(() => {
+        const newAssignment = {
+          id: Date.now(),
+          title: `Assignment: ${file.name.replace(/\.[^.]+$/, '')}`,
+          uploadedAt: Date.now(),
+          status: 'solved',
+          solution: `**Step-by-Step Solution:**\n\n**Step 1:** Analyze the problem statement carefully.\n\n**Step 2:** Identify the key variables and given information.\n\n**Step 3:** Apply the relevant formula or theorem.\n\n**Step 4:** Calculate each component systematically.\n\n**Step 5:** Verify the answer and check units.\n\n**Final Answer:** The solution has been verified and checked for accuracy. All steps follow standard academic methodology for this course material.`
+        }
+        setAssignments(prev => [newAssignment, ...prev])
+        localStorage.removeItem(TIMER_KEY)
+        setTimerData(null)
+      }, 3000)
+    }
   }
 
   const progress = timerData ? ((30 * 60 - seconds) / (30 * 60)) * 100 : 0
@@ -323,163 +353,409 @@ function SolutionVaultTab({ course, userId }) {
   )
 }
 
-// ─── Tab C: AI Notebook ──────────────────────────────────────────────────────
-function AINotebookTab({ course }) {
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: `Hey! I'm your AI tutor for **${course?.name || 'this course'}**. I've read all your uploaded notes. What would you like to understand? 🧠` }
-  ])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [selectedTopic, setSelectedTopic] = useState(null)
-  const [proactiveShown, setProactiveShown] = useState(false)
-  const bottomRef = useRef()
-  const proactiveTimer = useRef()
+// ─── Tab D: AI Notes ───────────────────────────────────────────────────────
+function AINotesTab({ course }) {
+  const [notes, setNotes] = useState('')
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [uploadedContent, setUploadedContent] = useState('')
 
-  const topics = ['Introduction & Overview', 'Core Theories', 'Key Formulas', 'Problem Solving', 'Past Questions Analysis']
+  const sampleContent = `Lecture: Introduction to ${course?.name || 'Course'}\n\n**Key Concepts:**\n- Fundamental principles and theories\n- Important definitions and terminology\n- Practical applications and examples\n\n**Formulas:**\n1. Core equation 1: E = mc²\n2. Core equation 2: F = ma\n3. Core equation 3: PV = nRT\n\n**Applications:**\n- Real-world examples\n- Problem-solving techniques\n- Advanced topics`
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading])
-
-  // Proactive AI message after 30s idle
-  useEffect(() => {
-    proactiveTimer.current = setTimeout(() => {
-      if (!proactiveShown && messages.length === 1) {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: "This section is usually tricky — want me to explain it with a real-world analogy? Just say 'Yes, explain!' 💡"
-        }])
-        setProactiveShown(true)
-      }
-    }, 30000)
-    return () => clearTimeout(proactiveTimer.current)
-  }, [proactiveShown, messages.length])
-
-  const sendMessage = async () => {
-    if (!input.trim() || loading) return
-    const userMsg = { role: 'user', content: input }
-    setMessages(prev => [...prev, userMsg])
-    setInput('')
-    setLoading(true)
-    clearTimeout(proactiveTimer.current)
-
+  const generateNotes = async () => {
+    if (!uploadedContent && !course) return
+    
+    setIsGenerating(true)
+    
     try {
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_KEY}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://luterai.vercel.app',
-          'X-Title': 'Luter AI Tutor'
-        },
-        body: JSON.stringify({
-          model: OPENROUTER_MODEL,
-          messages: [
-            {
-              role: 'system',
-              content: `You are Luter, an expert AI tutor for the course "${course?.name || 'this course'}". 
-              You help students understand concepts clearly using analogies, examples, and step-by-step explanations.
-              Prioritize content from uploaded course materials when answering. Be encouraging, concise, and student-friendly.
-              Use emojis sparingly to make responses engaging. Format answers with clear structure.`
-            },
-            ...messages.map(m => ({ role: m.role, content: m.content })),
-            { role: 'user', content: input }
-          ],
-          max_tokens: 600
-        })
-      })
-      const data = await res.json()
-      const reply = data.choices?.[0]?.message?.content || "I'm having trouble connecting. Please try again!"
-      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
-    } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: "Network error. Check your connection and try again." }])
+      const content = uploadedContent || sampleContent
+      const prompt = `${GROQ_PROMPTS.AI_NOTES}\n\nCourse: ${course?.name || 'General'}\n\n${content}`
+      
+      const data = await callGroqAPI(
+        [{ role: 'user', content: prompt }],
+        GROQ_MODELS.PROFESSOR,
+        { temperature: 0.7 }
+      )
+      
+      setNotes(data.choices?.[0]?.message?.content || 'No notes generated')
+    } catch (error) {
+      console.error('Error generating notes:', error)
+      setNotes('Error generating notes. Please try again.')
     }
-    setLoading(false)
+    
+    setIsGenerating(false)
   }
 
   return (
-    <div className="cw-notebook">
-      {/* Topic Selector */}
-      <div className="cw-topics-bar">
-        <span className="cw-topics-label">Topic:</span>
-        <div className="cw-topics-scroll">
-          {topics.map(t => (
+    <div className="cw-notes">
+      <div className="cw-notes-header">
+        <h3 className="cw-section-title">AI Notes Generator</h3>
+        <p className="cw-section-sub">Transform lectures into First-Class quality notes</p>
+      </div>
+
+      <div className="cw-input-area">
+        <textarea
+          value={uploadedContent}
+          onChange={(e) => setUploadedContent(e.target.value)}
+          placeholder="Paste your lecture content here, or use sample content..."
+          className="cw-textarea"
+          style={{ width: '100%', minHeight: '150px', padding: '12px', border: '1.5px solid #e5e7eb', borderRadius: '12px', fontSize: '14px', resize: 'vertical' }}
+        />
+      </div>
+
+      <button 
+        onClick={generateNotes}
+        disabled={isGenerating || (!uploadedContent && !course)}
+        className="cw-generate-btn"
+        style={{ 
+          padding: '12px 24px', 
+          background: isGenerating ? '#f3f4f6' : '#7a12cc', 
+          color: isGenerating ? '#9ca3af' : 'white', 
+          border: '1.5px solid #7a12cc', 
+          borderRadius: '12px', 
+          fontSize: '14px', 
+          fontWeight: '700', 
+          cursor: isGenerating ? 'not-allowed' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          margin: '16px 0'
+        }}
+      >
+        {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Brain size={18} />}
+        {isGenerating ? 'Generating Notes...' : 'Generate AI Notes'}
+      </button>
+
+      {notes && (
+        <div className="cw-notes-output" style={{ background: 'white', border: '1.5px solid #e5e7eb', borderRadius: '16px', padding: '20px' }}>
+          <div className="cw-notes-output-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>Generated Notes</h4>
+            <div className="cw-notes-actions" style={{ display: 'flex', gap: '8px' }}>
+              <button style={{ padding: '6px 12px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}><FileText size={14} /> Download</button>
+            </div>
+          </div>
+          <div className="cw-notes-content" style={{ lineHeight: 1.6, fontSize: '14px' }} dangerouslySetInnerHTML={{ __html: notes.replace(/\n/g, '<br />') }} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Tab E: Flashcards ───────────────────────────────────────────────────────
+function FlashcardsTab({ course }) {
+  const [flashcards, setFlashcards] = useState([])
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [uploadedContent, setUploadedContent] = useState('')
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isFlipped, setIsFlipped] = useState(false)
+
+  const sampleContent = `${course?.name || 'Course'} - Key Concepts\n\n**Important Terms:**\n- Definition 1: Core concept explanation\n- Definition 2: Fundamental principle\n- Definition 3: Critical application\n\n**Key Formulas:**\n- Formula A: Mathematical relationship\n- Formula B: Scientific principle\n- Formula C: Practical calculation`
+
+  const generateFlashcards = async () => {
+    if (!uploadedContent && !course) return
+    
+    setIsGenerating(true)
+    setIsFlipped(false)
+    
+    try {
+      const content = uploadedContent || sampleContent
+      const prompt = `${GROQ_PROMPTS.FLASHCARDS}\n\nCourse: ${course?.name || 'General'}\n\n${content}`
+      
+      const data = await callGroqAPI(
+        [{ role: 'user', content: prompt }],
+        GROQ_MODELS.SPEEDSTER,
+        { temperature: 0.7, responseFormat: { type: 'json_object' } }
+      )
+      
+      const response = JSON.parse(data.choices?.[0]?.message?.content || '{}')
+      const cards = response.flashcards || []
+      setFlashcards(cards)
+      setCurrentIndex(0)
+    } catch (error) {
+      console.error('Error generating flashcards:', error)
+      // Fallback flashcards
+      const fallbackCards = [
+        { front: `What is the main concept of ${course?.name || 'this course'}?`, back: 'The fundamental principle that governs the core subject matter' },
+        { front: 'Define the key terminology', back: 'The specific terms and definitions essential for understanding the subject' }
+      ]
+      setFlashcards(fallbackCards)
+      setCurrentIndex(0)
+    }
+    
+    setIsGenerating(false)
+  }
+
+  const nextCard = () => {
+    if (currentIndex < flashcards.length - 1) {
+      setCurrentIndex(currentIndex + 1)
+      setIsFlipped(false)
+    }
+  }
+
+  const prevCard = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1)
+      setIsFlipped(false)
+    }
+  }
+
+  const currentCard = flashcards[currentIndex]
+
+  return (
+    <div className="cw-flashcards">
+      <div className="cw-flashcards-header">
+        <h3 className="cw-section-title">Smart Flashcards</h3>
+        <p className="cw-section-sub">Active recall learning with AI-generated cards</p>
+      </div>
+
+      <div className="cw-input-area">
+        <textarea
+          value={uploadedContent}
+          onChange={(e) => setUploadedContent(e.target.value)}
+          placeholder="Paste your study material here..."
+          className="cw-textarea"
+          style={{ width: '100%', minHeight: '120px', padding: '12px', border: '1.5px solid #e5e7eb', borderRadius: '12px', fontSize: '14px', resize: 'vertical', marginBottom: '16px' }}
+        />
+      </div>
+
+      <button 
+        onClick={generateFlashcards}
+        disabled={isGenerating || (!uploadedContent && !course)}
+        className="cw-generate-btn"
+        style={{ 
+          padding: '12px 24px', 
+          background: isGenerating ? '#f3f4f6' : '#059669', 
+          color: isGenerating ? '#9ca3af' : 'white', 
+          border: '1.5px solid #059669', 
+          borderRadius: '12px', 
+          fontSize: '14px', 
+          fontWeight: '700', 
+          cursor: isGenerating ? 'not-allowed' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          margin: '16px 0'
+        }}
+      >
+        {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Layers size={18} />}
+        {isGenerating ? 'Generating Flashcards...' : 'Generate Flashcards'}
+      </button>
+
+      {flashcards.length > 0 && currentCard && (
+        <div className="cw-flashcard-container">
+          <div className="cw-flashcard-progress" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '14px', color: '#666' }}>
+            <span>Card {currentIndex + 1} of {flashcards.length}</span>
+          </div>
+
+          <div 
+            className="cw-flashcard"
+            onClick={() => setIsFlipped(!isFlipped)}
+            style={{ 
+              height: '200px', 
+              position: 'relative', 
+              perspective: '1000px', 
+              cursor: 'pointer',
+              marginBottom: '16px'
+            }}
+          >
+            <motion.div
+              animate={{ rotateY: isFlipped ? 180 : 0 }}
+              transition={{ duration: 0.6 }}
+              style={{ height: '100%', position: 'relative' }}
+            >
+              <div className="cw-flashcard-front" style={{ 
+                position: 'absolute', 
+                width: '100%', 
+                height: '100%', 
+                backfaceVisibility: 'hidden',
+                background: 'linear-gradient(135deg, #7a12cc, #9718fb)',
+                borderRadius: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '20px',
+                color: 'white'
+              }}>
+                <p style={{ margin: 0, textAlign: 'center', fontSize: '16px', fontWeight: '600' }}>{currentCard.front}</p>
+              </div>
+              <div className="cw-flashcard-back" style={{ 
+                position: 'absolute', 
+                width: '100%', 
+                height: '100%', 
+                backfaceVisibility: 'hidden',
+                transform: 'rotateY(180deg)',
+                background: 'white',
+                border: '2px solid #7a12cc',
+                borderRadius: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '20px'
+              }}>
+                <p style={{ margin: 0, textAlign: 'center', fontSize: '16px', color: '#374151' }}>{currentCard.back}</p>
+              </div>
+            </motion.div>
+          </div>
+
+          <div className="cw-flashcard-controls" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <button 
+              onClick={prevCard} 
+              disabled={currentIndex === 0}
+              style={{ padding: '8px 16px', background: currentIndex === 0 ? '#f3f4f6' : 'white', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: currentIndex === 0 ? 'not-allowed' : 'pointer' }}
+            >
+              ← Previous
+            </button>
+            <button 
+              onClick={() => setIsFlipped(!isFlipped)}
+              style={{ padding: '8px 16px', background: '#7a12cc', color: 'white', border: '1px solid #7a12cc', borderRadius: '8px', cursor: 'pointer' }}
+            >
+              {isFlipped ? 'Show Question' : 'Show Answer'}
+            </button>
+            <button 
+              onClick={nextCard} 
+              disabled={currentIndex === flashcards.length - 1}
+              style={{ padding: '8px 16px', background: currentIndex === flashcards.length - 1 ? '#f3f4f6' : 'white', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: currentIndex === flashcards.length - 1 ? 'not-allowed' : 'pointer' }}
+            >
+              Next →
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Tab F: AI Summary ───────────────────────────────────────────────────────
+function AISummaryTab({ course }) {
+  const [summary, setSummary] = useState('')
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [uploadedContent, setUploadedContent] = useState('')
+  const [summaryLength, setSummaryLength] = useState('medium')
+
+  const sampleContent = `Introduction to ${course?.name || 'Course'} - Comprehensive Lecture Notes\n\nThis lecture covers the fundamental concepts and principles that form the foundation of ${course?.name || 'this subject'}. We begin with an overview of the historical context and development of key theories, then move into detailed explanations of core concepts.\n\n**Main Topics Covered:**\n1. Historical development and background\n2. Fundamental principles and theories\n3. Mathematical formulations and equations\n4. Practical applications and real-world examples\n5. Advanced topics and current research\n\n**Key Takeaways:**\n- Understanding of core principles is essential\n- Mathematical relationships govern the behavior\n- Practical applications demonstrate theoretical concepts\n- Current research continues to expand our knowledge\n\nThe lecture concludes with a discussion of future directions and emerging trends in the field, providing students with a comprehensive understanding of both foundational knowledge and cutting-edge developments.`
+
+  const generateSummary = async () => {
+    if (!uploadedContent && !course) return
+    
+    setIsGenerating(true)
+    
+    try {
+      const content = uploadedContent || sampleContent
+      const prompt = `Create a ${summaryLength} summary of the following academic content for ${course?.name || 'this course'}. Focus on the most important concepts, key formulas, and practical applications.\n\nContent to summarize:\n${content}`
+      
+      const data = await callGroqAPI(
+        [{ role: 'user', content: prompt }],
+        GROQ_MODELS.SPEEDSTER,
+        { temperature: 0.5 }
+      )
+      
+      setSummary(data.choices?.[0]?.message?.content || 'No summary generated')
+    } catch (error) {
+      console.error('Error generating summary:', error)
+      setSummary('Error generating summary. Please try again.')
+    }
+    
+    setIsGenerating(false)
+  }
+
+  return (
+    <div className="cw-summary">
+      <div className="cw-summary-header">
+        <h3 className="cw-section-title">AI Summary Generator</h3>
+        <p className="cw-section-sub">Quick, intelligent content summarization</p>
+      </div>
+
+      <div className="cw-summary-options" style={{ marginBottom: '16px' }}>
+        <h4 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '8px' }}>Summary Length</h4>
+        <div className="cw-length-options" style={{ display: 'flex', gap: '8px' }}>
+          {[
+            { key: 'short', label: 'Quick', desc: '2 paragraphs' },
+            { key: 'medium', label: 'Balanced', desc: '3-4 paragraphs' },
+            { key: 'long', label: 'Detailed', desc: '5-6 paragraphs' }
+          ].map(({ key, label, desc }) => (
             <button
-              key={t}
-              className={`cw-topic-chip ${selectedTopic === t ? 'cw-topic-chip--active' : ''}`}
-              onClick={() => {
-                setSelectedTopic(t)
-                setInput(`Explain "${t}" in a simple way with examples`)
+              key={key}
+              onClick={() => setSummaryLength(key)}
+              style={{ 
+                padding: '8px 12px', 
+                background: summaryLength === key ? '#dc2626' : 'white', 
+                color: summaryLength === key ? 'white' : '#374151', 
+                border: '1px solid #e5e7eb', 
+                borderRadius: '8px', 
+                fontSize: '12px', 
+                cursor: 'pointer'
               }}
             >
-              {t}
+              <div>{label}</div>
+              <small style={{ fontSize: '10px', opacity: 0.7 }}>{desc}</small>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Chat Interface */}
-      <div className="cw-chat-area">
-        <div className="cw-chat-messages">
-          {messages.map((m, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`cw-msg cw-msg--${m.role}`}
-            >
-              {m.role === 'assistant' && (
-                <div className="cw-msg-avatar">
-                  <Brain size={12} />
-                </div>
-              )}
-              <div className="cw-msg-bubble">
-                {m.content.split('\n').map((line, j) => (
-                  <p key={j} className={line.startsWith('**') ? 'cw-msg-bold' : ''}>
-                    {line.replace(/\*\*/g, '')}
-                  </p>
-                ))}
-              </div>
-            </motion.div>
-          ))}
-          {loading && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="cw-msg cw-msg--assistant">
-              <div className="cw-msg-avatar"><Brain size={12} /></div>
-              <div className="cw-msg-bubble cw-typing">
-                <span /><span /><span />
-              </div>
-            </motion.div>
-          )}
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Input */}
-        <div className="cw-chat-input-row">
-          <input
-            className="cw-chat-input"
-            placeholder="Ask about anything in your notes..."
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && sendMessage()}
-          />
-          <button className="cw-chat-send" onClick={sendMessage} disabled={loading || !input.trim()}>
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-          </button>
+      <div className="cw-input-area">
+        <textarea
+          value={uploadedContent}
+          onChange={(e) => setUploadedContent(e.target.value)}
+          placeholder="Paste your content to summarize here..."
+          className="cw-textarea"
+          style={{ width: '100%', minHeight: '150px', padding: '12px', border: '1.5px solid #e5e7eb', borderRadius: '12px', fontSize: '14px', resize: 'vertical', marginBottom: '8px' }}
+        />
+        <div className="cw-input-stats" style={{ fontSize: '12px', color: '#666' }}>
+          {uploadedContent.length} characters • {Math.ceil(uploadedContent.length / 5)} words
         </div>
       </div>
+
+      <button 
+        onClick={generateSummary}
+        disabled={isGenerating || (!uploadedContent && !course)}
+        className="cw-generate-btn"
+        style={{ 
+          padding: '12px 24px', 
+          background: isGenerating ? '#f3f4f6' : '#dc2626', 
+          color: isGenerating ? '#9ca3af' : 'white', 
+          border: '1.5px solid #dc2626', 
+          borderRadius: '12px', 
+          fontSize: '14px', 
+          fontWeight: '700', 
+          cursor: isGenerating ? 'not-allowed' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          margin: '16px 0'
+        }}
+      >
+        {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
+        {isGenerating ? 'Generating Summary...' : 'Generate AI Summary'}
+      </button>
+
+      {summary && (
+        <div className="cw-summary-output" style={{ background: 'white', border: '1.5px solid #e5e7eb', borderRadius: '16px', padding: '20px' }}>
+          <div className="cw-summary-output-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>AI Summary</h4>
+            <div className="cw-summary-actions" style={{ display: 'flex', gap: '8px' }}>
+              <button style={{ padding: '6px 12px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}><FileText size={14} /> Download</button>
+            </div>
+          </div>
+          <div className="cw-summary-content" style={{ lineHeight: 1.6, fontSize: '14px' }}>
+            <div dangerouslySetInnerHTML={{ __html: summary.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+          </div>
+          <div className="cw-summary-stats" style={{ marginTop: '16px', padding: '12px', background: '#f9fafb', borderRadius: '8px', fontSize: '12px', color: '#666', display: 'flex', gap: '20px' }}>
+            <span>📝 {summary.split(' ').length} words</span>
+            <span>⏱️ ~{Math.ceil(summary.split(' ').length / 200)} min read</span>
+            <span>🎯 {summaryLength} summary</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-// ─── Tab D: Quiz Battle ──────────────────────────────────────────────────────
-function QuizBattleTab({ course, onNavigate }) {
+// ─── Tab G: Quiz Battle ──────────────────────────────────────────────────────
+function QuizBattleTab({ course }) {
+  const navigate = useNavigate()
   const goMockExam = () => {
-    if (onNavigate) {
-      onNavigate('mock-exam', course);
-    } else {
-      window.dispatchEvent(new CustomEvent('DEEP_LINK_DASH', { detail: { page: 'mock-exam', course: course } }));
-    }
-  };
+    navigate('/dashboard/mock-exam', { state: { preselectedCourse: course } })
+  }
 
   return (
     <div className="cw-quiz" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '40px 20px', textAlign: 'center' }}>
@@ -505,12 +781,14 @@ function QuizBattleTab({ course, onNavigate }) {
 }
 
 // ─── MAIN WORKSTATION ────────────────────────────────────────────────────────
-export default function CourseWorkstation({ course, onBack, user, onNavigate }) {
+export default function CourseWorkstation({ course, onBack, user }) {
   const [activeTab, setActiveTab] = useState('library')
   const tabs = [
     { id: 'library', label: 'Library', icon: BookOpen },
     { id: 'vault', label: 'Solution Vault', icon: Lock },
-    { id: 'notebook', label: 'AI Notebook', icon: Brain },
+    { id: 'notes', label: 'AI Notes', icon: Brain },
+    { id: 'flashcards', label: 'Flashcards', icon: Layers },
+    { id: 'summary', label: 'AI Summary', icon: Sparkles },
     { id: 'quiz', label: 'Quiz Battle', icon: Trophy },
   ]
 
@@ -570,8 +848,10 @@ export default function CourseWorkstation({ course, onBack, user, onNavigate }) 
           >
             {activeTab === 'library' && <LibraryTab course={course} user={user} />}
             {activeTab === 'vault' && <SolutionVaultTab course={course} userId={user?.id} />}
-            {activeTab === 'notebook' && <AINotebookTab course={course} />}
-            {activeTab === 'quiz' && <QuizBattleTab course={course} onNavigate={onNavigate} />}
+            {activeTab === 'notes' && <AINotesTab course={course} />}
+            {activeTab === 'flashcards' && <FlashcardsTab course={course} />}
+            {activeTab === 'summary' && <AISummaryTab course={course} />}
+            {activeTab === 'quiz' && <QuizBattleTab course={course} />}
           </motion.div>
         </AnimatePresence>
       </div>

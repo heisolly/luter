@@ -1,29 +1,24 @@
 import { useState, useEffect } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { BarChart3, TrendingUp, TrendingDown, Target, Zap, Clock, BookOpen, Loader2 } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
 import { motion } from 'framer-motion'
+import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 
 const PALETTE = ['#7a12cc','#9718fb','#b04dfc','#6d28d9','#7c3aed','#8b5cf6','#a78bfa','#6366f1']
 
-export default function AnalyticsPage({ user, isMobile }) {
+export default function AnalyticsPage() {
+  const { user, isMobile } = useOutletContext()
+  const { ready, bundle } = useDashboardPrefetch()
   const [courses, setCourses] = useState([])
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!user) return
-    const fetchAnalytics = async () => {
-      const { data: ucData } = await supabase
-        .from('user_courses')
-        .select('progress, target_score, course:courses(name, code)')
-        .eq('user_id', user.id)
+    if (!ready) return
 
-      const { data: stData } = await supabase
-        .from('user_stats')
-        .select('total_xp, streak_days, lives')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
+    const apply = (ucData, stData) => {
       if (ucData) {
         setCourses(ucData.map((row, i) => ({
           code: row.course.code,
@@ -36,8 +31,33 @@ export default function AnalyticsPage({ user, isMobile }) {
       if (stData) setStats(stData)
       setLoading(false)
     }
+
+    const fetchAnalytics = async () => {
+      const { data: ucData } = await supabase
+        .from('user_courses')
+        .select('progress, target_score, course:courses(name, code)')
+        .eq('user_id', user.id)
+
+      const { data: stData } = await supabase
+        .from('user_stats')
+        .select('total_xp, streak_days, lives')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      apply(ucData, stData)
+    }
+
+    if (bundle?.uc && !bundle.uc.error && Array.isArray(bundle.uc.data)) {
+      const ucData = bundle.uc.data.map((row) => ({
+        course: row.course,
+        progress: row.progress,
+        target_score: row.target_score,
+      }))
+      apply(ucData, bundle.stats?.data || null)
+      return
+    }
     fetchAnalytics()
-  }, [user])
+  }, [user, ready, bundle])
 
   // if (loading) {
   //   return (

@@ -1,41 +1,53 @@
 import { useState, useEffect } from 'react'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import { BookOpen, Plus, Upload, FileText, MoreVertical, Zap, ChevronRight, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { supabase } from '../../supabaseClient'
+import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 
 const PALETTE = ['#7a12cc','#9718fb','#b04dfc','#6d28d9','#7c3aed','#8b5cf6','#a78bfa','#6366f1']
 
-export default function CoursesPage({ user, onOpenCourse, isMobile }) {
+export default function CoursesPage() {
+  const navigate = useNavigate()
+  const { user, isMobile } = useOutletContext()
+  const { ready, bundle } = useDashboardPrefetch()
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!user) return
+    if (!ready) return
 
-    const load = async () => {
-      const { data: uc, error } = await supabase
+    const mapRows = (uc) =>
+      uc.map((row, i) => ({
+        id:       row.course.id,
+        code:     row.course.code,
+        name:     row.course.name,
+        dept:     row.course.faculty || 'General',
+        lecturer: 'Assigned Lecturer',
+        files:    0,
+        progress: row.progress || 0,
+        color:    PALETTE[i % PALETTE.length],
+      }))
+
+    const loadRemote = async () => {
+      const { data: uc } = await supabase
         .from('user_courses')
         .select('id, progress, course:courses(id, code, name, faculty)')
         .eq('user_id', user.id)
         .order('created_at')
 
-      if (uc) {
-        setCourses(uc.map((row, i) => ({
-          id:       row.course.id,
-          code:     row.course.code,
-          name:     row.course.name,
-          dept:     row.course.faculty || 'General',
-          lecturer: 'Assigned Lecturer', // We can add this to courses table later
-          files:    0,                   // Will come from materials table
-          progress: row.progress || 0,
-          color:    PALETTE[i % PALETTE.length],
-        })))
-      }
+      if (uc) setCourses(mapRows(uc))
       setLoading(false)
     }
 
-    load()
-  }, [user])
+    if (bundle?.uc && !bundle.uc.error && Array.isArray(bundle.uc.data)) {
+      setCourses(mapRows(bundle.uc.data))
+      setLoading(false)
+      return
+    }
+    loadRemote()
+  }, [user, ready, bundle])
 
   // if (loading) {
   //   return (
@@ -119,7 +131,7 @@ export default function CoursesPage({ user, onOpenCourse, isMobile }) {
                 <button
                   className="cfc-btn-primary"
                   style={{ '--c': c.color }}
-                  onClick={() => onOpenCourse?.(c)}
+                  onClick={() => navigate(`/dashboard/courses/${c.id}`)}
                 >
                   <BookOpen size={13} strokeWidth={2} />
                   Open Workstation

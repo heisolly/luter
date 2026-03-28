@@ -1,19 +1,28 @@
 import { useState, useEffect } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Flame, Star, Calendar, Zap, ChevronRight, Award, ShieldCheck, Target, Sparkles } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
+import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 
-export default function StreakPage({ user, isMobile }) {
+export default function StreakPage() {
+  const { user, isMobile } = useOutletContext()
+  const { ready, bundle } = useDashboardPrefetch()
   const [streak, setStreak] = useState(0)
 
   useEffect(() => {
     if (!user) return
+    if (!ready) return
+    if (bundle?.stats?.data && !bundle.stats.error) {
+      setStreak(bundle.stats.data.streak_days || 0)
+      return
+    }
     const getStreak = async () => {
       const { data } = await supabase.from('user_stats').select('streak_days').eq('user_id', user.id).maybeSingle()
       if (data) setStreak(data.streak_days || 0)
     }
     getStreak()
-  }, [user])
+  }, [user, ready, bundle])
 
   const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const today = new Date().getDay()

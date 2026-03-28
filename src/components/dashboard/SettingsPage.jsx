@@ -6,7 +6,8 @@ import {
   CheckCircle2, Sparkles
 } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
+import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 
 const TABS = [
   { id: 'profile', icon: User, label: 'Profile & Academic' },
@@ -15,7 +16,8 @@ const TABS = [
   { id: 'security', icon: Shield, label: 'Security' },
 ]
 
-export default function SettingsPage({ user, isMobile }) {
+export default function SettingsPage() {
+  const { user, isMobile } = useOutletContext()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('profile')
   const [loading, setLoading] = useState(true)
@@ -33,15 +35,11 @@ export default function SettingsPage({ user, isMobile }) {
 
   useEffect(() => {
     if (!user) return
-    const fetchProfile = async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-      
+    if (!ready) return
+
+    const apply = (data) => {
       if (data) {
-        setProfile(p => ({
+        setProfile((p) => ({
           ...p,
           university: data.university || '',
           faculty: data.faculty || '',
@@ -50,8 +48,22 @@ export default function SettingsPage({ user, isMobile }) {
       }
       setLoading(false)
     }
+
+    if (bundle?.profile?.data && !bundle.profile.error) {
+      apply(bundle.profile.data)
+      return
+    }
+
+    const fetchProfile = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+      apply(data)
+    }
     fetchProfile()
-  }, [user])
+  }, [user, ready, bundle])
 
   const handleSaveProfile = async () => {
     setSaving(true)
@@ -66,6 +78,8 @@ export default function SettingsPage({ user, isMobile }) {
       faculty: profile.faculty,
       level: profile.level
     })
+
+    await refresh()
 
     setSaving(false)
     setSaved(true)

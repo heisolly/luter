@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Loader2, Sparkles, BrainCircuit } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import { SharedNavbar } from './PageShared';
 import GoogleLoginButton from './auth/GoogleLoginButton';
 
 export default function SignIn() {
@@ -65,15 +66,7 @@ export default function SignIn() {
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <GoogleLoginButton />
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: -8 }}>
-              <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.05)' }} />
-              <span style={{ fontSize: 14, color: '#888', fontWeight: 500 }}>or</span>
-              <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.05)' }} />
-            </div>
-          </div>
+          <GoogleLoginButton />
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 

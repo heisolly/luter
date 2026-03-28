@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Trophy, Users, Zap, Shield, Search, Sword, Target, 
@@ -6,8 +7,11 @@ import {
   Copy, CheckCircle2, X
 } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
+import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 
-export default function CompetePage({ user, setActivePage, isMobile }) {
+export default function CompetePage() {
+  const { user, isMobile } = useOutletContext()
+  const { ready, bundle } = useDashboardPrefetch()
   const [leaderboard, setLeaderboard] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('leaderboard') 
@@ -92,17 +96,17 @@ export default function CompetePage({ user, setActivePage, isMobile }) {
   
   const [copiedLink, setCopiedLink] = useState(false)
 
-  // 1. Fetch Leaderboard (Real Data)
-  useEffect(() => {
-    fetchLeaderboard()
-    // Update last_active heartbeat
-    const heartbeat = setInterval(async () => {
-       if (user) await supabase.from('profiles').update({ last_active_at: new Date().toISOString() }).eq('id', user.id)
-    }, 30000)
-    return () => clearInterval(heartbeat)
-  }, [user])
+  const mapLeaderboard = (data) =>
+    data.map((row, i) => ({
+      rank: i + 1,
+      name: row.profiles?.full_name || 'Anonymous Scholar',
+      streak: row.streak_days || 0,
+      xp: row.total_xp || 0,
+      uni: row.profiles?.university || 'University Student',
+      level: row.profiles?.level || 'L100'
+    }))
 
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = useCallback(async () => {
     setLoading(true)
     const { data } = await supabase
       .from('user_stats')
@@ -114,17 +118,30 @@ export default function CompetePage({ user, setActivePage, isMobile }) {
       .limit(10)
 
     if (data) {
-      setLeaderboard(data.map((row, i) => ({
-        rank: i + 1,
-        name: row.profiles?.full_name || 'Anonymous Scholar',
-        streak: row.streak_days || 0,
-        xp: row.total_xp || 0,
-        uni: row.profiles?.university || 'University Student',
-        level: row.profiles?.level || 'L100'
-      })))
+      setLeaderboard(mapLeaderboard(data))
     }
     setLoading(false)
-  }
+  }, [])
+
+  useEffect(() => {
+    if (!user) return
+    const heartbeat = setInterval(async () => {
+      if (user) await supabase.from('profiles').update({ last_active_at: new Date().toISOString() }).eq('id', user.id)
+    }, 30000)
+    return () => clearInterval(heartbeat)
+  }, [user])
+
+  // Leaderboard: prefetched with dashboard bundle
+  useEffect(() => {
+    if (!user) return
+    if (!ready) return
+    if (bundle?.leaderboard?.data && !bundle.leaderboard.error) {
+      setLeaderboard(mapLeaderboard(bundle.leaderboard.data))
+      setLoading(false)
+      return
+    }
+    fetchLeaderboard()
+  }, [user, ready, bundle, fetchLeaderboard])
 
   // 2. Real-time Matchmaking Engine
   const findOpponent = async () => {

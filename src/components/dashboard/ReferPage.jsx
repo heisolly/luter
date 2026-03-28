@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Users, Copy, Share2, Award, Zap, Star, MessageCircle, GraduationCap, ArrowRight, CheckCircle2, Camera } from 'lucide-react'
 
@@ -14,7 +15,8 @@ const InstagramIcon = ({ size }) => (
 const SHARE_LINK = 'https://luterai.vercel.app'
 const INVITE_BASE = 'https://luterai.vercel.app/signup'
 
-export default function ReferPage({ user, isMobile }) {
+export default function ReferPage() {
+  const { user, isMobile } = useOutletContext()
   const [copied, setCopied] = useState(false)
   const refLink = `${INVITE_BASE}/ref/${user?.id?.slice(0,8) || 'student'}`
 
