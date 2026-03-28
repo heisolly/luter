@@ -115,7 +115,7 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
       <div style={{ 
         padding: isMobile ? '24px 20px' : '48px 48px 32px',
         background: '#fff',
-        borderBottom: '2.5px solid #111',
+        borderBottom: '1.5px solid #e5e7eb',
         display: 'flex',
         flexDirection: isMobile ? 'column' : 'row',
         alignItems: isMobile ? 'flex-start' : 'center',
@@ -128,7 +128,7 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
         <div style={{ position: 'absolute', top: -10, right: -10, width: 150, height: 150, background: 'var(--primary-bg)', opacity: 0.5, borderRadius: '50%', filter: 'blur(40px)', zIndex: 0 }} />
         
         <motion.div initial={{ opacity:0, x:-10 }} animate={{ opacity:1, x:0 }} style={{ position: 'relative', zIndex: 1 }}>
-          <h1 style={{ fontSize: isMobile ? 24 : 36, fontWeight: 1000, color: '#111', margin: 0, letterSpacing: '-0.03em', lineHeight: 1.1 }}>
+          <h1 style={{ fontSize: isMobile ? 24 : 36, fontWeight: 800, color: '#111', margin: 0, letterSpacing: '-0.03em', lineHeight: 1.1 }}>
             {greeting()}, <span style={{ color: 'var(--primary)' }}>{name}.</span>
           </h1>
           <p style={{ fontSize: isMobile ? 12 : 14, fontWeight: 700, color: '#666', marginTop: 8 }}>
@@ -148,26 +148,26 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
             padding: '20px',
             borderRadius: 24,
             background: '#fff',
-            border: '2.5px solid #111',
-            boxShadow: isMobile ? '4px 4px 0px #111' : '8px 8px 0px #111',
+            border: '1.5px solid #e5e7eb',
+            boxShadow: '0 10px 30px -10px rgba(0,0,0,0.08)',
             position: 'relative',
             zIndex: 1
           }}
         >
           <div style={{ display:'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fef3c7', padding: '4px 10px', borderRadius: 12, border: '1.5px solid #111', fontSize: 12, fontWeight: 900 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fffbeb', padding: '4px 10px', borderRadius: 12, border: '1.5px solid #fbbf24', fontSize: 12, fontWeight: 900 }}>
                 <Flame size={14} fill="#d97706" color="#d97706" /> {streak}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--primary-bg)', padding: '4px 10px', borderRadius: 12, border: '1.5px solid #111', fontSize: 12, fontWeight: 900 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--primary-bg)', padding: '4px 10px', borderRadius: 12, border: '1.5px solid var(--primary-light)', fontSize: 12, fontWeight: 900 }}>
                 <Zap size={14} fill="var(--primary)" color="var(--primary)" /> {xp}
               </div>
             </div>
-            <span style={{ fontSize: 10, fontWeight: 1000, color: '#999' }}>LVL {Math.floor(xp/1000) + 1}</span>
+            <span style={{ fontSize: 10, fontWeight: 800, color: '#999' }}>LVL {Math.floor(xp/1000) + 1}</span>
           </div>
 
           <div style={{ position: 'relative' }}>
-            <div style={{ height: 10, background: '#f5f5f5', borderRadius: 99, border: '1.5px solid #111', overflow: 'hidden' }}>
+            <div style={{ height: 10, background: '#f5f5f5', borderRadius: 99, border: '1.5px solid #e5e7eb', overflow: 'hidden' }}>
               <motion.div style={{ height: '100%', background: 'var(--primary)', borderRadius: 99 }}
                 initial={{ width: 0 }} animate={{ width: `${xpPct}%` }} transition={{ duration: 1.5, ease: "easeOut" }} />
             </div>
@@ -199,9 +199,9 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
               style={{ 
                 background: `linear-gradient(135deg, ${active.color}08 0%, #fff 100%)`,
                 borderRadius: isMobile ? 28 : 32,
-                border: '2.5px solid #111',
+                border: '1.5px solid #e5e7eb',
                 padding: isMobile ? '24px' : '32px',
-                boxShadow: isMobile ? '6px 6px 0px #111' : '12px 12px 0px #111',
+                boxShadow: '0 20px 48px -12px rgba(0,0,0,0.06)',
                 position: 'relative',
                 overflow: 'hidden',
                 cursor: 'pointer'
@@ -209,19 +209,19 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
               onClick={() => onOpenCourse?.(active)}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: `${active.color}15`, padding: '6px 12px', borderRadius: 12, border: `1.5px solid ${active.color}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: `${active.color}10`, padding: '6px 12px', borderRadius: 12, border: `1.5px solid ${active.color}` }}>
                   <Play size={12} fill={active.color} color={active.color} />
                   <span style={{ fontSize: 10, fontWeight: 900, color: active.color, letterSpacing: '0.1em' }}>ACTIVE MISSION</span>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 1000, color: '#111' }}>{active.progress}%</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#111' }}>{active.progress}%</div>
               </div>
 
               <div>
-                <h3 style={{ fontSize: isMobile ? 20 : 28, fontWeight: 1000, margin: '0 0 6px', letterSpacing: '-0.02em' }}>{active.name}</h3>
+                <h3 style={{ fontSize: isMobile ? 20 : 28, fontWeight: 800, margin: '0 0 6px', letterSpacing: '-0.02em' }}>{active.name}</h3>
                 <p style={{ fontSize: 12, fontWeight: 700, color: '#666', margin: 0 }}>Code: {active.code} • Last seen {active.lastStudied}</p>
               </div>
 
-              <div style={{ marginTop: 24, height: 12, background: '#f5f5f5', borderRadius: 99, border: '2px solid #111', overflow: 'hidden' }}>
+              <div style={{ marginTop: 24, height: 10, background: '#f5f5f5', borderRadius: 99, border: '1.5px solid #e5e7eb', overflow: 'hidden' }}>
                 <motion.div style={{ height: '100%', background: active.color }}
                   initial={{ width: 0 }} animate={{ width: `${active.progress}%` }} />
               </div>
@@ -235,7 +235,7 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
                         width: 32, 
                         height: 32, 
                         borderRadius: '50%', 
-                        border: '2px solid #111', 
+                        border: '1.5px solid #e5e7eb', 
                         background: '#ddd', 
                         marginLeft: i === 0 ? 0 : -10,
                         zIndex: 3 - i
@@ -244,21 +244,21 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
                   ))}
                   <span style={{ marginLeft: 10, fontSize: 11, fontWeight: 700, color: '#888', display: 'flex', alignItems: 'center' }}>+12 scholars studying</span>
                 </div>
-                <button style={{ background: '#111', color: '#fff', borderRadius: 16, border: 'none', padding: '12px 24px', fontSize: 13, fontWeight: 900, cursor: 'pointer', boxShadow: '4px 4px 0px #eee' }}>RESUME</button>
+                <button style={{ background: '#111', color: '#fff', borderRadius: 16, border: 'none', padding: '12px 24px', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>RESUME</button>
               </div>
             </motion.div>
           ) : (
-            <div style={{ background: '#fff', borderRadius: 32, border: '2.5px solid #111', padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 16 }}>
+            <div style={{ background: '#fff', borderRadius: 32, border: '1.5px solid var(--border)', padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 16, boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
               <div style={{ width: 64, height: 64, borderRadius: 20, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc' }}>
                 <BookOpen size={32} />
               </div>
               <div>
-                <h3 style={{ fontSize: 18, fontWeight: 1000, margin: 0 }}>No Active Courses</h3>
+                <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>No Active Courses</h3>
                 <p style={{ fontSize: 13, fontWeight: 600, color: '#888', margin: '4px 0 0' }}>Initialize your scholarship to begin.</p>
               </div>
               <button 
                 onClick={() => setActivePage('courses')}
-                style={{ background: 'var(--primary)', color: '#fff', borderRadius: 16, border: '2.5px solid #111', padding: '14px 28px', fontSize: 14, fontWeight: 900, boxShadow: '4px 4px 0px #111', cursor: 'pointer' }}
+                style={{ background: 'var(--primary)', color: '#fff', borderRadius: 16, border: 'none', padding: '14px 28px', fontSize: 14, fontWeight: 800, boxShadow: '0 8px 16px rgba(122,18,204,0.2)', cursor: 'pointer' }}
               >
                 BROWSE COURSES
               </button>
@@ -271,9 +271,9 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
             style={{ 
               background: '#f5f3ff',
               borderRadius: isMobile ? 28 : 32,
-              border: '2.5px solid #111',
+              border: '1.5px solid #e5e7eb',
               padding: isMobile ? '24px' : '32px',
-              boxShadow: isMobile ? '6px 6px 0px #111' : '10px 10px 0px #111',
+              boxShadow: '0 10px 24px -8px rgba(122,18,204,0.15)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
@@ -281,12 +281,12 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
             }}
             onClick={() => setActivePage('vault')}
           >
-            <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--primary)', border: '2px solid #111', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', marginBottom: 20, boxShadow: '4px 4px 0px #111' }}>
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--primary)', border: '1.5px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', marginBottom: 20, boxShadow: '0 4px 12px rgba(122,18,204,0.2)' }}>
               <Camera size={24} strokeWidth={3} />
             </div>
-            <h3 style={{ fontSize: 20, fontWeight: 1000, margin: '0 0 8px', color: '#111' }}>Solution Vault</h3>
+            <h3 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 8px', color: '#111' }}>Solution Vault</h3>
             <p style={{ fontSize: 13, fontWeight: 700, color: '#666', margin: 0, lineHeight: 1.5 }}>Snap a photo of any tough problem. Get instant, step-by-step AI guidance.</p>
-            <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--primary)', fontWeight: 1000, fontSize: 12 }}>
+            <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--primary)', fontWeight: 800, fontSize: 12 }}>
               OPEN CAMERA <Zap size={14} fill="var(--primary)" />
             </div>
           </motion.div>
@@ -296,13 +296,13 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
         <div style={{ 
           background: '#fff', 
           borderRadius: 32, 
-          border: '2.5px solid #111', 
+          border: '1.5px solid #e5e7eb', 
           padding: isMobile ? '20px' : '24px 32px',
-          boxShadow: isMobile ? '4px 4px 0px #111' : '8px 8px 0px #111'
+          boxShadow: '0 4px 20px -5px rgba(0,0,0,0.05)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <h4 style={{ fontSize: 11, fontWeight: 1000, color: '#111', letterSpacing: '0.15em', textTransform: 'uppercase', margin: 0 }}>Current Enrollment</h4>
-            <button onClick={() => setActivePage('courses')} style={{ fontSize: 11, fontWeight: 1000, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer' }}>VIEW ALL ({courses.length})</button>
+            <h4 style={{ fontSize: 11, fontWeight: 800, color: '#111', letterSpacing: '0.15em', textTransform: 'uppercase', margin: 0 }}>Current Enrollment</h4>
+            <button onClick={() => setActivePage('courses')} style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer' }}>VIEW ALL ({courses.length})</button>
           </div>
           
           <div className="no-scrollbar" style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 10 }}>
@@ -316,27 +316,27 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
                   width: isMobile ? 180 : 220, 
                   padding: '20px', 
                   borderRadius: 20, 
-                  border: '2.5px solid #111',
-                  background: '#fff', 
+                  border: '1.5px solid #e5e7eb',
+                  background: '#fff',
                   cursor: 'pointer',
                   position: 'relative'
                 }}
               >
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: c.color, border: '1.5px solid #111', marginBottom: 12 }} />
-                <div style={{ fontSize: 16, fontWeight: 1000, color: '#111', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-                <div style={{ fontSize: 11, fontWeight: 800, color: '#999', marginBottom: 16 }}>{c.code}</div>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: c.color, border: '1px solid #e5e7eb', marginBottom: 12 }} />
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#111', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#999', marginBottom: 16 }}>{c.code}</div>
                 
-                <div style={{ height: 6, width: '100%', background: '#f0f0f0', borderRadius: 99, border: '1.5px solid #111', overflow: 'hidden' }}>
+                <div style={{ height: 6, width: '100%', background: '#f0f0f0', borderRadius: 99, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${c.progress}%`, background: c.color }} />
                 </div>
               </motion.div>
             ))}
             <div 
-              style={{ flexShrink: 0, width: isMobile ? 140 : 160, borderRadius: 20, border: '2.5px dashed #ccc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#999', cursor: 'pointer' }}
+              style={{ flexShrink: 0, width: isMobile ? 140 : 160, borderRadius: 20, border: '1.5px dashed var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#999', cursor: 'pointer', background: '#fafafa' }}
               onClick={() => setActivePage('courses')}
             >
               <Zap size={20} style={{ marginBottom: 4 }} />
-              <div style={{ fontSize: 11, fontWeight: 1000 }}>ENROLL</div>
+              <div style={{ fontSize: 11, fontWeight: 800 }}>ENROLL</div>
             </div>
           </div>
         </div>
@@ -364,13 +364,13 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
               <Trophy size={120} />
             </div>
             <div style={{ zIndex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--primary)', fontSize: 11, fontWeight: 1000, letterSpacing: '0.1em', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--primary)', fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', marginBottom: 12 }}>
                 <FlaskConical size={14} /> STUDY ARENA
               </div>
-              <h3 style={{ fontSize: 24, fontWeight: 1000, margin: 0, letterSpacing: '-0.02em' }}>Challenge a Peer.</h3>
+              <h3 style={{ fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>Challenge a Peer.</h3>
               <p style={{ fontSize: 13, fontWeight: 600, color: '#999', marginTop: 8 }}>Stake your XP and win the study duel.</p>
             </div>
-            <div style={{ marginTop: 24, display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 1000, color: 'var(--primary)' }}>
+            <div style={{ marginTop: 24, display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 800, color: 'var(--primary)' }}>
               ENTER ARENA <Play size={14} fill="var(--primary)" />
             </div>
           </motion.div>
@@ -379,15 +379,15 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse, isMob
           <div style={{ 
             background: '#fff', 
             borderRadius: 32, 
-            border: '2.5px solid #111', 
+            border: '1.5px solid #e5e7eb', 
             padding: isMobile ? '24px' : '32px',
-            boxShadow: isMobile ? '4px 4px 0px #111' : '8px 8px 0px #111'
+            boxShadow: '0 4px 20px -5px rgba(0,0,0,0.05)'
           }}>
-            <h4 style={{ fontSize: 11, fontWeight: 1000, color: '#111', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 20 }}>Workstation Intel</h4>
+            <h4 style={{ fontSize: 11, fontWeight: 800, color: '#111', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 20 }}>Workstation Intel</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {feed.slice(0, 3).map((f, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px', borderRadius: 16, border: '1.5px solid #f5f5f5', background: '#fafafa' }}>
-                   <div style={{ width: 12, height: 12, borderRadius: 4, background: f.color, border: '1.5px solid #111' }} />
+                   <div style={{ width: 12, height: 12, borderRadius: 4, background: f.color, border: '1.5px solid #e5e7eb' }} />
                    <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: 800, color: '#111' }}>{f.msg}</div>
                       <div style={{ fontSize: 10, fontWeight: 700, color: '#888' }}>{f.course} • {f.time}</div>

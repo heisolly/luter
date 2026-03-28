@@ -88,7 +88,7 @@ export default function SettingsPage({ user, isMobile }) {
       
       {/* ── Header ── */}
       <div style={{ padding: isMobile ? '24px 20px 8px' : '40px 48px 0', background: '#fff' }}>
-         <h1 style={{ fontSize: isMobile ? 26 : 32, fontWeight: 1000, color: '#111', margin: 0, letterSpacing: '-0.04em' }}>
+         <h1 style={{ fontSize: isMobile ? 26 : 32, fontWeight: 800, color: '#111', margin: 0, letterSpacing: '-0.04em' }}>
            {isMobile ? 'Account config' : 'Settings'}
          </h1>
          <p style={{ fontSize: isMobile ? 12 : 14, color: '#666', fontWeight: 700, margin: '4px 0 0' }}>
@@ -131,12 +131,12 @@ export default function SettingsPage({ user, isMobile }) {
                   onClick={() => setActiveTab(tab.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12, padding: isMobile ? '10px 18px' : '14px 20px',
-                    borderRadius: 16, border: '2.5px solid #111', background: active ? '#111' : 'white',
-                    color: active ? 'white' : '#111', fontWeight: 900,
+                    borderRadius: 16, border: active ? '1.5px solid var(--primary)' : '1.5px solid #e5e7eb', background: active ? 'var(--primary-bg)' : 'white',
+                    color: active ? 'var(--primary)' : '#111', fontWeight: 900,
                     fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
-                    boxShadow: active ? 'none' : isMobile ? '3px 3px 0px #111' : '5px 5px 0px #111',
-                    transform: active ? (isMobile ? 'translate(1px, 1px)' : 'translate(2px, 2px)') : 'none',
-                    transition: 'all 0.1s', textAlign: 'left',
+                    boxShadow: active ? 'none' : '0 2px 8px rgba(0,0,0,0.02)',
+                    transform: 'none',
+                    transition: 'all 0.2s', textAlign: 'left',
                     flexShrink: 0
                   }}
                 >
@@ -149,15 +149,15 @@ export default function SettingsPage({ user, isMobile }) {
           {isMobile && <div style={{ height: 1, background: '#eee', margin: '16px 0' }} />}
 
           {!isMobile && (
-            <div style={{ marginTop: 40, borderTop: '2.5px solid #111', paddingTop: 32 }}>
+            <div style={{ marginTop: 40, borderTop: '1.5px solid #e5e7eb', paddingTop: 32 }}>
               <button
                 onClick={handleSignOut}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12, padding: '16px 24px',
-                  width: '100%', borderRadius: 16, border: '2.5px solid #111', background: '#fef2f2',
-                  color: '#dc2626', fontWeight: 1000, fontSize: 13, cursor: 'pointer',
-                  fontFamily: 'inherit', textAlign: 'left', transition: 'all 0.1s',
-                  boxShadow: '4px 4px 0px #111'
+                  width: '100%', borderRadius: 16, border: '1.5px solid #fee2e2', background: '#fef2f2',
+                  color: '#dc2626', fontWeight: 800, fontSize: 13, cursor: 'pointer',
+                  fontFamily: 'inherit', textAlign: 'left', transition: 'all 0.2s',
+                  boxShadow: '0 4px 12px rgba(220,38,38,0.05)'
                 }}
               >
                 <LogOut size={18} /> SIGN OUT OF LUTER
@@ -175,20 +175,20 @@ export default function SettingsPage({ user, isMobile }) {
               <div style={{ 
                 background: '#fff', 
                 borderRadius: isMobile ? 28 : 40, 
-                border: '2.5px solid #111', 
+                border: '1.5px solid #e5e7eb', 
                 overflow: 'hidden', 
-                boxShadow: isMobile ? '6px 6px 0px #111' : '12px 12px 0px #111' 
+                boxShadow: '0 20px 60px -12px rgba(0,0,0,0.06)' 
               }}>
                 <div style={{ 
                   padding: isMobile ? '24px' : '32px 40px', 
-                  borderBottom: '2.5px solid #111', 
+                  borderBottom: '1.5px solid #e5e7eb', 
                   background: 'linear-gradient(135deg, var(--primary-bg) 0%, #fff 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between'
                 }}>
                   <div>
-                    <h2 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 1000, margin: 0, color: '#111', letterSpacing: '-0.02em' }}>Personal Profile</h2>
+                    <h2 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 800, margin: 0, color: '#111', letterSpacing: '-0.02em' }}>Personal Profile</h2>
                     <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', margin: '4px 0 0' }}>Update your scholar details</p>
                   </div>
                   <User size={isMobile ? 24 : 32} color="var(--primary)" strokeWidth={2.5} />
@@ -200,7 +200,7 @@ export default function SettingsPage({ user, isMobile }) {
                       <label style={{ fontSize: 10, fontWeight: 1000, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Full Name</label>
                       <input 
                         value={profile.fullName} onChange={e => setProfile({...profile, fullName: e.target.value})}
-                        style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '2.5px solid #111', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700, boxShadow: 'inset 2px 2px 0px rgba(0,0,0,0.02)' }}
+                        style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}
                       />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -214,10 +214,10 @@ export default function SettingsPage({ user, isMobile }) {
 
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <label style={{ fontSize: 10, fontWeight: 1000, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>University</label>
+                      <label style={{ fontSize: 10, fontWeight: 800, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>University</label>
                       <input 
                         value={profile.university} onChange={e => setProfile({...profile, university: e.target.value})}
-                        style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '2.5px solid #111', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700 }}
+                        style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700 }}
                       />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -226,12 +226,12 @@ export default function SettingsPage({ user, isMobile }) {
                         <input 
                           value={profile.faculty} onChange={e => setProfile({...profile, faculty: e.target.value})}
                           placeholder="Faculty"
-                          style={{ flex: 2, padding: '16px 20px', borderRadius: 16, border: '2.5px solid #111', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700 }}
+                          style={{ flex: 2, padding: '16px 20px', borderRadius: 16, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700 }}
                         />
                          <input 
                           value={profile.level} onChange={e => setProfile({...profile, level: e.target.value})}
                           placeholder="Level"
-                          style={{ flex: 1, padding: '16px 20px', borderRadius: 16, border: '2.5px solid #111', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700, textAlign: 'center' }}
+                          style={{ flex: 1, padding: '16px 20px', borderRadius: 16, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700, textAlign: 'center' }}
                         />
                       </div>
                     </div>
@@ -240,7 +240,7 @@ export default function SettingsPage({ user, isMobile }) {
 
                 <div style={{ 
                   padding: isMobile ? '24px' : '32px 40px', 
-                  borderTop: '2.5px solid #111', 
+                  borderTop: '1.5px solid #e5e7eb', 
                   background: '#fafafa', 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -253,10 +253,10 @@ export default function SettingsPage({ user, isMobile }) {
                     style={{ 
                       flex: isMobile ? 1 : 'none',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, 
-                      padding: '16px 40px', borderRadius: 16, border: '2.5px solid #111', 
-                      background: '#111', color: 'white', fontSize: 14, fontWeight: 1000, 
+                      padding: '16px 40px', borderRadius: 16, border: 'none', 
+                      background: '#111', color: 'white', fontSize: 14, fontWeight: 800, 
                       cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.1s', 
-                      boxShadow: '4px 4px 0px rgba(0,0,0,0.1)' 
+                      boxShadow: '0 8px 20px rgba(0,0,0,0.15)' 
                     }}
                   >
                     {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={18} />} 
@@ -271,10 +271,10 @@ export default function SettingsPage({ user, isMobile }) {
                     style={{
                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, 
                    padding: '18px',
-                   marginTop: 24, width: '100%', borderRadius: 20, border: '2.5px solid #111', 
+                   marginTop: 24, width: '100%', borderRadius: 20, border: '1.5px solid #fee2e2', 
                    background: '#fef2f2',
-                   color: '#dc2626', fontWeight: 1000, fontSize: 14, cursor: 'pointer',
-                   fontFamily: 'inherit', boxShadow: '5px 5px 0px #111'
+                   color: '#dc2626', fontWeight: 800, fontSize: 14, cursor: 'pointer',
+                   fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(220,38,38,0.1)'
                  }}
                >
                  <LogOut size={18} strokeWidth={3} /> SIGN OUT
@@ -289,12 +289,12 @@ export default function SettingsPage({ user, isMobile }) {
               <div style={{ 
                 background: '#fff', 
                 borderRadius: isMobile ? 28 : 40, 
-                border: '2.5px solid #111', 
+                border: '1.5px solid #e5e7eb', 
                 overflow: 'hidden', 
-                boxShadow: isMobile ? '6px 6px 0px #111' : '12px 12px 0px #111' 
+                boxShadow: '0 20px 60px -12px rgba(0,0,0,0.06)' 
               }}>
-                <div style={{ padding: isMobile ? '24px' : '32px 40px', borderBottom: '2.5px solid #111', background: '#f0fdf4' }}>
-                  <h2 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 1000, margin: 0, color: '#111' }}>Plan & Subscription</h2>
+                <div style={{ padding: isMobile ? '24px' : '32px 40px', borderBottom: '1.5px solid #e5e7eb', background: '#f0fdf4' }}>
+                  <h2 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 800, margin: 0, color: '#111' }}>Plan & Subscription</h2>
                   <p style={{ fontSize: 12, fontWeight: 700, color: '#059669', margin: '4px 0 0' }}>Manage your scholarly benefits</p>
                 </div>
                 
@@ -307,16 +307,16 @@ export default function SettingsPage({ user, isMobile }) {
                     borderRadius: 32, 
                     background: 'linear-gradient(135deg, #fff 0%, var(--primary-bg) 100%)', 
                     color: '#111', 
-                    border: '2.5px solid #111',
-                    boxShadow: isMobile ? '4px 4px 0px #111' : '8px 8px 0px #111',
+                    border: '1.5px solid #e5e7eb',
+                    boxShadow: '0 10px 30px -10px rgba(0,0,0,0.05)',
                     position: 'relative',
                     overflow: 'hidden'
                   }}>
                     <div style={{ position: 'relative', zIndex: 1 }}>
-                      <div style={{ fontSize: 10, fontWeight: 1000, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--primary)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--primary)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Sparkles size={16} fill="var(--primary)" /> CURRENT TIER
                       </div>
-                      <div style={{ fontSize: isMobile ? 28 : 40, fontWeight: 1000, marginBottom: 8, letterSpacing: '-0.03em' }}>Luter Scholar (Free)</div>
+                      <div style={{ fontSize: isMobile ? 28 : 40, fontWeight: 800, marginBottom: 8, letterSpacing: '-0.03em' }}>Luter Scholar (Free)</div>
                       <p style={{ fontSize: 14, fontWeight: 700, color: '#666', maxWidth: 400, lineHeight: 1.6 }}>You're currently using the fundamental workstation. Upgrade for unlimited AI support and advanced tracking.</p>
                     </div>
 
@@ -325,14 +325,14 @@ export default function SettingsPage({ user, isMobile }) {
                       padding: '18px 40px', 
                       borderRadius: 16, 
                       background: 'var(--primary)', 
-                      border: '2.5px solid #111', 
+                      border: 'none', 
                       color: 'white', 
                       fontSize: 15, 
-                      fontWeight: 1000, 
+                      fontWeight: 800, 
                       cursor: 'pointer', 
                       fontFamily: 'inherit', 
-                      boxShadow: '4px 4px 0px #111',
-                      transition: 'all 0.1s'
+                      boxShadow: '0 8px 24px -6px rgba(151,24,251,0.5)',
+                      transition: 'all 0.2s'
                     }}>
                       UPGRADE TO SCHOLAR+
                     </button>

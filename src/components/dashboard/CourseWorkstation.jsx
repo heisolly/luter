@@ -484,10 +484,10 @@ function QuizBattleTab({ course, onNavigate }) {
   return (
     <div className="cw-quiz" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '40px 20px', textAlign: 'center' }}>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-        <div style={{ width: 80, height: 80, borderRadius: 24, background: 'rgba(122,18,204,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', border: '1.5px solid var(--primary)', boxShadow: '4px 4px 0px var(--primary)' }}>
-          <Flame size={40} color="var(--primary)" strokeWidth={2.5} />
+        <div style={{ width: 80, height: 80, borderRadius: 24, background: 'var(--primary-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', border: '1.5px solid var(--primary)', boxShadow: '0 10px 25px -5px var(--primary-glow)' }}>
+          <Flame size={40} color="var(--primary)" strokeWidth={2.5} fill="var(--primary)" />
         </div>
-        <h2 style={{ fontSize: 26, fontWeight: 900, color: 'var(--primary)', marginBottom: 16, letterSpacing: '-0.02em', fontFamily: 'inherit' }}>
+        <h2 style={{ fontSize: 26, fontWeight: 800, color: 'var(--primary)', marginBottom: 16, letterSpacing: '-0.02em', fontFamily: 'inherit' }}>
           Lock In Mode
         </h2>
         <p style={{ fontSize: 14, color: '#555', maxWidth: 440, margin: '0 auto 36px', lineHeight: 1.6, fontWeight: 600 }}>

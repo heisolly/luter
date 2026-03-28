@@ -58,7 +58,7 @@ export default function AnalyticsPage({ user, isMobile }) {
     <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <div className="dh-topbar" style={{ background: isMobile ? 'transparent' : '#fff', borderBottom: isMobile ? 'none' : '1px solid #eee', padding: isMobile ? '20px 20px 0' : '20px 40px' }}>
         <div className="dh-topbar-left">
-          <h1 className="dh-page-title" style={{ fontSize: isMobile ? 24 : 28, fontWeight: 900 }}>Analytics Engine</h1>
+          <h1 className="dh-page-title" style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800 }}>Analytics Engine</h1>
           <p className="dh-page-sub" style={{ fontSize: isMobile ? 12 : 14, opacity: 0.6 }}>Track your academic trajectory and AI metrics</p>
         </div>
       </div>
@@ -104,12 +104,12 @@ export default function AnalyticsPage({ user, isMobile }) {
               background: 'white', 
               padding: isMobile ? '24px 20px' : '32px', 
               borderRadius: 24, 
-              border: '1.5px solid #111', 
-              boxShadow: '4px 4px 0px #111'
+              border: '1.5px solid #e5e7eb', 
+              boxShadow: '0 10px 30px -10px rgba(0,0,0,0.04)'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 900, color: '#111', margin: 0 }}>Course Coverage</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: '#111', margin: 0 }}>Course Coverage</h3>
               <div style={{ fontSize: 11, fontWeight: 700, background: '#f5f5f5', padding: '4px 10px', borderRadius: 99, color: '#666' }}>
                 LIVE
               </div>
@@ -126,15 +126,15 @@ export default function AnalyticsPage({ user, isMobile }) {
                   <div key={c.code} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                     <div style={{ width: 60, fontSize: 12, fontWeight: 800, color: '#111' }}>{c.code}</div>
                     <div style={{ flex: 1, position: 'relative' }}>
-                      <div style={{ height: 12, background: '#f0f0f0', borderRadius: 99, overflow: 'hidden', border: '1px solid #111' }}>
+                      <div style={{ height: 12, background: '#f0f0f0', borderRadius: 99, overflow: 'hidden', border: '1.5px solid var(--border)' }}>
                         <motion.div 
                           initial={{ width: 0 }} animate={{ width: `${c.progress}%` }} 
                           transition={{ duration: 1, delay: 0.6 + i * 0.1 }}
-                          style={{ background: c.color, height: '100%', borderRight: '1px solid #111' }} 
+                          style={{ background: c.color, height: '100%', borderRight: '1.5px solid var(--border)' }} 
                         />
                       </div>
                     </div>
-                    <div style={{ width: 36, textAlign: 'right', fontSize: 12, fontWeight: 900, color: '#111' }}>{c.progress}%</div>
+                    <div style={{ width: 36, textAlign: 'right', fontSize: 12, fontWeight: 800, color: '#111' }}>{c.progress}%</div>
                   </div>
                 ))}
               </div>
@@ -146,37 +146,37 @@ export default function AnalyticsPage({ user, isMobile }) {
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr', gap: 16 }}>
                 <motion.div 
                 initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 }}
-                style={{ background: '#f0fdf4', padding: isMobile ? '16px' : '24px', borderRadius: 20, border: '1.5px solid #111', display: 'flex', alignItems: 'center', gap: 14, boxShadow: isMobile ? '3px 3px 0px #111' : 'none' }}
+                style={{ background: '#f0fdf4', padding: isMobile ? '16px' : '24px', borderRadius: 20, border: '1.5px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
                 >
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'white', border:'1px solid #111', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'white', border:'1px solid #e5e7eb', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <TrendingUp size={20} strokeWidth={2.5} />
                 </div>
                 <div>
-                    <p style={{ fontSize: 10, fontWeight: 900, color: '#10b981', textTransform: 'uppercase', margin: '0 0 2px' }}>Peak</p>
-                    <h4 style={{ fontSize: 14, fontWeight: 900, margin: 0, color: '#111' }}>{strongest?.code || 'None'}</h4>
+                    <p style={{ fontSize: 10, fontWeight: 800, color: '#10b981', textTransform: 'uppercase', margin: '0 0 2px' }}>Peak</p>
+                    <h4 style={{ fontSize: 14, fontWeight: 800, margin: 0, color: '#111' }}>{strongest?.code || 'None'}</h4>
                 </div>
                 </motion.div>
 
                 <motion.div 
                 initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 }}
-                style={{ background: '#fef2f2', padding: isMobile ? '16px' : '24px', borderRadius: 20, border: '1.5px solid #111', display: 'flex', alignItems: 'center', gap: 14, boxShadow: isMobile ? '3px 3px 0px #111' : 'none' }}
+                style={{ background: '#fef2f2', padding: isMobile ? '16px' : '24px', borderRadius: 20, border: '1.5px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
                 >
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'white', border:'1px solid #111', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'white', border:'1px solid #e5e7eb', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <TrendingDown size={20} strokeWidth={2.5} />
                 </div>
                 <div>
-                    <p style={{ fontSize: 10, fontWeight: 900, color: '#ef4444', textTransform: 'uppercase', margin: '0 0 2px' }}>Lag</p>
-                    <h4 style={{ fontSize: 14, fontWeight: 900, margin: 0, color: '#111' }}>{weakest?.code || 'None'}</h4>
+                    <p style={{ fontSize: 10, fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', margin: '0 0 2px' }}>Lag</p>
+                    <h4 style={{ fontSize: 14, fontWeight: 800, margin: 0, color: '#111' }}>{weakest?.code || 'None'}</h4>
                 </div>
                 </motion.div>
             </div>
 
             <motion.div 
               initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8 }}
-              style={{ background: '#7a12cc', padding: 24, borderRadius: 24, color: 'white', border: '1.5px solid #111', boxShadow: '4px 4px 0px #111' }}
+              style={{ background: '#7a12cc', padding: 24, borderRadius: 24, color: 'white', border: '1.5px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 30px -10px rgba(122,18,204,0.4)' }}
             >
               <Target size={24} color="white" style={{ marginBottom: 12 }} />
-              <h3 style={{ fontSize: 16, fontWeight: 900, margin: '0 0 8px' }}>Luter Insight</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 8px' }}>Luter Insight</h3>
               <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
                 {hasData 
                   ? `Focus on ${weakest?.code}. Use the CBT simulator to bridge the 25% gap.`
@@ -199,16 +199,16 @@ function StatCard({ title, value, subtitle, icon: Icon, color, delay, isMobile }
         background: 'white', 
         padding: isMobile ? '16px' : '24px', 
         borderRadius: 20, 
-        border: '1.5px solid #111', 
-        boxShadow: '4px 4px 0px #111',
+        border: '1.5px solid #e5e7eb', 
+        boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
         display: 'flex', 
         flexDirection: 'column' 
       }}
     >
-      <div style={{ width: 32, height: 32, borderRadius: 10, background: 'white', border: '1px solid #111', color: color, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+      <div style={{ width: 32, height: 32, borderRadius: 10, background: 'white', border: '1px solid #e5e7eb', color: color, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
         <Icon size={18} strokeWidth={2.5} />
       </div>
-      <div style={{ fontSize: isMobile ? 20 : 32, fontWeight: 1000, color: '#111', lineHeight: 1, marginBottom: 4, letterSpacing: '-0.02em' }}>{value}</div>
+      <div style={{ fontSize: isMobile ? 20 : 32, fontWeight: 800, color: '#111', lineHeight: 1, marginBottom: 4, letterSpacing: '-0.02em' }}>{value}</div>
       <div style={{ fontSize: 11, fontWeight: 800, color: '#555', marginBottom: 2 }}>{title}</div>
       <div style={{ fontSize: 10, color: '#999', fontWeight: 600 }}>{subtitle}</div>
     </motion.div>

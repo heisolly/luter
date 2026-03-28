@@ -23,7 +23,7 @@
 }
 
 .dhd-hero-title {
-  font-size: 28px; font-weight: 900;
+  font-size: 28px; font-weight: 800;
   color: var(--text); letter-spacing: -0.04em; line-height: 1.15; margin: 0 0 4px;
 }
 .dhd-hero-name { color: var(--primary); }
@@ -64,10 +64,10 @@
 /* ── Base Bento Card ── */
 .dhd-bento-card {
   background: #fff;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: 20px;
   padding: 20px;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition: all 0.2s;
 }
 .dhd-bento-card:hover {
   box-shadow: 0 8px 28px -6px rgba(0,0,0,0.08);
@@ -84,7 +84,7 @@
 .dhd-bento-mission { grid-area: mission; }
 
 .dhd-mission-code { font-size: 11px; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 4px; }
-.dhd-mission-name { font-size: 22px; font-weight: 900; color: var(--text); letter-spacing: -0.03em; margin: 0 0 4px; }
+.dhd-mission-name { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.03em; margin: 0 0 4px; }
 .dhd-mission-topic { font-size: 13px; color: var(--muted); margin: 0 0 14px; font-weight: 500; }
 
 .dhd-mission-prog { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
@@ -117,7 +117,7 @@
 .dhd-vault-upload-btn {
   width: 64px; height: 64px; border-radius: 50%;
   background: var(--primary-bg);
-  border: 2px dashed rgba(122,18,204,0.35);
+  border: 1.5px dashed var(--primary);
   display: flex; align-items: center; justify-content: center;
   color: var(--primary); cursor: pointer;
   transition: all 0.2s; position: relative;
@@ -131,7 +131,7 @@
 
 .dhd-vault-timer { display: flex; align-items: center; justify-content: center; flex: 1; position: relative; }
 .dhd-vault-time {
-  position: absolute; font-size: 18px; font-weight: 900; color: var(--primary);
+  position: absolute; font-size: 18px; font-weight: 800; color: var(--primary);
   letter-spacing: -0.02em;
 }
 
@@ -176,9 +176,9 @@
 
 .dhd-strip-card {
   flex-shrink: 0; width: 160px;
-  background: #fff; border: 1px solid var(--border);
+  background: #fff; border: 1.5px solid var(--border);
   border-radius: 14px; overflow: hidden; cursor: pointer;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition: all 0.2s;
 }
 .dhd-strip-card:hover { border-color: rgba(151,24,251,0.2); box-shadow: 0 8px 24px -6px rgba(151,24,251,0.12); }
 

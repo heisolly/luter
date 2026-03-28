@@ -252,14 +252,14 @@ export default function Dashboard() {
               </button>
             </div>
             
-            <h3 style={{ fontSize: 16, fontWeight: 900, margin: '0 0 4px', letterSpacing: '-0.02em' }}>{showInviteNotify.title}</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.02em' }}>{showInviteNotify.title}</h3>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 500, margin: '0 0 20px', lineHeight: 1.4 }}>{showInviteNotify.body}</p>
             
             <button 
               onClick={() => { setActivePage('compete'); setShowInviteNotify(null); }}
               style={{
                 width: '100%', height: 44, borderRadius: 14, background: '#7a12cc', color: 'white',
-                border: 'none', fontSize: 13, fontWeight: 900, cursor: 'pointer', display: 'flex',
+                border: 'none', fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'flex',
                 alignItems: 'center', justifyContent: 'center', gap: 8
               }}
             >

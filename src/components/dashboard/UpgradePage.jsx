@@ -7,8 +7,8 @@ const plans = [
     name: 'Basic', trial: 'Free forever',
     priceMonthly: 0, priceSemester: 0,
     isPopular: false,
-    bg: 'white', color: '#111', border: '#111', shadow: '6px 6px 0px #111',
-    buttonStyle: { background: 'white', color: '#111', border: '2.5px solid #111' },
+    bg: 'white', color: '#111', border: '#e5e7eb', shadow: '0 4px 12px rgba(0,0,0,0.03)',
+    buttonStyle: { background: 'white', color: '#111', border: '1.5px solid #e5e7eb' },
     buttonText: 'Current Plan',
     features: ['5 uploads per month', 'AI Notes (Basic)', 'AI Summary', 'Flashcard generation', 'Community support']
   },
@@ -16,8 +16,8 @@ const plans = [
     name: 'Luter Pro', trial: 'Most popular for students',
     priceMonthly: 4000, priceSemester: 9000,
     isPopular: true,
-    bg: 'var(--primary)', color: 'white', border: '#111', shadow: '8px 8px 0px #111',
-    buttonStyle: { background: 'white', color: 'var(--primary)', border: '2.5px solid #111' },
+    bg: 'var(--primary)', color: 'white', border: 'var(--primary-dark)', shadow: '0 20px 40px -12px rgba(122,18,204,0.4)',
+    buttonStyle: { background: 'white', color: 'var(--primary)', border: 'none' },
     buttonText: 'Upgrade to Pro',
     features: ['Unlimited uploads', 'Advanced AI Notes', 'AI Summary + Quizzes', 'Spaced-rep Flashcards', 'AI Math Expert', 'Live Lecture Recording', 'Priority support']
   },
@@ -25,8 +25,8 @@ const plans = [
     name: 'Academic Premium', trial: 'For power users',
     priceMonthly: 7000, priceSemester: 16000,
     isPopular: false,
-    bg: '#111', color: 'white', border: '#111', shadow: '6px 6px 0px var(--primary)',
-    buttonStyle: { background: 'var(--primary)', color: 'white', border: '2.5px solid #111' },
+    bg: '#111', color: 'white', border: '#333', shadow: '0 20px 40px -12px rgba(0,0,0,0.4)',
+    buttonStyle: { background: 'var(--primary)', color: 'white', border: 'none' },
     buttonText: 'Get Premium',
     features: ['Everything in Pro', 'Analyze Images with AI', 'Multi-file Sessions', 'Team collaboration', 'Dedicated support', 'Early feature access']
   }
@@ -46,7 +46,7 @@ export default function UpgradePage({ isMobile }) {
       <div style={{ 
         padding: isMobile ? '24px 20px 16px' : '40px 48px',
         background: '#fff',
-        borderBottom: '2.5px solid #111'
+        borderBottom: '1px solid #e5e7eb'
       }}>
         <h1 style={{ fontSize: isMobile ? 26 : 32, fontWeight: 1000, margin: 0, color: '#111', letterSpacing: '-0.04em' }}>
           {isMobile ? 'Scholar Plans' : 'Upgrade Station'}
@@ -68,9 +68,9 @@ export default function UpgradePage({ isMobile }) {
         <div style={{ textAlign: 'center', marginBottom: isMobile ? 40 : 60 }}>
           <div style={{ 
             display: 'inline-flex', background: '#f5f5f5', 
-            border: '2.5px solid #111', borderRadius: 20, 
+            border: '1px solid #e5e7eb', borderRadius: 20, 
             padding: 6, gap: 6, 
-            boxShadow: '4px 4px 0px #111',
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)',
             width: isMobile ? '100%' : 'auto'
           }}>
             <button 
@@ -103,7 +103,7 @@ export default function UpgradePage({ isMobile }) {
                 fontSize: 9, 
                 background: isSemester ? 'var(--primary)' : '#fff', 
                 color: isSemester ? 'white' : 'var(--primary)', 
-                padding: '2px 8px', borderRadius: 6, fontWeight: 1000, border: '1.5px solid #111'
+                padding: '2px 8px', borderRadius: 6, fontWeight: 1000, border: isSemester ? 'none' : '1px solid #e5e7eb'
               }}>-30%</span>
             </button>
           </div>
@@ -128,7 +128,7 @@ export default function UpgradePage({ isMobile }) {
                 color: plan.color,
                 borderRadius: 32, 
                 padding: isMobile ? '32px 24px' : '48px',
-                border: '2.5px solid #111',
+                border: plan.isPopular ? 'none' : '1.5px solid #e5e7eb',
                 boxShadow: plan.shadow,
                 position: 'relative', 
                 display: 'flex', 
@@ -144,7 +144,7 @@ export default function UpgradePage({ isMobile }) {
                   display: 'inline-flex', alignItems: 'center', gap: 6, 
                   background: '#111', color: 'white', padding: '8px 20px', 
                   borderRadius: 12, fontSize: 10, fontWeight: 1000, 
-                  border: '2.5px solid #fff', boxShadow: '4px 4px 0px var(--primary)',
+                  border: '2px solid rgba(255,255,255,0.2)', boxShadow: '0 8px 20px -5px rgba(0,0,0,0.3)',
                   textTransform: 'uppercase', letterSpacing: '0.05em'
                 }}>
                   <Sparkles size={12} fill="white" /> Best Choice
@@ -189,7 +189,7 @@ export default function UpgradePage({ isMobile }) {
                         width: 24, height: 24, borderRadius: 8, 
                         background: plan.isPopular ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)', 
                         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                        border: '1.5px solid #111'
+                        border: plan.isPopular ? '1px solid rgba(255,255,255,0.2)' : '1px solid #e5e7eb'
                       }}>
                         <Check size={14} color={plan.color} strokeWidth={4} />
                       </div>
@@ -204,7 +204,7 @@ export default function UpgradePage({ isMobile }) {
                         width: 24, height: 24, borderRadius: 8, 
                         background: plan.isPopular ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)', 
                         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                        border: '1.5px solid #111'
+                        border: plan.isPopular ? '1px solid rgba(255,255,255,0.2)' : '1px solid #e5e7eb'
                       }}>
                         <Check size={14} color={plan.color} strokeWidth={4} />
                       </div>
@@ -218,7 +218,7 @@ export default function UpgradePage({ isMobile }) {
                 width: '100%', padding: '20px', borderRadius: 20, 
                 fontSize: 15, fontWeight: 1000, cursor: 'pointer',
                 ...plan.buttonStyle, transition: 'all 0.15s',
-                boxShadow: plan.isPopular ? 'none' : '4px 4px 0px #111',
+                boxShadow: plan.isPopular ? '0 10px 24px -5px rgba(0,0,0,0.1)' : '0 4px 12px rgba(0,0,0,0.05)',
                 textTransform: 'uppercase', letterSpacing: '0.05em'
               }}>
                 {plan.buttonText}

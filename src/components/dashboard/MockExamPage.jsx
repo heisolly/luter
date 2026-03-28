@@ -231,13 +231,8 @@ export default function MockExamPage({ user, preselectedCourse, isMobile }) {
           {/* Progress Bar Container */}
           <div style={{ position: 'relative', width: '100%', padding: '0 20px', boxSizing: 'border-box' }}>
             
-            <div style={{ width: '100%', height: 16, background: '#f4fdf4', borderRadius: 99, border: '2px solid #111', overflow: 'hidden', boxShadow: '4px 4px 0px rgba(0,0,0,0.1)' }}>
-              <motion.div 
-                initial={{ width: '0%' }} 
-                animate={{ width: '100%' }} 
-                transition={{ duration: 7, ease: "linear" }}
-                style={{ height: '100%', background: '#10b981', borderRight: '2px solid #111' }} 
-              />
+            <div style={{ width: '100%', height: 12, background: '#f5f3ff', borderRadius: 99, border: '1.5px solid var(--border)', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                style={{ height: '100%', background: 'var(--primary)', borderRadius: 99 }} 
             </div>
             
             {/* The Moving Element: A fun animated vessel alternative */}
@@ -269,9 +264,9 @@ export default function MockExamPage({ user, preselectedCourse, isMobile }) {
                 transition={{ duration: 0.5, repeat: Infinity, ease: "easeInOut" }}
                 style={{ 
                   zIndex: 10, width: 56, height: 44, background: '#fff', 
-                  border: '2.5px solid #111', borderRadius: '50% 50% 40% 40%', 
+                  border: '1.5px solid var(--primary)', borderRadius: '50% 50% 40% 40%', 
                   display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                  boxShadow: '3px 3px 0px #111' 
+                  boxShadow: '0 10px 25px -5px var(--primary-glow)' 
                 }}
               >
                 <div style={{ transform: 'rotate(90deg)', display: 'flex' }}>
@@ -317,10 +312,10 @@ export default function MockExamPage({ user, preselectedCourse, isMobile }) {
             borderRadius: 99, 
             fontSize: 12, 
             fontWeight: 800, 
-            border: '1.5px solid #d97706', 
-            boxShadow: '2px 2px 0px #d97706' 
+            border: '1.5px solid #fbbf24', 
+            boxShadow: '0 4px 12px rgba(217,119,6,0.1)' 
           }}>
-            <Zap size={14} fill="#d97706" /> {isMobile ? 'Configuring' : 'Configuration Stage'}
+            <Zap size={14} fill="#fbbf24" strokeWidth={0} /> {isMobile ? 'Configuring' : 'Configuration Stage'}
           </div>
         </div>
 
@@ -370,9 +365,9 @@ export default function MockExamPage({ user, preselectedCourse, isMobile }) {
                     outline: 'none', 
                     transition: 'all 0.1s', 
                     fontFamily: 'inherit',
-                    border: '1.5px solid #d97706',
-                    color: '#d97706', 
-                    boxShadow: '3px 3px 0px #d97706'
+                    border: '1.5px solid #fbbf24',
+                    color: '#b45309', 
+                    boxShadow: '0 4px 12px rgba(217,119,6,0.1)'
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
@@ -446,9 +441,9 @@ export default function MockExamPage({ user, preselectedCourse, isMobile }) {
                         outline: 'none', 
                         transition: 'all 0.1s', 
                         fontFamily: 'inherit',
-                        border: isSelected ? '1.5px solid #111' : '1px solid #e5e7eb',
-                        color: isSelected ? '#111' : '#555', 
-                        boxShadow: isSelected ? '3px 3px 0px #111' : 'none',
+                        border: isSelected ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
+                        color: isSelected ? 'var(--primary)' : '#555', 
+                        boxShadow: isSelected ? '0 8px 20px -6px var(--primary-glow)' : 'none',
                         display: 'flex', flexDirection: 'column', gap: 2
                       }}
                     >
@@ -494,9 +489,9 @@ export default function MockExamPage({ user, preselectedCourse, isMobile }) {
                         outline: 'none', 
                         transition: 'all 0.1s', 
                         fontFamily: 'inherit',
-                        border: isSelected ? '1.5px solid #111' : '1px solid #e5e7eb',
-                        color: isSelected ? '#111' : '#555', 
-                        boxShadow: isSelected ? '3px 3px 0px #111' : 'none',
+                        border: isSelected ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
+                        color: isSelected ? 'var(--primary)' : '#555', 
+                        boxShadow: isSelected ? '0 8px 20px -6px var(--primary-glow)' : 'none',
                         display: 'flex', flexDirection: 'column', gap: 2
                       }}
                     >
@@ -536,8 +531,9 @@ export default function MockExamPage({ user, preselectedCourse, isMobile }) {
               onClick={() => setConfigStep(c=>c-1)}
               style={{ 
                 padding: isMobile ? '10px 16px' : '10px 28px', borderRadius: 12, background: 'white', color: '#111', 
-                border: '1.5px solid #111', fontSize: 13, fontWeight: 600, cursor: configStep===1?'not-allowed':'pointer',
-                opacity: configStep===1?0:1, boxShadow: configStep===1?'none':'3px 3px 0px #111', 
+                border: '1.5px solid var(--border)', fontSize: 13, fontWeight: 600, cursor: configStep===1?'not-allowed':'pointer',
+                border: '1.5px solid #e5e7eb', fontSize: 13, fontWeight: 600, cursor: configStep===1?'not-allowed':'pointer',
+                opacity: configStep===1?0:1, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', 
                 display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.1s', fontFamily: 'inherit'
               }}
             >
@@ -548,7 +544,7 @@ export default function MockExamPage({ user, preselectedCourse, isMobile }) {
               {[1,2,3].map(s => (
                 <div key={s} style={{ 
                   width:s===configStep?24:8, height:8, borderRadius:99, 
-                  background:s===configStep?'#111':(s<configStep?'#10b981':'#ddd'),
+                  background:s===configStep?'var(--primary)':(s<configStep?'#10b981':'#ddd'),
                   transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)'
                 }} />
               ))}
@@ -561,10 +557,12 @@ export default function MockExamPage({ user, preselectedCourse, isMobile }) {
               }}
               disabled={!isStepReady}
               style={{ 
-                padding: isMobile ? '10px 16px' : '10px 28px', borderRadius: 12, background: 'white', color: '#111', 
-                border: '1.5px solid #111', fontSize: 13, fontWeight: 700, 
+                padding: isMobile ? '10px 16px' : '10px 28px', borderRadius: 12, 
+                border: '1.5px solid var(--primary)', fontSize: 13, fontWeight: 800, 
                 cursor: !isStepReady?'not-allowed':'pointer', 
-                opacity: !isStepReady?0.5:1, boxShadow: !isStepReady?'none':'3px 3px 0px #111',
+                opacity: !isStepReady?0.5:1, boxShadow: !isStepReady?'none':'0 10px 25px -5px var(--primary-glow)',
+                background: isStepReady ? 'var(--primary)' : 'white',
+                color: isStepReady ? 'white' : '#111',
                 display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.1s', fontFamily: 'inherit'
               }}
             >
@@ -704,7 +702,7 @@ export default function MockExamPage({ user, preselectedCourse, isMobile }) {
                   padding: isMobile ? '32px 20px' : '40px 32px', 
                   marginBottom: 20, 
                   border: '1.5px solid #eaeaea', 
-                  boxShadow: '0 20px 40px rgba(0,0,0,0.06)',
+                  boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
                   textAlign: 'center',
                   position: 'relative',
                   overflow: 'hidden'
@@ -736,7 +734,7 @@ export default function MockExamPage({ user, preselectedCourse, isMobile }) {
                       borderRadius: 20, 
                       background: 'white', 
                       border: '1.5px solid #eee', 
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
                       display: 'flex', 
                       flexDirection: 'column',
                       gap: 8,
