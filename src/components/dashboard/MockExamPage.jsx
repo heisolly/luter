@@ -26,7 +26,7 @@ const SAMPLE_QUESTIONS = [
   }
 ]
 
-export default function MockExamPage({ user, preselectedCourse }) {
+export default function MockExamPage({ user, preselectedCourse, isMobile }) {
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState('configure') // configure | exam | result
@@ -294,25 +294,52 @@ export default function MockExamPage({ user, preselectedCourse }) {
       <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'inherit' }}>
         
         {/* Wizard Navbar */}
-        <div style={{ padding: '24px 40px', background: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 style={{ fontSize: 20, fontWeight: 900, color: '#111', margin: 0, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <FlaskConical size={20} color="#111" /> Mock Exam Setup
+        <div style={{ 
+          padding: isMobile ? '16px 20px' : '24px 40px', 
+          background: '#ffffff', 
+          display: 'flex', 
+          flexDirection: isMobile ? 'column' : 'row',
+          justifyContent: isMobile ? 'center' : 'space-between', 
+          alignItems: isMobile ? 'flex-start' : 'center',
+          gap: isMobile ? 12 : 0,
+          borderBottom: isMobile ? '1.5px solid #f5f5f5' : 'none'
+        }}>
+          <h1 style={{ fontSize: isMobile ? 18 : 20, fontWeight: 900, color: '#111', margin: 0, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <FlaskConical size={20} color="#111" /> {isMobile ? 'Exam Setup' : 'Mock Exam Setup'}
           </h1>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fffbeb', color: '#d97706', padding: '6px 14px', borderRadius: 99, fontSize: 13, fontWeight: 800, border: '1.5px solid #d97706', boxShadow: '2px 2px 0px #d97706' }}>
-            <Zap size={14} fill="#d97706" /> Configuration Stage
+          <div style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: 6, 
+            background: '#fffbeb', 
+            color: '#d97706', 
+            padding: '6px 14px', 
+            borderRadius: 99, 
+            fontSize: 12, 
+            fontWeight: 800, 
+            border: '1.5px solid #d97706', 
+            boxShadow: '2px 2px 0px #d97706' 
+          }}>
+            <Zap size={14} fill="#d97706" /> {isMobile ? 'Configuring' : 'Configuration Stage'}
           </div>
         </div>
 
-        <div style={{ flex: 1, padding: '20px 40px 40px 40px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+        <div style={{ 
+          flex: 1, 
+          padding: isMobile ? '20px 16px 100px' : '20px 40px 40px 40px', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'flex-start' 
+        }}>
           <motion.div 
             key={configStep}
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            style={{ width: '100%', maxWidth: configStep === 1 ? 900 : 560, display: 'flex', flexDirection: 'column' }}
+            style={{ width: '100%', maxWidth: configStep === 1 ? (isMobile ? 500 : 900) : 560, display: 'flex', flexDirection: 'column' }}
           >
-            {/* Heading styled exactly like the CBT Question Box */}
-            <div style={{ background: '#eefaec', borderRadius: 12, padding: '24px 28px', marginBottom: 30 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 600, color: '#222', margin: 0, lineHeight: 1.5 }}>
-                {configStep === 1 && "Which courses do you want to pull questions from for this Mock Exam? Select one or multiple."}
+            {/* Heading */}
+            <div style={{ background: '#eefaec', borderRadius: 12, padding: isMobile ? '20px' : '24px 28px', marginBottom: 24 }}>
+              <h2 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600, color: '#222', margin: 0, lineHeight: 1.5 }}>
+                {configStep === 1 && "Which courses do you want to pull questions from for this Mock Exam?"}
                 {configStep === 2 && "How many questions do you want to attempt?"}
                 {configStep === 3 && "What time limit per question do you want to set?"}
               </h2>
@@ -320,7 +347,12 @@ export default function MockExamPage({ user, preselectedCourse }) {
             
             {/* Step 1: Responsive Grid of Courses */}
             {configStep === 1 && courses.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20, marginBottom: 40 }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', 
+                gap: isMobile ? 12 : 20, 
+                marginBottom: 40 
+              }}>
                 <motion.button 
                   whileHover={{ y: -2 }} whileTap={{ scale: 0.94 }}
                   onClick={() => {
@@ -330,18 +362,26 @@ export default function MockExamPage({ user, preselectedCourse }) {
                     setExamCourses(shuffled.slice(0, amount));
                   }}
                   style={{ 
-                    padding: '24px', borderRadius: 16, background: '#fffbeb', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit',
+                    padding: isMobile ? '16px 20px' : '24px', 
+                    borderRadius: 16, 
+                    background: '#fffbeb', 
+                    textAlign: 'left', 
+                    cursor: 'pointer', 
+                    outline: 'none', 
+                    transition: 'all 0.1s', 
+                    fontFamily: 'inherit',
                     border: '1.5px solid #d97706',
-                    color: '#d97706', boxShadow: '3px 3px 0px #d97706'
+                    color: '#d97706', 
+                    boxShadow: '3px 3px 0px #d97706'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(217,119,6,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(217,119,6,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Dices size={20} color="#d97706" />
                     </div>
                   </div>
-                  <h3 style={{ fontSize: 18, fontWeight: 900, margin: '0 0 4px', color: '#d97706' }}>Dice Roll</h3>
-                  <p style={{ fontSize: 13, margin: 0, fontWeight: 700, color: '#b45309' }}>Select random courses</p>
+                  <h3 style={{ fontSize: 16, fontWeight: 900, margin: '0 0 2px', color: '#d97706' }}>Dice Roll</h3>
+                  <p style={{ fontSize: 12, margin: 0, fontWeight: 700, color: '#b45309' }}>Select random courses</p>
                 </motion.button>
                 {courses.map(c => {
                   const isSelected = examCourses.some(x => x.id === c.id)
@@ -351,19 +391,26 @@ export default function MockExamPage({ user, preselectedCourse }) {
                       whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}
                       onClick={() => toggleCourseConfig(c)}
                       style={{ 
-                        padding: '24px', borderRadius: 16, background: 'white', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit',
+                        padding: isMobile ? '16px 20px' : '24px', 
+                        borderRadius: 16, 
+                        background: 'white', 
+                        textAlign: 'left', 
+                        cursor: 'pointer', 
+                        outline: 'none', 
+                        transition: 'all 0.1s', 
+                        fontFamily: 'inherit',
                         border: isSelected ? '1.5px solid #111' : '1px solid #e5e7eb',
                         color: isSelected ? '#111' : '#555'
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                        <div style={{ width: 44, height: 44, borderRadius: 12, background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <span style={{ fontSize: 16, fontWeight: 900, color: '#111' }}>{c.code.slice(0, 3)}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 12, background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: 14, fontWeight: 900, color: '#111' }}>{c.code.slice(0, 3)}</span>
                         </div>
                         {isSelected && <CheckCircle2 size={24} color="#111" />}
                       </div>
-                      <h3 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 4px', color: '#111' }}>{c.code}</h3>
-                      <p style={{ fontSize: 13, margin: 0, fontWeight: 600 }}>{c.name}</p>
+                      <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 2px', color: '#111' }}>{c.code}</h3>
+                      <p style={{ fontSize: 12, margin: 0, fontWeight: 600 }}>{c.name}</p>
                     </motion.button>
                   )
                 })}
@@ -372,7 +419,12 @@ export default function MockExamPage({ user, preselectedCourse }) {
 
             {/* Step 2: Question Quantities */}
             {configStep === 2 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 40 }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', 
+                gap: 12, 
+                marginBottom: 40 
+              }}>
                 {[
                   { n: 10, label: 'Small Batch', desc: 'Quick drill' },
                   { n: 20, label: 'Standard Run', desc: 'Daily goal' },
@@ -386,18 +438,25 @@ export default function MockExamPage({ user, preselectedCourse }) {
                       whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
                       onClick={() => setExamQs(item.n)}
                       style={{ 
-                        padding: '20px 24px', borderRadius: 12, background: 'white', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit',
+                        padding: isMobile ? '16px 20px' : '20px 24px', 
+                        borderRadius: 12, 
+                        background: 'white', 
+                        textAlign: 'left', 
+                        cursor: 'pointer', 
+                        outline: 'none', 
+                        transition: 'all 0.1s', 
+                        fontFamily: 'inherit',
                         border: isSelected ? '1.5px solid #111' : '1px solid #e5e7eb',
                         color: isSelected ? '#111' : '#555', 
                         boxShadow: isSelected ? '3px 3px 0px #111' : 'none',
-                        display: 'flex', flexDirection: 'column', gap: 4
+                        display: 'flex', flexDirection: 'column', gap: 2
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                        <span style={{ fontSize: 18, fontWeight: 900 }}>{item.n} Qs</span>
+                        <span style={{ fontSize: 16, fontWeight: 900 }}>{item.n} Qs</span>
                         {isSelected && <CheckCircle2 size={20} color="#111" />}
                       </div>
-                      <span style={{ fontSize: 13, fontWeight: 700, opacity: 0.8 }}>{item.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, opacity: 0.8 }}>{item.label}</span>
                     </motion.button>
                   )
                 })}
@@ -406,7 +465,12 @@ export default function MockExamPage({ user, preselectedCourse }) {
 
             {/* Step 3: Timed Engagements */}
             {configStep === 3 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 40 }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', 
+                gap: 12, 
+                marginBottom: 40 
+              }}>
                 {[
                   { v: 0, l: 'No Limit', sub: 'Study Mode' }, 
                   { v: 5, l: '5s / Q', sub: 'Flash Zone' },
@@ -422,18 +486,25 @@ export default function MockExamPage({ user, preselectedCourse }) {
                       whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
                       onClick={() => setExamTimer(t.v)}
                       style={{ 
-                        padding: '20px 24px', borderRadius: 12, background: 'white', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit',
+                        padding: isMobile ? '16px 20px' : '20px 24px', 
+                        borderRadius: 12, 
+                        background: 'white', 
+                        textAlign: 'left', 
+                        cursor: 'pointer', 
+                        outline: 'none', 
+                        transition: 'all 0.1s', 
+                        fontFamily: 'inherit',
                         border: isSelected ? '1.5px solid #111' : '1px solid #e5e7eb',
                         color: isSelected ? '#111' : '#555', 
                         boxShadow: isSelected ? '3px 3px 0px #111' : 'none',
-                        display: 'flex', flexDirection: 'column', gap: 4
+                        display: 'flex', flexDirection: 'column', gap: 2
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                        <span style={{ fontSize: 18, fontWeight: 900 }}>{t.l}</span>
+                        <span style={{ fontSize: 16, fontWeight: 900 }}>{t.l}</span>
                         {isSelected && <CheckCircle2 size={20} color="#111" />}
                       </div>
-                      <span style={{ fontSize: 13, fontWeight: 700, opacity: 0.8 }}>{t.sub}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, opacity: 0.8 }}>{t.sub}</span>
                     </motion.button>
                   )
                 })}
@@ -443,44 +514,61 @@ export default function MockExamPage({ user, preselectedCourse }) {
           </motion.div>
         </div>
 
-        {/* Floating Retro Footer matching Exam mode perfectly */}
-        <div style={{ background: '#f4fdf4', padding: '24px 40px', display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: 'auto' }}>
+        {/* Floating Retro Footer */}
+        <div style={{ 
+          background: '#f4fdf4', 
+          padding: isMobile ? '16px 20px' : '24px 40px', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          marginTop: 'auto',
+          position: isMobile ? 'fixed' : 'relative',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          borderTop: '2px solid #111'
+        }}>
           <div style={{ width: '100%', maxWidth: configStep === 1 ? 900 : 560, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             
             <button 
               disabled={configStep===1} 
               onClick={() => setConfigStep(c=>c-1)}
               style={{ 
-                padding: '10px 28px', borderRadius: 12, background: 'white', color: '#111', 
-                border: '1.5px solid #111', fontSize: 14, fontWeight: 600, cursor: configStep===1?'not-allowed':'pointer',
-                opacity: configStep===1?0.5:1, boxShadow: configStep===1?'none':'3px 3px 0px #111', 
+                padding: isMobile ? '10px 16px' : '10px 28px', borderRadius: 12, background: 'white', color: '#111', 
+                border: '1.5px solid #111', fontSize: 13, fontWeight: 600, cursor: configStep===1?'not-allowed':'pointer',
+                opacity: configStep===1?0:1, boxShadow: configStep===1?'none':'3px 3px 0px #111', 
                 display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.1s', fontFamily: 'inherit'
               }}
             >
-              ← back
+              ← {isMobile ? '' : 'back'}
             </button>
             
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#555' }}>
-              {configStep} of 3
-            </span>
+            <div style={{ display:'flex', gap:4 }}>
+              {[1,2,3].map(s => (
+                <div key={s} style={{ 
+                  width:s===configStep?24:8, height:8, borderRadius:99, 
+                  background:s===configStep?'#111':(s<configStep?'#10b981':'#ddd'),
+                  transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)'
+                }} />
+              ))}
+            </div>
             
             <button 
               onClick={() => {
                 if (configStep < 3) setConfigStep(c=>c+1)
-                else {
-                  setMode('preparing');
-                }
+                else setMode('preparing')
               }}
               disabled={!isStepReady}
               style={{ 
-                padding: '10px 28px', borderRadius: 12, background: 'white', color: '#111', 
-                border: '1.5px solid #111', fontSize: 14, fontWeight: 600, 
+                padding: isMobile ? '10px 16px' : '10px 28px', borderRadius: 12, background: 'white', color: '#111', 
+                border: '1.5px solid #111', fontSize: 13, fontWeight: 700, 
                 cursor: !isStepReady?'not-allowed':'pointer', 
                 opacity: !isStepReady?0.5:1, boxShadow: !isStepReady?'none':'3px 3px 0px #111',
-                display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.1s', fontFamily: 'inherit'
+                display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.1s', fontFamily: 'inherit'
               }}
             >
-              {configStep === 3 ? 'start run' : 'continue'} →
+              {configStep === 3 ? 'ready ' : 'next '} →
             </button>
 
           </div>
@@ -542,54 +630,35 @@ export default function MockExamPage({ user, preselectedCourse }) {
     return (
       <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'inherit' }}>
         
-        <div style={{ flex: 1, padding: '20px 20px 100px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
-          <div style={{ width: '100%', maxWidth: 520, marginTop: '2vh' }}>
+        <div style={{ flex: 1, padding: isMobile ? '20px 12px 100px' : '20px 20px 100px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+          <div style={{ width: '100%', maxWidth: 520, marginTop: isMobile ? '0' : '2vh' }}>
             
             {/* Luter Branding Header */}
-            <div style={{ textAlign: 'center', marginBottom: 40, display: 'flex', justifyContent: 'center' }}>
-              <LuterLogo size={52} fontSize={40} />
+            <div style={{ textAlign: 'center', marginBottom: isMobile ? 24 : 40, display: 'flex', justifyContent: 'center' }}>
+              <LuterLogo size={isMobile ? 40 : 52} fontSize={isMobile ? 32 : 40} />
             </div>
 
             {/* Shareable Container */}
-            <div ref={resultRef} style={{ background: '#fff', borderRadius: 24, padding: 2, position: 'relative', overflow: 'hidden' }}>
+            <div ref={resultRef} style={{ background: '#fff', borderRadius: 24, padding: isMobile ? 12 : 2, position: 'relative', overflow: 'hidden' }}>
               
-              {/* Static Confetti for the captured image (Absolute Positioned) */}
+              {/* Static Confetti ... (stays same) */}
               <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, opacity: 0.8 }}>
-                {/* Top Ribbons */}
                 <svg style={{ position: 'absolute', top: -10, left: '5%', transform: 'rotate(-10deg)' }} width="40" height="150" viewBox="0 0 40 150">
                   <path d="M10 0 Q 30 25 10 50 Q -10 75 10 100 Q 30 125 10 150" fill="none" stroke="#fbbf24" strokeWidth="5" strokeLinecap="round" />
                 </svg>
                 <svg style={{ position: 'absolute', top: 20, right: '12%', transform: 'rotate(15deg)' }} width="40" height="180" viewBox="0 0 40 180">
                   <path d="M20 0 Q 0 30 20 60 Q 40 90 20 120 Q 0 150 20 180" fill="none" stroke="#7a12cc" strokeWidth="4" strokeLinecap="round" opacity="0.5" />
                 </svg>
-                <svg style={{ position: 'absolute', top: 120, left: '25%', transform: 'rotate(5deg)' }} width="30" height="100" viewBox="0 0 30 100">
-                  <path d="M5 0 Q 25 15 5 30 Q -15 45 5 60 Q 25 75 5 100" fill="none" stroke="#fbbf24" strokeWidth="3" strokeLinecap="round" opacity="0.4" />
-                </svg>
-
-                {/* Middle/Bottom Ribbons */}
-                <svg style={{ position: 'absolute', top: 280, right: '4%' }} width="40" height="140" viewBox="0 0 40 140">
-                  <path d="M15 0 Q 35 25 15 50 Q -5 75 15 100 Q 35 125 15 140" fill="none" stroke="#7a12cc" strokeWidth="4" strokeLinecap="round" />
-                </svg>
-                <svg style={{ position: 'absolute', bottom: 100, left: '10%', transform: 'rotate(20deg)' }} width="40" height="150" viewBox="0 0 40 150">
-                  <path d="M10 0 Q 30 25 10 50 Q -10 75 10 100 Q 30 125 10 150" fill="none" stroke="#fbbf24" strokeWidth="4" strokeLinecap="round" opacity="0.6" />
-                </svg>
-                
-                {/* Scattering confetti dots/squares */}
-                <div style={{ position: 'absolute', top: 40, left: '42%', width: 8, height: 8, borderRadius: 2, background: '#7a12cc', transform: 'rotate(45deg)' }} />
-                <div style={{ position: 'absolute', top: 160, right: '35%', width: 6, height: 6, borderRadius: '50%', background: '#fbbf24' }} />
-                <div style={{ position: 'absolute', bottom: 240, left: '15%', width: 10, height: 10, borderRadius: 2, background: '#fbbf24', transform: 'rotate(15deg)' }} />
-                <div style={{ position: 'absolute', bottom: 80, right: '20%', width: 7, height: 7, borderRadius: 1, background: '#7a12cc', transform: 'rotate(60deg)' }} />
-                <div style={{ position: 'absolute', top: '50%', left: '8%', width: 6, height: 6, borderRadius: '50%', background: '#ff3366', opacity: 0.4 }} />
               </div>
 
-              <div style={{ textAlign: 'center', marginBottom: 32, position: 'relative', zIndex: 1 }}>
+              <div style={{ textAlign: 'center', marginBottom: isMobile ? 24 : 32, position: 'relative', zIndex: 1 }}>
                 <motion.div
                   initial={{ rotate: -10, scale: 0 }}
                   animate={{ rotate: 0, scale: 1 }}
                   transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                  style={{ display: 'inline-block', marginBottom: 20 }}
+                  style={{ display: 'inline-block', marginBottom: isMobile ? 16 : 20 }}
                 >
-                  <div style={{ background: '#fffbeb', border: '1.5px solid #fbbf24', padding: '16px 24px', borderRadius: 24, boxShadow: '0 8px 16px rgba(251, 191, 36, 0.2)', display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
+                  <div style={{ background: '#fffbeb', border: '1.5px solid #fbbf24', padding: isMobile ? '12px 16px' : '16px 24px', borderRadius: 20, boxShadow: '0 8px 16px rgba(251, 191, 36, 0.2)', display: 'flex', alignItems: 'center', gap: 10, position: 'relative' }}>
                     <motion.div
                       animate={{ 
                         scale: [1, 1.1, 1],
@@ -597,11 +666,11 @@ export default function MockExamPage({ user, preselectedCourse }) {
                       }}
                       transition={{ duration: 2, repeat: Infinity }}
                     >
-                      <Zap size={28} fill="#fbbf24" color="#d97706" />
+                      <Zap size={isMobile ? 20 : 28} fill="#fbbf24" color="#d97706" />
                     </motion.div>
                     <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontSize: 13, fontWeight: 900, color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Daily Reward</div>
-                      <div style={{ fontSize: 24, fontWeight: 1000, color: '#111', lineHeight: 1 }}>+{score * 50} XP</div>
+                      <div style={{ fontSize: 11, fontWeight: 900, color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Daily Reward</div>
+                      <div style={{ fontSize: isMobile ? 18 : 24, fontWeight: 1000, color: '#111', lineHeight: 1 }}>+{score * 50} XP</div>
                     </div>
                   </div>
                 </motion.div>
@@ -610,7 +679,7 @@ export default function MockExamPage({ user, preselectedCourse }) {
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.2 }}
-                  style={{ fontSize: 36, fontWeight: 1000, color: '#111', margin: '0 0 8px', letterSpacing: '-0.04em' }}
+                  style={{ fontSize: isMobile ? 28 : 36, fontWeight: 1000, color: '#111', margin: '0 0 4px', letterSpacing: '-0.04em' }}
                 >
                   {pass ? 'Incredible Work!' : 'Keep Going!'}
                 </motion.h2>
@@ -618,9 +687,9 @@ export default function MockExamPage({ user, preselectedCourse }) {
                   initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.3 }}
-                  style={{ fontSize: 16, color: '#555', fontWeight: 600, margin: 0 }}
+                  style={{ fontSize: isMobile ? 14 : 16, color: '#555', fontWeight: 600, margin: 0 }}
                 >
-                  You completed your {examCourses[0]?.name || 'Mock Exam'} session
+                  {isMobile ? 'Session complete 🎯' : `You completed your ${examCourses[0]?.name || 'Mock Exam'} session`}
                 </motion.p>
               </div>
 
@@ -632,8 +701,8 @@ export default function MockExamPage({ user, preselectedCourse }) {
                 style={{ 
                   background: pass ? '#f0fdf4' : '#fff7ed', 
                   borderRadius: 24, 
-                  padding: '40px 32px', 
-                  marginBottom: 24, 
+                  padding: isMobile ? '32px 20px' : '40px 32px', 
+                  marginBottom: 20, 
                   border: '1.5px solid #eaeaea', 
                   boxShadow: '0 20px 40px rgba(0,0,0,0.06)',
                   textAlign: 'center',
@@ -641,49 +710,16 @@ export default function MockExamPage({ user, preselectedCourse }) {
                   overflow: 'hidden'
                 }}
               >
-                {/* Floating "Springlrs" / Sparkles */}
-                {pass && (
-                  <>
-                    {[...Array(6)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        animate={{ 
-                          scale: [0, 1, 0.8, 0],
-                          x: [0, (i%2===0?20:-20) * (i+1), (i%2===0?40:-40) * (i+1)],
-                          y: [0, -40, -80],
-                          opacity: [0, 1, 0]
-                        }}
-                        transition={{ 
-                          duration: 3, 
-                          repeat: Infinity, 
-                          delay: i * 0.4,
-                          ease: "easeOut"
-                        }}
-                        style={{ 
-                          position: 'absolute', 
-                          top: '60%', 
-                          left: `${15 + (i * 15)}%`, 
-                          color: '#fbbf24', 
-                          zIndex: 0,
-                          pointerEvents: 'none'
-                        }}
-                      >
-                        <Star size={16} fill="#fbbf24" strokeWidth={0} />
-                      </motion.div>
-                    ))}
-                  </>
-                )}
-
                 <div style={{ position: 'relative', zIndex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 900, color: '#111', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16, opacity: 0.6 }}>Final Score</div>
-                  <div style={{ fontSize: 88, fontWeight: 1000, color: '#111', lineHeight: 1, letterSpacing: '-0.05em' }}>
-                    {score}<span style={{ opacity: 0.3, fontSize: 32 }}>/{SAMPLE_QUESTIONS.length}</span>
+                  <div style={{ fontSize: 12, fontWeight: 900, color: '#111', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 12, opacity: 0.6 }}>Final Score</div>
+                  <div style={{ fontSize: isMobile ? 64 : 88, fontWeight: 1000, color: '#111', lineHeight: 1, letterSpacing: '-0.05em' }}>
+                    {score}<span style={{ opacity: 0.3, fontSize: isMobile ? 24 : 32 }}>/{SAMPLE_QUESTIONS.length}</span>
                   </div>
                 </div>
               </motion.div>
 
-              {/* Stats Grid - 2x2 */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 32 }}>
+              {/* Stats Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 12 : 16, marginBottom: 24 }}>
                 {[
                   { label: 'ACCURACY', value: `${Math.round((score/SAMPLE_QUESTIONS.length)*100)}%`, icon: <BarChart3 size={18} />, color: '#7a12cc' },
                   { label: 'STREAK', value: pass ? '+1 Day' : 'Paused', icon: <Flame size={18} />, color: '#ef4444' },
@@ -799,13 +835,13 @@ export default function MockExamPage({ user, preselectedCourse }) {
           {/* Floating Action Island */}
         <div style={{
           position: 'fixed',
-          bottom: 30,
+          bottom: isMobile ? 20 : 30,
           left: 0,
           right: 0,
           display: 'flex',
           justifyContent: 'center',
-          zIndex: 100,
-          padding: '0 20px',
+          zIndex: 1000,
+          padding: '0 16px',
           pointerEvents: 'none'
         }}>
           <motion.div
@@ -815,110 +851,77 @@ export default function MockExamPage({ user, preselectedCourse }) {
             style={{
               width: '100%',
               maxWidth: 480,
-              background: 'rgba(255, 255, 255, 0.95)',
-              borderRadius: 36,
-              border: '1px solid #f0f0f0',
-              boxShadow: '0px 20px 50px rgba(0,0,0,0.1)',
-              padding: '12px 14px',
+              background: 'rgba(255, 255, 255, 0.96)',
+              borderRadius: isMobile ? 24 : 36,
+              border: '1.5px solid #111',
+              boxShadow: '0px 20px 50px rgba(0,0,0,0.15)',
+              padding: isMobile ? '8px 10px' : '12px 14px',
               display: 'flex',
-              gap: 12,
+              gap: isMobile ? 8 : 12,
               alignItems: 'center',
               pointerEvents: 'auto',
               backdropFilter: 'blur(20px)'
             }}
           >
-            {/* Secondary: Retake */}
+            {/* Retake */}
             <button
               onClick={() => { setMode('configure'); setConfigStep(1); setCurrent(0); setSelected({}); setExamCourses(preselectedCourse ? [preselectedCourse] : []) }}
               style={{
-                height: 54,
-                width: 54,
-                borderRadius: 22,
+                height: isMobile ? 48 : 54,
+                width: isMobile ? 48 : 54,
+                borderRadius: isMobile ? 18 : 22,
                 background: '#f8f8f8',
-                color: '#555',
-                border: '1px solid #eee',
+                color: '#111',
+                border: '1.5px solid #111',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                transition: 'all 0.1s',
-                fontFamily: 'inherit'
+                flexShrink: 0
               }}
-              onMouseDown={e => {e.currentTarget.style.transform = 'scale(0.95)'; e.currentTarget.style.background = '#eee'}}
-              onMouseUp={e => {e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = '#f8f8f8'}}
-              title="RETAKE"
             >
-              <RotateCcw size={22} strokeWidth={2} />
+              <RotateCcw size={isMobile ? 18 : 22} strokeWidth={2.5} />
             </button>
 
-            {/* Social Share Tray (WhatsApp, Instagram, etc) */}
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => window.open(`https://wa.me/?text=I just scored ${score}/${SAMPLE_QUESTIONS.length} on Luter! 🎯 Lock in for your exams at: https://luterai.vercel.app`, '_blank')}
-                style={{
-                  height: 54, width: 54, borderRadius: 22, background: '#22c55e10', color: '#22c55e', border: '1px solid #22c55e20',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.1s'
-                }}
-                onMouseDown={e => e.currentTarget.style.transform = 'scale(0.92)'}
-                onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
-                title="Share to WhatsApp"
-              >
-                <Share2 size={24} />
-              </button>
-            </div>
-
-            {/* Primary: Share Proof (Image Copy for Insta/Snap) */}
+            {/* Share Primary */}
             <button
               onClick={handleShare}
               disabled={isSharing}
               style={{
                 flex: 1,
-                height: 54,
-                borderRadius: 22,
+                height: isMobile ? 48 : 54,
+                borderRadius: isMobile ? 18 : 22,
                 background: '#7a12cc',
                 color: 'white',
-                border: 'none',
-                fontSize: 16,
+                border: '1.5px solid #111',
+                fontSize: isMobile ? 13 : 16,
                 fontWeight: 900,
                 cursor: 'pointer',
-                boxShadow: '0px 10px 20px rgba(122, 18, 204, 0.25)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 10,
-                transition: 'all 0.1s',
-                fontFamily: 'inherit',
-                textTransform: 'uppercase',
+                gap: 8,
                 letterSpacing: '0.02em'
               }}
-              onMouseDown={e => {e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.boxShadow = '0px 4px 10px rgba(122, 18, 204, 0.2)'}}
-              onMouseUp={e => {e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0px 10px 20px rgba(122, 18, 204, 0.25)'}}
             >
-              {isSharing ? <Loader2 className="animate-spin" size={20} /> : <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Trophy size={20} fill="white" /></div>}
-              SHARE PROOF
+              {isSharing ? <Loader2 className="animate-spin" size={20} /> : <Share2 size={isMobile ? 18 : 20} strokeWidth={2.5} />}
+              {isMobile ? 'SHARE' : 'SHARE PROOF'}
             </button>
 
-            {/* Finish/Dashboard (Standard Exit) */}
+            {/* Done */}
             <button
               onClick={() => { window.location.reload() }}
               style={{
-                height: 54,
-                padding: '0 24px',
-                borderRadius: 22,
+                height: isMobile ? 48 : 54,
+                padding: isMobile ? '0 16px' : '0 24px',
+                borderRadius: isMobile ? 18 : 22,
                 background: '#111',
                 color: '#fff',
                 border: 'none',
-                fontSize: 14,
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.1s',
-                fontFamily: 'inherit'
+                fontSize: 13,
+                fontWeight: 900,
+                cursor: 'pointer'
               }}
-              onMouseDown={e => {e.currentTarget.style.transform = 'scale(0.95)'}}
-              onMouseUp={e => {e.currentTarget.style.transform = 'scale(1)'}}
             >
               DONE
             </button>
@@ -932,39 +935,46 @@ export default function MockExamPage({ user, preselectedCourse }) {
   const progress = ((current) / SAMPLE_QUESTIONS.length) * 100
 
   return (
-    <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'inherit' }}>
+    <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: 0 }}>
       
       {/* Main Content Area */}
-      <div style={{ flex: 1, padding: '40px 20px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
-        <div style={{ width: '100%', maxWidth: 520, marginTop: '5vh' }}>
+      <div style={{ flex: 1, padding: isMobile ? '24px 16px 100px' : '40px 20px', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ width: '100%', maxWidth: 520, marginTop: isMobile ? 0 : '5vh' }}>
           
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: isMobile ? 'column-reverse' : 'row',
+            alignItems: isMobile ? 'stretch' : 'center', 
+            justifyContent: 'space-between', 
+            marginBottom: 24,
+            gap: isMobile ? 16 : 0
+          }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 14, fontWeight: 900, color: '#111', letterSpacing: '-0.02em' }}>Q.{current + 1}</span>
-              <div style={{ background: '#f0f0f0', height: 8, width: 60, borderRadius: 99, overflow: 'hidden' }}>
-                <div style={{ background: '#111', height: '100%', width: `${progress}%`, transition: 'width 0.3s ease-out' }} />
+              <span style={{ fontSize: 13, fontWeight: 900, color: '#111' }}>Q.{current + 1} / {SAMPLE_QUESTIONS.length}</span>
+              <div style={{ background: '#f0f0f0', height: 6, flex: isMobile ? 1 : 'none', width: isMobile ? 'auto' : 80, borderRadius: 99, overflow: 'hidden' }}>
+                <div style={{ background: '#111', height: '100%', width: `${progress}%`, transition: 'width 0.3s' }} />
               </div>
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: isMobile ? 'space-between' : 'flex-end' }}>
               {examTimer > 0 && (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: timeLeft <= 5 ? '#fef2f2' : '#f0fdf4', color: timeLeft <= 5 ? '#ef4444' : '#10b981', padding: '6px 14px', borderRadius: 99, fontSize: 13, fontWeight: 800, border: `1px solid ${timeLeft <= 5 ? '#fca5a5' : '#86efac'}` }}>
-                  <Clock size={14} /> {timeLeft}s
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: timeLeft <= 5 ? '#fef2f2' : '#f0fdf4', color: timeLeft <= 5 ? '#ef4444' : '#10b981', padding: '6px 12px', borderRadius: 99, fontSize: 12, fontWeight: 800, border: `1.5px solid ${timeLeft <= 5 ? '#ef4444' : '#10b981'}` }}>
+                  <Clock size={14} strokeWidth={2.5} /> {timeLeft}s
                 </div>
               )}
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fffbeb', color: '#d97706', padding: '6px 14px', borderRadius: 99, fontSize: 13, fontWeight: 800, border: '1px solid #fde68a' }}>
-                <Zap size={14} fill="#d97706" /> {Object.keys(selected).length * 50} XP Potential
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fffbeb', color: '#d97706', padding: '6px 12px', borderRadius: 99, fontSize: 12, fontWeight: 800, border: '1.5px solid #d97706' }}>
+                <Zap size={14} fill="#d97706" /> {Object.keys(selected).length * 50} XP
               </div>
             </div>
           </div>
           
-          <div style={{ background: '#f8fdf8', border: '1px solid #eefae1', borderRadius: 16, padding: '28px 32px', marginBottom: 30, boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111', margin: 0, lineHeight: 1.6 }}>
+          <div style={{ background: '#fafafa', border: '1.5px solid #111', borderRadius: 16, padding: isMobile ? '20px' : '28px 32px', marginBottom: 20, boxShadow: '4px 4px 0px #111' }}>
+            <h2 style={{ fontSize: isMobile ? 15 : 16, fontWeight: 600, color: '#111', margin: 0, lineHeight: 1.6 }}>
               {q.q}
             </h2>
           </div>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {q.opts.map((opt, i) => {
               const isSelected = selected[current] === i;
               return (
@@ -972,15 +982,17 @@ export default function MockExamPage({ user, preselectedCourse }) {
                   key={i}
                   onClick={() => choose(i)}
                   style={{
-                    display: 'block', width: '100%', padding: '18px 24px', borderRadius: 12,
-                    background: isSelected ? '#f8f4ff' : 'white', 
-                    border: isSelected ? '1.5px solid #7a12cc' : '1px solid #eee',
-                    textAlign: 'left', cursor: 'pointer', transition: 'all 0.1s',
-                    fontSize: 14, fontWeight: isSelected ? 600 : 500, color: isSelected ? '#7a12cc' : '#555',
-                    fontFamily: 'inherit', outline: 'none'
+                    display: 'block', width: '100%', padding: isMobile ? '16px 20px' : '18px 24px', borderRadius: 14,
+                    background: isSelected ? '#111' : 'white', 
+                    border: '1.5px solid #111',
+                    textAlign: 'left', cursor: 'pointer',
+                    fontSize: 14, fontWeight: 700, color: isSelected ? 'white' : '#111',
+                    fontFamily: 'inherit', outline: 'none',
+                    boxShadow: isSelected ? 'none' : '3px 3px 0px #111',
+                    transform: isSelected ? 'translate(2px, 2px)' : 'none'
                   }}
                 >
-                  {String.fromCharCode(65+i)}. {opt}
+                  <span style={{ opacity: 0.6, marginRight: 8 }}>{String.fromCharCode(65+i)}</span> {opt}
                 </button>
               )
             })}
@@ -990,38 +1002,49 @@ export default function MockExamPage({ user, preselectedCourse }) {
       </div>
 
       {/* Floating Retro Footer */}
-      <div style={{ background: '#f4fdf4', padding: '24px 40px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <div style={{ 
+        background: '#f4fdf4', 
+        padding: isMobile ? '16px 20px' : '24px 40px', 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        borderTop: '2px solid #111',
+        position: isMobile ? 'fixed' : 'relative',
+        bottom: 0, left: 0, right: 0, zIndex: 100
+      }}>
         <div style={{ width: '100%', maxWidth: 520, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           
             <button 
               disabled={current===0} 
               onClick={()=>setCurrent(c=>c-1)}
               style={{ 
-                padding: '10px 28px', borderRadius: 12, background: 'white', color: '#111', 
-                border: '1px solid #eee', fontSize: 14, fontWeight: 600, cursor: current===0?'not-allowed':'pointer',
-                opacity: current===0?0.5:1, boxShadow: current===0?'none':'0 4px 12px rgba(0,0,0,0.05)', 
+                padding: '10px 20px', borderRadius: 12, background: 'white', color: '#111', 
+                border: '1.5px solid #111', fontSize: 13, fontWeight: 700, cursor: current===0?'not-allowed':'pointer',
+                opacity: current===0?0:1, boxShadow: current===0?'none':'3px 3px 0px #111', 
                 display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.1s', fontFamily: 'inherit'
               }}
             >
-              back
+              ← {isMobile ? '' : 'back'}
             </button>
           
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#555' }}>
-            {current + 1} of {SAMPLE_QUESTIONS.length}
-          </span>
+          <div style={{ display:'flex', gap:4 }}>
+             <span style={{ fontSize: 13, fontWeight: 900, color: '#111' }}>
+                {current + 1} / {SAMPLE_QUESTIONS.length}
+             </span>
+          </div>
           
           <button 
             onClick={next}
             disabled={selected[current] === undefined}
             style={{ 
-              padding: '10px 28px', borderRadius: 12, background: '#111', color: '#fff', 
-              border: 'none', fontSize: 14, fontWeight: 600, 
+              padding: '10px 24px', borderRadius: 12, background: 'white', color: '#111', 
+              border: '1.5px solid #111', fontSize: 13, fontWeight: 900, 
               cursor: selected[current]===undefined?'not-allowed':'pointer', 
-              opacity: selected[current]===undefined?0.5:1, boxShadow: selected[current]===undefined?'none':'0 4px 12px rgba(0,0,0,0.15)',
-              display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.1s', fontFamily: 'inherit'
+              opacity: selected[current]===undefined?0.5:1, boxShadow: selected[current]===undefined?'none':'3px 3px 0px #111',
+              display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.1s', fontFamily: 'inherit'
             }}
           >
-            {current === SAMPLE_QUESTIONS.length - 1 ? 'Finish' : 'Next'}
+            {current === SAMPLE_QUESTIONS.length - 1 ? 'FINISH' : 'NEXT'} →
           </button>
 
         </div>

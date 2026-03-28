@@ -524,6 +524,10 @@ input { font-family: var(--font); }
   background: #ffffff;
 }
 
+@media (max-width: 768px) {
+  .dh-root { padding: 20px 16px; min-height: auto; }
+}
+
 .dh-topbar {
   display: flex;
   align-items: center;
@@ -533,15 +537,26 @@ input { font-family: var(--font); }
   gap: 12px;
 }
 
+@media (max-width: 768px) {
+  .dh-topbar { margin-bottom: 20px; gap: 8px; }
+  .dh-topbar-left { width: 100%; order: 1; text-align: left; }
+  .dh-topbar-right { width: 100%; order: 2; display: flex; gap: 8px; }
+  .dh-upload-btn { flex: 1; justify-content: center; }
+}
+
 .dh-topbar-left h1 {
-  font-family: var(--serif);
+  font-family: var(--font-nav);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text);
   letter-spacing: -0.02em;
 }
 
 .dh-greet h1 { font-size: 24px; }
+@media (max-width: 768px) {
+  .dh-greet h1 { font-size: 20px; }
+  .dh-topbar-left h1 { font-size: 18px; }
+}
 
 .dh-topbar-left p, .dh-greet p {
   font-size: 13px;
@@ -765,6 +780,9 @@ input { font-family: var(--font); }
 
 /* Quick Action Grid */
 .dh-qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 768px) {
+  .dh-qa-grid { grid-template-columns: 1fr; }
+}
 
 .dh-qa-btn {
   display: flex;
@@ -968,7 +986,17 @@ input { font-family: var(--font); }
 /* =============================================
    COURSES PAGE
    ============================================= */
-.courses-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.courses-grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+  gap: 16px; 
+}
+@media (max-width: 768px) {
+  .courses-grid { 
+    grid-template-columns: 1fr; 
+    gap: 12px;
+  }
+}
 
 .course-full-card { background: white; border: 1px solid var(--border); border-radius: 18px; overflow: hidden; transition: all 0.25s; }
 .course-full-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px -8px rgba(0,0,0,0.1); }

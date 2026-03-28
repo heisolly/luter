@@ -5,7 +5,7 @@ import { supabase } from '../../supabaseClient'
 
 const PALETTE = ['#7a12cc','#9718fb','#b04dfc','#6d28d9','#7c3aed','#8b5cf6','#a78bfa','#6366f1']
 
-export default function CoursesPage({ user, onOpenCourse }) {
+export default function CoursesPage({ user, onOpenCourse, isMobile }) {
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -46,17 +46,20 @@ export default function CoursesPage({ user, onOpenCourse }) {
   }
 
   return (
-    <div className="dh-root">
-      <div className="dh-topbar">
-        <div className="dh-topbar-left">
-          <h1 className="dh-page-title">My Courses</h1>
-          {/* Real data: User's level + faculty can be added here if needed */}
+    <div className="dh-root" style={{ padding: isMobile ? '20px 16px' : '28px 32px' }}>
+      <div className="dh-topbar" style={{ 
+        flexDirection: isMobile ? 'column' : 'row', 
+        alignItems: isMobile ? 'flex-start' : 'center',
+        gap: isMobile ? 12 : 12
+      }}>
+        <div className="dh-topbar-left" style={{ width: isMobile ? '100%' : 'auto' }}>
+          <h1 className="dh-page-title" style={{ fontSize: isMobile ? 24 : 22 }}>My Courses</h1>
           <p className="dh-page-sub">
             {user?.user_metadata?.university || 'University Student'} · First Semester
           </p>
         </div>
-        <div className="dh-topbar-right">
-          <button className="dh-upload-btn">
+        <div className="dh-topbar-right" style={{ width: isMobile ? '100%' : 'auto' }}>
+          <button className="dh-upload-btn" style={{ width: isMobile ? '100%' : 'auto', justifyContent: 'center' }}>
             <Plus size={14} strokeWidth={2.5} />
             <span>Add Course</span>
           </button>

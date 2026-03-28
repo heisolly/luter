@@ -14,7 +14,7 @@ const InstagramIcon = ({ size }) => (
 const SHARE_LINK = 'https://luterai.vercel.app'
 const INVITE_BASE = 'https://luterai.vercel.app/signup'
 
-export default function ReferPage({ user }) {
+export default function ReferPage({ user, isMobile }) {
   const [copied, setCopied] = useState(false)
   const refLink = `${INVITE_BASE}/ref/${user?.id?.slice(0,8) || 'student'}`
 
@@ -29,27 +29,27 @@ export default function ReferPage({ user }) {
   }
 
   return (
-    <div style={{ padding: '40px', maxWidth: 1000, margin: '0 auto', fontFamily: 'inherit' }}>
+    <div style={{ padding: isMobile ? '20px 16px' : '40px', maxWidth: 1000, margin: '0 auto', fontFamily: 'inherit' }}>
       
       {/* ── Signature Purple Header ── */}
-      <div style={{ marginBottom: 48 }}>
+      <div style={{ marginBottom: isMobile ? 32 : 48 }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f5eeff', padding: '6px 12px', borderRadius: 99, marginBottom: 16, border: '1px solid #e9d5ff' }}>
           <Award size={14} color="#7a12cc" strokeWidth={2.5} />
           <span style={{ fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#7a12cc' }}>Referral Hub</span>
         </div>
-        <h1 style={{ fontSize: 40, fontWeight: 1000, color: '#111', margin: '0 0 12px', letterSpacing: '-0.04em' }}>Invite Friends. Earn <span style={{ color: '#7a12cc' }}>XP.</span></h1>
-        <p style={{ fontSize: 16, color: '#666', fontWeight: 500, lineHeight: 1.6, maxWidth: 540 }}>
+        <h1 style={{ fontSize: isMobile ? 32 : 40, fontWeight: 1000, color: '#111', margin: '0 0 12px', letterSpacing: '-0.04em' }}>Invite Friends. Earn <span style={{ color: '#7a12cc' }}>XP.</span></h1>
+        <p style={{ fontSize: isMobile ? 14 : 16, color: '#666', fontWeight: 500, lineHeight: 1.6, maxWidth: 540 }}>
           Help fellow students unlock their potential with Luter AI. You both get exclusive XP boosters for every successful sign-up.
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 32 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.4fr 1fr', gap: 32 }}>
         
         {/* Left Column: Share Controls */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
           
           <div style={{ 
-            background: 'white', border: '1.5px solid #7a12cc', borderRadius: 24, padding: '32px', 
+            background: 'white', border: '1.5px solid #7a12cc', borderRadius: 24, padding: isMobile ? '24px' : '32px', 
             boxShadow: '10px 10px 0px rgba(122, 18, 204, 0.04)' 
           }}>
             <h2 style={{ fontSize: 13, fontWeight: 900, color: '#7a12cc99', margin: '0 0 16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Your Study Invite Link</h2>
@@ -70,18 +70,16 @@ export default function ReferPage({ user }) {
               <button 
                 onClick={copyRef}
                 style={{ 
-                  padding: '10px 20px', borderRadius: 12, background: '#7a12cc', color: 'white', 
+                  padding: isMobile ? '10px' : '10px 20px', borderRadius: 12, background: '#7a12cc', color: 'white', 
                   border: 'none', fontSize: 13, fontWeight: 800, cursor: 'pointer', transition: 'all 0.1s',
                   boxShadow: '0 4px 12px rgba(122, 18, 204, 0.2)'
                 }}
-                onMouseDown={e => e.currentTarget.style.transform = 'scale(0.95)'}
-                onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
               >
-                {copied ? 'Copied!' : 'Copy'}
+                {copied ? 'Copied!' : (isMobile ? <Copy size={16} /> : 'Copy')}
               </button>
             </div>
 
-            <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 12, flexDirection: isMobile ? 'column' : 'row' }}>
               <button 
                 onClick={shareWA}
                 style={{ 
@@ -89,8 +87,6 @@ export default function ReferPage({ user }) {
                   border: '1.5px solid #f5eeff', fontSize: 14, fontWeight: 800, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.1s'
                 }}
-                onMouseDown={e => {e.currentTarget.style.transform = 'scale(0.96)'; e.currentTarget.style.borderColor = '#7a12cc'}}
-                onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
               >
                 <div style={{ display: 'flex', background: '#f5eeff', padding: '6px', borderRadius: 8 }}>
                   <MessageCircle size={18} />
@@ -103,8 +99,6 @@ export default function ReferPage({ user }) {
                   border: '1.5px solid #f5eeff', fontSize: 14, fontWeight: 800, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.1s'
                 }}
-                onMouseDown={e => {e.currentTarget.style.transform = 'scale(0.96)'; e.currentTarget.style.borderColor = '#7a12cc'}}
-                onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
               >
                 <div style={{ display: 'flex', background: '#f5eeff', padding: '6px', borderRadius: 8 }}>
                   <InstagramIcon size={18} />
@@ -141,28 +135,28 @@ export default function ReferPage({ user }) {
           <div style={{ 
             background: 'white', 
             border: '1.5px solid #7a12cc',
-            borderRadius: 24, padding: '32px',
+            borderRadius: 24, padding: isMobile ? '24px' : '32px',
             boxShadow: '0 20px 40px rgba(122, 18, 204, 0.04)'
           }}>
             <h3 style={{ fontSize: 12, fontWeight: 900, color: '#7a12cc99', margin: '0 0 24px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Live Stats</h3>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', gap: isMobile ? 12 : 32, justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontSize: 44, fontWeight: 1000, marginBottom: 4, color: '#111', letterSpacing: '-0.04em' }}>0</div>
-                <div style={{ fontSize: 12, color: '#7a12cc', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Friends Invited</div>
+                <div style={{ fontSize: isMobile ? 32 : 44, fontWeight: 1000, marginBottom: 4, color: '#111', letterSpacing: '-0.04em' }}>0</div>
+                <div style={{ fontSize: 10, color: '#7a12cc', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Friends Invited</div>
               </div>
               
-              <div style={{ height: '1px', background: '#f5eeff' }} />
+              {!isMobile && <div style={{ height: '1px', background: '#f5eeff' }} />}
               
               <div>
-                <div style={{ fontSize: 44, fontWeight: 1000, marginBottom: 4, color: '#7a12cc', letterSpacing: '-0.04em' }}>
-                  0 <span style={{ fontSize: 24 }}>XP</span>
+                <div style={{ fontSize: isMobile ? 32 : 44, fontWeight: 1000, marginBottom: 4, color: '#7a12cc', letterSpacing: '-0.04em' }}>
+                  0 <span style={{ fontSize: isMobile ? 16 : 24 }}>XP</span>
                 </div>
-                <div style={{ fontSize: 12, color: '#7a12cc', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Earned</div>
+                <div style={{ fontSize: 10, color: '#7a12cc', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Earned</div>
               </div>
             </div>
             
-            <div style={{ marginTop: 40, padding: '24px', borderRadius: 20, border: '1.5px solid #f5eeff', background: '#fdfbff' }}>
+            <div style={{ marginTop: isMobile ? 24 : 40, padding: '24px', borderRadius: 20, border: '1.5px solid #f5eeff', background: '#fdfbff' }}>
               <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, color: '#7a12cc' }}>
                  <Star size={16} color="#7a12cc" fill="#7a12cc" />
                  Next Milestone

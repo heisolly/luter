@@ -32,52 +32,125 @@ const plans = [
   }
 ]
 
-export default function UpgradePage() {
+export default function UpgradePage({ isMobile }) {
   const [isSemester, setIsSemester] = useState(true)
 
   return (
-    <div className="dh-root" style={{ overflowY: 'auto' }}>
+    <div className="dh-root" style={{ 
+      overflowY: 'auto',
+      background: '#fafafa',
+      paddingBottom: isMobile ? 40 : 80 
+    }}>
       
       {/* ── Topbar ── */}
-      <div className="dh-topbar">
+      <div className="dh-topbar" style={{ 
+        padding: isMobile ? '20px 20px 10px' : '28px 32px',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        gap: isMobile ? 8 : 20,
+        background: '#fff',
+        borderBottom: '1px solid var(--border)'
+      }}>
         <div className="dh-topbar-left">
-          <h1 className="dh-page-title">Upgrade Plan</h1>
-          <p className="dh-page-sub">Level up your study speed with Luter Pro</p>
+          <h1 className="dh-page-title" style={{ fontSize: isMobile ? 22 : 24 }}>Upgrade Plan</h1>
+          <p className="dh-page-sub" style={{ fontSize: isMobile ? 12 : 13 }}>Level up your study speed with Luter Pro</p>
         </div>
       </div>
 
-      <div style={{ padding: '40px', maxWidth: 1100, margin: '0 auto', width: '100%' }}>
+      <div style={{ 
+        padding: isMobile ? '24px 16px' : '40px', 
+        maxWidth: 1100, 
+        margin: '0 auto', 
+        width: '100%' 
+      }}>
         
         {/* Header content */}
-        <div style={{ textAlign: 'center', marginBottom: 50 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, color: 'var(--primary)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 20, background: 'rgba(122, 18, 204, 0.08)', padding: '6px 16px', borderRadius: 99, border: '1px solid rgba(122, 18, 204, 0.15)' }}>
-            <Zap size={13} fill="currentColor" /> Turbocharge your grades
-          </div>
-          <h2 style={{ fontSize: 'clamp(2rem, 4vw, 2.6rem)', fontWeight: 800, color: '#111', margin: '0 0 16px', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-            Choose the right plan for your semester
+        <div style={{ textAlign: 'center', marginBottom: isMobile ? 32 : 50 }}>
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{ 
+              display: 'inline-flex', alignItems: 'center', gap: 6, 
+              fontSize: isMobile ? 10 : 11, fontWeight: 800, 
+              color: 'var(--primary)', letterSpacing: '0.12em', 
+              textTransform: 'uppercase', marginBottom: 16, 
+              background: 'rgba(122, 18, 204, 0.08)', 
+              padding: '6px 14px', borderRadius: 99, 
+              border: '1.5px solid rgba(122, 18, 204, 0.15)' 
+            }}
+          >
+            <Zap size={12} fill="currentColor" /> Turbocharge your grades
+          </motion.div>
+          
+          <h2 style={{ 
+            fontSize: isMobile ? 28 : 'clamp(2rem, 4vw, 2.6rem)', 
+            fontWeight: 1000, color: '#111', 
+            margin: '0 0 16px', letterSpacing: '-0.04em', 
+            lineHeight: 1.1 
+          }}>
+            Unlock Your <span style={{ color: 'var(--primary)' }}>Academic Edge.</span>
           </h2>
-          <p style={{ fontSize: 16, color: 'var(--muted)', maxWidth: 500, margin: '0 auto 36px', fontWeight: 500, lineHeight: 1.6 }}>
-            Upgrade, downgrade, or cancel anytime. No hidden fees.
+          
+          <p style={{ 
+            fontSize: isMobile ? 14 : 16, 
+            color: 'var(--muted)', 
+            maxWidth: 500, margin: '0 auto 32px', 
+            fontWeight: 500, lineHeight: 1.6 
+          }}>
+            Premium tools starting from ₦{plans[1].priceMonthly.toLocaleString()} to help you dominate your exams.
           </p>
 
-          <div style={{ display: 'inline-flex', background: 'white', border: '1px solid var(--border)', borderRadius: 99, padding: 4, gap: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+          <div style={{ 
+            display: 'inline-flex', background: 'white', 
+            border: '1.5px solid #eee', borderRadius: 20, 
+            padding: 5, gap: 4, 
+            boxShadow: '0 8px 24px rgba(0,0,0,0.04)',
+            width: isMobile ? '100%' : 'auto'
+          }}>
             <button 
               onClick={() => setIsSemester(false)} 
-              style={{ padding: '9px 28px', borderRadius: 99, background: !isSemester ? 'var(--primary)' : 'transparent', color: !isSemester ? 'white' : '#555', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', transition: 'all 0.25s' }}
+              style={{ 
+                flex: isMobile ? 1 : 'initial',
+                padding: isMobile ? '12px 0' : '9px 28px', 
+                borderRadius: 16, 
+                background: !isSemester ? 'var(--primary)' : 'transparent', 
+                color: !isSemester ? 'white' : '#666', 
+                fontWeight: 800, fontSize: 13, border: 'none', cursor: 'pointer', transition: 'all 0.25s' 
+              }}
             >
               Monthly
             </button>
             <button 
               onClick={() => setIsSemester(true)} 
-              style={{ padding: '9px 28px', borderRadius: 99, background: isSemester ? 'var(--primary)' : 'transparent', color: isSemester ? 'white' : '#555', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', transition: 'all 0.25s', display: 'flex', alignItems: 'center', gap: 8 }}
+              style={{ 
+                flex: isMobile ? 1.4 : 'initial',
+                padding: isMobile ? '12px 0' : '9px 28px', 
+                borderRadius: 16, 
+                background: isSemester ? 'var(--primary)' : 'transparent', 
+                color: isSemester ? 'white' : '#666', 
+                fontWeight: 800, fontSize: 13, border: 'none', cursor: 'pointer', transition: 'all 0.25s', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 
+              }}
             >
-              Per Semester <span style={{ fontSize: 10, background: isSemester ? 'rgba(255,255,255,0.2)' : '#d1fae5', color: isSemester ? 'white' : '#059669', padding: '2px 8px', borderRadius: 99, fontWeight: 800 }}>Best Value</span>
+              Per Semester
+              <span style={{ 
+                fontSize: 9, 
+                background: isSemester ? 'rgba(255,255,255,0.2)' : '#ecfdf5', 
+                color: isSemester ? 'white' : '#059669', 
+                padding: '2px 6px', borderRadius: 6, fontWeight: 900 
+              }}>SAVINGS</span>
             </button>
           </div>
         </div>
 
         {/* Pricing Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, paddingBottom: 60 }}>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          gap: isMobile ? 20 : 24, 
+          paddingBottom: isMobile ? 40 : 60,
+          alignItems: 'center'
+        }}>
           {plans.map((plan, idx) => (
             <motion.div 
               key={plan.name}
@@ -85,58 +158,90 @@ export default function UpgradePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1, duration: 0.5, type: 'spring' }}
               style={{
-                background: plan.bg, color: plan.color,
-                borderRadius: 24, padding: '36px 32px',
-                border: plan.isPopular ? 'none' : `1px solid ${plan.border}`,
-                boxShadow: plan.isPopular ? '0 32px 64px rgba(122,18,204,0.2)' : '0 4px 20px rgba(0,0,0,0.02)',
+                background: plan.bg, 
+                color: plan.color,
+                borderRadius: 32, 
+                padding: isMobile ? '32px 24px' : '40px 36px',
+                border: plan.isPopular ? 'none' : `1.5px solid ${plan.border}`,
+                boxShadow: plan.isPopular ? '0 40px 80px -12px rgba(122,18,204,0.3)' : '0 10px 30px rgba(0,0,0,0.03)',
                 position: 'relative', 
-                display: 'flex', flexDirection: 'column',
-                transform: plan.isPopular ? 'scale(1.02)' : 'none',
+                display: 'flex', 
+                flexDirection: 'column',
+                width: '100%',
+                maxWidth: isMobile ? '400px' : '900px',
                 zIndex: plan.isPopular ? 10 : 1
               }}
             >
               {plan.isPopular && (
-                <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', display: 'inline-flex', alignItems: 'center', gap: 6, background: '#111', color: 'white', padding: '6px 16px', borderRadius: 99, fontSize: 11, fontWeight: 800, border: '2px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                <div style={{ 
+                  position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', 
+                  display: 'inline-flex', alignItems: 'center', gap: 6, 
+                  background: '#111', color: 'white', padding: '6px 16px', 
+                  borderRadius: 99, fontSize: 10, fontWeight: 900, 
+                  border: '3px solid white', boxShadow: '0 8px 24px rgba(0,0,0,0.1)' 
+                }}>
                   <Sparkles size={11} fill="white" /> MOST POPULAR
                 </div>
               )}
               
-              <div style={{ marginBottom: 24, marginTop: plan.isPopular ? 10 : 0 }}>
-                <h3 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>{plan.name}</h3>
-                <span style={{ fontSize: 13, fontWeight: 500, color: plan.isPopular ? 'rgba(255,255,255,0.9)' : 'var(--muted)' }}>{plan.trial}</span>
-              </div>
-              
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 32 }}>
-                <span style={{ fontSize: 42, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.04em' }}>
-                  {plan.priceMonthly === 0 ? '₦0' : `₦${isSemester ? plan.priceSemester.toLocaleString() : plan.priceMonthly.toLocaleString()}`}
-                </span>
-                {plan.priceMonthly > 0 && (
-                  <span style={{ fontSize: 14, fontWeight: 600, color: plan.isPopular ? 'rgba(255,255,255,0.8)' : 'var(--muted)', marginBottom: 6 }}>
-                    /{isSemester ? 'sem' : 'mo'}
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: isMobile ? 'column' : 'row',
+                justifyContent: 'space-between',
+                alignItems: isMobile ? 'flex-start' : 'center',
+                gap: 20,
+                marginBottom: 32
+              }}>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 1000, margin: '0 0 6px 0', letterSpacing: '-0.03em' }}>{plan.name}</h3>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: plan.isPopular ? 'rgba(255,255,255,0.85)' : 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'currentColor' }} />
+                    {plan.trial}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
+                  <span style={{ fontSize: isMobile ? 36 : 48, fontWeight: 1000, lineHeight: 1, letterSpacing: '-0.05em' }}>
+                    {plan.priceMonthly === 0 ? 'Free' : `₦${isSemester ? plan.priceSemester.toLocaleString() : plan.priceMonthly.toLocaleString()}`}
                   </span>
-                )}
+                  {plan.priceMonthly > 0 && (
+                    <span style={{ fontSize: 13, fontWeight: 800, color: plan.isPopular ? 'rgba(255,255,255,0.7)' : 'var(--muted)', marginBottom: isMobile ? 4 : 8 }}>
+                      /{isSemester ? 'semester' : 'month'}
+                    </span>
+                  )}
+                </div>
               </div>
               
               <button style={{ 
-                width: '100%', padding: '14px', borderRadius: 14, 
-                fontSize: 14, fontWeight: 800, cursor: 'pointer', marginBottom: 36, 
+                width: '100%', padding: '16px', borderRadius: 16, 
+                fontSize: 15, fontWeight: 900, cursor: 'pointer', marginBottom: 32, 
                 ...plan.buttonStyle, transition: 'all 0.2s',
-                opacity: plan.priceMonthly === 0 ? 0.6 : 1,
+                boxShadow: plan.isPopular ? '0 12px 28px rgba(0,0,0,0.15)' : 'none',
+                opacity: plan.priceMonthly === 0 ? 0.7 : 1,
                 pointerEvents: plan.priceMonthly === 0 ? 'none' : 'auto'
               }}>
                 {plan.buttonText}
               </button>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(240px, 1fr))',
+                gap: 16
+              }}>
                 {plan.features.map(f => (
-                  <div key={f} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                    <div style={{ width: 18, height: 18, borderRadius: '50%', background: plan.isPopular ? 'rgba(255,255,255,0.2)' : 'rgba(122,18,204,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                      <Check size={10} color={plan.isPopular ? 'white' : 'var(--primary)'} strokeWidth={4} />
+                  <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <div style={{ 
+                      width: 20, height: 20, borderRadius: '50%', 
+                      background: plan.isPopular ? 'rgba(255,255,255,0.2)' : 'rgba(122,18,204,0.08)', 
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 
+                    }}>
+                      <Check size={11} color={plan.isPopular ? 'white' : 'var(--primary)'} strokeWidth={4} />
                     </div>
-                    <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.5, color: plan.isPopular ? 'white' : '#333' }}>{f}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.4, color: plan.isPopular ? 'white' : '#444' }}>{f}</span>
                   </div>
                 ))}
               </div>
+
             </motion.div>
           ))}
         </div>

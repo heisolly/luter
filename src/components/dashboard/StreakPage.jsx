@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { Flame, Star, Calendar, Zap, ChevronRight, Award, ShieldCheck } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
 
-export default function StreakPage({ user }) {
+export default function StreakPage({ user, isMobile }) {
   const [streak, setStreak] = useState(0)
 
   useEffect(() => {
@@ -19,130 +19,156 @@ export default function StreakPage({ user }) {
   const today = new Date().getDay()
 
   return (
-    <div style={{ padding: '40px', maxWidth: 1000, margin: '0 auto', fontFamily: 'inherit' }}>
+    <div className="dh-root" style={{ 
+      padding: isMobile ? '12px 16px 80px' : '40px', 
+      maxWidth: 1000, 
+      margin: '0 auto', 
+      fontFamily: 'inherit',
+    }}>
       
-      {/* ── Purple Header ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
-        <div style={{ background: '#f5eeff', padding: '10px', borderRadius: 16, border: '1px solid #e9d5ff' }}>
-          <Flame size={24} color="#7a12cc" strokeWidth={2.5} />
+      {/* ── Topbar / Header ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: isMobile ? 24 : 32 }}>
+        <div style={{ 
+          background: 'var(--primary-bg)', 
+          padding: isMobile ? '8px' : '10px', 
+          borderRadius: 14, 
+          border: '1.5px solid var(--primary)' 
+        }}>
+          <Flame size={isMobile ? 18 : 24} color="var(--primary)" strokeWidth={2.5} />
         </div>
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 1000, color: '#111', margin: 0, letterSpacing: '-0.03em' }}>Study Streak</h1>
-          <p style={{ fontSize: 14, color: '#7a12cc99', margin: 0, fontWeight: 600 }}>Consistent students learn 3x faster with AI.</p>
+          <h1 style={{ fontSize: isMobile ? 20 : 28, fontWeight: 1000, color: '#111', margin: 0, letterSpacing: '-0.02em' }}>Study Streak</h1>
+          <p style={{ fontSize: isMobile ? 12 : 14, color: '#7a12cc99', margin: 0, fontWeight: 600 }}>Consistent students learn 3x faster.</p>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 32 }}>
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: isMobile ? '1fr' : '1.5fr 1fr', 
+        gap: isMobile ? 16 : 32 
+      }}>
         
         {/* Left Column: The Streak Card */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 16 : 24 }}>
           
           <div style={{ 
-            background: 'white', borderRadius: 32, padding: '48px 32px', 
-            border: '1.5px solid #7a12cc', textAlign: 'center', 
-            boxShadow: '10px 10px 0px rgba(122, 18, 204, 0.04)' 
+            background: 'white', 
+            borderRadius: isMobile ? 24 : 32, 
+            padding: isMobile ? '32px 20px' : '48px 32px', 
+            border: isMobile ? '1.5px solid #111' : '2px solid #111', 
+            textAlign: 'center', 
+            boxShadow: isMobile ? '4px 4px 0px #111' : '10px 10px 0px rgba(122, 18, 204, 0.04)' 
           }}>
             <motion.div
-              animate={{ 
-                scale: [1, 1.05, 1],
-                rotate: [0, 3, -3, 0]
-              }}
+              animate={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              style={{ display: 'inline-block', marginBottom: 24 }}
+              style={{ display: 'inline-block', marginBottom: isMobile ? 16 : 24 }}
             >
               <div style={{ 
-                width: 120, height: 120, borderRadius: '50%', background: streak > 0 ? '#f5eeff' : '#f8fafc',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', border: `4px solid ${streak > 0 ? '#7a12cc' : '#e2e8f0'}`,
+                width: isMobile ? 80 : 120, height: isMobile ? 80 : 120, 
+                borderRadius: '50%', background: streak > 0 ? 'var(--primary-bg)' : '#f8fafc',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                border: `3px solid ${streak > 0 ? 'var(--primary)' : '#e2e8f0'}`,
               }}>
-                <Flame size={64} fill={streak > 0 ? '#7a12cc' : '#cbd5e1'} color={streak > 0 ? '#7a12cc' : '#cbd5e1'} />
+                <Flame size={isMobile ? 40 : 64} fill={streak > 0 ? 'var(--primary)' : '#cbd5e1'} color={streak > 0 ? 'var(--primary)' : '#cbd5e1'} />
               </div>
             </motion.div>
 
-            <h2 style={{ fontSize: 48, fontWeight: 1000, color: '#111', margin: '0 0 8px', letterSpacing: '-0.04em' }}>{streak} Day Streak</h2>
-            <p style={{ fontSize: 16, color: '#7a12cc', fontWeight: 800, maxWidth: 320, margin: '0 auto 32px' }}>
-              {streak === 0 ? "Unlock your potential by starting a session today!" : "Locking in every single day. Absolute legend."}
+            <h2 style={{ fontSize: isMobile ? 32 : 48, fontWeight: 1000, color: '#111', margin: '0 0 4px', letterSpacing: '-0.04em', lineHeight: 1 }}>
+              {streak} Day Streak
+            </h2>
+            <p style={{ fontSize: isMobile ? 13 : 16, color: 'var(--primary)', fontWeight: 800, maxWidth: 320, margin: '0 auto 28px' }}>
+              {streak === 0 ? "Unlock your potential today!" : "Absolute legend. Lock in."}
             </p>
 
             {/* Weekly Tracker */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, background: '#fdfbff', padding: '24px', borderRadius: 24, border: '1px solid #f5eeff' }}>
+            <div style={{ 
+              display: 'flex', justifyContent: 'space-between', gap: isMobile ? 4 : 8, 
+              background: '#fafafa', padding: isMobile ? '12px 10px' : '24px', 
+              borderRadius: 16, border: isMobile ? '1.2px solid #111' : '1.5px solid #111' 
+            }}>
               {DAYS.map((day, i) => (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 11, fontWeight: 900, color: i === today ? '#7a12cc' : '#cbd5e1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{day}</span>
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isMobile ? 6 : 10 }}>
+                  <span style={{ fontSize: 9, fontWeight: 900, color: i === today ? 'var(--primary)' : '#cbd5e1', textTransform: 'uppercase' }}>{day[0]}</span>
                   <div style={{ 
-                    width: 40, height: 40, borderRadius: '50%', 
-                    background: i < today ? '#f5eeff' : i === today ? 'white' : 'white',
-                    border: `1.5px solid ${i === today ? '#7a12cc' : (i < today ? '#e9d5ff' : '#eee')}`,
+                    width: isMobile ? 28 : 40, height: isMobile ? 28 : 40, borderRadius: '50%', 
+                    background: i < today ? 'var(--primary-bg)' : 'white',
+                    border: `1.5px solid ${i === today ? 'var(--primary)' : (i < today ? 'var(--primary)' : '#eee')}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                   }}>
-                    {i < today ? <Zap size={18} color="#7a12cc" fill="#7a12cc" /> : i === today && streak > 0 ? <Flame size={18} fill="#7a12cc" color="#7a12cc" /> : null}
+                    {i < today ? <Zap size={isMobile ? 12 : 18} color="var(--primary)" fill="var(--primary)" /> : i === today && streak > 0 ? <Flame size={isMobile ? 12 : 18} fill="var(--primary)" color="var(--primary)" /> : null}
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div style={{ background: '#fdfbff', borderRadius: 24, padding: '24px', border: '1.5px solid #f5eeff', display: 'flex', alignItems: 'center', gap: 20 }}>
-            <div style={{ width: 56, height: 56, borderRadius: 16, background: '#7a12cc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ShieldCheck size={28} color="white" />
+          <div style={{ 
+            background: 'var(--primary-bg)', 
+            borderRadius: 20, padding: isMobile ? '14px 16px' : '20px', 
+            border: isMobile ? '1.5px solid #111' : '2px solid #111', 
+            display: 'flex', alignItems: 'center', gap: 12,
+            boxShadow: isMobile ? '3px 3px 0px #111' : 'none'
+          }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <ShieldCheck size={20} color="white" />
             </div>
             <div style={{ flex: 1 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, color: '#111', margin: '0 0 4px' }}>Streak Freeze Armed</h3>
-              <p style={{ fontSize: 13, color: '#7a12cc', fontWeight: 600, margin: 0 }}>Progress is secured for the next 48 hours.</p>
+              <h3 style={{ fontSize: 13, fontWeight: 900, color: '#111', margin: 0 }}>Streak Freeze Armed</h3>
+              <p style={{ fontSize: 10, color: 'var(--primary)', fontWeight: 700, margin: 0 }}>Secured for the next 48h.</p>
             </div>
-            <button style={{ padding: '10px 20px', borderRadius: 12, background: 'white', border: '1.5px solid #7a12cc', color: '#7a12cc', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
-               Active
-            </button>
           </div>
 
         </div>
 
-        {/* Right Column: Why Streaks? & Tips */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {/* Column 2: Stats & Tips */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 16 : 24 }}>
           
-          <div style={{ background: 'white', borderRadius: 32, padding: '32px', border: '1.5px solid #7a12cc', boxShadow: '0 10px 40px rgba(122, 18, 204, 0.04)' }}>
-            <div style={{ display: 'inline-flex', padding: '10px', background: '#f5eeff', borderRadius: 12, marginBottom: 20 }}>
-               <Award size={24} color="#7a12cc" />
-            </div>
-            <h3 style={{ fontSize: 20, fontWeight: 1000, margin: '0 0 12px', color: '#111' }}>Consistency Wins</h3>
-            <p style={{ fontSize: 14, color: '#666', lineHeight: 1.6, margin: '0 0 24px' }}>
-              Research shows that studying for 15 minutes every day is 3x more effective than one 4-hour cramming session. Keep the flame alive!
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fdfbff', padding: '12px 16px', borderRadius: 14, border: '1px solid #f5eeff' }}>
-                <Star size={16} color="#7a12cc" fill="#7a12cc" />
-                <span style={{ fontSize: 13, fontWeight: 800, color: '#7a12cc' }}>Unlock exclusive badges</span>
+          <div style={{ 
+            background: 'white', 
+            borderRadius: 24, padding: isMobile ? '20px' : '32px', 
+            border: isMobile ? '1.5px solid #111' : '2px solid #111',
+            boxShadow: isMobile ? '4px 4px 0px #111' : 'none'
+          }}>
+            <h3 style={{ fontSize: 16, fontWeight: 1000, margin: '0 0 16px', color: '#111', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Award size={18} color="var(--primary)" /> Advantage
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fafafa', padding: '10px', borderRadius: 12, border: '1px solid #eee' }}>
+                <Star size={14} color="var(--primary)" fill="var(--primary)" />
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)' }}>Unlock exclusive badges</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fdfbff', padding: '12px 16px', borderRadius: 14, border: '1px solid #f5eeff' }}>
-                <Zap size={16} color="#7a12cc" fill="#7a12cc" />
-                <span style={{ fontSize: 13, fontWeight: 800, color: '#7a12cc' }}>Earn 1.5x XP multipliers</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fafafa', padding: '10px', borderRadius: 12, border: '1px solid #eee' }}>
+                <Zap size={14} color="var(--primary)" fill="var(--primary)" />
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)' }}>Earn 1.5x XP multipliers</span>
               </div>
             </div>
           </div>
 
-          <div style={{ background: '#f8fafc', borderRadius: 32, padding: '32px', border: '1px solid #eee' }}>
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#111', margin: '0 0 20px' }}>Lock In Guides</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ 
+            background: '#f8fafc', 
+            borderRadius: 24, padding: isMobile ? '20px' : '32px', 
+            border: '1.5px solid #eee' 
+          }}>
+            <h3 style={{ fontSize: 14, fontWeight: 1000, color: '#111', margin: '0 0 12px' }}>Lock In Guides</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                { t: "Study smarter with AI", d: "5 min read" },
-                { t: "How to beat forgetting", d: "8 min read" },
-                { t: "Exam energy hacks", d: "4 min read" }
+                { t: "Study smarter with AI", d: "5 min" },
+                { t: "Beat the curve", d: "8 min" },
+                { t: "Exam hacks", d: "4 min" }
               ].map((tip, i) => (
                 <button key={i} style={{ 
-                  display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, 
-                  background: 'white', border: '1px solid #f1f5f9', width: '100%', textAlign: 'left', cursor: 'pointer',
-                  transition: 'all 0.1s'
-                }}
-                onMouseDown={e => e.currentTarget.style.borderColor = '#7a12cc'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = '#f1f5f9'}
-                >
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: '#f5eeff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a12cc' }}>
-                    <Calendar size={18} />
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '10px', borderRadius: 14, 
+                  background: 'white', border: '1.5px solid #eee', width: '100%', textAlign: 'left', cursor: 'pointer',
+                }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--primary-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', flexShrink: 0 }}>
+                    <Calendar size={14} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#111' }}>{tip.t}</div>
-                    <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>{tip.d}</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#111' }}>{tip.t}</div>
+                    <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 700 }}>{tip.d}</div>
                   </div>
-                  <ChevronRight size={18} color="#cbd5e1" />
+                  <ChevronRight size={14} color="#cbd5e1" />
                 </button>
               ))}
             </div>

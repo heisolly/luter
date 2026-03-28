@@ -32,7 +32,7 @@ function GhostBubble({ onDismiss }) {
 }
 
 /* ══ MAIN ══ */
-export default function DashboardHome({ setActivePage, user, onOpenCourse }) {
+export default function DashboardHome({ setActivePage, user, onOpenCourse, isMobile }) {
   const name = user?.user_metadata?.full_name?.split(' ')[0] || 'Student'
 
   const [courses,   setCourses]   = useState([])   // user's enrolled courses
@@ -100,214 +100,214 @@ export default function DashboardHome({ setActivePage, user, onOpenCourse }) {
   }))
 
   if (loading) return (
-    <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', background:'#fafafa' }}>
+    <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', background:'#fafafa', minHeight: '60vh' }}>
       <Loader2 size={28} className="animate-spin" color="var(--primary)" />
     </div>
   )
 
   return (
-    <div className="dhd-root">
+    <div className="dhd-root" style={{ 
+      padding: isMobile ? '0' : '0',
+      background: isMobile ? '#fafafa' : '#fafafa'
+    }}>
 
       {/* ── Hero ── */}
-      <div className="dhd-hero">
-        <motion.div initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }}>
-          <h1 className="dhd-hero-title">
-            {greeting()}, <span className="dhd-hero-name">{name}.</span>
+      <div className="dhd-hero" style={{ 
+        flexDirection: isMobile ? 'column' : 'row',
+        padding: isMobile ? '20px 20px 16px' : '28px 28px 20px',
+        borderBottom: '1px solid var(--border)',
+        gap: isMobile ? 12 : 20,
+        alignItems: isMobile ? 'flex-start' : 'center',
+        background: '#fff'
+      }}>
+        <motion.div initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }} style={{ width: isMobile ? '100%' : 'auto' }}>
+          <h1 className="dhd-hero-title" style={{ fontSize: isMobile ? 22 : 28 }}>
+            {greeting()}, <span className="dhd-hero-name" style={{ display: isMobile ? 'block' : 'inline' }}>{name}.</span>
           </h1>
-          <p className="dhd-hero-sub">
+          <p className="dhd-hero-sub" style={{ fontSize: isMobile ? 12 : 14 }}>
             {courses.length === 0
-              ? 'Your command center is ready. Start studying!'
-              : `${courses.length} course${courses.length>1?'s':''} loaded — let's get that GPA up.`}
+              ? 'Your command center is ready.'
+              : `${courses.length} courses loaded.`}
           </p>
         </motion.div>
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
+        
+        <div style={{ 
+          display:'flex', 
+          flexDirection: 'row', 
+          alignItems: 'center', 
+          gap: 12,
+          width: isMobile ? '100%' : 'auto',
+          justifyContent: isMobile ? 'space-between' : 'flex-end',
+          padding: isMobile ? '12px 14px' : '0',
+          borderRadius: isMobile ? '16px' : '0',
+          background: isMobile ? '#fdf8ff' : 'transparent',
+          border: isMobile ? '1.5px solid #f5eeff' : 'none'
+        }}>
           <div style={{ display:'flex', gap:8 }}>
-            <div className="dhd-pill dhd-pill--fire"><Flame size={13} fill="#d97706" color="#d97706" /> {streak}-day streak</div>
-            <div className="dhd-pill dhd-pill--xp"><Zap size={13} /> {xp} XP</div>
+            <div className="dhd-pill dhd-pill--fire" style={{ padding: isMobile ? '4px 10px' : '6px 14px' }}>
+              <Flame size={12} fill="#d97706" color="#d97706" /> {streak}
+            </div>
+            <div className="dhd-pill dhd-pill--xp" style={{ padding: isMobile ? '4px 10px' : '6px 14px' }}>
+              <Zap size={12} /> {xp}
+            </div>
           </div>
-          {/* XP progress */}
-          <div className="dhd-xp-bar-wrap">
-            <div className="dhd-xp-rank">Lv.{Math.floor(xp/1000)+1} {xp<1000?'Freshman':xp<3000?'Scholar':'Veteran'}</div>
-            <span style={{ fontSize:11, color:'#999' }}>{xp % 1000} / 1000 XP</span>
-            <div style={{ flex:1, height:6, background:'#f0e8ff', borderRadius:999, overflow:'hidden' }}>
+          <div className="dhd-xp-bar-wrap" style={{ flex: isMobile ? 1 : 'initial', minWidth: isMobile ? 0 : 220 }}>
+            <div style={{ flex:1, height:6, background:'#f0e8ff', borderRadius:999, overflow:'hidden', position:'relative' }}>
               <motion.div style={{ height:'100%', background:'linear-gradient(90deg,#7a12cc,#b04dfc)', borderRadius:999 }}
-                initial={{ width:0 }} animate={{ width:`${xpPct}%` }} transition={{ duration:1.2, ease:[0.23,1,0.32,1] }} />
+                initial={{ width:0 }} animate={{ width:`${xpPct}%` }} transition={{ duration:1.2 }} />
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Bento Grid ── */}
-      <div className="dhd-bento-grid">
+      <div className={isMobile ? "mobile-home-stack" : "dhd-bento-grid"} style={{ 
+        padding: isMobile ? '16px' : '18px 20px 32px',
+        display: isMobile ? 'flex' : 'grid',
+        flexDirection: 'column',
+        gap: 16
+      }}>
 
-        {/* A: Active Mission */}
-        <div style={{ gridArea:'mission' }}>
-          {active ? (
-            <motion.div className="dhd-bento-card dhd-bento-mission"
-              style={{ background:`linear-gradient(135deg,${active.color}18 0%,white 60%)`, borderColor:`${active.color}25` }}
-              whileHover={{ scale:1.01 }} transition={{ type:'spring', stiffness:200, damping:24 }}>
-              <div className="dhd-bento-label" style={{ color:active.color }}><Flame size={13} /> Active Mission</div>
-              <div className="dhd-mission-code" style={{ color:active.color }}>{active.code}</div>
-              <h3 className="dhd-mission-name">{active.name}</h3>
-              <p className="dhd-mission-topic">
-                {active.progress === 0
-                  ? 'No sessions yet — start your first one now!'
-                  : `Progress: ${active.progress}% complete`}
-              </p>
-              <div className="dhd-mission-prog">
-                <div className="dhd-mission-prog-track">
-                  <motion.div className="dhd-mission-prog-fill" style={{ background:active.color }}
-                    initial={{ width:0 }} animate={{ width:`${active.progress}%` }} transition={{ duration:1, ease:[0.23,1,0.32,1] }} />
-                </div>
-                <span style={{ color:active.color, fontSize:13, fontWeight:800 }}>{active.progress}%</span>
-              </div>
-              <div className="dhd-mission-foot">
-                <span className="dhd-mission-last"><Clock size={11} /> {active.lastStudied}</span>
-                <button className="dhd-mission-resume" style={{ background:active.color }} onClick={() => onOpenCourse?.(active)}>
-                  <Play size={12} fill="white" /> {active.progress === 0 ? 'Start Now' : 'Resume'}
-                </button>
-              </div>
-            </motion.div>
-          ) : (
-            /* Empty state for no courses */
-            <div className="dhd-bento-card dhd-bento-mission" style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10, textAlign:'center' }}>
-              <div style={{ fontSize:36 }}>📚</div>
-              <p style={{ fontSize:14, fontWeight:700, color:'var(--text)', margin:0 }}>No courses yet</p>
-              <p style={{ fontSize:12, color:'var(--muted)', margin:0 }}>Something went wrong during enrollment. Contact support or re-run onboarding.</p>
-            </div>
-          )}
-        </div>
-
-        {/* B: Solution Vault */}
-        <div style={{ gridArea:'vault' }}>
-          <div className="dhd-bento-card dhd-bento-vault">
-            <div className="dhd-bento-label"><Zap size={13} color="var(--primary)" /> Solution Vault</div>
-            <div className="dhd-vault-empty">
-              <div style={{ position:'relative' }}>
-                <motion.div
-                  animate={{ boxShadow:['0 0 0 0px rgba(122,18,204,0.3)','0 0 0 12px rgba(122,18,204,0)','0 0 0 0px rgba(122,18,204,0)'] }}
-                  transition={{ duration:1.8, repeat:Infinity }}
-                  className="dhd-vault-upload-btn">
-                  <Camera size={22} strokeWidth={1.8} />
-                </motion.div>
-                <AnimatePresence>
-                  {showGhost && <GhostBubble onDismiss={() => setShowGhost(false)} />}
-                </AnimatePresence>
-              </div>
-              <p className="dhd-vault-empty-text">
-                Your personal tutor is standing by. Upload your first problem to start the 30-minute clock.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Course Strip */}
-        <div style={{ gridArea:'courses' }}>
-          <div className="dhd-bento-card dhd-bento-courses">
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
-              <div className="dhd-bento-label"><BookOpen size={13} color="var(--primary)" /> My Courses</div>
-            </div>
-            {courses.length === 0 ? (
-              <p style={{ fontSize:13, color:'var(--muted)', fontWeight:500 }}>No courses enrolled yet.</p>
-            ) : (
-              <div className="dhd-strip-scroll">
-                {courses.map((c, i) => (
-                  <motion.div key={c.id} className="dhd-strip-card"
-                    initial={{ opacity:0, x:20 }} animate={{ opacity:1, x:0 }} transition={{ delay:i*0.07 }}
-                    whileHover={{ y:-3 }} onClick={() => onOpenCourse?.(c)}>
-                    <div className="dhd-strip-stripe" style={{ background:c.color }} />
-                    <div style={{ padding:'10px 12px' }}>
-                      <div style={{ fontSize:10, fontWeight:800, color:c.color, letterSpacing:'0.04em' }}>{c.code}</div>
-                      <div style={{ fontSize:13, fontWeight:700, color:'#111', marginTop:2 }}>{c.name}</div>
-                      <div style={{ height:4, background:'#f0e8ff', borderRadius:999, overflow:'hidden', marginTop:8 }}>
-                        <motion.div style={{ height:'100%', background:c.color, borderRadius:999 }}
-                          initial={{ width:0 }} animate={{ width:`${c.progress}%` }} transition={{ duration:0.8, delay:i*0.1 }} />
-                      </div>
-                      <div style={{ display:'flex', justifyContent:'space-between', marginTop:5, alignItems:'center' }}>
-                        <span style={{ fontSize:10, color:'#888' }}>{c.progress}%</span>
-                        <span className="dhd-strip-due">{c.lastStudied}</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* C: Class Feed */}
-        <div style={{ gridArea:'feed' }}>
-          <div className="dhd-bento-card dhd-bento-feed">
-            <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:12 }}>
-              <span className="dhd-bento-label"><Bell size={13} color="var(--primary)" /> Class Feed</span>
-              <div className="dhd-live-dot" style={{ marginLeft:'auto' }} />
-            </div>
-            {feed.length === 0 ? (
-              <p style={{ fontSize:13, color:'var(--muted)', fontWeight:500 }}>Enroll in courses to see your class feed.</p>
-            ) : (
-              <div className="dhd-proxy-feed-list">
-                {feed.map((p, i) => (
-                  <motion.div key={i} className="dhd-proxy-feed-row"
-                    initial={{ opacity:0, x:12 }} animate={{ opacity:1, x:0 }} transition={{ delay:0.2+i*0.07 }}>
-                    <div className="dhd-proxy-feed-icon" style={{ background:`${p.color}12`, color:p.color }}>
-                      <Bell size={11} />
-                    </div>
-                    <div style={{ flex:1, overflow:'hidden' }}>
-                      <span style={{ fontSize:10, fontWeight:800, color:p.color, letterSpacing:'0.04em', display:'block', marginBottom:2 }}>{p.course}</span>
-                      <p style={{ fontSize:12, fontWeight:500, color:'#444', margin:0, lineHeight:1.4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.msg}</p>
-                    </div>
-                    <span style={{ fontSize:10, color:'#ccc', flexShrink:0 }}>{p.time}</span>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Quiz Empty State */}
-        <div style={{ gridArea:'quiz' }}>
-          <div className="dhd-bento-card dhd-bento-quiz">
-            <div className="dhd-bento-label"><Trophy size={13} color="var(--primary)" /> Quiz Battle</div>
-            <div className="dhd-quiz-empty-icon">🏆</div>
-            <p className="dhd-quiz-empty-text">
-              {streak === 0
-                ? <>Your streak starts at <strong>0</strong>. Take a 2-min blitz to warm up.</>
-                : <><strong>{streak}-day</strong> streak! Keep it going.</>}
-            </p>
-            <button className="dhd-quiz-start-btn" onClick={() => setActivePage('courses')}>
-              <Zap size={13} /> Start Quick Battle
-            </button>
-          </div>
-        </div>
-
-        {/* D: Subtle Referral Card */}
-        <div style={{ gridArea:'refer' }}>
+        {/* ACTIVE MISSION */}
+        {active && (
           <motion.div 
-            className="dhd-bento-card dhd-bento-refer"
-            whileHover={{ y: -4 }}
+            className="dhd-bento-card"
             style={{ 
-              background: 'linear-gradient(135deg, #f5eeff 0%, #ffffff 100%)',
-              border: '1.5px solid #7a12cc15',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              textAlign: 'center',
-              cursor: 'pointer',
-              padding: '24px'
+              background:`linear-gradient(135deg,${active.color}08 0%,white 100%)`, 
+              borderColor:`${active.color}20`,
+              padding: isMobile ? '16px' : '20px',
+              minHeight: isMobile ? 'auto' : 200
+            }}
+            initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
+          >
+            <div className="dhd-bento-label" style={{ color:active.color, marginBottom: isMobile ? 10 : 14 }}>
+              <Flame size={12} fill={active.color} /> ACTIVE MISSION
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 900, color: active.color, letterSpacing: '0.05em', marginBottom: 2 }}>{active.code}</div>
+                <h3 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 900, margin: 0, letterSpacing: '-0.02em' }}>{active.name}</h3>
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: active.color, background: `${active.color}10`, padding: '4px 10px', borderRadius: 8 }}>
+                {active.progress}%
+              </div>
+            </div>
+            
+            <div className="dhd-mission-prog-track" style={{ marginBottom: 16, height: 6 }}>
+              <motion.div className="dhd-mission-prog-fill" style={{ background:active.color }}
+                initial={{ width:0 }} animate={{ width:`${active.progress}%` }} />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#888', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Clock size={11} /> {active.lastStudied}
+              </span>
+              <button 
+                onClick={() => onOpenCourse?.(active)}
+                style={{ 
+                  background: active.color, borderRadius: 12, border: 'none', padding: '10px 18px',
+                  color: 'white', fontSize: 13, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6,
+                  boxShadow: `0 4px 12px ${active.color}40`, cursor: 'pointer'
+                }}
+              >
+                <Play size={12} fill="white" /> {active.progress === 0 ? 'START' : 'RESUME'}
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* SOLUTION VAULT (Compact on mobile) */}
+        <div 
+          className="dhd-bento-card" 
+          style={{ 
+            display: 'flex', 
+            flexDirection: isMobile ? 'row' : 'column',
+            alignItems: 'center',
+            gap: 16,
+            padding: isMobile ? '16px' : '20px'
+          }}
+        >
+          <div style={{ 
+            width: isMobile ? 48 : 64, height: isMobile ? 48 : 64, borderRadius: 16,
+            background: 'var(--primary-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--primary)', border: '1.5px dashed rgba(122,18,204,0.3)', flexShrink: 0
+          }}>
+            <Camera size={isMobile ? 20 : 24} />
+          </div>
+          <div>
+            <div className="dhd-bento-label" style={{ marginBottom: 4 }}><Zap size={11} fill="var(--primary)" /> SOLUTION VAULT</div>
+            <p style={{ fontSize: 12, fontWeight: 600, color: '#666', margin: 0 }}>Scan your homework for step-by-step help.</p>
+          </div>
+        </div>
+
+        {/* CLASSES & FEED ROW */}
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16 }}>
+          {/* My Courses Mini Strip */}
+          <div className="dhd-bento-card" style={{ flex: 1.5, padding: '16px' }}>
+            <div className="dhd-bento-label" style={{ marginBottom: 12 }}><BookOpen size={11} fill="var(--primary)" /> MY COURSES</div>
+            <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+              {courses.map(c => (
+                <div 
+                  key={c.id} 
+                  onClick={() => onOpenCourse?.(c)}
+                  style={{ 
+                    flexShrink: 0, width: 130, padding: 12, borderRadius: 16, border: '1.5px solid #eee',
+                    background: '#fff', cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ fontSize: 9, fontWeight: 900, color: c.color, marginBottom: 2 }}>{c.code}</div>
+                  <div style={{ fontSize: 13, fontWeight: 1000, color: '#111', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+                  <div style={{ height: 4, width: '100%', background: '#f5f5f5', borderRadius: 99, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${c.progress}%`, background: c.color }} />
+                  </div>
+                </div>
+              ))}
+              <div 
+                style={{ flexShrink: 0, width: 130, padding: 12, borderRadius: 16, border: '1.5px dashed #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: 11, fontWeight: 800 }}
+                onClick={() => setActivePage('courses')}
+              >
+                + ADD MORE
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Feed */}
+          <div className="dhd-bento-card" style={{ flex: 1, padding: '16px' }}>
+            <div className="dhd-bento-label" style={{ marginBottom: 12 }}><Bell size={11} fill="var(--primary)" /> UPDATES</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {feed.slice(0, 3).map((f, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: f.color }} />
+                  <div style={{ flex: 1, fontSize: 12, fontWeight: 600, color: '#444', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.msg}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* BATTLE & REFER */}
+        <div style={{ display: 'flex', gap: 16 }}>
+           <motion.div 
+            className="dhd-bento-card" 
+            style={{ 
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 20,
+              background: '#f8f4ff', borderColor: '#7a12cc20'
+            }}
+            onClick={() => setActivePage('compete')}
+          >
+            <Trophy size={20} color="#7a12cc" />
+            <div style={{ fontSize: 12, fontWeight: 900, color: '#111' }}>ARENA</div>
+          </motion.div>
+
+          <motion.div 
+            className="dhd-bento-card" 
+            style={{ 
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 20,
+              background: '#fff'
             }}
             onClick={() => setActivePage('refer')}
           >
-            <div style={{ 
-              width: 48, height: 48, borderRadius: 14, background: 'white', 
-              border: '1.5px solid #f5eeff', display: 'flex', alignItems: 'center', 
-              justifyContent: 'center', color: '#7a12cc', marginBottom: 12,
-              boxShadow: '0 4px 12px rgba(122, 18, 204, 0.1)'
-            }}>
-              <Users size={20} />
-            </div>
-            <h3 style={{ fontSize: 13, fontWeight: 900, color: '#111', margin: '0 0 4px' }}>Invite a Classmate</h3>
-            <p style={{ fontSize: 11, color: '#7a12cc99', fontWeight: 600, margin: 0 }}>Gift a free trial & earn 500 XP.</p>
+            <Users size={20} color="#111" />
+            <div style={{ fontSize: 12, fontWeight: 900, color: '#111' }}>REFER</div>
           </motion.div>
         </div>
 

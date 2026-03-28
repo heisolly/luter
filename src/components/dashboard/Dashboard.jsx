@@ -13,7 +13,7 @@ import UpgradePage from './UpgradePage'
 import StreakPage from './StreakPage'
 import ReferPage from './ReferPage'
 import CompetePage from './CompetePage'
-import { Loader2, Sword, X, ArrowRight } from 'lucide-react'
+import { Loader2, Sword, X, ArrowRight, Home, BookOpen, Trophy, Settings } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import LuterLogo from '../shared/LuterLogo'
 import './dashboard.css'
@@ -117,18 +117,19 @@ export default function Dashboard() {
 
   const renderPage = () => {
     switch (activePage) {
-      case 'home': return <DashboardHome setActivePage={setActivePage} user={user} onOpenCourse={openCourseWorkstation} />
-      case 'courses': return <CoursesPage user={user} onOpenCourse={openCourseWorkstation} />
-      case 'workstation': return <WorkstationPage />
-      case 'mock-exam': return <MockExamPage user={user} preselectedCourse={activeCourse} />
-      case 'analytics': return <AnalyticsPage user={user} />
-      case 'settings':  return <SettingsPage user={user} />
-      case 'upgrade':   return <UpgradePage />
+      case 'home': return <DashboardHome isMobile={isMobile} user={user} setActivePage={setActivePage} onOpenCourse={openCourseWorkstation} />
+      case 'courses': return <CoursesPage isMobile={isMobile} user={user} onOpenCourse={openCourseWorkstation} />
+      case 'workstation': return <WorkstationPage isMobile={isMobile} />
+      case 'mock-exam': return <MockExamPage isMobile={isMobile} user={user} />
+      case 'analytics': return <AnalyticsPage isMobile={isMobile} user={user} />
+      case 'settings':  return <SettingsPage isMobile={isMobile} user={user} />
+      case 'upgrade':   return <UpgradePage isMobile={isMobile} user={user} />
       case 'streak':    return <StreakPage user={user} />
       case 'refer':     return <ReferPage user={user} />
-      case 'compete':   return <CompetePage user={user} setActivePage={setActivePage} />
+      case 'compete':   return <CompetePage isMobile={isMobile} user={user} setActivePage={setActivePage} />
       case 'course-workstation': return (
         <CourseWorkstation
+          isMobile={isMobile}
           course={activeCourse}
           user={user}
           onBack={() => {
@@ -149,20 +150,36 @@ export default function Dashboard() {
     <div className={`dash-root ${isMobile ? 'dash-root--mobile' : ''}`}>
       {/* ── Mobile Top Bar ── */}
       {isMobile && (
-        <div className="mobile-topbar">
-          <button className="mobile-menu-btn" onClick={() => setMobileSidebarOpen(true)}>
-            <div className="menu-icon-bars">
-              <div className="menu-bar" />
-              <div className="menu-bar" style={{ width: '14px' }} />
-              <div className="menu-bar" />
+        <div className="mobile-topbar" style={{ 
+          height: 64, 
+          padding: '0 20px', 
+          background: 'rgba(255,255,255,0.85)', 
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(0,0,0,0.05)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          position: 'fixed',
+          top: 0, left: 0, right: 0,
+          zIndex: 1000
+        }}>
+          <button className="mobile-menu-btn" onClick={() => setMobileSidebarOpen(true)} style={{ background: 'transparent', border: 'none', padding: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="menu-icon-bars" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div className="menu-bar" style={{ width: 18, height: 2, background: '#111', borderRadius: 1 }} />
+              <div className="menu-bar" style={{ width: 14, height: 2, background: '#111', borderRadius: 1 }} />
+              <div className="menu-bar" style={{ width: 18, height: 2, background: '#111', borderRadius: 1 }} />
             </div>
           </button>
           
-          <div className="mobile-logo-wrap">
-            <LuterLogo size={24} fontSize={18} />
+          <div className="mobile-logo-wrap" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <LuterLogo size={22} fontSize={17} />
           </div>
 
-          <div className="mobile-user-avatar" onClick={() => setActivePage('settings')}>
+          <div className="mobile-user-avatar" onClick={() => setActivePage('settings')} style={{ 
+            width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, var(--primary), var(--primary-light))', color: 'white',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px var(--primary-glow)'
+          }}>
             {user?.user_metadata?.full_name?.slice(0, 1).toUpperCase() || 'S'}
           </div>
         </div>
@@ -197,11 +214,14 @@ export default function Dashboard() {
         />
       </div>
 
-      <main className={`dash-main ${sidebarCollapsed ? 'collapsed' : ''} ${isMobile ? 'dash-main--mobile' : ''}`}>
+      <main className={`dash-main ${sidebarCollapsed ? 'collapsed' : ''} ${isMobile ? 'dash-main--mobile' : ''}`} style={{ 
+        paddingTop: isMobile ? 64 : 0,
+        paddingBottom: isMobile ? 80 : 0
+      }}>
         {renderPage()}
       </main>
 
-      {/* ── Global Arena Notification Toast ── */}
+      {/* Global Arena Notification Toast */}
       <AnimatePresence>
         {showInviteNotify && (
           <motion.div

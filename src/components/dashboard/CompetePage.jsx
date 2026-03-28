@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
 
-export default function CompetePage({ user, setActivePage }) {
+export default function CompetePage({ user, setActivePage, isMobile }) {
   const [leaderboard, setLeaderboard] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('leaderboard') 
@@ -203,18 +203,29 @@ export default function CompetePage({ user, setActivePage }) {
   }, [currentMatch, user])
 
   return (
-    <div style={{ padding: '40px', maxWidth: 1000, margin: '0 auto', fontFamily: 'inherit' }}>
+    <div style={{ padding: isMobile ? '20px 16px' : '40px', maxWidth: 1000, margin: '0 auto', fontFamily: 'inherit' }}>
       
       {/* ── Header ── */}
-      <div style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      <div style={{ 
+        marginBottom: isMobile ? 32 : 40, 
+        display: 'flex', 
+        flexDirection: isMobile ? 'column' : 'row',
+        justifyContent: 'space-between', 
+        alignItems: isMobile ? 'flex-start' : 'flex-end',
+        gap: 20
+      }}>
         <div style={{ maxWidth: 520 }}>
            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'linear-gradient(90deg, #f5eeff, #ffffff)', padding: '6px 14px', borderRadius: 99, marginBottom: 16, border: '1.5px solid #e9d5ff' }}>
               <Trophy size={14} color="#7a12cc" fill="#7a12cc" />
               <span style={{ fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#7a12cc' }}>Arena v2.0</span>
            </div>
-           <h1 style={{ fontSize: 44, fontWeight: 1000, color: '#111', margin: '0 0 12px', letterSpacing: '-0.05em', lineHeight: 1 }}>Study. Duel. <span style={{ color: '#7a12cc' }}>Conquer.</span></h1>
+           <h1 style={{ 
+             fontSize: isMobile ? 32 : 44, 
+             fontWeight: 1000, color: '#111', margin: '0 0 12px', 
+             letterSpacing: '-0.05em', lineHeight: 1 
+           }}>Study. Duel. <span style={{ color: '#7a12cc' }}>Conquer.</span></h1>
            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
-             <p style={{ fontSize: 16, color: '#666', fontWeight: 500, margin: 0, lineHeight: 1.6 }}>Battle top students for XP dominance.</p>
+             <p style={{ fontSize: isMobile ? 14 : 16, color: '#666', fontWeight: 500, margin: 0, lineHeight: 1.6 }}>Battle top students for XP dominance.</p>
              <div style={{ width: 1.5, height: 16, background: '#eee' }}></div>
              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 10px #22c55e' }} className="animate-pulse" />
@@ -223,13 +234,19 @@ export default function CompetePage({ user, setActivePage }) {
            </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 4, background: '#f5eeff50', padding: '6px', borderRadius: 20, border: '1.5px solid #f5eeff', backdropFilter: 'blur(10px)' }}>
+        <div style={{ 
+          display: 'flex', gap: 4, background: '#f5eeff10', padding: '5px', 
+          borderRadius: 18, border: '1.5px solid #f5eeff', backdropFilter: 'blur(10px)',
+          width: isMobile ? '100%' : 'auto'
+        }}>
             {['leaderboard', 'arena'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 style={{
-                  padding: '10px 28px', borderRadius: 14, fontSize: 13, fontWeight: 900,
+                  flex: isMobile ? 1 : 'initial',
+                  padding: isMobile ? '10px 14px' : '10px 28px', 
+                  borderRadius: 14, fontSize: 12, fontWeight: 900,
                   background: activeTab === tab ? '#7a12cc' : 'transparent',
                   color: activeTab === tab ? 'white' : '#7a12cc99',
                   border: 'none', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -248,7 +265,7 @@ export default function CompetePage({ user, setActivePage }) {
             key="matching"
             initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }}
             style={{ 
-              background: 'white', borderRadius: 40, border: '1.5px solid #7a12cc', padding: '80px 40px',
+              background: 'white', borderRadius: 40, border: '1.5px solid #7a12cc', padding: isMobile ? '40px 20px' : '80px 40px',
               textAlign: 'center', boxShadow: '20px 20px 0px rgba(122, 18, 204, 0.05)',
               position: 'relative', overflow: 'hidden'
             }}
@@ -268,24 +285,24 @@ export default function CompetePage({ user, setActivePage }) {
 
              {matchingStep === 4 && (
                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                 <div style={{ marginBottom: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 60 }}>
+                 <div style={{ marginBottom: 40, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 32 : 60 }}>
                     <div style={{ textAlign: 'center' }}>
-                       <div style={{ width: 100, height: 100, borderRadius: '50%', background: '#7a12cc', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 28, fontWeight: 900, border: '6px solid #f5eeff' }}>
+                       <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#7a12cc', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 24, fontWeight: 900, border: '6px solid #f5eeff' }}>
                           {players.challenger?.slice(0, 1).toUpperCase()}
                        </div>
                        <div style={{ fontWeight: 900, color: '#111' }}>{players.challenger}</div>
                        <div style={{ fontSize: 11, fontWeight: 800, color: '#7a12cc', textTransform: 'uppercase', marginTop: 4 }}>Challenger</div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                    <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', alignItems: 'center', gap: 12 }}>
                        <div style={{ background: '#7a12cc', color: 'white', padding: '12px', borderRadius: '50%', boxShadow: '0 0 20px rgba(122, 18, 204, 0.4)' }}>
-                          <Sword size={32} fill="white" />
+                          <Sword size={24} fill="white" />
                        </div>
                        <div style={{ fontSize: 24, fontWeight: 1000, color: '#7a12cc' }}>VS</div>
                     </div>
 
                     <div style={{ textAlign: 'center' }}>
-                       <div style={{ width: 100, height: 100, borderRadius: '50%', background: '#111', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 28, fontWeight: 900, border: '6px solid #f8f8f8' }}>
+                       <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#111', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 24, fontWeight: 900, border: '6px solid #f8f8f8' }}>
                           {players.opponent?.slice(0, 1).toUpperCase()}
                        </div>
                        <div style={{ fontWeight: 900, color: '#111' }}>{players.opponent}</div>
@@ -293,14 +310,14 @@ export default function CompetePage({ user, setActivePage }) {
                     </div>
                  </div>
 
-                 <h2 style={{ fontSize: 32, fontWeight: 1000, color: '#111', margin: '0 0 32px' }}>Arena Ready</h2>
+                 <h2 style={{ fontSize: 28, fontWeight: 1000, color: '#111', margin: '0 0 32px' }}>Arena Ready</h2>
                  
                  <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
                     <button 
                       onClick={() => alert("Connecting to battle server...")}
                       style={{ 
                         background: '#7a12cc', color: 'white', border: 'none', 
-                        padding: '18px 48px', borderRadius: 20, fontSize: 16, 
+                        padding: '16px 32px', borderRadius: 16, fontSize: 16, 
                         fontWeight: 900, cursor: 'pointer', boxShadow: '0 10px 25px rgba(122, 18, 204, 0.3)' 
                       }}
                     >
@@ -313,49 +330,71 @@ export default function CompetePage({ user, setActivePage }) {
 
         ) : activeTab === 'leaderboard' ? (
           <motion.div key="leaderboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <div style={{ background: 'white', borderRadius: 32, border: '1.5px solid #7a12cc', overflow: 'hidden' }}>
-              <div style={{ padding: '24px 32px', borderBottom: '1.5px solid #f5eeff', display: 'grid', gridTemplateColumns: '80px 1fr 120px 120px', fontSize: 11, fontWeight: 900, color: '#7a12cc99', textTransform: 'uppercase', background: '#fdfbff' }}>
-                <span>Rank</span><span>Scholar</span><span style={{ textAlign: 'center' }}>Streak</span><span style={{ textAlign: 'right' }}>Total XP</span>
-              </div>
+            <div style={{ background: 'white', borderRadius: 24, border: '1.5px solid #7a12cc', overflow: 'hidden' }}>
+              {!isMobile && (
+                <div style={{ padding: '24px 32px', borderBottom: '1.5px solid #f5eeff', display: 'grid', gridTemplateColumns: '80px 1fr 120px 120px', fontSize: 11, fontWeight: 900, color: '#7a12cc99', textTransform: 'uppercase', background: '#fdfbff' }}>
+                  <span>Rank</span><span>Scholar</span><span style={{ textAlign: 'center' }}>Streak</span><span style={{ textAlign: 'right' }}>Total XP</span>
+                </div>
+              )}
               {loading ? (
                 <div style={{ padding: 60, textAlign: 'center' }}><Loader2 className="animate-spin" color="#7a12cc" /></div>
               ) : (
                 leaderboard.map((student) => (
-                  <div key={student.rank} style={{ padding: '24px 32px', display: 'grid', gridTemplateColumns: '80px 1fr 120px 120px', alignItems: 'center', borderBottom: '1px solid #f8f8f8' }}>
-                    <div style={{ fontSize: 22, fontWeight: 1000, color: student.rank <= 3 ? '#7a12cc' : '#111' }}>#{student.rank}</div>
-                    <div>
-                      <div style={{ fontSize: 16, fontWeight: 900, color: '#111' }}>{student.name}</div>
-                      <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>{student.uni}</div>
+                  <div key={student.rank} style={{ 
+                    padding: isMobile ? '16px' : '24px 32px', 
+                    display: 'grid', 
+                    gridTemplateColumns: isMobile ? '48px 1fr 80px' : '80px 1fr 120px 120px', 
+                    alignItems: 'center', 
+                    borderBottom: '1px solid #f8f8f8' 
+                  }}>
+                    <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 1000, color: student.rank <= 3 ? '#7a12cc' : '#111' }}>#{student.rank}</div>
+                    <div style={{ overflow: 'hidden' }}>
+                      <div style={{ fontSize: isMobile ? 14 : 16, fontWeight: 900, color: '#111', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{student.name}</div>
+                      <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>{isMobile && student.xp.toLocaleString() + ' XP'} {!isMobile && student.uni}</div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f5eeff', color: '#7a12cc', padding: '6px 14px', borderRadius: 99, fontSize: 13, fontWeight: 900 }}>
-                        <Flame size={14} fill="#7a12cc" /> {student.streak}
+                    {!isMobile && (
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f5eeff', color: '#7a12cc', padding: '6px 14px', borderRadius: 99, fontSize: 13, fontWeight: 900 }}>
+                          <Flame size={14} fill="#7a12cc" /> {student.streak}
+                        </div>
                       </div>
+                    )}
+                    <div style={{ textAlign: 'right', fontSize: isMobile ? 14 : 18, fontWeight: 1000, color: isMobile ? '#7a12cc' : '#111' }}>
+                      {isMobile ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                          <Flame size={12} fill="#7a12cc" /> {student.streak}
+                        </div>
+                      ) : (
+                        student.xp.toLocaleString() + ' XP'
+                      )}
                     </div>
-                    <div style={{ textAlign: 'right', fontSize: 18, fontWeight: 1000 }}>{student.xp.toLocaleString()} XP</div>
                   </div>
                 ))
               )}
             </div>
           </motion.div>
         ) : (
-          <motion.div key="arena" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 32 }}>
+          <motion.div key="arena" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.2fr 1fr', gap: isMobile ? 20 : 32 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-               <div style={{ background: 'linear-gradient(135deg, #2D0B4F 0%, #111111 100%)', borderRadius: 36, padding: '56px 48px', color: 'white', border: '1.5px solid #7a12cc' }}>
-                  <h2 style={{ fontSize: 38, fontWeight: 1000, margin: '0 0 16px' }}>The Arena.</h2>
-                  <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', marginBottom: 40 }}>Match with live students for a 120s speed duel.</p>
-                  <button onClick={findOpponent} style={{ width: '100%', height: 68, borderRadius: 22, background: '#7a12cc', color: 'white', border: 'none', fontSize: 17, fontWeight: 900, cursor: 'pointer' }}>
+               <div style={{ 
+                 background: 'linear-gradient(135deg, #2D0B4F 0%, #111111 100%)', 
+                 borderRadius: 30, padding: isMobile ? '40px 24px' : '56px 48px', 
+                 color: 'white', border: '1.5px solid #7a12cc' 
+               }}>
+                  <h2 style={{ fontSize: isMobile ? 30 : 38, fontWeight: 1000, margin: '0 0 16px' }}>The Arena.</h2>
+                  <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 32 }}>Match with live students for a 120s speed duel.</p>
+                  <button onClick={findOpponent} style={{ width: '100%', height: 60, borderRadius: 18, background: '#7a12cc', color: 'white', border: 'none', fontSize: 16, fontWeight: 900, cursor: 'pointer' }}>
                     ENTER BATTLE ARENA
                   </button>
                </div>
-               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-                  <div onClick={createInviteLink} style={{ background: 'white', padding: '32px 24px', borderRadius: 28, border: '1.5px solid #eee', textAlign: 'center', cursor: 'pointer' }}>
-                     <Users size={28} color="#7a12cc" style={{ marginBottom: 16 }} />
-                     <h4 style={{ fontWeight: 900 }}>Challenge Friend</h4>
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div onClick={createInviteLink} style={{ background: 'white', padding: isMobile ? '24px 16px' : '32px 24px', borderRadius: 24, border: '1.5px solid #eee', textAlign: 'center', cursor: 'pointer' }}>
+                     <Users size={24} color="#7a12cc" style={{ marginBottom: 12 }} />
+                     <h4 style={{ fontWeight: 900, fontSize: 13 }}>Challenge Friend</h4>
                   </div>
-                  <div style={{ background: 'white', padding: '32px 24px', borderRadius: 28, border: '1.5px solid #eee', textAlign: 'center', opacity: 0.5 }}>
-                     <Shield size={28} style={{ marginBottom: 16 }} />
-                     <h4 style={{ fontWeight: 900 }}>Professor Mode</h4>
+                  <div style={{ background: 'white', padding: isMobile ? '24px 16px' : '32px 24px', borderRadius: 24, border: '1.5px solid #eee', textAlign: 'center', opacity: 0.5 }}>
+                     <Shield size={24} style={{ marginBottom: 12 }} />
+                     <h4 style={{ fontWeight: 900, fontSize: 13 }}>Professor Mode</h4>
                   </div>
                </div>
             </div>
