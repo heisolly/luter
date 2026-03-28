@@ -39,13 +39,13 @@ export default function AnalyticsPage({ user, isMobile }) {
     fetchAnalytics()
   }, [user])
 
-  if (loading) {
-    return (
-      <div style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center', minHeight:'50vh' }}>
-        <Loader2 className="animate-spin" size={28} color="#7a12cc" />
-      </div>
-    )
-  }
+  // if (loading) {
+  //   return (
+  //     <div style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center', minHeight:'50vh' }}>
+  //       <Loader2 className="spin-animate" size={28} color="#7a12cc" />
+  //     </div>
+  //   )
+  // }
 
   const hasData = courses.length > 0
   const avgProgress = hasData ? Math.round(courses.reduce((sum, c) => sum + c.progress, 0) / courses.length) : 0

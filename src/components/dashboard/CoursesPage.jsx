@@ -37,13 +37,13 @@ export default function CoursesPage({ user, onOpenCourse, isMobile }) {
     load()
   }, [user])
 
-  if (loading) {
-    return (
-      <div style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center', minHeight:'50vh' }}>
-        <Loader2 className="animate-spin" size={28} color="var(--primary)" />
-      </div>
-    )
-  }
+  // if (loading) {
+  //   return (
+  //     <div style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center', minHeight:'50vh' }}>
+  //       <Loader2 className="animate-spin" size={28} color="var(--primary)" />
+  //     </div>
+  //   )
+  // }
 
   return (
     <div className="dh-root" style={{ padding: isMobile ? '20px 16px' : '28px 32px' }}>

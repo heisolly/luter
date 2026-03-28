@@ -85,36 +85,42 @@ export default function SettingsPage({ user, isMobile }) {
 
   return (
     <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* ── Topbar ── */}
-      <div className="dh-topbar" style={{ background: isMobile ? 'transparent' : '#fff', borderBottom: isMobile ? 'none' : '1px solid #eee', padding: isMobile ? '20px 20px 0' : '20px 40px' }}>
-        <div className="dh-topbar-left">
-          <h1 className="dh-page-title" style={{ fontSize: isMobile ? 24 : 28, fontWeight: 900 }}>Settings</h1>
-          <p className="dh-page-sub" style={{ fontSize: isMobile ? 12 : 14, opacity: 0.6 }}>Manage your account and preferences</p>
-        </div>
+      
+      {/* ── Header ── */}
+      <div style={{ padding: isMobile ? '24px 20px 8px' : '40px 48px 0', background: '#fff' }}>
+         <h1 style={{ fontSize: isMobile ? 26 : 32, fontWeight: 1000, color: '#111', margin: 0, letterSpacing: '-0.04em' }}>
+           {isMobile ? 'Account config' : 'Settings'}
+         </h1>
+         <p style={{ fontSize: isMobile ? 12 : 14, color: '#666', fontWeight: 700, margin: '4px 0 0' }}>
+           {isMobile ? 'Manage your scholarly profile.' : 'Manage your Luter workstation and preferences.'}
+         </p>
       </div>
 
       <div style={{ 
         display: 'flex', 
         flexDirection: isMobile ? 'column' : 'row',
         flex: 1, 
-        padding: isMobile ? '12px 16px 80px' : '32px 40px', 
-        gap: isMobile ? 16 : 40, 
-        maxWidth: 1100, 
-        margin: '0 auto', 
-        width: '100%' 
+        padding: isMobile ? '12px 16px 80px' : '40px 48px', 
+        gap: isMobile ? 20 : 48, 
+        maxWidth: 1200, 
+        margin: isMobile ? '0' : '0 auto', 
+        width: '100%',
+        boxSizing: 'border-box',
+        fontFamily: "'Outfit', 'Inter', sans-serif"
       }}>
         
-        {/* ── Sidebar / Tabs ── */}
-        <div style={{ width: isMobile ? '100%' : 240, flexShrink: 0 }}>
+        {/* ── Sidebar / Navigation ── */}
+        <div style={{ width: isMobile ? '100%' : 260, flexShrink: 0 }}>
           <div className="no-scrollbar" style={{ 
             display: 'flex', 
             flexDirection: isMobile ? 'row' : 'column', 
-            gap: isMobile ? 8 : 6,
+            gap: isMobile ? 10 : 8,
             overflowX: isMobile ? 'auto' : 'visible',
             paddingBottom: isMobile ? 4 : 0,
             whiteSpace: 'nowrap',
-            msOverflowStyle: 'none',
-            scrollbarWidth: 'none'
+            marginLeft: isMobile ? -16 : 0,
+            padding: isMobile ? '0 16px' : 0,
+            boxSizing: 'border-box'
           }}>
             {TABS.map(tab => {
               const Icon = tab.icon
@@ -124,36 +130,37 @@ export default function SettingsPage({ user, isMobile }) {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 8, padding: isMobile ? '10px 16px' : '12px 16px',
-                    borderRadius: 12, border: isMobile ? '1.5px solid #111' : '2px solid #111', background: active ? '#111' : 'white',
+                    display: 'flex', alignItems: 'center', gap: 12, padding: isMobile ? '10px 18px' : '14px 20px',
+                    borderRadius: 16, border: '2.5px solid #111', background: active ? '#111' : 'white',
                     color: active ? 'white' : '#111', fontWeight: 900,
-                    fontSize: isMobile ? 12 : 13, cursor: 'pointer', fontFamily: 'inherit',
-                    boxShadow: active ? 'none' : isMobile ? '3px 3px 0px #111' : '4px 4px 0px #111',
-                    transform: active ? 'translate(2px, 2px)' : 'none',
+                    fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
+                    boxShadow: active ? 'none' : isMobile ? '3px 3px 0px #111' : '5px 5px 0px #111',
+                    transform: active ? (isMobile ? 'translate(1px, 1px)' : 'translate(2px, 2px)') : 'none',
                     transition: 'all 0.1s', textAlign: 'left',
                     flexShrink: 0
                   }}
                 >
-                  <Icon size={12} strokeWidth={2.5} />
-                  {isMobile ? tab.label.split(' ')[0] : tab.label}
+                  <Icon size={16} strokeWidth={2.5} fill={active ? 'var(--primary)' : 'transparent'} />
+                  {tab.label}
                 </button>
               )
-            })}
+            } )}
           </div>
+          {isMobile && <div style={{ height: 1, background: '#eee', margin: '16px 0' }} />}
 
           {!isMobile && (
-            <div style={{ marginTop: 40, borderTop: '2.5px solid #111', paddingTop: 24 }}>
+            <div style={{ marginTop: 40, borderTop: '2.5px solid #111', paddingTop: 32 }}>
               <button
                 onClick={handleSignOut}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px',
-                  width: '100%', borderRadius: 16, border: '2px solid #111', background: '#fef2f2',
-                  color: '#dc2626', fontWeight: 900, fontSize: 13, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '16px 24px',
+                  width: '100%', borderRadius: 16, border: '2.5px solid #111', background: '#fef2f2',
+                  color: '#dc2626', fontWeight: 1000, fontSize: 13, cursor: 'pointer',
                   fontFamily: 'inherit', textAlign: 'left', transition: 'all 0.1s',
                   boxShadow: '4px 4px 0px #111'
                 }}
               >
-                <LogOut size={16} /> SIGN OUT
+                <LogOut size={18} /> SIGN OUT OF LUTER
               </button>
             </div>
           )}
@@ -164,57 +171,67 @@ export default function SettingsPage({ user, isMobile }) {
           
           {/* PROFILE TAB */}
           {activeTab === 'profile' && (
-            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
               <div style={{ 
                 background: '#fff', 
-                borderRadius: isMobile ? 24 : 28, 
-                border: isMobile ? '1.5px solid #111' : '2.5px solid #111', 
+                borderRadius: isMobile ? 28 : 40, 
+                border: '2.5px solid #111', 
                 overflow: 'hidden', 
-                boxShadow: isMobile ? '4px 4px 0px #111' : '8px 8px 0px #111' 
+                boxShadow: isMobile ? '6px 6px 0px #111' : '12px 12px 0px #111' 
               }}>
-                <div style={{ padding: isMobile ? '16px 20px' : '24px 32px', borderBottom: isMobile ? '1.5px solid #111' : '2.5px solid #111', background: 'var(--primary-bg)' }}>
-                  <h2 style={{ fontSize: isMobile ? 15 : 18, fontWeight: 1000, margin: '0 0 2px', color: '#111' }}>Personal Information</h2>
-                  <p style={{ fontSize: isMobile ? 11 : 12, fontWeight: 700, color: 'var(--primary)', margin: 0 }}>Update details</p>
+                <div style={{ 
+                  padding: isMobile ? '24px' : '32px 40px', 
+                  borderBottom: '2.5px solid #111', 
+                  background: 'linear-gradient(135deg, var(--primary-bg) 0%, #fff 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <div>
+                    <h2 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 1000, margin: 0, color: '#111', letterSpacing: '-0.02em' }}>Personal Profile</h2>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', margin: '4px 0 0' }}>Update your scholar details</p>
+                  </div>
+                  <User size={isMobile ? 24 : 32} color="var(--primary)" strokeWidth={2.5} />
                 </div>
                 
-                <div style={{ padding: isMobile ? '20px' : '32px', display: 'flex', flexDirection: 'column', gap: isMobile ? 16 : 24 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 16 : 24 }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 9, fontWeight: 1000, color: '#111', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Full Name</label>
+                <div style={{ padding: isMobile ? '24px' : '40px', display: 'flex', flexDirection: 'column', gap: 32 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <label style={{ fontSize: 10, fontWeight: 1000, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Full Name</label>
                       <input 
                         value={profile.fullName} onChange={e => setProfile({...profile, fullName: e.target.value})}
-                        style={{ width: '100%', padding: isMobile ? '10px 14px' : '14px 18px', borderRadius: 12, border: isMobile ? '1.5px solid #111' : '2.5px solid #111', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700 }}
+                        style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '2.5px solid #111', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700, boxShadow: 'inset 2px 2px 0px rgba(0,0,0,0.02)' }}
                       />
                     </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 9, fontWeight: 1000, color: '#111', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Email</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <label style={{ fontSize: 10, fontWeight: 1000, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Email</label>
                       <input 
                         value={profile.email} disabled
-                        style={{ width: '100%', padding: isMobile ? '10px 14px' : '14px 18px', borderRadius: 12, border: isMobile ? '1.5px solid #eee' : '2.5px solid #eee', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#f8f8f8', color: '#999', cursor: 'not-allowed', fontWeight: 700 }}
+                        style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '2.5px solid #eee', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#f5f5f5', color: '#999', cursor: 'not-allowed', fontWeight: 700 }}
                       />
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 16 : 24 }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 9, fontWeight: 1000, color: '#111', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>University</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <label style={{ fontSize: 10, fontWeight: 1000, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>University</label>
                       <input 
                         value={profile.university} onChange={e => setProfile({...profile, university: e.target.value})}
-                        style={{ width: '100%', padding: isMobile ? '10px 14px' : '14px 18px', borderRadius: 12, border: isMobile ? '1.5px solid #111' : '2.5px solid #111', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700 }}
+                        style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '2.5px solid #111', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700 }}
                       />
                     </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 9, fontWeight: 1000, color: '#111', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Faculty / Level</label>
-                      <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <label style={{ fontSize: 10, fontWeight: 1000, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Faculty & Level</label>
+                      <div style={{ display: 'flex', gap: 12 }}>
                         <input 
                           value={profile.faculty} onChange={e => setProfile({...profile, faculty: e.target.value})}
                           placeholder="Faculty"
-                          style={{ flex: 2, padding: isMobile ? '10px 14px' : '14px 18px', borderRadius: 12, border: isMobile ? '1.5px solid #111' : '2.5px solid #111', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700 }}
+                          style={{ flex: 2, padding: '16px 20px', borderRadius: 16, border: '2.5px solid #111', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700 }}
                         />
                          <input 
                           value={profile.level} onChange={e => setProfile({...profile, level: e.target.value})}
-                          placeholder="Lv"
-                          style={{ flex: 1, padding: isMobile ? '10px 14px' : '14px 18px', borderRadius: 12, border: isMobile ? '1.5px solid #111' : '2.5px solid #111', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700, textAlign: 'center' }}
+                          placeholder="Level"
+                          style={{ flex: 1, padding: '16px 20px', borderRadius: 16, border: '2.5px solid #111', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700, textAlign: 'center' }}
                         />
                       </div>
                     </div>
@@ -222,8 +239,8 @@ export default function SettingsPage({ user, isMobile }) {
                 </div>
 
                 <div style={{ 
-                  padding: isMobile ? '16px 20px' : '24px 32px', 
-                  borderTop: isMobile ? '1.5px solid #111' : '2.5px solid #111', 
+                  padding: isMobile ? '24px' : '32px 40px', 
+                  borderTop: '2.5px solid #111', 
                   background: '#fafafa', 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -235,15 +252,15 @@ export default function SettingsPage({ user, isMobile }) {
                     disabled={saving} 
                     style={{ 
                       flex: isMobile ? 1 : 'none',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, 
-                      padding: isMobile ? '12px' : '14px 32px', borderRadius: 12, border: isMobile ? '1.5px solid #111' : '2.5px solid #111', 
-                      background: '#111', color: 'white', fontSize: 13, fontWeight: 900, 
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, 
+                      padding: '16px 40px', borderRadius: 16, border: '2.5px solid #111', 
+                      background: '#111', color: 'white', fontSize: 14, fontWeight: 1000, 
                       cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.1s', 
-                      boxShadow: isMobile ? '3px 3px 0px rgba(0,0,0,0.1)' : '4px 4px 0px rgba(0,0,0,0.1)' 
+                      boxShadow: '4px 4px 0px rgba(0,0,0,0.1)' 
                     }}
                   >
-                    {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} 
-                    SAVE PROFILE
+                    {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={18} />} 
+                    SAVE CHANGES
                   </button>
                 </div>
               </div>
@@ -252,15 +269,15 @@ export default function SettingsPage({ user, isMobile }) {
                  <button
                     onClick={handleSignOut}
                     style={{
-                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, 
-                   padding: '14px',
-                   marginTop: 16, width: '100%', borderRadius: 16, border: '1.5px solid #111', 
+                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, 
+                   padding: '18px',
+                   marginTop: 24, width: '100%', borderRadius: 20, border: '2.5px solid #111', 
                    background: '#fef2f2',
                    color: '#dc2626', fontWeight: 1000, fontSize: 14, cursor: 'pointer',
-                   fontFamily: 'inherit', boxShadow: '4px 4px 0px #111'
+                   fontFamily: 'inherit', boxShadow: '5px 5px 0px #111'
                  }}
                >
-                 <LogOut size={16} strokeWidth={3} /> SIGN OUT
+                 <LogOut size={18} strokeWidth={3} /> SIGN OUT
                </button>
               )}
             </motion.div>
@@ -268,55 +285,56 @@ export default function SettingsPage({ user, isMobile }) {
 
           {/* BILLING TAB */}
           {activeTab === 'billing' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}>
               <div style={{ 
                 background: '#fff', 
-                borderRadius: isMobile ? 24 : 28, 
-                border: isMobile ? '1.5px solid #111' : '2.5px solid #111', 
+                borderRadius: isMobile ? 28 : 40, 
+                border: '2.5px solid #111', 
                 overflow: 'hidden', 
-                boxShadow: isMobile ? '4px 4px 0px #111' : '8px 8px 0px #111' 
+                boxShadow: isMobile ? '6px 6px 0px #111' : '12px 12px 0px #111' 
               }}>
-                <div style={{ padding: isMobile ? '16px 20px' : '24px 32px', borderBottom: isMobile ? '1.5px solid #111' : '2.5px solid #111', background: '#f0fdf4' }}>
-                  <h2 style={{ fontSize: isMobile ? 15 : 18, fontWeight: 1000, margin: '0 0 2px', color: '#111' }}>Plan & Billing</h2>
-                  <p style={{ fontSize: isMobile ? 11 : 12, fontWeight: 700, color: '#059669', margin: 0 }}>Subscription status</p>
+                <div style={{ padding: isMobile ? '24px' : '32px 40px', borderBottom: '2.5px solid #111', background: '#f0fdf4' }}>
+                  <h2 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 1000, margin: 0, color: '#111' }}>Plan & Subscription</h2>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#059669', margin: '4px 0 0' }}>Manage your scholarly benefits</p>
                 </div>
                 
-                <div style={{ padding: isMobile ? '16px 20px' : '32px' }}>
+                <div style={{ padding: isMobile ? '24px' : '40px' }}>
                   <div style={{ 
                     display: 'flex', 
                     flexDirection: 'column',
-                    gap: 16,
-                    padding: isMobile ? '24px 16px' : '32px 24px', 
-                    borderRadius: 20, 
-                    background: 'white', 
+                    gap: 24,
+                    padding: isMobile ? '32px 24px' : '48px 40px', 
+                    borderRadius: 32, 
+                    background: 'linear-gradient(135deg, #fff 0%, var(--primary-bg) 100%)', 
                     color: '#111', 
-                    border: isMobile ? '1.5px solid #111' : '2.5px solid #111',
-                    boxShadow: isMobile ? '3px 3px 0px #111' : '6px 6px 0px #111',
+                    border: '2.5px solid #111',
+                    boxShadow: isMobile ? '4px 4px 0px #111' : '8px 8px 0px #111',
                     position: 'relative',
                     overflow: 'hidden'
                   }}>
                     <div style={{ position: 'relative', zIndex: 1 }}>
-                      <div style={{ fontSize: 9, fontWeight: 1000, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--primary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Sparkles size={14} fill="var(--primary)" /> STATUS
+                      <div style={{ fontSize: 10, fontWeight: 1000, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--primary)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Sparkles size={16} fill="var(--primary)" /> CURRENT TIER
                       </div>
-                      <div style={{ fontSize: isMobile ? 20 : 24, fontWeight: 1000, marginBottom: 4 }}>Luter Scholar (Free)</div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: '#666' }}>Fundamental workstation tools enabled.</div>
+                      <div style={{ fontSize: isMobile ? 28 : 40, fontWeight: 1000, marginBottom: 8, letterSpacing: '-0.03em' }}>Luter Scholar (Free)</div>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: '#666', maxWidth: 400, lineHeight: 1.6 }}>You're currently using the fundamental workstation. Upgrade for unlimited AI support and advanced tracking.</p>
                     </div>
 
                     <button style={{ 
-                      width: '100%',
-                      padding: '14px', 
-                      borderRadius: 14, 
+                      width: isMobile ? '100% ' : 'fit-content',
+                      padding: '18px 40px', 
+                      borderRadius: 16, 
                       background: 'var(--primary)', 
-                      border: '1.5px solid #111', 
+                      border: '2.5px solid #111', 
                       color: 'white', 
-                      fontSize: 13, 
+                      fontSize: 15, 
                       fontWeight: 1000, 
                       cursor: 'pointer', 
                       fontFamily: 'inherit', 
-                      boxShadow: '3px 3px 0px #111'
+                      boxShadow: '4px 4px 0px #111',
+                      transition: 'all 0.1s'
                     }}>
-                      UPGRADE TO PRO
+                      UPGRADE TO SCHOLAR+
                     </button>
                   </div>
                 </div>

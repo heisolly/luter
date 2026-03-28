@@ -115,35 +115,43 @@ export default function Dashboard() {
     setActivePage('course-workstation')
   }
 
+  const pages = [
+    { id: 'home', component: <DashboardHome isMobile={isMobile} user={user} setActivePage={setActivePage} onOpenCourse={openCourseWorkstation} /> },
+    { id: 'courses', component: <CoursesPage isMobile={isMobile} user={user} onOpenCourse={openCourseWorkstation} /> },
+    { id: 'workstation', component: <WorkstationPage isMobile={isMobile} /> },
+    { id: 'mock-exam', component: <MockExamPage isMobile={isMobile} user={user} /> },
+    { id: 'analytics', component: <AnalyticsPage isMobile={isMobile} user={user} /> },
+    { id: 'settings',  component: <SettingsPage isMobile={isMobile} user={user} /> },
+    { id: 'upgrade',   component: <UpgradePage isMobile={isMobile} user={user} /> },
+    { id: 'streak',    component: <StreakPage user={user} /> },
+    { id: 'refer',     component: <ReferPage user={user} /> },
+    { id: 'compete',   component: <CompetePage isMobile={isMobile} user={user} setActivePage={setActivePage} /> }
+  ]
+
   const renderPage = () => {
-    switch (activePage) {
-      case 'home': return <DashboardHome isMobile={isMobile} user={user} setActivePage={setActivePage} onOpenCourse={openCourseWorkstation} />
-      case 'courses': return <CoursesPage isMobile={isMobile} user={user} onOpenCourse={openCourseWorkstation} />
-      case 'workstation': return <WorkstationPage isMobile={isMobile} />
-      case 'mock-exam': return <MockExamPage isMobile={isMobile} user={user} />
-      case 'analytics': return <AnalyticsPage isMobile={isMobile} user={user} />
-      case 'settings':  return <SettingsPage isMobile={isMobile} user={user} />
-      case 'upgrade':   return <UpgradePage isMobile={isMobile} user={user} />
-      case 'streak':    return <StreakPage user={user} />
-      case 'refer':     return <ReferPage user={user} />
-      case 'compete':   return <CompetePage isMobile={isMobile} user={user} setActivePage={setActivePage} />
-      case 'course-workstation': return (
+    if (activePage === 'course-workstation') {
+      return (
         <CourseWorkstation
           isMobile={isMobile}
           course={activeCourse}
           user={user}
           onBack={() => {
-            setActiveCourse(null)
             setActivePage('courses')
-          }}
-          onNavigate={(page, payloadCourse) => {
-            setActiveCourse(payloadCourse || null)
-            setActivePage(page)
+            setActiveCourse(null)
           }}
         />
       )
-      default: return <DashboardHome setActivePage={setActivePage} user={user} onOpenCourse={openCourseWorkstation} />
     }
+
+    return (
+      <>
+        {pages.map(page => (
+          <div key={page.id} style={{ display: activePage === page.id ? 'block' : 'none', height: '100%' }}>
+            {page.component}
+          </div>
+        ))}
+      </>
+    )
   }
 
   return (
@@ -216,7 +224,7 @@ export default function Dashboard() {
 
       <main className={`dash-main ${sidebarCollapsed ? 'collapsed' : ''} ${isMobile ? 'dash-main--mobile' : ''}`} style={{ 
         paddingTop: isMobile ? 64 : 0,
-        paddingBottom: isMobile ? 80 : 0
+        paddingBottom: 0
       }}>
         {renderPage()}
       </main>

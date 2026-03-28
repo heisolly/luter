@@ -191,13 +191,13 @@ export default function MockExamPage({ user, preselectedCourse, isMobile }) {
     return () => { clearTimeout(t); clearInterval(int); };
   }, [mode, examTimer]);
 
-  if (loading) {
-    return (
-      <div style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center', minHeight:'50vh' }}>
-        <Loader2 className="animate-spin" size={28} color="var(--primary)" />
-      </div>
-    )
-  }
+  // if (loading) {
+  //   return (
+  //     <div style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center', minHeight:'50vh' }}>
+  //       <Loader2 className="animate-spin" size={28} color="var(--primary)" />
+  //     </div>
+  //   )
+  // }
 
   if (mode === 'preparing') {
     const loadingStrings = [
