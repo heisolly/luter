@@ -50,13 +50,13 @@ const SAMPLE_COURSE_MATERIALS = {
 }
 
 export default function MockExamPage() {
-  const { user, isMobile } = useOutletContext()
+  const { user, isMobile, sidebarCollapsed } = useOutletContext()
   const { ready, bundle } = useDashboardPrefetch() || { ready: false, bundle: null }
   const location = useLocation()
   const preselectedCourse = location.state?.preselectedCourse
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
-  const [mode, setMode] = useState('configure') // configure | exam | result
+  const [mode, setMode] = useState('configure') // configure | preparing | exam | result
   const [configStep, setConfigStep] = useState(1) // 1: courses | 2: qs | 3: time | 4: advanced options
   const [current, setCurrent] = useState(0)
   const [selected, setSelected] = useState({})
@@ -167,6 +167,15 @@ export default function MockExamPage() {
       setAiChatOpen(true)
       setAiChatMessages([])
     }
+  }
+
+  const handleSearchAction = (question) => {
+    const query = encodeURIComponent(question.question);
+    window.open(`https://www.google.com/search?q=${query}`, '_blank');
+  }
+
+  const handleGiftAction = () => {
+    alert("🎁 Gift feature: You can share this study set with a friend to earn 50 XP! (Coming soon in full version)");
   }
 
   const sendAiMessage = async (overrideText) => {
@@ -283,7 +292,6 @@ export default function MockExamPage() {
   const pass = score >= (generatedQuestions?.length || 1) / 2
 
   // ── Celebration Effect (Triggers on any completion) ──
-  // ── Celebration Effect (Triggers on any completion) ──
   useEffect(() => {
     if (mode === 'result') {
       // 1. Initial Grand Burst
@@ -396,36 +404,27 @@ export default function MockExamPage() {
         
         if (questionsToGenerate <= 0) return existingQuestions
         
-        // Build prompt based on question types
+        // Build prompt based on question types with balanced distribution
         let questionTypeInstructions = ""
         let jsonStructure = ""
         
-        // Determine question type for this batch
-        const random = Math.random()
+        // Determine types to include based on user settings
+        const activeTypes = ['multiple'] // Always include multiple choice as base
+        if (includeTrueFalse) activeTypes.push('truefalse')
+        if (includeTypeIn) activeTypes.push('typein')
+
+        // Choose a type for this specific batch to ensure variety
+        // If multiple types are active, we rotate or pick based on batch number
+        const currentType = activeTypes[batchNumber % activeTypes.length]
         
-        if (includeTypeIn && includeTrueFalse) {
-          // Mixed mode - randomly choose between types
-          if (random < 0.33) {
-            questionTypeInstructions = "Generate type-in answer questions where users write their own answers."
-            jsonStructure = `{\n  "questions": [\n    {\n      "question": "question text here",\n      "type": "typein",\n      "expected_answer": "expected answer text",\n      "explanation": "explanation text here"\n    }\n  ]\n}`
-          } else if (random < 0.66) {
-            questionTypeInstructions = "Generate true/false questions."
-            jsonStructure = `{\n  "questions": [\n    {\n      "question": "statement that is true or false",\n      "type": "truefalse",\n      "correct_answer": true,\n      "explanation": "explanation text here"\n    }\n  ]\n}`
-          } else {
-            questionTypeInstructions = "Generate multiple choice questions with 4 options."
-            jsonStructure = `{\n  "questions": [\n    {\n      "question": "question text here",\n      "type": "multiple",\n      "options": ["option A", "option B", "option C", "option D"],\n      "correct_answer": 1,\n      "explanation": "explanation text here"\n    }\n  ]\n}`
-          }
-        } else if (includeTypeIn && includeTrueFalse === false) {
-          // Type-in only
-          questionTypeInstructions = "Generate type-in answer questions where users write their own answers."
+        if (currentType === 'typein') {
+          questionTypeInstructions = "Generate type-in answer questions where users write their own answers. The expected answer should be a concise phrase or sentence."
           jsonStructure = `{\n  "questions": [\n    {\n      "question": "question text here",\n      "type": "typein",\n      "expected_answer": "expected answer text",\n      "explanation": "explanation text here"\n    }\n  ]\n}`
-        } else if (includeTrueFalse && includeTypeIn === false) {
-          // True/false only
-          questionTypeInstructions = "Generate true/false questions."
+        } else if (currentType === 'truefalse') {
+          questionTypeInstructions = "Generate true/false questions based on the course material."
           jsonStructure = `{\n  "questions": [\n    {\n      "question": "statement that is true or false",\n      "type": "truefalse",\n      "correct_answer": true,\n      "explanation": "explanation text here"\n    }\n  ]\n}`
         } else {
-          // Multiple choice only (default)
-          questionTypeInstructions = "Generate multiple choice questions with 4 options."
+          questionTypeInstructions = "Generate multiple choice questions with 4 distinct options (A, B, C, D)."
           jsonStructure = `{\n  "questions": [\n    {\n      "question": "question text here",\n      "type": "multiple",\n      "options": ["option A", "option B", "option C", "option D"],\n      "correct_answer": 1,\n      "explanation": "explanation text here"\n    }\n  ]\n}`
         }
 
@@ -542,6 +541,38 @@ export default function MockExamPage() {
     }
   }
 
+  const explainWithTutor = (question, isCorrect, userChoice) => {
+    setAiChatOpen(true)
+    let prompt = ""
+    
+    if (isCorrect) {
+      prompt = `Explain why the answer to this question is correct: "${question.question}". 
+    
+${question.type === 'multiple' ? `Options:
+${question.options.map((o, i) => `${String.fromCharCode(65+i)}. ${o}`).join('\n')}
+Correct Answer: ${String.fromCharCode(65+question.answer)}` : ''}
+${question.type === 'truefalse' ? `Correct Answer: ${question.answer === 1 ? 'TRUE' : 'FALSE'}` : ''}
+${question.type === 'typein' ? `Expected Answer: ${question.expectedAnswer}` : ''}
+
+Please provide a concise but thorough explanation for a Nigerian university student.`
+    } else {
+      prompt = `I got this question wrong, please explain my mistake: "${question.question}". 
+    
+${question.type === 'multiple' ? `Options:
+${question.options.map((o, i) => `${String.fromCharCode(65+i)}. ${o}`).join('\n')}
+My Answer: ${userChoice !== undefined ? String.fromCharCode(65+userChoice) : 'None'}
+Correct Answer: ${String.fromCharCode(65+question.answer)}` : ''}
+${question.type === 'truefalse' ? `My Answer: ${userChoice === 1 ? 'TRUE' : 'FALSE'}
+Correct Answer: ${question.answer === 1 ? 'TRUE' : 'FALSE'}` : ''}
+${question.type === 'typein' ? `My Answer: "${typeInAnswers[current] || ''}"
+Expected Answer: "${question.expectedAnswer}"` : ''}
+
+Please explain where I went wrong and why the correct answer is the right choice. Provide a supportive explanation for a Nigerian university student.`
+    }
+    
+    sendAiMessage(prompt)
+  }
+
   const choose = (idx) => {
     setSelected(prev => ({ ...prev, [current]: idx }))
   }
@@ -595,592 +626,6 @@ export default function MockExamPage() {
     return () => { clearTimeout(t); clearInterval(int); };
   }, [mode, examTimer]);
 
-  // if (loading) {
-  //   return (
-  //     <div style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center', minHeight:'50vh' }}>
-  //       <Loader2 className="animate-spin" size={28} color="var(--primary)" />
-  //     </div>
-  //   )
-  // }
-
-  if (mode === 'preparing') {
-    const loadingStrings = [
-      "reading your documents...",
-      "processing luter knowledge...",
-      "calibrating neural matrix...",
-      "generating flash questions...",
-      "almost ready..."
-    ];
-    return (
-      <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>
-        
-        <div style={{ width: '100%', maxWidth: 440, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          
-          <div style={{ marginBottom: 60 }}>
-            <LuterLogo size={100} fontSize={100} />
-          </div>
-
-          <div style={{ width: '100%', textAlign: 'center', marginBottom: 20, height: 28, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <AnimatePresence mode="wait">
-              <motion.p 
-                key={loadingStep}
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                style={{ fontSize: 20, color: '#333', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', textTransform: 'lowercase' }}
-              >
-                {loadingStrings[loadingStep]}
-              </motion.p>
-            </AnimatePresence>
-          </div>
-
-          {/* Progress Bar Container */}
-          <div style={{ position: 'relative', width: '100%', padding: '0 20px', boxSizing: 'border-box' }}>
-            
-            <div style={{ width: '100%', height: 12, background: '#f5f3ff', borderRadius: 99, border: '1.5px solid var(--border)', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-                style={{ height: '100%', background: 'var(--primary)', borderRadius: 99 }} 
-            </div>
-            
-            {/* The Moving Element: A fun animated vessel alternative */}
-            <motion.div
-              initial={{ left: '20px' }}
-              animate={{ left: 'calc(100% - 20px)' }}
-              transition={{ duration: 7, ease: "linear" }}
-              style={{ position: 'absolute', top: -50, transform: 'translateX(-50%)', display: 'flex', alignItems: 'center' }}
-            >
-              {/* Fire Exhaust */}
-              <motion.div 
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: 40, marginRight: -8, zIndex: 0 }}
-              >
-                <motion.div 
-                  animate={{ width: [12, 32, 12], opacity: [0.8, 1, 0.8] }} 
-                  transition={{ duration: 0.2, repeat: Infinity }} 
-                  style={{ height: 12, background: '#ef4444', borderRadius: '99px 0 0 99px', marginRight: -4 }} 
-                />
-                <motion.div 
-                  animate={{ width: [6, 16, 6], opacity: [0.9, 1, 0.9] }} 
-                  transition={{ duration: 0.15, repeat: Infinity, delay: 0.1 }} 
-                  style={{ height: 6, background: '#f59e0b', borderRadius: '99px 0 0 99px' }} 
-                />
-              </motion.div>
-
-              {/* Main Vessel */}
-              <motion.div
-                animate={{ y: [-3, 3, -3], rotate: [0, 4, 0] }}
-                transition={{ duration: 0.5, repeat: Infinity, ease: "easeInOut" }}
-                style={{ 
-                  zIndex: 10, width: 56, height: 44, background: '#fff', 
-                  border: '1.5px solid var(--primary)', borderRadius: '50% 50% 40% 40%', 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                  boxShadow: '0 10px 25px -5px var(--primary-glow)' 
-                }}
-              >
-                <div style={{ transform: 'rotate(90deg)', display: 'flex' }}>
-                  <FlaskConical size={24} color="#064e3b" fill="#064e3b" />
-                </div>
-              </motion.div>
-            </motion.div>
-
-          </div>
-
-        </div>
-      </div>
-    )
-  }
-
-  if (mode === 'configure') {
-    const isStepReady = configStep === 1 ? examCourses.length > 0 : true;
-
-    return (
-      <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'inherit' }}>
-        
-        {/* Wizard Navbar */}
-        <div style={{ 
-          padding: isMobile ? '16px 20px' : '24px 40px', 
-          background: '#ffffff', 
-          display: 'flex', 
-          flexDirection: isMobile ? 'column' : 'row',
-          justifyContent: isMobile ? 'center' : 'space-between', 
-          alignItems: isMobile ? 'flex-start' : 'center',
-          gap: isMobile ? 12 : 0,
-          borderBottom: isMobile ? '1.5px solid #f5f5f5' : 'none'
-        }}>
-          <h1 style={{ fontSize: isMobile ? 18 : 20, fontWeight: 900, color: '#111', margin: 0, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <FlaskConical size={20} color="#111" /> {isMobile ? 'Exam Setup' : 'Mock Exam Setup'}
-          </h1>
-          <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: 6, 
-            background: '#fffbeb', 
-            color: '#d97706', 
-            padding: '6px 14px', 
-            borderRadius: 99, 
-            fontSize: 12, 
-            fontWeight: 800, 
-            border: '1.5px solid #fbbf24', 
-            boxShadow: '0 4px 12px rgba(217,119,6,0.1)' 
-          }}>
-            <Zap size={14} fill="#fbbf24" strokeWidth={0} /> {isMobile ? 'Configuring' : 'Configuration Stage'}
-          </div>
-        </div>
-
-        <div style={{ 
-          flex: 1, 
-          padding: isMobile ? '20px 16px 100px' : '20px 40px 40px 40px', 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'flex-start' 
-        }}>
-          <motion.div 
-            key={configStep}
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            style={{ width: '100%', maxWidth: configStep === 1 ? (isMobile ? 500 : 900) : 560, display: 'flex', flexDirection: 'column' }}
-          >
-            {/* Heading */}
-            <div style={{ background: '#eefaec', borderRadius: 12, padding: isMobile ? '20px' : '24px 28px', marginBottom: 24 }}>
-              <h2 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600, color: '#222', margin: 0, lineHeight: 1.5 }}>
-                {configStep === 1 && "Which courses do you want to pull questions from for this Mock Exam?"}
-                {configStep === 2 && "How many questions do you want to attempt?"}
-                {configStep === 3 && "What time limit per question do you want to set?"}
-                {configStep === 4 && "Customize your exam experience"}
-              </h2>
-            </div>
-            
-            {/* Step 1: Responsive Grid of Courses */}
-            {configStep === 1 && courses.length > 0 && (
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', 
-                gap: isMobile ? 12 : 20, 
-                marginBottom: 40 
-              }}>
-                <motion.button 
-                  whileHover={{ y: -2 }} whileTap={{ scale: 0.94 }}
-                  onClick={() => {
-                    if (courses.length === 0) return;
-                    const amount = Math.min(courses.length, Math.floor(Math.random() * 2) + 1);
-                    const shuffled = [...courses].sort(() => 0.5 - Math.random());
-                    setExamCourses(shuffled.slice(0, amount));
-                  }}
-                  style={{ 
-                    padding: isMobile ? '16px 20px' : '24px', 
-                    borderRadius: 16, 
-                    background: '#fffbeb', 
-                    textAlign: 'left', 
-                    cursor: 'pointer', 
-                    outline: 'none', 
-                    transition: 'all 0.1s', 
-                    fontFamily: 'inherit',
-                    border: '1.5px solid #fbbf24',
-                    color: '#b45309', 
-                    boxShadow: '0 4px 12px rgba(217,119,6,0.1)'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(217,119,6,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Dices size={20} color="#d97706" />
-                    </div>
-                  </div>
-                  <h3 style={{ fontSize: 16, fontWeight: 900, margin: '0 0 2px', color: '#d97706' }}>Dice Roll</h3>
-                  <p style={{ fontSize: 12, margin: 0, fontWeight: 700, color: '#b45309' }}>Select random courses</p>
-                </motion.button>
-                {courses.map(c => {
-                  const isSelected = examCourses.some(x => x.id === c.id)
-                  return (
-                    <motion.button 
-                      key={c.id}
-                      whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}
-                      onClick={() => toggleCourseConfig(c)}
-                      style={{ 
-                        padding: isMobile ? '16px 20px' : '24px', 
-                        borderRadius: 16, 
-                        background: 'white', 
-                        textAlign: 'left', 
-                        cursor: 'pointer', 
-                        outline: 'none', 
-                        transition: 'all 0.1s', 
-                        fontFamily: 'inherit',
-                        border: isSelected ? '1.5px solid #111' : '1px solid #e5e7eb',
-                        color: isSelected ? '#111' : '#555'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                        <div style={{ width: 40, height: 40, borderRadius: 12, background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <span style={{ fontSize: 14, fontWeight: 900, color: '#111' }}>{c.code.slice(0, 3)}</span>
-                        </div>
-                        {isSelected && <CheckCircle2 size={24} color="#111" />}
-                      </div>
-                      <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 2px', color: '#111' }}>{c.code}</h3>
-                      <p style={{ fontSize: 12, margin: 0, fontWeight: 600 }}>{c.name}</p>
-                    </motion.button>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* Step 2: Question Quantities */}
-            {configStep === 2 && (
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', 
-                gap: 12, 
-                marginBottom: 40 
-              }}>
-                {[
-                  { n: 10, label: 'Small Batch', desc: 'Quick drill' },
-                  { n: 20, label: 'Standard Run', desc: 'Daily goal' },
-                  { n: 50, label: 'The Marathon', desc: 'Deep dive' },
-                  { n: 100, label: 'CBT Simulator', desc: 'Exam ready' }
-                ].map((item, i) => {
-                  const isSelected = examQs === item.n;
-                  return (
-                    <motion.button 
-                      key={item.n}
-                      whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
-                      onClick={() => setExamQs(item.n)}
-                      style={{ 
-                        padding: isMobile ? '16px 20px' : '20px 24px', 
-                        borderRadius: 12, 
-                        background: 'white', 
-                        textAlign: 'left', 
-                        cursor: 'pointer', 
-                        outline: 'none', 
-                        transition: 'all 0.1s', 
-                        fontFamily: 'inherit',
-                        border: isSelected ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
-                        color: isSelected ? 'var(--primary)' : '#555', 
-                        boxShadow: isSelected ? '0 8px 20px -6px var(--primary-glow)' : 'none',
-                        display: 'flex', flexDirection: 'column', gap: 2
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                        <span style={{ fontSize: 16, fontWeight: 900 }}>{item.n} Qs</span>
-                        {isSelected && <CheckCircle2 size={20} color="#111" />}
-                      </div>
-                      <span style={{ fontSize: 12, fontWeight: 700, opacity: 0.8 }}>{item.label}</span>
-                    </motion.button>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* Step 3: Timed Engagements */}
-            {configStep === 3 && (
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', 
-                gap: 12, 
-                marginBottom: 40 
-              }}>
-                {[
-                  { v: 0, l: 'No Limit', sub: 'Study Mode' }, 
-                  { v: 5, l: '5s / Q', sub: 'Flash Zone' },
-                  { v: 10, l: '10s / Q', sub: 'Very Fast' },
-                  { v: 15, l: '15s / Q', sub: 'Fast Pace' }, 
-                  { v: 30, l: '30s / Q', sub: 'Standard' }, 
-                  { v: 60, l: '60s / Q', sub: 'Deep Work' }
-                ].map((t, i) => {
-                  const isSelected = examTimer === t.v;
-                  return (
-                    <motion.button 
-                      key={t.v}
-                      whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
-                      onClick={() => setExamTimer(t.v)}
-                      style={{ 
-                        padding: isMobile ? '16px 20px' : '20px 24px', 
-                        borderRadius: 12, 
-                        background: 'white', 
-                        textAlign: 'left', 
-                        cursor: 'pointer', 
-                        outline: 'none', 
-                        transition: 'all 0.1s', 
-                        fontFamily: 'inherit',
-                        border: isSelected ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
-                        color: isSelected ? 'var(--primary)' : '#555', 
-                        boxShadow: isSelected ? '0 8px 20px -6px var(--primary-glow)' : 'none',
-                        display: 'flex', flexDirection: 'column', gap: 2
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                        <span style={{ fontSize: 16, fontWeight: 900 }}>{t.l}</span>
-                        {isSelected && <CheckCircle2 size={20} color="#111" />}
-                      </div>
-                      <span style={{ fontSize: 12, fontWeight: 700, opacity: 0.8 }}>{t.sub}</span>
-                    </motion.button>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* Step 4: Advanced Options */}
-            {configStep === 4 && (
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: 16, 
-                marginBottom: 40 
-              }}>
-                {/* Instant Feedback Toggle */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  style={{
-                    background: 'white',
-                    border: instantFeedback ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
-                    borderRadius: 16,
-                    padding: '20px 24px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onClick={() => setInstantFeedback(!instantFeedback)}
-                  whileHover={{ y: -2, scale: 1.01 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                      <div style={{ 
-                        width: 44, 
-                        height: 44, 
-                        borderRadius: 12, 
-                        background: instantFeedback ? 'var(--primary-bg)' : '#f8fafc',
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        color: instantFeedback ? 'var(--primary)' : '#64748b'
-                      }}>
-                        <Zap size={20} />
-                      </div>
-                      <div>
-                        <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 4px', color: '#111' }}>
-                          Instant Feedback
-                        </h3>
-                        <p style={{ fontSize: 12, margin: 0, color: '#6b7280', lineHeight: 1.4 }}>
-                          See correct/incorrect answers immediately after each question
-                        </p>
-                      </div>
-                    </div>
-                    <div style={{
-                      width: 48,
-                      height: 28,
-                      background: instantFeedback ? 'var(--primary)' : '#e2e8f0',
-                      borderRadius: 99,
-                      position: 'relative',
-                      transition: 'all 0.3s'
-                    }}>
-                      <div style={{
-                        position: 'absolute',
-                        top: 2,
-                        left: instantFeedback ? 22 : 2,
-                        width: 24,
-                        height: 24,
-                        background: 'white',
-                        borderRadius: '50%',
-                        transition: 'all 0.3s',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                      }} />
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* True/False Questions Toggle */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  style={{
-                    background: 'white',
-                    border: includeTrueFalse ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
-                    borderRadius: 16,
-                    padding: '20px 24px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onClick={() => setIncludeTrueFalse(!includeTrueFalse)}
-                  whileHover={{ y: -2, scale: 1.01 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                      <div style={{ 
-                        width: 44, 
-                        height: 44, 
-                        borderRadius: 12, 
-                        background: includeTrueFalse ? 'var(--primary-bg)' : '#f8fafc',
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        color: includeTrueFalse ? 'var(--primary)' : '#64748b'
-                      }}>
-                        <CheckCircle2 size={20} />
-                      </div>
-                      <div>
-                        <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 4px', color: '#111' }}>
-                          True/False Questions
-                        </h3>
-                        <p style={{ fontSize: 12, margin: 0, color: '#6b7280', lineHeight: 1.4 }}>
-                          Include true/false questions in your exam mix
-                        </p>
-                      </div>
-                    </div>
-                    <div style={{
-                      width: 48,
-                      height: 28,
-                      background: includeTrueFalse ? 'var(--primary)' : '#e2e8f0',
-                      borderRadius: 99,
-                      position: 'relative',
-                      transition: 'all 0.3s'
-                    }}>
-                      <div style={{
-                        position: 'absolute',
-                        top: 2,
-                        left: includeTrueFalse ? 22 : 2,
-                        width: 24,
-                        height: 24,
-                        background: 'white',
-                        borderRadius: '50%',
-                        transition: 'all 0.3s',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                      }} />
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Type-in Answers Toggle */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  style={{
-                    background: 'white',
-                    border: includeTypeIn ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
-                    borderRadius: 16,
-                    padding: '20px 24px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onClick={() => setIncludeTypeIn(!includeTypeIn)}
-                  whileHover={{ y: -2, scale: 1.01 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                      <div style={{ 
-                        width: 44, 
-                        height: 44, 
-                        borderRadius: 12, 
-                        background: includeTypeIn ? 'var(--primary-bg)' : '#f8fafc',
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        color: includeTypeIn ? 'var(--primary)' : '#64748b'
-                      }}>
-                        <MessageSquare size={20} />
-                      </div>
-                      <div>
-                        <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 4px', color: '#111' }}>
-                          Type-in Answers
-                        </h3>
-                        <p style={{ fontSize: 12, margin: 0, color: '#6b7280', lineHeight: 1.4 }}>
-                          AI will provide questions and you type your answers
-                        </p>
-                      </div>
-                    </div>
-                    <div style={{
-                      width: 48,
-                      height: 28,
-                      background: includeTypeIn ? 'var(--primary)' : '#e2e8f0',
-                      borderRadius: 99,
-                      position: 'relative',
-                      transition: 'all 0.3s'
-                    }}>
-                      <div style={{
-                        position: 'absolute',
-                        top: 2,
-                        left: includeTypeIn ? 22 : 2,
-                        width: 24,
-                        height: 24,
-                        background: 'white',
-                        borderRadius: '50%',
-                        transition: 'all 0.3s',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                      }} />
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-            )}
-
-          </motion.div>
-        </div>
-
-        {/* Floating Retro Footer */}
-        <div style={{ 
-          background: '#f4fdf4', 
-          padding: isMobile ? '16px 20px' : '24px 40px', 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          marginTop: 'auto',
-          position: isMobile ? 'fixed' : 'relative',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100,
-          borderTop: '2px solid #111'
-        }}>
-          <div style={{ width: '100%', maxWidth: configStep === 1 ? 900 : 560, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            
-            <button 
-              disabled={configStep===1} 
-              onClick={() => setConfigStep(c=>c-1)}
-              style={{ 
-                padding: isMobile ? '10px 16px' : '10px 28px', borderRadius: 12, background: 'white', color: '#111', 
-                border: '1.5px solid var(--border)', fontSize: 13, fontWeight: 600, cursor: configStep===1?'not-allowed':'pointer',
-                border: '1.5px solid #e5e7eb', fontSize: 13, fontWeight: 600, cursor: configStep===1?'not-allowed':'pointer',
-                opacity: configStep===1?0:1, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', 
-                display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.1s', fontFamily: 'inherit'
-              }}
-            >
-              ← {isMobile ? '' : 'back'}
-            </button>
-            
-            <div style={{ display:'flex', gap:4 }}>
-              {[1,2,3,4].map(s => (
-                <div key={s} style={{ 
-                  width:s===configStep?24:8, height:8, borderRadius: 99, 
-                  background:s===configStep?'var(--primary)':(s<configStep?'#10b981':'#ddd'),
-                  transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)'
-                }} />
-              ))}
-            </div>
-            
-            <button 
-              onClick={() => {
-                if (configStep < 4) setConfigStep(c=>c+1)
-                else generateQuestions()
-              }}
-              disabled={!isStepReady || isGenerating}
-              style={{ 
-                padding: isMobile ? '10px 16px' : '10px 28px', borderRadius: 12, 
-                border: '1.5px solid var(--primary)', fontSize: 13, fontWeight: 800, 
-                cursor: (!isStepReady || isGenerating)?'not-allowed':'pointer', 
-                opacity: (!isStepReady || isGenerating)?0.5:1, boxShadow: (!isStepReady || isGenerating)?'none':'0 10px 25px -5px var(--primary-glow)',
-                background: (isStepReady && !isGenerating) ? 'var(--primary)' : 'white',
-                color: (isStepReady && !isGenerating) ? 'white' : '#111',
-                display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.1s', fontFamily: 'inherit'
-              }}
-            >
-              {isGenerating ? <Loader2 className="animate-spin" size={16} /> : null}
-              {configStep === 4 ? (isGenerating ? 'GENERATING' : 'GENERATE EXAM') : 'NEXT'} →
-            </button>
-
-          </div>
-        </div>
-
-      </div>
-    )
-  }
-
   const handleResultShare = async () => {
     if (resultRef.current === null) return
     setIsSharing(true)
@@ -1224,1606 +669,877 @@ export default function MockExamPage() {
     }
   }
 
-  if (mode === 'result') {
+  // --- RENDERING HELPERS ---
+
+  const renderPreparing = () => {
+    const loadingStrings = [
+      "reading your documents...",
+      "processing luter knowledge...",
+      "calibrating neural matrix...",
+      "generating flash questions...",
+      "almost ready..."
+    ];
     return (
-      <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'inherit' }}>
+      <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: "'Outfit', 'Varela Round', sans-serif" }}>
         
-        <div style={{ flex: 1, padding: isMobile ? '20px 12px 100px' : '20px 20px 100px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
-          <div style={{ width: '100%', maxWidth: 520, marginTop: isMobile ? '0' : '2vh' }}>
-            
-            {/* Luter Branding Header */}
-            <div style={{ textAlign: 'center', marginBottom: isMobile ? 24 : 40, display: 'flex', justifyContent: 'center' }}>
-              <LuterLogo size={isMobile ? 40 : 52} fontSize={isMobile ? 32 : 40} />
-            </div>
+        <div style={{ width: '100%', maxWidth: 440, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          
+          <div style={{ marginBottom: 60 }}>
+            <LuterLogo size={100} fontSize={100} />
+          </div>
 
-            {/* Shareable Container */}
-            <div ref={resultRef} style={{ background: '#fff', borderRadius: 24, padding: isMobile ? 12 : 2, position: 'relative', overflow: 'hidden' }}>
-              
-              {/* Static Confetti ... (stays same) */}
-              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, opacity: 0.8 }}>
-                <svg style={{ position: 'absolute', top: -10, left: '5%', transform: 'rotate(-10deg)' }} width="40" height="150" viewBox="0 0 40 150">
-                  <path d="M10 0 Q 30 25 10 50 Q -10 75 10 100 Q 30 125 10 150" fill="none" stroke="#fbbf24" strokeWidth="5" strokeLinecap="round" />
-                </svg>
-                <svg style={{ position: 'absolute', top: 20, right: '12%', transform: 'rotate(15deg)' }} width="40" height="180" viewBox="0 0 40 180">
-                  <path d="M20 0 Q 0 30 20 60 Q 40 90 20 120 Q 0 150 20 180" fill="none" stroke="#7a12cc" strokeWidth="4" strokeLinecap="round" opacity="0.5" />
-                </svg>
-              </div>
-
-              <div style={{ textAlign: 'center', marginBottom: isMobile ? 24 : 32, position: 'relative', zIndex: 1 }}>
-                <motion.div
-                  initial={{ rotate: -10, scale: 0 }}
-                  animate={{ rotate: 0, scale: 1 }}
-                  transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                  style={{ display: 'inline-block', marginBottom: isMobile ? 16 : 20 }}
-                >
-                  <div style={{ background: '#fffbeb', border: '1.5px solid #fbbf24', padding: isMobile ? '12px 16px' : '16px 24px', borderRadius: 20, boxShadow: '0 8px 16px rgba(251, 191, 36, 0.2)', display: 'flex', alignItems: 'center', gap: 10, position: 'relative' }}>
-                    <motion.div
-                      animate={{ 
-                        scale: [1, 1.1, 1],
-                        rotate: [0, 5, -5, 0]
-                      }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <Zap size={isMobile ? 20 : 28} fill="#fbbf24" color="#d97706" />
-                    </motion.div>
-                    <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontSize: 11, fontWeight: 900, color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Daily Reward</div>
-                      <div style={{ fontSize: isMobile ? 18 : 24, fontWeight: 1000, color: '#111', lineHeight: 1 }}>+{score * 50} XP</div>
-                    </div>
-                  </div>
-                </motion.div>
-
-                <motion.h2 
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  style={{ fontSize: isMobile ? 28 : 36, fontWeight: 1000, color: '#111', margin: '0 0 4px', letterSpacing: '-0.04em' }}
-                >
-                  {pass ? 'Incredible Work!' : 'Keep Going!'}
-                </motion.h2>
-                <motion.p 
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                  style={{ fontSize: isMobile ? 14 : 16, color: '#555', fontWeight: 600, margin: 0 }}
-                >
-                  {isMobile ? 'Session complete 🎯' : `You completed your ${examCourses[0]?.name || 'Mock Exam'} session`}
-                </motion.p>
-              </div>
-
-              {/* The Score Circle/Box */}
-              <motion.div 
-                initial={{ scale: 0.9, opacity: 0 }} 
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.4, type: "spring" }}
-                style={{ 
-                  background: pass ? '#f0fdf4' : '#fff7ed', 
-                  borderRadius: 24, 
-                  padding: isMobile ? '32px 20px' : '40px 32px', 
-                  marginBottom: 20, 
-                  border: '1.5px solid #eaeaea', 
-                  boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
-                  textAlign: 'center',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
+          <div style={{ width: '100%', textAlign: 'center', marginBottom: 20, height: 28, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <AnimatePresence mode="wait">
+              <motion.p 
+                key={loadingStep}
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                style={{ fontSize: 20, color: '#333', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', textTransform: 'lowercase' }}
               >
-                <div style={{ position: 'relative', zIndex: 1 }}>
-                  <div style={{ fontSize: 12, fontWeight: 900, color: '#111', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 12, opacity: 0.6 }}>Final Score</div>
-                  <div style={{ fontSize: isMobile ? 64 : 88, fontWeight: 1000, color: '#111', lineHeight: 1, letterSpacing: '-0.05em' }}>
-                    {score}<span style={{ opacity: 0.3, fontSize: isMobile ? 24 : 32 }}>/{generatedQuestions?.length || 1}</span>
-                  </div>
-                </div>
+                {loadingStrings[loadingStep]}
+              </motion.p>
+            </AnimatePresence>
+          </div>
+
+          {/* Progress Bar Container */}
+          <div style={{ position: 'relative', width: '100%', padding: '0 20px', boxSizing: 'border-box' }}>
+            
+            <div style={{ width: '100%', height: 12, background: '#f5f3ff', borderRadius: 99, border: '1.5px solid var(--border)', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: '100%' }}
+                transition={{ duration: 7, ease: "linear" }}
+                style={{ height: '100%', background: 'var(--primary)', borderRadius: 99 }} 
+              />
+            </div>
+            
+            <motion.div
+              initial={{ left: '20px' }}
+              animate={{ left: 'calc(100% - 20px)' }}
+              transition={{ duration: 7, ease: "linear" }}
+              style={{ position: 'absolute', top: -50, transform: 'translateX(-50%)', display: 'flex', alignItems: 'center' }}
+            >
+              {/* Fire Exhaust */}
+              <motion.div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: 40, marginRight: -8, zIndex: 0 }}>
+                <motion.div animate={{ width: [12, 32, 12], opacity: [0.8, 1, 0.8] }} transition={{ duration: 0.2, repeat: Infinity }} style={{ height: 12, background: '#ef4444', borderRadius: '99px 0 0 99px', marginRight: -4 }} />
+                <motion.div animate={{ width: [6, 16, 6], opacity: [0.9, 1, 0.9] }} transition={{ duration: 0.15, repeat: Infinity, delay: 0.1 }} style={{ height: 6, background: '#f59e0b', borderRadius: '99px 0 0 99px' }} />
               </motion.div>
 
-              {/* Stats Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 12 : 16, marginBottom: 24 }}>
-                {[
-                  { label: 'ACCURACY', value: `${Math.round((score/(generatedQuestions?.length || 1))*100)}%`, icon: <BarChart3 size={18} />, color: '#7a12cc' },
-                  { label: 'STREAK', value: pass ? '+1 Day' : 'Paused', icon: <Flame size={18} />, color: '#ef4444' },
-                  { label: 'PERFORMANCE', value: score > (generatedQuestions?.length || 1)/2 ? 'Master' : 'Student', icon: <Star size={18} />, color: '#fbbf24' },
-                  { label: 'NEXT TARGET', value: score === (generatedQuestions?.length || 1) ? '100%' : `${generatedQuestions?.length || 1}/${generatedQuestions?.length || 1}`, icon: <Zap size={18} />, color: '#22c55e' }
-                ].map((stat, i) => (
-                  <motion.div 
-                    key={i}
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.5 + (i * 0.1) }}
-                    style={{ 
-                      padding: '20px', 
-                      borderRadius: 20, 
-                      background: 'white', 
-                      border: '1.5px solid #eee', 
-                      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-                      display: 'flex', 
-                      flexDirection: 'column',
-                      gap: 8,
-                      position: 'relative'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: stat.color }}>
-                      {stat.icon}
-                      <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', opacity: 0.8 }}>{stat.label}</span>
-                    </div>
-                    <div style={{ fontSize: 18, fontWeight: 1000, color: '#111' }}>{stat.value}</div>
-                  </motion.div>
-                ))}
-              </div>
-              {/* Marketing & Referral Card (Captured in Share) */}
-              <div style={{ 
-                marginTop: 12, 
-                padding: '24px', 
-                background: '#fafafa', 
-                borderRadius: 24, 
-                border: '1.5px solid #f0f0f0',
-                textAlign: 'center',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                {/* Subtle Background Accent */}
-                <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, background: '#7a12cc10', borderRadius: '50%', blur: '20px' }} />
-
-                <div style={{ position: 'relative', zIndex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 14 }}>
-                    <LuterLogo size={36} fontSize={30} />
-                  </div>
-                  
-                  <h3 style={{ fontSize: 13, fontWeight: 900, color: '#111', margin: '0 0 8px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                    Locked in with Luter AI 🎯
-                  </h3>
-                  
-                  <p style={{ fontSize: 13, color: '#666', fontWeight: 600, margin: '0 0 20px', lineHeight: 1.5, padding: '0 10px' }}>
-                    I'm using Luter to crush my exams and master my courses with AI. Join me and study 10x faster.
-                  </p>
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                    <div style={{ height: 1.5, flex: 1, background: '#eee' }}></div>
-                    <div style={{ 
-                      fontSize: 12, 
-                      fontWeight: 1000, 
-                      color: 'white', 
-                      background: '#111', 
-                      padding: '8px 20px', 
-                      borderRadius: 14,
-                      letterSpacing: '0.05em'
-                    }}>
-                      LUTER.AI
-                    </div>
-                    <div style={{ height: 1.5, flex: 1, background: '#eee' }}></div>
-                  </div>
+              {/* Main Vessel */}
+              <motion.div
+                animate={{ y: [-3, 3, -3], rotate: [0, 4, 0] }}
+                transition={{ duration: 0.5, repeat: Infinity, ease: "easeInOut" }}
+                style={{ 
+                  zIndex: 10, width: 56, height: 44, background: '#fff', 
+                  border: '1.5px solid var(--primary)', borderRadius: '50% 50% 40% 40%', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                  boxShadow: '0 10px 25px -5px var(--primary-glow)' 
+                }}
+              >
+                <div style={{ transform: 'rotate(90deg)', display: 'flex' }}>
+                  <FlaskConical size={24} color="#064e3b" fill="#064e3b" />
                 </div>
-              </div>
-            </div>
-
-            {/* Question Review Section - Shows Type-in Answers */}
-            <div style={{ 
-              marginTop: 24, 
-              background: '#ffffff', 
-              borderRadius: 24, 
-              border: '1.5px solid #f0f0f0',
-              padding: isMobile ? '20px' : '24px',
-              position: 'relative'
-            }}>
-              <div style={{ 
-                fontSize: 16, 
-                fontWeight: 800, 
-                color: '#111', 
-                marginBottom: 20,
-                textAlign: 'center',
-                letterSpacing: '0.05em'
-              }}>
-                Question Review
-              </div>
-              
-              {generatedQuestions.map((q, index) => (
-                <div key={index} style={{ 
-                  marginBottom: index < generatedQuestions.length - 1 ? 20 : 0,
-                  padding: '16px',
-                  borderRadius: 16,
-                  background: '#fafafa',
-                  border: '1px solid #f0f0f0'
-                }}>
-                  {/* Question Header */}
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'flex-start',
-                    marginBottom: 12
-                  }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ 
-                        fontSize: 12, 
-                        fontWeight: 600, 
-                        color: '#6b7280', 
-                        marginBottom: 4,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em'
-                      }}>
-                        Question {index + 1} • {q.type === 'typein' ? 'Type-in Answer' : q.type === 'truefalse' ? 'True/False' : 'Multiple Choice'}
-                      </div>
-                      <div style={{ 
-                        fontSize: 14, 
-                        fontWeight: 600, 
-                        color: '#111', 
-                        lineHeight: 1.4
-                      }}>
-                        {q.question}
-                      </div>
-                    </div>
-                    <div style={{ 
-                      marginLeft: 12,
-                      padding: '4px 8px',
-                      borderRadius: 8,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      background: selected[index] === q.answer ? '#dcfce7' : selected[index] === -1 ? '#fef3c7' : '#fee2e2',
-                      color: selected[index] === q.answer ? '#166534' : selected[index] === -1 ? '#92400e' : '#dc2626'
-                    }}>
-                      {selected[index] === q.answer ? '✓ Correct' : selected[index] === -1 ? '⚠ Don\'t Know' : '✗ Incorrect'}
-                    </div>
-                  </div>
-
-                  {/* Type-in Answer Specific Display */}
-                  {q.type === 'typein' && (
-                    <div style={{ marginTop: 12 }}>
-                      <div style={{ 
-                        padding: '12px',
-                        borderRadius: 8,
-                        background: '#e0f2fe',
-                        border: '1px solid #bae6fd'
-                      }}>
-                        <div style={{ 
-                          fontSize: 12, 
-                          fontWeight: 600, 
-                          color: '#0369a1', 
-                          marginBottom: 4 
-                        }}>
-                          Your Answer:
-                        </div>
-                        <div style={{ 
-                          fontSize: 14, 
-                          color: '#0c4a6e',
-                          fontStyle: 'italic'
-                        }}>
-                          {selected[index] === -1 ? 'Don\'t Know' : (typeInAnswers[index] || 'No answer provided')}
-                        </div>
-                      </div>
-                      
-                      <div style={{ 
-                        padding: '12px',
-                        borderRadius: 8,
-                        background: '#f0fdf4',
-                        border: '1px solid #bbf7d0'
-                      }}>
-                        <div style={{ 
-                          fontSize: 12, 
-                          fontWeight: 600, 
-                          color: '#166534', 
-                          marginBottom: 4 
-                        }}>
-                          Expected Answer:
-                        </div>
-                        <div style={{ 
-                          fontSize: 14, 
-                          color: '#14532d'
-                        }}>
-                          {q.expectedAnswer || 'Not specified'}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* True/False Answer Display */}
-                  {q.type === 'truefalse' && (
-                    <div style={{ marginTop: 12 }}>
-                      <div style={{ 
-                        padding: '12px',
-                        borderRadius: 8,
-                        background: '#f8fafc',
-                        border: '1px solid #e2e8f0'
-                      }}>
-                        <div style={{ 
-                          fontSize: 12, 
-                          fontWeight: 600, 
-                          color: '#475569', 
-                          marginBottom: 4 
-                        }}>
-                          Correct Answer:
-                        </div>
-                        <div style={{ 
-                          fontSize: 14, 
-                          color: '#1e293b',
-                          fontWeight: 600
-                        }}>
-                          {q.answer === 1 ? 'TRUE' : 'FALSE'}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Multiple Choice Answer Display */}
-                  {q.type === 'multiple' && q.options && (
-                    <div style={{ marginTop: 12 }}>
-                      <div style={{ 
-                        padding: '12px',
-                        borderRadius: 8,
-                        background: '#f8fafc',
-                        border: '1px solid #e2e8f0'
-                      }}>
-                        <div style={{ 
-                          fontSize: 12, 
-                          fontWeight: 600, 
-                          color: '#475569', 
-                          marginBottom: 4 
-                        }}>
-                          Correct Answer:
-                        </div>
-                        <div style={{ 
-                          fontSize: 14, 
-                          color: '#1e293b',
-                          fontWeight: 600
-                        }}>
-                          {String.fromCharCode(65 + (q.answer || 0))}. {q.options[q.answer || 0]}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Explanation */}
-                  {q.explanation && (
-                    <div style={{ 
-                      marginTop: 12,
-                      padding: '12px',
-                      borderRadius: 8,
-                      background: '#f1f5f9',
-                      border: '1px solid #e2e8f0'
-                    }}>
-                      <div style={{ 
-                        fontSize: 12, 
-                        fontWeight: 600, 
-                        color: '#475569', 
-                        marginBottom: 4 
-                      }}>
-                        Explanation:
-                      </div>
-                      <div style={{ 
-                        fontSize: 14, 
-                        color: '#1e293b',
-                        lineHeight: 1.4
-                      }}>
-                        {q.explanation}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-          {/* ── Subtle Referral Prompt ── */}
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.2 }}
-            style={{ 
-              marginTop: 32, 
-              padding: '20px 24px', 
-              borderRadius: 24, 
-              background: '#fdfbff', 
-              border: '1.5px solid #f5eeff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 16,
-              cursor: 'pointer'
-            }}
-            whileHover={{ y: -2, borderColor: '#7a12cc33' }}
-            onClick={() => { window.location.reload(); /* This will reset to home where they can find the refer card, or we could redirect if we had a router ref */ }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', border: '1px solid #f5eeff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a12cc' }}>
-                <Users size={18} />
-              </div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#111' }}>Invite a classmate</div>
-                <div style={{ fontSize: 11, color: '#7a12cc99', fontWeight: 600 }}>Gift a free trial & earn 500 XP.</div>
-              </div>
-            </div>
-            <ArrowRight size={18} color="#7a12cc" />
-          </motion.div>
-
+              </motion.div>
+            </motion.div>
           </div>
-        </div>
-
-          {/* Floating Action Island */}
-        <div style={{
-          position: 'fixed',
-          bottom: isMobile ? 20 : 30,
-          left: 0,
-          right: 0,
-          display: 'flex',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '0 16px',
-          pointerEvents: 'none'
-        }}>
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.8, type: 'spring', damping: 20 }}
-            style={{
-              width: '100%',
-              maxWidth: 480,
-              background: 'rgba(255, 255, 255, 0.96)',
-              borderRadius: isMobile ? 24 : 36,
-              border: '1.5px solid #111',
-              boxShadow: '0px 20px 50px rgba(0,0,0,0.15)',
-              padding: isMobile ? '8px 10px' : '12px 14px',
-              display: 'flex',
-              gap: isMobile ? 8 : 12,
-              alignItems: 'center',
-              pointerEvents: 'auto',
-              backdropFilter: 'blur(20px)'
-            }}
-          >
-            {/* Retake */}
-            <button
-              onClick={() => { setMode('configure'); setConfigStep(1); setCurrent(0); setSelected({}); setExamCourses(preselectedCourse ? [preselectedCourse] : []) }}
-              style={{
-                height: isMobile ? 48 : 54,
-                width: isMobile ? 48 : 54,
-                borderRadius: isMobile ? 18 : 22,
-                background: '#f8f8f8',
-                color: '#111',
-                border: '1.5px solid #111',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}
-            >
-              <RotateCcw size={isMobile ? 18 : 22} strokeWidth={2.5} />
-            </button>
-
-            {/* Share Primary */}
-            <button
-              onClick={handleResultShare}
-              disabled={isSharing}
-              style={{
-                flex: 1,
-                height: isMobile ? 48 : 54,
-                borderRadius: isMobile ? 18 : 22,
-                background: '#7a12cc',
-                color: 'white',
-                border: '1.5px solid #111',
-                fontSize: isMobile ? 13 : 16,
-                fontWeight: 900,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                letterSpacing: '0.02em'
-              }}
-            >
-              {isSharing ? <Loader2 className="animate-spin" size={20} /> : <Share2 size={isMobile ? 18 : 20} strokeWidth={2.5} />}
-              {isMobile ? 'SHARE' : 'SHARE PROOF'}
-            </button>
-
-            {/* Done */}
-            <button
-              onClick={() => { window.location.reload() }}
-              style={{
-                height: isMobile ? 48 : 54,
-                padding: isMobile ? '0 16px' : '0 24px',
-                borderRadius: isMobile ? 18 : 22,
-                background: '#111',
-                color: '#fff',
-                border: 'none',
-                fontSize: 13,
-                fontWeight: 900,
-                cursor: 'pointer'
-              }}
-            >
-              DONE
-            </button>
-          </motion.div>
         </div>
       </div>
     )
   }
 
-  if (mode === 'exam') {
-    const q = generatedQuestions[current] || { question: 'Loading...', options: [], answer: 0 }
-    const progress = (generatedQuestions?.length || 1) > 0 ? ((current) / (generatedQuestions?.length || 1)) * 100 : 0
-
+  const renderConfigure = () => {
+    const isStepReady = configStep === 1 ? examCourses.length > 0 : true;
     return (
-      <div className="dh-root" style={{ 
-        background: '#ffffff', 
-        minHeight: '100vh', 
-        display: 'flex', 
-        flexDirection: 'row', 
-        fontFamily: 'inherit',
-        overflow: 'hidden'
-      }}>
-      {/* Main Content Area */}
-      <div style={{ 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column'
-      }}>
-      
-      {/* Toolbar - Matching Configure Mode */}
-      <div style={{ 
-        padding: isMobile ? '16px 20px' : '24px 40px', 
-        background: '#ffffff', 
-        display: 'flex', 
-        flexDirection: isMobile ? 'column' : 'row',
-        justifyContent: isMobile ? 'center' : 'space-between', 
-        alignItems: isMobile ? 'flex-start' : 'center',
-        gap: isMobile ? 12 : 0,
-        borderBottom: isMobile ? '1.5px solid #f5f5f5' : 'none'
-      }}>
-        <h1 style={{ fontSize: isMobile ? 18 : 20, fontWeight: 900, color: '#111', margin: 0, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <FlaskConical size={20} color="#111" /> {isMobile ? 'Mock Exam' : 'Mock Exam'}
-        </h1>
+      <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Outfit', 'Varela Round', sans-serif" }}>
+        
+        {/* Wizard Navbar */}
         <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: 6, 
-          background: '#eefaec', 
-          color: '#16a34a', 
-          padding: '6px 14px', 
-          borderRadius: 99, 
-          fontSize: 12, 
-          fontWeight: 800, 
-          border: '1.5px solid #4ade80', 
-          boxShadow: '0 4px 12px rgba(22,163,74,0.1)' 
+          padding: isMobile ? '16px 20px' : '24px 40px', 
+          background: '#ffffff', 
+          display: 'flex', 
+          flexDirection: isMobile ? 'column' : 'row',
+          justifyContent: isMobile ? 'center' : 'space-between', 
+          alignItems: isMobile ? 'flex-start' : 'center',
+          gap: isMobile ? 12 : 0,
+          borderBottom: isMobile ? '1.5px solid #f5f5f5' : 'none'
         }}>
-          <Clock size={14} /> {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+          <h1 style={{ fontSize: isMobile ? 18 : 20, fontWeight: 900, color: '#111', margin: 0, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10, textTransform: 'lowercase' }}>
+            <FlaskConical size={20} color="#111" /> {isMobile ? 'exam setup' : 'mock exam setup'}
+          </h1>
+          <div style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: 6, 
+            background: '#fffbeb', 
+            color: '#d97706', 
+            padding: '6px 14px', 
+            borderRadius: 99, 
+            fontSize: 12, 
+            fontWeight: 800, 
+            border: '1.5px solid #fbbf24', 
+            boxShadow: '0 4px 12px rgba(217,119,6,0.1)',
+            textTransform: 'lowercase'
+          }}>
+            <Zap size={14} fill="#fbbf24" strokeWidth={0} /> {isMobile ? 'configuring' : 'configuration stage'}
+          </div>
+        </div>
+
+        <div style={{ 
+          flex: 1, 
+          padding: isMobile ? '20px 16px 100px' : '20px 40px 40px 40px', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'flex-start' 
+        }}>
+          <motion.div 
+            key={configStep}
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            style={{ width: '100%', maxWidth: (configStep === 1 || configStep === 4) ? (isMobile ? 500 : 900) : 560, display: 'flex', flexDirection: 'column' }}
+          >
+            {/* Heading */}
+            <div style={{ background: '#eefaec', borderRadius: 12, padding: isMobile ? '20px' : '24px 28px', marginBottom: 24 }}>
+              <h2 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600, color: '#222', margin: 0, lineHeight: 1.5, textTransform: 'lowercase' }}>
+                {configStep === 1 && "which courses do you want to pull questions from for this mock exam?"}
+                {configStep === 2 && "how many questions do you want to attempt?"}
+                {configStep === 3 && "what time limit per question do you want to set?"}
+                {configStep === 4 && "customize your exam experience"}
+              </h2>
+            </div>
+            
+            {configStep === 1 && courses.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: isMobile ? 12 : 20, marginBottom: 40 }}>
+                <motion.button 
+                  whileHover={{ y: -2 }} whileTap={{ scale: 0.94 }}
+                  onClick={() => {
+                    if (courses.length === 0) return;
+                    const amount = Math.min(courses.length, Math.floor(Math.random() * 2) + 1);
+                    const shuffled = [...courses].sort(() => 0.5 - Math.random());
+                    setExamCourses(shuffled.slice(0, amount));
+                  }}
+                  style={{ 
+                    padding: isMobile ? '16px 20px' : '24px', borderRadius: 16, background: '#fffbeb', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit', border: '1.5px solid #fbbf24', color: '#b45309', boxShadow: '0 4px 12px rgba(217,119,6,0.1)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(217,119,6,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Dices size={20} color="#d97706" />
+                    </div>
+                  </div>
+                  <h3 style={{ fontSize: 16, fontWeight: 900, margin: '0 0 2px', color: '#d97706', textTransform: 'lowercase' }}>dice roll</h3>
+                  <p style={{ fontSize: 12, margin: 0, fontWeight: 700, color: '#b45309', textTransform: 'lowercase' }}>select random courses</p>
+                </motion.button>
+                {courses.map(c => {
+                  const isSelected = examCourses.some(x => x.id === c.id)
+                  return (
+                    <motion.button 
+                      key={c.id} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}
+                      onClick={() => toggleCourseConfig(c)}
+                      style={{ 
+                        padding: isMobile ? '16px 20px' : '24px', borderRadius: 16, background: 'white', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit', border: isSelected ? '1.5px solid #111' : '1px solid #e5e7eb', color: isSelected ? '#111' : '#555'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 12, background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: 14, fontWeight: 900, color: '#111' }}>{c.code.slice(0, 3)}</span>
+                        </div>
+                        {isSelected && <CheckCircle2 size={24} color="#111" />}
+                      </div>
+                      <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 2px', color: '#111' }}>{c.code}</h3>
+                      <p style={{ fontSize: 12, margin: 0, fontWeight: 600 }}>{c.name}</p>
+                    </motion.button>
+                  )
+                })}
+              </div>
+            )}
+
+            {configStep === 2 && (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 12, marginBottom: 40 }}>
+                {[
+                  { n: 10, label: 'small batch', desc: 'quick drill' },
+                  { n: 20, label: 'standard run', desc: 'daily goal' },
+                  { n: 50, label: 'the marathon', desc: 'deep dive' },
+                  { n: 100, label: 'cbt simulator', desc: 'exam ready' }
+                ].map((item, i) => {
+                  const isSelected = examQs === item.n;
+                  return (
+                    <motion.button 
+                      key={item.n} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+                      onClick={() => setExamQs(item.n)}
+                      style={{ 
+                        padding: isMobile ? '16px 20px' : '20px 24px', borderRadius: 12, background: 'white', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit', border: isSelected ? '1.5px solid var(--primary)' : '1.5px solid var(--border)', color: isSelected ? 'var(--primary)' : '#555', boxShadow: isSelected ? '0 8px 20px -6px var(--primary-glow)' : 'none', display: 'flex', flexDirection: 'column', gap: 2, textTransform: 'lowercase'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                        <span style={{ fontSize: 16, fontWeight: 900 }}>{item.n} qs</span>
+                        {isSelected && <CheckCircle2 size={20} color="#111" />}
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 700, opacity: 0.8 }}>{item.label}</span>
+                    </motion.button>
+                  )
+                })}
+              </div>
+            )}
+
+            {configStep === 3 && (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 12, marginBottom: 40 }}>
+                {[
+                  { v: 0, l: 'no limit', sub: 'study mode' }, 
+                  { v: 5, l: '5s / q', sub: 'flash zone' },
+                  { v: 10, l: '10s / q', sub: 'very fast' },
+                  { v: 15, l: '15s / q', sub: 'fast pace' }, 
+                  { v: 30, l: '30s / q', sub: 'standard' }, 
+                  { v: 60, l: '60s / q', sub: 'deep work' }
+                ].map((t, i) => {
+                  const isSelected = examTimer === t.v;
+                  return (
+                    <motion.button 
+                      key={t.v} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+                      onClick={() => setExamTimer(t.v)}
+                      style={{ 
+                        padding: isMobile ? '16px 20px' : '20px 24px', borderRadius: 12, background: 'white', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit', border: isSelected ? '1.5px solid var(--primary)' : '1.5px solid var(--border)', color: isSelected ? 'var(--primary)' : '#555', boxShadow: isSelected ? '0 8px 20px -6px var(--primary-glow)' : 'none', display: 'flex', flexDirection: 'column', gap: 2, textTransform: 'lowercase'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                        <span style={{ fontSize: 16, fontWeight: 900 }}>{t.l}</span>
+                        {isSelected && <CheckCircle2 size={20} color="#111" />}
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 700, opacity: 0.8 }}>{t.sub}</span>
+                    </motion.button>
+                  )
+                })}
+              </div>
+            )}
+
+            {configStep === 4 && (
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', 
+                gap: 20, 
+                marginBottom: 40 
+              }}>
+                {[
+                  { 
+                    id: 'feedback',
+                    title: 'instant feedback', 
+                    desc: 'see correct/incorrect answers immediately after each question',
+                    icon: <Zap size={28} />,
+                    active: instantFeedback,
+                    toggle: () => setInstantFeedback(!instantFeedback)
+                  },
+                  { 
+                    id: 'truefalse',
+                    title: 'true/false questions', 
+                    desc: 'include true/false questions in your exam mix for variety',
+                    icon: <CheckCircle2 size={28} />,
+                    active: includeTrueFalse,
+                    toggle: () => setIncludeTrueFalse(!includeTrueFalse)
+                  },
+                  { 
+                    id: 'typein',
+                    title: 'type-in answers', 
+                    desc: 'ai will provide questions and you type your answers manually',
+                    icon: <MessageSquare size={28} />,
+                    active: includeTypeIn,
+                    toggle: () => setIncludeTypeIn(!includeTypeIn)
+                  }
+                ].map((option) => (
+                  <motion.div
+                    key={option.id}
+                    onClick={option.toggle}
+                    whileHover={{ y: -4, scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    style={{
+                      background: 'white',
+                      border: option.active ? '2px solid var(--primary)' : '1.5px solid #E2E8F0',
+                      borderRadius: 24,
+                      padding: '32px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: option.active ? '6px 6px 0px 0px rgba(151, 24, 251, 0.1)' : '4px 4px 0px 0px #F8FAFC',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 24,
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    {/* Active indicator background */}
+                    {option.active && (
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: 'var(--primary)' }} />
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ 
+                        width: 60, 
+                        height: 60, 
+                        borderRadius: 18, 
+                        background: option.active ? 'var(--primary-bg)' : '#f8fafc',
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        color: option.active ? 'var(--primary)' : '#94a3b8',
+                        border: option.active ? '1.5px solid var(--primary)' : '1.5px solid #E2E8F0',
+                      }}>
+                        {option.icon}
+                      </div>
+
+                      {/* Custom Toggle Switch */}
+                      <div style={{
+                        width: 52,
+                        height: 30,
+                        background: option.active ? 'var(--primary)' : '#f1f5f9',
+                        borderRadius: 99,
+                        position: 'relative',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        border: '1.5px solid #E2E8F0'
+                      }}>
+                        <motion.div 
+                          animate={{ x: option.active ? 22 : 2 }}
+                          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                          style={{
+                            position: 'absolute',
+                            top: 2,
+                            width: 22,
+                            height: 22,
+                            background: 'white',
+                            borderRadius: '50%',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                            border: '1px solid #E2E8F0'
+                          }} 
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 style={{ 
+                        fontSize: 18, 
+                        fontWeight: 900, 
+                        color: '#111', 
+                        margin: '0 0 8px', 
+                        textTransform: 'lowercase',
+                        letterSpacing: '-0.01em'
+                      }}>
+                        {option.title}
+                      </h3>
+                      <p style={{ 
+                        fontSize: 14, 
+                        color: '#64748b', 
+                        lineHeight: 1.5, 
+                        margin: 0,
+                        fontWeight: 500,
+                        textTransform: 'lowercase'
+                      }}>
+                        {option.desc}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        </div>
+
+        {/* Floating Config Footer */}
+        <div style={{ background: '#f4fdf4', padding: isMobile ? '16px 20px' : '24px 40px', display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: 'auto', position: isMobile ? 'fixed' : 'relative', bottom: 0, left: 0, right: 0, zIndex: 100, borderTop: '2px solid #111' }}>
+          <div style={{ width: '100%', maxWidth: (configStep === 1 || configStep === 4) ? 900 : 560, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button disabled={configStep===1} onClick={() => setConfigStep(c=>c-1)} style={{ padding: isMobile ? '10px 16px' : '10px 28px', borderRadius: 12, background: 'white', color: '#111', border: '1.5px solid #e5e7eb', fontSize: 13, fontWeight: 600, cursor: configStep===1?'not-allowed':'pointer', opacity: configStep===1?0:1, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.1s', fontFamily: 'inherit', textTransform: 'lowercase' }}>← {isMobile ? '' : 'back'}</button>
+            <div style={{ display:'flex', gap:4 }}>{[1,2,3,4].map(s => (<div key={s} style={{ width:s===configStep?24:8, height:8, borderRadius: 99, background:s===configStep?'var(--primary)':(s<configStep?'#10b981':'#ddd'), transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)' }} />))}</div>
+            <button onClick={() => { if (configStep < 4) setConfigStep(c=>c+1); else generateQuestions() }} disabled={!isStepReady || isGenerating} style={{ padding: isMobile ? '10px 16px' : '10px 28px', borderRadius: 12, border: '1.5px solid var(--primary)', fontSize: 13, fontWeight: 800, cursor: (!isStepReady || isGenerating)?'not-allowed':'pointer', opacity: (!isStepReady || isGenerating)?0.5:1, boxShadow: (!isStepReady || isGenerating)?'none':'0 10px 25px -5px var(--primary-glow)', background: (isStepReady && !isGenerating) ? 'var(--primary)' : 'white', color: (isStepReady && !isGenerating) ? 'white' : '#111', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.1s', fontFamily: 'inherit', textTransform: 'lowercase' }}>{isGenerating ? <Loader2 className="animate-spin" size={16} /> : null}{configStep === 4 ? (isGenerating ? 'generating' : 'generate exam') : 'next'} →</button>
+          </div>
         </div>
       </div>
+    )
+  }
 
-      {/* Main Content - Matching Configure Mode Layout */}
-      <div style={{ 
-        flex: 1, 
-        padding: isMobile ? '20px 16px 100px' : '20px 40px 40px 40px', 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'flex-start' 
-      }}>
-        <motion.div 
-          key={current}
-          initial={{ opacity: 0, y: 10 }} 
-          animate={{ opacity: 1, y: 0 }}
-          style={{ width: '100%', maxWidth: isMobile ? 500 : 560, display: 'flex', flexDirection: 'column' }}
+  const renderExam = () => {
+    const q = generatedQuestions[current] || { question: 'loading...', options: [], answer: 0 }
+    const userAns = selected[current]
+    const isAnswered = userAns !== undefined
+    const isCorrect = isAnswered && (q.type === 'typein' ? !!typeInAnswers[current]?.trim() : userAns === q.answer)
+
+    return (
+      <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Outfit', 'Varela Round', sans-serif", overflow: 'hidden', color: '#1A3A32', position: 'relative' }}>
+        
+        {/* Exit Button */}
+        <button 
+          onClick={() => setMode('configure')}
+          style={{ position: 'absolute', top: 24, left: 24, background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', zIndex: 20 }}
         >
-          
-          {/* Question Heading - Light Green Card Style */}
-          <div style={{ 
-            background: '#eefaec', 
-            borderRadius: 12, 
-            padding: isMobile ? '20px' : '24px 28px', 
-            marginBottom: 24 
-          }}>
-            <h2 style={{ 
-              fontSize: isMobile ? 14 : 16, 
-              fontWeight: 600, 
-              color: '#222', 
-              margin: 0, 
-              lineHeight: 1.5 
-            }}>
-              {q.question}
-            </h2>
+          <X size={28} strokeWidth={1.5} />
+        </button>
+
+        {/* Exam Header (Optional/Hidden in Screenshot, but kept for timer) */}
+        <div style={{ padding: isMobile ? '16px 20px' : '24px 40px', background: 'transparent', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', zIndex: 10 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#eefaec', color: '#16a34a', padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 800, border: '1.5px solid #4ade80', boxShadow: '0 4px 12px rgba(22,163,74,0.1)', textTransform: 'lowercase' }}>
+            <Clock size={14} /> {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
           </div>
-          
-          {/* Question Options - Different types */}
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: 12, 
-            marginBottom: 40 
-          }}>
-            {/* Multiple Choice Questions */}
-            {q.type === 'multiple' && q.options && q.options.map((opt, i) => {
-              const isSelected = selected[current] === i
-              const showFeedback = instantFeedback && isSelected !== undefined
-              const isCorrect = showFeedback && i === q.answer
-              const isWrong = showFeedback && isSelected && i !== q.answer
-              
-              return (
-                <motion.button
-                  key={i}
-                  whileHover={{ y: -2 }} 
-                  whileTap={{ scale: 0.94 }}
-                  onClick={() => !mode.includes('result') && choose(i)}
-                  disabled={mode.includes('result') || (instantFeedback && isSelected !== undefined)}
-                  style={{ 
-                    padding: isMobile ? '16px 20px' : '20px 24px', 
-                    borderRadius: 16, 
-                    background: isSelected ? '#f3e8ff' : isCorrect ? '#f0fdf4' : isWrong ? '#fef2f2' : '#ffffff', 
-                    textAlign: 'left', 
-                    cursor: (mode.includes('result') || (instantFeedback && isSelected !== undefined)) ? 'default' : 'pointer', 
-                    outline: 'none', 
-                    transition: 'all 0.1s', 
-                    fontFamily: 'inherit',
-                    border: isSelected ? '1.5px solid #a855f7' : isCorrect ? '1.5px solid #4ade80' : isWrong ? '1.5px solid #ef4444' : '1.5px solid #e5e7eb',
-                    color: isSelected ? '#7e22ce' : isCorrect ? '#16a34a' : isWrong ? '#dc2626' : '#374151', 
-                    boxShadow: isSelected ? '0 4px 12px rgba(168,85,247,0.1)' : isCorrect ? '0 4px 12px rgba(22,163,74,0.1)' : isWrong ? '0 4px 12px rgba(220,38,38,0.1)' : '0 4px 12px rgba(0,0,0,0.05)'
-                  }}
-                >
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center'
-                  }}>
-                    <span style={{ fontSize: 16, fontWeight: 700 }}>
-                      {String.fromCharCode(65 + i)}. {opt}
-                    </span>
-                    {isSelected && <Zap size={18} color="#fbbf24" />}
-                    {isCorrect && <CheckCircle2 size={18} color="#4ade80" />}
-                    {isWrong && <XCircle size={18} color="#ef4444" />}
-                  </div>
-                </motion.button>
-              )
-            })}
+        </div>
 
-            {/* True/False Questions */}
-            {q.type === 'truefalse' && [0, 1].map((i) => {
-              const isSelected = selected[current] === i
-              const showFeedback = instantFeedback && isSelected !== undefined
-              const isCorrect = showFeedback && i === q.answer
-              const isWrong = showFeedback && isSelected && i !== q.answer
-              const label = i === 0 ? 'FALSE' : 'TRUE'
-              
-              return (
-                <motion.button
-                  key={i}
-                  whileHover={{ y: -2 }} 
-                  whileTap={{ scale: 0.94 }}
-                  onClick={() => !mode.includes('result') && choose(i)}
-                  disabled={mode.includes('result') || (instantFeedback && isSelected !== undefined)}
-                  style={{ 
-                    padding: isMobile ? '16px 20px' : '20px 24px', 
-                    borderRadius: 16, 
-                    background: isSelected ? '#f3e8ff' : isCorrect ? '#f0fdf4' : isWrong ? '#fef2f2' : '#ffffff', 
-                    textAlign: 'left', 
-                    cursor: (mode.includes('result') || (instantFeedback && isSelected !== undefined)) ? 'default' : 'pointer', 
-                    outline: 'none', 
-                    transition: 'all 0.1s', 
-                    fontFamily: 'inherit',
-                    border: isSelected ? '1.5px solid #a855f7' : isCorrect ? '1.5px solid #4ade80' : isWrong ? '1.5px solid #ef4444' : '1.5px solid #e5e7eb',
-                    color: isSelected ? '#7e22ce' : isCorrect ? '#16a34a' : isWrong ? '#dc2626' : '#374151', 
-                    boxShadow: isSelected ? '0 4px 12px rgba(168,85,247,0.1)' : isCorrect ? '0 4px 12px rgba(22,163,74,0.1)' : isWrong ? '0 4px 12px rgba(220,38,38,0.1)' : '0 4px 12px rgba(0,0,0,0.05)'
-                  }}
-                >
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center'
-                  }}>
-                    <span style={{ fontSize: 16, fontWeight: 700 }}>
-                      {label}
-                    </span>
-                    {isSelected && <Zap size={18} color="#fbbf24" />}
-                    {isCorrect && <CheckCircle2 size={18} color="#4ade80" />}
-                    {isWrong && <XCircle size={18} color="#ef4444" />}
-                  </div>
-                </motion.button>
-              )
-            })}
+        {/* Exam Content */}
+        <div style={{ flex: 1, padding: isMobile ? '20px 16px 40px' : '20px 40px 60px 40px', display: 'flex', justifyContent: 'center', alignItems: 'center', overflowY: 'auto' }}>
+          <motion.div key={current} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ width: '100%', maxWidth: 560, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            
+            {/* Question Card */}
+            <div style={{ background: '#E2F9D1', borderRadius: 16, padding: '24px', marginBottom: 32, boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', border: '1px solid rgba(0, 0, 0, 0.02)', width: '100%' }}>
+              <h2 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 500, color: '#1A3A32', margin: 0, lineHeight: 1.6, textAlign: 'center' }}>{q.question}</h2>
+            </div>
+            
+            {/* Answer Options */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 32, width: '100%' }}>
+              {q.type === 'multiple' && q.options && q.options.map((opt, i) => {
+                const isSelected = selected[current] === i
+                const showFeedbackState = instantFeedback && isAnswered
+                const isCorrectOption = showFeedbackState && i === q.answer
+                const isWrongOption = showFeedbackState && isSelected && i !== q.answer
+                
+                return (
+                  <motion.button
+                    key={i} whileHover={{ y: isAnswered ? 0 : -2 }} whileTap={{ scale: isAnswered ? 1 : 0.98 }}
+                    onClick={() => {
+                      if (!isAnswered) {
+                        choose(i);
+                        if (!instantFeedback) {
+                          // In non-instant mode, we should either show a "Next" button or auto-advance
+                          // Given the current UI, auto-advancing after a short delay is smoother
+                          setTimeout(next, 300);
+                        }
+                      }
+                    }} 
+                    disabled={isAnswered}
+                    style={{ padding: '20px 24px', borderRadius: 12, background: isCorrectOption ? '#DCFCE7' : isWrongOption ? '#FEF2F2' : (isSelected && !instantFeedback ? '#F0FDF4' : '#ffffff'), textAlign: 'left', cursor: isAnswered ? 'default' : 'pointer', outline: 'none', transition: 'all 0.2s ease', fontFamily: 'inherit', border: isCorrectOption ? '1.5px solid #22C55E' : isWrongOption ? '1.5px solid #EF4444' : (isSelected && !instantFeedback ? '1.5px solid #2D8A4E' : '1.5px solid #E2E8F0'), color: '#1A3A32', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', fontWeight: 500, position: 'relative' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                      <span style={{ fontSize: 16, flex: 1 }}>{String.fromCharCode(65 + i)}. {opt}</span>
+                      {isCorrectOption && <CheckCircle2 size={20} strokeWidth={1.5} color="#22C55E" />}
+                      {isWrongOption && <XCircle size={20} strokeWidth={1.5} color="#EF4444" />}
+                    </div>
+                  </motion.button>
+                )
+              })}
 
-            {/* Type-in Answer Questions */}
-            {q.type === 'typein' && (
-              <div style={{ 
-                padding: isMobile ? '16px 20px' : '20px 24px', 
+              {q.type === 'truefalse' && [1, 0].map((i) => {
+                const isSelected = selected[current] === i
+                const showFeedbackState = instantFeedback && isAnswered
+                const isCorrectOption = showFeedbackState && i === q.answer
+                const isWrongOption = showFeedbackState && isSelected && i !== q.answer
+                const label = i === 1 ? 'true' : 'false'
+                
+                return (
+                  <motion.button
+                    key={i} whileHover={{ y: isAnswered ? 0 : -2 }} whileTap={{ scale: isAnswered ? 1 : 0.98 }}
+                    onClick={() => {
+                      if (!isAnswered) {
+                        choose(i);
+                        if (!instantFeedback) {
+                          setTimeout(next, 300);
+                        }
+                      }
+                    }} 
+                    disabled={isAnswered}
+                    style={{ padding: '20px 24px', borderRadius: 12, background: isCorrectOption ? '#DCFCE7' : isWrongOption ? '#FEF2F2' : (isSelected && !instantFeedback ? '#F0FDF4' : '#ffffff'), textAlign: 'left', cursor: isAnswered ? 'default' : 'pointer', outline: 'none', transition: 'all 0.2s ease', fontFamily: 'inherit', border: isCorrectOption ? '1.5px solid #22C55E' : isWrongOption ? '1.5px solid #EF4444' : (isSelected && !instantFeedback ? '1.5px solid #2D8A4E' : '1.5px solid #E2E8F0'), color: '#1A3A32', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', fontWeight: 500, position: 'relative', textTransform: 'lowercase' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                      <span style={{ fontSize: 16, flex: 1 }}>{label}</span>
+                      {isCorrectOption && <CheckCircle2 size={20} strokeWidth={1.5} color="#22C55E" />}
+                      {isWrongOption && <XCircle size={20} strokeWidth={1.5} color="#EF4444" />}
+                    </div>
+                  </motion.button>
+                )
+              })}
+
+              {q.type === 'typein' && (
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <textarea 
+                    placeholder="type your answer here..." 
+                    value={typeInAnswers[current] || ''} 
+                    onChange={(e) => setTypeInAnswers(prev => ({ ...prev, [current]: e.target.value }))} 
+                    disabled={isAnswered} 
+                    style={{ 
+                      width: '100%', 
+                      minHeight: 120, 
+                      padding: '20px 24px', 
+                      borderRadius: 12, 
+                      background: '#ffffff', 
+                      border: isAnswered ? (instantFeedback ? '1.5px solid #2D8A4E' : '1.5px solid #E2E8F0') : '1.5px solid #E2E8F0', 
+                      fontSize: 16, 
+                      fontFamily: 'inherit', 
+                      color: '#1A3A32', 
+                      outline: 'none', 
+                      resize: 'none', 
+                      transition: 'all 0.2s ease', 
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.02)' 
+                    }} 
+                  />
+                  {!isAnswered && (
+                    <motion.button
+                      whileHover={{ y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        if (typeInAnswers[current]?.trim()) {
+                          setSelected(prev => ({ ...prev, [current]: 1 }));
+                          if (!instantFeedback) {
+                            setTimeout(next, 500);
+                          }
+                        }
+                      }}
+                      style={{
+                        padding: '12px 32px',
+                        borderRadius: 16,
+                        background: typeInAnswers[current]?.trim() ? 'var(--primary)' : '#f1f5f9',
+                        color: typeInAnswers[current]?.trim() ? 'white' : '#94a3b8',
+                        border: 'none',
+                        fontSize: 14,
+                        fontWeight: 700,
+                        cursor: typeInAnswers[current]?.trim() ? 'pointer' : 'not-allowed',
+                        alignSelf: 'flex-end',
+                        transition: 'all 0.2s ease',
+                        textTransform: 'lowercase'
+                      }}
+                    >
+                      submit answer
+                    </motion.button>
+                  )}
+                  {isAnswered && instantFeedback && (
+                    <div style={{ background: '#F0FDF4', padding: '20px', borderRadius: 16, border: '1.5px solid #22C55E' }}>
+                      <div style={{ fontSize: 12, fontWeight: 900, color: '#166534', marginBottom: 8, textTransform: 'lowercase' }}>expected answer:</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: '#14532d' }}>{q.expectedAnswer}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {!isAnswered && (
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => choose(-1)} style={{ alignSelf: 'center', marginTop: 8, padding: '8px 20px', borderRadius: 99, background: '#FEF2F2', border: '1.5px solid #FECACA', color: '#EF4444', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', textTransform: 'lowercase' }}>
+                  <X size={14} /> i don't know this one
+                </motion.button>
+              )}
+            </div>
+
+            {/* Utility Bar (In-flow) */}
+            <div style={{ 
+              display: 'flex', justifyContent: 'center', alignItems: 'center', gap: isMobile ? 20 : 32, 
+              padding: '32px 0', width: '100%'
+            }}>
+              {[
+                { id: 'like', icon: <ThumbsUp size={20} strokeWidth={1.5} />, action: () => handleLike(current), active: likedQuestions[current], activeColor: '#2D8A4E' },
+                { id: 'dislike', icon: <ThumbsDown size={20} strokeWidth={1.5} />, action: () => handleDislike(current), active: dislikedQuestions[current], activeColor: '#EF4444' },
+                { id: 'chat', icon: <MessageCircle size={20} strokeWidth={1.5} />, action: handleAiChat },
+                { id: 'search', icon: <Search size={20} strokeWidth={1.5} />, action: () => handleSearchAction(q) },
+                { id: 'share', icon: <Share2 size={20} strokeWidth={1.5} />, action: () => handleShare(q) },
+                { id: 'gift', icon: <Gift size={20} strokeWidth={1.5} />, action: handleGiftAction },
+                { id: 'delete', icon: <Trash2 size={20} strokeWidth={1.5} />, action: () => handleDelete(current) },
+                { id: 'more', icon: <MoreHorizontal size={20} strokeWidth={1.5} />, action: () => setShowMoreOptions(!showMoreOptions) }
+              ].map((item, i) => (
+                <div key={item.id} style={{ position: 'relative' }}>
+                  <motion.button 
+                    whileHover={{ scale: 1.1, color: item.active ? (item.activeColor || '#1A3A32') : '#1A3A32' }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={item.action} 
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      cursor: 'pointer', 
+                      color: item.active ? (item.activeColor || '#1A3A32') : '#64748B', 
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '8px'
+                    }}
+                  >
+                    {item.icon}
+                  </motion.button>
+
+                  {/* More Options Popover */}
+                  {item.id === 'more' && (
+                    <AnimatePresence>
+                      {showMoreOptions && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          style={{ 
+                            position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 12,
+                            background: 'white', borderRadius: 16, border: '1.5px solid #E2E8F0',
+                            padding: '8px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                            display: 'flex', flexDirection: 'column', gap: 4, zIndex: 50, minWidth: 160
+                          }}
+                        >
+                          {[
+                            { label: 'report issue', icon: <X size={16} /> },
+                            { label: 'save to backpack', icon: <Star size={16} /> },
+                            { label: 'view discussion', icon: <Users size={16} /> }
+                          ].map((opt, i) => (
+                            <button key={i} onClick={() => { alert(`Action: ${opt.label}`); setShowMoreOptions(false); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#1A3A32', textAlign: 'left', transition: 'background 0.2s', textTransform: 'lowercase', fontFamily: 'inherit' }}>
+                              <span style={{ color: '#94A3B8' }}>{opt.icon}</span>
+                              {opt.label}
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  )}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Tactile Footer */}
+        <div style={{ background: '#F0FDF4', padding: isMobile ? '20px 20px' : '24px 40px', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100, position: 'sticky', bottom: 0, width: '100%', borderTop: '1px solid #E2E8F0' }}>
+          <div style={{ width: '100%', maxWidth: 560, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button 
+              disabled={current === 0} 
+              onClick={() => setCurrent(c => c - 1)} 
+              style={{ 
+                padding: '10px 32px', 
                 borderRadius: 16, 
                 background: '#ffffff', 
-                border: '1.5px solid #e5e7eb',
-                transition: 'all 0.1s'
-              }}>
-                <textarea
-                  value={typeInAnswers[current] || ''}
-                  onChange={(e) => {
-                    const newAnswers = { ...typeInAnswers }
-                    newAnswers[current] = e.target.value
-                    setTypeInAnswers(newAnswers)
-                  }}
-                  placeholder="Type your answer here..."
-                  disabled={mode.includes('result')}
-                  style={{
-                    width: '100%',
-                    minHeight: '100px',
-                    border: 'none',
-                    outline: 'none',
-                    fontSize: 16,
-                    fontWeight: 500,
-                    color: '#374151',
-                    background: 'transparent',
-                    resize: 'vertical',
-                    fontFamily: 'inherit'
-                  }}
-                />
-                
-                {/* Don't Know and Continue Buttons */}
-                <div style={{ 
+                color: '#1A3A32', 
+                border: '1.5px solid #4A5568', 
+                fontSize: 14, 
+                fontWeight: 500, 
+                cursor: current === 0 ? 'not-allowed' : 'pointer', 
+                opacity: current === 0 ? 0.5 : 1, 
+                boxShadow: '4px 4px 0px 0px rgba(74, 85, 104, 1)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 12, 
+                transition: 'all 0.1s', 
+                fontFamily: 'inherit', 
+                textTransform: 'lowercase' 
+              }}
+            >
+              <ArrowLeft size={18} strokeWidth={1.5} /> back
+            </button>
+            
+            <div style={{ fontSize: 14, fontWeight: 500, color: '#4A5568', textTransform: 'lowercase' }}>
+              {current + 1} of {generatedQuestions?.length}
+            </div>
+
+            {!isAnswered ? (
+              <button 
+                onClick={next} 
+                style={{ 
+                  padding: '10px 32px', 
+                  borderRadius: 16, 
+                  background: '#ffffff', 
+                  color: '#1A3A32', 
+                  border: '1.5px solid #4A5568', 
+                  fontSize: 14, 
+                  fontWeight: 500, 
+                  cursor: 'pointer', 
+                  boxShadow: '4px 4px 0px 0px rgba(74, 85, 104, 1)', 
                   display: 'flex', 
+                  alignItems: 'center', 
                   gap: 12, 
-                  marginTop: 16,
-                  justifyContent: 'flex-end'
-                }}>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      // Show feedback screen for this question
-                      setFeedbackQuestion(generatedQuestions[current])
-                      setShowFeedback(true)
-                      setSelfAssessment('')
-                    }}
-                    style={{
-                      padding: '10px 20px',
-                      borderRadius: 10,
-                      background: '#fef2f2',
-                      border: '1.5px solid #fecaca',
-                      color: '#dc2626',
-                      fontSize: 14,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      fontFamily: 'inherit'
-                    }}
-                  >
-                    Don't Know
-                  </motion.button>
-                  
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      if (typeInAnswers[current]?.trim()) {
-                        // Mark as answered and continue
-                        setSelected(prev => ({ ...prev, [current]: 1 }))
-                        next()
-                      }
-                    }}
-                    disabled={!typeInAnswers[current]?.trim()}
-                    style={{
-                      padding: '10px 20px',
-                      borderRadius: 10,
-                      background: typeInAnswers[current]?.trim() ? '#10b981' : '#f3f4f6',
-                      border: '1.5px solid',
-                      borderColor: typeInAnswers[current]?.trim() ? '#10b981' : '#d1d5db',
-                      color: typeInAnswers[current]?.trim() ? 'white' : '#9ca3af',
-                      fontSize: 14,
-                      fontWeight: 600,
-                      cursor: typeInAnswers[current]?.trim() ? 'pointer' : 'not-allowed',
-                      transition: 'all 0.2s ease',
-                      fontFamily: 'inherit'
+                  transition: 'all 0.1s', 
+                  fontFamily: 'inherit', 
+                  textTransform: 'lowercase' 
+                }}
+              >
+                skip <ArrowRight size={18} strokeWidth={1.5} />
+              </button>
+            ) : (
+              <div style={{ display: 'flex', gap: 12 }}>
+                {!isCorrect && (
+                  <button 
+                    onClick={() => explainWithTutor(q, false, selected[current])} 
+                    style={{ 
+                      padding: '10px 24px', 
+                      borderRadius: 16, 
+                      background: '#2D8A4E', 
+                      color: '#ffffff', 
+                      border: '1.5px solid #1A3A32', 
+                      fontSize: 14, 
+                      fontWeight: 700, 
+                      cursor: 'pointer', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 8, 
+                      transition: 'all 0.1s', 
+                      fontFamily: 'inherit', 
+                      textTransform: 'lowercase' 
                     }}
                   >
-                    Continue
-                  </motion.button>
-                </div>
+                    explain my mistake
+                  </button>
+                )}
+                <button 
+                  onClick={next} 
+                  style={{ 
+                    padding: '10px 24px', 
+                    borderRadius: 16, 
+                    background: '#DCFCE7', 
+                    color: '#2D8A4E', 
+                    border: '1.5px solid #2D8A4E', 
+                    fontSize: 14, 
+                    fontWeight: 700, 
+                    cursor: 'pointer', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 8, 
+                    transition: 'all 0.1s', 
+                    fontFamily: 'inherit', 
+                    textTransform: 'lowercase',
+                    boxShadow: '4px 4px 0px 0px rgba(45, 138, 78, 0.2)'
+                  }}
+                >
+                  next question <ArrowRight size={18} strokeWidth={1.5} />
+                </button>
               </div>
             )}
           </div>
-          {/* Action Buttons Toolbar */}
-          <div style={{ 
-            display: 'flex', 
-            gap: '8px',
-            marginTop: '24px',
-            paddingTop: '16px',
-            borderTop: '1px solid #E2E8F0',
-            position: 'relative'
-          }}>
-            {/* Like Button */}
-            <motion.button 
-              whileHover={{ scale: 1.1 }} 
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleLike(current)}
-              style={{ 
-                background: likedQuestions[current] ? '#dcfce7' : 'none', 
-                border: 'none', 
-                cursor: 'pointer',
-                padding: '8px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: likedQuestions[current] ? '#16a34a' : '#6A6B6A',
-                transition: 'all 0.2s ease'
-              }}
-              title="Good question"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill={likedQuestions[current] ? '#16a34a' : 'none'} stroke={likedQuestions[current] ? '#16a34a' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
-              </svg>
-            </motion.button>
-
-            {/* Dislike Button */}
-            <motion.button 
-              whileHover={{ scale: 1.1 }} 
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleDislike(current)}
-              style={{ 
-                background: dislikedQuestions[current] ? '#fee2e2' : 'none', 
-                border: 'none', 
-                cursor: 'pointer',
-                padding: '8px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: dislikedQuestions[current] ? '#dc2626' : '#6A6B6A',
-                transition: 'all 0.2s ease'
-              }}
-              title="Bad question"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill={dislikedQuestions[current] ? '#dc2626' : 'none'} stroke={dislikedQuestions[current] ? '#dc2626' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/>
-              </svg>
-            </motion.button>
-
-            {/* Dislike Options Popup */}
-            <AnimatePresence>
-              {showDislikeOptions === current && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  style={{
-                    position: 'absolute',
-                    top: '50px',
-                    left: '40px',
-                    background: 'white',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '12px',
-                    padding: '12px',
-                    boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-                    zIndex: 100,
-                    minWidth: '280px'
-                  }}
-                >
-                  <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px' }}>What made it a bad question?</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {['answer is wrong', 'correct answer is obvious', 'duplicate question', 'poorly worded / confusing', 'not important / relevant', 'too easy', 'too hard', 'other'].map((option) => (
-                      <motion.button
-                        key={option}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => handleDislikeOption(option)}
-                        style={{
-                          background: '#f3f4f6',
-                          border: 'none',
-                          borderRadius: '8px',
-                          padding: '8px 12px',
-                          fontSize: '12px',
-                          color: '#4b5563',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        {option}
-                      </motion.button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* AI Chat Button */}
-            <motion.button 
-              whileHover={{ scale: 1.1 }} 
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleAiChat(q)}
-              style={{ 
-                background: aiChatOpen ? '#f3e8ff' : 'none', 
-                border: 'none', 
-                cursor: 'pointer',
-                padding: '8px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: aiChatOpen ? '#7e22ce' : '#6A6B6A',
-                transition: 'all 0.2s ease'
-              }}
-              title="AI Chat"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                <circle cx="9" cy="10" r="1"/>
-                <circle cx="15" cy="10" r="1"/>
-              </svg>
-            </motion.button>
-
-            {/* Share Button */}
-            <motion.button 
-              whileHover={{ scale: 1.1 }} 
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleShare(q)}
-              style={{ 
-                background: 'none', 
-                border: 'none', 
-                cursor: 'pointer',
-                padding: '8px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#6A6B6A',
-                transition: 'all 0.2s ease'
-              }}
-              title="Share"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="18" cy="5" r="3"/>
-                <circle cx="6" cy="12" r="3"/>
-                <circle cx="18" cy="19" r="3"/>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-              </svg>
-            </motion.button>
-
-            {/* Gift Button */}
-            <motion.button 
-              whileHover={{ scale: 1.1 }} 
-              whileTap={{ scale: 0.95 }}
-              style={{ 
-                background: 'none', 
-                border: 'none', 
-                cursor: 'pointer',
-                padding: '8px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#6A6B6A',
-                transition: 'all 0.2s ease'
-              }}
-              title="Gift"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="8" width="18" height="4" rx="1"/>
-                <path d="M12 8v13"/>
-                <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/>
-                <path d="M7.5 8a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 2.5 2.5v5"/>
-                <path d="M16.5 8v-2.5a2.5 2.5 0 0 1 5 0 2.5 2.5 0 0 1-2.5 2.5h-5"/>
-              </svg>
-            </motion.button>
-
-            {/* Delete Button */}
-            <motion.button 
-              whileHover={{ scale: 1.1 }} 
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleDelete(current)}
-              style={{ 
-                background: 'none', 
-                border: 'none', 
-                cursor: 'pointer',
-                padding: '8px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#6A6B6A',
-                transition: 'all 0.2s ease'
-              }}
-              title="Delete"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                <line x1="10" y1="11" x2="10" y2="17"/>
-                <line x1="14" y1="11" x2="14" y2="17"/>
-              </svg>
-            </motion.button>
-
-            {/* More Options Button */}
-            <div style={{ position: 'relative' }}>
-              <motion.button 
-                whileHover={{ scale: 1.1 }} 
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowMoreOptions(!showMoreOptions)}
-                style={{ 
-                  background: showMoreOptions ? '#f3f4f6' : 'none', 
-                  border: 'none', 
-                  cursor: 'pointer',
-                  padding: '8px',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#6A6B6A',
-                  transition: 'all 0.2s ease'
-                }}
-                title="More options"
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="1"/>
-                  <circle cx="19" cy="12" r="1"/>
-                  <circle cx="5" cy="12" r="1"/>
-                </svg>
-              </motion.button>
-
-              {/* More Options Dropdown */}
-              <AnimatePresence>
-                {showMoreOptions && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    style={{
-                      position: 'absolute',
-                      bottom: '40px',
-                      right: '0',
-                      background: 'white',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '12px',
-                      padding: '8px 0',
-                      boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-                      zIndex: 100,
-                      minWidth: '200px'
-                    }}
-                  >
-                    {[
-                      { icon: '✏️', label: 'Edit question' },
-                      { icon: '📥', label: 'Export cards to Anki' },
-                      { icon: '📄', label: 'View summary outline' },
-                      { icon: '☰', label: 'View all questions' }
-                    ].map((item, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setShowMoreOptions(false)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          padding: '10px 16px',
-                          width: '100%',
-                          border: 'none',
-                          background: 'none',
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          color: '#374151',
-                          textAlign: 'left',
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
-                      >
-                        <span>{item.icon}</span>
-                        <span>{item.label}</span>
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-          
-        </motion.div>
-      </div>
-      
-      {/* Bottom Navigation - Matching Configure Mode Style */}
-      <div style={{ 
-        position: 'fixed',
-        bottom: 0, 
-        left: 0, 
-        right: 0, 
-        padding: isMobile ? '16px 20px' : '24px 40px', 
-        background: '#ffffff',
-        borderTop: '1.5px solid #f5f5f5',
-        display: 'flex',
-        justifyContent: 'center'
-      }}>
-        <div style={{ 
-          width: '100%', 
-          maxWidth: 560, 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center' 
-        }}>
-          
-          <motion.button 
-            whileHover={{ y: -1 }}
-            whileTap={{ scale: 0.98 }}
-            disabled={current===0} 
-            onClick={()=>setCurrent(c=>c-1)}
-            style={{ 
-              padding: '14px 24px', 
-              borderRadius: 14, 
-              background: current===0 ? '#f5f5f5' : '#ffffff', 
-              color: current===0 ? '#9ca3af' : '#374151', 
-              border: '1.5px solid #e5e7eb', 
-              fontSize: 14, 
-              fontWeight: 800, 
-              cursor: current===0?'not-allowed':'pointer',
-              opacity: current===0?0.6:1,
-              fontFamily: 'inherit',
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 8,
-              boxShadow: current===0 ? 'none' : '0 4px 12px rgba(0,0,0,0.05)'
-            }}
-          >
-            <ArrowLeft size={18} />
-            Back
-          </motion.button>
-          
-          <div style={{ 
-            fontSize: 14, 
-            color: '#6b7280', 
-            fontWeight: 700 
-          }}>
-            {current + 1} / {generatedQuestions?.length || 1}
-          </div>
-          
-          <motion.button 
-            whileHover={{ y: -1 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={next}
-            disabled={(() => {
-              const currentQuestion = generatedQuestions[current]
-              if (currentQuestion?.type === 'typein') {
-                return !typeInAnswers[current]?.trim()
-              }
-              return selected[current] === undefined
-            })()}
-            style={{ 
-              padding: '14px 24px', 
-              borderRadius: 14, 
-              background: (() => {
-                const currentQuestion = generatedQuestions[current]
-                const isDisabled = currentQuestion?.type === 'typein' 
-                  ? !typeInAnswers[current]?.trim()
-                  : selected[current] === undefined
-                return isDisabled ? '#f5f5f5' : '#fffbeb'
-              })(), 
-              color: (() => {
-                const currentQuestion = generatedQuestions[current]
-                const isDisabled = currentQuestion?.type === 'typein' 
-                  ? !typeInAnswers[current]?.trim()
-                  : selected[current] === undefined
-                return isDisabled ? '#9ca3af' : '#d97706'
-              })(), 
-              border: (() => {
-                const currentQuestion = generatedQuestions[current]
-                const isDisabled = currentQuestion?.type === 'typein' 
-                  ? !typeInAnswers[current]?.trim()
-                  : selected[current] === undefined
-                return isDisabled ? '1.5px solid #e5e7eb' : '1.5px solid #fbbf24'
-              })(), 
-              fontSize: 14, 
-              fontWeight: 800, 
-              cursor: (() => {
-                const currentQuestion = generatedQuestions[current]
-                const isDisabled = currentQuestion?.type === 'typein' 
-                  ? !typeInAnswers[current]?.trim()
-                  : selected[current] === undefined
-                return isDisabled ? 'not-allowed' : 'pointer'
-              })(),
-              opacity: (() => {
-                const currentQuestion = generatedQuestions[current]
-                const isDisabled = currentQuestion?.type === 'typein' 
-                  ? !typeInAnswers[current]?.trim()
-                  : selected[current] === undefined
-                return isDisabled ? 0.6 : 1
-              })(),
-              fontFamily: 'inherit',
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 8,
-              boxShadow: (() => {
-                const currentQuestion = generatedQuestions[current]
-                const isDisabled = currentQuestion?.type === 'typein' 
-                  ? !typeInAnswers[current]?.trim()
-                  : selected[current] === undefined
-                return isDisabled ? 'none' : '0 4px 12px rgba(217,119,6,0.1)'
-              })()
-            }}
-          >
-            {current === (generatedQuestions?.length || 1) - 1 ? 'Finish' : 'Next'}
-            <ArrowRight size={18} />
-          </motion.button>
-
         </div>
       </div>
+    )
+  }
 
-      {/* AI Chat Right-Side Panel - Redesigned */}
+  const renderResult = () => {
+    return (
+      <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Outfit', 'Varela Round', sans-serif" }}>
+        <div style={{ flex: 1, padding: isMobile ? '20px 12px 100px' : '20px 20px 100px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+          <div style={{ width: '100%', maxWidth: 520, marginTop: isMobile ? '0' : '2vh' }}>
+            <div style={{ textAlign: 'center', marginBottom: isMobile ? 24 : 40, display: 'flex', justifyContent: 'center' }}>
+              <LuterLogo size={isMobile ? 40 : 52} fontSize={isMobile ? 32 : 40} />
+            </div>
+            <div ref={resultRef} style={{ background: '#fff', borderRadius: 24, padding: isMobile ? 12 : 2, position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, opacity: 0.8 }}>
+                <svg style={{ position: 'absolute', top: -10, left: '5%', transform: 'rotate(-10deg)' }} width="40" height="150" viewBox="0 0 40 150"><path d="M10 0 Q 30 25 10 50 Q -10 75 10 100 Q 30 125 10 150" fill="none" stroke="#fbbf24" strokeWidth="5" strokeLinecap="round" /></svg>
+                <svg style={{ position: 'absolute', top: 20, right: '12%', transform: 'rotate(15deg)' }} width="40" height="180" viewBox="0 0 40 180"><path d="M20 0 Q 0 30 20 60 Q 40 90 20 120 Q 0 150 20 180" fill="none" stroke="#7a12cc" strokeWidth="4" strokeLinecap="round" opacity="0.5" /></svg>
+              </div>
+              <div style={{ textAlign: 'center', marginBottom: isMobile ? 24 : 32, position: 'relative', zIndex: 1 }}>
+                <motion.div initial={{ rotate: -10, scale: 0 }} animate={{ rotate: 0, scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 20 }} style={{ display: 'inline-block', marginBottom: isMobile ? 16 : 20 }}>
+                  <div style={{ background: '#fffbeb', border: '1.5px solid #fbbf24', padding: isMobile ? '12px 16px' : '16px 24px', borderRadius: 20, boxShadow: '0 8px 16px rgba(251, 191, 36, 0.2)', display: 'flex', alignItems: 'center', gap: 10, position: 'relative' }}>
+                    <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }} transition={{ duration: 2, repeat: Infinity }}><Zap size={isMobile ? 20 : 28} fill="#fbbf24" color="#d97706" /></motion.div>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: 11, fontWeight: 900, color: '#d97706', textTransform: 'lowercase', letterSpacing: '0.05em' }}>daily reward</div>
+                      <div style={{ fontSize: isMobile ? 18 : 24, fontWeight: 1000, color: '#111', lineHeight: 1 }}>+{score * 50} xp</div>
+                    </div>
+                  </div>
+                </motion.div>
+                <motion.h2 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} style={{ fontSize: isMobile ? 28 : 36, fontWeight: 1000, color: '#111', margin: '0 0 4px', letterSpacing: '-0.04em', textTransform: 'lowercase' }}>{pass ? 'incredible work!' : 'keep going!'}</motion.h2>
+                <motion.p initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} style={{ fontSize: isMobile ? 14 : 16, color: '#555', fontWeight: 600, margin: 0, textTransform: 'lowercase' }}>{isMobile ? 'session complete 🎯' : `you completed your ${examCourses[0]?.name || 'mock exam'} session`}</motion.p>
+              </div>
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.4, type: "spring" }} style={{ background: pass ? '#f0fdf4' : '#fff7ed', borderRadius: 24, padding: isMobile ? '32px 20px' : '40px 32px', marginBottom: 20, border: '1.5px solid #eaeaea', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 900, color: '#111', textTransform: 'lowercase', letterSpacing: '0.2em', marginBottom: 12, opacity: 0.6 }}>final score</div>
+                  <div style={{ fontSize: isMobile ? 64 : 88, fontWeight: 1000, color: '#111', lineHeight: 1, letterSpacing: '-0.05em' }}>{score}<span style={{ opacity: 0.3, fontSize: isMobile ? 24 : 32 }}>/{generatedQuestions?.length || 1}</span></div>
+                </div>
+              </motion.div>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 12 : 16, marginBottom: 24 }}>
+                {[
+                  { label: 'accuracy', value: `${Math.round((score/(generatedQuestions?.length || 1))*100)}%`, icon: <BarChart3 size={18} />, color: '#7a12cc' },
+                  { label: 'streak', value: pass ? '+1 day' : 'paused', icon: <Flame size={18} />, color: '#ef4444' },
+                  { label: 'performance', value: score > (generatedQuestions?.length || 1)/2 ? 'master' : 'student', icon: <Star size={18} />, color: '#fbbf24' },
+                  { label: 'next target', value: score === (generatedQuestions?.length || 1) ? '100%' : `${generatedQuestions?.length || 1}/${generatedQuestions?.length || 1}`, icon: <Zap size={18} />, color: '#22c55e' }
+                ].map((stat, i) => (
+                  <motion.div key={i} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 + (i * 0.1) }} style={{ padding: '20px', borderRadius: 20, background: 'white', border: '1.5px solid #eee', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: stat.color }}>{stat.icon}<span style={{ fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', opacity: 0.8, textTransform: 'lowercase' }}>{stat.label}</span></div>
+                    <div style={{ fontSize: 18, fontWeight: 1000, color: '#111', textTransform: 'lowercase' }}>{stat.value}</div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+            {/*Retake and Share*/}
+            <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+              <button onClick={() => { setMode('configure'); setConfigStep(1); setCurrent(0); setSelected({}); setExamCourses(preselectedCourse ? [preselectedCourse] : []) }} style={{ flex: 1, padding: '16px', borderRadius: 16, background: '#f8f8f8', color: '#111', border: '1.5px solid #111', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 900, textTransform: 'lowercase' }}><RotateCcw size={20} /> retake</button>
+              <button onClick={handleResultShare} disabled={isSharing} style={{ flex: 2, padding: '16px', borderRadius: 16, background: '#7a12cc', color: 'white', border: '1.5px solid #111', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 900, textTransform: 'lowercase' }}>{isSharing ? <Loader2 className="animate-spin" size={20} /> : <Share2 size={20} />} share proof</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // --- MAIN RENDER ---
+
+  return (
+    <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Outfit', 'Varela Round', sans-serif" }}>
+      
+      {/* Dynamic Content based on mode */}
+      {mode === 'preparing' && renderPreparing()}
+      {mode === 'configure' && renderConfigure()}
+      {mode === 'exam' && renderExam()}
+      {mode === 'result' && renderResult()}
+
+      {/* Shared Modals / Panels (AI Chat & Feedback) */}
       <AnimatePresence>
         {aiChatOpen && (
           <motion.div
-            initial={{ x: 360, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 360, opacity: 0 }}
+            initial={{ x: 360, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 360, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            style={{
-              position: 'fixed',
-              right: 0,
-              top: 0,
-              bottom: 0,
-              width: '360px',
-              background: '#FFFFFF',
-              borderLeft: '1px solid #E5E7EB',
-              display: 'flex',
-              flexDirection: 'column',
-              zIndex: 1000,
-              fontFamily: "'Inter', system-ui, sans-serif",
-              WebkitFontSmoothing: 'antialiased'
-            }}
+            style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: '360px', background: '#FFFFFF', borderLeft: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', zIndex: 1000, fontFamily: "'Outfit', 'Varela Round', sans-serif" }}
           >
-            {/* Top Tab Nav */}
+            {/* AI Chat Panel Content */}
             <div style={{ display: 'flex', alignItems: 'flex-end', padding: '0 16px', borderBottom: '1px solid #E5E7EB', flexShrink: 0 }}>
-              {[{ id: 'chat', label: 'chat' }, { id: 'source', label: 'view source - pg 10' }].map((tab, i) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setAiChatMode(tab.id)}
-                  style={{
-                    background: 'none', border: 'none',
-                    borderBottom: aiChatMode === tab.id ? '2px solid #111827' : '2px solid transparent',
-                    padding: '16px 0', marginRight: i === 0 ? '24px' : '0',
-                    fontSize: '14px', fontWeight: 500,
-                    color: aiChatMode === tab.id ? '#111827' : '#6B7280',
-                    cursor: 'pointer', transition: 'color 0.2s ease',
-                    lineHeight: 1, whiteSpace: 'nowrap', fontFamily: 'inherit'
-                  }}
-                >{tab.label}</button>
+              {[{ id: 'chat', label: 'chat' }, { id: 'source', label: 'view source' }].map((tab, i) => (
+                <button key={tab.id} onClick={() => setAiChatMode(tab.id)} style={{ background: 'none', border: 'none', borderBottom: aiChatMode === tab.id ? '2px solid #111827' : '2px solid transparent', padding: '16px 0', marginRight: i === 0 ? '24px' : '0', fontSize: '14px', fontWeight: 500, color: aiChatMode === tab.id ? '#111827' : '#6B7280', cursor: 'pointer', transition: 'color 0.2s ease', lineHeight: 1, whiteSpace: 'nowrap', fontFamily: 'inherit', textTransform: 'lowercase' }}>{tab.label}</button>
               ))}
               <div style={{ flex: 1 }} />
-              <button 
-                onClick={() => setAiChatOpen(false)}
-                style={{ 
-                  background: 'none', border: 'none', cursor: 'pointer', 
-                  padding: '16px 0', color: '#6B7280', display: 'flex', alignItems: 'center' 
-                }}
-                title="Close AI Tutor"
-              >
-                <X size={18} />
-              </button>
+              <button onClick={() => setAiChatOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '16px 0', color: '#6B7280', display: 'flex', alignItems: 'center' }}><X size={18} /></button>
             </div>
-
-            {/* Scrollable Content */}
-            <div
-              ref={chatScrollRef}
-              style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column' }}
-            >
+            <div ref={chatScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column' }}>
               {aiChatMessages.filter(m => m.role !== 'system').length === 0 ? (
-                <>
-                  {/* Suggested Questions - Empty State */}
-                  <div>
-                    <p style={{ fontSize: '13px', color: '#6B7280', margin: '0 0 4px 0', fontWeight: 500 }}>Suggested questions</p>
-                    {SUGGESTED_QUESTIONS.map((question, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => sendAiMessage(question)}
-                        disabled={isAiLoading}
-                        style={{
-                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                          width: '100%', padding: '12px 0', border: 'none',
-                          borderBottom: '1px solid #E5E7EB', background: 'transparent',
-                          cursor: isAiLoading ? 'not-allowed' : 'pointer',
-                          transition: 'background 0.2s ease', textAlign: 'left',
-                          opacity: isAiLoading ? 0.6 : 1, fontFamily: 'inherit'
-                        }}
-                        onMouseEnter={e => { if (!isAiLoading) { e.currentTarget.style.background = '#F3F4F6'; e.currentTarget.style.margin = '0 -16px'; e.currentTarget.style.padding = '12px 16px'; e.currentTarget.style.width = 'calc(100% + 32px)' } }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.margin = '0'; e.currentTarget.style.padding = '12px 0'; e.currentTarget.style.width = '100%' }}
-                      >
-                        <span style={{ fontSize: '14px', color: '#111827' }}>{question}</span>
-                        <span style={{ color: '#9CA3AF', fontSize: '20px', lineHeight: 1, flexShrink: 0, marginLeft: '8px' }}>+</span>
-                      </button>
-                    ))}
-                  </div>
-                  {/* Center Refresh Icon */}
-                  <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
-                    <motion.div
-                      whileHover={{ rotate: 180 }}
-                      transition={{ duration: 0.4 }}
-                      style={{ width: '40px', height: '40px', borderRadius: '50%', border: '1px solid #E5E7EB', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
-                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/>
-                        <path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-                      </svg>
-                    </motion.div>
-                  </div>
-                </>
+                <div>
+                  <p style={{ fontSize: '13px', color: '#6B7280', margin: '0 0 4px 0', fontWeight: 500, textTransform: 'lowercase' }}>suggested questions</p>
+                  {SUGGESTED_QUESTIONS.map((question, idx) => (
+                    <button key={idx} onClick={() => sendAiMessage(question)} disabled={isAiLoading} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '12px 0', border: 'none', borderBottom: '1px solid #E5E7EB', background: 'transparent', cursor: isAiLoading ? 'not-allowed' : 'pointer', transition: 'background 0.2s ease', textAlign: 'left', opacity: isAiLoading ? 0.6 : 1, fontFamily: 'inherit', textTransform: 'lowercase' }}>
+                      <span style={{ fontSize: '14px', color: '#111827' }}>{question}</span>
+                      <span style={{ color: '#9CA3AF', fontSize: '20px', lineHeight: 1, flexShrink: 0, marginLeft: '8px' }}>+</span>
+                    </button>
+                  ))}
+                </div>
               ) : (
                 <>
-                  {/* Chat Messages */}
-                  {aiChatMessages.filter(m => m.role !== 'system').map((msg, i) =>
-                    msg.role === 'user' ? (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
-                        <span style={{ background: '#D1FAE5', color: '#065F46', padding: '8px 14px', borderRadius: '999px', fontSize: '13px', maxWidth: '85%', lineHeight: 1.5, display: 'inline-block' }}>
-                          {msg.content}
-                        </span>
-                      </div>
-                    ) : (
-                      <div key={i} style={{ marginBottom: '16px' }}>
-                        <div style={{ fontSize: '14px', color: '#111827', lineHeight: 1.6 }}>
-                          {renderAiText(msg.content)}
-                        </div>
-                        <div style={{ display: 'flex', gap: '4px', marginTop: '10px' }}>
-                          {[
-                            { title: 'Helpful', icon: <ThumbsUp size={15} /> },
-                            { title: 'Not helpful', icon: <ThumbsDown size={15} /> },
-                            { title: 'Copy', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>, onClick: () => navigator.clipboard?.writeText(msg.content) }
-                          ].map((btn, bi) => (
-                            <button key={bi} title={btn.title} onClick={btn.onClick}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#6B7280', borderRadius: '4px', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
-                              onMouseEnter={e => e.currentTarget.style.color = '#111827'}
-                              onMouseLeave={e => e.currentTarget.style.color = '#6B7280'}
-                            >{btn.icon}</button>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  )}
-                  {/* Typing dots */}
-                  {isAiLoading && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '12px' }}>
-                      {[0,1,2].map(i => (
-                        <motion.div key={i} animate={{ y: [0,-5,0] }} transition={{ duration: 0.6, repeat: Infinity, delay: i*0.15, ease:'easeInOut' }}
-                          style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#9CA3AF' }} />
-                      ))}
+                  {aiChatMessages.filter(m => m.role !== 'system').map((msg, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: '12px' }}>
+                      <span style={{ background: msg.role === 'user' ? '#D1FAE5' : '#F3F4F6', color: msg.role === 'user' ? '#065F46' : '#111827', padding: '8px 14px', borderRadius: '18px', fontSize: '13px', maxWidth: '85%', lineHeight: 1.5, display: 'inline-block' }}>
+                        {msg.role === 'assistant' ? renderAiText(msg.content) : msg.content}
+                      </span>
                     </div>
-                  )}
+                  ))}
+                  {isAiLoading && <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>{[0,1,2].map(i => (<motion.div key={i} animate={{ y: [0,-5,0] }} transition={{ duration: 0.6, repeat: Infinity, delay: i*0.15 }} style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#9CA3AF' }} />))}</div>}
                   <div ref={messagesEndRef} />
-                  {/* Follow-up Questions */}
-                  {!isAiLoading && aiChatMessages.some(m => m.role === 'assistant') && (
-                    <div style={{ marginTop: '16px' }}>
-                      <p style={{ fontSize: '13px', color: '#6B7280', margin: '0 0 4px 0', fontWeight: 500 }}>Follow-up questions</p>
-                      {FOLLOWUP_QUESTIONS.map((question, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => sendAiMessage(question)}
-                          disabled={isAiLoading}
-                          style={{
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            width: '100%', padding: '12px 0', border: 'none',
-                            borderBottom: '1px solid #E5E7EB', background: 'transparent',
-                            cursor: 'pointer', transition: 'background 0.2s ease', textAlign: 'left', fontFamily: 'inherit'
-                          }}
-                          onMouseEnter={e => { e.currentTarget.style.background = '#F3F4F6'; e.currentTarget.style.margin = '0 -16px'; e.currentTarget.style.padding = '12px 16px'; e.currentTarget.style.width = 'calc(100% + 32px)' }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.margin = '0'; e.currentTarget.style.padding = '12px 0'; e.currentTarget.style.width = '100%' }}
-                        >
-                          <span style={{ fontSize: '14px', color: '#111827' }}>{question}</span>
-                          <span style={{ color: '#9CA3AF', fontSize: '20px', lineHeight: 1, flexShrink: 0, marginLeft: '8px' }}>+</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </>
               )}
             </div>
-
-            {/* Bottom Input Area - Sticky */}
             <div style={{ padding: '12px 16px', borderTop: '1px solid #E5E7EB', background: '#FFFFFF', flexShrink: 0 }}>
-              <div style={{ marginBottom: '8px' }}>
-                <p style={{ margin: '0 0 2px 0', fontSize: '12px', color: '#6B7280', lineHeight: 1.5 }}>
-                  7 explanations left. <span style={{ color: '#10B981', fontWeight: 500 }}>then resets in 1 hour</span>
-                </p>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '12px', fontWeight: 500, color: '#111827', display: 'flex', alignItems: 'center', gap: '3px', fontFamily: 'inherit' }}>
-                  want unlimited?
-                  <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M0 12.59L10.59 2H4V0H14V10H12V3.41L1.41 14L0 12.59Z" fill="#111827"/></svg>
-                </button>
-              </div>
-              {/* Input row */}
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <input
-                  value={aiChatInput}
-                  onChange={e => setAiChatInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiMessage() } }}
-                  placeholder="ask your document anything"
-                  disabled={isAiLoading}
-                  style={{ width: '100%', height: '40px', border: '1px solid #E5E7EB', borderRadius: '999px', padding: '0 80px 0 16px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', color: '#111827', background: '#FFFFFF' }}
-                />
-                {/* Mic icon */}
-                <button style={{ position: 'absolute', right: '44px', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', color: '#9CA3AF' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/>
-                  </svg>
-                </button>
-                {/* Send button */}
-                <button
-                  onClick={() => sendAiMessage()}
-                  disabled={!aiChatInput.trim() || isAiLoading}
-                  style={{ position: 'absolute', right: '4px', width: '32px', height: '32px', borderRadius: '999px', background: aiChatInput.trim() && !isAiLoading ? '#10B981' : '#E5E7EB', border: 'none', cursor: aiChatInput.trim() && !isAiLoading ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s ease', flexShrink: 0 }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={aiChatInput.trim() && !isAiLoading ? 'white' : '#9CA3AF'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                  </svg>
+                <input value={aiChatInput} onChange={e => setAiChatInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiMessage() } }} placeholder="ask luter ai anything..." disabled={isAiLoading} style={{ width: '100%', height: '40px', border: '1px solid #E5E7EB', borderRadius: '999px', padding: '0 40px 0 16px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', color: '#111827' }} />
+                <button onClick={() => sendAiMessage()} disabled={!aiChatInput.trim() || isAiLoading} style={{ position: 'absolute', right: '4px', width: '32px', height: '32px', borderRadius: '999px', background: aiChatInput.trim() && !isAiLoading ? '#10B981' : '#E5E7EB', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ArrowRight size={14} color="white" />
                 </button>
               </div>
             </div>
           </motion.div>
         )}
-        </AnimatePresence>
+      </AnimatePresence>
 
-        {/* Don't Know Feedback Screen */}
-        <AnimatePresence>
-          {showFeedback && feedbackQuestion && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'white',
-                borderRadius: 24,
-                padding: isMobile ? '20px' : '32px',
-                display: 'flex',
-                flexDirection: 'column',
-                zIndex: 10
-              }}
-            >
-              {/* Header */}
-              <div style={{ textAlign: 'center', marginBottom: 40 }}>
-                <div style={{ 
-                  fontSize: isMobile ? 24 : 28, 
-                  fontWeight: 700, 
-                  color: '#1f2937',
-                  marginBottom: 8
-                }}>
-                  No worries! Let's learn together
+      <AnimatePresence>
+        {showFeedback && feedbackQuestion && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: isMobile ? '16px' : '40px' }}>
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} transition={{ type: 'spring', damping: 25, stiffness: 300 }} style={{ width: '100%', maxWidth: 580, maxHeight: '90vh', background: 'white', borderRadius: 32, padding: isMobile ? '24px' : '40px', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflowY: 'auto', position: 'relative' }}>
+              <button onClick={() => { setShowFeedback(false); setFeedbackQuestion(null); }} style={{ position: 'absolute', top: 24, right: 24, width: 40, height: 40, borderRadius: 12, background: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: 'none' }}><X size={20} /></button>
+              <div style={{ textAlign: 'center', marginBottom: 32 }}>
+                <div style={{ width: 64, height: 64, background: '#f5f3ff', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: '#7c3aed' }}><FlaskConical size={32} /></div>
+                <h2 style={{ fontSize: isMobile ? 24 : 28, fontWeight: 900, color: '#111', marginBottom: 8, letterSpacing: '-0.02em', textTransform: 'lowercase' }}>no worries! let's learn.</h2>
+                <p style={{ fontSize: 15, color: '#64748b', fontWeight: 500, margin: 0, textTransform: 'lowercase' }}>here is the correct answer for this challenge.</p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 32 }}>
+                <div style={{ background: '#f8fafc', padding: '20px 24px', borderRadius: 20, border: '1.5px solid #e2e8f0' }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: '#94a3b8', marginBottom: 8, textTransform: 'lowercase', letterSpacing: '0.1em' }}>question</div>
+                  <div style={{ fontSize: 16, color: '#1e293b', lineHeight: 1.6, fontWeight: 600 }}>{feedbackQuestion.question}</div>
                 </div>
-                <div style={{ 
-                  fontSize: 16, 
-                  color: '#6b7280',
-                  lineHeight: 1.5
-                }}>
-                  Here's the correct answer for this question
+                <div style={{ background: '#f0fdf4', padding: '24px', borderRadius: 20, border: '2px solid #4ade80', boxShadow: '0 4px 12px rgba(74, 222, 128, 0.1)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: '#166534', marginBottom: 10, textTransform: 'lowercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 6 }}><CheckCircle2 size={14} /> correct answer</div>
+                  <div style={{ fontSize: 18, color: '#14532d', lineHeight: 1.5, fontWeight: 800 }}>{feedbackQuestion.type === 'typein' ? feedbackQuestion.expectedAnswer : feedbackQuestion.type === 'truefalse' ? (feedbackQuestion.answer === 1 ? 'true' : 'false') : feedbackQuestion.options?.[feedbackQuestion.answer] || 'not specified'}</div>
                 </div>
               </div>
-
-              {/* Question */}
-              <div style={{ 
-                background: '#f8fafc', 
-                padding: '20px', 
-                borderRadius: 16, 
-                marginBottom: 24,
-                border: '1px solid #e2e8f0'
-              }}>
-                <div style={{ 
-                  fontSize: 14, 
-                  fontWeight: 600, 
-                  color: '#6b7280', 
-                  marginBottom: 8,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em'
-                }}>
-                  Question
-                </div>
-                <div style={{ 
-                  fontSize: 16, 
-                  color: '#1f2937', 
-                  lineHeight: 1.6 
-                }}>
-                  {feedbackQuestion.question}
-                </div>
-              </div>
-
-              {/* Actual Answer */}
-              <div style={{ 
-                background: '#f0fdf4', 
-                padding: '20px', 
-                borderRadius: 16, 
-                marginBottom: 32,
-                border: '2px solid #bbf7d0'
-              }}>
-                <div style={{ 
-                  fontSize: 14, 
-                  fontWeight: 600, 
-                  color: '#166534', 
-                  marginBottom: 8,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em'
-                }}>
-                  Actual Answer
-                </div>
-                <div style={{ 
-                  fontSize: 18, 
-                  color: '#14532d', 
-                  lineHeight: 1.6,
-                  fontWeight: 500
-                }}>
-                  {feedbackQuestion.type === 'typein' 
-                    ? feedbackQuestion.expectedAnswer 
-                    : feedbackQuestion.type === 'truefalse'
-                    ? (feedbackQuestion.answer === 1 ? 'TRUE' : 'FALSE')
-                    : feedbackQuestion.options?.[feedbackQuestion.answer] || 'Not specified'
-                  }
-                </div>
-              </div>
-
-              {/* Self Assessment */}
-              <div style={{ marginBottom: 32 }}>
-                <div style={{ 
-                  fontSize: 16, 
-                  fontWeight: 600, 
-                  color: '#1f2937', 
-                  marginBottom: 16,
-                  textAlign: 'center'
-                }}>
-                  How well do you know this?
-                </div>
-                <div style={{ 
-                  display: 'flex', 
-                  gap: 12, 
-                  justifyContent: 'center'
-                }}>
-                  {[
-                    { value: 'not sure', label: 'Not Sure', color: '#fef2f2', border: '#fecaca', text: '#dc2626' },
-                    { value: 'okay', label: 'Okay', color: '#fef3c7', border: '#fde68a', text: '#d97706' },
-                    { value: 'i know it', label: 'I Know It', color: '#f0fdf4', border: '#bbf7d0', text: '#16a34a' }
-                  ].map((option) => (
-                    <motion.button
-                      key={option.value}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setSelfAssessment(option.value)}
-                      style={{
-                        padding: '12px 20px',
-                        borderRadius: 12,
-                        background: selfAssessment === option.value ? option.color : 'white',
-                        border: `2px solid ${selfAssessment === option.value ? option.border : '#e5e7eb'}`,
-                        color: selfAssessment === option.value ? option.text : '#6b7280',
-                        fontSize: 14,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        fontFamily: 'inherit',
-                        minWidth: 100
-                      }}
-                    >
-                      {option.label}
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Continue Button */}
-              <div style={{ marginTop: 'auto', paddingTop: 24 }}>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    // Mark as don't know and continue
-                    setSelected(prev => ({ ...prev, [current]: -1 }))
-                    setShowFeedback(false)
-                    setFeedbackQuestion(null)
-                    setSelfAssessment('')
-                    next()
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '14px 24px',
-                    borderRadius: 12,
-                    background: '#7c3aed',
-                    border: 'none',
-                    color: 'white',
-                    fontSize: 16,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    fontFamily: 'inherit'
-                  }}
-                >
-                  Continue to Next Question
-                </motion.button>
-              </div>
+              <motion.button whileHover={{ y: -2, scale: 1.01 }} whileTap={{ scale: 0.98 }} onClick={() => { setSelected(prev => ({ ...prev, [current]: -1 })); setShowFeedback(false); setFeedbackQuestion(null); setSelfAssessment(''); next(); }} style={{ width: '100%', padding: '18px 24px', borderRadius: 18, background: '#111', color: 'white', fontSize: 16, fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s ease', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', textTransform: 'lowercase' }}>continue journey <ArrowRight size={20} /></motion.button>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
-    )
-  }
+  )
 }
