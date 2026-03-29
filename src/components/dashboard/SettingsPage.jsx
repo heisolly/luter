@@ -18,6 +18,7 @@ const TABS = [
 
 export default function SettingsPage() {
   const { user, isMobile } = useOutletContext()
+  const { bundle, ready, refresh } = useDashboardPrefetch()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('profile')
   const [loading, setLoading] = useState(true)

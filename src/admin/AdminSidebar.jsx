@@ -11,6 +11,7 @@ import {
   Settings,
   ExternalLink,
   Shield,
+  GraduationCap,
 } from 'lucide-react'
 import LuterLogo from '../components/shared/LuterLogo'
 
@@ -18,6 +19,7 @@ const NAV = [
   { to: '/admin', end: true, icon: LayoutDashboard, label: 'Overview' },
   { to: '/admin/users', icon: Users, label: 'Users' },
   { to: '/admin/courses', icon: BookOpen, label: 'Courses' },
+  { to: '/admin/syllabus', icon: GraduationCap, label: 'Syllabus manager' },
   { to: '/admin/enrollments', icon: Link2, label: 'Enrollments' },
   { to: '/admin/matches', icon: Sword, label: 'Matches' },
   { to: '/admin/notifications', icon: Bell, label: 'Notifications' },

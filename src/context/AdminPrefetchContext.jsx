@@ -1,6 +1,28 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
 
+const CACHE_KEY = 'luter:admin_prefetch:v1'
+
+function readCachedBundle() {
+  if (typeof localStorage === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (!raw) return null
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
+function writeCachedBundle(bundle) {
+  if (typeof localStorage === 'undefined') return
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(bundle))
+  } catch {
+    /* quota or private mode */
+  }
+}
+
 const AdminPrefetchContext = createContext(null)
 
 export function useAdminPrefetch() {
@@ -90,29 +112,93 @@ async function fetchAdminBundle() {
 export function AdminPrefetchProvider({ children }) {
   const [bundle, setBundle] = useState(null)
   const [ready, setReady] = useState(false)
+  const [servingCached, setServingCached] = useState(false)
 
   const refresh = useCallback(async () => {
-    const b = await fetchAdminBundle()
-    setBundle(b)
-    setReady(true)
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const cached = readCachedBundle()
+      if (cached) {
+        setBundle(cached)
+        setServingCached(true)
+        setReady(true)
+      }
+      return
+    }
+
+    try {
+      const b = await fetchAdminBundle()
+      setBundle(b)
+      writeCachedBundle(b)
+      setServingCached(false)
+      setReady(true)
+    } catch {
+      const cached = readCachedBundle()
+      if (cached) {
+        setBundle(cached)
+        setServingCached(true)
+      }
+      setReady(true)
+    }
   }, [])
 
   useEffect(() => {
     let cancelled = false
-    setReady(false)
-    setBundle(null)
-    ;(async () => {
-      const b = await fetchAdminBundle()
-      if (cancelled) return
-      setBundle(b)
-      setReady(true)
-    })()
+
+    const run = async () => {
+      const offline = typeof navigator !== 'undefined' && !navigator.onLine
+      const cached = readCachedBundle()
+
+      if (offline) {
+        if (cached && !cancelled) {
+          setBundle(cached)
+          setServingCached(true)
+          setReady(true)
+        } else if (!cancelled) {
+          setServingCached(false)
+          setReady(true)
+        }
+        return
+      }
+
+      setReady(false)
+      setBundle(null)
+      setServingCached(false)
+
+      try {
+        const b = await fetchAdminBundle()
+        if (cancelled) return
+        setBundle(b)
+        writeCachedBundle(b)
+        setServingCached(false)
+        setReady(true)
+      } catch {
+        if (cancelled) return
+        if (cached) {
+          setBundle(cached)
+          setServingCached(true)
+        }
+        setReady(true)
+      }
+    }
+
+    run()
     return () => {
       cancelled = true
     }
   }, [])
 
-  const value = useMemo(() => ({ bundle, ready, refresh }), [bundle, ready, refresh])
+  useEffect(() => {
+    const onOnline = () => {
+      refresh()
+    }
+    window.addEventListener('online', onOnline)
+    return () => window.removeEventListener('online', onOnline)
+  }, [refresh])
+
+  const value = useMemo(
+    () => ({ bundle, ready, refresh, servingCached }),
+    [bundle, ready, refresh, servingCached],
+  )
 
   return <AdminPrefetchContext.Provider value={value}>{children}</AdminPrefetchContext.Provider>
 }

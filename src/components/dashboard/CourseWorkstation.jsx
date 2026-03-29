@@ -148,13 +148,16 @@ function LibraryTab({ course }) {
 }
 
 // ─── Tab B: Solution Vault ───────────────────────────────────────────────────
-function SolutionVaultTab({ course, userId }) {
+function SolutionVaultTab({ course, userId, academicProfile }) {
   const [assignments, setAssignments] = useState([
     { id: 1, title: 'Assignment 1: Newton\'s Laws', uploadedAt: Date.now() - 1000 * 60 * 45, status: 'solved', solution: 'Step 1: Identify all forces acting on the object...\nStep 2: Apply Newton\'s Second Law: F = ma\nStep 3: Calculate the net force: F_net = 15N - 3N = 12N\nStep 4: Solve for acceleration: a = F_net/m = 12N/2kg = 6 m/s²\n\n**Final Answer: a = 6 m/s²**' },
   ])
   const [currentUpload, setCurrentUpload] = useState(null)
   const [selectedAssignment, setSelectedAssignment] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [showPremiumModal, setShowPremiumModal] = useState(false)
+  const [canAccess, setCanAccess] = useState(true)
+  const [isPremium, setIsPremium] = useState(false)
   const fileRef = useRef()
 
   // Persistent timer using localStorage
@@ -174,6 +177,48 @@ function SolutionVaultTab({ course, userId }) {
   const remainingSeconds = timerData ? Math.max(0, Math.floor((timerData.endsAt - Date.now()) / 1000)) : 0
   const { seconds, running, start, reset, setSeconds } = useCountdown(remainingSeconds)
 
+  // Check access permissions on mount
+  useEffect(() => {
+    const checkAccess = async () => {
+      if (!userId || !course?.id) return
+      
+      try {
+        // Check if user can access this course
+        const { data: canAccessCourse } = await supabase.rpc('can_access_course', {
+          p_user_id: userId,
+          p_course_id: course.id
+        })
+        
+        // Check if user is premium
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_premium')
+          .eq('id', userId)
+          .single()
+        
+        setCanAccess(canAccessCourse || false)
+        setIsPremium(profile?.is_premium || false)
+        
+        // Check feature limits
+        if (!profile?.is_premium) {
+          const { data: canUseFeature } = await supabase.rpc('check_feature_limit', {
+            p_user_id: userId,
+            p_feature_type: 'assignment_solution'
+          })
+          
+          if (!canUseFeature) {
+            setCanAccess(false)
+          }
+        }
+      } catch (error) {
+        console.error('Error checking access:', error)
+        setCanAccess(false)
+      }
+    }
+    
+    checkAccess()
+  }, [userId, course?.id])
+
   useEffect(() => {
     if (timerData && remainingSeconds > 0 && !running) {
       setSeconds(remainingSeconds)
@@ -183,6 +228,24 @@ function SolutionVaultTab({ course, userId }) {
 
   const handleFile = async (file) => {
     if (!file) return
+    
+    // Check access before proceeding
+    if (!canAccess && !isPremium) {
+      setShowPremiumModal(true)
+      return
+    }
+    
+    // Record feature usage for free users
+    if (!isPremium) {
+      try {
+        await supabase.rpc('record_feature_usage', {
+          p_user_id: userId,
+          p_feature_type: 'assignment_solution'
+        })
+      } catch (error) {
+        console.error('Error recording usage:', error)
+      }
+    }
     const endTime = Date.now() + 30 * 60 * 1000
     const data = { endsAt: endTime, title: file.name }
     localStorage.setItem(TIMER_KEY, JSON.stringify(data))
@@ -201,7 +264,7 @@ function SolutionVaultTab({ course, userId }) {
       const aiResponse = await callGroqAPI(
         [{ role: 'user', content: prompt }],
         GROQ_MODELS.PROFESSOR,
-        { temperature: 0.3 }
+        { temperature: 0.3, profile: academicProfile },
       )
       
       // Simulate processing time for better UX
@@ -250,8 +313,25 @@ function SolutionVaultTab({ course, userId }) {
         className={`cw-upload-zone ${isDragging ? 'cw-upload-zone--drag' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
         onDragLeave={() => setIsDragging(false)}
-        onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFile(e.dataTransfer.files[0]) }}
-        onClick={() => fileRef.current?.click()}
+        onDrop={(e) => { 
+          e.preventDefault(); 
+          setIsDragging(false); 
+          
+          // Check access before handling file
+          if (!canAccess && !isPremium) {
+            setShowPremiumModal(true)
+            return
+          }
+          
+          handleFile(e.dataTransfer.files[0]) 
+        }}
+        onClick={() => {
+          if (!canAccess && !isPremium) {
+            setShowPremiumModal(true)
+            return
+          }
+          fileRef.current?.click()
+        }}
       >
         {timerData && seconds > 0 ? (
           <div className="cw-timer-active">
@@ -284,14 +364,33 @@ function SolutionVaultTab({ course, userId }) {
           </div>
         ) : (
           <div className="cw-upload-idle">
-            <div className="cw-upload-icon-wrap">
-              <Upload size={28} />
-            </div>
-            <p className="cw-upload-title">Drag & drop or click to upload</p>
-            <p className="cw-upload-sub">PDF, image, or photo of your assignment</p>
-            <div className="cw-promise-badge">
-              <Clock size={12} /> 30-Min Solution Promise
-            </div>
+            {!canAccess && !isPremium ? (
+              <>
+                <div className="cw-upload-icon-wrap" style={{ opacity: 0.6 }}>
+                  <Lock size={28} className="text-amber-500" />
+                </div>
+                <p className="cw-upload-title">Premium Feature</p>
+                <p className="cw-upload-sub">Upgrade to unlock 30-minute assignment solutions</p>
+                <button 
+                  onClick={() => setShowPremiumModal(true)}
+                  className="cw-promise-badge" 
+                  style={{ background: 'linear-gradient(45deg, #fbbf24, #f59e0b)' }}
+                >
+                  <Crown size={12} /> Upgrade to Unlock
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="cw-upload-icon-wrap">
+                  <Upload size={28} />
+                </div>
+                <p className="cw-upload-title">Drag & drop or click to upload</p>
+                <p className="cw-upload-sub">PDF, image, or photo of your assignment</p>
+                <div className="cw-promise-badge">
+                  <Clock size={12} /> 30-Min Solution Promise
+                </div>
+              </>
+            )}
           </div>
         )}
         <input ref={fileRef} type="file" style={{ display: 'none' }} accept=".pdf,.jpg,.jpeg,.png" onChange={e => handleFile(e.target.files[0])} />
@@ -316,15 +415,15 @@ function SolutionVaultTab({ course, userId }) {
         </div>
       </div>
 
-      {/* Solution Modal */}
+      {/* Premium Modal */}
       <AnimatePresence>
-        {selectedAssignment && (
+        {showPremiumModal && (
           <motion.div
             className="cw-solution-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setSelectedAssignment(null)}
+            onClick={() => setShowPremiumModal(false)}
           >
             <motion.div
               className="cw-solution-modal"
@@ -332,18 +431,51 @@ function SolutionVaultTab({ course, userId }) {
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: 40, opacity: 0, scale: 0.95 }}
               onClick={e => e.stopPropagation()}
+              style={{ maxWidth: '400px' }}
             >
               <div className="cw-sol-header">
-                <div className="cw-sol-badge"><CheckCircle size={14} /> Verified Solution</div>
-                <button className="cw-sol-close" onClick={() => setSelectedAssignment(null)}><X size={16} /></button>
+                <div className="cw-sol-badge" style={{ background: 'linear-gradient(45deg, #fbbf24, #f59e0b)' }}>
+                  <Crown size={14} /> Premium Feature
+                </div>
+                <button className="cw-sol-close" onClick={() => setShowPremiumModal(false)}><X size={16} /></button>
               </div>
-              <h3 className="cw-sol-title">{selectedAssignment.title}</h3>
+              <h3 className="cw-sol-title">Unlock Assignment Solutions</h3>
               <div className="cw-sol-body">
-                {selectedAssignment.solution?.split('\n').map((line, i) => (
-                  <p key={i} className={line.startsWith('**') ? 'cw-sol-step-header' : 'cw-sol-step'}>
-                    {line.replace(/\*\*/g, '')}
-                  </p>
-                ))}
+                <p style={{ marginBottom: '16px' }}>Get step-by-step solutions to your assignments in 30 minutes with AI-powered assistance.</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <button 
+                    onClick={() => {
+                      window.location.href = '/dashboard/pricing'
+                    }}
+                    style={{ 
+                      padding: '12px 24px', 
+                      background: 'linear-gradient(45deg, #fbbf24, #f59e0b)', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '12px', 
+                      fontSize: '14px', 
+                      fontWeight: '700', 
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    Upgrade to Premium
+                  </button>
+                  <button 
+                    onClick={() => setShowPremiumModal(false)}
+                    style={{ 
+                      padding: '12px 24px', 
+                      background: '#f3f4f6', 
+                      color: '#374151', 
+                      border: '1px solid #e5e7eb', 
+                      borderRadius: '12px', 
+                      fontSize: '14px', 
+                      fontWeight: '700', 
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    Maybe Later
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>
@@ -354,7 +486,7 @@ function SolutionVaultTab({ course, userId }) {
 }
 
 // ─── Tab D: AI Notes ───────────────────────────────────────────────────────
-function AINotesTab({ course }) {
+function AINotesTab({ course, academicProfile }) {
   const [notes, setNotes] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [uploadedContent, setUploadedContent] = useState('')
@@ -373,7 +505,7 @@ function AINotesTab({ course }) {
       const data = await callGroqAPI(
         [{ role: 'user', content: prompt }],
         GROQ_MODELS.PROFESSOR,
-        { temperature: 0.7 }
+        { temperature: 0.7, profile: academicProfile },
       )
       
       setNotes(data.choices?.[0]?.message?.content || 'No notes generated')
@@ -441,7 +573,7 @@ function AINotesTab({ course }) {
 }
 
 // ─── Tab E: Flashcards ───────────────────────────────────────────────────────
-function FlashcardsTab({ course }) {
+function FlashcardsTab({ course, academicProfile }) {
   const [flashcards, setFlashcards] = useState([])
   const [isGenerating, setIsGenerating] = useState(false)
   const [uploadedContent, setUploadedContent] = useState('')
@@ -463,7 +595,7 @@ function FlashcardsTab({ course }) {
       const data = await callGroqAPI(
         [{ role: 'user', content: prompt }],
         GROQ_MODELS.SPEEDSTER,
-        { temperature: 0.7, responseFormat: { type: 'json_object' } }
+        { temperature: 0.7, responseFormat: { type: 'json_object' }, profile: academicProfile },
       )
       
       const response = JSON.parse(data.choices?.[0]?.message?.content || '{}')
@@ -625,7 +757,7 @@ function FlashcardsTab({ course }) {
 }
 
 // ─── Tab F: AI Summary ───────────────────────────────────────────────────────
-function AISummaryTab({ course }) {
+function AISummaryTab({ course, academicProfile }) {
   const [summary, setSummary] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [uploadedContent, setUploadedContent] = useState('')
@@ -645,7 +777,7 @@ function AISummaryTab({ course }) {
       const data = await callGroqAPI(
         [{ role: 'user', content: prompt }],
         GROQ_MODELS.SPEEDSTER,
-        { temperature: 0.5 }
+        { temperature: 0.5, profile: academicProfile },
       )
       
       setSummary(data.choices?.[0]?.message?.content || 'No summary generated')
@@ -781,7 +913,7 @@ function QuizBattleTab({ course }) {
 }
 
 // ─── MAIN WORKSTATION ────────────────────────────────────────────────────────
-export default function CourseWorkstation({ course, onBack, user }) {
+export default function CourseWorkstation({ course, onBack, user, academicProfile }) {
   const [activeTab, setActiveTab] = useState('library')
   const tabs = [
     { id: 'library', label: 'Library', icon: BookOpen },
@@ -847,10 +979,12 @@ export default function CourseWorkstation({ course, onBack, user }) {
             style={{ height: '100%' }}
           >
             {activeTab === 'library' && <LibraryTab course={course} user={user} />}
-            {activeTab === 'vault' && <SolutionVaultTab course={course} userId={user?.id} />}
-            {activeTab === 'notes' && <AINotesTab course={course} />}
-            {activeTab === 'flashcards' && <FlashcardsTab course={course} />}
-            {activeTab === 'summary' && <AISummaryTab course={course} />}
+            {activeTab === 'vault' && (
+              <SolutionVaultTab course={course} userId={user?.id} academicProfile={academicProfile} />
+            )}
+            {activeTab === 'notes' && <AINotesTab course={course} academicProfile={academicProfile} />}
+            {activeTab === 'flashcards' && <FlashcardsTab course={course} academicProfile={academicProfile} />}
+            {activeTab === 'summary' && <AISummaryTab course={course} academicProfile={academicProfile} />}
             {activeTab === 'quiz' && <QuizBattleTab course={course} />}
           </motion.div>
         </AnimatePresence>

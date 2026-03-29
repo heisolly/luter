@@ -102,6 +102,7 @@ export default function CourseWorkstationRoute() {
     <CourseWorkstation
       course={course}
       user={user}
+      academicProfile={bundle?.profile?.data ?? null}
       onBack={() => navigate('/dashboard/courses')}
     />
   )

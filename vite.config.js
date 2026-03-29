@@ -1,7 +1,16 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwind from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
 import { OAuth2Client } from 'google-auth-library'
+import { createClient } from '@supabase/supabase-js'
+import {
+  resolveUniversitySlugParam,
+  resolveDepartmentSlugParam,
+  normalizeSemesterParam,
+} from './src/lib/curriculumSlugs.js'
+import { runSyllabusWebLayer } from './api/lib/syllabusWeb.js'
+import { readJsonBody } from './api/lib/readJsonBody.js'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -10,12 +19,91 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-      react(), 
+      react(),
       tailwind(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        injectRegister: 'auto',
+        includeAssets: ['favicon.svg'],
+        manifest: {
+          name: 'Luter',
+          short_name: 'Luter',
+          description: 'AI-powered study notes, flashcards, and mock exams.',
+          theme_color: '#9718fb',
+          background_color: '#111116',
+          display: 'standalone',
+          icons: [{ src: '/favicon.svg', type: 'image/svg+xml', sizes: 'any', purpose: 'any' }],
+        },
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,svg,png,webp,woff2,webmanifest}'],
+          navigateFallback: '/index.html',
+          navigateFallbackDenylist: [/^\/api\//],
+        },
+        devOptions: { enabled: false },
+      }),
       {
         name: 'api-server',
         configureServer(server) {
           server.middlewares.use(async (req, res, next) => {
+            const rawPath = req.url?.split('?')[0] || ''
+            if (req.method === 'GET' && rawPath === '/api/v1/curriculum') {
+              const url = new URL(req.url || '/', 'http://vite.local')
+              const uni = url.searchParams.get('uni') || ''
+              const dept = url.searchParams.get('dept') || ''
+              const level = url.searchParams.get('level') || '100'
+              const semester = normalizeSemesterParam(url.searchParams.get('sem'))
+              const supabaseUrl = env.VITE_SUPABASE_URL
+              const supabaseKey = env.VITE_SUPABASE_ANON_KEY
+              if (!supabaseUrl || !supabaseKey) {
+                res.statusCode = 503
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({ ok: false, error: 'VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not set' }))
+                return
+              }
+              const supabase = createClient(supabaseUrl, supabaseKey)
+              const university_slug = resolveUniversitySlugParam(uni)
+              const department_slug = resolveDepartmentSlugParam(dept)
+              const { data, error } = await supabase
+                .from('curriculum_offers')
+                .select('*')
+                .eq('university_slug', university_slug)
+                .eq('department_slug', department_slug)
+                .eq('level', level)
+                .eq('semester', semester)
+                .eq('status', 'live')
+                .maybeSingle()
+              res.setHeader('Content-Type', 'application/json')
+              if (error) {
+                res.statusCode = 500
+                res.end(JSON.stringify({ ok: false, error: error.message }))
+                return
+              }
+              res.end(JSON.stringify({ ok: true, data }))
+              return
+            }
+            if (req.method === 'POST' && rawPath === '/api/v1/syllabus/web') {
+              try {
+                const parsed = await readJsonBody(req)
+                const out = await runSyllabusWebLayer(
+                  {
+                    university: parsed.university,
+                    department: parsed.department,
+                    level: parsed.level,
+                    semester: parsed.semester,
+                    scrapeUrl: parsed.scrapeUrl,
+                    searchFocus: parsed.searchFocus,
+                    includeSnippet: Boolean(parsed.includeSnippet),
+                  },
+                  env,
+                )
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify(out))
+              } catch (e) {
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({ ok: true, courses: [], error: String(e.message) }))
+              }
+              return
+            }
             if (req.url === '/api/verify-google' && req.method === 'POST') {
               let body = '';
               req.on('data', chunk => { body += chunk; });

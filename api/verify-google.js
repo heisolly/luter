@@ -1,54 +1,55 @@
-import { OAuth2Client } from 'google-auth-library';
-import dotenv from 'dotenv';
-dotenv.config();
-
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+import { OAuth2Client } from 'google-auth-library'
+import { readJsonBody } from './lib/readJsonBody.js'
 
 export default async function handler(req, res) {
-  // Only allow POST requests
+  res.setHeader('Content-Type', 'application/json')
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    res.statusCode = 405
+    res.end(JSON.stringify({ error: 'Method not allowed' }))
+    return
   }
 
-  const { token } = req.body;
+  const clientId = process.env.VITE_GOOGLE_CLIENT_ID
+  if (!clientId) {
+    res.statusCode = 503
+    res.end(JSON.stringify({ error: 'VITE_GOOGLE_CLIENT_ID is not configured' }))
+    return
+  }
 
+  let body
+  try {
+    body = await readJsonBody(req)
+  } catch {
+    body = {}
+  }
+  const { token } = body
   if (!token) {
-    return res.status(400).json({ error: 'Token is required' });
+    res.statusCode = 400
+    res.end(JSON.stringify({ error: 'Missing token' }))
+    return
   }
 
   try {
+    const client = new OAuth2Client(clientId)
     const ticket = await client.verifyIdToken({
       idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
-    const userid = payload['sub'];
-
-    // Console logging the user's name and email as requested
-    console.log('--- User Verified Successfully ---');
-    console.log(`Name: ${payload.name}`);
-    console.log(`Email: ${payload.email}`);
-    console.log('---------------------------------');
-
-    // In a production app, you would generate a JWT token or set a session
-    // cookie here for the frontend to manage authentication status.
-    
-    // Returning verification status and user info
-    res.status(200).json({ 
-      message: 'Success', 
-      user: {
-        id: userid,
-        email: payload.email,
-        name: payload.name,
-        picture: payload.picture,
-        verified: payload.email_verified
-      } 
-    });
-  } catch (error) {
-    console.error('Token verification error:', error);
-    res.status(401).json({ 
-      error: 'Invalid token during verification',
-      details: error.message 
-    });
+      audience: clientId,
+    })
+    const payload = ticket.getPayload()
+    res.statusCode = 200
+    res.end(
+      JSON.stringify({
+        message: 'Success',
+        user: {
+          id: payload.sub,
+          email: payload.email,
+          name: payload.name,
+          picture: payload.picture,
+        },
+      }),
+    )
+  } catch (e) {
+    res.statusCode = 401
+    res.end(JSON.stringify({ error: e.message }))
   }
 }

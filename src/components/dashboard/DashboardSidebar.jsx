@@ -14,7 +14,7 @@ const NAV = [
   { id: 'mock-exam', path: '/dashboard/mock-exam', icon: FlaskConical, label: 'Mock Exam' },
   { id: 'compete', path: '/dashboard/compete', icon: Trophy, label: 'Compete' },
   { id: 'analytics', path: '/dashboard/analytics', icon: BarChart3, label: 'Analytics' },
-  { id: 'upgrade', path: '/dashboard/upgrade', icon: Zap, label: 'Upgrade' },
+  { id: 'pricing', path: '/dashboard/pricing', icon: Zap, label: 'Upgrade' },
 ]
 
 function isNavActiveFixed(pathname, navPath) {
@@ -43,7 +43,8 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
     getStreak()
   }, [user, ready, bundle])
 
-  const firstName = user?.user_metadata?.full_name?.split(' ')[0] || 'Student'
+  const profileName = bundle?.profile?.full_name || user?.user_metadata?.full_name
+  const firstName = profileName ? profileName.split(' ')[0] : 'Student'
   const initials = firstName.slice(0, 2).toUpperCase()
 
   const go = (path) => {

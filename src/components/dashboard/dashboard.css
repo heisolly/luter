@@ -1,4 +1,91 @@
 /* =============================================
+   LOCKED COURSE STYLES (FREEMIUM)
+   ============================================= */
+
+.course-full-card--locked {
+  position: relative;
+  overflow: hidden;
+}
+
+.course-full-card--locked::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #fbbf24, #f59e0b, #fbbf24, #f59e0b);
+  background-size: 400% 400%;
+  border-radius: 16px;
+  z-index: -1;
+  animation: premiumGlow 3s ease-in-out infinite;
+  opacity: 0.6;
+}
+
+@keyframes premiumGlow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.course-full-card--locked .cfc-stripe {
+  background: linear-gradient(45deg, #fbbf24, #f59e0b) !important;
+  animation: stripeShimmer 2s ease-in-out infinite;
+}
+
+@keyframes stripeShimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.cfc-btn-primary--locked {
+  background: linear-gradient(45deg, #fbbf24, #f59e0b) !important;
+  color: white !important;
+  border: none !important;
+  animation: buttonPulse 2s ease-in-out infinite;
+}
+
+@keyframes buttonPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.course-full-card--locked:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 20px 40px -10px rgba(251, 191, 36, 0.3) !important;
+}
+
+/* Lock overlay styling */
+.course-full-card--locked .absolute.inset-0 {
+  backdrop-filter: blur(1px);
+  transition: backdrop-filter 0.3s ease;
+}
+
+.course-full-card--locked:hover .absolute.inset-0 {
+  backdrop-filter: blur(2px);
+}
+
+/* Premium badge animation */
+.premium-badge {
+  animation: badgeFloat 3s ease-in-out infinite;
+}
+
+@keyframes badgeFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
+}
+
+/* Lock icon styling */
+.lock-icon-glow {
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
+  animation: lockPulse 2s ease-in-out infinite;
+}
+
+@keyframes lockPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* =============================================
    DASHBOARD ROOT
    ============================================= */
 

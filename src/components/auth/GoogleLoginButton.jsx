@@ -1,6 +1,7 @@
 import React from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../supabaseClient';
 
 const GoogleLoginButton = () => {
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ const GoogleLoginButton = () => {
     console.log('Google Login Success, JWT Captured');
 
     try {
-      // Send token to backend for verification
+      // 1. First, we still verify it on our backend for security/logging
       const verifyResponse = await fetch('/api/verify-google', {
         method: 'POST',
         headers: {
@@ -21,13 +22,49 @@ const GoogleLoginButton = () => {
 
       if (verifyResponse.ok) {
         const data = await verifyResponse.json();
-        console.log('User Verified:', {
-          name: data.user.name,
-          email: data.user.email
-        });
+        console.log('Backend Verification Success:', data.user.email);
         
-        // Successful login, redirect to dashboard
-        navigate('/dashboard');
+        // 2. CRITICAL: Sign the user into Supabase using the Google ID Token
+        // This ensures the Dashboard and other components see an active session.
+        const { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: credential,
+        });
+
+        if (authError) {
+          console.error('Supabase Auth Error:', authError.message);
+          alert('Could not sync Google login with Supabase: ' + authError.message);
+          return;
+        }
+
+        const redirectParam = new URLSearchParams(window.location.search).get('redirect');
+        const safeRedirect =
+          redirectParam &&
+          redirectParam.startsWith('/') &&
+          !redirectParam.startsWith('//')
+            ? redirectParam
+            : '/dashboard';
+
+        // New Google users often already have a profiles row (DB trigger). Gate on onboarding completion.
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, onboarding_complete')
+          .eq('id', authData.user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.warn('Profile lookup:', profileError.message);
+        }
+
+        const needsOnboarding = profile?.onboarding_complete !== true;
+
+        if (needsOnboarding) {
+          console.log('Onboarding incomplete, routing to /onboarding');
+          navigate('/onboarding');
+        } else {
+          console.log('Onboarding complete, routing to', safeRedirect);
+          navigate(safeRedirect);
+        }
       } else {
         const errorText = await verifyResponse.text();
         console.error('Verification failed. Status:', verifyResponse.status, errorText);

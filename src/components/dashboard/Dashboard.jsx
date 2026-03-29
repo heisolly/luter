@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Outlet, useNavigate } from 'react-router-dom'
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import DashboardSidebar from './DashboardSidebar'
 import { Loader2, Sword, X, ArrowRight } from 'lucide-react'
@@ -12,6 +12,7 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [user, setUser] = useState(null)
+  const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showInviteNotify, setShowInviteNotify] = useState(null)
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
@@ -25,6 +26,10 @@ export default function Dashboard() {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
         setUser(session.user)
+
+        // Fetch profile to get the most up-to-date name
+        const { data: p } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).maybeSingle()
+        if (p) setProfile(p)
 
         const updateHeartbeat = async () => {
           await supabase.from('profiles').update({ last_active_at: new Date().toISOString() }).eq('id', session.user.id)
@@ -146,7 +151,7 @@ export default function Dashboard() {
               boxShadow: '0 4px 12px var(--primary-glow)',
             }}
           >
-            {user?.user_metadata?.full_name?.slice(0, 1).toUpperCase() || 'S'}
+            {profile?.full_name?.slice(0, 1).toUpperCase() || user?.user_metadata?.full_name?.slice(0, 1).toUpperCase() || 'S'}
           </div>
         </div>
       )}

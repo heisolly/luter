@@ -39,7 +39,10 @@ export default function DashboardHome() {
   const navigate = useNavigate()
   const { user, isMobile } = useOutletContext()
   const { ready, bundle } = useDashboardPrefetch()
-  const name = user?.user_metadata?.full_name?.split(' ')[0] || 'Student'
+  
+  // Prefer profile table name over metadata as it gets updated during onboarding
+  const profileName = bundle?.profile?.full_name || user?.user_metadata?.full_name
+  const name = profileName ? profileName.split(' ')[0] : 'Student'
 
   const [courses,   setCourses]   = useState([])   // user's enrolled courses
   const [stats,     setStats]     = useState(null)  // user_stats row
