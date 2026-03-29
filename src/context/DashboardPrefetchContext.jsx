@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
 
-const CACHE_VER = 'v1'
+const CACHE_VER = 'v2'
 const storageKey = (userId) => `luter:dashboard_prefetch:${CACHE_VER}:${userId}`
 
 function readCachedBundle(userId) {

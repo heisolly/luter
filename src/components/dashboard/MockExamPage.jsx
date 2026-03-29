@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useOutletContext, useLocation } from 'react-router-dom'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
-import { FlaskConical, Clock, CheckCircle2, XCircle, Search, Loader2, Zap, ArrowRight, ArrowLeft, Dices, Share2, Award, Trophy, RotateCcw, BarChart3, Flame, Star, Users, ThumbsUp, ThumbsDown, MessageCircle, Gift, Trash2, MoreHorizontal } from 'lucide-react'
+import { FlaskConical, Clock, CheckCircle2, XCircle, Search, Loader2, Zap, ArrowRight, ArrowLeft, Dices, Share2, Award, Trophy, RotateCcw, BarChart3, Flame, Star, Users, ThumbsUp, ThumbsDown, MessageCircle, Gift, Trash2, MoreHorizontal, X } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toPng } from 'html-to-image'
@@ -62,6 +62,8 @@ export default function MockExamPage() {
   const [selected, setSelected] = useState({})
   const [isSharing, setIsSharing] = useState(false)
   const resultRef = useRef(null)
+  const messagesEndRef = useRef(null)
+  const chatScrollRef = useRef(null)
   
   // Custom configurations
   const [examCourses, setExamCourses] = useState(preselectedCourse ? [preselectedCourse] : [])
@@ -148,36 +150,92 @@ export default function MockExamPage() {
     }
   }
 
-  const handleAiChat = (question) => {
-    setAiChatOpen(true)
-    setAiChatMessages([
-      { role: 'system', content: 'You are a helpful tutor. Explain this question clearly.' },
-      { role: 'user', content: `Question: ${question.question}\nOptions: ${question.options.join(', ')}` }
-    ])
+  const handleAiChat = () => {
+    if (aiChatOpen) {
+      setAiChatOpen(false)
+    } else {
+      setAiChatOpen(true)
+      setAiChatMessages([])
+    }
   }
 
-  const sendAiMessage = async () => {
-    if (!aiChatInput.trim()) return
-    
-    const userMessage = { role: 'user', content: aiChatInput }
+  const sendAiMessage = async (overrideText) => {
+    const text = overrideText !== undefined ? overrideText : aiChatInput
+    if (!text.trim()) return
+    const userMessage = { role: 'user', content: text }
     setAiChatMessages(prev => [...prev, userMessage])
+    const currentInput = text
     setAiChatInput('')
     setIsAiLoading(true)
 
     try {
+      // Get current question context
+      const currentQuestion = generatedQuestions[current]
+      let contextPrompt = 'You are Luter AI Tutor, a helpful assistant for Nigerian university students.'
+      
+      if (currentQuestion) {
+        contextPrompt += `\n\nCurrent Question: ${currentQuestion.question}\n\nOptions:\n${currentQuestion.options.map((opt, i) => `${String.fromCharCode(65 + i)}. ${opt}`).join('\n')}\n\nCorrect Answer: ${currentQuestion.answer}\n\nExplanation: ${currentQuestion.explanation}`
+      }
+      
+      // Build messages array in correct format
+      const messages = [
+        { role: 'system', content: contextPrompt },
+        ...aiChatMessages.filter(m => m.role !== 'system'),
+        userMessage
+      ]
+      
       const response = await callGroqAPI(
-        GROQ_MODELS.DEFAULT,
-        [...aiChatMessages, userMessage].map(m => m.content).join('\n'),
-        GROQ_PROMPTS.DEFAULT
+        messages,
+        GROQ_MODELS.PROFESSOR,
+        { 
+          temperature: 0.7
+        }
       )
       
-      setAiChatMessages(prev => [...prev, { role: 'assistant', content: response }])
+      setAiChatMessages(prev => [...prev, { role: 'assistant', content: response.choices[0].message.content }])
     } catch (error) {
-      setAiChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }])
+      console.error('AI Tutor Error:', error)
+      setAiChatMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Sorry, I\'m having trouble connecting right now. Please try again in a moment.' 
+      }])
     } finally {
       setIsAiLoading(false)
     }
   }
+
+  // Auto-scroll chat to bottom on new messages
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [aiChatMessages, isAiLoading])
+
+  // Render AI markdown-style bold text
+  const renderAiText = (text) => {
+    if (!text) return null
+    const parts = text.split(/(\*\*[^*]+\*\*)/g)
+    return parts.map((part, i) =>
+      part.startsWith('**') && part.endsWith('**')
+        ? <strong key={i} style={{ fontWeight: 600 }}>{part.slice(2, -2)}</strong>
+        : <span key={i}>{part}</span>
+    )
+  }
+
+  const SUGGESTED_QUESTIONS = [
+    "Explain it like I'm five years old",
+    'Give me an analogy',
+    'Give me a mnemonic to help me remember',
+    'Explain it through a conversation between two animals'
+  ]
+
+  const FOLLOWUP_QUESTIONS = [
+    'What are some examples of this?',
+    'How can I apply this in practice?',
+    'Why is this important to know?',
+    "Explain it like I'm five years old",
+    'Give me an analogy'
+  ]
 
   const score = Object.entries(selected).reduce((acc, [idx, ansIdx]) => acc + (ansIdx === (generatedQuestions[idx]?.answer ?? 0) ? 1 : 0), 0)
   const pass = score >= (generatedQuestions?.length || 1) / 2
@@ -348,6 +406,7 @@ export default function MockExamPage() {
           setCurrent(0)
           setSelected({})
           setIsGenerating(false)
+          setAiChatOpen(false)
           setLoadingStep(0)
         }, 1000)
       }, 2000)
@@ -380,6 +439,7 @@ export default function MockExamPage() {
           setCurrent(0)
           setSelected({})
           setIsGenerating(false)
+          setAiChatOpen(false)
           setLoadingStep(0)
         }, 500)
       }, 1000)
@@ -1184,9 +1244,7 @@ export default function MockExamPage() {
       <div style={{ 
         flex: 1, 
         display: 'flex', 
-        flexDirection: 'column',
-        transition: 'margin-right 0.3s ease',
-        marginRight: aiChatOpen ? '400px' : '0'
+        flexDirection: 'column'
       }}>
       
       {/* Toolbar - Matching Configure Mode */}
@@ -1685,273 +1743,216 @@ export default function MockExamPage() {
 
       </div>
 
-      {/* AI Chat Right-Side Panel */}
+      {/* AI Chat Right-Side Panel - Redesigned */}
       <AnimatePresence>
         {aiChatOpen && (
           <motion.div
-            initial={{ x: 400, opacity: 0 }}
+            initial={{ x: 360, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 400, opacity: 0 }}
+            exit={{ x: 360, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             style={{
               position: 'fixed',
               right: 0,
               top: 0,
               bottom: 0,
-              width: '400px',
-              background: '#ffffff',
-              borderLeft: '1px solid #e5e7eb',
-              boxShadow: '-4px 0 20px rgba(0,0,0,0.1)',
+              width: '360px',
+              background: '#FFFFFF',
+              borderLeft: '1px solid #E5E7EB',
               display: 'flex',
               flexDirection: 'column',
-              zIndex: 1000
+              zIndex: 1000,
+              fontFamily: "'Inter', system-ui, sans-serif",
+              WebkitFontSmoothing: 'antialiased'
             }}
           >
-            {/* Header */}
-            <div style={{
-              padding: '20px 24px',
-              borderBottom: '1px solid #e5e7eb',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #7a12cc, #b04dfc)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#111' }}>AI Tutor</h3>
-                  <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Ask about this question</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setAiChatOpen(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '8px',
-                  borderRadius: '8px',
-                  color: '#6b7280'
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
-
-            {/* Tabs - Hidden for now, AI Chat is default */}
-            <div style={{
-              display: 'none',
-              borderBottom: '1px solid #e5e7eb',
-              padding: '0 24px'
-            }}>
-              {[
-                { id: 'chat', label: 'chat' },
-                { id: 'source', label: 'view source - pg 4' }
-              ].map((tab) => (
+            {/* Top Tab Nav */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', padding: '0 16px', borderBottom: '1px solid #E5E7EB', flexShrink: 0 }}>
+              {[{ id: 'chat', label: 'chat' }, { id: 'source', label: 'view source - pg 10' }].map((tab, i) => (
                 <button
                   key={tab.id}
                   onClick={() => setAiChatMode(tab.id)}
                   style={{
-                    flex: 1,
-                    padding: '12px 16px',
-                    background: 'none',
-                    border: 'none',
-                    borderBottom: aiChatMode === tab.id ? '2px solid #7a12cc' : '2px solid transparent',
-                    color: aiChatMode === tab.id ? '#7a12cc' : '#6b7280',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
+                    background: 'none', border: 'none',
+                    borderBottom: aiChatMode === tab.id ? '2px solid #111827' : '2px solid transparent',
+                    padding: '16px 0', marginRight: i === 0 ? '24px' : '0',
+                    fontSize: '14px', fontWeight: 500,
+                    color: aiChatMode === tab.id ? '#111827' : '#6B7280',
+                    cursor: 'pointer', transition: 'color 0.2s ease',
+                    lineHeight: 1, whiteSpace: 'nowrap', fontFamily: 'inherit'
                   }}
-                >
-                  {tab.label}
-                </button>
+                >{tab.label}</button>
               ))}
+              <div style={{ flex: 1 }} />
+              <button 
+                onClick={() => setAiChatOpen(false)}
+                style={{ 
+                  background: 'none', border: 'none', cursor: 'pointer', 
+                  padding: '16px 0', color: '#6B7280', display: 'flex', alignItems: 'center' 
+                }}
+                title="Close AI Tutor"
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            {/* Chat Messages - Only chat mode, no source tab */}
-            <div style={{
-              flex: 1,
-              overflow: 'auto',
-              padding: '20px 24px',
-              background: '#f9fafb'
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {/* Quick Actions */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
-                    {["explain it like i'm five years old", 'give me an example', 'why is this important?'].map((quick) => (
+            {/* Scrollable Content */}
+            <div
+              ref={chatScrollRef}
+              style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column' }}
+            >
+              {aiChatMessages.filter(m => m.role !== 'system').length === 0 ? (
+                <>
+                  {/* Suggested Questions - Empty State */}
+                  <div>
+                    <p style={{ fontSize: '13px', color: '#6B7280', margin: '0 0 4px 0', fontWeight: 500 }}>Suggested questions</p>
+                    {SUGGESTED_QUESTIONS.map((question, idx) => (
                       <button
-                        key={quick}
-                        onClick={() => {
-                          setAiChatInput(quick)
-                          setTimeout(sendAiMessage, 100)
-                        }}
+                        key={idx}
+                        onClick={() => sendAiMessage(question)}
+                        disabled={isAiLoading}
                         style={{
-                          background: '#dcfce7',
-                          border: 'none',
-                          borderRadius: '12px',
-                          padding: '8px 14px',
-                          fontSize: '12px',
-                          color: '#166534',
-                          cursor: 'pointer'
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          width: '100%', padding: '12px 0', border: 'none',
+                          borderBottom: '1px solid #E5E7EB', background: 'transparent',
+                          cursor: isAiLoading ? 'not-allowed' : 'pointer',
+                          transition: 'background 0.2s ease', textAlign: 'left',
+                          opacity: isAiLoading ? 0.6 : 1, fontFamily: 'inherit'
                         }}
+                        onMouseEnter={e => { if (!isAiLoading) { e.currentTarget.style.background = '#F3F4F6'; e.currentTarget.style.margin = '0 -16px'; e.currentTarget.style.padding = '12px 16px'; e.currentTarget.style.width = 'calc(100% + 32px)' } }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.margin = '0'; e.currentTarget.style.padding = '12px 0'; e.currentTarget.style.width = '100%' }}
                       >
-                        {quick}
+                        <span style={{ fontSize: '14px', color: '#111827' }}>{question}</span>
+                        <span style={{ color: '#9CA3AF', fontSize: '20px', lineHeight: 1, flexShrink: 0, marginLeft: '8px' }}>+</span>
                       </button>
                     ))}
                   </div>
-
-                  {/* Messages */}
-                  {aiChatMessages.filter(m => m.role !== 'system').map((message, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        alignSelf: message.role === 'user' ? 'flex-end' : 'flex-start',
-                        background: message.role === 'user' ? '#7a12cc' : '#ffffff',
-                        color: message.role === 'user' ? 'white' : '#374151',
-                        padding: '12px 16px',
-                        borderRadius: '12px',
-                        maxWidth: '85%',
-                        fontSize: '14px',
-                        lineHeight: 1.5,
-                        boxShadow: message.role === 'assistant' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none'
-                      }}
+                  {/* Center Refresh Icon */}
+                  <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+                    <motion.div
+                      whileHover={{ rotate: 180 }}
+                      transition={{ duration: 0.4 }}
+                      style={{ width: '40px', height: '40px', borderRadius: '50%', border: '1px solid #E5E7EB', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                     >
-                      {message.content}
-                    </div>
-                  ))}
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/>
+                        <path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                      </svg>
+                    </motion.div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Chat Messages */}
+                  {aiChatMessages.filter(m => m.role !== 'system').map((msg, i) =>
+                    msg.role === 'user' ? (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+                        <span style={{ background: '#D1FAE5', color: '#065F46', padding: '8px 14px', borderRadius: '999px', fontSize: '13px', maxWidth: '85%', lineHeight: 1.5, display: 'inline-block' }}>
+                          {msg.content}
+                        </span>
+                      </div>
+                    ) : (
+                      <div key={i} style={{ marginBottom: '16px' }}>
+                        <div style={{ fontSize: '14px', color: '#111827', lineHeight: 1.6 }}>
+                          {renderAiText(msg.content)}
+                        </div>
+                        <div style={{ display: 'flex', gap: '4px', marginTop: '10px' }}>
+                          {[
+                            { title: 'Helpful', icon: <ThumbsUp size={15} /> },
+                            { title: 'Not helpful', icon: <ThumbsDown size={15} /> },
+                            { title: 'Copy', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>, onClick: () => navigator.clipboard?.writeText(msg.content) }
+                          ].map((btn, bi) => (
+                            <button key={bi} title={btn.title} onClick={btn.onClick}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#6B7280', borderRadius: '4px', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
+                              onMouseEnter={e => e.currentTarget.style.color = '#111827'}
+                              onMouseLeave={e => e.currentTarget.style.color = '#6B7280'}
+                            >{btn.icon}</button>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  )}
+                  {/* Typing dots */}
                   {isAiLoading && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b7280', fontSize: '14px' }}>
-                      <Loader2 size={16} className="animate-spin" />
-                      AI is thinking...
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '12px' }}>
+                      {[0,1,2].map(i => (
+                        <motion.div key={i} animate={{ y: [0,-5,0] }} transition={{ duration: 0.6, repeat: Infinity, delay: i*0.15, ease:'easeInOut' }}
+                          style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#9CA3AF' }} />
+                      ))}
                     </div>
                   )}
-                </div>
+                  <div ref={messagesEndRef} />
+                  {/* Follow-up Questions */}
+                  {!isAiLoading && aiChatMessages.some(m => m.role === 'assistant') && (
+                    <div style={{ marginTop: '16px' }}>
+                      <p style={{ fontSize: '13px', color: '#6B7280', margin: '0 0 4px 0', fontWeight: 500 }}>Follow-up questions</p>
+                      {FOLLOWUP_QUESTIONS.map((question, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => sendAiMessage(question)}
+                          disabled={isAiLoading}
+                          style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            width: '100%', padding: '12px 0', border: 'none',
+                            borderBottom: '1px solid #E5E7EB', background: 'transparent',
+                            cursor: 'pointer', transition: 'background 0.2s ease', textAlign: 'left', fontFamily: 'inherit'
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#F3F4F6'; e.currentTarget.style.margin = '0 -16px'; e.currentTarget.style.padding = '12px 16px'; e.currentTarget.style.width = 'calc(100% + 32px)' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.margin = '0'; e.currentTarget.style.padding = '12px 0'; e.currentTarget.style.width = '100%' }}
+                        >
+                          <span style={{ fontSize: '14px', color: '#111827' }}>{question}</span>
+                          <span style={{ color: '#9CA3AF', fontSize: '20px', lineHeight: 1, flexShrink: 0, marginLeft: '8px' }}>+</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
-            {/* Follow-up Questions */}
-            {aiChatMessages.length > 1 && (
-              <div style={{
-                padding: '16px 24px',
-                background: '#ffffff',
-                borderTop: '1px solid #e5e7eb'
-              }}>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '12px' }}>Follow-up questions</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {['can you give me an example?', "what's the purpose?", 'are there other versions?', 'give me an analogy'].map((q, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        setAiChatInput(q)
-                        setTimeout(sendAiMessage, 100)
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '10px 0',
-                        background: 'none',
-                        border: 'none',
-                        borderBottom: '1px solid #f3f4f6',
-                        fontSize: '14px',
-                        color: '#4b5563',
-                        cursor: 'pointer',
-                        textAlign: 'left'
-                      }}
-                    >
-                      {q}
-                      <span style={{ color: '#9ca3af' }}>+</span>
-                    </button>
-                  ))}
-                  <button style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 0',
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '13px',
-                    color: '#6b7280',
-                    cursor: 'pointer'
-                  }}>
-                    <span>›</span> more questions
-                  </button>
-                </div>
+            {/* Bottom Input Area - Sticky */}
+            <div style={{ padding: '12px 16px', borderTop: '1px solid #E5E7EB', background: '#FFFFFF', flexShrink: 0 }}>
+              <div style={{ marginBottom: '8px' }}>
+                <p style={{ margin: '0 0 2px 0', fontSize: '12px', color: '#6B7280', lineHeight: 1.5 }}>
+                  7 explanations left. <span style={{ color: '#10B981', fontWeight: 500 }}>then resets in 1 hour</span>
+                </p>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '12px', fontWeight: 500, color: '#111827', display: 'flex', alignItems: 'center', gap: '3px', fontFamily: 'inherit' }}>
+                  want unlimited?
+                  <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M0 12.59L10.59 2H4V0H14V10H12V3.41L1.41 14L0 12.59Z" fill="#111827"/></svg>
+                </button>
               </div>
-            )}
-
-            {/* Input */}
-            <div style={{
-              padding: '16px 24px',
-              borderTop: '1px solid #e5e7eb',
-              background: '#ffffff'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                background: '#f3f4f6',
-                borderRadius: '12px',
-                padding: '4px'
-              }}>
+              {/* Input row */}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <input
-                  type="text"
                   value={aiChatInput}
-                  onChange={(e) => setAiChatInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && sendAiMessage()}
+                  onChange={e => setAiChatInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiMessage() } }}
                   placeholder="ask your document anything"
-                  style={{
-                    flex: 1,
-                    border: 'none',
-                    background: 'none',
-                    padding: '12px 16px',
-                    fontSize: '14px',
-                    outline: 'none'
-                  }}
+                  disabled={isAiLoading}
+                  style={{ width: '100%', height: '40px', border: '1px solid #E5E7EB', borderRadius: '999px', padding: '0 80px 0 16px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', color: '#111827', background: '#FFFFFF' }}
                 />
+                {/* Mic icon */}
+                <button style={{ position: 'absolute', right: '44px', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', color: '#9CA3AF' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/>
+                  </svg>
+                </button>
+                {/* Send button */}
                 <button
-                  onClick={sendAiMessage}
+                  onClick={() => sendAiMessage()}
                   disabled={!aiChatInput.trim() || isAiLoading}
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    background: '#7a12cc',
-                    border: 'none',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    opacity: !aiChatInput.trim() || isAiLoading ? 0.5 : 1
-                  }}
+                  style={{ position: 'absolute', right: '4px', width: '32px', height: '32px', borderRadius: '999px', background: aiChatInput.trim() && !isAiLoading ? '#10B981' : '#E5E7EB', border: 'none', cursor: aiChatInput.trim() && !isAiLoading ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s ease', flexShrink: 0 }}
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                    <line x1="22" y1="2" x2="11" y2="13"/>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={aiChatInput.trim() && !isAiLoading ? 'white' : '#9CA3AF'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                   </svg>
                 </button>
               </div>
-              <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '8px', textAlign: 'center' }}>
-                7 explanations left. then resets in 1 hour. <a href="#" style={{ color: '#7a12cc', textDecoration: 'none' }}>want unlimited?</a>
-              </p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
     </div>
     )
   }

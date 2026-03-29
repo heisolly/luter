@@ -413,7 +413,8 @@ export default function Onboarding() {
     await supabase.from('profiles').upsert({
       id: authUser.id,
       full_name: finalName,
-      university,
+      university: university?.name || university,
+      level: level,
       faculty: courseOfStudy,
       academic_goal: chosenGoal,
       source,

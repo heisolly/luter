@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import PremiumModal from '../shared/PremiumModal'
+import CourseEnrollmentModal from '../shared/CourseEnrollmentModal'
 
 const PALETTE = ['#7a12cc','#9718fb','#b04dfc','#6d28d9','#7c3aed','#8b5cf6','#a78bfa','#6366f1']
 
@@ -17,6 +18,7 @@ export default function CoursesPage() {
   const [showPremiumModal, setShowPremiumModal] = useState(false)
   const [selectedCourse, setSelectedCourse] = useState(null)
   const [isPremium, setIsPremium] = useState(false)
+  const [showEnrollmentModal, setShowEnrollmentModal] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -104,6 +106,15 @@ export default function CoursesPage() {
 
   const lockedCourses = courses.filter(c => c.isLocked)
 
+  const handleAddCourse = () => {
+    setShowEnrollmentModal(true)
+  }
+
+  const handleCoursesAdded = (newCourses) => {
+    // Refresh the courses list to show newly added courses
+    window.location.reload()
+  }
+
   return (
     <div className="dh-root" style={{ padding: isMobile ? '20px 16px' : '28px 32px' }}>
       <div className="dh-topbar" style={{ 
@@ -118,7 +129,11 @@ export default function CoursesPage() {
           </p>
         </div>
         <div className="dh-topbar-right" style={{ width: isMobile ? '100%' : 'auto' }}>
-          <button className="dh-upload-btn" style={{ width: isMobile ? '100%' : 'auto', justifyContent: 'center' }}>
+          <button 
+            className="dh-upload-btn" 
+            style={{ width: isMobile ? '100%' : 'auto', justifyContent: 'center' }}
+            onClick={handleAddCourse}
+          >
             <Plus size={14} strokeWidth={2.5} />
             <span>Add Course</span>
           </button>
@@ -222,12 +237,22 @@ export default function CoursesPage() {
           className="course-add-card"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
+          onClick={handleAddCourse}
         >
           <Plus size={28} strokeWidth={1.5} />
           <h4>Enroll New Course</h4>
           <p>Add another class to your semester loadout.</p>
         </motion.div>
       </div>
+
+      {/* Course Enrollment Modal */}
+      <CourseEnrollmentModal
+        isOpen={showEnrollmentModal}
+        onClose={() => setShowEnrollmentModal(false)}
+        user={user}
+        onCoursesAdded={handleCoursesAdded}
+        existingCourses={courses}
+      />
 
       {/* Premium Modal */}
       <PremiumModal
