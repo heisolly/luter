@@ -1151,12 +1151,13 @@ export default function Onboarding() {
                                 border: '1px solid rgba(255,255,255,0.3)', 
                                 fontSize: 16, 
                                 fontWeight: 700, 
-                                color: 'white',
-                                background: 'rgba(255,255,255,0.1)',
+                                color: '#111',
+                                background: 'rgba(255,255,255,0.9)',
                                 outline: 'none',
                                 fontFamily: 'inherit',
                                 boxSizing: 'border-box',
-                                transition: 'all 0.2s'
+                                transition: 'all 0.2s',
+                                cursor: 'pointer'
                               }}
                             />
                           </div>
