@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useOutletContext, useLocation } from 'react-router-dom'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
-import { FlaskConical, Clock, CheckCircle2, XCircle, Search, Loader2, Zap, ArrowRight, ArrowLeft, Dices, Share2, Award, Trophy, RotateCcw, BarChart3, Flame, Star, Users, ThumbsUp, ThumbsDown, MessageCircle, Gift, Trash2, MoreHorizontal, X } from 'lucide-react'
+import { FlaskConical, Clock, CheckCircle2, XCircle, Search, Loader2, Zap, ArrowRight, ArrowLeft, Dices, Share2, Award, Trophy, RotateCcw, BarChart3, Flame, Star, Users, ThumbsUp, ThumbsDown, MessageCircle, MessageSquare, Gift, Trash2, MoreHorizontal, X } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toPng } from 'html-to-image'
@@ -57,7 +57,7 @@ export default function MockExamPage() {
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState('configure') // configure | exam | result
-  const [configStep, setConfigStep] = useState(1) // 1: courses | 2: qs | 3: time
+  const [configStep, setConfigStep] = useState(1) // 1: courses | 2: qs | 3: time | 4: advanced options
   const [current, setCurrent] = useState(0)
   const [selected, setSelected] = useState({})
   const [isSharing, setIsSharing] = useState(false)
@@ -71,8 +71,18 @@ export default function MockExamPage() {
   const [examTimer, setExamTimer] = useState(0) // 0 means untimed
   const [timeLeft, setTimeLeft] = useState(0)
   const [loadingStep, setLoadingStep] = useState(0)
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [feedbackQuestion, setFeedbackQuestion] = useState(null)
+  const [selfAssessment, setSelfAssessment] = useState('')
+
   const [generatedQuestions, setGeneratedQuestions] = useState([])
   const [isGenerating, setIsGenerating] = useState(false)
+  
+  // New feature states
+  const [instantFeedback, setInstantFeedback] = useState(false)
+  const [includeTrueFalse, setIncludeTrueFalse] = useState(false)
+  const [includeTypeIn, setIncludeTypeIn] = useState(false)
+  const [typeInAnswers, setTypeInAnswers] = useState({}) // Store user's type-in answers
 
   // Action buttons state
   const [likedQuestions, setLikedQuestions] = useState({})
@@ -174,7 +184,18 @@ export default function MockExamPage() {
       let contextPrompt = 'You are Luter AI Tutor, a helpful assistant for Nigerian university students.'
       
       if (currentQuestion) {
-        contextPrompt += `\n\nCurrent Question: ${currentQuestion.question}\n\nOptions:\n${currentQuestion.options.map((opt, i) => `${String.fromCharCode(65 + i)}. ${opt}`).join('\n')}\n\nCorrect Answer: ${currentQuestion.answer}\n\nExplanation: ${currentQuestion.explanation}`
+        contextPrompt += `\n\nCurrent Question: ${currentQuestion.question}`
+        
+        if (currentQuestion.type === 'typein') {
+          contextPrompt += `\n\nType: Type-in Answer\nExpected Answer: ${currentQuestion.expectedAnswer || 'Not specified'}`
+        } else if (currentQuestion.type === 'truefalse') {
+          contextPrompt += `\n\nType: True/False\nCorrect Answer: ${currentQuestion.answer === 1 ? 'TRUE' : 'FALSE'}`
+        } else {
+          // Multiple choice
+          contextPrompt += `\n\nType: Multiple Choice\nOptions:\n${currentQuestion.options?.map((opt, i) => `${String.fromCharCode(65 + i)}. ${opt}`).join('\n') || 'No options available'}\n\nCorrect Answer: ${String.fromCharCode(65 + (currentQuestion.answer || 0))}`
+        }
+        
+        contextPrompt += `\n\nExplanation: ${currentQuestion.explanation || 'No explanation provided'}`
       }
       
       // Build messages array in correct format
@@ -192,7 +213,12 @@ export default function MockExamPage() {
         }
       )
       
-      setAiChatMessages(prev => [...prev, { role: 'assistant', content: response.choices[0].message.content }])
+      // Add safety check for response structure
+      if (response?.choices?.[0]?.message?.content) {
+        setAiChatMessages(prev => [...prev, { role: 'assistant', content: response.choices[0].message.content }])
+      } else {
+        throw new Error('Invalid response from AI service')
+      }
     } catch (error) {
       console.error('AI Tutor Error:', error)
       setAiChatMessages(prev => [...prev, { 
@@ -214,11 +240,13 @@ export default function MockExamPage() {
   // Render AI markdown-style bold text
   const renderAiText = (text) => {
     if (!text) return null
-    const parts = text.split(/(\*\*[^*]+\*\*)/g)
-    return parts.map((part, i) =>
-      part.startsWith('**') && part.endsWith('**')
-        ? <strong key={i} style={{ fontWeight: 600 }}>{part.slice(2, -2)}</strong>
-        : <span key={i}>{part}</span>
+    const parts = text.split(/\*\*/g)
+    if (parts.length % 2 === 0) {
+      // Odd number of ** patterns, treat as plain text
+      return text
+    }
+    return parts.map((part, i) => 
+      i % 2 === 1 ? <strong key={i} style={{ fontWeight: 600 }}>{part}</strong> : <span key={i}>{part}</span>
     )
   }
 
@@ -237,7 +265,21 @@ export default function MockExamPage() {
     'Give me an analogy'
   ]
 
-  const score = Object.entries(selected).reduce((acc, [idx, ansIdx]) => acc + (ansIdx === (generatedQuestions[idx]?.answer ?? 0) ? 1 : 0), 0)
+  const score = Object.entries(selected).reduce((acc, [idx, ansIdx]) => {
+  const question = generatedQuestions[idx]
+  if (!question) return acc
+  
+  // Don't know answers are always incorrect
+  if (ansIdx === -1) return acc
+  
+  if (question.type === 'typein') {
+    // For type-in questions, mark as correct if user provided an answer
+    return typeInAnswers[idx]?.trim() ? acc + 1 : acc
+  } else {
+    // For multiple choice and true/false
+    return acc + (ansIdx === (question.answer ?? 0) ? 1 : 0)
+  }
+}, 0)
   const pass = score >= (generatedQuestions?.length || 1) / 2
 
   // ── Celebration Effect (Triggers on any completion) ──
@@ -354,7 +396,40 @@ export default function MockExamPage() {
         
         if (questionsToGenerate <= 0) return existingQuestions
         
-        const prompt = `${GROQ_PROMPTS.MOCK_EXAM}\n\nCourse: ${course.code} - ${course.name}\n\nStudy Materials:\n${courseMaterial}\n\nGenerate exactly ${questionsToGenerate} questions.\n\nIMPORTANT: Return your response as a JSON object with this exact structure:\n{\n  "questions": [\n    {\n      "question": "question text here",\n      "options": ["option A", "option B", "option C", "option D"],\n      "correct_answer": 1,\n      "explanation": "explanation text here"\n    }\n  ]\n}\n\nDo NOT include any markdown formatting or code blocks. Return ONLY the JSON object.\n\n${existingQuestions.length > 0 ? `Existing questions: ${existingQuestions.length}. Generate ${questionsToGenerate} more questions.` : 'Generate: first batch of questions.'}`
+        // Build prompt based on question types
+        let questionTypeInstructions = ""
+        let jsonStructure = ""
+        
+        // Determine question type for this batch
+        const random = Math.random()
+        
+        if (includeTypeIn && includeTrueFalse) {
+          // Mixed mode - randomly choose between types
+          if (random < 0.33) {
+            questionTypeInstructions = "Generate type-in answer questions where users write their own answers."
+            jsonStructure = `{\n  "questions": [\n    {\n      "question": "question text here",\n      "type": "typein",\n      "expected_answer": "expected answer text",\n      "explanation": "explanation text here"\n    }\n  ]\n}`
+          } else if (random < 0.66) {
+            questionTypeInstructions = "Generate true/false questions."
+            jsonStructure = `{\n  "questions": [\n    {\n      "question": "statement that is true or false",\n      "type": "truefalse",\n      "correct_answer": true,\n      "explanation": "explanation text here"\n    }\n  ]\n}`
+          } else {
+            questionTypeInstructions = "Generate multiple choice questions with 4 options."
+            jsonStructure = `{\n  "questions": [\n    {\n      "question": "question text here",\n      "type": "multiple",\n      "options": ["option A", "option B", "option C", "option D"],\n      "correct_answer": 1,\n      "explanation": "explanation text here"\n    }\n  ]\n}`
+          }
+        } else if (includeTypeIn && includeTrueFalse === false) {
+          // Type-in only
+          questionTypeInstructions = "Generate type-in answer questions where users write their own answers."
+          jsonStructure = `{\n  "questions": [\n    {\n      "question": "question text here",\n      "type": "typein",\n      "expected_answer": "expected answer text",\n      "explanation": "explanation text here"\n    }\n  ]\n}`
+        } else if (includeTrueFalse && includeTypeIn === false) {
+          // True/false only
+          questionTypeInstructions = "Generate true/false questions."
+          jsonStructure = `{\n  "questions": [\n    {\n      "question": "statement that is true or false",\n      "type": "truefalse",\n      "correct_answer": true,\n      "explanation": "explanation text here"\n    }\n  ]\n}`
+        } else {
+          // Multiple choice only (default)
+          questionTypeInstructions = "Generate multiple choice questions with 4 options."
+          jsonStructure = `{\n  "questions": [\n    {\n      "question": "question text here",\n      "type": "multiple",\n      "options": ["option A", "option B", "option C", "option D"],\n      "correct_answer": 1,\n      "explanation": "explanation text here"\n    }\n  ]\n}`
+        }
+
+        const prompt = `${GROQ_PROMPTS.MOCK_EXAM}\n\nCourse: ${course.code} - ${course.name}\n\nStudy Materials:\n${courseMaterial}\n\n${questionTypeInstructions}\n\nGenerate exactly ${questionsToGenerate} questions.\n\nIMPORTANT: Return your response as a JSON object with this exact structure:\n${jsonStructure}\n\nDo NOT include any markdown formatting or code blocks. Return ONLY the JSON object.\n\n${existingQuestions.length > 0 ? `Existing questions: ${existingQuestions.length}. Generate ${questionsToGenerate} more questions.` : 'Generate: first batch of questions.'}`
         
         const data = await callGroqAPI(
           [{ role: 'user', content: prompt }],
@@ -386,13 +461,33 @@ export default function MockExamPage() {
         allQuestions = await generateBatch(batch, allQuestions)
         
         // Update UI with current batch
-        const formattedQuestions = allQuestions.map((q, idx) => ({
-          id: idx,
-          question: q.question,
-          options: q.options,
-          answer: q.correct_answer - 1, // Convert to 0-based index
-          explanation: q.explanation
-        }))
+        const formattedQuestions = allQuestions.map((q, idx) => {
+          const baseQuestion = {
+            id: idx,
+            question: q.question,
+            explanation: q.explanation,
+            type: q.type || 'multiple' // Default to multiple choice for backward compatibility
+          }
+          
+          if (q.type === 'typein') {
+            return {
+              ...baseQuestion,
+              expectedAnswer: q.expected_answer
+            }
+          } else if (q.type === 'truefalse') {
+            return {
+              ...baseQuestion,
+              answer: q.correct_answer === true ? 1 : 0 // Convert to 0/1 for consistency
+            }
+          } else {
+            // Multiple choice
+            return {
+              ...baseQuestion,
+              options: q.options,
+              answer: q.correct_answer - 1 // Convert to 0-based index
+            }
+          }
+        })
         
         setGeneratedQuestions(formattedQuestions)
       }
@@ -405,6 +500,7 @@ export default function MockExamPage() {
           setMode('exam')
           setCurrent(0)
           setSelected({})
+          setTypeInAnswers({}) // Reset type-in answers
           setIsGenerating(false)
           setAiChatOpen(false)
           setLoadingStep(0)
@@ -451,11 +547,22 @@ export default function MockExamPage() {
   }
 
   const next = () => {
-    if (current < (generatedQuestions?.length || 1) - 1) {
+    const currentQuestion = generatedQuestions[current]
+    
+    // For type-in questions, mark as answered if there's text
+    if (currentQuestion?.type === 'typein' && typeInAnswers[current]) {
+      setSelected(prev => ({ ...prev, [current]: 1 })) // Mark as answered
+    }
+    
+    // If instant feedback is enabled and not the last question, move to next
+    if (instantFeedback && current < (generatedQuestions?.length || 1) - 1) {
       setCurrent(c => c + 1)
       if (examTimer > 0) setTimeLeft(examTimer)
-    } else {
+    } else if (current >= (generatedQuestions?.length || 1) - 1) {
       setMode('result')
+    } else {
+      setCurrent(c => c + 1)
+      if (examTimer > 0) setTimeLeft(examTimer)
     }
   }
 
@@ -634,6 +741,7 @@ export default function MockExamPage() {
                 {configStep === 1 && "Which courses do you want to pull questions from for this Mock Exam?"}
                 {configStep === 2 && "How many questions do you want to attempt?"}
                 {configStep === 3 && "What time limit per question do you want to set?"}
+                {configStep === 4 && "Customize your exam experience"}
               </h2>
             </div>
             
@@ -803,6 +911,205 @@ export default function MockExamPage() {
               </div>
             )}
 
+            {/* Step 4: Advanced Options */}
+            {configStep === 4 && (
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: 16, 
+                marginBottom: 40 
+              }}>
+                {/* Instant Feedback Toggle */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  style={{
+                    background: 'white',
+                    border: instantFeedback ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
+                    borderRadius: 16,
+                    padding: '20px 24px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => setInstantFeedback(!instantFeedback)}
+                  whileHover={{ y: -2, scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div style={{ 
+                        width: 44, 
+                        height: 44, 
+                        borderRadius: 12, 
+                        background: instantFeedback ? 'var(--primary-bg)' : '#f8fafc',
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        color: instantFeedback ? 'var(--primary)' : '#64748b'
+                      }}>
+                        <Zap size={20} />
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 4px', color: '#111' }}>
+                          Instant Feedback
+                        </h3>
+                        <p style={{ fontSize: 12, margin: 0, color: '#6b7280', lineHeight: 1.4 }}>
+                          See correct/incorrect answers immediately after each question
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{
+                      width: 48,
+                      height: 28,
+                      background: instantFeedback ? 'var(--primary)' : '#e2e8f0',
+                      borderRadius: 99,
+                      position: 'relative',
+                      transition: 'all 0.3s'
+                    }}>
+                      <div style={{
+                        position: 'absolute',
+                        top: 2,
+                        left: instantFeedback ? 22 : 2,
+                        width: 24,
+                        height: 24,
+                        background: 'white',
+                        borderRadius: '50%',
+                        transition: 'all 0.3s',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }} />
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* True/False Questions Toggle */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  style={{
+                    background: 'white',
+                    border: includeTrueFalse ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
+                    borderRadius: 16,
+                    padding: '20px 24px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => setIncludeTrueFalse(!includeTrueFalse)}
+                  whileHover={{ y: -2, scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div style={{ 
+                        width: 44, 
+                        height: 44, 
+                        borderRadius: 12, 
+                        background: includeTrueFalse ? 'var(--primary-bg)' : '#f8fafc',
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        color: includeTrueFalse ? 'var(--primary)' : '#64748b'
+                      }}>
+                        <CheckCircle2 size={20} />
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 4px', color: '#111' }}>
+                          True/False Questions
+                        </h3>
+                        <p style={{ fontSize: 12, margin: 0, color: '#6b7280', lineHeight: 1.4 }}>
+                          Include true/false questions in your exam mix
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{
+                      width: 48,
+                      height: 28,
+                      background: includeTrueFalse ? 'var(--primary)' : '#e2e8f0',
+                      borderRadius: 99,
+                      position: 'relative',
+                      transition: 'all 0.3s'
+                    }}>
+                      <div style={{
+                        position: 'absolute',
+                        top: 2,
+                        left: includeTrueFalse ? 22 : 2,
+                        width: 24,
+                        height: 24,
+                        background: 'white',
+                        borderRadius: '50%',
+                        transition: 'all 0.3s',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }} />
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Type-in Answers Toggle */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  style={{
+                    background: 'white',
+                    border: includeTypeIn ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
+                    borderRadius: 16,
+                    padding: '20px 24px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => setIncludeTypeIn(!includeTypeIn)}
+                  whileHover={{ y: -2, scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div style={{ 
+                        width: 44, 
+                        height: 44, 
+                        borderRadius: 12, 
+                        background: includeTypeIn ? 'var(--primary-bg)' : '#f8fafc',
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        color: includeTypeIn ? 'var(--primary)' : '#64748b'
+                      }}>
+                        <MessageSquare size={20} />
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 4px', color: '#111' }}>
+                          Type-in Answers
+                        </h3>
+                        <p style={{ fontSize: 12, margin: 0, color: '#6b7280', lineHeight: 1.4 }}>
+                          AI will provide questions and you type your answers
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{
+                      width: 48,
+                      height: 28,
+                      background: includeTypeIn ? 'var(--primary)' : '#e2e8f0',
+                      borderRadius: 99,
+                      position: 'relative',
+                      transition: 'all 0.3s'
+                    }}>
+                      <div style={{
+                        position: 'absolute',
+                        top: 2,
+                        left: includeTypeIn ? 22 : 2,
+                        width: 24,
+                        height: 24,
+                        background: 'white',
+                        borderRadius: '50%',
+                        transition: 'all 0.3s',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }} />
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+
           </motion.div>
         </div>
 
@@ -838,9 +1145,9 @@ export default function MockExamPage() {
             </button>
             
             <div style={{ display:'flex', gap:4 }}>
-              {[1,2,3].map(s => (
+              {[1,2,3,4].map(s => (
                 <div key={s} style={{ 
-                  width:s===configStep?24:8, height:8, borderRadius:99, 
+                  width:s===configStep?24:8, height:8, borderRadius: 99, 
                   background:s===configStep?'var(--primary)':(s<configStep?'#10b981':'#ddd'),
                   transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)'
                 }} />
@@ -849,7 +1156,7 @@ export default function MockExamPage() {
             
             <button 
               onClick={() => {
-                if (configStep < 3) setConfigStep(c=>c+1)
+                if (configStep < 4) setConfigStep(c=>c+1)
                 else generateQuestions()
               }}
               disabled={!isStepReady || isGenerating}
@@ -864,7 +1171,7 @@ export default function MockExamPage() {
               }}
             >
               {isGenerating ? <Loader2 className="animate-spin" size={16} /> : null}
-              {configStep === 3 ? (isGenerating ? 'GENERATING' : 'GENERATE EXAM') : 'NEXT'} →
+              {configStep === 4 ? (isGenerating ? 'GENERATING' : 'GENERATE EXAM') : 'NEXT'} →
             </button>
 
           </div>
@@ -874,55 +1181,50 @@ export default function MockExamPage() {
     )
   }
 
-  if (mode === 'result') {
-    const handleShare = async () => {
-      if (resultRef.current === null) return
-      setIsSharing(true)
-      try {
-        const dataUrl = await toPng(resultRef.current, { cacheBust: true, pixelRatio: 2 })
-        const blob = await (await fetch(dataUrl)).blob()
-        const file = new File([blob], 'luter-result.png', { type: 'image/png' })
-        
-        if (navigator.clipboard && window.ClipboardItem) {
-          try {
-            await navigator.clipboard.write([
-              new ClipboardItem({ [blob.type]: blob })
-            ]);
-            alert('🎉 Copied to clipboard! Ready to paste and flex on Discord/Slack.');
-          } catch (clipboardErr) {
-            console.error('Clipboard write failed, trying native share...', clipboardErr);
-            if (navigator.share) {
-              await navigator.share({
-                files: [file],
-                title: 'My Luter Study Result',
-                text: `I just scored ${score}/${generatedQuestions?.length || 1} on Luter! Lock in 🎯`
-              })
-            } else {
-              const link = document.createElement('a');
-              link.download = 'luter-result.png';
-              link.href = dataUrl;
-              link.click();
-            }
+  const handleResultShare = async () => {
+    if (resultRef.current === null) return
+    setIsSharing(true)
+    try {
+      const dataUrl = await toPng(resultRef.current, { cacheBust: true, pixelRatio: 2 })
+      const blob = await (await fetch(dataUrl)).blob()
+      const file = new File([blob], 'luter-result.png', { type: 'image/png' })
+      
+      if (navigator.clipboard && window.ClipboardItem) {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({ [blob.type]: blob })
+          ]);
+          alert('🎉 Copied to clipboard! Ready to paste and flex on Discord/Slack.');
+        } catch (clipboardErr) {
+          console.error('Clipboard write failed, trying native share...', clipboardErr);
+          if (navigator.share) {
+            await navigator.share({
+              files: [file],
+              title: 'My Luter Study Result',
+              text: `I just scored ${score}/${generatedQuestions?.length || 1} on Luter! Lock in 🎯`
+            })
           }
-        } else if (navigator.share) {
-          await navigator.share({
-            files: [file],
-            title: 'My Luter Study Result',
-            text: `I just scored ${score}/${generatedQuestions?.length || 1} on Luter! Lock in 🎯`
-          })
-        } else {
-          const link = document.createElement('a');
-          link.download = 'luter-result.png';
-          link.href = dataUrl;
-          link.click();
         }
-      } catch (err) {
-        console.error('Error sharing', err)
-      } finally {
-        setIsSharing(false)
+      } else if (navigator.share) {
+        await navigator.share({
+          files: [file],
+          title: 'My Luter Study Result',
+          text: `I just scored ${score}/${generatedQuestions?.length || 1} on Luter! Lock in 🎯`
+        })
+      } else {
+        const link = document.createElement('a');
+        link.download = 'luter-result.png';
+        link.href = dataUrl;
+        link.click();
       }
+    } catch (err) {
+      console.error('Error sharing', err)
+    } finally {
+      setIsSharing(false)
     }
+  }
 
+  if (mode === 'result') {
     return (
       <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'inherit' }}>
         
@@ -1093,6 +1395,210 @@ export default function MockExamPage() {
               </div>
             </div>
 
+            {/* Question Review Section - Shows Type-in Answers */}
+            <div style={{ 
+              marginTop: 24, 
+              background: '#ffffff', 
+              borderRadius: 24, 
+              border: '1.5px solid #f0f0f0',
+              padding: isMobile ? '20px' : '24px',
+              position: 'relative'
+            }}>
+              <div style={{ 
+                fontSize: 16, 
+                fontWeight: 800, 
+                color: '#111', 
+                marginBottom: 20,
+                textAlign: 'center',
+                letterSpacing: '0.05em'
+              }}>
+                Question Review
+              </div>
+              
+              {generatedQuestions.map((q, index) => (
+                <div key={index} style={{ 
+                  marginBottom: index < generatedQuestions.length - 1 ? 20 : 0,
+                  padding: '16px',
+                  borderRadius: 16,
+                  background: '#fafafa',
+                  border: '1px solid #f0f0f0'
+                }}>
+                  {/* Question Header */}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'flex-start',
+                    marginBottom: 12
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ 
+                        fontSize: 12, 
+                        fontWeight: 600, 
+                        color: '#6b7280', 
+                        marginBottom: 4,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}>
+                        Question {index + 1} • {q.type === 'typein' ? 'Type-in Answer' : q.type === 'truefalse' ? 'True/False' : 'Multiple Choice'}
+                      </div>
+                      <div style={{ 
+                        fontSize: 14, 
+                        fontWeight: 600, 
+                        color: '#111', 
+                        lineHeight: 1.4
+                      }}>
+                        {q.question}
+                      </div>
+                    </div>
+                    <div style={{ 
+                      marginLeft: 12,
+                      padding: '4px 8px',
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      background: selected[index] === q.answer ? '#dcfce7' : selected[index] === -1 ? '#fef3c7' : '#fee2e2',
+                      color: selected[index] === q.answer ? '#166534' : selected[index] === -1 ? '#92400e' : '#dc2626'
+                    }}>
+                      {selected[index] === q.answer ? '✓ Correct' : selected[index] === -1 ? '⚠ Don\'t Know' : '✗ Incorrect'}
+                    </div>
+                  </div>
+
+                  {/* Type-in Answer Specific Display */}
+                  {q.type === 'typein' && (
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ 
+                        padding: '12px',
+                        borderRadius: 8,
+                        background: '#e0f2fe',
+                        border: '1px solid #bae6fd'
+                      }}>
+                        <div style={{ 
+                          fontSize: 12, 
+                          fontWeight: 600, 
+                          color: '#0369a1', 
+                          marginBottom: 4 
+                        }}>
+                          Your Answer:
+                        </div>
+                        <div style={{ 
+                          fontSize: 14, 
+                          color: '#0c4a6e',
+                          fontStyle: 'italic'
+                        }}>
+                          {selected[index] === -1 ? 'Don\'t Know' : (typeInAnswers[index] || 'No answer provided')}
+                        </div>
+                      </div>
+                      
+                      <div style={{ 
+                        padding: '12px',
+                        borderRadius: 8,
+                        background: '#f0fdf4',
+                        border: '1px solid #bbf7d0'
+                      }}>
+                        <div style={{ 
+                          fontSize: 12, 
+                          fontWeight: 600, 
+                          color: '#166534', 
+                          marginBottom: 4 
+                        }}>
+                          Expected Answer:
+                        </div>
+                        <div style={{ 
+                          fontSize: 14, 
+                          color: '#14532d'
+                        }}>
+                          {q.expectedAnswer || 'Not specified'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* True/False Answer Display */}
+                  {q.type === 'truefalse' && (
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ 
+                        padding: '12px',
+                        borderRadius: 8,
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        <div style={{ 
+                          fontSize: 12, 
+                          fontWeight: 600, 
+                          color: '#475569', 
+                          marginBottom: 4 
+                        }}>
+                          Correct Answer:
+                        </div>
+                        <div style={{ 
+                          fontSize: 14, 
+                          color: '#1e293b',
+                          fontWeight: 600
+                        }}>
+                          {q.answer === 1 ? 'TRUE' : 'FALSE'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Multiple Choice Answer Display */}
+                  {q.type === 'multiple' && q.options && (
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ 
+                        padding: '12px',
+                        borderRadius: 8,
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        <div style={{ 
+                          fontSize: 12, 
+                          fontWeight: 600, 
+                          color: '#475569', 
+                          marginBottom: 4 
+                        }}>
+                          Correct Answer:
+                        </div>
+                        <div style={{ 
+                          fontSize: 14, 
+                          color: '#1e293b',
+                          fontWeight: 600
+                        }}>
+                          {String.fromCharCode(65 + (q.answer || 0))}. {q.options[q.answer || 0]}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Explanation */}
+                  {q.explanation && (
+                    <div style={{ 
+                      marginTop: 12,
+                      padding: '12px',
+                      borderRadius: 8,
+                      background: '#f1f5f9',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <div style={{ 
+                        fontSize: 12, 
+                        fontWeight: 600, 
+                        color: '#475569', 
+                        marginBottom: 4 
+                      }}>
+                        Explanation:
+                      </div>
+                      <div style={{ 
+                        fontSize: 14, 
+                        color: '#1e293b',
+                        lineHeight: 1.4
+                      }}>
+                        {q.explanation}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
           {/* ── Subtle Referral Prompt ── */}
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
@@ -1181,7 +1687,7 @@ export default function MockExamPage() {
 
             {/* Share Primary */}
             <button
-              onClick={handleShare}
+              onClick={handleResultShare}
               disabled={isSharing}
               style={{
                 flex: 1,
@@ -1232,14 +1738,14 @@ export default function MockExamPage() {
     const progress = (generatedQuestions?.length || 1) > 0 ? ((current) / (generatedQuestions?.length || 1)) * 100 : 0
 
     return (
-    <div className="dh-root" style={{ 
-      background: '#ffffff', 
-      minHeight: '100vh', 
-      display: 'flex', 
-      flexDirection: 'row', 
-      fontFamily: 'inherit',
-      overflow: 'hidden'
-    }}>
+      <div className="dh-root" style={{ 
+        background: '#ffffff', 
+        minHeight: '100vh', 
+        display: 'flex', 
+        flexDirection: 'row', 
+        fontFamily: 'inherit',
+        overflow: 'hidden'
+      }}>
       {/* Main Content Area */}
       <div style={{ 
         flex: 1, 
@@ -1311,17 +1817,19 @@ export default function MockExamPage() {
             </h2>
           </div>
           
-          {/* Options - Card Style Matching Configure Mode */}
+          {/* Question Options - Different types */}
           <div style={{ 
             display: 'flex', 
             flexDirection: 'column', 
             gap: 12, 
             marginBottom: 40 
           }}>
-            {q.options.map((opt, i) => {
+            {/* Multiple Choice Questions */}
+            {q.type === 'multiple' && q.options && q.options.map((opt, i) => {
               const isSelected = selected[current] === i
-              const isCorrect = mode === 'result' && i === q.answer
-              const isWrong = mode === 'result' && selected[current] === i && i !== q.answer
+              const showFeedback = instantFeedback && isSelected !== undefined
+              const isCorrect = showFeedback && i === q.answer
+              const isWrong = showFeedback && isSelected && i !== q.answer
               
               return (
                 <motion.button
@@ -1329,13 +1837,13 @@ export default function MockExamPage() {
                   whileHover={{ y: -2 }} 
                   whileTap={{ scale: 0.94 }}
                   onClick={() => !mode.includes('result') && choose(i)}
-                  disabled={mode.includes('result')}
+                  disabled={mode.includes('result') || (instantFeedback && isSelected !== undefined)}
                   style={{ 
                     padding: isMobile ? '16px 20px' : '20px 24px', 
                     borderRadius: 16, 
                     background: isSelected ? '#f3e8ff' : isCorrect ? '#f0fdf4' : isWrong ? '#fef2f2' : '#ffffff', 
                     textAlign: 'left', 
-                    cursor: mode.includes('result') ? 'default' : 'pointer', 
+                    cursor: (mode.includes('result') || (instantFeedback && isSelected !== undefined)) ? 'default' : 'pointer', 
                     outline: 'none', 
                     transition: 'all 0.1s', 
                     fontFamily: 'inherit',
@@ -1359,6 +1867,147 @@ export default function MockExamPage() {
                 </motion.button>
               )
             })}
+
+            {/* True/False Questions */}
+            {q.type === 'truefalse' && [0, 1].map((i) => {
+              const isSelected = selected[current] === i
+              const showFeedback = instantFeedback && isSelected !== undefined
+              const isCorrect = showFeedback && i === q.answer
+              const isWrong = showFeedback && isSelected && i !== q.answer
+              const label = i === 0 ? 'FALSE' : 'TRUE'
+              
+              return (
+                <motion.button
+                  key={i}
+                  whileHover={{ y: -2 }} 
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => !mode.includes('result') && choose(i)}
+                  disabled={mode.includes('result') || (instantFeedback && isSelected !== undefined)}
+                  style={{ 
+                    padding: isMobile ? '16px 20px' : '20px 24px', 
+                    borderRadius: 16, 
+                    background: isSelected ? '#f3e8ff' : isCorrect ? '#f0fdf4' : isWrong ? '#fef2f2' : '#ffffff', 
+                    textAlign: 'left', 
+                    cursor: (mode.includes('result') || (instantFeedback && isSelected !== undefined)) ? 'default' : 'pointer', 
+                    outline: 'none', 
+                    transition: 'all 0.1s', 
+                    fontFamily: 'inherit',
+                    border: isSelected ? '1.5px solid #a855f7' : isCorrect ? '1.5px solid #4ade80' : isWrong ? '1.5px solid #ef4444' : '1.5px solid #e5e7eb',
+                    color: isSelected ? '#7e22ce' : isCorrect ? '#16a34a' : isWrong ? '#dc2626' : '#374151', 
+                    boxShadow: isSelected ? '0 4px 12px rgba(168,85,247,0.1)' : isCorrect ? '0 4px 12px rgba(22,163,74,0.1)' : isWrong ? '0 4px 12px rgba(220,38,38,0.1)' : '0 4px 12px rgba(0,0,0,0.05)'
+                  }}
+                >
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ fontSize: 16, fontWeight: 700 }}>
+                      {label}
+                    </span>
+                    {isSelected && <Zap size={18} color="#fbbf24" />}
+                    {isCorrect && <CheckCircle2 size={18} color="#4ade80" />}
+                    {isWrong && <XCircle size={18} color="#ef4444" />}
+                  </div>
+                </motion.button>
+              )
+            })}
+
+            {/* Type-in Answer Questions */}
+            {q.type === 'typein' && (
+              <div style={{ 
+                padding: isMobile ? '16px 20px' : '20px 24px', 
+                borderRadius: 16, 
+                background: '#ffffff', 
+                border: '1.5px solid #e5e7eb',
+                transition: 'all 0.1s'
+              }}>
+                <textarea
+                  value={typeInAnswers[current] || ''}
+                  onChange={(e) => {
+                    const newAnswers = { ...typeInAnswers }
+                    newAnswers[current] = e.target.value
+                    setTypeInAnswers(newAnswers)
+                  }}
+                  placeholder="Type your answer here..."
+                  disabled={mode.includes('result')}
+                  style={{
+                    width: '100%',
+                    minHeight: '100px',
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: 16,
+                    fontWeight: 500,
+                    color: '#374151',
+                    background: 'transparent',
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
+                  }}
+                />
+                
+                {/* Don't Know and Continue Buttons */}
+                <div style={{ 
+                  display: 'flex', 
+                  gap: 12, 
+                  marginTop: 16,
+                  justifyContent: 'flex-end'
+                }}>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      // Show feedback screen for this question
+                      setFeedbackQuestion(generatedQuestions[current])
+                      setShowFeedback(true)
+                      setSelfAssessment('')
+                    }}
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: 10,
+                      background: '#fef2f2',
+                      border: '1.5px solid #fecaca',
+                      color: '#dc2626',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      fontFamily: 'inherit'
+                    }}
+                  >
+                    Don't Know
+                  </motion.button>
+                  
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      if (typeInAnswers[current]?.trim()) {
+                        // Mark as answered and continue
+                        setSelected(prev => ({ ...prev, [current]: 1 }))
+                        next()
+                      }
+                    }}
+                    disabled={!typeInAnswers[current]?.trim()}
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: 10,
+                      background: typeInAnswers[current]?.trim() ? '#10b981' : '#f3f4f6',
+                      border: '1.5px solid',
+                      borderColor: typeInAnswers[current]?.trim() ? '#10b981' : '#d1d5db',
+                      color: typeInAnswers[current]?.trim() ? 'white' : '#9ca3af',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: typeInAnswers[current]?.trim() ? 'pointer' : 'not-allowed',
+                      transition: 'all 0.2s ease',
+                      fontFamily: 'inherit'
+                    }}
+                  >
+                    Continue
+                  </motion.button>
+                </div>
+              </div>
+            )}
+          </div>
           {/* Action Buttons Toolbar */}
           <div style={{ 
             display: 'flex', 
@@ -1653,7 +2302,6 @@ export default function MockExamPage() {
               </AnimatePresence>
             </div>
           </div>
-          </div>
           
         </motion.div>
       </div>
@@ -1716,22 +2364,64 @@ export default function MockExamPage() {
             whileHover={{ y: -1 }}
             whileTap={{ scale: 0.98 }}
             onClick={next}
-            disabled={selected[current] === undefined}
+            disabled={(() => {
+              const currentQuestion = generatedQuestions[current]
+              if (currentQuestion?.type === 'typein') {
+                return !typeInAnswers[current]?.trim()
+              }
+              return selected[current] === undefined
+            })()}
             style={{ 
               padding: '14px 24px', 
               borderRadius: 14, 
-              background: selected[current]===undefined ? '#f5f5f5' : '#fffbeb', 
-              color: selected[current]===undefined ? '#9ca3af' : '#d97706', 
-              border: selected[current]===undefined ? '1.5px solid #e5e7eb' : '1.5px solid #fbbf24', 
+              background: (() => {
+                const currentQuestion = generatedQuestions[current]
+                const isDisabled = currentQuestion?.type === 'typein' 
+                  ? !typeInAnswers[current]?.trim()
+                  : selected[current] === undefined
+                return isDisabled ? '#f5f5f5' : '#fffbeb'
+              })(), 
+              color: (() => {
+                const currentQuestion = generatedQuestions[current]
+                const isDisabled = currentQuestion?.type === 'typein' 
+                  ? !typeInAnswers[current]?.trim()
+                  : selected[current] === undefined
+                return isDisabled ? '#9ca3af' : '#d97706'
+              })(), 
+              border: (() => {
+                const currentQuestion = generatedQuestions[current]
+                const isDisabled = currentQuestion?.type === 'typein' 
+                  ? !typeInAnswers[current]?.trim()
+                  : selected[current] === undefined
+                return isDisabled ? '1.5px solid #e5e7eb' : '1.5px solid #fbbf24'
+              })(), 
               fontSize: 14, 
               fontWeight: 800, 
-              cursor: selected[current]===undefined?'not-allowed':'pointer',
-              opacity: selected[current]===undefined?0.6:1,
+              cursor: (() => {
+                const currentQuestion = generatedQuestions[current]
+                const isDisabled = currentQuestion?.type === 'typein' 
+                  ? !typeInAnswers[current]?.trim()
+                  : selected[current] === undefined
+                return isDisabled ? 'not-allowed' : 'pointer'
+              })(),
+              opacity: (() => {
+                const currentQuestion = generatedQuestions[current]
+                const isDisabled = currentQuestion?.type === 'typein' 
+                  ? !typeInAnswers[current]?.trim()
+                  : selected[current] === undefined
+                return isDisabled ? 0.6 : 1
+              })(),
               fontFamily: 'inherit',
               display: 'flex', 
               alignItems: 'center', 
               gap: 8,
-              boxShadow: selected[current]===undefined ? 'none' : '0 4px 12px rgba(217,119,6,0.1)'
+              boxShadow: (() => {
+                const currentQuestion = generatedQuestions[current]
+                const isDisabled = currentQuestion?.type === 'typein' 
+                  ? !typeInAnswers[current]?.trim()
+                  : selected[current] === undefined
+                return isDisabled ? 'none' : '0 4px 12px rgba(217,119,6,0.1)'
+              })()
             }}
           >
             {current === (generatedQuestions?.length || 1) - 1 ? 'Finish' : 'Next'}
@@ -1739,8 +2429,6 @@ export default function MockExamPage() {
           </motion.button>
 
         </div>
-      </div>
-
       </div>
 
       {/* AI Chat Right-Side Panel - Redesigned */}
@@ -1952,7 +2640,189 @@ export default function MockExamPage() {
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>
+
+        {/* Don't Know Feedback Screen */}
+        <AnimatePresence>
+          {showFeedback && feedbackQuestion && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'white',
+                borderRadius: 24,
+                padding: isMobile ? '20px' : '32px',
+                display: 'flex',
+                flexDirection: 'column',
+                zIndex: 10
+              }}
+            >
+              {/* Header */}
+              <div style={{ textAlign: 'center', marginBottom: 40 }}>
+                <div style={{ 
+                  fontSize: isMobile ? 24 : 28, 
+                  fontWeight: 700, 
+                  color: '#1f2937',
+                  marginBottom: 8
+                }}>
+                  No worries! Let's learn together
+                </div>
+                <div style={{ 
+                  fontSize: 16, 
+                  color: '#6b7280',
+                  lineHeight: 1.5
+                }}>
+                  Here's the correct answer for this question
+                </div>
+              </div>
+
+              {/* Question */}
+              <div style={{ 
+                background: '#f8fafc', 
+                padding: '20px', 
+                borderRadius: 16, 
+                marginBottom: 24,
+                border: '1px solid #e2e8f0'
+              }}>
+                <div style={{ 
+                  fontSize: 14, 
+                  fontWeight: 600, 
+                  color: '#6b7280', 
+                  marginBottom: 8,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  Question
+                </div>
+                <div style={{ 
+                  fontSize: 16, 
+                  color: '#1f2937', 
+                  lineHeight: 1.6 
+                }}>
+                  {feedbackQuestion.question}
+                </div>
+              </div>
+
+              {/* Actual Answer */}
+              <div style={{ 
+                background: '#f0fdf4', 
+                padding: '20px', 
+                borderRadius: 16, 
+                marginBottom: 32,
+                border: '2px solid #bbf7d0'
+              }}>
+                <div style={{ 
+                  fontSize: 14, 
+                  fontWeight: 600, 
+                  color: '#166534', 
+                  marginBottom: 8,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  Actual Answer
+                </div>
+                <div style={{ 
+                  fontSize: 18, 
+                  color: '#14532d', 
+                  lineHeight: 1.6,
+                  fontWeight: 500
+                }}>
+                  {feedbackQuestion.type === 'typein' 
+                    ? feedbackQuestion.expectedAnswer 
+                    : feedbackQuestion.type === 'truefalse'
+                    ? (feedbackQuestion.answer === 1 ? 'TRUE' : 'FALSE')
+                    : feedbackQuestion.options?.[feedbackQuestion.answer] || 'Not specified'
+                  }
+                </div>
+              </div>
+
+              {/* Self Assessment */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ 
+                  fontSize: 16, 
+                  fontWeight: 600, 
+                  color: '#1f2937', 
+                  marginBottom: 16,
+                  textAlign: 'center'
+                }}>
+                  How well do you know this?
+                </div>
+                <div style={{ 
+                  display: 'flex', 
+                  gap: 12, 
+                  justifyContent: 'center'
+                }}>
+                  {[
+                    { value: 'not sure', label: 'Not Sure', color: '#fef2f2', border: '#fecaca', text: '#dc2626' },
+                    { value: 'okay', label: 'Okay', color: '#fef3c7', border: '#fde68a', text: '#d97706' },
+                    { value: 'i know it', label: 'I Know It', color: '#f0fdf4', border: '#bbf7d0', text: '#16a34a' }
+                  ].map((option) => (
+                    <motion.button
+                      key={option.value}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setSelfAssessment(option.value)}
+                      style={{
+                        padding: '12px 20px',
+                        borderRadius: 12,
+                        background: selfAssessment === option.value ? option.color : 'white',
+                        border: `2px solid ${selfAssessment === option.value ? option.border : '#e5e7eb'}`,
+                        color: selfAssessment === option.value ? option.text : '#6b7280',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        fontFamily: 'inherit',
+                        minWidth: 100
+                      }}
+                    >
+                      {option.label}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Continue Button */}
+              <div style={{ marginTop: 'auto', paddingTop: 24 }}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    // Mark as don't know and continue
+                    setSelected(prev => ({ ...prev, [current]: -1 }))
+                    setShowFeedback(false)
+                    setFeedbackQuestion(null)
+                    setSelfAssessment('')
+                    next()
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '14px 24px',
+                    borderRadius: 12,
+                    background: '#7c3aed',
+                    border: 'none',
+                    color: 'white',
+                    fontSize: 16,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  Continue to Next Question
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
     )
   }
