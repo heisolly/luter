@@ -75,21 +75,26 @@ export default function DashboardHome() {
       }))
 
     const loadRemote = async () => {
-      const { data: uc } = await supabase
-        .from('user_courses')
-        .select('id, progress, last_studied_at, target_score, course:courses(id, code, name, faculty)')
-        .eq('user_id', user.id)
-        .order('created_at')
+      try {
+        const { data: uc } = await supabase
+          .from('user_courses')
+          .select('id, progress, last_studied_at, target_score, course:courses(id, code, name, faculty)')
+          .eq('user_id', user.id)
+          .order('created_at')
 
-      if (uc) setCourses(mapCourses(uc))
+        if (uc) setCourses(mapCourses(uc))
 
-      const { data: st } = await supabase
-        .from('user_stats')
-        .select('total_xp, streak_days, lives')
-        .eq('user_id', user.id)
-        .maybeSingle()
-      if (st) setStats(st)
-      setLoading(false)
+        const { data: st } = await supabase
+          .from('user_stats')
+          .select('total_xp, streak_days, lives')
+          .eq('user_id', user.id)
+          .maybeSingle()
+        if (st) setStats(st)
+      } catch (e) {
+        console.error('Failed to load remote dashboard data:', e)
+      } finally {
+        setLoading(false)
+      }
     }
 
     if (bundle?.uc && !bundle.uc.error && Array.isArray(bundle.uc.data)) {

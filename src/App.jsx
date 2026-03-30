@@ -40,6 +40,7 @@ import FilesPage from './components/dashboard/FilesPage'
 import AssignmentsPage from './components/dashboard/AssignmentsPage'
 import AINotesPage from './components/dashboard/AINotesPage'
 import StudyMaterialsWeekPage from './components/dashboard/StudyMaterialsWeekPage'
+import UserUpload from './components/dashboard/UserUpload'
 
 function CompeteRedirect() {
   const { search } = useLocation()
@@ -111,6 +112,7 @@ export default function App() {
             <Route path="streak" element={<StreakPage />} />
             <Route path="refer" element={<ReferPage />} />
             <Route path="compete" element={<CompetePage />} />
+            <Route path="upload" element={<UserUpload />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
 

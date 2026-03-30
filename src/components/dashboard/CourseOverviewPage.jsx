@@ -7,16 +7,17 @@ import {
   HelpCircle, Search, Moon, ArrowLeftRight,
   Pencil, EyeOff, Send, Download,
   FileText, Trash2, BookOpen, FileCheck, FolderOpen,
-  Loader2
+  Loader2, UploadCloud, Bell
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../supabaseClient'
-import { fetchCourseMaterials, fetchUserNotes, deleteMaterial, deleteUserNote } from '../../services/materialsService'
+import { fetchCourseMaterials, fetchUserNotes, deleteMaterial, deleteUserNote, getStudySession } from '../../services/materialsService'
 
 export default function CourseOverviewPage({ course, onStartStudying }) {
   const navigate = useNavigate()
-  const { user } = useOutletContext()
-  const [activeTab, setActiveTab] = useState('questions')
+  const { user, isMobile } = useOutletContext()
+  const [activeTab, setActiveTab] = useState('tracker')
+  const [fileSubTab, setFileSubTab] = useState('admin')
   const [showMenu, setShowMenu] = useState(false)
   const [materials, setMaterials] = useState([])
   const [userNotes, setUserNotes] = useState([])
@@ -106,13 +107,6 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
   const lightGrey = '#94a3b8'
   const darkGrey = '#2d333a'
 
-  const questions = [
-    { id: 1, text: "WHAT IS AN ENRICHED ENVIRONMENT LIKELY TO FOSTER?" },
-    { id: 2, text: "WHAT EXTERNAL ENVIRONMENTAL FACTOR INFLUENCES LEARNING?" },
-    { id: 3, text: "WHAT IS A MAIN CATEGORY OF SKILLS IN THE P21 FRAMEWORK?" },
-    { id: 4, text: "UNDER WHICH P21 SKILL SET IS 'CRITICAL THINKING AND PROBLEM SOLVING' CATEGORIZED?" }
-  ]
-
   const filteredMaterials = () => {
     switch(activeTab) {
       case 'ai_notes':
@@ -120,7 +114,11 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
       case 'assignments':
         return materials.filter(m => m.title.toLowerCase().includes('assignment') || m.type === 'docx')
       case 'files':
-        return materials
+        if (fileSubTab === 'admin') {
+          return materials.filter(m => !m.user_id || m.owner_role === 'admin')
+        } else {
+          return materials.filter(m => m.user_id === user.id && m.owner_role !== 'admin')
+        }
       default:
         return []
     }
@@ -293,12 +291,6 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
         </button>
       </div>
 
-      {/* Next Exam */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px', fontSize: '16px' }}>
-        <span style={{ color: '#000', fontWeight: 800, textTransform: 'uppercase' }}>NEXT EXAM</span>
-        <span style={{ color: lightGrey, fontWeight: 500, textTransform: 'uppercase' }}>TOMORROW</span>
-      </div>
-
       {/* Tabs */}
       <div style={{ borderBottom: '1px solid #f1f5f9', display: 'flex', gap: '60px', marginBottom: '32px', paddingLeft: '8px' }}>
         {tabs.map(tab => (
@@ -362,93 +354,68 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
             )}
           </div>
         </motion.div>
-      ) : activeTab === 'questions' ? (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-            <div style={{ display: 'flex', gap: '16px', fontSize: '14px', fontWeight: 700, textTransform: 'uppercase' }}>
-              <span style={{ color: lightGrey }}>GROUP BY:</span>
-              <button style={{ background: 'none', border: 'none', color: '#000', fontWeight: 800, cursor: 'pointer' }}>QUESTION TYPE</button>
-              <button style={{ background: 'none', border: 'none', color: lightGrey, fontWeight: 800, cursor: 'pointer' }}>TOPIC</button>
-            </div>
-            
-            <div style={{ display: 'flex', gap: '24px', color: lightGrey }}>
-              <HelpCircle size={22} cursor="pointer" strokeWidth={2} />
-              <Sparkles size={22} cursor="pointer" strokeWidth={2} />
-              <Layout size={22} cursor="pointer" strokeWidth={2} />
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '48px' }}>
-            <input 
-              type="text" 
-              placeholder="NEW QUESTION..."
-              style={{
-                width: '100%',
-                padding: '24px 32px',
-                borderRadius: '24px',
-                border: '1.5px solid #e2e8f0',
-                fontSize: '18px',
-                fontWeight: 500,
-                outline: 'none',
-                color: '#000',
-                background: '#ffffff',
-                textTransform: 'uppercase'
-              }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#111', margin: 0, textTransform: 'uppercase' }}>free response</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', fontWeight: 800, color: lightGrey, cursor: 'pointer' }}>
-              <div style={{ width: '20px', height: '20px', border: '2px solid #cbd5e1', borderRadius: '6px' }}></div>
-              SELECT THESE 4
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {questions.map((q, idx) => (
-              <motion.div 
-                key={q.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                style={{
-                  padding: '28px 32px',
-                  borderRadius: '20px',
-                  border: '1.5px solid #e2e8f0',
-                  background: '#ffffff',
-                  fontSize: '16px',
-                  fontWeight: 500,
-                  color: '#111',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.01)',
-                  textTransform: 'uppercase'
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = '#cbd5e1'
-                  e.currentTarget.style.transform = 'translateY(-1px)'
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.03)'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = '#e2e8f0'
-                  e.currentTarget.style.transform = 'translateY(0)'
-                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.01)'
-                }}
-              >
-                {q.text}
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
       ) : (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
         >
+          {activeTab === 'files' && (
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: '16px', marginBottom: '32px' }}>
+              
+              {/* Sub-Tabs: Admin vs User */}
+              <div style={{ display: 'flex', gap: '8px', background: '#f8fafc', padding: '6px', borderRadius: '16px', border: '1px solid #e2e8f0', width: isMobile ? '100%' : 'auto' }}>
+                <button
+                  onClick={() => setFileSubTab('admin')}
+                  style={{
+                    flex: isMobile ? 1 : 'none',
+                    padding: '10px 24px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 800,
+                    background: fileSubTab === 'admin' ? '#fff' : 'transparent',
+                    color: fileSubTab === 'admin' ? purpleColor : lightGrey,
+                    boxShadow: fileSubTab === 'admin' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
+                    transition: 'all 0.2s',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  Admin Uploads
+                </button>
+                <button
+                  onClick={() => setFileSubTab('user')}
+                  style={{
+                    flex: isMobile ? 1 : 'none',
+                    padding: '10px 24px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 800,
+                    background: fileSubTab === 'user' ? '#fff' : 'transparent',
+                    color: fileSubTab === 'user' ? purpleColor : lightGrey,
+                    boxShadow: fileSubTab === 'user' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
+                    transition: 'all 0.2s',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  My Uploads
+                </button>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '12px', width: isMobile ? '100%' : 'auto' }}>
+                <button 
+                  onClick={() => alert('Request feature coming soon!')}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', borderRadius: '12px', background: 'transparent', color: purpleColor, border: `2px solid #e2e8f0`, fontWeight: 800, fontSize: '14px', cursor: 'pointer', flex: 1, justifyContent: 'center', textTransform: 'uppercase', transition: 'all 0.2s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = purpleColor; e.currentTarget.style.background = '#faf5ff' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = 'transparent' }}
+                >
+                  <Bell size={18} strokeWidth={2.5} /> Request
+                </button>
+                <button 
+                  onClick={() => alert('Upload feature coming soon (via Uppy)!')}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', borderRadius: '12px', background: purpleColor, color: '#fff', border: 'none', fontWeight: 800, fontSize: '14px', cursor: 'pointer', flex: 1, justifyContent: 'center', textTransform: 'uppercase', boxShadow: '0 4px 12px rgba(122, 18, 204, 0.2)' }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  <UploadCloud size={18} strokeWidth={2.5} /> Upload
+                </button>
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
               <Loader2 className="animate-spin" color={purpleColor} />

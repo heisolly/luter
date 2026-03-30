@@ -141,73 +141,126 @@ export default function CoursesPage() {
         </div>
       </div>
 
-      <div className="courses-grid">
+      <div className="flex flex-col gap-4">
         {courses.map((c, idx) => (
           <motion.div
             key={c.code}
-            className={`course-full-card ${c.isLocked && !isPremium ? 'course-full-card--locked' : ''}`}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.08 }}
-            whileHover={{ y: c.isLocked && !isPremium ? 0 : -4 }}
+            transition={{ delay: idx * 0.05 }}
+            whileHover={{ scale: c.isLocked && !isPremium ? 1 : 1.01 }}
             onClick={() => handleCourseClick(c)}
             style={{
               cursor: 'pointer',
               position: 'relative',
-              opacity: c.isLocked && !isPremium ? 0.7 : 1
+              background: 'white',
+              borderRadius: '20px',
+              padding: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '24px',
+              border: c.isLocked && !isPremium ? '1px solid #fbbf24' : '1px solid #e2e8f0',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+              opacity: c.isLocked && !isPremium ? 0.75 : 1,
+              overflow: 'hidden'
             }}
           >
-            {/* Lock overlay */}
-            {c.isLocked && !isPremium && (
-              <div className="absolute inset-0 bg-gradient-to-br from-amber-400/20 to-orange-500/20 rounded-2xl z-10 flex items-center justify-center">
-                <div className="bg-white/90 backdrop-blur-sm rounded-full p-3 shadow-lg border border-amber-400">
-                  <Lock size={20} className="text-amber-600" />
-                </div>
-              </div>
-            )}
+            {/* Lock overlay effect on the left icon */}
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '16px',
+              background: c.isLocked && !isPremium ? '#fef3c7' : `${c.color}15`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              flexShrink: 0
+            }}>
+              {c.isLocked && !isPremium ? (
+                <Lock size={28} className="text-amber-500" />
+              ) : (
+                <span style={{ color: c.color, fontSize: '20px', fontWeight: 800, fontFamily: 'Varela Round' }}>
+                  {c.code.replace(/[^A-Za-z]/g, '').substring(0, 3)}
+                </span>
+              )}
+            </div>
 
-            <div className="cfc-stripe" style={{ background: c.isLocked && !isPremium ? '#fbbf24' : c.color }} />
-            <div className="cfc-body">
-              <div className="cfc-header">
-                <div style={{ flex: 1 }}>
-                  <div className="cfc-code" style={{ color: c.color }}>{c.code}</div>
-                  <h3 className="cfc-name">{c.name}</h3>
-                  <p className="cfc-dept">{c.dept}</p>
-                </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <span style={{ 
+                  color: c.isLocked && !isPremium ? '#d97706' : c.color, 
+                  fontWeight: 800, 
+                  fontSize: '14px',
+                  letterSpacing: '0.5px'
+                }}>
+                  {c.code}
+                </span>
+                {c.isLocked && !isPremium && (
+                  <span className="text-amber-600 bg-amber-100 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    LOCKED
+                  </span>
+                )}
               </div>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: '0 0 4px' }}>{c.name}</h3>
+              <p style={{ fontSize: '14px', color: '#64748b', margin: 0, fontWeight: 500 }}>{c.dept}</p>
+            </div>
 
-              <div className="cfc-progress-section">
-                <div className="cfc-prog-header">
-                  <span>Progress</span>
-                  <span style={{ color: c.color, fontWeight: 700 }}>{c.progress}%</span>
-                </div>
-                <div className="cfc-prog-track">
-                  <motion.div
-                    className="cfc-prog-fill"
-                    style={{ background: c.color }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${c.progress}%` }}
-                    transition={{ duration: 0.8, delay: idx * 0.1 }}
-                  />
-                </div>
+            <div style={{ width: '180px', display: isMobile ? 'none' : 'block' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>Progress</span>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: c.isLocked && !isPremium ? '#d97706' : c.color }}>{c.progress}%</span>
               </div>
+              <div style={{ height: '8px', backgroundColor: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                <motion.div
+                  style={{ height: '100%', background: c.isLocked && !isPremium ? '#fbbf24' : c.color, borderRadius: '4px' }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${c.progress}%` }}
+                  transition={{ duration: 0.8, delay: idx * 0.1 }}
+                />
+              </div>
+            </div>
+
+            <div style={{ 
+              width: '40px', 
+              height: '40px', 
+              borderRadius: '50%', 
+              background: '#f8fafc',
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              border: '1px solid #e2e8f0',
+              marginLeft: isMobile ? 'auto' : '16px'
+            }}>
+              <ChevronRight size={20} color={c.isLocked && !isPremium ? '#d97706' : c.color} style={{ marginLeft: '2px' }} />
             </div>
           </motion.div>
         ))}
 
         {/* Add course CTA */}
         <motion.div
-          className="course-add-card"
-          whileHover={{ scale: 1.02, borderColor: '#7a12cc' }}
-          whileTap={{ scale: 0.98 }}
-          onClick={handleAddCourse}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}
+           whileHover={{ scale: 1.01, borderColor: '#7a12cc', backgroundColor: '#faf5ff' }}
+           whileTap={{ scale: 0.99 }}
+           onClick={handleAddCourse}
+           style={{
+             cursor: 'pointer',
+             background: 'transparent',
+             borderRadius: '20px',
+             padding: '24px',
+             display: 'flex',
+             alignItems: 'center',
+             gap: '24px',
+             border: '2px dashed #cbd5e1',
+             marginTop: '8px'
+           }}
         >
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-            <Plus size={24} strokeWidth={2} color="#7a12cc" />
+          <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Plus size={28} color="#94a3b8" />
           </div>
-          <h4 style={{ fontFamily: 'Varela Round', fontSize: '16px', color: '#4C1D95', margin: 0 }}>Enroll New Course</h4>
-          <p style={{ fontSize: '14px', color: '#64748B', marginTop: '8px' }}>Add another class to your semester loadout.</p>
+          <div>
+            <h4 style={{ fontSize: '18px', fontWeight: 800, color: '#475569', margin: '0 0 4px' }}>Enroll a New Course</h4>
+            <p style={{ fontSize: '14px', color: '#94a3b8', margin: 0, fontWeight: 500 }}>Search for another class to add to your semester loadout.</p>
+          </div>
         </motion.div>
       </div>
 
