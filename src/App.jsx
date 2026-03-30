@@ -34,6 +34,12 @@ import AdminActivity from './admin/pages/AdminActivity'
 import AdminSystem from './admin/pages/AdminSystem'
 import AdminSettings from './admin/pages/AdminSettings'
 import AdminSyllabusManager from './admin/pages/AdminSyllabusManager'
+import AdminUploadPage from './components/admin/AdminUploadPage'
+import StudyMaterialsPage from './components/dashboard/StudyMaterialsPage'
+import FilesPage from './components/dashboard/FilesPage'
+import AssignmentsPage from './components/dashboard/AssignmentsPage'
+import AINotesPage from './components/dashboard/AINotesPage'
+import StudyMaterialsWeekPage from './components/dashboard/StudyMaterialsWeekPage'
 
 function CompeteRedirect() {
   const { search } = useLocation()
@@ -89,7 +95,11 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<DashboardHome />} />
             <Route path="admin/upload" element={<AdminUploadPage />} />
+            <Route path="courses/:courseId/materials/:weekId" element={<StudyMaterialsWeekPage />} />
             <Route path="courses/:courseId/materials" element={<StudyMaterialsPage />} />
+            <Route path="files" element={<FilesPage />} />
+            <Route path="ai-notes" element={<AINotesPage />} />
+            <Route path="assignments" element={<AssignmentsPage />} />
             <Route path="courses/:courseId/learn" element={<CourseWorkstationRoute workstationMode={true} />} />
             <Route path="courses/:courseId" element={<CourseWorkstationRoute workstationMode={false} />} />
             <Route path="courses" element={<CoursesPage />} />

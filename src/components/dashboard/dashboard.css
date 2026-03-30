@@ -1663,9 +1663,9 @@ input { font-family: var(--font); }
   display: flex;
   align-items: center;
   gap: 5px;
-  background: #f0fdf4;
-  color: #059669;
-  border: 1px solid #bbf7d0;
+  background: #f5f3ff;
+  color: #7a12cc;
+  border: 1px solid #ddd6fe;
   border-radius: 999px;
   padding: 5px 12px;
   font-size: 12px;
@@ -1700,7 +1700,7 @@ input { font-family: var(--font); }
   justify-content: center;
   gap: 2px;
 }
-.cw-timer-time { font-size: 18px; font-weight: 800; color: #059669; letter-spacing: -0.03em; }
+.cw-timer-time { font-size: 18px; font-weight: 800; color: #7a12cc; letter-spacing: -0.03em; }
 
 .cw-timer-label { text-align: center; }
 .cw-timer-title { display: block; font-size: 14px; font-weight: 700; color: var(--text); }
@@ -2168,7 +2168,7 @@ input { font-family: var(--font); }
 }
 .cw-quiz-option:hover { border-color: rgba(151,24,251,0.4); background: var(--primary-bg); }
 .cw-quiz-option--selected { border-color: var(--primary); background: rgba(151,24,251,0.06); }
-.cw-quiz-option--correct { border-color: #10B981; background: #f0fdf4; }
+.cw-quiz-option--correct { border-color: #7a12cc; background: #f5f3ff; }
 .cw-quiz-option--wrong { border-color: #ef4444; background: #fef2f2; }
 
 .cw-quiz-opt-letter {
@@ -2184,13 +2184,13 @@ input { font-family: var(--font); }
   color: var(--muted);
   flex-shrink: 0;
 }
-.cw-quiz-option--correct .cw-quiz-opt-letter { background: #dcfce7; color: #059669; }
+.cw-quiz-option--correct .cw-quiz-opt-letter { background: #ede9fe; color: #7a12cc; }
 .cw-quiz-option--wrong .cw-quiz-opt-letter { background: #fee2e2; color: #dc2626; }
 .cw-quiz-option--selected .cw-quiz-opt-letter { background: var(--primary-bg); color: var(--primary); }
 
 .cw-quiz-opt-text { flex: 1; font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.4; }
 .cw-quiz-opt-icon { flex-shrink: 0; }
-.cw-quiz-option--correct .cw-quiz-opt-icon { color: #10B981; }
+.cw-quiz-option--correct .cw-quiz-opt-icon { color: #7a12cc; }
 .cw-quiz-option--wrong .cw-quiz-opt-icon { color: #ef4444; }
 
 .cw-quiz-explanation {

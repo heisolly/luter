@@ -13,7 +13,7 @@ export async function fetchCourseMaterials(courseId, userId) {
 }
 
 /** Upload a file to Supabase Storage and create a materials row */
-export async function uploadMaterial({ file, courseId, userId, type = 'pdf', title }) {
+export async function uploadMaterial({ file, courseId, userId, type = 'pdf', title, week }) {
   const ext = file.name.split('.').pop()
   const path = `${userId}/${courseId}/${Date.now()}.${ext}`
 
@@ -34,6 +34,7 @@ export async function uploadMaterial({ file, courseId, userId, type = 'pdf', tit
       source_url: urlData.publicUrl,
       owner_role: 'user',
       processing_status: 'pending',
+      week: week || null
     })
     .select()
     .single()

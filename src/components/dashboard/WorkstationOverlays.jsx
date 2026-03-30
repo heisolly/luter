@@ -10,8 +10,8 @@ export function SelectionActionBar({ onAction }) {
   if (!selection.visible || !selection.rect) return null
 
   const actions = [
-    { id: 'explain', label: 'Explain', icon: Brain, color: '#7a12cc' },
-    { id: 'summarize', label: 'Summarize', icon: Lightbulb, color: '#10B981' },
+    { id: 'explain', label: 'Explain', icon: Brain, color: '#A78BFA' },
+    { id: 'summarize', label: 'Summarize', icon: Lightbulb, color: '#C4B5FD' },
     { id: 'save', label: 'Add to Vault', icon: PlusCircle, color: '#F59E0B' },
   ]
 
@@ -35,7 +35,7 @@ export function SelectionActionBar({ onAction }) {
         alignItems: 'center',
         gap: '2px',
         padding: '4px',
-        background: '#1A3A32', // Dark brand background
+        background: '#1A102D', // Dark brand background
         backdropFilter: 'blur(12px)',
         borderRadius: '14px',
         boxShadow: '0 12px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1)',
@@ -93,7 +93,7 @@ export function SelectionActionBar({ onAction }) {
         transform: 'translateX(-50%) rotate(45deg)',
         width: '12px',
         height: '12px',
-        background: '#1A3A32',
+        background: '#1A102D',
         borderRight: '1px solid rgba(255,255,255,0.1)',
         borderBottom: '1px solid rgba(255,255,255,0.1)',
         zIndex: -1

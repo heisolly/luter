@@ -14,6 +14,7 @@ import { supabase } from '../../supabaseClient'
 import { ReadingSpaceProvider, useReadingSpace } from './ReadingSpaceContext'
 import { SelectionActionBar } from './WorkstationOverlays'
 import MaterialRenderer from './MaterialRenderer'
+import { saveToVault, fetchUserNotes } from '../../services/materialsService'
 import './workstation.css'
 
 function WorkstationContent() {
@@ -29,21 +30,21 @@ function WorkstationContent() {
   const [courseMaterials, setCourseMaterials] = useState([])
   const [selectedMaterial, setSelectedMaterial] = useState(null)
   const [showTools, setShowTools] = useState(false)
+  const [hasNewAssignment, setHasNewAssignment] = useState(false)
   
   // Analysis cache: materialId -> { notes, summary, flashcards, quiz }
   const [analysisCache, setAnalysisCache] = useState({})
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false)
-  
+
   const currentAnalysis = selectedMaterial ? (analysisCache[selectedMaterial.id] || {}) : {}
 
   const [isFlipped, setIsFlipped] = useState(false)
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0)
 
   const toolLinks = [
-    { id: 'ai-notes', label: 'Full AI Notes', icon: Brain, path: '/dashboard/ai-notes' },
-    { id: 'ai-summary', label: 'Full AI Summary', icon: Sparkles, path: '/dashboard/ai-summary' },
-    { id: 'flashcards', label: 'Flashcard Vault', icon: Layers, path: '/dashboard/flashcards' },
-    { id: 'ai-quiz', label: 'Knowledge Quiz', icon: HelpCircle, path: '/dashboard/ai-quiz' },
+    { id: 'files', label: 'Files', icon: FileText, path: '/dashboard/files' },
+    { id: 'ai-notes', label: 'AI Notes', icon: Brain, path: '/dashboard/ai-notes' },
+    { id: 'assignments', label: 'Assignments', icon: Layers, path: '/dashboard/assignments' },
   ]
 
   useEffect(() => {
@@ -77,8 +78,24 @@ function WorkstationContent() {
   useEffect(() => {
     if (courseId) {
       fetchMaterials()
+      checkAssignments()
     }
   }, [courseId])
+
+  async function checkAssignments() {
+    // A simple check for any assignment in the last 24 hours
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { data } = await supabase
+      .from('materials')
+      .select('id')
+      .eq('course_id', courseId)
+      .eq('type', 'assignment')
+      .gt('created_at', yesterday)
+    
+    if (data && data.length > 0) {
+      setHasNewAssignment(true)
+    }
+  }
 
   async function fetchMaterials() {
     const { data, error } = await supabase
@@ -186,6 +203,23 @@ function WorkstationContent() {
           [type]: finalResult
         }
       }))
+
+      // Persist AI Notes to the vault
+      if (type === 'notes') {
+        try {
+          await saveToVault({
+            userId: user.id,
+            courseId: courseId,
+            materialId: selectedMaterial.id,
+            title: `AI Notes: ${selectedMaterial.title}`,
+            content: finalResult,
+            sourceType: 'ai',
+            tags: ['ai-generated', 'workstation']
+          })
+        } catch (saveErr) {
+          console.error("Failed to save AI notes to vault:", saveErr)
+        }
+      }
     } catch (err) {
       console.error('Analysis failed:', err)
     } finally {
@@ -194,9 +228,34 @@ function WorkstationContent() {
   }
 
   useEffect(() => {
-    if (activeTab !== 'content' && selectedMaterial && !currentAnalysis[activeTab]) {
-      runAnalysis(activeTab);
+    async function checkExistingAnalysis() {
+      if (activeTab === 'notes' && selectedMaterial && !currentAnalysis[activeTab]) {
+        // Try to fetch existing AI notes for this material
+        try {
+          const notesFromDb = await fetchUserNotes(user.id, courseId)
+          const existingNote = notesFromDb.find(n => n.material_id === selectedMaterial.id && n.source_type === 'ai')
+          
+          if (existingNote) {
+            setAnalysisCache(prev => ({
+              ...prev,
+              [selectedMaterial.id]: {
+                ...(prev[selectedMaterial.id] || {}),
+                notes: existingNote.content
+              }
+            }))
+            return // Skip running analysis if already exists
+          }
+        } catch (err) {
+          console.error("Error fetching existing notes:", err)
+        }
+      }
+      
+      if (activeTab !== 'content' && selectedMaterial && !currentAnalysis[activeTab]) {
+        runAnalysis(activeTab);
+      }
     }
+    
+    checkExistingAnalysis();
   }, [activeTab, selectedMaterial, currentAnalysis]);
 
   const handleSend = async () => {
@@ -229,11 +288,11 @@ function WorkstationContent() {
   }
 
   const tabs = [
-    { id: 'content', label: 'Reading', icon: FileText },
+    { id: 'content', label: 'Workspace Home', icon: FileText },
+    { id: 'files', label: 'Files', icon: FileText },
     { id: 'notes', label: 'AI Notes', icon: Brain },
-    { id: 'summary', label: 'AI Summary', icon: Sparkles },
-    { id: 'flashcards', label: 'AI Flashcards', icon: Layers },
-    { id: 'quiz', label: 'AI Quiz', icon: HelpCircle },
+    { id: 'assignments', label: 'Assignments', icon: Layers },
+    { id: 'tracker', label: 'Activity Tracker', icon: HelpCircle },
   ]
 
   const currentTabIcon = tabs.find(t => t.id === activeTab)?.icon || FileText;
@@ -250,9 +309,38 @@ function WorkstationContent() {
             <nav style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#4A5568', fontFamily: 'Outfit' }}>
               <span>Home</span> <ChevronRight size={14} /> <span style={{ fontWeight: 600 }}>{selectedMaterial?.title || 'Loading...'}</span>
             </nav>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 12px', background: '#F5F3FF', borderRadius: '20px', fontSize: '12px', color: '#7a12cc', fontWeight: 600, border: '1px solid #DDD6FE' }}>
-              {React.createElement(currentTabIcon, { size: 14 })}
-              <span>{tabs.find(t => t.id === activeTab)?.label}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#F8FAFC', padding: '4px 16px', borderRadius: '99px', border: '1px solid #E2E8F0' }}>
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id)
+                    if (tab.id === 'assignments') setHasNewAssignment(false)
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    color: activeTab === tab.id ? '#7a12cc' : '#94A3B8',
+                    fontWeight: 600,
+                    background: activeTab === tab.id ? '#F5F3FF' : 'transparent',
+                    border: activeTab === tab.id ? '1px solid #DDD6FE' : '1px solid transparent',
+                    position: 'relative',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {React.createElement(tab.icon, { size: 14 })}
+                  <span>{tab.label}</span>
+                  {tab.id === 'assignments' && hasNewAssignment && (
+                    <div style={{ position: 'absolute', top: '-4px', right: '-4px', width: '10px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                       <div style={{ width: '8px', height: '8px', background: '#EF4444', borderRadius: '50%', border: '2px solid white' }}></div>
+                    </div>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -375,7 +463,7 @@ function WorkstationContent() {
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #F3E8FF', display: 'flex', alignItems: 'center', gap: 10 }}>
               <LuterLogo size={20} showText={false} />
               <span style={{ fontFamily: 'Varela Round', fontSize: '15px', color: '#4C1D95', fontWeight: 700 }}>Luter</span>
-              <div style={{ marginLeft: 'auto', width: 8, height: 8, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px rgba(16, 185, 129, 0.4)' }}></div>
+              <div style={{ marginLeft: 'auto', width: 8, height: 8, borderRadius: '50%', background: '#7a12cc', boxShadow: '0 0 8px rgba(122, 18, 204, 0.4)' }}></div>
             </div>
             
             <div className="ws-chat-messages">

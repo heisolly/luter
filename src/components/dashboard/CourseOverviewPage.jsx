@@ -451,7 +451,7 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
         >
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-              <Loader2 className="animate-spin" color={greenColor} />
+              <Loader2 className="animate-spin" color={purpleColor} />
             </div>
           ) : filteredMaterials().length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px', color: lightGrey }}>
@@ -479,7 +479,7 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
                     gap: '12px'
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = greenColor
+                    e.currentTarget.style.borderColor = purpleColor
                     e.currentTarget.style.transform = 'translateY(-2px)'
                     e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.05)'
                   }}
@@ -490,7 +490,7 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ color: greenColor }}>
+                    <div style={{ color: purpleColor }}>
                       {item.type === 'pdf' ? <FileText size={24} /> : 
                        item.type === 'note' ? <BookOpen size={24} /> :
                        item.type === 'docx' ? <FileCheck size={24} /> :
