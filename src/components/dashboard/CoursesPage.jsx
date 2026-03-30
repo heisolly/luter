@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
-import { BookOpen, Plus, Upload, FileText, MoreVertical, Zap, ChevronRight, Loader2, Lock, Crown } from 'lucide-react'
+import { Plus, Upload, FileText, MoreVertical, Zap, ChevronRight, Loader2, Lock, Crown } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
@@ -116,19 +116,20 @@ export default function CoursesPage() {
   }
 
   return (
-    <div className="dh-root" style={{ padding: isMobile ? '20px 16px' : '28px 32px' }}>
+    <div className="dh-root" style={{ padding: isMobile ? '20px 16px' : '40px' }}>
       <div className="dh-topbar" style={{ 
         flexDirection: isMobile ? 'column' : 'row', 
         alignItems: isMobile ? 'flex-start' : 'center',
-        gap: isMobile ? 12 : 12
+        gap: isMobile ? 12 : 12,
+        marginBottom: '40px'
       }}>
         <div className="dh-topbar-left" style={{ width: isMobile ? '100%' : 'auto' }}>
-          <h1 className="dh-page-title" style={{ fontSize: isMobile ? 24 : 22 }}>My Courses</h1>
+          <h1 className="dh-page-title" style={{ fontSize: isMobile ? 28 : 32, fontFamily: 'Varela Round' }}>My Courses</h1>
           <p className="dh-page-sub">
             {user?.user_metadata?.university || 'University Student'} · First Semester
           </p>
         </div>
-        <div className="dh-topbar-right" style={{ width: isMobile ? '100%' : 'auto' }}>
+        <div className="dh-topbar-right" style={{ width: isMobile ? '100%' : 'auto', marginLeft: 'auto' }}>
           <button 
             className="dh-upload-btn" 
             style={{ width: isMobile ? '100%' : 'auto', justifyContent: 'center' }}
@@ -151,7 +152,7 @@ export default function CoursesPage() {
             whileHover={{ y: c.isLocked && !isPremium ? 0 : -4 }}
             onClick={() => handleCourseClick(c)}
             style={{
-              cursor: c.isLocked && !isPremium ? 'pointer' : 'default',
+              cursor: 'pointer',
               position: 'relative',
               opacity: c.isLocked && !isPremium ? 0.7 : 1
             }}
@@ -173,17 +174,11 @@ export default function CoursesPage() {
                   <h3 className="cfc-name">{c.name}</h3>
                   <p className="cfc-dept">{c.dept}</p>
                 </div>
-                <button className="cfc-menu"><MoreVertical size={16} /></button>
-              </div>
-
-              <div className="cfc-lecturer">
-                <span className="cfc-lecturer-label">Lecturer:</span>
-                <span className="cfc-lecturer-name">{c.lecturer}</span>
               </div>
 
               <div className="cfc-progress-section">
                 <div className="cfc-prog-header">
-                  <span>Coverage</span>
+                  <span>Progress</span>
                   <span style={{ color: c.color, fontWeight: 700 }}>{c.progress}%</span>
                 </div>
                 <div className="cfc-prog-track">
@@ -196,38 +191,6 @@ export default function CoursesPage() {
                   />
                 </div>
               </div>
-
-              <div className="cfc-meta">
-                <div className="cfc-meta-item">
-                  <FileText size={13} strokeWidth={1.8} />
-                  <span>{c.files} files uploaded</span>
-                </div>
-              </div>
-
-              <div className="cfc-actions">
-                <button
-                  className={`cfc-btn-primary ${c.isLocked && !isPremium ? 'cfc-btn-primary--locked' : ''}`}
-                  style={{ '--c': c.isLocked && !isPremium ? '#fbbf24' : c.color }}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleCourseClick(c)
-                  }}
-                >
-                  {c.isLocked && !isPremium ? (
-                    <><Lock size={13} strokeWidth={2} /> Unlock Course</>
-                  ) : (
-                    <><BookOpen size={13} strokeWidth={2} /> Open Workstation</>
-                  )}
-                </button>
-                <button 
-                  className="cfc-btn-ghost"
-                  onClick={(e) => e.stopPropagation()}
-                  disabled={c.isLocked && !isPremium}
-                >
-                  <Upload size={13} strokeWidth={2} />
-                  Upload
-                </button>
-              </div>
             </div>
           </motion.div>
         ))}
@@ -235,13 +198,16 @@ export default function CoursesPage() {
         {/* Add course CTA */}
         <motion.div
           className="course-add-card"
-          whileHover={{ scale: 1.02 }}
+          whileHover={{ scale: 1.02, borderColor: '#7a12cc' }}
           whileTap={{ scale: 0.98 }}
           onClick={handleAddCourse}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}
         >
-          <Plus size={28} strokeWidth={1.5} />
-          <h4>Enroll New Course</h4>
-          <p>Add another class to your semester loadout.</p>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+            <Plus size={24} strokeWidth={2} color="#7a12cc" />
+          </div>
+          <h4 style={{ fontFamily: 'Varela Round', fontSize: '16px', color: '#4C1D95', margin: 0 }}>Enroll New Course</h4>
+          <p style={{ fontSize: '14px', color: '#64748B', marginTop: '8px' }}>Add another class to your semester loadout.</p>
         </motion.div>
       </div>
 

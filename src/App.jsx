@@ -88,7 +88,10 @@ export default function App() {
 
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<DashboardHome />} />
-            <Route path="courses/:courseId" element={<CourseWorkstationRoute />} />
+            <Route path="admin/upload" element={<AdminUploadPage />} />
+            <Route path="courses/:courseId/materials" element={<StudyMaterialsPage />} />
+            <Route path="courses/:courseId/learn" element={<CourseWorkstationRoute workstationMode={true} />} />
+            <Route path="courses/:courseId" element={<CourseWorkstationRoute workstationMode={false} />} />
             <Route path="courses" element={<CoursesPage />} />
             <Route path="workstation" element={<WorkstationPage />} />
             <Route path="mock-exam" element={<MockExamPage />} />

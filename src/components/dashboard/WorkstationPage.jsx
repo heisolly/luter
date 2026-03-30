@@ -29,14 +29,13 @@ function WorkstationContent() {
   const [courseMaterials, setCourseMaterials] = useState([])
   const [selectedMaterial, setSelectedMaterial] = useState(null)
   const [showTools, setShowTools] = useState(false)
-  const [analysisState, setAnalysisState] = useState({
-    summary: '',
-    notes: '',
-    flashcards: [],
-    quiz: [],
-    loading: false
-  })
   
+  // Analysis cache: materialId -> { notes, summary, flashcards, quiz }
+  const [analysisCache, setAnalysisCache] = useState({})
+  const [isAnalysisLoading, setIsAnalysisLoading] = useState(false)
+  
+  const currentAnalysis = selectedMaterial ? (analysisCache[selectedMaterial.id] || {}) : {}
+
   const [isFlipped, setIsFlipped] = useState(false)
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0)
 
@@ -49,6 +48,16 @@ function WorkstationContent() {
 
   useEffect(() => {
     const handleMouseUp = (e) => {
+      // ONLY trigger if the selection happened inside the reading pane (ws-pane-left)
+      const readingPane = document.querySelector('.ws-pane-left')
+      if (!readingPane || !readingPane.contains(e.target)) {
+        // If clicking outside and not on the selection bar, hide it
+        if (!e.target.closest('.selection-action-bar')) {
+          updateSelection('', null, false)
+        }
+        return
+      }
+
       const sel = window.getSelection()
       const text = sel.toString().trim()
       
@@ -57,10 +66,7 @@ function WorkstationContent() {
         const rect = range.getBoundingClientRect()
         updateSelection(text, rect, true)
       } else {
-        // If clicking on the selection bar itself, don't hide it immediately
-        if (!e.target.closest('.selection-action-bar')) {
-          updateSelection('', null, false)
-        }
+        updateSelection('', null, false)
       }
     }
 
@@ -130,18 +136,26 @@ function WorkstationContent() {
 
   // RAG & Analysis Logic
   const runAnalysis = async (type) => {
-    if (!selectedMaterial?.extracted_text || analysisState.loading) return
+    if (!selectedMaterial?.extracted_text || isAnalysisLoading) return
     
-    setAnalysisState(prev => ({ ...prev, loading: true }))
+    setIsAnalysisLoading(true)
     try {
       let prompt;
       let model = GROQ_MODELS.PROFESSOR;
 
       switch(type) {
-        case 'notes': prompt = GROQ_PROMPTS.AI_NOTES; break;
-        case 'summary': prompt = GROQ_PROMPTS.AI_NOTES; break; // Or a specific summary prompt if available
-        case 'flashcards': prompt = GROQ_PROMPTS.FLASHCARDS; break;
-        case 'quiz': prompt = GROQ_PROMPTS.MOCK_EXAM; break;
+        case 'notes': 
+          prompt = GROQ_PROMPTS.AI_NOTES; 
+          break;
+        case 'summary': 
+          prompt = GROQ_PROMPTS.SUMMARY; 
+          break;
+        case 'flashcards': 
+          prompt = GROQ_PROMPTS.FLASHCARDS; 
+          break;
+        case 'quiz': 
+          prompt = GROQ_PROMPTS.MOCK_EXAM; 
+          break;
         default: prompt = GROQ_PROMPTS.AI_NOTES;
       }
 
@@ -153,31 +167,37 @@ function WorkstationContent() {
       )
       
       const content = response.choices[0].message.content
+      let finalResult = content;
       
       if (type === 'flashcards' || type === 'quiz') {
         try {
           const jsonMatch = content.match(/\[[\s\S]*\]/);
-          const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content.replace(/```json|```/g, ''));
-          setAnalysisState(prev => ({ ...prev, [type]: parsed }));
+          finalResult = JSON.parse(jsonMatch ? jsonMatch[0] : content.replace(/```json|```/g, ''));
         } catch (e) {
           console.error("Failed to parse AI JSON:", e);
-          setAnalysisState(prev => ({ ...prev, [type]: content }));
+          finalResult = content;
         }
-      } else {
-        setAnalysisState(prev => ({ ...prev, [type]: content }))
       }
+
+      setAnalysisCache(prev => ({
+        ...prev,
+        [selectedMaterial.id]: {
+          ...(prev[selectedMaterial.id] || {}),
+          [type]: finalResult
+        }
+      }))
     } catch (err) {
       console.error('Analysis failed:', err)
     } finally {
-      setAnalysisState(prev => ({ ...prev, loading: false }))
+      setIsAnalysisLoading(false)
     }
   }
 
   useEffect(() => {
-    if (activeTab !== 'content' && selectedMaterial && !analysisState[activeTab]) {
+    if (activeTab !== 'content' && selectedMaterial && !currentAnalysis[activeTab]) {
       runAnalysis(activeTab);
     }
-  }, [activeTab, selectedMaterial]);
+  }, [activeTab, selectedMaterial, currentAnalysis]);
 
   const handleSend = async () => {
     if (!chatInput.trim() || isAiLoading) return
@@ -209,7 +229,7 @@ function WorkstationContent() {
   }
 
   const tabs = [
-    { id: 'content', label: 'Original Content', icon: FileText },
+    { id: 'content', label: 'Reading', icon: FileText },
     { id: 'notes', label: 'AI Notes', icon: Brain },
     { id: 'summary', label: 'AI Summary', icon: Sparkles },
     { id: 'flashcards', label: 'AI Flashcards', icon: Layers },
@@ -345,7 +365,7 @@ function WorkstationContent() {
           <MaterialRenderer 
             material={selectedMaterial} 
             activeTab={activeTab}
-            analysisState={analysisState}
+            analysisState={{ ...currentAnalysis, loading: isAnalysisLoading }}
             onRunAnalysis={runAnalysis}
           />
         </section>

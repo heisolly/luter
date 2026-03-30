@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import CourseWorkstation from './CourseWorkstation'
+import CourseOverviewPage from './CourseOverviewPage'
 
 const PALETTE = ['#7a12cc', '#9718fb', '#b04dfc', '#6d28d9', '#7c3aed', '#8b5cf6', '#a78bfa', '#6366f1']
 
@@ -14,7 +15,7 @@ function colorForId(id) {
   return PALETTE[Math.abs(h) % PALETTE.length]
 }
 
-export default function CourseWorkstationRoute() {
+export default function CourseWorkstationRoute({ workstationMode = false }) {
   const { courseId } = useParams()
   const navigate = useNavigate()
   const { user } = useOutletContext()
@@ -98,12 +99,21 @@ export default function CourseWorkstationRoute() {
     return <Navigate to="/dashboard/courses" replace />
   }
 
+  if (workstationMode) {
+    return (
+      <CourseWorkstation
+        course={course}
+        user={user}
+        academicProfile={bundle?.profile?.data ?? null}
+        onBack={() => navigate(`/dashboard/courses/${course.id}`)}
+      />
+    )
+  }
+
   return (
-    <CourseWorkstation
-      course={course}
-      user={user}
-      academicProfile={bundle?.profile?.data ?? null}
-      onBack={() => navigate('/dashboard/courses')}
+    <CourseOverviewPage 
+      course={course} 
+      onStartStudying={() => navigate(`/dashboard/courses/${course.id}/learn`)}
     />
   )
 }

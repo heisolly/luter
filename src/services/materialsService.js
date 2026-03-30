@@ -209,6 +209,49 @@ export async function saveChatMessage({ userId, courseId, role, content }) {
   if (error) console.warn('saveChatMessage', error)
 }
 
+/** Delete a material and its associated file in storage */
+export async function deleteMaterial(materialId) {
+  // 1. Get the material to find the source_url
+  const { data: material, error: fetchErr } = await supabase
+    .from('materials')
+    .select('source_url')
+    .eq('id', materialId)
+    .single()
+  
+  if (fetchErr) throw fetchErr
+
+  // 2. Delete from storage if it's a file (not youtube)
+  if (material.source_url && !material.source_url.includes('youtube.com')) {
+    try {
+      const url = new URL(material.source_url)
+      const pathParts = url.pathname.split('/storage/v1/object/public/materials/')
+      if (pathParts.length > 1) {
+        const filePath = pathParts[1]
+        await supabase.storage.from('materials').remove([filePath])
+      }
+    } catch (e) {
+      console.warn('Failed to delete file from storage:', e)
+    }
+  }
+
+  // 3. Delete from DB
+  const { error } = await supabase
+    .from('materials')
+    .delete()
+    .eq('id', materialId)
+  
+  if (error) throw error
+}
+
+/** Delete a user note */
+export async function deleteUserNote(noteId) {
+  const { error } = await supabase
+    .from('user_notes')
+    .delete()
+    .eq('id', noteId)
+  if (error) throw error
+}
+
 /** Re-process a stuck material by downloading it from storage and re-extracting */
 export async function reprocessMaterial(material) {
   if (!material?.source_url || material.type === 'youtube') return

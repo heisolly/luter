@@ -1,12 +1,19 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useReadingSpace } from '../ReadingSpaceContext'
 import { SharedCanvasOverlay, LuterSpark } from '../WorkstationOverlays'
 import ReactMarkdown from 'react-markdown'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Download, Sparkles, ChevronLeft, ChevronRight, Star } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 export default function NoteRenderer({ material, activeTab, analysisState, onRunAnalysis }) {
   const { setViewportData, highlightText, updateSpark, clearHighlights, updateSelection } = useReadingSpace()
   const contentRef = useRef(null)
+
+  const [currentIdx, setCurrentIdx] = useState(0)
+  const [isFlipped, setIsFlipped] = useState(false)
+  const [userAnswers, setUserAnswers] = useState({})
+  const [showExplanation, setShowExplanation] = useState(false)
+  const [quizScore, setQuizScore] = useState(null)
 
   useEffect(() => {
     const handleMouseUp = () => {
@@ -123,21 +130,21 @@ export default function NoteRenderer({ material, activeTab, analysisState, onRun
                     <Star size={18} />
                     <Sparkles size={18} color="#7a12cc" />
                   </div>
-                  <p style={{ fontSize: '20px', fontWeight: 700, textAlign: 'center', padding: '0 40px', color: '#1A3A32' }}>{items[currentFlashcardIndex]?.front || "No cards generated"}</p>
+                  <p style={{ fontSize: '20px', fontWeight: 700, textAlign: 'center', padding: '0 40px', color: '#1A3A32' }}>{items[currentIdx]?.front || "No cards generated"}</p>
                   <div style={{ position: 'absolute', bottom: '32px', color: '#7a12cc', fontSize: '14px', fontWeight: 600 }}>Click to flip</div>
                 </div>
                 <div className="ws-flashcard-back" style={{ background: '#F5F3FF', border: '1.5px solid #DDD6FE', borderRadius: '24px', position: 'relative' }}>
-                   <p style={{ fontSize: '18px', textAlign: 'center', padding: '0 40px', color: '#4C1D95', lineHeight: 1.6 }}>{items[currentFlashcardIndex]?.back}</p>
+                   <p style={{ fontSize: '18px', textAlign: 'center', padding: '0 40px', color: '#4C1D95', lineHeight: 1.6 }}>{items[currentIdx]?.back}</p>
                 </div>
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-               <button className="ws-tactile-btn" onClick={(e) => { e.stopPropagation(); setCurrentFlashcardIndex(prev => Math.max(0, prev - 1)) }} disabled={currentFlashcardIndex === 0}>
+               <button className="ws-tactile-btn" onClick={(e) => { e.stopPropagation(); setCurrentIdx(prev => Math.max(0, prev - 1)) }} disabled={currentIdx === 0}>
                  <ChevronLeft size={20} />
                </button>
-               <span style={{ fontWeight: 800, color: '#4C1D95' }}>{currentFlashcardIndex + 1} of {items.length}</span>
-               <button className="ws-tactile-btn" onClick={(e) => { e.stopPropagation(); setCurrentFlashcardIndex(prev => Math.min(items.length - 1, prev + 1)) }} disabled={currentFlashcardIndex === items.length - 1}>
+               <span style={{ fontWeight: 800, color: '#4C1D95' }}>{currentIdx + 1} of {items.length}</span>
+               <button className="ws-tactile-btn" onClick={(e) => { e.stopPropagation(); setCurrentIdx(prev => Math.min(items.length - 1, prev + 1)) }} disabled={currentIdx === items.length - 1}>
                  <ChevronRight size={20} />
                </button>
             </div>
@@ -148,20 +155,50 @@ export default function NoteRenderer({ material, activeTab, analysisState, onRun
 
     if (activeTab === 'quiz') {
       const items = Array.isArray(content) ? content : []
+      const currentQuestion = items[currentIdx]
+      
+      const handleNext = () => {
+        setShowExplanation(false)
+        if (currentIdx < items.length - 1) {
+          setCurrentIdx(currentIdx + 1)
+        } else {
+          const answeredCount = Object.keys(userAnswers).length
+          setQuizScore({
+            correct: answeredCount,
+            total: items.length
+          })
+        }
+      }
+
+      if (quizScore) {
+        return (
+          <div style={{ maxWidth: '600px', margin: '60px auto', textAlign: 'center', background: 'white', padding: '48px', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 40px rgba(0,0,0,0.05)' }}>
+            <div style={{ width: '80px', height: '80px', background: '#F5F3FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+              <Star size={40} color="#7a12cc" fill="#7a12cc" />
+            </div>
+            <h2 style={{ fontSize: '28px', fontWeight: 800, color: '#1A3A32', marginBottom: '12px' }}>Quiz Completed!</h2>
+            <p style={{ color: '#94A3B8', fontSize: '16px', marginBottom: '32px' }}>You've completed the Mock Exam for {material.title}.</p>
+            <div style={{ fontSize: '48px', fontWeight: 800, color: '#7a12cc', marginBottom: '8px' }}>{quizScore.correct}/{quizScore.total}</div>
+            <p style={{ fontWeight: 600, color: '#4C1D95', marginBottom: '40px' }}>Great effort! Review your answers below.</p>
+            <button className="ws-tactile-btn" style={{ background: '#7a12cc', color: 'white', padding: '14px 40px', width: '100%' }} onClick={() => setQuizScore(null)}>Restart Quiz</button>
+          </div>
+        )
+      }
+
       return (
         <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
-            <button className="ws-tactile-btn" style={{ background: '#7a12cc', color: 'white', padding: '8px 20px' }}>Quit</button>
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '4px' }}>
+            <button className="ws-tactile-btn" style={{ background: '#FEE2E2', color: '#DC2626', padding: '8px 20px', border: 'none' }} onClick={() => onRunAnalysis('quiz')}>Regenerate</button>
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '4px', flex: 1 }}>
               {items.map((_, i) => (
                 <button 
                   key={i} 
-                  onClick={() => setCurrentFlashcardIndex(i)}
+                  onClick={() => { setCurrentIdx(i); setShowExplanation(false); }}
                   style={{ 
-                    width: '36px', height: '36px', borderRadius: '50%', border: '1.5px solid',
-                    borderColor: currentFlashcardIndex === i ? '#7a12cc' : '#E2E8F0',
-                    background: currentFlashcardIndex === i ? 'white' : 'transparent',
-                    color: currentFlashcardIndex === i ? '#7a12cc' : '#94A3B8',
+                    minWidth: '36px', height: '36px', borderRadius: '50%', border: '1.5px solid',
+                    borderColor: currentIdx === i ? '#7a12cc' : (userAnswers[i] ? '#DDD6FE' : '#E2E8F0'),
+                    background: currentIdx === i ? '#7a12cc' : (userAnswers[i] ? '#F5F3FF' : 'transparent'),
+                    color: currentIdx === i ? 'white' : (userAnswers[i] ? '#7a12cc' : '#94A3B8'),
                     fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
                   }}
                 >
@@ -171,27 +208,46 @@ export default function NoteRenderer({ material, activeTab, analysisState, onRun
             </div>
           </div>
 
-          <p style={{ textAlign: 'center', color: '#94A3B8', fontSize: '13px', fontWeight: 600, marginBottom: '24px' }}>
-            Showing {currentFlashcardIndex + 1}-{Math.min(currentFlashcardIndex + 7, items.length)} of {items.length} questions
-          </p>
-
           <div style={{ background: 'white', borderRadius: '24px', border: '1.5px solid #E2E8F0', padding: '48px', boxShadow: '0 20px 40px rgba(0,0,0,0.03)', position: 'relative' }}>
+             <div style={{ position: 'absolute', top: '24px', right: '40px', display: 'flex', gap: '8px' }}>
+               <span style={{ padding: '4px 12px', background: currentQuestion?.difficulty === 'Hard' ? '#FEF2F2' : '#F0FDF4', color: currentQuestion?.difficulty === 'Hard' ? '#DC2626' : '#16A34A', borderRadius: '20px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>
+                 {currentQuestion?.difficulty || 'Standard'}
+               </span>
+             </div>
+
              <h3 style={{ fontSize: '22px', fontWeight: 800, textAlign: 'center', color: '#1A3A32', marginBottom: '40px', lineHeight: 1.4 }}>
-               {items[currentFlashcardIndex]?.question}
+               {currentQuestion?.question}
              </h3>
 
-             <div style={{ maxWidth: '400px', margin: '0 auto' }}>
-               <input 
-                 type="text" 
-                 placeholder="Enter your answer..."
-                 style={{ width: '100%', padding: '16px 24px', borderRadius: '16px', border: '1.5px solid #E2E8F0', background: '#F8FAFC', outline: 'none', fontSize: '15px', textAlign: 'center' }}
+             <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+               <textarea 
+                 placeholder="Type your answer here..."
+                 value={userAnswers[currentIdx] || ''}
+                 onChange={(e) => setUserAnswers(prev => ({ ...prev, [currentIdx]: e.target.value }))}
+                 style={{ width: '100%', padding: '20px', borderRadius: '16px', border: '1.5px solid #E2E8F0', background: '#F8FAFC', outline: 'none', fontSize: '15px', minHeight: '120px', resize: 'none', fontFamily: 'Outfit' }}
                />
+               
+               {showExplanation && (
+                 <div style={{ marginTop: '24px', padding: '20px', background: '#F5F3FF', borderRadius: '16px', border: '1px solid #DDD6FE' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#7a12cc', fontWeight: 700, fontSize: '13px', marginBottom: '8px' }}>
+                     <Sparkles size={14} /> LUTER'S EXPLANATION
+                   </div>
+                   <p style={{ fontSize: '14px', color: '#4C1D95', lineHeight: 1.6, margin: 0 }}>
+                     <strong>Correct Answer:</strong> {currentQuestion?.answer}<br/><br/>
+                     {currentQuestion?.explanation}
+                   </p>
+                 </div>
+               )}
              </div>
 
              <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '48px' }}>
-                <button className="ws-tactile-btn" style={{ padding: '12px 32px', background: '#F5F3FF', color: '#7a12cc' }} onClick={() => setCurrentFlashcardIndex(prev => Math.max(0, prev - 1))}>Previous</button>
-                <button className="ws-tactile-btn" style={{ padding: '12px 32px', background: 'transparent', color: '#7a12cc' }}>Skip</button>
-                <button className="ws-tactile-btn" style={{ padding: '12px 32px', background: '#7a12cc', color: 'white' }} onClick={() => setCurrentFlashcardIndex(prev => Math.min(items.length - 1, prev + 1))}>Next</button>
+                <button className="ws-tactile-btn" style={{ padding: '12px 32px', background: '#F8FAFC', color: '#64748B' }} onClick={() => setCurrentIdx(prev => Math.max(0, prev - 1))} disabled={currentIdx === 0}>Previous</button>
+                <button className="ws-tactile-btn" style={{ padding: '12px 32px', background: '#F5F3FF', color: '#7a12cc' }} onClick={() => setShowExplanation(!showExplanation)}>
+                  {showExplanation ? 'Hide Answer' : 'Reveal Answer'}
+                </button>
+                <button className="ws-tactile-btn" style={{ padding: '12px 32px', background: '#7a12cc', color: 'white' }} onClick={handleNext}>
+                  {currentIdx === items.length - 1 ? 'Finish Quiz' : 'Next Question'}
+                </button>
              </div>
           </div>
         </div>
@@ -199,20 +255,22 @@ export default function NoteRenderer({ material, activeTab, analysisState, onRun
     }
 
     return (
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 className="ws-heading" style={{ fontSize: '24px', color: '#7a12cc', textTransform: 'capitalize' }}>
-            AI {activeTab}
-          </h2>
-          <button 
-            onClick={downloadContent}
-            style={{ padding: '8px', borderRadius: '10px', background: '#F5F3FF', border: 'none', cursor: 'pointer', color: '#7a12cc' }}
-          >
-            <Download size={20} />
-          </button>
-        </div>
-        <div className="markdown-body" style={{ background: 'white', padding: '40px', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
-          <ReactMarkdown>{content}</ReactMarkdown>
+      <div className="ws-ai-content-pane">
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h2 className="ws-heading" style={{ fontSize: '24px', color: '#7a12cc', textTransform: 'capitalize' }}>
+              AI {activeTab}
+            </h2>
+            <button 
+              onClick={downloadContent}
+              style={{ padding: '8px', borderRadius: '10px', background: '#F5F3FF', border: 'none', cursor: 'pointer', color: '#7a12cc' }}
+            >
+              <Download size={20} />
+            </button>
+          </div>
+          <div className="markdown-body" style={{ background: 'white', padding: '40px', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
+            <ReactMarkdown>{content}</ReactMarkdown>
+          </div>
         </div>
       </div>
     )

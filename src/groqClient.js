@@ -42,13 +42,38 @@ export function buildLuterSystemPrompt(profile) {
 
 // Feature-Specific Prompts
 export const GROQ_PROMPTS = {
-  AI_NOTES: `Analyze the following lecture content. Extract the core definitions, the 3 most important formulas/concepts, and create a 2-paragraph 'Executive Summary' for a student who missed this class. Format with clear H2 headings.`,
+  AI_NOTES: `Act as a world-class academic tutor. Create highly detailed, structured, and comprehensive study notes from the provided text.
   
-  FLASHCARDS: `Convert this material into a JSON array of flashcards. Each object must have a 'front' (question/term) and a 'back' (concise answer). Focus on 'Active Recall'—ask questions that test understanding, not just rote memorization.`,
+  Structure:
+  1. **Topic Overview**: A brief 2-3 sentence introduction.
+  2. **Core Concepts & Definitions**: Use bolding for key terms.
+  3. **Detailed Breakdown**: Deep dive into the main arguments, mechanisms, or theories.
+  4. **Formulas/Equations** (if applicable): Use LaTeX-style or clear formatting.
+  5. **Key Takeaways**: A bulleted list of the most critical points.
+  6. **Self-Review Questions**: 3 questions to test understanding.
   
-  MOCK_EXAM: `Generate 5 Multiple Choice Questions (MCQs) based on this text. Format: 1 Question, 4 Options (A, B, C, D), and Correct Answer with a brief explanation. Ensure 1 question is 'Hard' (Boss Level) and others are 'Standard'.`,
+  Use clean Markdown, H2/H3 headings, and professional academic language.`,
   
-  ASSIGNMENT_SOLUTION: `Provide a step-by-step solution to this assignment problem. Follow the 'Logic First' approach: 1) Identify the formula/concept, 2) Show the substitution, 3) Calculate the result, 4) Explain the reasoning. Format in clear markdown with numbered steps.`,
+  FLASHCARDS: `Convert this material into a JSON array of flashcards. Each object must have a 'front' (question/term) and a 'back' (concise answer). 
+  Focus on 'Active Recall'—ask questions that test deep understanding, not just rote memorization.
+  
+  Return ONLY the JSON array: [{"front": "...", "back": "..."}]`,
+  
+  MOCK_EXAM: `Generate 10 challenging 'Mock Exam' questions based on this text. 
+  Instead of multiple choice, these should be short-answer or conceptual questions that require the student to think.
+  
+  Format as a JSON array of objects: 
+  [{"question": "...", "answer": "...", "explanation": "Why this is the correct answer and the logic behind it", "difficulty": "Standard|Hard"}]
+  
+  Return ONLY the JSON array.`,
+
+  SUMMARY: `Create a concise executive summary of the following document. 
+  Focus on:
+  - The core thesis or objective.
+  - The main supporting arguments or data points.
+  - Final conclusions or implications.
+  
+  Keep it professional, academic, and extremely high-signal.`,
   
   AI_TUTOR: `You are Luter AI Tutor helping a student understand this course material. Be encouraging, use examples relevant to Nigerian university context, and provide clear, concise explanations.`,
 
