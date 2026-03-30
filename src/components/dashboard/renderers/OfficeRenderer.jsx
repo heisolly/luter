@@ -6,7 +6,7 @@ import * as docx from "docx-preview"
 import Mark from 'mark.js'
 
 export default function OfficeRenderer({ material, activeTab, analysisState, onRunAnalysis }) {
-  const { setViewportData, updateSelection, drawCommands, highlightDocxText, highlightText } = useReadingSpace()
+  const { setViewportData, updateSelection, drawCommands, highlightDocxText, highlightText, highlightPptxText } = useReadingSpace()
   const docxContainerRef = useRef(null)
   const markInstanceRef = useRef(null)
   const pptxContainerRef = useRef(null)
@@ -21,6 +21,8 @@ export default function OfficeRenderer({ material, activeTab, analysisState, onR
   const [quizScore, setQuizScore] = useState(null)
   const [aiHighlights, setAiHighlights] = useState([])
   const [convertedPdfUrl, setConvertedPdfUrl] = useState(null)
+  const [pptxSlides, setPptxSlides] = useState([])
+  const [currentSlide, setCurrentSlide] = useState(0)
 
   const fileUrl = material.source_url
   const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`
@@ -72,29 +74,593 @@ export default function OfficeRenderer({ material, activeTab, analysisState, onR
     }
   }, [])
 
+  // Trigger PPTX highlight
+  const triggerPptxHighlight = useCallback((highlightData) => {
+    if (!pptxContainerRef.current) return
+    
+    const container = pptxContainerRef.current
+    const slideElement = container.querySelector(`[data-slide="${currentSlide}"]`)
+    
+    if (!slideElement) return
+    
+    // Initialize mark.js for this slide if not already done
+    if (!markInstanceRef.current) {
+      markInstanceRef.current = new Mark(slideElement)
+    }
+    
+    // Unmark previous highlights
+    markInstanceRef.current.unmark()
+    
+    // Apply new highlight
+    markInstanceRef.current.mark(highlightData.text, {
+      className: 'ai-highlight',
+      caseSensitive: false,
+      accuracy: 'exactly'
+    })
+    
+    setAiHighlights(prev => [...prev, highlightData])
+  }, [currentSlide])
+
+  // Process PPTX slides from extracted text
+  const processPptxSlides = useCallback((extractedText) => {
+    if (!extractedText) return
+    
+    console.log('Processing PPTX slides from extracted text:', extractedText.substring(0, 200))
+    
+    // Enhanced slide detection patterns
+    const slidePatterns = [
+      // Common PowerPoint slide separators
+      /(?:Slide\s+\d+|Page\s+\d+)/gi,
+      /(?:===\s*Slide\s*\d+\s*===|---\s*Slide\s*\d+\s*---)/gi,
+      /(?:\n\s*\d+\.\s|\n\s*[A-Z][a-z]+\s+\d+)/gi,
+      /(?:\n\s*-{3,}\s*\n|\n\s*={3,}\s*\n)/gi,
+      // New slide indicators
+      /(?:\n\s*New\s+Slide\s*\n|\n\s*---\s*Slide\s*\d+\s*---\s*\n)/gi,
+      // Title-based slide detection (lines that look like slide titles)
+      /(?:\n\s*[A-Z][A-Z\s]{10,}\s*\n|\n\s*[A-Z][a-z]+\s+[A-Z][a-z]+\s*\n)/gi
+    ]
+    
+    let slides = []
+    
+    // Try each pattern to find the best slide separation
+    for (const pattern of slidePatterns) {
+      const testSlides = extractedText.split(pattern).filter(slide => slide.trim().length > 20)
+      if (testSlides.length > 1) {
+        slides = testSlides
+        console.log(`Found ${slides.length} slides using pattern:`, pattern)
+        break
+      }
+    }
+    
+    // If no clear slide separators found, use intelligent chunking
+    if (slides.length <= 1) {
+      console.log('No clear slide separators found, using intelligent chunking')
+      
+      // Split by double newlines or significant content breaks
+      const paragraphs = extractedText.split(/\n\s*\n+/).filter(p => p.trim().length > 10)
+      
+      // Group paragraphs into slides (max 3-4 paragraphs per slide)
+      const chunkSize = 3
+      slides = []
+      for (let i = 0; i < paragraphs.length; i += chunkSize) {
+        const chunk = paragraphs.slice(i, i + chunkSize).join('\n\n')
+        if (chunk.trim().length > 20) {
+          slides.push(chunk.trim())
+        }
+      }
+      
+      // If still only one slide, split by character count
+      if (slides.length <= 1) {
+        const charLimit = 800 // Characters per slide
+        slides = []
+        for (let i = 0; i < extractedText.length; i += charLimit) {
+          const chunk = extractedText.slice(i, i + charLimit)
+          if (chunk.trim().length > 20) {
+            slides.push(chunk.trim())
+          }
+        }
+      }
+    }
+    
+    // Clean up slides and ensure minimum content
+    slides = slides.map(slide => slide.trim()).filter(slide => slide.length > 20)
+    
+    // Add slide numbers if not present
+    slides = slides.map((slide, index) => {
+      // If slide doesn't start with a title, add one
+      if (!slide.match(/^(Slide\s+\d+|[A-Z][A-Z\s]{5,}|[A-Z][a-z]+\s+[A-Z])/)) {
+        const firstLine = slide.split('\n')[0].trim()
+        if (firstLine.length < 50 && firstLine.length > 3) {
+          // First line looks like a title, keep it
+          return slide
+        } else {
+          // Add a generic title
+          return `Slide ${index + 1}\n${slide}`
+        }
+      }
+      return slide
+    })
+    
+    console.log(`Final slide count: ${slides.length}`)
+    slides.forEach((slide, index) => {
+      console.log(`Slide ${index + 1}:`, slide.substring(0, 100) + '...')
+    })
+    
+    setPptxSlides(slides)
+  }, [])
+
+  // Render PPTX slides with enhanced navigation
+  const renderPptxSlides = useCallback(() => {
+    if (!pptxContainerRef.current || pptxSlides.length === 0) return
+    
+    const container = pptxContainerRef.current
+    container.innerHTML = ''
+    
+    // Create main viewer container
+    const viewerContainer = document.createElement('div')
+    viewerContainer.style.cssText = `
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: #1a1a1a;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      overflow: hidden;
+    `
+    
+    // Create top navigation bar
+    const topNav = document.createElement('div')
+    topNav.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: rgba(26, 32, 44, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    `
+    
+    topNav.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <span style="color: white; font-weight: 600; font-size: 14px;">
+          PowerPoint Presentation
+        </span>
+        <span style="color: #7a12cc; font-weight: 600; font-size: 12px; background: rgba(122, 18, 204, 0.2); padding: 4px 8px; border-radius: 4px;">
+          ${pptxSlides.length} Slides
+        </span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button id="prev-slide-top" style="
+          padding: 8px 16px;
+          background: ${currentSlide === 0 ? 'rgba(255,255,255,0.1)' : '#7a12cc'};
+          color: ${currentSlide === 0 ? 'rgba(255,255,255,0.5)' : 'white'};
+          border: 1px solid rgba(255,255,255,0.2);
+          border-radius: 6px;
+          cursor: ${currentSlide === 0 ? 'not-allowed' : 'pointer'};
+          font-weight: 600;
+          font-size: 12px;
+          transition: all 0.2s ease;
+        " ${currentSlide === 0 ? 'disabled' : ''}>
+          ← Previous
+        </button>
+        <span style="color: white; font-weight: 600; font-size: 13px; min-width: 80px; text-align: center;">
+          ${currentSlide + 1} / ${pptxSlides.length}
+        </span>
+        <button id="next-slide-top" style="
+          padding: 8px 16px;
+          background: ${currentSlide === pptxSlides.length - 1 ? 'rgba(255,255,255,0.1)' : '#7a12cc'};
+          color: ${currentSlide === pptxSlides.length - 1 ? 'rgba(255,255,255,0.5)' : 'white'};
+          border: 1px solid rgba(255,255,255,0.2);
+          border-radius: 6px;
+          cursor: ${currentSlide === pptxSlides.length - 1 ? 'not-allowed' : 'pointer'};
+          font-weight: 600;
+          font-size: 12px;
+          transition: all 0.2s ease;
+        " ${currentSlide === pptxSlides.length - 1 ? 'disabled' : ''}>
+          Next →
+        </button>
+      </div>
+    `
+    
+    viewerContainer.appendChild(topNav)
+    
+    // Create main content area with sidebar and slide
+    const mainContent = document.createElement('div')
+    mainContent.style.cssText = `
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    `
+    
+    // Create slide thumbnails sidebar
+    const thumbnailSidebar = document.createElement('div')
+    thumbnailSidebar.style.cssText = `
+      width: 180px;
+      background: rgba(26, 32, 44, 0.95);
+      backdrop-filter: blur(10px);
+      border-right: 1px solid rgba(255,255,255,0.1);
+      overflow-y: auto;
+      padding: 16px 8px;
+    `
+    
+    // Add slides header
+    const slidesHeader = document.createElement('div')
+    slidesHeader.style.cssText = `
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      padding: 0 8px;
+      letter-spacing: 0.5px;
+    `
+    slidesHeader.textContent = 'All Slides'
+    thumbnailSidebar.appendChild(slidesHeader)
+    
+    // Create thumbnails for each slide
+    pptxSlides.forEach((slide, index) => {
+      const thumbnail = document.createElement('div')
+      thumbnail.style.cssText = `
+        width: 152px;
+        height: 85px;
+        background: white;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        border: 2px solid ${index === currentSlide ? '#7a12cc' : 'transparent'};
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      `
+      
+      // Add slide number badge
+      const slideNumber = document.createElement('div')
+      slideNumber.style.cssText = `
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        font-size: 9px;
+        font-weight: 600;
+        padding: 2px 5px;
+        border-radius: 2px;
+        z-index: 2;
+      `
+      slideNumber.textContent = index + 1
+      thumbnail.appendChild(slideNumber)
+      
+      // Add content preview
+      const contentPreview = document.createElement('div')
+      contentPreview.style.cssText = `
+        padding: 16px 10px;
+        font-size: 5px;
+        color: #4a5568;
+        line-height: 1.1;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 5;
+        -webkit-box-orient: vertical;
+        font-family: 'Segoe UI', sans-serif;
+        height: 100%;
+      `
+      
+      // Create mini preview of content
+      const lines = slide.split('\n').filter(line => line.trim()).slice(0, 3)
+      const previewText = lines.join(' ').substring(0, 60) + (lines.join(' ').length > 60 ? '...' : '')
+      contentPreview.textContent = previewText
+      thumbnail.appendChild(contentPreview)
+      
+      // Add click handler
+      thumbnail.addEventListener('click', () => {
+        setCurrentSlide(index)
+      })
+      
+      // Add hover effect
+      thumbnail.addEventListener('mouseenter', () => {
+        thumbnail.style.transform = 'scale(1.03)'
+        thumbnail.style.boxShadow = '0 4px 12px rgba(122, 18, 204, 0.4)'
+      })
+      
+      thumbnail.addEventListener('mouseleave', () => {
+        thumbnail.style.transform = 'scale(1)'
+        thumbnail.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)'
+      })
+      
+      thumbnailSidebar.appendChild(thumbnail)
+    })
+    
+    // Create main slide viewing area
+    const slideViewArea = document.createElement('div')
+    slideViewArea.style.cssText = `
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+      position: relative;
+    `
+    
+    // Create slide stage
+    const slideStage = document.createElement('div')
+    slideStage.style.cssText = `
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      position: relative;
+    `
+    
+    // Create main slide element
+    const slideElement = document.createElement('div')
+    slideElement.setAttribute('data-slide', currentSlide)
+    slideElement.style.cssText = `
+      width: 100%;
+      max-width: 800px;
+      aspect-ratio: 16/9;
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+      padding: 50px;
+      font-family: 'Segoe UI', 'Arial', sans-serif;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.3s ease;
+    `
+    
+    // Add slide content with proper formatting
+    const slideContent = pptxSlides[currentSlide] || 'No content available'
+    const lines = slideContent.split('\n').filter(line => line.trim())
+    
+    // Process slide content
+    const processedContent = lines.map((line, index) => {
+      const trimmed = line.trim()
+      if (!trimmed) return null
+      
+      // Check if it's a title
+      const isTitle = index === 0 || 
+                     trimmed.length < 50 || 
+                     /^[A-Z]/.test(trimmed) && !trimmed.includes('.') ||
+                     trimmed === trimmed.toUpperCase()
+      
+      // Check if it's a bullet point
+      const isBullet = /^[-•*]\s/.test(trimmed) || /^\d+\.\s/.test(trimmed)
+      
+      return { text: trimmed, isTitle, isBullet, index }
+    }).filter(Boolean)
+    
+    // Render slide content
+    const contentContainer = document.createElement('div')
+    contentContainer.style.cssText = `
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    `
+    
+    processedContent.forEach(item => {
+      const element = document.createElement('div')
+      
+      if (item.isTitle) {
+        element.style.cssText = `
+          font-size: 28px;
+          font-weight: 700;
+          color: #2d3748;
+          margin-bottom: 20px;
+          text-align: center;
+          line-height: 1.2;
+        `
+      } else if (item.isBullet) {
+        element.style.cssText = `
+          font-size: 18px;
+          color: #4a5568;
+          margin-bottom: 10px;
+          margin-left: 20px;
+          line-height: 1.5;
+          position: relative;
+        `
+        // Add bullet point
+        const bullet = document.createElement('span')
+        bullet.style.cssText = `
+          position: absolute;
+          left: -20px;
+          color: #7a12cc;
+          font-weight: bold;
+        `
+        bullet.textContent = item.text.startsWith('-') ? '•' : '→'
+        element.textContent = item.text.replace(/^[-•*]\s|^\d+\.\s/, '')
+        element.prepend(bullet)
+      } else {
+        element.style.cssText = `
+          font-size: 18px;
+          color: #4a5568;
+          margin-bottom: 14px;
+          line-height: 1.5;
+        `
+      }
+      
+      element.textContent = element.textContent || item.text
+      contentContainer.appendChild(element)
+    })
+    
+    slideElement.appendChild(contentContainer)
+    
+    // Add slide number indicator
+    const slideNumber = document.createElement('div')
+    slideNumber.style.cssText = `
+      position: absolute;
+      bottom: 16px;
+      right: 20px;
+      font-size: 12px;
+      color: #a0aec0;
+      font-weight: 600;
+    `
+    slideNumber.textContent = `${currentSlide + 1} / ${pptxSlides.length}`
+    slideElement.appendChild(slideNumber)
+    
+    slideStage.appendChild(slideElement)
+    slideViewArea.appendChild(slideStage)
+    
+    // Create bottom navigation bar
+    const bottomNav = document.createElement('div')
+    bottomNav.style.cssText = `
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+      background: rgba(26, 32, 44, 0.95);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      gap: 12px;
+    `
+    
+    // Add slide indicator dots
+    const dotsContainer = document.createElement('div')
+    dotsContainer.style.cssText = `
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    `
+    
+    pptxSlides.forEach((_, index) => {
+      const dot = document.createElement('div')
+      dot.style.cssText = `
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: ${index === currentSlide ? '#7a12cc' : 'rgba(255,255,255,0.3)'};
+        transition: all 0.2s ease;
+        cursor: pointer;
+      `
+      dot.setAttribute('data-slide-index', index)
+      
+      dot.addEventListener('click', () => {
+        setCurrentSlide(index)
+      })
+      
+      dotsContainer.appendChild(dot)
+    })
+    
+    bottomNav.appendChild(dotsContainer)
+    slideViewArea.appendChild(bottomNav)
+    
+    // Assemble the viewer
+    mainContent.appendChild(thumbnailSidebar)
+    mainContent.appendChild(slideViewArea)
+    viewerContainer.appendChild(mainContent)
+    container.appendChild(viewerContainer)
+    
+    // Add event listeners for navigation buttons
+    const addNavigationListeners = () => {
+      const prevBtn = document.getElementById('prev-slide-top')
+      const nextBtn = document.getElementById('next-slide-top')
+      
+      prevBtn?.addEventListener('click', () => {
+        if (currentSlide > 0) {
+          setCurrentSlide(prev => prev - 1)
+        }
+      })
+      
+      nextBtn?.addEventListener('click', () => {
+        if (currentSlide < pptxSlides.length - 1) {
+          setCurrentSlide(prev => prev + 1)
+        }
+      })
+    }
+    
+    addNavigationListeners()
+    
+    // Add keyboard navigation
+    const handleKeyPress = (e) => {
+      if (e.key === 'ArrowLeft' && currentSlide > 0) {
+        setCurrentSlide(prev => prev - 1)
+      } else if (e.key === 'ArrowRight' && currentSlide < pptxSlides.length - 1) {
+        setCurrentSlide(prev => prev + 1)
+      }
+    }
+    
+    document.addEventListener('keydown', handleKeyPress)
+    
+    // Re-apply highlights when slide changes
+    setTimeout(() => {
+      const pptxHighlights = drawCommands.filter(cmd => 
+        cmd.type === 'highlight' && cmd.documentType === 'pptx'
+      )
+      
+      pptxHighlights.forEach(highlight => {
+        triggerPptxHighlight(highlight)
+      })
+    }, 100)
+    
+    // Cleanup function
+    return () => {
+      document.removeEventListener('keydown', handleKeyPress)
+    }
+  }, [pptxSlides, currentSlide, drawCommands, triggerPptxHighlight])
+
   // Convert PPTX to PDF for better highlighting
   const convertPptxToPdf = async (pptxUrl) => {
     setLoading(true)
     try {
-      // In a real implementation, this would call a backend service
-      // For now, we'll simulate the conversion
-      // const response = await fetch('/api/convert-pptx-to-pdf', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ url: pptxUrl })
-      // })
-      // const data = await response.json()
-      // setConvertedPdfUrl(data.pdfUrl)
+      console.log('Processing PPTX file:', pptxUrl)
       
-      // Fallback to Google Docs viewer
-      setConvertedPdfUrl(null)
+      // Process PPTX slides from extracted text
+      if (material.extracted_text) {
+        console.log('Using extracted text, length:', material.extracted_text.length)
+        processPptxSlides(material.extracted_text)
+      } else {
+        console.log('No extracted text found, creating fallback slides')
+        // Create fallback slides if no extracted text
+        const fallbackSlides = [
+          `Slide 1\n\nPowerPoint Presentation\n\n${material.title || 'Untitled Presentation'}`,
+          `Slide 2\n\nContent\n\nThis presentation contains multiple slides.`,
+          `Slide 3\n\nInformation\n\nPlease check the original file for complete content.`
+        ]
+        setPptxSlides(fallbackSlides)
+      }
     } catch (error) {
-      console.error('PPTX conversion failed:', error)
-      setConvertedPdfUrl(null)
+      console.error('PPTX processing failed:', error)
+      // Ensure we always have at least some slides
+      const errorSlides = [
+        `Slide 1\n\nError Loading Slides\n\nCould not process the PowerPoint file.`,
+        `Slide 2\n\nTroubleshooting\n\nPlease try uploading the file again.`
+      ]
+      setPptxSlides(errorSlides)
     } finally {
       setLoading(false)
     }
   }
+
+  // Process AI highlight commands for PPTX
+  useEffect(() => {
+    const pptxHighlights = drawCommands.filter(cmd => 
+      cmd.type === 'highlight' && cmd.documentType === 'pptx'
+    )
+    
+    pptxHighlights.forEach(highlight => {
+      triggerPptxHighlight(highlight)
+    })
+  }, [drawCommands, triggerPptxHighlight])
+
+  // Render PPTX slides when they're ready
+  useEffect(() => {
+    if (pptxSlides.length > 0 && isPptx && activeTab === 'content') {
+      renderPptxSlides()
+    }
+  }, [pptxSlides, currentSlide, isPptx, activeTab, renderPptxSlides])
+
+  // Expose PPTX highlighting function to global scope
+  useEffect(() => {
+    window.highlightPptxText = (text, label, context) => {
+      highlightPptxText(text, label, context)
+    }
+    return () => {
+      delete window.highlightPptxText
+    }
+  }, [highlightPptxText])
 
   // Process AI highlight commands
   useEffect(() => {
@@ -187,6 +753,15 @@ export default function OfficeRenderer({ material, activeTab, analysisState, onR
                 margin: '20px auto',
                 boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
                 minHeight: '100%'
+              }}
+            />
+          ) : isPptx ? (
+            <div 
+              ref={pptxContainerRef}
+              style={{
+                padding: '20px',
+                height: '100%',
+                minHeight: '600px'
               }}
             />
           ) : (
@@ -409,7 +984,21 @@ export default function OfficeRenderer({ material, activeTab, analysisState, onR
         <div style={{ padding: '16px 24px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#4A5568' }}>
             <AlertCircle size={16} />
-            <span style={{ fontSize: '12px', fontFamily: 'Outfit' }}>Using {isDocx ? 'Native DOM Renderer' : 'External Viewer'} for {material.type?.toUpperCase()}</span>
+            <span style={{ fontSize: '12px', fontFamily: 'Outfit' }}>
+              Using {isDocx ? 'Native DOM Renderer' : isPptx ? 'Slide Viewer with AI Highlights' : 'External Viewer'} for {material.type?.toUpperCase()}
+            </span>
+            {isPptx && pptxSlides.length > 0 && (
+              <span style={{ 
+                fontSize: '11px', 
+                background: '#10B981', 
+                color: 'white', 
+                padding: '2px 8px', 
+                borderRadius: '12px', 
+                fontWeight: 600 
+              }}>
+                AI Highlights Active
+              </span>
+            )}
           </div>
           <a 
             href={fileUrl} 

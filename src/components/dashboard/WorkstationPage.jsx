@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { 
-  Brain, Star, FileText, CheckCircle2, ChevronRight, ArrowLeft, ExternalLink, Sparkles, Layers, HelpCircle, Plus, Search, ChevronLeft, Briefcase, PlayCircle, Settings, User, LogOut, MoreVertical, Layout, Bookmark, Zap, Send, Loader2 
+  Brain, Star, FileText, CheckCircle2, ChevronRight, ArrowLeft, ExternalLink, Sparkles, Layers, HelpCircle, Plus, Search, ChevronLeft, Briefcase, PlayCircle, Settings, User, LogOut, MoreVertical, Layout, Bookmark, Zap, Send, Loader2, AlertCircle 
 } from 'lucide-react'
 
 import LuterLogo from '../shared/LuterLogo'
@@ -194,16 +194,6 @@ function WorkstationContent() {
   // RAG & Analysis Logic
   const runAnalysis = async (type) => {
     if (isExtractingText || isAnalysisLoading) return
-    if (!selectedMaterial?.extracted_text) {
-      setAnalysisCache(prev => ({
-        ...prev,
-        [selectedMaterial.id]: {
-          ...(prev[selectedMaterial.id] || {}),
-          [type]: "Luter couldn't extract readable text from this file."
-        }
-      }))
-      return
-    }
     
     setIsAnalysisLoading(true)
     try {
@@ -273,7 +263,7 @@ function WorkstationContent() {
       }
     } catch (err) {
       console.error('Analysis failed:', err)
-      // Handle token limit errors gracefully
+      // Handle rate limiting gracefully
       if (err.message.includes('413') || err.message.includes('tokens per minute')) {
         setAnalysisCache(prev => ({
           ...prev,
@@ -282,12 +272,20 @@ function WorkstationContent() {
             [type]: `The document is too large for AI analysis. Try breaking it into smaller sections or upgrading your plan for higher limits.`
           }
         }))
+      } else if (err.message.includes('429') || err.message.includes('rate limit')) {
+        setAnalysisCache(prev => ({
+          ...prev,
+          [selectedMaterial.id]: {
+            ...(prev[selectedMaterial.id] || {}),
+            [type]: `AI analysis temporarily unavailable due to high demand. Please try again in a few minutes. Your document is still available for viewing.`
+          }
+        }))
       } else {
         setAnalysisCache(prev => ({
           ...prev,
           [selectedMaterial.id]: {
             ...(prev[selectedMaterial.id] || {}),
-            [type]: `Analysis failed: ${err.message || 'Unknown error'}`
+            [type]: `Analysis temporarily unavailable. Your document is still accessible. Error: ${err.message || 'Unknown error'}`
           }
         }))
       }
@@ -427,13 +425,24 @@ Provide a helpful response explaining the highlights.
   ]
 
 
-  // AUTO-GENERATION ON ARRIVAL
+  // AUTO-GENERATION ON ARRIVAL - Non-blocking with error handling
   useEffect(() => {
     if (selectedMaterial?.processing_status === 'ready' && selectedMaterial?.extracted_text) {
       const categories = ['notes', 'summary', 'flashcards', 'quiz']
       categories.forEach(cat => {
         if (!analysisCache[selectedMaterial.id]?.[cat]) {
-          runAnalysis(cat)
+          // Run analysis in background without blocking UI
+          runAnalysis(cat).catch(err => {
+            console.warn(`Background analysis for ${cat} failed:`, err)
+            // Set a fallback message so users can still access the tab
+            setAnalysisCache(prev => ({
+              ...prev,
+              [selectedMaterial.id]: {
+                ...(prev[selectedMaterial.id] || {}),
+                [cat]: `AI analysis temporarily unavailable due to rate limits. Please try again later.`
+              }
+            }))
+          })
         }
       })
     }
@@ -450,6 +459,9 @@ Provide a helpful response explaining the highlights.
         {tabs.filter(t => ['notes', 'summary', 'flashcards', 'quiz'].includes(t.id)).map(feature => {
           const isDone = !!analysisCache[selectedMaterial?.id]?.[feature.id]
           const isLoading = isAnalysisLoading && activeTab === 'content' && !isDone
+          const hasError = analysisCache[selectedMaterial?.id]?.[feature.id]?.includes('temporarily unavailable') || 
+                          analysisCache[selectedMaterial?.id]?.[feature.id]?.includes('too large') ||
+                          analysisCache[selectedMaterial?.id]?.[feature.id]?.includes('Analysis failed')
 
           return (
             <motion.div
@@ -473,25 +485,31 @@ Provide a helpful response explaining the highlights.
               <div style={{ 
                 width: '56px', 
                 height: '56px', 
-                background: '#F5F3FF', 
+                background: hasError ? '#FEE2E2' : '#F5F3FF', 
                 borderRadius: '16px', 
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center',
-                color: '#7a12cc'
+                color: hasError ? '#DC2626' : '#7a12cc'
               }}>
-                <feature.icon size={28} />
+                {hasError ? <AlertCircle size={28} /> : <feature.icon size={28} />}
               </div>
               
               <div>
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A102D', marginBottom: '8px' }}>{feature.label}</h3>
-                <p style={{ color: '#64748B', fontSize: '14px', lineHeight: 1.5 }}>{feature.description}</p>
+                <p style={{ color: '#64748B', fontSize: '14px', lineHeight: 1.5 }}>
+                  {hasError ? 'AI analysis failed. Tap to retry.' : feature.description}
+                </p>
               </div>
 
               <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {isDone ? (
+                {isDone && !hasError ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10B981', fontSize: '13px', fontWeight: 700 }}>
                     <CheckCircle2 size={16} /> Ready to use
+                  </div>
+                ) : hasError ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#F59E0B', fontSize: '13px', fontWeight: 700 }}>
+                    <AlertCircle size={16} /> Tap to retry
                   </div>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#7a12cc', fontSize: '13px', fontWeight: 700 }}>
@@ -507,23 +525,33 @@ Provide a helpful response explaining the highlights.
         })}
       </div>
 
-      <div style={{ marginTop: '60px', padding: '32px', background: 'white', borderRadius: '24px', border: '1.5px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <div style={{ width: '48px', height: '48px', background: '#F1F5F9', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <FileText size={24} color="#64748B" />
-          </div>
-          <div>
-            <div style={{ fontWeight: 800, color: '#1A102D' }}>Original Material</div>
-            <div style={{ fontSize: '14px', color: '#64748B' }}>{selectedMaterial?.title}</div>
-          </div>
+      {/* Document always available */}
+      <div style={{ marginTop: '48px', padding: '24px', background: '#F0FDF4', borderRadius: '16px', border: '1px solid #BBF7D0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+          <FileText size={20} color="#16A34A" />
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#16A34A', margin: 0 }}>Document Always Available</h3>
         </div>
+        <p style={{ fontSize: '14px', color: '#15803D', margin: 0, lineHeight: 1.5 }}>
+          Your document "{selectedMaterial?.title}" is always accessible for viewing, even if AI features are temporarily unavailable due to high demand.
+        </p>
         <button 
           onClick={() => setShowDashboard(false)}
-          style={{ padding: '12px 24px', borderRadius: '12px', background: '#F5F3FF', color: '#7a12cc', fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+          style={{ 
+            marginTop: '16px',
+            padding: '12px 24px', 
+            borderRadius: '12px', 
+            background: '#16A34A', 
+            color: 'white', 
+            fontWeight: 600, 
+            border: 'none', 
+            cursor: 'pointer', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px' 
+          }}
         >
-          Open Reader <ExternalLink size={16} />
+          Open Document <ExternalLink size={16} />
         </button>
-
       </div>
     </div>
   )

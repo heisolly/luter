@@ -141,5 +141,11 @@ export default defineConfig(({ mode }) => {
         }
       }
     ],
+    optimizeDeps: {
+      exclude: ['pdfjs-dist']
+    },
+    worker: {
+      format: 'es'
+    }
   }
 })

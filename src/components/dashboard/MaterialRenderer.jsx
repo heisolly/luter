@@ -1,9 +1,11 @@
 import React, { lazy, Suspense, useState, useEffect } from 'react'
 import { Loader2, FileText, Download, ExternalLink, Calendar, CheckCircle2, Clock } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
+import ReadingTracker from './ReadingTracker'
 
 // Lazy load specific rendering engines
 const PdfRenderer = lazy(() => import('./renderers/PdfRenderer'))
+const NativePdfRenderer = lazy(() => import('./renderers/NativePdfRenderer'))
 const VideoRenderer = lazy(() => import('./renderers/VideoRenderer'))
 const OfficeRenderer = lazy(() => import('./renderers/OfficeRenderer'))
 const ExcelRenderer = lazy(() => import('./renderers/ExcelRenderer'))
@@ -15,6 +17,22 @@ export default function MaterialRenderer({ material, activeTab, analysisState, o
   const [assignments, setAssignments] = useState([])
   const [activityLogs, setActivityLogs] = useState([])
   const [loading, setLoading] = useState(false)
+  const [trackingData, setTrackingData] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    scrollPercent: 0,
+    readingTime: 0,
+    highlights: 0,
+    documentType: 'unknown'
+  })
+
+  // Handle progress updates from renderers
+  const handleProgressUpdate = (progressData) => {
+    setTrackingData(prev => ({
+      ...prev,
+      ...progressData
+    }))
+  }
 
   useEffect(() => {
     if (activeTab === 'files') fetchFiles()
@@ -140,12 +158,48 @@ export default function MaterialRenderer({ material, activeTab, analysisState, o
                   <Clock size={18} color="#7a12cc" />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#1A202C' }}>{log.type}: {log.title}</div>
-                  <div style={{ fontSize: '12px', color: '#94A3B8' }}>{new Date(log.timestamp).toLocaleString()}</div>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#1A102D' }}>{log.action}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748B' }}>{log.timestamp}</p>
                 </div>
+                <CheckCircle2 size={16} color="#10B981" />
               </div>
             ))}
-            {activityLogs.length === 0 && <p style={{ textAlign: 'center', padding: '40px', opacity: 0.5 }}>No recent activity.</p>}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Content tab with integrated tracker
+  if (activeTab === 'content') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        {/* Main content area */}
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <div className="ws-canvas-container" style={{ width: '100%', height: '100%' }}>
+            <Suspense fallback={
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '16px' }}>
+                <Loader2 className="animate-spin" color="#7a12cc" size={32} />
+                <p style={{ fontFamily: 'Outfit', color: '#4C1D95', fontWeight: 600 }}>Loading Viewing Engine...</p>
+              </div>
+            }>
+              {getRenderer()}
+            </Suspense>
+          </div>
+        </div>
+        
+        {/* Integrated Reading Tracker */}
+        {material && (material.type === 'pdf' || material.source_url?.endsWith('.pdf')) && (
+          <div style={{ 
+            height: '300px', 
+            borderTop: '1px solid #E2E8F0',
+            background: '#F8FAFC'
+          }}>
+            <ReadingTracker 
+              material={material} 
+              activeTab="content"
+              onProgressUpdate={handleProgressUpdate}
+            />
           </div>
         )}
       </div>
@@ -177,9 +231,32 @@ export default function MaterialRenderer({ material, activeTab, analysisState, o
       return <OfficeRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
     }
 
-    // 5. PDFs (High Precision)
+    // 5. PDFs (Native Browser Viewer)
     if (type === 'pdf' || url.endsWith('.pdf')) {
-      return <PdfRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
+      // Use native browser PDF viewer for best compatibility
+      return (
+        <Suspense fallback={
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            height: '400px',
+            background: '#F8FAFC',
+            fontFamily: 'Outfit'
+          }}>
+            <Loader2 className="animate-spin" size={24} style={{ color: '#7a12cc', marginRight: '12px' }} />
+            <span style={{ color: '#64748B', fontSize: '14px' }}>Loading PDF viewer...</span>
+          </div>
+        }>
+          <NativePdfRenderer 
+            material={material} 
+            activeTab={activeTab} 
+            analysisState={analysisState} 
+            onRunAnalysis={onRunAnalysis}
+            onProgressUpdate={handleProgressUpdate}
+          />
+        </Suspense>
+      )
     }
 
     // 6. Google Docs (Embed Strategy)
@@ -191,16 +268,6 @@ export default function MaterialRenderer({ material, activeTab, analysisState, o
     return <NoteRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
   }
 
-  return (
-    <div className="ws-canvas-container" style={{ width: '100%', height: '100%' }}>
-      <Suspense fallback={
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '16px' }}>
-          <Loader2 className="animate-spin" color="#7a12cc" size={32} />
-          <p style={{ fontFamily: 'Outfit', color: '#4C1D95', fontWeight: 600 }}>Loading Viewing Engine...</p>
-        </div>
-      }>
-        {getRenderer()}
-      </Suspense>
-    </div>
-  )
+  // Default case - return null if no tab matches
+  return null
 }

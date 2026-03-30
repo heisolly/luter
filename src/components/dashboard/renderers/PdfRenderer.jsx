@@ -2,16 +2,13 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 import * as pdfjs from 'pdfjs-dist'
 import { useReadingSpace } from '../ReadingSpaceContext'
 import { SharedCanvasOverlay, LuterSpark } from '../WorkstationOverlays'
-import { Loader2, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
+import { Loader2, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Sparkles, AlertCircle } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import Mark from 'mark.js'
 import { AIHighlightService } from '../../../services/aiHighlightService'
 
-// Set worker path
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString()
+// Set worker path - use local worker to avoid CORS issues
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
 
 export default function PdfRenderer({ material, activeTab, analysisState, onRunAnalysis }) {
   const containerRef = useRef(null)
@@ -33,6 +30,8 @@ export default function PdfRenderer({ material, activeTab, analysisState, onRunA
   const [quizScore, setQuizScore] = useState(null)
   const [aiHighlights, setAiHighlights] = useState([])
   const [coordinateMap, setCoordinateMap] = useState({})
+  const [isCardChanging, setIsCardChanging] = useState(false)
+  const [cardDirection, setCardDirection] = useState('next') // 'next' or 'prev'
 
   // AI Highlighting Functions
   const triggerAiHighlight = useCallback((highlightData) => {
@@ -70,6 +69,25 @@ export default function PdfRenderer({ material, activeTab, analysisState, onRunA
       setAiHighlights([])
     }
   }, [drawCommands])
+
+  // Card change animation function
+  const changeCard = useCallback((newIndex, direction) => {
+    if (newIndex === currentIdx || isCardChanging) return
+    
+    setIsCardChanging(true)
+    setCardDirection(direction)
+    
+    // Start fade out
+    setTimeout(() => {
+      setCurrentIdx(newIndex)
+      setIsFlipped(false)
+      
+      // Start fade in
+      setTimeout(() => {
+        setIsCardChanging(false)
+      }, 50)
+    }, 200)
+  }, [currentIdx, isCardChanging])
 
   // Expose PDF highlighting function to global scope
   useEffect(() => {
@@ -113,14 +131,37 @@ export default function PdfRenderer({ material, activeTab, analysisState, onRunA
 
   const loadPdf = async (url) => {
     setLoading(true)
+    console.log('Loading PDF from URL:', url)
+    
     try {
-      const loadingTask = pdfjs.getDocument(url)
+      // Check if URL is valid
+      if (!url) {
+        throw new Error('No PDF URL provided')
+      }
+
+      // Configure PDF.js loading options for v5.x
+      const loadingTask = pdfjs.getDocument({
+        url: url,
+        // Remove cMap options for v5.x as they may cause issues
+        disableAutoFetch: true,
+        disableStream: true
+      })
+      
+      loadingTask.onProgress = (progress) => {
+        console.log('PDF loading progress:', progress)
+      }
+      
       const pdfDoc = await loadingTask.promise
+      console.log('PDF loaded successfully, pages:', pdfDoc.numPages)
       setPdf(pdfDoc)
       setLoading(false)
     } catch (error) {
       console.error('Error loading PDF:', error)
+      console.error('PDF URL was:', url)
       setLoading(false)
+      
+      // Set error state that can be displayed to user
+      setPdf(null)
     }
   }
 
@@ -159,23 +200,30 @@ export default function PdfRenderer({ material, activeTab, analysisState, onRunA
         textLayer.style.height = `${viewport.height}px`
         textLayer.style.width = `${viewport.width}px`
         
-        // Use the modern API if renderTextLayer isn't at top level
+        // Simplified text layer for PDF.js v5.x - just extract text for AI context
         try {
-          if (typeof pdfjs.renderTextLayer === 'function') {
-            await pdfjs.renderTextLayer({
-              textContentSource: textContent,
-              container: textLayer,
-              viewport: viewport,
-              textDivs: []
-            }).promise
-          } else {
-            // Fallback for newer versions where it might be a class or moved
-            // In v4.x, it's often used like this if imported from pdfjs-dist
-            // But let's try a safer approach or check for common locations
-            console.warn('pdfjs.renderTextLayer not found, skipping text layer render')
-          }
+          // Create basic text divs for selection without advanced TextLayer
+          textContent.items.forEach((item, index) => {
+            const textDiv = document.createElement('div')
+            textDiv.textContent = item.str
+            textDiv.style.position = 'absolute'
+            textDiv.style.left = `${item.transform[4]}px`
+            textDiv.style.top = `${viewport.height - item.transform[5]}px`
+            textDiv.style.fontSize = `${item.height}px`
+            textDiv.style.fontFamily = item.fontName
+            textDiv.style.color = 'transparent'
+            textDiv.style.userSelect = 'text'
+            textDiv.style.cursor = 'text'
+            textDiv.setAttribute('data-index', index)
+            textLayer.appendChild(textDiv)
+          })
         } catch (err) {
-          console.warn('Text layer render failed:', err)
+          console.warn('Basic text layer setup failed:', err)
+          // Fallback: just add invisible text for basic functionality
+          const textItems = textContent.items.map(item => item.str).join(' ')
+          textLayer.textContent = textItems
+          textLayer.style.color = 'transparent'
+          textLayer.style.fontSize = '1px'
         }
       }
 
@@ -213,6 +261,42 @@ export default function PdfRenderer({ material, activeTab, analysisState, onRunA
 
   const renderContent = () => {
     if (activeTab === 'content') {
+      // Show error state if PDF failed to load
+      if (!loading && !pdf && material.source_url) {
+        return (
+          <div style={{ padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '16px' }}>
+            <div style={{ width: '80px', height: '80px', background: '#FEE2E2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertCircle size={40} color="#DC2626" />
+            </div>
+            <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#1A102D', margin: 0 }}>PDF Failed to Load</h3>
+            <p style={{ fontSize: '14px', color: '#64748B', textAlign: 'center', margin: 0, maxWidth: '400px' }}>
+              We couldn't load this PDF file. This might be due to:
+            </p>
+            <ul style={{ fontSize: '13px', color: '#64748B', textAlign: 'left', margin: 0 }}>
+              <li>Corrupted or invalid PDF file</li>
+              <li>Network connection issues</li>
+              <li>Access restrictions on the file</li>
+              <li>Unsupported PDF format</li>
+            </ul>
+            <button 
+              onClick={() => loadPdf(material.source_url)}
+              style={{
+                padding: '12px 24px',
+                background: '#7a12cc',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Try Again
+            </button>
+          </div>
+        )
+      }
+
       return (
         <div style={{ flex: 1, padding: '40px', display: 'flex', justifyContent: 'center' }}>
           <div 
@@ -316,51 +400,296 @@ export default function PdfRenderer({ material, activeTab, analysisState, onRunA
     if (activeTab === 'flashcards') {
       const items = Array.isArray(content) ? content : []
       return (
-        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-               <select style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '13px', color: '#4A5568' }}>
-                  <option>Select topics...</option>
-               </select>
+        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 20px', background: '#F8FAFC', minHeight: '100vh' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+            <div>
+              <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#1A102D', marginBottom: '8px' }}>Flashcards</h1>
+              <p style={{ fontSize: '16px', color: '#64748B', margin: 0 }}>Master the material with interactive flashcards</p>
             </div>
-            <button style={{ fontSize: '13px', color: '#7a12cc', fontWeight: 600, background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Sparkles size={14} /> More
+            <button 
+              onClick={() => onRunAnalysis('flashcards')}
+              style={{
+                padding: '12px 24px',
+                background: 'linear-gradient(135deg, #7a12cc 0%, #6d11b8 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 14px rgba(122, 18, 204, 0.3)'
+              }}
+            >
+              <Sparkles size={16} /> Regenerate
             </button>
           </div>
 
-          <h2 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 800, marginBottom: '32px', color: '#1A3A32' }}>{material.title}</h2>
+          {/* Progress Bar */}
+          <div style={{ marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: '#374151' }}>Progress</span>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: '#7a12cc' }}>{currentIdx + 1} / {items.length}</span>
+            </div>
+            <div style={{ 
+              height: '8px', 
+              background: '#E5E7EB', 
+              borderRadius: '4px',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                height: '100%',
+                width: `${((currentIdx + 1) / items.length) * 100}%`,
+                background: 'linear-gradient(90deg, #7a12cc 0%, #8b5cf6 100%)',
+                borderRadius: '4px',
+                transition: 'width 0.3s ease'
+              }} />
+            </div>
+          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '32px' }}>
+          {/* Flashcard */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '40px', height: '400px' }}>
             <div 
               className={`ws-flashcard ${isFlipped ? 'ws-flashcard--flipped' : ''}`}
               onClick={() => setIsFlipped(!isFlipped)}
-              style={{ width: '100%', maxWidth: '600px', height: '350px' }}
+              style={{ 
+                width: '100%', 
+                maxWidth: '650px', 
+                height: '100%',
+                cursor: 'pointer',
+                opacity: isCardChanging ? 0 : 1,
+                transform: isCardChanging 
+                  ? (cardDirection === 'next' ? 'translateY(30px)' : 'translateY(-30px)')
+                  : 'translateY(0)',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
             >
               <div className="ws-flashcard-inner">
-                <div className="ws-flashcard-front" style={{ background: 'white', border: '1.5px solid #DDD6FE', borderRadius: '24px', position: 'relative' }}>
-                  <div style={{ position: 'absolute', top: '24px', left: '24px', fontSize: '12px', color: '#94A3B8', fontWeight: 700 }}>Question</div>
-                  <div style={{ position: 'absolute', top: '24px', right: '24px', display: 'flex', gap: '12px', color: '#F59E0B' }}>
-                    <Star size={18} />
-                    <Sparkles size={18} color="#7a12cc" />
+                {/* Front of card */}
+                <div className="ws-flashcard-front" style={{
+                  background: 'linear-gradient(135deg, #7a12cc 0%, #8b5cf6 100%)',
+                  borderRadius: '20px',
+                  border: 'none',
+                  boxShadow: '0 20px 40px rgba(122, 18, 204, 0.2)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  {/* Pattern overlay */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                    opacity: 0.5
+                  }} />
+                  
+                  <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '40px' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{
+                        display: 'inline-block',
+                        padding: '8px 16px',
+                        background: 'rgba(255, 255, 255, 0.2)',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: 'white',
+                        marginBottom: '32px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '1px'
+                      }}>
+                        Question {currentIdx + 1}
+                      </div>
+                      <h2 style={{ 
+                        fontSize: '28px', 
+                        fontWeight: 700, 
+                        color: 'white', 
+                        margin: '0',
+                        lineHeight: 1.4,
+                        minHeight: '80px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        {items[currentIdx]?.front || "No cards generated"}
+                      </h2>
+                    </div>
+                    
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '12px 24px',
+                        background: 'rgba(255, 255, 255, 0.15)',
+                        borderRadius: '30px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: 'white',
+                        backdropFilter: 'blur(10px)'
+                      }}>
+                        <span>Click to reveal answer</span>
+                        <ChevronRight size={16} style={{ transform: isFlipped ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease' }} />
+                      </div>
+                    </div>
                   </div>
-                  <p style={{ fontSize: '20px', fontWeight: 700, textAlign: 'center', padding: '0 40px', color: '#1A3A32' }}>{items[currentIdx]?.front || "No cards generated"}</p>
-                  <div style={{ position: 'absolute', bottom: '32px', color: '#7a12cc', fontSize: '14px', fontWeight: 600 }}>Click to flip</div>
                 </div>
-                <div className="ws-flashcard-back" style={{ background: '#F5F3FF', border: '1.5px solid #DDD6FE', borderRadius: '24px', position: 'relative' }}>
-                   <p style={{ fontSize: '18px', textAlign: 'center', padding: '0 40px', color: '#4C1D95', lineHeight: 1.6 }}>{items[currentIdx]?.back}</p>
+
+                {/* Back of card */}
+                <div className="ws-flashcard-back" style={{
+                  background: 'white',
+                  borderRadius: '20px',
+                  border: '2px solid #E5E7EB',
+                  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
+                  position: 'relative'
+                }}>
+                  <div style={{ padding: '40px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{
+                        display: 'inline-block',
+                        padding: '8px 16px',
+                        background: '#F3F4F6',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: '#6B7280',
+                        marginBottom: '32px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '1px'
+                      }}>
+                        Answer
+                      </div>
+                      <p style={{ 
+                        fontSize: '20px', 
+                        lineHeight: 1.6, 
+                        color: '#1F2937',
+                        margin: '0',
+                        fontWeight: 500
+                      }}>
+                        {items[currentIdx]?.back}
+                      </p>
+                    </div>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          // Mark as difficult
+                        }}
+                        style={{
+                          padding: '8px 16px',
+                          background: '#FEF2F2',
+                          color: '#DC2626',
+                          border: '1px solid #FECACA',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Difficult
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          // Mark as known
+                        }}
+                        style={{
+                          padding: '8px 16px',
+                          background: '#F0FDF4',
+                          color: '#16A34A',
+                          border: '1px solid #BBF7D0',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Got it!
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-               <button className="ws-tactile-btn" onClick={(e) => { e.stopPropagation(); setCurrentIdx(prev => Math.max(0, prev - 1)) }} disabled={currentIdx === 0}>
-                 <ChevronLeft size={20} />
-               </button>
-               <span style={{ fontWeight: 800, color: '#4C1D95' }}>{currentIdx + 1} of {items.length}</span>
-               <button className="ws-tactile-btn" onClick={(e) => { e.stopPropagation(); setCurrentIdx(prev => Math.min(items.length - 1, prev + 1)) }} disabled={currentIdx === items.length - 1}>
-                 <ChevronRight size={20} />
-               </button>
+          {/* Navigation */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button 
+              className="ws-tactile-btn" 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                changeCard(Math.max(0, currentIdx - 1), 'prev');
+              }} 
+              disabled={currentIdx === 0}
+              style={{
+                padding: '12px 24px',
+                background: currentIdx === 0 ? '#F3F4F6' : 'white',
+                color: currentIdx === 0 ? '#9CA3AF' : '#374151',
+                border: '1px solid #E5E7EB',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: currentIdx === 0 ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <ChevronLeft size={18} />
+              Previous
+            </button>
+            
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {items.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => { 
+                    const direction = index > currentIdx ? 'next' : 'prev'
+                    changeCard(index, direction);
+                  }}
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    background: index === currentIdx ? '#7a12cc' : '#E5E7EB',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                />
+              ))}
             </div>
+            
+            <button 
+              className="ws-tactile-btn" 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                changeCard(Math.min(items.length - 1, currentIdx + 1), 'next');
+              }} 
+              disabled={currentIdx === items.length - 1}
+              style={{
+                padding: '12px 24px',
+                background: currentIdx === items.length - 1 ? '#F3F4F6' : 'white',
+                color: currentIdx === items.length - 1 ? '#9CA3AF' : '#374151',
+                border: '1px solid #E5E7EB',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: currentIdx === items.length - 1 ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              Next
+              <ChevronRight size={18} />
+            </button>
           </div>
         </div>
       )

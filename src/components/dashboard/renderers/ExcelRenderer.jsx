@@ -13,9 +13,9 @@ function SimpleSpreadsheet({ data, onCellClick, highlightedCells }) {
   }
 
   const isCellHighlighted = (rowIndex, colIndex) => {
-    return highlightedCells.some(range => {
+    return highlightedCells.some(cellHighlight => {
       // Parse cell range like "A1:C5" or "B2"
-      const range = range.cellRange || range
+      const range = cellHighlight.cellRange || cellHighlight
       if (range.includes(':')) {
         const [start, end] = range.split(':')
         const startCol = start.charCodeAt(0) - 65
