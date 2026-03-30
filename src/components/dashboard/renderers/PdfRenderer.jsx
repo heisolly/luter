@@ -1,9 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import * as pdfjs from 'pdfjs-dist'
 import { useReadingSpace } from '../ReadingSpaceContext'
 import { SharedCanvasOverlay, LuterSpark } from '../WorkstationOverlays'
-import { Loader2, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Loader2, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import Mark from 'mark.js'
+import { AIHighlightService } from '../../../services/aiHighlightService'
 
 // Set worker path
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -15,8 +17,10 @@ export default function PdfRenderer({ material, activeTab, analysisState, onRunA
   const containerRef = useRef(null)
   const canvasRef = useRef(null)
   const textLayerRef = useRef(null)
+  const highlightLayerRef = useRef(null)
+  const markInstanceRef = useRef(null)
   
-  const { setViewportData, highlightText, updateSpark, clearHighlights, updateSelection } = useReadingSpace()
+  const { setViewportData, highlightText, updateSpark, clearHighlights, updateSelection, drawCommands, highlightPdfArea } = useReadingSpace()
   
   const [pdf, setPdf] = useState(null)
   const [pageNumber, setPageNumber] = useState(1)
@@ -27,6 +31,55 @@ export default function PdfRenderer({ material, activeTab, analysisState, onRunA
   const [userAnswers, setUserAnswers] = useState({})
   const [showExplanation, setShowExplanation] = useState(false)
   const [quizScore, setQuizScore] = useState(null)
+  const [aiHighlights, setAiHighlights] = useState([])
+  const [coordinateMap, setCoordinateMap] = useState({})
+
+  // AI Highlighting Functions
+  const triggerAiHighlight = useCallback((highlightData) => {
+    if (highlightData.documentType === 'pdf' && highlightData.pageIndex === pageNumber - 1) {
+      const highlight = {
+        id: highlightData.id || Date.now(),
+        ...highlightData.coordinates,
+        label: highlightData.label,
+        color: highlightData.color || '#7a12cc'
+      }
+      setAiHighlights(prev => [...prev, highlight])
+    }
+  }, [pageNumber])
+
+  // Process AI highlight commands
+  useEffect(() => {
+    const pdfHighlights = drawCommands.filter(cmd => 
+      cmd.type === 'highlight' && cmd.documentType === 'pdf'
+    )
+    
+    pdfHighlights.forEach(highlight => {
+      if (highlight.pageIndex === pageNumber - 1) {
+        triggerAiHighlight(highlight)
+      }
+    })
+  }, [drawCommands, pageNumber, triggerAiHighlight])
+
+  // Clear highlights when page changes or context requests
+  useEffect(() => {
+    setAiHighlights([])
+  }, [pageNumber])
+
+  useEffect(() => {
+    if (drawCommands.length === 0) {
+      setAiHighlights([])
+    }
+  }, [drawCommands])
+
+  // Expose PDF highlighting function to global scope
+  useEffect(() => {
+    window.highlightPdfArea = (data) => {
+      highlightPdfArea(data)
+    }
+    return () => {
+      delete window.highlightPdfArea
+    }
+  }, [highlightPdfArea])
 
   const renderTaskRef = useRef(null)
 
@@ -180,6 +233,63 @@ export default function PdfRenderer({ material, activeTab, analysisState, onRunA
             
             <canvas ref={canvasRef} />
             <div ref={textLayerRef} className="textLayer" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.2 }} />
+            
+            {/* AI Highlight Overlay Layer */}
+            <div 
+              ref={highlightLayerRef}
+              style={{ 
+                position: 'absolute', 
+                top: 0, 
+                left: 0, 
+                width: '100%', 
+                height: '100%', 
+                pointerEvents: 'none',
+                zIndex: 15
+              }}
+            >
+              {aiHighlights.map(highlight => (
+                <div
+                  key={highlight.id}
+                  style={{
+                    position: 'absolute',
+                    left: `${highlight.left}%`,
+                    top: `${highlight.top}%`,
+                    width: `${highlight.width}%`,
+                    height: `${highlight.height}%`,
+                    background: `${highlight.color}33`, // Add transparency
+                    border: `2px solid ${highlight.color}`,
+                    borderRadius: '4px',
+                    pointerEvents: 'auto',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    animation: 'luterHighlightPulse 2s ease-in-out infinite'
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    // Show action bubble or handle click
+                    updateSpark(e.clientX, e.clientY, true)
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '-28px',
+                      left: '0',
+                      background: highlight.color,
+                      color: 'white',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                    }}
+                  >
+                    {highlight.label}
+                  </div>
+                </div>
+              ))}
+            </div>
             
             {/* AI Interaction Layers */}
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
@@ -397,6 +507,19 @@ export default function PdfRenderer({ material, activeTab, analysisState, onRunA
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button 
+              className="ws-tactile-btn" 
+              style={{ padding: '6px 12px', fontSize: '11px', background: '#7a12cc', color: 'white' }}
+              onClick={async () => {
+                // Generate smart highlights
+                if (material) {
+                  const analysis = await AIHighlightService.generateSmartHighlights(material, 'pdf')
+                  console.log('Generated highlights:', analysis)
+                }
+              }}
+            >
+              <Sparkles size={14} /> AI Highlights
+            </button>
             <button className="ws-tactile-btn" style={{ padding: '6px' }} onClick={() => setScale(s => Math.max(0.5, s - 0.2))}>
               <ZoomOut size={18} />
             </button>

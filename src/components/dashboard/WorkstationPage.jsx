@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { 
-  ArrowLeft, FileText, Brain, Layers, Sparkles, 
-  Send, MessageSquare, ChevronRight, ChevronLeft,
-  Volume2, Share2, Download, Plus, Loader2,
-  HelpCircle, Settings, MoreVertical
+  Brain, Star, FileText, CheckCircle2, ChevronRight, ArrowLeft, ExternalLink, Sparkles, Layers, HelpCircle, Plus, Search, ChevronLeft, Briefcase, PlayCircle, Settings, User, LogOut, MoreVertical, Layout, Bookmark, Zap, Send, Loader2 
 } from 'lucide-react'
+
 import LuterLogo from '../shared/LuterLogo'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
@@ -14,7 +12,9 @@ import { supabase } from '../../supabaseClient'
 import { ReadingSpaceProvider, useReadingSpace } from './ReadingSpaceContext'
 import { SelectionActionBar } from './WorkstationOverlays'
 import MaterialRenderer from './MaterialRenderer'
+import { WorkstationNotes, WorkstationSummary, WorkstationFlashcards, WorkstationQuiz } from './WorkstationAITools'
 import { saveToVault, fetchUserNotes, pollMaterialUntilReady } from '../../services/materialsService'
+import { AIHighlightService } from '../../services/aiHighlightService'
 import './workstation.css'
 
 function WorkstationContent() {
@@ -36,8 +36,11 @@ function WorkstationContent() {
   const [analysisCache, setAnalysisCache] = useState({})
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false)
   const [isExtractingText, setIsExtractingText] = useState(false)
+  const [showDashboard, setShowDashboard] = useState(false) // Default to reader for "Workspace Home"
+
 
   const currentAnalysis = selectedMaterial ? (analysisCache[selectedMaterial.id] || {}) : {}
+
 
   useEffect(() => {
     if (!selectedMaterial || selectedMaterial.processing_status !== 'pending') {
@@ -140,8 +143,11 @@ function WorkstationContent() {
     if (data && data.length > 0) {
       setCourseMaterials(data)
       setSelectedMaterial(data[0])
+      setShowDashboard(false) // Default to reader on material arrival
     }
   }
+
+
 
   // Action Bar Logic
   const handleSelectionAction = async (action, text) => {
@@ -202,11 +208,12 @@ function WorkstationContent() {
     setIsAnalysisLoading(true)
     try {
       let prompt;
-      let model = GROQ_MODELS.PROFESSOR;
+      let model = GROQ_MODELS.SPEEDSTER; // Use smaller model to avoid token limits
 
       switch(type) {
         case 'notes': 
           prompt = GROQ_PROMPTS.AI_NOTES; 
+          model = GROQ_MODELS.PROFESSOR; // Use larger model only for notes
           break;
         case 'summary': 
           prompt = GROQ_PROMPTS.SUMMARY; 
@@ -220,7 +227,7 @@ function WorkstationContent() {
         default: prompt = GROQ_PROMPTS.AI_NOTES;
       }
 
-      const context = selectedMaterial.extracted_text;
+      const context = selectedMaterial.extracted_text.slice(0, 6000); // Further reduced to avoid token limits
       const response = await callGroqAPI(
         [{ role: 'user', content: `Material Title: ${selectedMaterial.title}\n\nContent:\n${context}` }],
         model,
@@ -266,6 +273,24 @@ function WorkstationContent() {
       }
     } catch (err) {
       console.error('Analysis failed:', err)
+      // Handle token limit errors gracefully
+      if (err.message.includes('413') || err.message.includes('tokens per minute')) {
+        setAnalysisCache(prev => ({
+          ...prev,
+          [selectedMaterial.id]: {
+            ...(prev[selectedMaterial.id] || {}),
+            [type]: `The document is too large for AI analysis. Try breaking it into smaller sections or upgrading your plan for higher limits.`
+          }
+        }))
+      } else {
+        setAnalysisCache(prev => ({
+          ...prev,
+          [selectedMaterial.id]: {
+            ...(prev[selectedMaterial.id] || {}),
+            [type]: `Analysis failed: ${err.message || 'Unknown error'}`
+          }
+        }))
+      }
     } finally {
       setIsAnalysisLoading(false)
     }
@@ -312,24 +337,82 @@ function WorkstationContent() {
 
     try {
       // Use active context from the reading space, default to extracted_text
-      const context = viewportData.visibleText || selectedMaterial?.extracted_text?.slice(0, 4000) || ""
+      const context = viewportData.visibleText || selectedMaterial?.extracted_text?.slice(0, 6000) || "" // Reduced token limit
       const statusContext = selectedMaterial?.processing_status === 'pending' 
         ? "NOTE: The document text is still being extracted so you cannot see it yet." 
         : `Active Context from current view: ${context}`
 
-      const response = await callGroqAPI(
-        [
-          { role: 'user', content: `Current Material: ${selectedMaterial?.title}. ${statusContext}\n\nUser Question: ${chatInput}` }
-        ],
-        GROQ_MODELS.SPEEDSTER,
-        { systemPromptOverride: GROQ_PROMPTS.AI_TUTOR }
-      )
+      // Check if user is asking for highlights
+      const isHighlightRequest = chatInput.toLowerCase().includes('highlight') || 
+                               chatInput.toLowerCase().includes('show me') ||
+                               chatInput.toLowerCase().includes('point out') ||
+                               chatInput.toLowerCase().includes('identify')
 
-      const aiMsg = { role: 'ai', content: response.choices[0].message.content }
+      let aiResponse
+      let documentType = 'pdf' // Default, should be determined from material
+
+      // Determine document type from material
+      if (selectedMaterial?.type) {
+        const type = selectedMaterial.type.toLowerCase()
+        if (type.includes('pdf')) documentType = 'pdf'
+        else if (type.includes('docx')) documentType = 'docx'
+        else if (type.includes('xlsx') || type.includes('excel')) documentType = 'xlsx'
+      }
+
+      if (isHighlightRequest && selectedMaterial) {
+        // Generate contextual highlights
+        const highlightAnalysis = await AIHighlightService.triggerContextualHighlights(
+          selectedMaterial, 
+          chatInput, 
+          documentType
+        )
+        
+        // Generate AI response about the highlights
+        const highlightPrompt = `
+The user asked: "${chatInput}"
+
+I have generated ${highlightAnalysis.highlights?.length || 0} highlights in the document. 
+Please explain what I highlighted and why it's relevant to their question.
+
+Highlights generated:
+${highlightAnalysis.highlights?.map(h => `- ${h.label}: ${h.reason}`).join('\n') || 'No highlights generated'}
+
+Provide a helpful response explaining the highlights.
+`
+
+        const response = await callGroqAPI(
+          [
+            { role: 'user', content: `Current Material: ${selectedMaterial?.title}. ${statusContext}\n\n${highlightPrompt}` }
+          ],
+          GROQ_MODELS.SPEEDSTER,
+          { systemPromptOverride: GROQ_PROMPTS.AI_TUTOR }
+        )
+        
+        aiResponse = response.choices[0].message.content
+      } else {
+        // Regular chat response
+        const response = await callGroqAPI(
+          [
+            { role: 'user', content: `Current Material: ${selectedMaterial?.title}. ${statusContext}\n\nUser Question: ${chatInput}` }
+          ],
+          GROQ_MODELS.SPEEDSTER,
+          { systemPromptOverride: GROQ_PROMPTS.AI_TUTOR }
+        )
+        
+        aiResponse = response.choices[0].message.content
+      }
+
+      const aiMsg = { role: 'ai', content: aiResponse }
       setMessages(prev => [...prev, aiMsg])
     } catch (err) {
       console.error('Chat error:', err)
-      setMessages(prev => [...prev, { role: 'ai', content: `Luter encountered an error: ${err.message}. Please check your connection or try again.` }])
+      let errorMessage = `Luter encountered an error. Please try again.`
+      if (err.message.includes('413') || err.message.includes('tokens per minute')) {
+        errorMessage = `The message is too large. Try asking a shorter question or breaking it into parts.`
+      } else if (err.message) {
+        errorMessage = `Luter encountered an error: ${err.message}. Please check your connection or try again.`
+      }
+      setMessages(prev => [...prev, { role: 'ai', content: errorMessage }])
     } finally {
       setIsAiLoading(false)
     }
@@ -337,176 +420,354 @@ function WorkstationContent() {
 
   const tabs = [
     { id: 'content', label: 'Workspace Home', icon: FileText },
-    { id: 'files', label: 'Files', icon: FileText },
-    { id: 'notes', label: 'AI Notes', icon: Brain },
-    { id: 'assignments', label: 'Assignments', icon: Layers },
-    { id: 'tracker', label: 'Activity Tracker', icon: HelpCircle },
+    { id: 'notes', label: 'AI Notes', icon: Brain, description: 'Notes that write themselves' },
+    { id: 'summary', label: 'AI Summarization', icon: Sparkles, description: 'Review faster, anytime' },
+    { id: 'flashcards', label: 'AI Flashcards', icon: Layers, description: 'Make It Impossible to Forget' },
+    { id: 'quiz', label: 'AI Quizzes', icon: HelpCircle, description: 'Test yourself before exams do' },
   ]
+
+
+  // AUTO-GENERATION ON ARRIVAL
+  useEffect(() => {
+    if (selectedMaterial?.processing_status === 'ready' && selectedMaterial?.extracted_text) {
+      const categories = ['notes', 'summary', 'flashcards', 'quiz']
+      categories.forEach(cat => {
+        if (!analysisCache[selectedMaterial.id]?.[cat]) {
+          runAnalysis(cat)
+        }
+      })
+    }
+  }, [selectedMaterial?.id, selectedMaterial?.processing_status, selectedMaterial?.extracted_text])
+
+  const AIDashboard = () => (
+    <div style={{ padding: '40px', background: '#F8FAFC', minHeight: '100%', fontFamily: 'Outfit' }}>
+      <div style={{ marginBottom: '40px' }}>
+        <h1 style={{ fontSize: '32px', fontWeight: 900, color: '#1A102D', marginBottom: '8px' }}>Welcome to your Workspace</h1>
+        <p style={{ color: '#64748B', fontSize: '16px' }}>Luter has analyzed your material. What would you like to do first?</p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+        {tabs.filter(t => ['notes', 'summary', 'flashcards', 'quiz'].includes(t.id)).map(feature => {
+          const isDone = !!analysisCache[selectedMaterial?.id]?.[feature.id]
+          const isLoading = isAnalysisLoading && activeTab === 'content' && !isDone
+
+          return (
+            <motion.div
+              key={feature.id}
+              whileHover={{ y: -5, boxShadow: '0 20px 40px rgba(122, 18, 204, 0.1)' }}
+              onClick={() => setActiveTab(feature.id)}
+              style={{
+                background: 'white',
+                padding: '32px',
+                borderRadius: '24px',
+                border: '1.5px solid #E2E8F0',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px',
+                transition: 'all 0.3s ease',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              <div style={{ 
+                width: '56px', 
+                height: '56px', 
+                background: '#F5F3FF', 
+                borderRadius: '16px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                color: '#7a12cc'
+              }}>
+                <feature.icon size={28} />
+              </div>
+              
+              <div>
+                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A102D', marginBottom: '8px' }}>{feature.label}</h3>
+                <p style={{ color: '#64748B', fontSize: '14px', lineHeight: 1.5 }}>{feature.description}</p>
+              </div>
+
+              <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {isDone ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10B981', fontSize: '13px', fontWeight: 700 }}>
+                    <CheckCircle2 size={16} /> Ready to use
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#7a12cc', fontSize: '13px', fontWeight: 700 }}>
+                    <Loader2 className="animate-spin" size={16} /> Generating...
+                  </div>
+                )}
+                <div style={{ marginLeft: 'auto', color: '#94A3B8' }}>
+                  <ChevronRight size={20} />
+                </div>
+              </div>
+            </motion.div>
+          )
+        })}
+      </div>
+
+      <div style={{ marginTop: '60px', padding: '32px', background: 'white', borderRadius: '24px', border: '1.5px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ width: '48px', height: '48px', background: '#F1F5F9', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <FileText size={24} color="#64748B" />
+          </div>
+          <div>
+            <div style={{ fontWeight: 800, color: '#1A102D' }}>Original Material</div>
+            <div style={{ fontSize: '14px', color: '#64748B' }}>{selectedMaterial?.title}</div>
+          </div>
+        </div>
+        <button 
+          onClick={() => setShowDashboard(false)}
+          style={{ padding: '12px 24px', borderRadius: '12px', background: '#F5F3FF', color: '#7a12cc', fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          Open Reader <ExternalLink size={16} />
+        </button>
+
+      </div>
+    </div>
+  )
+
 
   const currentTabIcon = tabs.find(t => t.id === activeTab)?.icon || FileText;
 
   return (
     <div className="ws-root">
       <SelectionActionBar onAction={handleSelectionAction} />
-      <header className="ws-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button onClick={() => navigate(-1)} className="ws-back-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <ArrowLeft size={24} color="#7a12cc" />
+      <header className="ws-tabs-bar" style={{ 
+        borderBottom: '1px solid #E2E8F0', 
+        background: 'white', 
+        height: '72px', 
+        padding: '0 32px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '24px'
+      }}>
+        {/* Left Section - Navigation */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: 0 }}>
+          <button 
+            onClick={() => navigate(-1)} 
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              cursor: 'pointer', 
+              padding: '8px', 
+              borderRadius: '8px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              transition: 'all 0.2s ease'
+            }} 
+            onMouseEnter={e => e.target.style.background = '#F5F3FF'} 
+            onMouseLeave={e => e.target.style.background = 'none'}
+          >
+            <ArrowLeft size={20} color="#7a12cc" />
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#4A5568', fontFamily: 'Outfit' }}>
-              <span>Home</span> <ChevronRight size={14} /> <span style={{ fontWeight: 600 }}>{selectedMaterial?.title || 'Loading...'}</span>
-            </nav>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#F8FAFC', padding: '4px 16px', borderRadius: '99px', border: '1px solid #E2E8F0' }}>
-              {tabs.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id)
-                    if (tab.id === 'assignments') setHasNewAssignment(false)
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '6px 12px',
-                    borderRadius: '20px',
-                    fontSize: '12px',
-                    color: activeTab === tab.id ? '#7a12cc' : '#94A3B8',
-                    fontWeight: 600,
-                    background: activeTab === tab.id ? '#F5F3FF' : 'transparent',
-                    border: activeTab === tab.id ? '1px solid #DDD6FE' : '1px solid transparent',
-                    position: 'relative',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {React.createElement(tab.icon, { size: 14 })}
-                  <span>{tab.label}</span>
-                  {tab.id === 'assignments' && hasNewAssignment && (
-                    <div style={{ position: 'absolute', top: '-4px', right: '-4px', width: '10px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                       <div style={{ width: '8px', height: '8px', background: '#EF4444', borderRadius: '50%', border: '2px solid white' }}></div>
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
+          
+          <div style={{ height: '20px', width: '1px', background: '#E2E8F0' }}></div>
+
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 500, color: '#64748B', minWidth: 0 }}>
+            <span>Home</span> 
+            <ChevronRight size={14} style={{ flexShrink: 0 }} /> 
+            <span style={{ 
+              color: '#1A102D', 
+              fontWeight: 700,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              maxWidth: '300px'
+            }}>
+              {selectedMaterial?.title || 'Loading...'}
+            </span>
+          </nav>
         </div>
-        
-        <div style={{ display: 'flex', gap: '12px' }}>
-          {courseMaterials.length > 0 && (
+
+        {/* Center Section - Tabs */}
+        <div className="ws-nav-tabs" style={{ 
+          background: '#F8FAFC', 
+          padding: '4px', 
+          borderRadius: '12px', 
+          border: '1px solid #E2E8F0', 
+          gap: '2px',
+          display: 'flex',
+          alignItems: 'center',
+          flexShrink: 0
+        }}>
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id)
+                if (tab.id === 'content') setShowDashboard(true) 
+                if (tab.id === 'assignments') setHasNewAssignment(false)
+              }}
+              className={`ws-tab ${activeTab === tab.id ? 'ws-tab--active' : ''}`}
+              style={{
+                fontSize: '12px',
+                padding: '8px 16px',
+                height: '36px',
+                minWidth: 'fit-content',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === tab.id ? '#7a12cc' : 'transparent',
+                color: activeTab === tab.id ? 'white' : '#64748B',
+                fontWeight: activeTab === tab.id ? 600 : 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              onMouseEnter={e => {
+                if (activeTab !== tab.id) {
+                  e.target.style.background = '#F1F5F9'
+                }
+              }}
+              onMouseLeave={e => {
+                if (activeTab !== tab.id) {
+                  e.target.style.background = 'transparent'
+                }
+              }}
+            >
+              <tab.icon size={13} />
+              {tab.label === 'Workspace Home' ? 'Home' : tab.label.replace('AI ', '')}
+            </button>
+          ))}
+        </div>
+
+        {/* Right Section - Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, justifyContent: 'flex-end' }}>
+          {/* Reading Environment Indicator */}
+          {activeTab === 'content' && (
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              padding: '6px 12px',
+              background: '#F0FDF4',
+              borderRadius: '20px',
+              border: '1px solid #BBF7D0'
+            }}>
+              <div style={{ 
+                width: '6px', 
+                height: '6px', 
+                borderRadius: '50%', 
+                background: '#16A34A', 
+                boxShadow: '0 0 6px #16A34A' 
+              }} />
+              <span style={{ 
+                fontSize: '11px', 
+                fontWeight: 600, 
+                color: '#16A34A', 
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Reading Mode
+              </span>
+            </div>
+          )}
+
+          {/* Material Selector */}
+          {courseMaterials.length > 1 && (
             <select 
               value={selectedMaterial?.id}
               onChange={(e) => {
                 const mat = courseMaterials.find(m => m.id === e.target.value)
                 setSelectedMaterial(mat)
                 clearHighlights()
-                // Reset analysis state for new material if needed or keep cached
               }}
-              style={{ padding: '8px 16px', borderRadius: '10px', border: '1px solid #F3E8FF', fontFamily: 'Varela Round', outline: 'none', background: 'white', fontSize: '13px' }}
+              style={{ 
+                padding: '8px 12px', 
+                borderRadius: '8px', 
+                border: '1px solid #E2E8F0', 
+                fontSize: '12px', 
+                fontWeight: 500, 
+                outline: 'none', 
+                background: 'white',
+                cursor: 'pointer',
+                minWidth: '200px'
+              }}
             >
               {courseMaterials.map(m => (
                 <option key={m.id} value={m.id}>{m.title}</option>
               ))}
             </select>
           )}
-          <button className="ws-send-btn" onClick={() => navigate('/dashboard/courses')}>
-            <Plus size={16} /> add material
-          </button>
           
-          <div style={{ position: 'relative' }}>
-            <button 
-              className="ws-tactile-btn" 
-              style={{ padding: '8px' }}
-              onClick={() => setShowTools(!showTools)}
-            >
-              <MoreVertical size={18} />
-            </button>
-            
-            <AnimatePresence>
-              {showTools && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 12px)',
-                    right: 0,
-                    width: '220px',
-                    background: 'white',
-                    borderRadius: '16px',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
-                    border: '1px solid #E2E8F0',
-                    padding: '8px',
-                    zIndex: 100
-                  }}
-                >
-                  <div style={{ padding: '8px 12px', fontSize: '11px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Luter Power Tools
-                  </div>
-                  {toolLinks.map(tool => (
-                    <button
-                      key={tool.id}
-                      onClick={() => navigate(tool.path)}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        padding: '10px 12px',
-                        borderRadius: '10px',
-                        border: 'none',
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = '#F5F3FF'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <div style={{ color: '#7a12cc' }}><tool.icon size={16} /></div>
-                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#4A5568' }}>{tool.label}</span>
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          {/* Add Material Button */}
+          <button 
+            className="ws-send-btn" 
+            onClick={() => navigate('/dashboard/courses')} 
+            style={{ 
+              padding: '8px 16px', 
+              fontSize: '12px',
+              background: '#7a12cc',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={e => e.target.style.background = '#6d11b8'}
+            onMouseLeave={e => e.target.style.background = '#7a12cc'}
+          >
+            <Plus size={14} /> Add Material
+          </button>
         </div>
       </header>
 
-      <div className="ws-tabs-bar">
-        <div className="ws-nav-tabs">
-          {tabs.map(tab => (
-            <button 
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`ws-tab ${activeTab === tab.id ? 'ws-tab--active' : ''}`}
-            >
-              <tab.icon size={16} />
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        
-        <div style={{ display: 'flex', gap: '16px', color: '#7a12cc' }}>
-          <Volume2 size={20} cursor="pointer" />
-          <Share2 size={20} cursor="pointer" />
-        </div>
-      </div>
+
+      {/* Removed Redundant Header Bar */}
+
 
       <main className="ws-main-layout">
-        <section className="ws-pane-left" style={{ position: 'relative' }}>
-          <MaterialRenderer 
-            material={selectedMaterial} 
-            activeTab={activeTab}
-            analysisState={{ ...currentAnalysis, loading: isAnalysisLoading || isExtractingText }}
-            onRunAnalysis={runAnalysis}
-          />
+        <section className="ws-pane-left" style={{ position: 'relative', overflowY: 'auto', background: '#F8FAFC' }}>
+          {activeTab === 'content' && (
+            <MaterialRenderer 
+              material={selectedMaterial} 
+              activeTab={activeTab}
+              analysisState={{ ...currentAnalysis, loading: isAnalysisLoading || isExtractingText }}
+              onRunAnalysis={runAnalysis}
+            />
+          )}
+
+          {activeTab === 'notes' && (
+            <WorkstationNotes 
+              content={currentAnalysis.notes} 
+              material={selectedMaterial} 
+              onRegenerate={() => runAnalysis('notes')} 
+            />
+          )}
+
+          {activeTab === 'summary' && (
+            <WorkstationSummary 
+              content={currentAnalysis.summary} 
+              material={selectedMaterial} 
+            />
+          )}
+
+          {activeTab === 'flashcards' && (
+            <WorkstationFlashcards 
+              items={currentAnalysis.flashcards} 
+              material={selectedMaterial} 
+            />
+          )}
+
+          {activeTab === 'quiz' && (
+            <WorkstationQuiz 
+              items={currentAnalysis.quiz} 
+              material={selectedMaterial} 
+            />
+          )}
         </section>
 
         <section className="ws-pane-right">
+
           <div className="ws-chat-container">
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #F3E8FF', display: 'flex', alignItems: 'center', gap: 10 }}>
               <LuterLogo size={20} showText={false} />

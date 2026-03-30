@@ -6,6 +6,7 @@ import { supabase } from '../../supabaseClient'
 const PdfRenderer = lazy(() => import('./renderers/PdfRenderer'))
 const VideoRenderer = lazy(() => import('./renderers/VideoRenderer'))
 const OfficeRenderer = lazy(() => import('./renderers/OfficeRenderer'))
+const ExcelRenderer = lazy(() => import('./renderers/ExcelRenderer'))
 const AnkiRenderer = lazy(() => import('./renderers/AnkiRenderer'))
 const NoteRenderer = lazy(() => import('./renderers/NoteRenderer'))
 
@@ -166,17 +167,22 @@ export default function MaterialRenderer({ material, activeTab, analysisState, o
       return <AnkiRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
     }
 
-    // 3. Office Docs (Word & PowerPoint)
+    // 3. Excel Files (.xlsx, .xls)
+    if (['xlsx', 'xls'].includes(type)) {
+      return <ExcelRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
+    }
+
+    // 4. Office Docs (Word & PowerPoint)
     if (['docx', 'pptx', 'doc', 'ppt'].includes(type)) {
       return <OfficeRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
     }
 
-    // 4. PDFs (High Precision)
+    // 5. PDFs (High Precision)
     if (type === 'pdf' || url.endsWith('.pdf')) {
       return <PdfRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
     }
 
-    // 5. Google Docs (Embed Strategy)
+    // 6. Google Docs (Embed Strategy)
     if (url.includes('docs.google.com')) {
       return <OfficeRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
     }

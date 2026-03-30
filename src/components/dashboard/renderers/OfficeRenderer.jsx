@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { ExternalLink, AlertCircle, Loader2, Download, Sparkles, ChevronLeft, ChevronRight, Star } from 'lucide-react'
 import { useReadingSpace } from '../ReadingSpaceContext'
 import ReactMarkdown from 'react-markdown'
@@ -6,17 +6,21 @@ import * as docx from "docx-preview"
 import Mark from 'mark.js'
 
 export default function OfficeRenderer({ material, activeTab, analysisState, onRunAnalysis }) {
-  const { setViewportData, updateSelection, drawCommands } = useReadingSpace()
+  const { setViewportData, updateSelection, drawCommands, highlightDocxText, highlightText } = useReadingSpace()
   const docxContainerRef = useRef(null)
   const markInstanceRef = useRef(null)
+  const pptxContainerRef = useRef(null)
   
   const [loading, setLoading] = useState(false)
   const [isDocx, setIsDocx] = useState(false)
+  const [isPptx, setIsPptx] = useState(false)
   const [currentIdx, setCurrentIdx] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
   const [userAnswers, setUserAnswers] = useState({})
   const [showExplanation, setShowExplanation] = useState(false)
   const [quizScore, setQuizScore] = useState(null)
+  const [aiHighlights, setAiHighlights] = useState([])
+  const [convertedPdfUrl, setConvertedPdfUrl] = useState(null)
 
   const fileUrl = material.source_url
   const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`
@@ -25,20 +29,101 @@ export default function OfficeRenderer({ material, activeTab, analysisState, onR
     const type = material.type?.toLowerCase() || ''
     const url = material.source_url || ''
     const isDocFile = type === 'docx' || url.endsWith('.docx')
+    const isPptFile = type === 'pptx' || url.endsWith('.pptx')
+    
     setIsDocx(isDocFile)
+    setIsPptx(isPptFile)
 
     if (isDocFile && activeTab === 'content') {
       renderDocx(url)
+    }
+    
+    if (isPptFile && activeTab === 'content') {
+      // For PPTX, try to convert to PDF for better highlighting
+      convertPptxToPdf(url)
     }
 
     if (material.extracted_text) {
       setViewportData({
         visibleText: material.extracted_text.slice(0, 5000),
         scrollPercent: 0,
-        currentPage: 1
+        currentPage: 1,
+        documentType: isDocFile ? 'docx' : isPptFile ? 'pptx' : 'unknown'
       })
     }
   }, [material, activeTab])
+
+  // AI Highlighting Functions
+  const triggerDocxHighlight = useCallback((highlightData) => {
+    if (highlightData.documentType === 'docx' && docxContainerRef.current) {
+      if (!markInstanceRef.current) {
+        markInstanceRef.current = new Mark(docxContainerRef.current)
+      }
+      
+      // Mark the text with AI highlight
+      markInstanceRef.current.mark(highlightData.text, {
+        className: 'luter-ai-highlight',
+        exclude: ['h1', 'h2', 'h3'],
+        caseSensitive: false,
+        accuracy: 'exactly'
+      })
+      
+      setAiHighlights(prev => [...prev, highlightData])
+    }
+  }, [])
+
+  // Convert PPTX to PDF for better highlighting
+  const convertPptxToPdf = async (pptxUrl) => {
+    setLoading(true)
+    try {
+      // In a real implementation, this would call a backend service
+      // For now, we'll simulate the conversion
+      // const response = await fetch('/api/convert-pptx-to-pdf', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ url: pptxUrl })
+      // })
+      // const data = await response.json()
+      // setConvertedPdfUrl(data.pdfUrl)
+      
+      // Fallback to Google Docs viewer
+      setConvertedPdfUrl(null)
+    } catch (error) {
+      console.error('PPTX conversion failed:', error)
+      setConvertedPdfUrl(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Process AI highlight commands
+  useEffect(() => {
+    const docxHighlights = drawCommands.filter(cmd => 
+      cmd.type === 'highlight' && cmd.documentType === 'docx'
+    )
+    
+    docxHighlights.forEach(highlight => {
+      triggerDocxHighlight(highlight)
+    })
+  }, [drawCommands, triggerDocxHighlight])
+
+  // Clear highlights when context requests
+  useEffect(() => {
+    if (drawCommands.length === 0 && markInstanceRef.current) {
+      markInstanceRef.current.unmark()
+      setAiHighlights([])
+    }
+  }, [drawCommands])
+
+  // Expose DOCX highlighting function to global scope
+  useEffect(() => {
+    window.highlightDocxText = (text, label, context) => {
+      highlightDocxText(text, label, context)
+    }
+    return () => {
+      delete window.highlightDocxText
+    }
+  }, [highlightDocxText])
 
   // Handle Live Highlights from AI
   useEffect(() => {

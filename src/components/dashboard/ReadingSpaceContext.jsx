@@ -6,17 +6,66 @@ export function ReadingSpaceProvider({ children }) {
   const [viewportData, setViewportData] = useState({
     visibleText: '',
     scrollPercent: 0,
-    currentPage: 1
+    currentPage: 1,
+    documentType: 'pdf', // pdf, docx, pptx, xlsx
+    coordinateMap: {} // AI-generated coordinate map for precise highlighting
   })
   
   const [drawCommands, setDrawCommands] = useState([])
   const [sparkPosition, setLuterSparkPosition] = useState({ x: 0, y: 0, visible: false })
   const [selection, setSelection] = useState({ text: '', rect: null, visible: false })
   
-  // Method for AI to trigger a highlight
-  const highlightText = (rects, label = '') => {
+  // Advanced AI highlighting with coordinate support
+  const highlightText = (highlightData) => {
     const id = Date.now()
-    setDrawCommands(prev => [...prev, { id, rects, label, type: 'highlight' }])
+    
+    // Support multiple highlight formats
+    if (Array.isArray(highlightData)) {
+      // Multiple highlights
+      const highlights = highlightData.map(data => ({
+        id: Date.now() + Math.random(),
+        ...data,
+        type: 'highlight'
+      }))
+      setDrawCommands(prev => [...prev, ...highlights])
+    } else {
+      // Single highlight
+      const highlight = {
+        id,
+        ...highlightData,
+        type: 'highlight'
+      }
+      setDrawCommands(prev => [...prev, highlight])
+    }
+  }
+
+  // AI tool calling functions
+  const highlightPdfArea = ({ pageIndex, left, top, width, height, label, color = '#7a12cc' }) => {
+    highlightText({
+      documentType: 'pdf',
+      pageIndex,
+      coordinates: { left, top, width, height },
+      label,
+      color
+    })
+  }
+
+  const highlightDocxText = (text, label, context) => {
+    highlightText({
+      documentType: 'docx',
+      text,
+      context,
+      label
+    })
+  }
+
+  const highlightExcelCells = (cellRange, label, color = '#10b981') => {
+    highlightText({
+      documentType: 'xlsx',
+      cellRange, // e.g., "A1:C5", "B2", "D4:F10"
+      label,
+      color
+    })
   }
 
   const clearHighlights = () => setDrawCommands([])
@@ -29,6 +78,30 @@ export function ReadingSpaceProvider({ children }) {
     setSelection({ text, rect, visible })
   }
 
+  // Update coordinate map from backend analysis
+  const updateCoordinateMap = (map) => {
+    setViewportData(prev => ({
+      ...prev,
+      coordinateMap: map
+    }))
+  }
+
+  // Expose AI tool functions to global scope for tool calling
+  useEffect(() => {
+    window.luterAI = {
+      highlightPdfArea,
+      highlightDocxText,
+      highlightExcelCells,
+      highlightText,
+      clearHighlights,
+      updateSpark
+    }
+    
+    return () => {
+      delete window.luterAI
+    }
+  }, [])
+
   return (
     <ReadingSpaceContext.Provider value={{
       viewportData,
@@ -39,7 +112,12 @@ export function ReadingSpaceProvider({ children }) {
       sparkPosition,
       updateSpark,
       selection,
-      updateSelection
+      updateSelection,
+      updateCoordinateMap,
+      // AI tool functions
+      highlightPdfArea,
+      highlightDocxText,
+      highlightExcelCells
     }}>
       {children}
     </ReadingSpaceContext.Provider>
