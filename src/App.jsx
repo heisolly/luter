@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import LandingPage from './components/LandingPage'
 import Features from './components/Features'
 import HowItWorks from './components/HowItWorks'
@@ -34,12 +34,13 @@ import AdminActivity from './admin/pages/AdminActivity'
 import AdminSystem from './admin/pages/AdminSystem'
 import AdminSettings from './admin/pages/AdminSettings'
 import AdminSyllabusManager from './admin/pages/AdminSyllabusManager'
-import AdminUploadPage from './components/admin/AdminUploadPage'
 import StudyMaterialsPage from './components/dashboard/StudyMaterialsPage'
 import FilesPage from './components/dashboard/FilesPage'
 import AssignmentsPage from './components/dashboard/AssignmentsPage'
 import AINotesPage from './components/dashboard/AINotesPage'
 import StudyMaterialsWeekPage from './components/dashboard/StudyMaterialsWeekPage'
+
+const AdminUploadPage = lazy(() => import('./admin/pages/AdminUploadPage'))
 
 function CompeteRedirect() {
   const { search } = useLocation()
@@ -94,7 +95,6 @@ export default function App() {
 
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<DashboardHome />} />
-            <Route path="admin/upload" element={<AdminUploadPage />} />
             <Route path="courses/:courseId/materials/:weekId" element={<StudyMaterialsWeekPage />} />
             <Route path="courses/:courseId/materials" element={<StudyMaterialsPage />} />
             <Route path="files" element={<FilesPage />} />
@@ -120,6 +120,7 @@ export default function App() {
 
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminOverview />} />
+            <Route path="upload" element={<Suspense fallback={<div />}><AdminUploadPage /></Suspense>} />
             <Route path="users/:userId" element={<AdminUserDetail />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="courses" element={<AdminCourses />} />

@@ -62,7 +62,7 @@ export default function StudyMaterialsPage() {
           <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#1A102D' }}>{courseName}</h1>
         </div>
         <button 
-          onClick={() => navigate(`/dashboard/admin/upload?courseId=${courseId}`)}
+          onClick={() => navigate(`/admin/upload?courseId=${courseId}`)}
           style={{ background: '#7a12cc', color: 'white', padding: '14px 28px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 10px 20px rgba(122, 18, 204, 0.2)' }}
         >
           <UploadCloud size={20} />
