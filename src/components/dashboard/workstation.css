@@ -1,0 +1,398 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Varela+Round&display=swap');
+
+:root {
+  --luter-bg: #F5F3FF;
+  --luter-card-bg: #FFFFFF;
+  --luter-primary: #7a12cc;
+  --luter-primary-dark: #4C1D95;
+  --luter-accent: #EDE9FE;
+  --luter-border: #DDD6FE;
+  --luter-mint-light: #F3E8FF;
+  --luter-text-body: #4A5568;
+  --luter-shadow: 0 4px 20px -2px rgba(122, 18, 204, 0.05);
+  --luter-tactile-shadow: 0 4px 0px #4A5568;
+  
+  --font-heading: 'Varela Round', sans-serif;
+  --font-body: 'Outfit', sans-serif;
+}
+
+/* ── Root & Background ── */
+.ws-root {
+  background-color: var(--luter-bg);
+  height: 100vh;
+  font-family: var(--font-body);
+  color: var(--luter-primary-dark);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header & Navigation ── */
+.ws-header {
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+/* ── Tabs Container ── */
+.ws-tabs-bar {
+  padding: 0 24px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.ws-nav-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  border: 1px solid var(--luter-mint-light);
+}
+
+.ws-tab {
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background: transparent;
+  color: var(--luter-text-body);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-tab--active {
+  background-color: var(--luter-accent);
+  color: var(--luter-primary-dark);
+}
+
+.ws-tab:hover:not(.ws-tab--active) {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* ── Content Area ── */
+.ws-content-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px;
+}
+
+/* ── Jungle Scrollbar ── */
+.ws-content-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ws-content-scroll::-webkit-scrollbar-track {
+  background: var(--luter-bg);
+}
+
+.ws-content-scroll::-webkit-scrollbar-thumb {
+  background: var(--luter-primary);
+  border-radius: 10px;
+  border: 2px solid var(--luter-bg);
+}
+
+.ws-content-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--luter-primary-dark);
+}
+
+/* ── Chat Bubbles ── */
+.ws-chat-bubble {
+  max-width: 85%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.ws-chat-bubble--user {
+  align-self: flex-end;
+  background: var(--luter-card-bg);
+  border: 1px solid var(--luter-border);
+  color: var(--luter-primary-dark);
+  border-bottom-right-radius: 4px;
+}
+
+.ws-chat-bubble--ai {
+  align-self: flex-start;
+  background: var(--luter-mint-light);
+  color: var(--luter-primary-dark);
+  border-bottom-left-radius: 4px;
+}
+
+/* ── Dual-Pane Layout ── */
+.ws-main-layout {
+  display: flex;
+  gap: 24px;
+  padding: 0 24px 24px;
+  flex: 1;
+  min-height: 0; /* Important for flex child height truncation */
+}
+
+.ws-pane-left {
+  flex: 0 0 70%;
+  background: var(--luter-card-bg);
+  border-radius: 16px;
+  box-shadow: var(--luter-shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--luter-border);
+}
+
+.ws-pane-right {
+  flex: 1;
+  background: var(--luter-card-bg);
+  border-radius: 16px;
+  box-shadow: var(--luter-shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--luter-border);
+  min-width: 320px;
+}
+
+/* ── AI Tutor Interface ── */
+.ws-chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.luter-glow {
+  background-color: rgba(122, 18, 204, 0.2);
+  border-bottom: 2px solid var(--luter-primary);
+  border-radius: 2px;
+  padding: 2px 0;
+  transition: all 0.3s ease;
+  animation: luter-glow-pulse 2s infinite alternate;
+}
+
+@keyframes luter-glow-pulse {
+  from { box-shadow: 0 0 5px rgba(122, 18, 204, 0.2); }
+  to { box-shadow: 0 0 15px rgba(122, 18, 204, 0.5); }
+}
+
+.ws-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.ws-chat-input-area {
+  padding: 20px;
+  border-top: 1px solid var(--luter-mint-light);
+  background: var(--luter-card-bg);
+  flex-shrink: 0;
+}
+
+.ws-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ws-chat-input {
+  width: 100%;
+  padding: 12px 20px;
+  border-radius: 99px;
+  border: 1px solid var(--luter-border);
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+  box-shadow: var(--luter-tactile-shadow);
+  transition: transform 0.1s ease;
+}
+
+.ws-chat-input:focus {
+  transform: translateY(1px);
+  box-shadow: 0 3px 0px #4A5568;
+}
+
+.ws-send-btn {
+  background: var(--luter-primary);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 99px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  text-transform: lowercase;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.ws-send-btn:hover {
+  background: var(--luter-primary-dark);
+}
+
+/* ── Flashcard Styling ── */
+.ws-flashcard {
+  width: 100%;
+  max-width: 500px;
+  margin: 40px auto;
+  aspect-ratio: 3/2;
+  perspective: 1000px;
+  cursor: pointer;
+}
+
+.ws-flashcard-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.ws-flashcard--flipped .ws-flashcard-inner {
+  transform: rotateY(180deg);
+}
+
+.ws-flashcard-front, .ws-flashcard-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: var(--luter-card-bg);
+  border: 2px solid var(--luter-primary);
+  border-radius: 24px;
+  box-shadow: var(--luter-shadow);
+}
+
+.ws-flashcard-back {
+  transform: rotateY(180deg);
+}
+
+.ws-flashcard-text {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  color: var(--luter-primary-dark);
+  margin: 0;
+}
+
+.ws-tactile-btn {
+  background: var(--luter-card-bg);
+  border: 1px solid var(--luter-border);
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  color: var(--luter-primary-dark);
+  box-shadow: var(--luter-tactile-shadow);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.ws-tactile-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0px #4A5568;
+}
+
+/* ── Typography Utility ── */
+.ws-heading {
+  font-family: var(--font-heading);
+  margin: 0;
+}
+
+/* ── Shared Canvas / Overlay ── */
+.ws-canvas-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.ws-svg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.ws-highlight-path {
+  fill: rgba(122, 18, 204, 0.2);
+  stroke: var(--luter-primary);
+  stroke-width: 1;
+  filter: blur(2px);
+  animation: glow-pulse 2s infinite alternate;
+}
+
+@keyframes glow-pulse {
+  from { opacity: 0.4; filter: blur(2px); }
+  to { opacity: 0.7; filter: blur(4px); }
+}
+
+/* ── Luter Spark ── */
+.ws-luter-spark {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background: var(--luter-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 0 15px var(--luter-primary);
+  pointer-events: none;
+  z-index: 20;
+}
+
+.ws-spark-glow {
+  position: absolute;
+  inset: -4px;
+  background: var(--luter-primary);
+  border-radius: 50%;
+  opacity: 0.3;
+  animation: spark-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes spark-ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* ── Live Insight Tag ── */
+.ws-live-tag {
+  position: absolute;
+  padding: 4px 10px;
+  background: var(--luter-primary-dark);
+  color: white;
+  border-radius: 6px;
+  font-size: 10px;
+  font-family: var(--font-heading);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 15;
+  box-shadow: var(--luter-shadow);
+}

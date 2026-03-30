@@ -195,7 +195,6 @@ export default function DashboardHome() {
         </motion.div>
       </div>
 
-      {/* ── Main Layout ── */}
       <div style={{ 
         padding: isMobile ? '20px' : '40px 48px',
         display: 'flex',

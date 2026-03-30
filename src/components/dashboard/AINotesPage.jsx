@@ -1,151 +1,126 @@
-import { useState } from 'react'
-import { FileText, Brain, Sparkles, Download, Share2, Loader2 } from 'lucide-react'
-import { motion } from 'framer-motion'
+import React, { useState, useEffect } from 'react'
+import { useOutletContext, useNavigate } from 'react-router-dom'
+import { Brain, Plus, Loader2, Download, Share2, FileText, ChevronRight } from 'lucide-react'
+import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
+import ReactMarkdown from 'react-markdown'
+import LuterLogo from '../shared/LuterLogo'
 
-export default function AINotesPage({ course, isMobile }) {
+export default function AINotesPage() {
+  const { user } = useOutletContext()
+  const navigate = useNavigate()
+  const [materials, setMaterials] = useState([])
+  const [selectedMaterial, setSelectedMaterial] = useState(null)
   const [notes, setNotes] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [uploadedContent, setUploadedContent] = useState('')
 
-  const sampleContent = `Lecture: Introduction to Quantum Mechanics
+  useEffect(() => {
+    if (user) fetchMaterials()
+  }, [user])
 
-**Wave-Particle Duality**
-- Light exhibits both wave and particle properties
-- de Broglie wavelength: λ = h/p
-- Photoelectric effect demonstrates particle nature
-
-**Schrödinger Equation**
-- Fundamental equation of quantum mechanics
-- Describes how quantum states evolve over time
-- Hψ = Eψ (time-independent form)
-
-**Quantum Numbers**
-- n: Principal quantum number (energy level)
-- l: Azimuthal quantum number (orbital shape)
-- m: Magnetic quantum number (orientation)
-- s: Spin quantum number (+1/2 or -1/2)`
+  async function fetchMaterials() {
+    const { data } = await supabase
+      .from('materials')
+      .select('*, courses(name)')
+      .limit(20)
+    if (data) setMaterials(data)
+  }
 
   const generateNotes = async () => {
-    if (!uploadedContent && !course) return
-    
+    if (!selectedMaterial?.extracted_text) return
     setIsGenerating(true)
-    
     try {
-      const content = uploadedContent || sampleContent
-      const prompt = `${GROQ_PROMPTS.AI_NOTES}\n\n${content}`
-      
-      const data = await callGroqAPI(
-        [{ role: 'user', content: prompt }],
+      const response = await callGroqAPI(
+        [{ role: 'user', content: selectedMaterial.extracted_text }],
         GROQ_MODELS.PROFESSOR,
-        { temperature: 0.7 }
+        { systemPromptOverride: GROQ_PROMPTS.AI_NOTES }
       )
-      
-      setNotes(data.choices?.[0]?.message?.content || 'No notes generated')
-    } catch (error) {
-      console.error('Error generating notes:', error)
-      setNotes('Error generating notes. Please try again.')
+      setNotes(response.choices[0].message.content)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsGenerating(false)
     }
-    
-    setIsGenerating(false)
   }
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px', maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>AI Notes Generator</h2>
-        <p style={{ color: '#666', margin: 0 }}>Transform your lecture materials into structured, First-Class quality notes</p>
+    <div style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'Outfit' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+        <div>
+          <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#1A3A32', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Brain color="#7a12cc" size={32} /> AI Study Notes
+          </h1>
+          <p style={{ color: '#4A5568' }}>Generate high-quality academic notes from your materials.</p>
+        </div>
+        <LuterLogo size={40} showText={false} />
       </div>
 
-      {/* Content Input */}
-      <div style={{ 
-        background: 'white', 
-        border: '1.5px solid #e5e7eb', 
-        borderRadius: '16px', 
-        padding: '20px',
-        marginBottom: '20px'
-      }}>
-        <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <FileText size={18} /> Lecture Content
-        </h3>
-        <textarea
-          value={uploadedContent}
-          onChange={(e) => setUploadedContent(e.target.value)}
-          placeholder="Paste your lecture content here, or use sample content..."
-          style={{
-            width: '100%',
-            minHeight: '150px',
-            padding: '12px',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontFamily: 'inherit',
-            resize: 'vertical'
-          }}
-        />
-      </div>
-
-      {/* Generate Button */}
-      <button
-        onClick={generateNotes}
-        disabled={isGenerating || (!uploadedContent && !course)}
-        style={{
-          width: '100%',
-          padding: '16px',
-          background: isGenerating ? '#f3f4f6' : '#7a12cc',
-          color: isGenerating ? '#9ca3af' : 'white',
-          border: '1.5px solid #7a12cc',
-          borderRadius: '12px',
-          fontSize: '16px',
-          fontWeight: '800',
-          cursor: isGenerating ? 'not-allowed' : 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
-          marginBottom: '24px'
-        }}
-      >
-        {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Brain size={20} />}
-        {isGenerating ? 'Generating Notes...' : 'Generate AI Notes'}
-      </button>
-
-      {/* Generated Notes */}
-      {notes && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{
-            background: 'white',
-            border: '1.5px solid #e5e7eb',
-            borderRadius: '16px',
-            padding: '24px'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Sparkles size={20} color="#7a12cc" /> Generated Notes
-            </h3>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button style={{ padding: '8px 12px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>
-                <Download size={14} />
+      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '24px' }}>
+        <div style={{ background: 'white', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', height: 'fit-content' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#4A5568', marginBottom: '16px', textTransform: 'uppercase' }}>Select Material</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {materials.map(m => (
+              <button 
+                key={m.id}
+                onClick={() => setSelectedMaterial(m)}
+                style={{ 
+                  textAlign: 'left', 
+                  padding: '12px', 
+                  borderRadius: '10px', 
+                  border: '1px solid',
+                  borderColor: selectedMaterial?.id === m.id ? '#7a12cc' : '#F1F5F9',
+                  background: selectedMaterial?.id === m.id ? '#F5F3FF' : 'white',
+                  fontSize: '13px',
+                  color: selectedMaterial?.id === m.id ? '#7a12cc' : '#4A5568',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {m.title}
               </button>
-              <button style={{ padding: '8px 12px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>
-                <Share2 size={14} />
-              </button>
-            </div>
+            ))}
+            {materials.length === 0 && <p style={{ fontSize: '12px', color: '#94A3B8' }}>No materials found.</p>}
           </div>
           
-          <div 
+          <button 
+            onClick={generateNotes}
+            disabled={!selectedMaterial || isGenerating}
             style={{ 
-              lineHeight: 1.6, 
-              fontSize: '14px',
-              color: '#374151'
+              width: '100%', 
+              marginTop: '24px', 
+              padding: '12px', 
+              borderRadius: '10px', 
+              background: '#7a12cc', 
+              color: 'white', 
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              opacity: (!selectedMaterial || isGenerating) ? 0.6 : 1
             }}
-            dangerouslySetInnerHTML={{ __html: notes.replace(/\n/g, '<br />') }}
-          />
-        </motion.div>
-      )}
+          >
+            {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
+            Generate Notes
+          </button>
+        </div>
+
+        <div style={{ background: 'white', padding: '32px', borderRadius: '16px', border: '1px solid #E2E8F0', minHeight: '500px' }}>
+          {notes ? (
+            <div className="markdown-body">
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginBottom: '24px' }}>
+                <button style={{ color: '#7a12cc', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}><Download size={14} /> Save PDF</button>
+                <button style={{ color: '#7a12cc', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}><Share2 size={14} /> Share</button>
+              </div>
+              <ReactMarkdown>{notes}</ReactMarkdown>
+            </div>
+          ) : (
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.4 }}>
+              <FileText size={48} style={{ marginBottom: '16px' }} />
+              <p>Select a material and click generate to start.</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

@@ -99,10 +99,10 @@ export default function App() {
             <Route path="streak" element={<StreakPage />} />
             <Route path="refer" element={<ReferPage />} />
             <Route path="compete" element={<CompetePage />} />
-            <Route path="exam-session/:sessionId" element={<ExamSessionView />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
 
+          <Route path="/exam-session/:sessionId" element={<ExamSessionView />} />
           <Route path="/compete" element={<CompeteRedirect />} />
 
           <Route path="/admin" element={<AdminLayout />}>

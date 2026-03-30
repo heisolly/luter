@@ -1,366 +1,140 @@
-import { useState } from 'react'
-import { Layers, RotateCcw, Download, Share2, Loader2, CheckCircle, X } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, { useState, useEffect } from 'react'
+import { useOutletContext } from 'react-router-dom'
+import { Layers, Loader2, Zap, RotateCcw, ChevronRight, ChevronLeft } from 'lucide-react'
+import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
+import LuterLogo from '../shared/LuterLogo'
 
-export default function FlashcardPage({ course, isMobile }) {
+export default function FlashcardPage() {
+  const { user } = useOutletContext()
+  const [materials, setMaterials] = useState([])
+  const [selectedMaterial, setSelectedMaterial] = useState(null)
   const [flashcards, setFlashcards] = useState([])
   const [isGenerating, setIsGenerating] = useState(false)
-  const [uploadedContent, setUploadedContent] = useState('')
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
-  const [studiedCards, setStudiedCards] = useState(new Set())
 
-  const sampleContent = `Quantum Mechanics Key Concepts
+  useEffect(() => {
+    if (user) fetchMaterials()
+  }, [user])
 
-**de Broglie Hypothesis**: All matter exhibits wave-like properties with wavelength λ = h/p
+  async function fetchMaterials() {
+    const { data } = await supabase.from('materials').select('*').limit(20)
+    if (data) setMaterials(data)
+  }
 
-**Heisenberg Uncertainty Principle**: Δx·Δp ≥ ℏ/2 - cannot simultaneously know position and momentum precisely
-
-**Quantum Numbers**: 
-- n (1,2,3...) - principal energy level
-- l (0 to n-1) - orbital angular momentum
-- m (-l to +l) - magnetic quantum number
-- s (+1/2, -1/2) - spin quantum number
-
-**Photoelectric Effect**: Light of frequency f on metal surface ejects electrons with KE = hf - φ`
-
-  const generateFlashcards = async () => {
-    if (!uploadedContent && !course) return
-    
+  const generateCards = async () => {
+    if (!selectedMaterial?.extracted_text) return
     setIsGenerating(true)
-    setIsFlipped(false)
-    
+    setFlashcards([])
     try {
-      const content = uploadedContent || sampleContent
-      const prompt = `${GROQ_PROMPTS.FLASHCARDS}\n\n${content}`
-      
-      const data = await callGroqAPI(
-        [{ role: 'user', content: prompt }],
+      const response = await callGroqAPI(
+        [{ role: 'user', content: selectedMaterial.extracted_text }],
         GROQ_MODELS.SPEEDSTER,
-        { temperature: 0.7, responseFormat: { type: 'json_object' } }
+        { systemPromptOverride: GROQ_PROMPTS.FLASHCARDS }
       )
-      
-      const response = JSON.parse(data.choices?.[0]?.message?.content || '{}')
-      const cards = response.flashcards || []
-      setFlashcards(cards)
+      const content = response.choices[0].message.content
+      const jsonMatch = content.match(/\[[\s\S]*\]/)
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content)
+      setFlashcards(parsed)
       setCurrentIndex(0)
-      setStudiedCards(new Set())
-    } catch (error) {
-      console.error('Error generating flashcards:', error)
-      // Fallback flashcards
-      const fallbackCards = [
-        { front: 'What is the de Broglie equation?', back: 'λ = h/p, where λ is wavelength, h is Planck constant, p is momentum' },
-        { front: 'State the Heisenberg Uncertainty Principle', back: 'Δx·Δp ≥ ℏ/2 - position and momentum cannot be known simultaneously' },
-        { front: 'What are the four quantum numbers?', back: 'n (principal), l (azimuthal), m (magnetic), s (spin)' }
-      ]
-      setFlashcards(fallbackCards)
-      setCurrentIndex(0)
-      setStudiedCards(new Set())
-    }
-    
-    setIsGenerating(false)
-  }
-
-  const nextCard = () => {
-    if (currentIndex < flashcards.length - 1) {
-      setCurrentIndex(currentIndex + 1)
-      setIsFlipped(false)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsGenerating(false)
     }
   }
-
-  const prevCard = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1)
-      setIsFlipped(false)
-    }
-  }
-
-  const markAsStudied = () => {
-    setStudiedCards(new Set([...studiedCards, currentIndex]))
-  }
-
-  const resetProgress = () => {
-    setStudiedCards(new Set())
-    setCurrentIndex(0)
-    setIsFlipped(false)
-  }
-
-  const currentCard = flashcards[currentIndex]
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px', maxWidth: '600px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>AI Flashcards</h2>
-        <p style={{ color: '#666', margin: 0 }}>Generate smart flashcards for active recall learning</p>
-      </div>
-
-      {/* Content Input */}
-      <div style={{ 
-        background: 'white', 
-        border: '1.5px solid #e5e7eb', 
-        borderRadius: '16px', 
-        padding: '20px',
-        marginBottom: '20px'
-      }}>
-        <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Layers size={18} /> Study Material
-        </h3>
-        <textarea
-          value={uploadedContent}
-          onChange={(e) => setUploadedContent(e.target.value)}
-          placeholder="Paste your study material here, or use sample content..."
-          style={{
-            width: '100%',
-            minHeight: '120px',
-            padding: '12px',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontFamily: 'inherit',
-            resize: 'vertical'
-          }}
-        />
-      </div>
-
-      {/* Generate Button */}
-      <button
-        onClick={generateFlashcards}
-        disabled={isGenerating || (!uploadedContent && !course)}
-        style={{
-          width: '100%',
-          padding: '16px',
-          background: isGenerating ? '#f3f4f6' : '#7a12cc',
-          color: isGenerating ? '#9ca3af' : 'white',
-          border: '1.5px solid #7a12cc',
-          borderRadius: '12px',
-          fontSize: '16px',
-          fontWeight: '800',
-          cursor: isGenerating ? 'not-allowed' : 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
-          marginBottom: '24px'
-        }}
-      >
-        {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Layers size={20} />}
-        {isGenerating ? 'Generating Flashcards...' : 'Generate Flashcards'}
-      </button>
-
-      {/* Flashcard Display */}
-      {flashcards.length > 0 && currentCard && (
+    <div style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'Outfit' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
         <div>
-          {/* Progress Bar */}
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '14px', fontWeight: '600', color: '#666' }}>
-                Card {currentIndex + 1} of {flashcards.length}
-              </span>
-              <span style={{ fontSize: '14px', fontWeight: '600', color: '#7a12cc' }}>
-                {studiedCards.size} studied
-              </span>
-            </div>
-            <div style={{ height: '8px', background: '#e5e7eb', borderRadius: '4px', overflow: 'hidden' }}>
-              <div 
-                style={{ 
-                  height: '100%', 
-                  width: `${((currentIndex + 1) / flashcards.length) * 100}%`, 
-                  background: '#7a12cc',
-                  transition: 'width 0.3s ease'
-                }} 
-              />
-            </div>
-          </div>
-
-          {/* Flashcard */}
-          <div 
-            style={{
-              position: 'relative',
-              height: isMobile ? '200px' : '250px',
-              perspective: '1000px',
-              marginBottom: '20px'
-            }}
-            onClick={() => setIsFlipped(!isFlipped)}
-          >
-            <motion.div
-              style={{
-                width: '100%',
-                height: '100%',
-                position: 'absolute',
-                cursor: 'pointer'
-              }}
-              animate={{ rotateY: isFlipped ? 180 : 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              {/* Front */}
-              <div 
-                style={{
-                  position: 'absolute',
-                  width: '100%',
-                  height: '100%',
-                  backfaceVisibility: 'hidden',
-                  background: 'linear-gradient(135deg, #7a12cc, #9718fb)',
-                  borderRadius: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '24px',
-                  boxShadow: '0 10px 30px rgba(122, 18, 204, 0.3)'
-                }}
-              >
-                <p style={{ 
-                  color: 'white', 
-                  fontSize: isMobile ? '16px' : '18px', 
-                  fontWeight: '600',
-                  textAlign: 'center',
-                  margin: 0
-                }}>
-                  {currentCard.front}
-                </p>
-              </div>
-
-              {/* Back */}
-              <div 
-                style={{
-                  position: 'absolute',
-                  width: '100%',
-                  height: '100%',
-                  backfaceVisibility: 'hidden',
-                  transform: 'rotateY(180deg)',
-                  background: 'white',
-                  border: '2px solid #7a12cc',
-                  borderRadius: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '24px',
-                  boxShadow: '0 10px 30px rgba(122, 18, 204, 0.2)'
-                }}
-              >
-                <p style={{ 
-                  color: '#374151', 
-                  fontSize: isMobile ? '16px' : '18px', 
-                  fontWeight: '500',
-                  textAlign: 'center',
-                  margin: 0
-                }}>
-                  {currentCard.back}
-                </p>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Controls */}
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-            <button
-              onClick={prevCard}
-              disabled={currentIndex === 0}
-              style={{
-                flex: 1,
-                padding: '12px',
-                background: currentIndex === 0 ? '#f3f4f6' : 'white',
-                border: '1.5px solid #e5e7eb',
-                borderRadius: '12px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
-              }}
-            >
-              ← Previous
-            </button>
-
-            <button
-              onClick={() => setIsFlipped(!isFlipped)}
-              style={{
-                flex: 2,
-                padding: '12px',
-                background: '#7a12cc',
-                color: 'white',
-                border: '1.5px solid #7a12cc',
-                borderRadius: '12px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              {isFlipped ? 'Show Question' : 'Show Answer'}
-            </button>
-
-            <button
-              onClick={nextCard}
-              disabled={currentIndex === flashcards.length - 1}
-              style={{
-                flex: 1,
-                padding: '12px',
-                background: currentIndex === flashcards.length - 1 ? '#f3f4f6' : 'white',
-                border: '1.5px solid #e5e7eb',
-                borderRadius: '12px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: currentIndex === flashcards.length - 1 ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
-              }}
-            >
-              Next →
-            </button>
-          </div>
-
-          {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button
-              onClick={markAsStudied}
-              disabled={studiedCards.has(currentIndex)}
-              style={{
-                flex: 1,
-                padding: '12px',
-                background: studiedCards.has(currentIndex) ? '#10b981' : '#f3f4f6',
-                color: studiedCards.has(currentIndex) ? 'white' : '#374151',
-                border: '1.5px solid #e5e7eb',
-                borderRadius: '12px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: studiedCards.has(currentIndex) ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
-              }}
-            >
-              {studiedCards.has(currentIndex) ? <CheckCircle size={16} /> : <CheckCircle size={16} />}
-              {studiedCards.has(currentIndex) ? 'Studied' : 'Mark as Studied'}
-            </button>
-
-            <button
-              onClick={resetProgress}
-              style={{
-                padding: '12px',
-                background: '#f3f4f6',
-                color: '#374151',
-                border: '1.5px solid #e5e7eb',
-                borderRadius: '12px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
-              }}
-            >
-              <RotateCcw size={16} />
-              Reset
-            </button>
-          </div>
+          <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#1A3A32', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Layers color="#7a12cc" size={32} /> AI Flashcards
+          </h1>
+          <p style={{ color: '#4A5568' }}>Master your materials with active recall.</p>
         </div>
-      )}
+        <LuterLogo size={40} showText={false} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '24px' }}>
+        <div style={{ background: 'white', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', height: 'fit-content' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#4A5568', marginBottom: '16px', textTransform: 'uppercase' }}>Select Material</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {materials.map(m => (
+              <button 
+                key={m.id}
+                onClick={() => setSelectedMaterial(m)}
+                style={{ 
+                  textAlign: 'left', padding: '12px', borderRadius: '10px', border: '1px solid',
+                  borderColor: selectedMaterial?.id === m.id ? '#7a12cc' : '#F1F5F9',
+                  background: selectedMaterial?.id === m.id ? '#F5F3FF' : 'white',
+                  fontSize: '13px', color: selectedMaterial?.id === m.id ? '#7a12cc' : '#4A5568'
+                }}
+              >
+                {m.title}
+              </button>
+            ))}
+          </div>
+          <button 
+            onClick={generateCards}
+            disabled={!selectedMaterial || isGenerating}
+            style={{ 
+              width: '100%', marginTop: '24px', padding: '12px', borderRadius: '10px', 
+              background: '#7a12cc', color: 'white', fontWeight: 700, display: 'flex', 
+              alignItems: 'center', justifyContent: 'center', gap: '8px'
+            }}
+          >
+            {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
+            Generate Cards
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '32px' }}>
+          {flashcards.length > 0 ? (
+            <>
+              <div 
+                className={`ws-flashcard ${isFlipped ? 'ws-flashcard--flipped' : ''}`}
+                onClick={() => setIsFlipped(!isFlipped)}
+                style={{ width: '100%', maxWidth: '500px', height: '320px' }}
+              >
+                <div className="ws-flashcard-inner">
+                  <div className="ws-flashcard-front" style={{ border: '2px solid #7a12cc' }}>
+                    <p style={{ fontSize: '18px', fontWeight: 600 }}>{flashcards[currentIndex].front}</p>
+                    <span style={{ position: 'absolute', bottom: '20px', fontSize: '12px', color: '#7a12cc', opacity: 0.6 }}>Click to flip</span>
+                  </div>
+                  <div className="ws-flashcard-back" style={{ border: '2px solid #4C1D95', background: '#F5F3FF' }}>
+                    <p style={{ fontSize: '16px', color: '#4C1D95' }}>{flashcards[currentIndex].back}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                <button 
+                  className="ws-tactile-btn" 
+                  onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
+                  disabled={currentIndex === 0}
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <span style={{ fontWeight: 800 }}>{currentIndex + 1} / {flashcards.length}</span>
+                <button 
+                  className="ws-tactile-btn" 
+                  onClick={() => setCurrentIndex(prev => Math.min(flashcards.length - 1, prev + 1))}
+                  disabled={currentIndex === flashcards.length - 1}
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            </>
+          ) : (
+            <div style={{ height: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.4 }}>
+              <Layers size={64} style={{ marginBottom: '16px' }} />
+              <p>Generate cards to start your active recall session.</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

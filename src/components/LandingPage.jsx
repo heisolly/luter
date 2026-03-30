@@ -63,6 +63,36 @@ const UNIS = [
   { name: 'Harvard', icon: '🏅' }, { name: 'UNILAG', icon: '🇳🇬' },
 ];
 
+const plans = [
+  {
+    name: 'Basic', trial: 'Free forever',
+    priceMonthly: 0, priceSemester: 0,
+    isPopular: false,
+    bg: 'white', color: '#111', border: '#e5e7eb',
+    buttonStyle: { background: 'white', color: '#111', border: '1px solid #e5e7eb' },
+    buttonText: 'Start for Free',
+    features: ['5 uploads per month', 'AI Notes (Basic)', 'AI Summary', 'Flashcard generation', 'Community support']
+  },
+  {
+    name: 'University Pro', trial: 'Most popular for students',
+    priceMonthly: 4000, priceSemester: 9000,
+    isPopular: true,
+    bg: 'linear-gradient(160deg, #6d28d9, #9718fb 60%, #7180FE)', color: 'white', border: 'transparent',
+    buttonStyle: { background: 'white', color: 'var(--primary)', border: 'none' },
+    buttonText: 'Get Started',
+    features: ['Unlimited uploads', 'Advanced AI Notes', 'AI Summary + Quizzes', 'Spaced-rep Flashcards', 'AI Math Expert', 'Live Lecture Recording', 'Priority support']
+  },
+  {
+    name: 'Premium', trial: 'For power users',
+    priceMonthly: 7000, priceSemester: 16000,
+    isPopular: false,
+    bg: 'white', color: '#111', border: '#e5e7eb',
+    buttonStyle: { background: 'linear-gradient(135deg, var(--primary), #7180fe)', color: 'white', border: 'none' },
+    buttonText: 'Get Started',
+    features: ['Everything in University Pro', 'Analyze Images with AI', 'Multi-file Sessions', 'Team collaboration', 'Dedicated support', 'Early feature access']
+  }
+];
+
 /* ─────────────────────────────────────────────────── */
 export default function LandingPage() {
   const containerRef = useRef(null);
@@ -99,6 +129,7 @@ export default function LandingPage() {
 
   /* mobile nav */
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isSemester, setIsSemester] = useState(true);
 
   // Placeholder for RevealDiv - assuming it's defined elsewhere or will be added.
   // For the purpose of this change, we'll just use a simple div.
@@ -1025,38 +1056,77 @@ export default function LandingPage() {
 
       {/* ═══════════════ PRICING TEASER ═══════════════ */}
       <section id="pricing" style={{ padding:'80px 0', background:'white' }}>
-        <div className="container-custom" style={{ maxWidth:680, textAlign:'center' }}>
-          <div className="badge reveal-child" style={{ marginBottom:16 }}>Simple Pricing</div>
-          <h2 className="reveal-child" style={{ fontSize:'clamp(1.8rem,3.5vw,2.6rem)', marginBottom:12 }}>Start free. Upgrade when you're ready.</h2>
-          <p className="reveal-child" style={{ color:'#aaa', fontSize:16, marginBottom:48 }}>No credit card required to start. Cancel anytime.</p>
-          <div className="reveal-child" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
-            {[
-              { plan:'Free', price:'$0', period:'/mo', features:['5 sessions/month','AI Notes & Summaries','Basic flashcards','Web access'], cta:'Get Started Free', primary:false },
-              { plan:'Pro', price:'$12', period:'/mo', features:['Unlimited sessions','CBT Mock Exams','AI Tutor 24/7','Mobile app access','Priority support'], cta:'Start 7-day Free Trial', primary:true },
-            ].map(({ plan, price, period, features, cta, primary }) => (
-              <div key={plan} style={{ background: primary ? 'var(--primary)' : 'white', border: primary ? 'none' : '1px solid var(--border)', borderRadius:24, padding:32, textAlign:'left', boxShadow: primary ? '0 20px 60px rgba(151,24,251,0.3)' : 'var(--card-shadow)' }}>
-                <div style={{ fontSize:13, fontWeight:700, color: primary ? 'rgba(255,255,255,0.6)' : '#aaa', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:12 }}>{plan}</div>
-                <div style={{ display:'flex', alignItems:'baseline', gap:4, marginBottom:24 }}>
-                  <span style={{ fontSize:40, fontWeight:800, color: primary ? 'white' : '#111', fontFamily:'var(--font-besley)' }}>{price}</span>
-                  <span style={{ fontSize:14, color: primary ? 'rgba(255,255,255,0.5)' : '#aaa' }}>{period}</span>
-                </div>
-                <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:28 }}>
-                  {features.map(f => (
-                    <div key={f} style={{ display:'flex', gap:10, alignItems:'center' }}>
-                      <Check style={{ width:15, height:15, color: primary ? 'rgba(255,255,255,0.8)' : 'var(--primary)', flexShrink:0 }} />
-                      <span style={{ fontSize:14, color: primary ? 'rgba(255,255,255,0.8)' : '#555', fontWeight:500 }}>{f}</span>
-                    </div>
-                  ))}
-                </div>
-                <button style={{
-                  width:'100%', padding:'13px', borderRadius:10, fontSize:14, fontWeight:700, cursor:'pointer',
-                  background: primary ? 'white' : 'var(--primary)',
-                  color: primary ? 'var(--primary)' : 'white',
-                  border: 'none',
-                  transition: 'all 0.2s',
-                }}>{cta}</button>
+        <div style={{ position: 'relative', zIndex: 1, paddingBottom: 60 }}>
+          <div className="container-custom" style={{ textAlign: 'center', marginBottom: 60 }}>
+            <RevealDiv>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, color: 'var(--primary)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 20, background: 'rgba(151,24,251,0.07)', padding: '6px 16px', borderRadius: 99, border: '1px solid rgba(151,24,251,0.12)' }}>
+                <Sparkles size={13} /> Upgrade anytime
               </div>
-            ))}
+            </RevealDiv>
+            <RevealDiv delay={0.1}>
+              <h2 style={{ fontSize: 'clamp(2.2rem, 5vw, 4rem)', fontWeight: 800, fontFamily: 'var(--font-besley)', color: '#111', marginBottom: 20, lineHeight: 1.1 }}>
+                Simple pricing for{' '}
+                <span style={{ color:'var(--primary)', fontStyle:'italic' }}>students</span>
+              </h2>
+            </RevealDiv>
+            <RevealDiv delay={0.15}>
+              <p style={{ fontSize: 18, color: '#555', maxWidth: 560, margin: '0 auto 36px', fontWeight: 500, lineHeight: 1.7 }}>
+                Start free. Upgrade when you're ready. No tricks, no hidden fees.
+              </p>
+            </RevealDiv>
+            <RevealDiv delay={0.2}>
+              <div style={{ display: 'inline-flex', background: 'white', border: '1px solid #e5e7eb', borderRadius: 99, padding: 4, gap: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                <button onClick={() => setIsSemester(false)} style={{ padding: '9px 28px', borderRadius: 99, background: !isSemester ? 'var(--primary)' : 'transparent', color: !isSemester ? 'white' : '#555', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', transition: 'all 0.25s' }}>Monthly</button>
+                <button onClick={() => setIsSemester(true)} style={{ padding: '9px 28px', borderRadius: 99, background: isSemester ? 'var(--primary)' : 'transparent', color: isSemester ? 'white' : '#555', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', transition: 'all 0.25s', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  Per Semester <span style={{ fontSize: 10, background: '#d1fae5', color: '#059669', padding: '2px 8px', borderRadius: 99, fontWeight: 800 }}>Best Value</span>
+                </button>
+              </div>
+            </RevealDiv>
+          </div>
+
+          <div className="container-full">
+            <RevealDiv>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 0, maxWidth: 1050, margin: '0 auto' }}>
+                {plans.map((plan) => (
+                  <div key={plan.name} style={{
+                    flex: '1 1 300px', maxWidth: 360,
+                    background: plan.bg, color: plan.color,
+                    borderRadius: 24, padding: plan.isPopular ? '44px 32px' : '36px 28px',
+                    border: plan.isPopular ? 'none' : `1px solid ${plan.border}`,
+                    boxShadow: plan.isPopular ? '0 32px 64px rgba(113,128,254,0.25)' : '0 4px 20px rgba(0,0,0,0.03)',
+                    transform: plan.isPopular ? 'scaleY(1.04)' : 'scaleY(1)',
+                    position: 'relative', zIndex: plan.isPopular ? 10 : 1,
+                    display: 'flex', flexDirection: 'column',
+                    margin: plan.isPopular ? '-8px 0' : '8px 0'
+                  }}>
+                    {plan.isPopular && (
+                      <div style={{ display: 'inline-flex', alignSelf: 'center', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.2)', color: 'white', padding: '5px 14px', borderRadius: 99, fontSize: 10, fontWeight: 800, marginBottom: 20, border: '1px solid rgba(255,255,255,0.3)' }}>
+                        <Sparkles size={11} /> MOST POPULAR
+                      </div>
+                    )}
+                    <div style={{ marginBottom: 24 }}>
+                      <h3 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 4px 0' }}>{plan.name}</h3>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: plan.isPopular ? 'rgba(255,255,255,0.8)' : '#888' }}>{plan.trial}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 28 }}>
+                      <span style={{ fontSize: 48, fontWeight: 900, lineHeight: 1 }}>{plan.priceMonthly === 0 ? '₦0' : `₦${isSemester ? plan.priceSemester.toLocaleString() : plan.priceMonthly.toLocaleString()}`}</span>
+                      {plan.priceMonthly > 0 && <span style={{ fontSize: 14, fontWeight: 600, color: plan.isPopular ? 'rgba(255,255,255,0.7)' : '#aaa', marginBottom: 8 }}>/{isSemester ? 'semester' : 'mo'}</span>}
+                    </div>
+                    <Link to="/signup" style={{ width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 32, ...plan.buttonStyle, transition: 'all 0.2s', textAlign: 'center', textDecoration: 'none', display: 'inline-block' }}>{plan.buttonText}</Link>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+                      {plan.features.map(f => (
+                        <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                          <div style={{ width: 16, height: 16, borderRadius: '50%', background: plan.isPopular ? 'rgba(255,255,255,0.25)' : 'rgba(151,24,251,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                            <Check size={9} color={plan.isPopular ? 'white' : 'var(--primary)'} strokeWidth={3.5} />
+                          </div>
+                          <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: plan.isPopular ? 'rgba(255,255,255,0.92)' : '#444' }}>{f}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </RevealDiv>
           </div>
         </div>
       </section>

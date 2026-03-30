@@ -32,7 +32,9 @@ export default function Dashboard() {
         if (p) setProfile(p)
 
         const updateHeartbeat = async () => {
-          await supabase.from('profiles').update({ last_active_at: new Date().toISOString() }).eq('id', session.user.id)
+          await supabase.from('profiles')
+            .update({ last_active_at: new Date().toISOString() })
+            .eq('id', session.user.id)
         }
         updateHeartbeat()
         hb = setInterval(updateHeartbeat, 30000)

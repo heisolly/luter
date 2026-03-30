@@ -9,6 +9,10 @@ import confetti from 'canvas-confetti'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
 import LuterLogo from '../shared/LuterLogo'
 
+// Sound Effects
+import correctSound from '../../assets/sounds/dragon-studio-correct-472358.mp3'
+import wrongSound from '../../assets/sounds/universfield-wrong-answer-126515.mp3'
+
 const PALETTE = ['#7a12cc','#9718fb','#b04dfc','#6d28d9','#7c3aed','#8b5cf6','#a78bfa','#6366f1']
 
 // Sample course materials for AI generation
@@ -102,6 +106,7 @@ export default function MockExamPage() {
   const [isSavingSession, setIsSavingSession] = useState(false)
   const [pastSessions, setPastSessions] = useState([])
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
 
   useEffect(() => {
     if (user && mode === 'configure') {
@@ -328,7 +333,7 @@ export default function MockExamPage() {
   ]
 
   const score = Object.entries(selected).reduce((acc, [idx, ansIdx]) => {
-  const question = generatedQuestions[idx]
+  const question = generatedQuestions[parseInt(idx)]
   if (!question) return acc
   
   // Don't know answers are always incorrect
@@ -339,11 +344,26 @@ export default function MockExamPage() {
     return typeInAnswers[idx]?.trim() ? acc + 1 : acc
   } else {
     // For multiple choice and true/false
-    return acc + (ansIdx === (question.answer ?? 0) ? 1 : 0)
+    return acc + (ansIdx == (question.answer ?? 0) ? 1 : 0)
   }
 }, 0)
   const pass = score >= (generatedQuestions?.length || 1) / 2
   const isAnswered = selected[current] !== undefined
+  const currentQuestion = generatedQuestions[current]
+  const isCorrect = isAnswered && currentQuestion && (
+    currentQuestion.type === 'typein' 
+      ? !!typeInAnswers[current]?.trim() 
+      : selected[current] == currentQuestion.answer
+  )
+
+  // ── Sound effects logic ──
+  useEffect(() => {
+    if (instantFeedback && isAnswered && mode === 'exam' && lastAutoAdvancedIndex !== current) {
+      const audio = new Audio(isCorrect ? correctSound : wrongSound);
+      audio.volume = 0.5; // Set a reasonable volume
+      audio.play().catch(err => console.error('Sound playback failed:', err));
+    }
+  }, [isAnswered, instantFeedback, mode]);
 
   // ── Persistence Logic (Supabase & AI Weakness) ──
   useEffect(() => {
@@ -413,6 +433,9 @@ export default function MockExamPage() {
 
       if (sessionData) {
         setCurrentSessionId(sessionData.id);
+        console.log('✅ session persisted:', sessionData.id);
+      } else if (sessionError) {
+        console.error('❌ session persistence error:', sessionError);
       }
 
       // 4. Generate AI Weakness Analysis if there are errors
@@ -453,7 +476,21 @@ export default function MockExamPage() {
         { temperature: 0.5, responseFormat: { type: 'json_object' } }
       );
 
-      const analysis = JSON.parse(response.choices[0].message.content);
+      let content = response.choices[0].message.content;
+      // Sanitize AI response to ensure it's valid JSON
+      if (content.includes('```')) {
+        content = content.replace(/```json\n?|```/g, '').trim();
+      }
+      // If it still starts with something like "Based on...", try to find the JSON part
+      if (!content.startsWith('{')) {
+        const start = content.indexOf('{');
+        const end = content.lastIndexOf('}');
+        if (start !== -1 && end !== -1) {
+          content = content.substring(start, end + 1);
+        }
+      }
+
+      const analysis = JSON.parse(content);
       setAiWeaknessAnalysis(analysis);
     } catch (err) {
       console.error('AI Analysis Error:', err);
@@ -774,21 +811,26 @@ Please explain where I went wrong and why the correct answer is the right choice
 
   const [lastAutoAdvancedIndex, setLastAutoAdvancedIndex] = useState(-1)
 
-  // ── Auto-advance logic for non-feedback mode ──
+  // ── Auto-advance logic ──
   useEffect(() => {
     // Only auto-advance if:
     // 1. We are in exam mode
-    // 2. Instant feedback is OFF
-    // 3. Current question is answered
-    // 4. We haven't already auto-advanced for this specific question index
-    if (mode === 'exam' && !instantFeedback && selected[current] !== undefined && lastAutoAdvancedIndex !== current) {
-      const timer = setTimeout(() => {
-        setLastAutoAdvancedIndex(current);
-        next();
-      }, 600);
-      return () => clearTimeout(timer);
+    // 2. Question is answered
+    // 3. We haven't already auto-advanced for this specific question index
+    if (mode === 'exam' && isAnswered && lastAutoAdvancedIndex !== current) {
+      // 4. ONLY auto-advance if the answer is CORRECT
+      // This allows the user to see their mistake and interact with the utility bar if wrong
+      if (isCorrect) {
+        // If feedback is ON, we want a slightly longer delay so they see the green color
+        const delay = instantFeedback ? 1200 : 600;
+        const timer = setTimeout(() => {
+          setLastAutoAdvancedIndex(current);
+          next();
+        }, delay);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [selected[current], instantFeedback, mode, current, lastAutoAdvancedIndex]);
+  }, [isAnswered, isCorrect, instantFeedback, mode, current, lastAutoAdvancedIndex]);
 
   const next = () => {
     if (current >= (generatedQuestions?.length || 1) - 1) {
@@ -826,76 +868,98 @@ Please explain where I went wrong and why the correct answer is the right choice
         if (examTimer > 0) setTimeLeft(examTimer);
       }, 7000);
     }
-    return () => { clearTimeout(t); clearInterval(int); };
-  }, [mode, examTimer]);
+    return () => { 
+      if (t) clearTimeout(t); 
+      if (int) clearInterval(int); 
+    };
+  }, [mode, examTimer, examQs]); // Added examQs to satisfy constant size if it was causing issues, or just kept it consistent
 
   const handleResultShare = async () => {
+    setShowShareModal(true);
+  }
+
+  const shareReviewLink = async () => {
+    if (!currentSessionId) {
+      if (isSavingSession) {
+        alert('⏳ still saving your session, please wait a moment...');
+      } else {
+        alert('❌ session not found. try retaking the exam.');
+      }
+      return;
+    }
+    const shareUrl = `${window.location.origin}/exam-session/${currentSessionId}`;
+    
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('🚀 session link copied to clipboard!');
+      setShowShareModal(false);
+    } catch (err) {
+      console.error('clipboard copy failed');
+      alert('❌ failed to copy link. please try again.');
+    }
+  };
+
+  const shareViaWebShare = async () => {
+    if (!currentSessionId) {
+      if (isSavingSession) {
+        alert('⏳ still saving your session, please wait a moment...');
+      } else {
+        alert('❌ session not found. try retaking the exam.');
+      }
+      return;
+    }
+    const shareUrl = `${window.location.origin}/exam-session/${currentSessionId}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'My Luter Study Result',
+          text: `I just scored ${score}/${generatedQuestions?.length || 1} on Luter! Check out my session review here:`,
+          url: shareUrl
+        });
+        setShowShareModal(false);
+      } catch (err) {
+        console.log('Share cancelled');
+      }
+    } else {
+      // Fallback to clipboard if Web Share is not supported
+      shareReviewLink();
+    }
+  };
+
+  const downloadResultImage = async () => {
     if (resultRef.current === null) return
     setIsSharing(true)
-    
-    // If we have a session ID, we share the link instead of just the image
-    if (currentSessionId) {
-      const shareUrl = `${window.location.origin}/exam-session/${currentSessionId}`;
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: 'My Luter Study Result',
-            text: `I just scored ${score}/${generatedQuestions?.length || 1} on Luter! Check out my session review here:`,
-            url: shareUrl
-          })
-          setIsSharing(false)
-          return;
-        } catch (err) {
-          console.log('Share cancelled')
-        }
-      }
-      
-      // Fallback: Copy to clipboard
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        alert('🚀 Session link copied to clipboard! Share it with your friends.');
-        setIsSharing(false)
-        return;
-      } catch (err) {
-        console.error('Clipboard copy failed')
-      }
+    try {
+      const dataUrl = await toPng(resultRef.current, { cacheBust: true, pixelRatio: 2 })
+      const link = document.createElement('a');
+      link.download = `luter-result-${currentSessionId || 'score'}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Error downloading image', err)
+    } finally {
+      setIsSharing(false)
     }
+  }
 
+  const copyImageToClipboard = async () => {
+    if (resultRef.current === null) return
+    setIsSharing(true)
     try {
       const dataUrl = await toPng(resultRef.current, { cacheBust: true, pixelRatio: 2 })
       const blob = await (await fetch(dataUrl)).blob()
-      const file = new File([blob], 'luter-result.png', { type: 'image/png' })
       
       if (navigator.clipboard && window.ClipboardItem) {
-        try {
-          await navigator.clipboard.write([
-            new ClipboardItem({ [blob.type]: blob })
-          ]);
-          alert('🎉 Copied to clipboard! Ready to paste and flex on Discord/Slack.');
-        } catch (clipboardErr) {
-          console.error('Clipboard write failed, trying native share...', clipboardErr);
-          if (navigator.share) {
-            await navigator.share({
-              files: [file],
-              title: 'My Luter Study Result',
-              text: `I just scored ${score}/${generatedQuestions?.length || 1} on Luter! Lock in 🎯`
-            })
-          }
-        }
-      } else if (navigator.share) {
-        await navigator.share({
-          files: [file],
-          title: 'My Luter Study Result',
-          text: `I just scored ${score}/${generatedQuestions?.length || 1} on Luter! Lock in 🎯`
-        })
+        await navigator.clipboard.write([
+          new ClipboardItem({ [blob.type]: blob })
+        ]);
+        alert('🎉 Image copied to clipboard!');
       } else {
-        const link = document.createElement('a');
-        link.download = 'luter-result.png';
-        link.href = dataUrl;
-        link.click();
+        alert('Your browser does not support copying images. Try downloading instead.');
       }
     } catch (err) {
-      console.error('Error sharing', err)
+      console.error('Error copying image', err)
     } finally {
       setIsSharing(false)
     }
@@ -1324,9 +1388,11 @@ Please explain where I went wrong and why the correct answer is the right choice
   }
 
   const renderExam = () => {
-    const q = generatedQuestions[current] || { question: 'loading...', options: [], answer: 0 }
+    const q = currentQuestion || { question: 'loading...', options: [], answer: 0 }
     const userAns = selected[current]
-    const isCorrect = isAnswered && (q.type === 'typein' ? !!typeInAnswers[current]?.trim() : userAns === q.answer)
+    const isCorrectAnswer = q.type === 'typein' 
+      ? !!typeInAnswers[current]?.trim() 
+      : userAns == q.answer;
 
     return (
       <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Outfit', 'Varela Round', sans-serif", overflow: 'hidden', color: '#1A3A32', position: 'relative' }}>
@@ -1369,7 +1435,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                     key={i} whileHover={{ y: isAnswered ? 0 : -2 }} whileTap={{ scale: isAnswered ? 1 : 0.98 }}
                     onClick={() => !isAnswered && choose(i)} 
                     disabled={isAnswered}
-                    style={{ padding: '20px 24px', borderRadius: 12, background: isCorrectOption ? '#DCFCE7' : isWrongOption ? '#FEF2F2' : (isSelected && !instantFeedback ? '#F0FDF4' : '#ffffff'), textAlign: 'left', cursor: isAnswered ? 'default' : 'pointer', outline: 'none', transition: 'all 0.2s ease', fontFamily: 'inherit', border: isCorrectOption ? '1.5px solid #22C55E' : isWrongOption ? '1.5px solid #EF4444' : (isSelected && !instantFeedback ? '1.5px solid #2D8A4E' : '1.5px solid #E2E8F0'), color: '#1A3A32', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', fontWeight: 500, position: 'relative' }}
+                    style={{ padding: '20px 24px', borderRadius: 12, background: isCorrectOption ? '#DCFCE7' : isWrongOption ? '#FEF2F2' : (isSelected && !instantFeedback ? '#F5F3FF' : '#ffffff'), textAlign: 'left', cursor: isAnswered ? 'default' : 'pointer', outline: 'none', transition: 'all 0.2s ease', fontFamily: 'inherit', border: isCorrectOption ? '1.5px solid #22C55E' : isWrongOption ? '1.5px solid #EF4444' : (isSelected && !instantFeedback ? '1.5px solid #7A12CC' : '1.5px solid #E2E8F0'), color: '#1A3A32', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', fontWeight: 500, position: 'relative' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                       <span style={{ fontSize: 16, flex: 1 }}>{String.fromCharCode(65 + i)}. {opt}</span>
@@ -1393,7 +1459,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                     key={i} whileHover={{ y: isAnswered ? 0 : -2 }} whileTap={{ scale: isAnswered ? 1 : 0.98 }}
                     onClick={() => !isAnswered && choose(i)} 
                     disabled={isAnswered}
-                    style={{ padding: '20px 24px', borderRadius: 12, background: isCorrectOption ? '#DCFCE7' : isWrongOption ? '#FEF2F2' : (isSelected && !instantFeedback ? '#F0FDF4' : '#ffffff'), textAlign: 'left', cursor: isAnswered ? 'default' : 'pointer', outline: 'none', transition: 'all 0.2s ease', fontFamily: 'inherit', border: isCorrectOption ? '1.5px solid #22C55E' : isWrongOption ? '1.5px solid #EF4444' : (isSelected && !instantFeedback ? '1.5px solid #2D8A4E' : '1.5px solid #E2E8F0'), color: '#1A3A32', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', fontWeight: 500, position: 'relative', textTransform: 'lowercase' }}
+                    style={{ padding: '20px 24px', borderRadius: 12, background: isCorrectOption ? '#DCFCE7' : isWrongOption ? '#FEF2F2' : (isSelected && !instantFeedback ? '#F5F3FF' : '#ffffff'), textAlign: 'left', cursor: isAnswered ? 'default' : 'pointer', outline: 'none', transition: 'all 0.2s ease', fontFamily: 'inherit', border: isCorrectOption ? '1.5px solid #22C55E' : isWrongOption ? '1.5px solid #EF4444' : (isSelected && !instantFeedback ? '1.5px solid #7A12CC' : '1.5px solid #E2E8F0'), color: '#1A3A32', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', fontWeight: 500, position: 'relative', textTransform: 'lowercase' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                       <span style={{ fontSize: 16, flex: 1 }}>{label}</span>
@@ -1609,9 +1675,9 @@ Please explain where I went wrong and why the correct answer is the right choice
               </button>
             ) : (
               <div style={{ display: 'flex', gap: 12 }}>
-                {!isCorrect && (
+                {!isCorrectAnswer && (
                   <button 
-                    onClick={() => explainWithTutor(q, false, selected[current])} 
+                    onClick={() => explainWithTutor(q, false, userAns)} 
                     style={{ 
                       padding: '10px 24px', 
                       borderRadius: 16, 
@@ -1791,7 +1857,7 @@ Please explain where I went wrong and why the correct answer is the right choice
             </div>
             {/*Retake and Share*/}
             <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-              <button onClick={() => { setMode('configure'); setConfigStep(1); setCurrent(0); setSelected({}); setExamCourses(preselectedCourse ? [preselectedCourse] : []); setHasPersistedResults(false); setAiWeaknessAnalysis(null); setShowReview(false); }} style={{ flex: 1, padding: '16px', borderRadius: 16, background: '#f8f8f8', color: '#111', border: '1.5px solid #111', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 900, textTransform: 'lowercase' }}><RotateCcw size={20} /> retake</button>
+              <button onClick={() => { setMode('configure'); setConfigStep(1); setCurrent(0); setSelected({}); setExamCourses(preselectedCourse ? [preselectedCourse] : []); setHasPersistedResults(false); setAiWeaknessAnalysis(null); setShowReview(false); setCurrentSessionId(null); }} style={{ flex: 1, padding: '16px', borderRadius: 16, background: '#f8f8f8', color: '#111', border: '1.5px solid #111', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 900, textTransform: 'lowercase' }}><RotateCcw size={20} /> retake</button>
               <button onClick={handleResultShare} disabled={isSharing} style={{ flex: 2, padding: '16px', borderRadius: 16, background: '#7a12cc', color: 'white', border: '1.5px solid #111', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 900, textTransform: 'lowercase' }}>{isSharing ? <Loader2 className="animate-spin" size={20} /> : <Share2 size={20} />} share proof</button>
             </div>
           </div>
@@ -1812,6 +1878,77 @@ Please explain where I went wrong and why the correct answer is the right choice
       {mode === 'result' && renderResult()}
 
       {/* Shared Modals / Panels (AI Chat & Feedback) */}
+      <AnimatePresence>
+        {showShareModal && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 20 }}
+          >
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              style={{ width: '100%', maxWidth: 440, background: 'white', borderRadius: 32, padding: '32px', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative' }}
+            >
+              <button onClick={() => setShowShareModal(false)} style={{ position: 'absolute', top: 24, right: 24, background: '#f8fafc', border: 'none', borderRadius: 12, padding: 8, cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+              
+              <div style={{ textAlign: 'center', marginBottom: 32 }}>
+                <div style={{ width: 56, height: 56, background: '#f5f3ff', borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: '#7a12cc' }}><Share2 size={28} /></div>
+                <h2 style={{ fontSize: 24, fontWeight: 900, color: '#111', margin: '0 0 8px', textTransform: 'lowercase' }}>share your win!</h2>
+                <p style={{ fontSize: 14, color: '#64748b', fontWeight: 500, margin: 0, textTransform: 'lowercase' }}>choose how you want to share your progress.</p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <button 
+                  onClick={shareReviewLink}
+                  disabled={isSavingSession}
+                  style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', borderRadius: 16, background: '#f8fafc', border: '1.5px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left', width: '100%', opacity: isSavingSession ? 0.6 : 1 }}
+                >
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#fff', border: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a12cc' }}>{isSavingSession ? <Loader2 className="animate-spin" size={20} /> : <BookOpen size={20} />}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#111', textTransform: 'lowercase' }}>share review link</div>
+                    <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'lowercase' }}>{isSavingSession ? 'saving session...' : 'let others check your session'}</div>
+                  </div>
+                </button>
+
+                <button 
+                  onClick={copyImageToClipboard}
+                  disabled={isSharing}
+                  style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', borderRadius: 16, background: '#f8fafc', border: '1.5px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left', width: '100%', opacity: isSharing ? 0.6 : 1 }}
+                >
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#fff', border: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>{isSharing ? <Loader2 className="animate-spin" size={20} /> : <Award size={20} />}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#111', textTransform: 'lowercase' }}>copy score card</div>
+                    <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'lowercase' }}>copy result image to clipboard</div>
+                  </div>
+                </button>
+
+                <button 
+                  onClick={downloadResultImage}
+                  disabled={isSharing}
+                  style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', borderRadius: 16, background: '#f8fafc', border: '1.5px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left', width: '100%', opacity: isSharing ? 0.6 : 1 }}
+                >
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#fff', border: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}><Zap size={20} /></div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#111', textTransform: 'lowercase' }}>download image</div>
+                    <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'lowercase' }}>save your result to your device</div>
+                  </div>
+                </button>
+
+                <button 
+                  onClick={shareViaWebShare}
+                  style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', borderRadius: 16, background: '#f8fafc', border: '1.5px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left', width: '100%' }}
+                >
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#fff', border: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b' }}><Share2 size={20} /></div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#111', textTransform: 'lowercase' }}>share</div>
+                    <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'lowercase' }}>share via other apps</div>
+                  </div>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {aiChatOpen && (
           <motion.div

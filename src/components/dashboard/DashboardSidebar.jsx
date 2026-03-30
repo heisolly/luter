@@ -4,7 +4,8 @@ import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import {
   Home, BookOpen, FlaskConical, BarChart3, Trophy,
-  Settings, Flame, ChevronLeft, ChevronRight, Zap, X
+  Settings, Flame, ChevronLeft, ChevronRight, Zap, X,
+  Brain, Sparkles, Layers, HelpCircle
 } from 'lucide-react'
 import LuterLogo from '../shared/LuterLogo'
 

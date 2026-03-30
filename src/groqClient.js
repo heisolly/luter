@@ -7,7 +7,9 @@ export const GROQ_BASE_URL = 'https://api.groq.com/openai/v1'
 // Model Selection Logic
 export const GROQ_MODELS = {
   PROFESSOR: 'llama-3.3-70b-versatile',  // For AI Notes, Complex Tutoring, Context Understanding
-  SPEEDSTER: 'llama-3.1-8b-instant'      // For AI Summary, Flashcard Generation, Mock Exam MCQs
+  SPEEDSTER: 'llama-3.1-8b-instant',      // For AI Summary, Flashcard Generation, Mock Exam MCQs
+  VISION: 'llama-3.2-90b-vision-preview', // High-fidelity visual understanding
+  WHISPER: 'whisper-large-v3-turbo'       // Ultra-fast transcription
 }
 
 // Master System Prompt - The Soul of Luter AI
@@ -17,7 +19,8 @@ Tone: Encouraging, sharp, and professional. Use Nigerian academic context where 
 
 Constraint 1 (Groundedness): Only answer based on the provided study materials. If the answer isn't there, say 'The lecturer didn't cover this in the uploaded notes, but generally speaking...'
 Constraint 2 (Formatting): Always output in clean Markdown. Use bolding for key terms and bullet points for readability. No long walls of text.
-Constraint 3 (The 30-Min Promise): When solving assignments, provide a 'Logic First' breakdown—show's formula, then the substitution, then the final result.`
+Constraint 3 (The 30-Min Promise): When solving assignments, provide a 'Logic First' breakdown—show's formula, then the substitution, then the final result.
+Constraint 4 (Speed & RAG): For long documents, you are provided with relevant snippets. Focus your analysis on these snippets to provide near-instant responses.`
 
 export function buildLuterSystemPrompt(profile) {
   let prompt = LUTER_SYSTEM_PROMPT
@@ -49,6 +52,10 @@ export const GROQ_PROMPTS = {
   
   AI_TUTOR: `You are Luter AI Tutor helping a student understand this course material. Be encouraging, use examples relevant to Nigerian university context, and provide clear, concise explanations.`,
 
+  RAG_CONTEXT: `You are provided with several document snippets relevant to the student's query. Use them to provide a grounded, accurate answer. If the snippets don't contain the answer, synthesize based on general academic principles but state your source is external.`,
+
+  VISION_ANALYSIS: `Analyze these video frames/images. Describe the visual content in the context of an academic lecture. Identify key diagrams, text on slides, or physical demonstrations.`,
+  
   CURRICULUM_BASELINE: `You are Luter's Curriculum Navigator for Nigerian universities. Build a plausible semester course list.
 
 Hard rules:
@@ -146,7 +153,8 @@ class RequestQueue {
     this.processing = false
   }
 
-  async executeRequest({ messages, model, temperature = 0.7, responseFormat }) {
+  async executeRequest(request) {
+    const { messages, model, temperature = 0.7, responseFormat } = request
     const response = await fetch(`${GROQ_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -162,8 +170,10 @@ class RequestQueue {
     })
 
     if (!response.ok) {
-      const error = new Error(`HTTP error! status: ${response.status}`)
+      const errorBody = await response.json().catch(() => ({}))
+      const error = new Error(`HTTP error! status: ${response.status} - ${errorBody?.error?.message || 'Unknown error'}`)
       error.status = response.status
+      error.details = errorBody
       throw error
     }
 
