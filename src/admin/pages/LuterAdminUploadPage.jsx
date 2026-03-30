@@ -4,7 +4,7 @@ import { uploadMaterial } from '../../services/materialsService'
 import { supabase } from '../../supabaseClient'
 import { UploadCloud, FileText, CheckCircle2, AlertCircle, Loader2, ChevronLeft } from 'lucide-react'
 
-export default function AdminUploadPage() {
+export default function LuterAdminUploadPage() {
   const { user } = useOutletContext()
   const [searchParams] = useSearchParams()
   const [file, setFile] = useState(null)

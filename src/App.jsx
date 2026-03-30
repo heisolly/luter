@@ -34,13 +34,12 @@ import AdminActivity from './admin/pages/AdminActivity'
 import AdminSystem from './admin/pages/AdminSystem'
 import AdminSettings from './admin/pages/AdminSettings'
 import AdminSyllabusManager from './admin/pages/AdminSyllabusManager'
+import LuterAdminUploadPage from './admin/pages/LuterAdminUploadPage'
 import StudyMaterialsPage from './components/dashboard/StudyMaterialsPage'
 import FilesPage from './components/dashboard/FilesPage'
 import AssignmentsPage from './components/dashboard/AssignmentsPage'
 import AINotesPage from './components/dashboard/AINotesPage'
 import StudyMaterialsWeekPage from './components/dashboard/StudyMaterialsWeekPage'
-
-const AdminUploadPage = lazy(() => import('./admin/pages/AdminUploadPage'))
 
 function CompeteRedirect() {
   const { search } = useLocation()
@@ -120,7 +119,7 @@ export default function App() {
 
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminOverview />} />
-            <Route path="upload" element={<Suspense fallback={<div />}><AdminUploadPage /></Suspense>} />
+            <Route path="upload" element={<LuterAdminUploadPage />} />
             <Route path="users/:userId" element={<AdminUserDetail />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="courses" element={<AdminCourses />} />
