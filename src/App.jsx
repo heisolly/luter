@@ -21,6 +21,7 @@ import StreakPage from './components/dashboard/StreakPage'
 import ReferPage from './components/dashboard/ReferPage'
 import CompetePage from './components/dashboard/CompetePage'
 import PricingPage from './components/dashboard/PricingPage'
+import ExamSessionView from './components/ExamSessionView'
 import AdminLayout from './admin/AdminLayout'
 import AdminOverview from './admin/pages/AdminOverview'
 import AdminUsers from './admin/pages/AdminUsers'
@@ -98,6 +99,7 @@ export default function App() {
             <Route path="streak" element={<StreakPage />} />
             <Route path="refer" element={<ReferPage />} />
             <Route path="compete" element={<CompetePage />} />
+            <Route path="exam-session/:sessionId" element={<ExamSessionView />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
 

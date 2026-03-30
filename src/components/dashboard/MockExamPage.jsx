@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useOutletContext, useLocation } from 'react-router-dom'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
-import { FlaskConical, Clock, CheckCircle2, XCircle, Search, Loader2, Zap, ArrowRight, ArrowLeft, Dices, Share2, Award, Trophy, RotateCcw, BarChart3, Flame, Star, Users, ThumbsUp, ThumbsDown, MessageCircle, MessageSquare, Gift, Trash2, MoreHorizontal, X } from 'lucide-react'
+import { FlaskConical, Clock, CheckCircle2, XCircle, Search, Loader2, Zap, ArrowRight, ArrowLeft, Dices, Share2, Award, Trophy, RotateCcw, BarChart3, Flame, Star, Users, ThumbsUp, ThumbsDown, MessageCircle, MessageSquare, Gift, Trash2, MoreHorizontal, X, BookOpen } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toPng } from 'html-to-image'
@@ -94,6 +94,63 @@ export default function MockExamPage() {
   const [aiChatInput, setAiChatInput] = useState('')
   const [isAiLoading, setIsAiLoading] = useState(false)
   const [aiChatMode, setAiChatMode] = useState('chat')
+  const [showReview, setShowReview] = useState(false)
+  const [aiWeaknessAnalysis, setAiWeaknessAnalysis] = useState(null)
+  const [isAnalyzingWeakness, setIsAnalyzingWeakness] = useState(false)
+  const [hasPersistedResults, setHasPersistedResults] = useState(false)
+  const [currentSessionId, setCurrentSessionId] = useState(null)
+  const [isSavingSession, setIsSavingSession] = useState(false)
+  const [pastSessions, setPastSessions] = useState([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+
+  useEffect(() => {
+    if (user && mode === 'configure') {
+      fetchPastSessions();
+    }
+  }, [user, mode]);
+
+  const fetchPastSessions = async () => {
+    setLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from('exam_sessions')
+        .select('id, course_code, course_name, score, total_questions, accuracy, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (data) setPastSessions(data);
+    } catch (err) {
+      console.error('Error fetching sessions:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const loadSession = async (sessionId) => {
+    try {
+      const { data, error } = await supabase
+        .from('exam_sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single();
+
+      if (data) {
+        setGeneratedQuestions(data.questions);
+        setSelected(data.user_answers);
+        setTypeInAnswers(data.type_in_answers);
+        setCurrentSessionId(data.id);
+        setMode('result');
+        setHasPersistedResults(true); // Don't resave
+      }
+    } catch (err) {
+      console.error('Error loading session:', err);
+    }
+  };
+
+  const toggleCourseConfig = (c) => {
+    setExamCourses(p => p.find(x => x.id === c.id) ? p.filter(x => x.id !== c.id) : [...p, c])
+  }
 
   useEffect(() => {
     if (preselectedCourse) {
@@ -101,10 +158,6 @@ export default function MockExamPage() {
       setConfigStep(2)
     }
   }, [preselectedCourse])
-
-  const toggleCourseConfig = (c) => {
-    setExamCourses(p => p.find(x => x.id === c.id) ? p.filter(x => x.id !== c.id) : [...p, c])
-  }
 
   // Action button handlers
   const handleLike = (questionIndex) => {
@@ -290,6 +343,124 @@ export default function MockExamPage() {
   }
 }, 0)
   const pass = score >= (generatedQuestions?.length || 1) / 2
+  const isAnswered = selected[current] !== undefined
+
+  // ── Persistence Logic (Supabase & AI Weakness) ──
+  useEffect(() => {
+    if (mode === 'result' && !hasPersistedResults && user && generatedQuestions.length > 0) {
+      persistResults();
+    }
+  }, [mode, hasPersistedResults, user, generatedQuestions]);
+
+  const persistResults = async () => {
+    setHasPersistedResults(true);
+    setIsSavingSession(true);
+    const courseCode = examCourses[0]?.code;
+    const finalScore = score;
+    const totalQs = generatedQuestions.length;
+    const accuracy = Math.round((finalScore / totalQs) * 100);
+
+    try {
+      // 1. Update user_stats (XP, Streak)
+      const { data: stats } = await supabase
+        .from('user_stats')
+        .select('total_xp')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const newXP = (stats?.total_xp || 0) + (finalScore * 50);
+      await supabase
+        .from('user_stats')
+        .update({ total_xp: newXP })
+        .eq('user_id', user.id);
+
+      // 2. Update user_courses progress
+      if (courseCode) {
+        const { data: userCourse } = await supabase
+          .from('user_courses')
+          .select('id, progress')
+          .eq('user_id', user.id)
+          .eq('course_code', courseCode)
+          .maybeSingle();
+
+        if (userCourse) {
+          const progressGain = Math.floor(accuracy / 10);
+          const newProgress = Math.min(100, (userCourse.progress || 0) + progressGain);
+          await supabase
+            .from('user_courses')
+            .update({ progress: newProgress })
+            .eq('id', userCourse.id);
+        }
+      }
+
+      // 3. Save full session for future access & sharing
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('exam_sessions')
+        .insert([{
+          user_id: user.id,
+          course_code: courseCode,
+          course_name: examCourses[0]?.name,
+          score: finalScore,
+          total_questions: totalQs,
+          accuracy: accuracy,
+          questions: generatedQuestions,
+          user_answers: selected,
+          type_in_answers: typeInAnswers,
+          created_at: new Date().toISOString()
+        }])
+        .select('id')
+        .single();
+
+      if (sessionData) {
+        setCurrentSessionId(sessionData.id);
+      }
+
+      // 4. Generate AI Weakness Analysis if there are errors
+      const incorrectQuestions = generatedQuestions.filter((q, idx) => {
+        const userAns = selected[idx];
+        if (userAns === -1) return true;
+        if (q.type === 'typein') return !typeInAnswers[idx]?.trim();
+        return userAns !== q.answer;
+      });
+
+      if (incorrectQuestions.length > 0) {
+        analyzeWeaknesses(incorrectQuestions);
+      }
+    } catch (err) {
+      console.error('Error persisting results:', err);
+    } finally {
+      setIsSavingSession(false);
+    }
+  };
+
+  const analyzeWeaknesses = async (incorrectQs) => {
+    setIsAnalyzingWeakness(true);
+    try {
+      const prompt = `Based on these incorrect questions from a mock exam on ${examCourses[0]?.name || 'the course'}, identify the student's key weaknesses and provide a brief 2-sentence study recommendation.
+      
+      Questions:
+      ${incorrectQs.map(q => `- ${q.question}`).join('\n')}
+      
+      Return the response in this JSON format:
+      {
+        "weakness": "one sentence identifying the core concept missed",
+        "recommendation": "one sentence advice"
+      }`;
+
+      const response = await callGroqAPI(
+        [{ role: 'user', content: prompt }],
+        GROQ_MODELS.SPEEDSTER,
+        { temperature: 0.5, responseFormat: { type: 'json_object' } }
+      );
+
+      const analysis = JSON.parse(response.choices[0].message.content);
+      setAiWeaknessAnalysis(analysis);
+    } catch (err) {
+      console.error('AI Analysis Error:', err);
+    } finally {
+      setIsAnalyzingWeakness(false);
+    }
+  };
 
   // ── Celebration Effect (Triggers on any completion) ──
   useEffect(() => {
@@ -409,12 +580,21 @@ export default function MockExamPage() {
         let jsonStructure = ""
         
         // Determine types to include based on user settings
-        const activeTypes = ['multiple'] // Always include multiple choice as base
+        const activeTypes = []
         if (includeTrueFalse) activeTypes.push('truefalse')
         if (includeTypeIn) activeTypes.push('typein')
+        
+        // Always include Multiple Choice if nothing else is picked, 
+        // or add it to the mix if we want variety
+        if (activeTypes.length === 0 || (!includeTrueFalse && !includeTypeIn)) {
+          activeTypes.push('multiple')
+        } else if (activeTypes.length > 0) {
+          // Add multiple choice to the mix of other types
+          activeTypes.push('multiple')
+        }
 
         // Choose a type for this specific batch to ensure variety
-        // If multiple types are active, we rotate or pick based on batch number
+        // We use batchNumber to rotate through activeTypes
         const currentType = activeTypes[batchNumber % activeTypes.length]
         
         if (currentType === 'typein') {
@@ -461,34 +641,49 @@ export default function MockExamPage() {
         
         // Update UI with current batch
         const formattedQuestions = allQuestions.map((q, idx) => {
+          // Normalize type handling
+          let normalizedType = q.type || 'multiple';
+          const questionText = (q.question || "").toLowerCase();
+          
+          // Fallback: If AI includes "Boss Level" or "type" in text, force typein
+          if (questionText.includes('boss level') || questionText.includes('type your answer')) {
+            normalizedType = 'typein';
+          } else if (normalizedType.toLowerCase().includes('type')) {
+            normalizedType = 'typein';
+          }
+          
+          if (normalizedType.toLowerCase().includes('true') || normalizedType.toLowerCase().includes('false')) {
+            normalizedType = 'truefalse';
+          }
+
           const baseQuestion = {
             id: idx,
             question: q.question,
             explanation: q.explanation,
-            type: q.type || 'multiple' // Default to multiple choice for backward compatibility
+            type: normalizedType
           }
           
-          if (q.type === 'typein') {
+          if (normalizedType === 'typein') {
             return {
               ...baseQuestion,
-              expectedAnswer: q.expected_answer
+              expectedAnswer: q.expected_answer || q.expectedAnswer || ""
             }
-          } else if (q.type === 'truefalse') {
+          } else if (normalizedType === 'truefalse') {
             return {
               ...baseQuestion,
-              answer: q.correct_answer === true ? 1 : 0 // Convert to 0/1 for consistency
+              answer: (q.correct_answer === true || q.correct_answer === 1 || q.answer === 1) ? 1 : 0
             }
           } else {
             // Multiple choice
             return {
               ...baseQuestion,
-              options: q.options,
-              answer: q.correct_answer - 1 // Convert to 0-based index
+              options: q.options || [],
+              answer: (q.correct_answer || q.answer || 1) - 1
             }
           }
         })
         
-        setGeneratedQuestions(formattedQuestions)
+        setGeneratedQuestions(formattedQuestions.sort(() => Math.random() - 0.5))
       }
       setLoadingStep(2)
       
@@ -577,19 +772,26 @@ Please explain where I went wrong and why the correct answer is the right choice
     setSelected(prev => ({ ...prev, [current]: idx }))
   }
 
-  const next = () => {
-    const currentQuestion = generatedQuestions[current]
-    
-    // For type-in questions, mark as answered if there's text
-    if (currentQuestion?.type === 'typein' && typeInAnswers[current]) {
-      setSelected(prev => ({ ...prev, [current]: 1 })) // Mark as answered
+  const [lastAutoAdvancedIndex, setLastAutoAdvancedIndex] = useState(-1)
+
+  // ── Auto-advance logic for non-feedback mode ──
+  useEffect(() => {
+    // Only auto-advance if:
+    // 1. We are in exam mode
+    // 2. Instant feedback is OFF
+    // 3. Current question is answered
+    // 4. We haven't already auto-advanced for this specific question index
+    if (mode === 'exam' && !instantFeedback && selected[current] !== undefined && lastAutoAdvancedIndex !== current) {
+      const timer = setTimeout(() => {
+        setLastAutoAdvancedIndex(current);
+        next();
+      }, 600);
+      return () => clearTimeout(timer);
     }
-    
-    // If instant feedback is enabled and not the last question, move to next
-    if (instantFeedback && current < (generatedQuestions?.length || 1) - 1) {
-      setCurrent(c => c + 1)
-      if (examTimer > 0) setTimeLeft(examTimer)
-    } else if (current >= (generatedQuestions?.length || 1) - 1) {
+  }, [selected[current], instantFeedback, mode, current, lastAutoAdvancedIndex]);
+
+  const next = () => {
+    if (current >= (generatedQuestions?.length || 1) - 1) {
       setMode('result')
     } else {
       setCurrent(c => c + 1)
@@ -599,7 +801,8 @@ Please explain where I went wrong and why the correct answer is the right choice
 
   useEffect(() => {
     let t = null;
-    if (mode === 'exam' && examTimer > 0) {
+    // Only run the timer if we are in exam mode, have a timer, and the question is NOT answered yet
+    if (mode === 'exam' && examTimer > 0 && !isAnswered) {
       if (timeLeft > 0) {
         t = setTimeout(() => setTimeLeft(prev => prev - 1), 1000)
       } else {
@@ -607,7 +810,7 @@ Please explain where I went wrong and why the correct answer is the right choice
       }
     }
     return () => clearTimeout(t)
-  }, [timeLeft, mode, examTimer, current])
+  }, [timeLeft, mode, examTimer, current, isAnswered])
 
   useEffect(() => {
     let t = null;
@@ -629,6 +832,35 @@ Please explain where I went wrong and why the correct answer is the right choice
   const handleResultShare = async () => {
     if (resultRef.current === null) return
     setIsSharing(true)
+    
+    // If we have a session ID, we share the link instead of just the image
+    if (currentSessionId) {
+      const shareUrl = `${window.location.origin}/exam-session/${currentSessionId}`;
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'My Luter Study Result',
+            text: `I just scored ${score}/${generatedQuestions?.length || 1} on Luter! Check out my session review here:`,
+            url: shareUrl
+          })
+          setIsSharing(false)
+          return;
+        } catch (err) {
+          console.log('Share cancelled')
+        }
+      }
+      
+      // Fallback: Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('🚀 Session link copied to clipboard! Share it with your friends.');
+        setIsSharing(false)
+        return;
+      } catch (err) {
+        console.error('Clipboard copy failed')
+      }
+    }
+
     try {
       const dataUrl = await toPng(resultRef.current, { cacheBust: true, pixelRatio: 2 })
       const blob = await (await fetch(dataUrl)).blob()
@@ -806,49 +1038,90 @@ Please explain where I went wrong and why the correct answer is the right choice
             </div>
             
             {configStep === 1 && courses.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: isMobile ? 12 : 20, marginBottom: 40 }}>
-                <motion.button 
-                  whileHover={{ y: -2 }} whileTap={{ scale: 0.94 }}
-                  onClick={() => {
-                    if (courses.length === 0) return;
-                    const amount = Math.min(courses.length, Math.floor(Math.random() * 2) + 1);
-                    const shuffled = [...courses].sort(() => 0.5 - Math.random());
-                    setExamCourses(shuffled.slice(0, amount));
-                  }}
-                  style={{ 
-                    padding: isMobile ? '16px 20px' : '24px', borderRadius: 16, background: '#fffbeb', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit', border: '1.5px solid #fbbf24', color: '#b45309', boxShadow: '0 4px 12px rgba(217,119,6,0.1)'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(217,119,6,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Dices size={20} color="#d97706" />
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: isMobile ? 12 : 20, marginBottom: 40 }}>
+                  <motion.button 
+                    whileHover={{ y: -2 }} whileTap={{ scale: 0.94 }}
+                    onClick={() => {
+                      if (courses.length === 0) return;
+                      const amount = Math.min(courses.length, Math.floor(Math.random() * 2) + 1);
+                      const shuffled = [...courses].sort(() => 0.5 - Math.random());
+                      setExamCourses(shuffled.slice(0, amount));
+                    }}
+                    style={{ 
+                      padding: isMobile ? '16px 20px' : '24px', borderRadius: 16, background: '#fffbeb', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit', border: '1.5px solid #fbbf24', color: '#b45309', boxShadow: '0 4px 12px rgba(217,119,6,0.1)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(217,119,6,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Dices size={20} color="#d97706" />
+                      </div>
+                    </div>
+                    <h3 style={{ fontSize: 16, fontWeight: 900, margin: '0 0 2px', color: '#d97706', textTransform: 'lowercase' }}>dice roll</h3>
+                    <p style={{ fontSize: 12, margin: 0, fontWeight: 700, color: '#b45309', textTransform: 'lowercase' }}>select random courses</p>
+                  </motion.button>
+                  {courses.map(c => {
+                    const isSelected = examCourses.some(x => x.id === c.id)
+                    return (
+                      <motion.button 
+                        key={c.id} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}
+                        onClick={() => toggleCourseConfig(c)}
+                        style={{ 
+                          padding: isMobile ? '16px 20px' : '24px', borderRadius: 16, background: 'white', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit', border: isSelected ? '1.5px solid #111' : '1px solid #e5e7eb', color: isSelected ? '#111' : '#555'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: 12, background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: 14, fontWeight: 900, color: '#111' }}>{c.code.slice(0, 3)}</span>
+                          </div>
+                          {isSelected && <CheckCircle2 size={24} color="#111" />}
+                        </div>
+                        <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 2px', color: '#111' }}>{c.code}</h3>
+                        <p style={{ fontSize: 12, margin: 0, fontWeight: 600 }}>{c.name}</p>
+                      </motion.button>
+                    )
+                  })}
+                </div>
+
+                {/* Past Sessions History */}
+                {pastSessions.length > 0 && (
+                  <div style={{ marginTop: 20, marginBottom: 40 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                      <Clock size={18} color="#64748b" />
+                      <h3 style={{ fontSize: 14, fontWeight: 800, color: '#64748b', margin: 0, textTransform: 'lowercase' }}>recent sessions</h3>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {pastSessions.map((session) => (
+                        <motion.button
+                          key={session.id}
+                          whileHover={{ x: 4, background: '#f8fafc' }}
+                          onClick={() => loadSession(session.id)}
+                          style={{ 
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                            padding: '16px 20px', borderRadius: 16, background: 'white', 
+                            border: '1.5px solid #e2e8f0', cursor: 'pointer', textAlign: 'left',
+                            transition: 'all 0.2s ease', width: '100%'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a12cc' }}>
+                              <BookOpen size={20} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 14, fontWeight: 800, color: '#111' }}>{session.course_code}</div>
+                              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{new Date(session.created_at).toLocaleDateString()} • {session.total_questions} qs</div>
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: 16, fontWeight: 900, color: session.accuracy >= 50 ? '#10b981' : '#ef4444' }}>{session.score}/{session.total_questions}</div>
+                            <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', textTransform: 'lowercase' }}>{session.accuracy}% accuracy</div>
+                          </div>
+                        </motion.button>
+                      ))}
                     </div>
                   </div>
-                  <h3 style={{ fontSize: 16, fontWeight: 900, margin: '0 0 2px', color: '#d97706', textTransform: 'lowercase' }}>dice roll</h3>
-                  <p style={{ fontSize: 12, margin: 0, fontWeight: 700, color: '#b45309', textTransform: 'lowercase' }}>select random courses</p>
-                </motion.button>
-                {courses.map(c => {
-                  const isSelected = examCourses.some(x => x.id === c.id)
-                  return (
-                    <motion.button 
-                      key={c.id} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}
-                      onClick={() => toggleCourseConfig(c)}
-                      style={{ 
-                        padding: isMobile ? '16px 20px' : '24px', borderRadius: 16, background: 'white', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit', border: isSelected ? '1.5px solid #111' : '1px solid #e5e7eb', color: isSelected ? '#111' : '#555'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                        <div style={{ width: 40, height: 40, borderRadius: 12, background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <span style={{ fontSize: 14, fontWeight: 900, color: '#111' }}>{c.code.slice(0, 3)}</span>
-                        </div>
-                        {isSelected && <CheckCircle2 size={24} color="#111" />}
-                      </div>
-                      <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 2px', color: '#111' }}>{c.code}</h3>
-                      <p style={{ fontSize: 12, margin: 0, fontWeight: 600 }}>{c.name}</p>
-                    </motion.button>
-                  )
-                })}
-              </div>
+                )}
+              </>
             )}
 
             {configStep === 2 && (
@@ -1053,7 +1326,6 @@ Please explain where I went wrong and why the correct answer is the right choice
   const renderExam = () => {
     const q = generatedQuestions[current] || { question: 'loading...', options: [], answer: 0 }
     const userAns = selected[current]
-    const isAnswered = userAns !== undefined
     const isCorrect = isAnswered && (q.type === 'typein' ? !!typeInAnswers[current]?.trim() : userAns === q.answer)
 
     return (
@@ -1085,7 +1357,8 @@ Please explain where I went wrong and why the correct answer is the right choice
             
             {/* Answer Options */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 32, width: '100%' }}>
-              {q.type === 'multiple' && q.options && q.options.map((opt, i) => {
+              {/* Multiple Choice Options */}
+              {q.type === 'multiple' && q.options && q.options.length > 0 && q.options.map((opt, i) => {
                 const isSelected = selected[current] === i
                 const showFeedbackState = instantFeedback && isAnswered
                 const isCorrectOption = showFeedbackState && i === q.answer
@@ -1094,16 +1367,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                 return (
                   <motion.button
                     key={i} whileHover={{ y: isAnswered ? 0 : -2 }} whileTap={{ scale: isAnswered ? 1 : 0.98 }}
-                    onClick={() => {
-                      if (!isAnswered) {
-                        choose(i);
-                        if (!instantFeedback) {
-                          // In non-instant mode, we should either show a "Next" button or auto-advance
-                          // Given the current UI, auto-advancing after a short delay is smoother
-                          setTimeout(next, 300);
-                        }
-                      }
-                    }} 
+                    onClick={() => !isAnswered && choose(i)} 
                     disabled={isAnswered}
                     style={{ padding: '20px 24px', borderRadius: 12, background: isCorrectOption ? '#DCFCE7' : isWrongOption ? '#FEF2F2' : (isSelected && !instantFeedback ? '#F0FDF4' : '#ffffff'), textAlign: 'left', cursor: isAnswered ? 'default' : 'pointer', outline: 'none', transition: 'all 0.2s ease', fontFamily: 'inherit', border: isCorrectOption ? '1.5px solid #22C55E' : isWrongOption ? '1.5px solid #EF4444' : (isSelected && !instantFeedback ? '1.5px solid #2D8A4E' : '1.5px solid #E2E8F0'), color: '#1A3A32', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', fontWeight: 500, position: 'relative' }}
                   >
@@ -1116,6 +1380,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                 )
               })}
 
+              {/* True/False Options */}
               {q.type === 'truefalse' && [1, 0].map((i) => {
                 const isSelected = selected[current] === i
                 const showFeedbackState = instantFeedback && isAnswered
@@ -1126,14 +1391,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                 return (
                   <motion.button
                     key={i} whileHover={{ y: isAnswered ? 0 : -2 }} whileTap={{ scale: isAnswered ? 1 : 0.98 }}
-                    onClick={() => {
-                      if (!isAnswered) {
-                        choose(i);
-                        if (!instantFeedback) {
-                          setTimeout(next, 300);
-                        }
-                      }
-                    }} 
+                    onClick={() => !isAnswered && choose(i)} 
                     disabled={isAnswered}
                     style={{ padding: '20px 24px', borderRadius: 12, background: isCorrectOption ? '#DCFCE7' : isWrongOption ? '#FEF2F2' : (isSelected && !instantFeedback ? '#F0FDF4' : '#ffffff'), textAlign: 'left', cursor: isAnswered ? 'default' : 'pointer', outline: 'none', transition: 'all 0.2s ease', fontFamily: 'inherit', border: isCorrectOption ? '1.5px solid #22C55E' : isWrongOption ? '1.5px solid #EF4444' : (isSelected && !instantFeedback ? '1.5px solid #2D8A4E' : '1.5px solid #E2E8F0'), color: '#1A3A32', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', fontWeight: 500, position: 'relative', textTransform: 'lowercase' }}
                   >
@@ -1146,7 +1404,8 @@ Please explain where I went wrong and why the correct answer is the right choice
                 )
               })}
 
-              {q.type === 'typein' && (
+              {/* Type-in Answer (Boss Level) */}
+              {(q.type === 'typein' || (q.type === 'multiple' && (!q.options || q.options.length === 0))) && (
                 <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <textarea 
                     placeholder="type your answer here..." 
@@ -1176,9 +1435,6 @@ Please explain where I went wrong and why the correct answer is the right choice
                       onClick={() => {
                         if (typeInAnswers[current]?.trim()) {
                           setSelected(prev => ({ ...prev, [current]: 1 }));
-                          if (!instantFeedback) {
-                            setTimeout(next, 500);
-                          }
                         }
                       }}
                       style={{
@@ -1201,7 +1457,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                   {isAnswered && instantFeedback && (
                     <div style={{ background: '#F0FDF4', padding: '20px', borderRadius: 16, border: '1.5px solid #22C55E' }}>
                       <div style={{ fontSize: 12, fontWeight: 900, color: '#166534', marginBottom: 8, textTransform: 'lowercase' }}>expected answer:</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: '#14532d' }}>{q.expectedAnswer}</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: '#14532d' }}>{q.expectedAnswer || "No answer provided by AI"}</div>
                     </div>
                   )}
                 </div>
@@ -1285,7 +1541,19 @@ Please explain where I went wrong and why the correct answer is the right choice
         </div>
 
         {/* Tactile Footer */}
-        <div style={{ background: '#F0FDF4', padding: isMobile ? '20px 20px' : '24px 40px', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100, position: 'sticky', bottom: 0, width: '100%', borderTop: '1px solid #E2E8F0' }}>
+        <div style={{ 
+          background: '#F0FDF4', 
+          padding: isMobile ? '24px 20px 40px' : '32px 40px 48px', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          zIndex: 100, 
+          position: 'sticky', 
+          bottom: 0, 
+          width: '100%', 
+          borderTop: '1px solid #E2E8F0',
+          marginTop: 'auto'
+        }}>
           <div style={{ width: '100%', maxWidth: 560, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <button 
               disabled={current === 0} 
@@ -1439,10 +1707,91 @@ Please explain where I went wrong and why the correct answer is the right choice
                   </motion.div>
                 ))}
               </div>
+
+              {/* AI Weakness Analysis */}
+              <AnimatePresence>
+                {aiWeaknessAnalysis && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }} 
+                    animate={{ opacity: 1, height: 'auto' }}
+                    style={{ background: '#f8fafc', borderRadius: 20, border: '1.5px solid #e2e8f0', padding: '20px', marginBottom: 24, overflow: 'hidden' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 10, background: '#7a12cc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                        <Zap size={18} />
+                      </div>
+                      <h3 style={{ fontSize: 14, fontWeight: 800, color: '#111', margin: 0, textTransform: 'lowercase' }}>ai insight: where to focus</h3>
+                    </div>
+                    <p style={{ fontSize: 13, color: '#475569', margin: '0 0 12px 0', lineHeight: 1.5, fontWeight: 500 }}>
+                      <span style={{ fontWeight: 800, color: '#7a12cc' }}>weakness:</span> {aiWeaknessAnalysis.weakness}
+                    </p>
+                    <p style={{ fontSize: 13, color: '#475569', margin: 0, lineHeight: 1.5, fontWeight: 500 }}>
+                      <span style={{ fontWeight: 800, color: '#10b981' }}>advice:</span> {aiWeaknessAnalysis.recommendation}
+                    </p>
+                  </motion.div>
+                )}
+                {isAnalyzingWeakness && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px', background: '#f8fafc', borderRadius: 20, marginBottom: 24 }}>
+                    <Loader2 className="animate-spin" size={20} color="#7a12cc" />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#64748b', textTransform: 'lowercase' }}>ai is analyzing your session...</span>
+                  </div>
+                )}
+              </AnimatePresence>
+
+              {/* Review Section */}
+              <div style={{ marginTop: 12 }}>
+                <button 
+                  onClick={() => setShowReview(!showReview)}
+                  style={{ width: '100%', padding: '16px', borderRadius: 16, background: 'white', border: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 14, fontWeight: 800, color: '#1A3A32', cursor: 'pointer', textTransform: 'lowercase', transition: 'all 0.2s' }}
+                >
+                  <BookOpen size={20} /> {showReview ? 'hide review' : 'view detailed review'}
+                </button>
+
+                <AnimatePresence>
+                  {showReview && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }} 
+                      animate={{ opacity: 1, height: 'auto' }} 
+                      exit={{ opacity: 0, height: 0 }}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+                        {generatedQuestions.map((q, idx) => {
+                          const userAns = selected[idx];
+                          const isCorrect = q.type === 'typein' 
+                            ? !!typeInAnswers[idx]?.trim() 
+                            : userAns === q.answer;
+                          
+                          return (
+                            <div key={idx} style={{ padding: '16px', borderRadius: 16, background: isCorrect ? '#f0fdf4' : '#fef2f2', border: `1.5px solid ${isCorrect ? '#dcfce7' : '#fee2e2'}` }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 8 }}>
+                                <p style={{ fontSize: 13, fontWeight: 700, color: '#111', margin: 0, lineHeight: 1.5 }}>{idx + 1}. {q.question}</p>
+                                {isCorrect ? <CheckCircle2 size={18} color="#22c55e" /> : <XCircle size={18} color="#ef4444" />}
+                              </div>
+                              <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'lowercase' }}>
+                                {q.type === 'typein' ? (
+                                  <>your answer: <span style={{ color: '#111' }}>{typeInAnswers[idx] || 'none'}</span></>
+                                ) : (
+                                  <>your answer: <span style={{ color: isCorrect ? '#166534' : '#991b1b' }}>{userAns === -1 ? 'skipped' : (q.type === 'truefalse' ? (userAns === 1 ? 'true' : 'false') : q.options[userAns])}</span></>
+                                )}
+                              </div>
+                              {!isCorrect && (
+                                <div style={{ fontSize: 12, color: '#166534', fontWeight: 700, marginTop: 4, textTransform: 'lowercase' }}>
+                                  correct: {q.type === 'typein' ? q.expectedAnswer : (q.type === 'truefalse' ? (q.answer === 1 ? 'true' : 'false') : q.options[q.answer])}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
             {/*Retake and Share*/}
             <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-              <button onClick={() => { setMode('configure'); setConfigStep(1); setCurrent(0); setSelected({}); setExamCourses(preselectedCourse ? [preselectedCourse] : []) }} style={{ flex: 1, padding: '16px', borderRadius: 16, background: '#f8f8f8', color: '#111', border: '1.5px solid #111', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 900, textTransform: 'lowercase' }}><RotateCcw size={20} /> retake</button>
+              <button onClick={() => { setMode('configure'); setConfigStep(1); setCurrent(0); setSelected({}); setExamCourses(preselectedCourse ? [preselectedCourse] : []); setHasPersistedResults(false); setAiWeaknessAnalysis(null); setShowReview(false); }} style={{ flex: 1, padding: '16px', borderRadius: 16, background: '#f8f8f8', color: '#111', border: '1.5px solid #111', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 900, textTransform: 'lowercase' }}><RotateCcw size={20} /> retake</button>
               <button onClick={handleResultShare} disabled={isSharing} style={{ flex: 2, padding: '16px', borderRadius: 16, background: '#7a12cc', color: 'white', border: '1.5px solid #111', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 900, textTransform: 'lowercase' }}>{isSharing ? <Loader2 className="animate-spin" size={20} /> : <Share2 size={20} />} share proof</button>
             </div>
           </div>
