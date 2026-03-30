@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../supabaseClient'
-import { fetchCourseMaterials, fetchUserNotes, deleteMaterial, deleteUserNote, getStudySession } from '../../services/materialsService'
+import { fetchCourseMaterials, fetchUserNotes, deleteMaterial, deleteUserNote, getStudySession, uploadMaterial } from '../../services/materialsService'
 
 export default function CourseOverviewPage({ course, onStartStudying }) {
   const navigate = useNavigate()
@@ -24,6 +24,11 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
   const [loading, setLoading] = useState(true)
   const [hasNewAssignment, setHasNewAssignment] = useState(false)
   const [studySession, setStudySession] = useState(null)
+  
+  const [showUploadModal, setShowUploadModal] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadTitle, setUploadTitle] = useState('')
+  const fileInputRef = React.useRef(null)
   
   const tabs = [
     { id: 'tracker', label: 'TRACKER' },
@@ -63,6 +68,41 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
       console.error('Failed to load overview data:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    try {
+      const ext = file.name.split('.').pop().toLowerCase()
+      let type = 'text'
+      if (['pdf'].includes(ext)) type = 'pdf'
+      else if (['doc', 'docx'].includes(ext)) type = 'docx'
+      else if (['ppt', 'pptx'].includes(ext)) type = 'ppt'
+      else if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) type = 'image'
+      else if (['mp4', 'mov', 'webm', 'mp3', 'wav', 'ogg'].includes(ext)) type = 'youtube' // Uses youtube renderer / extraction for video/audio
+      
+      await uploadMaterial({
+        file,
+        courseId: course.id,
+        userId: user.id,
+        type: type,
+        title: uploadTitle || file.name
+      })
+      
+      // Reload the data instantly
+      loadData()
+      setShowUploadModal(false)
+      setUploadTitle('')
+    } catch (err) {
+      console.error('Upload failed:', err)
+      alert('Failed to upload file.')
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = null
     }
   }
 
@@ -405,7 +445,7 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
                   <Bell size={18} strokeWidth={2.5} /> Request
                 </button>
                 <button 
-                  onClick={() => alert('Upload feature coming soon (via Uppy)!')}
+                  onClick={() => setShowUploadModal(true)}
                   style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', borderRadius: '12px', background: purpleColor, color: '#fff', border: 'none', fontWeight: 800, fontSize: '14px', cursor: 'pointer', flex: 1, justifyContent: 'center', textTransform: 'uppercase', boxShadow: '0 4px 12px rgba(122, 18, 204, 0.2)' }}
                   onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
                   onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
@@ -503,6 +543,87 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
           )}
         </motion.div>
       )}
+
+      {/* Upload Modal */}
+      <AnimatePresence>
+        {showUploadModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', 
+              backdropFilter: 'blur(8px)', zIndex: 1000, 
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+            }}
+            onClick={() => !isUploading && setShowUploadModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: '#fff', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '480px',
+                boxShadow: '0 24px 48px rgba(0,0,0,0.2)', border: '1px solid #e2e8f0'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
+                <div style={{ width: 64, height: 64, background: '#faf5ff', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <UploadCloud size={32} color={purpleColor} strokeWidth={2.5} />
+                </div>
+              </div>
+              <h2 style={{ fontSize: '24px', fontWeight: 900, textAlign: 'center', color: '#1a202c', marginBottom: '8px', textTransform: 'uppercase' }}>Upload Material</h2>
+              <p style={{ textAlign: 'center', color: lightGrey, fontSize: '14px', fontWeight: 600, marginBottom: '32px' }}>
+                PDF, Word, PPT, Image, or Video. The AI will instantly read and map your file.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#4a5568', marginBottom: '8px', textTransform: 'uppercase' }}>Custom Title (Optional)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Enter file name..."
+                    value={uploadTitle}
+                    onChange={e => setUploadTitle(e.target.value)}
+                    style={{ width: '100%', padding: '16px', borderRadius: '12px', border: '2px solid #e2e8f0', background: '#f8fafc', fontSize: '15px', fontWeight: 600, fontFamily: 'Outfit', outline: 'none', transition: 'all 0.2s', boxSizing: 'border-box' }}
+                    onFocus={e => e.target.style.borderColor = purpleColor}
+                    onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+                  />
+                </div>
+
+                <div 
+                  style={{
+                    border: `2px dashed ${purpleColor}`, borderRadius: '16px', padding: '40px 20px', textAlign: 'center', 
+                    background: '#faf5ff', cursor: isUploading ? 'not-allowed' : 'pointer', position: 'relative', transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={e => !isUploading && (e.currentTarget.style.background = '#f3e8ff')}
+                  onMouseLeave={e => !isUploading && (e.currentTarget.style.background = '#faf5ff')}
+                  onClick={() => !isUploading && fileInputRef.current?.click()}
+                >
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileUpload} 
+                    style={{ display: 'none' }}
+                  />
+                  {isUploading ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                      <Loader2 size={32} color={purpleColor} className="animate-spin" />
+                      <span style={{ fontSize: '14px', fontWeight: 800, color: purpleColor, textTransform: 'uppercase' }}>Extracting Text & Uploading...</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                      <FileText size={32} color={purpleColor} opacity={0.5} />
+                      <span style={{ fontSize: '15px', fontWeight: 800, color: purpleColor }}>Browse files to upload</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

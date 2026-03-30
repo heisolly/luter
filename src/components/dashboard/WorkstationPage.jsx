@@ -14,7 +14,7 @@ import { supabase } from '../../supabaseClient'
 import { ReadingSpaceProvider, useReadingSpace } from './ReadingSpaceContext'
 import { SelectionActionBar } from './WorkstationOverlays'
 import MaterialRenderer from './MaterialRenderer'
-import { saveToVault, fetchUserNotes } from '../../services/materialsService'
+import { saveToVault, fetchUserNotes, pollMaterialUntilReady } from '../../services/materialsService'
 import './workstation.css'
 
 function WorkstationContent() {
@@ -35,8 +35,42 @@ function WorkstationContent() {
   // Analysis cache: materialId -> { notes, summary, flashcards, quiz }
   const [analysisCache, setAnalysisCache] = useState({})
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false)
+  const [isExtractingText, setIsExtractingText] = useState(false)
 
   const currentAnalysis = selectedMaterial ? (analysisCache[selectedMaterial.id] || {}) : {}
+
+  useEffect(() => {
+    if (!selectedMaterial || selectedMaterial.processing_status !== 'pending') {
+      setIsExtractingText(false)
+      return
+    }
+
+    setIsExtractingText(true)
+    let isMounted = true
+    let cleanup = null
+
+    pollMaterialUntilReady(selectedMaterial.id, {
+      onReady: (text) => {
+        if (!isMounted) return
+        setSelectedMaterial(prev => prev ? { ...prev, extracted_text: text, processing_status: 'ready' } : null)
+        setIsExtractingText(false)
+        setCourseMaterials(prevList => prevList.map(m => m.id === selectedMaterial.id ? { ...m, extracted_text: text, processing_status: 'ready' } : m))
+      },
+      onFailed: () => {
+        if (!isMounted) return
+        setIsExtractingText(false)
+        setSelectedMaterial(prev => prev ? { ...prev, processing_status: 'failed' } : null)
+        setMessages(prev => [...prev, { role: 'ai', content: "I couldn't read the text inside this file. It might be corrupt or an unsupported format." }])
+      }
+    }).then(fn => {
+      cleanup = fn
+    })
+
+    return () => {
+      isMounted = false
+      if (cleanup) cleanup()
+    }
+  }, [selectedMaterial?.id, selectedMaterial?.processing_status])
 
   const [isFlipped, setIsFlipped] = useState(false)
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0)
@@ -153,7 +187,17 @@ function WorkstationContent() {
 
   // RAG & Analysis Logic
   const runAnalysis = async (type) => {
-    if (!selectedMaterial?.extracted_text || isAnalysisLoading) return
+    if (isExtractingText || isAnalysisLoading) return
+    if (!selectedMaterial?.extracted_text) {
+      setAnalysisCache(prev => ({
+        ...prev,
+        [selectedMaterial.id]: {
+          ...(prev[selectedMaterial.id] || {}),
+          [type]: "Luter couldn't extract readable text from this file."
+        }
+      }))
+      return
+    }
     
     setIsAnalysisLoading(true)
     try {
@@ -250,7 +294,7 @@ function WorkstationContent() {
         }
       }
       
-      if (activeTab !== 'content' && selectedMaterial && !currentAnalysis[activeTab]) {
+      if (activeTab !== 'content' && selectedMaterial && !currentAnalysis[activeTab] && selectedMaterial.processing_status !== 'pending') {
         runAnalysis(activeTab);
       }
     }
@@ -267,11 +311,15 @@ function WorkstationContent() {
     setIsAiLoading(true)
 
     try {
-      // Use active context from the reading space
+      // Use active context from the reading space, default to extracted_text
       const context = viewportData.visibleText || selectedMaterial?.extracted_text?.slice(0, 4000) || ""
+      const statusContext = selectedMaterial?.processing_status === 'pending' 
+        ? "NOTE: The document text is still being extracted so you cannot see it yet." 
+        : `Active Context from current view: ${context}`
+
       const response = await callGroqAPI(
         [
-          { role: 'user', content: `Current Material: ${selectedMaterial?.title}. Active Context from current view: ${context}\n\nUser Question: ${chatInput}` }
+          { role: 'user', content: `Current Material: ${selectedMaterial?.title}. ${statusContext}\n\nUser Question: ${chatInput}` }
         ],
         GROQ_MODELS.SPEEDSTER,
         { systemPromptOverride: GROQ_PROMPTS.AI_TUTOR }
@@ -453,7 +501,7 @@ function WorkstationContent() {
           <MaterialRenderer 
             material={selectedMaterial} 
             activeTab={activeTab}
-            analysisState={{ ...currentAnalysis, loading: isAnalysisLoading }}
+            analysisState={{ ...currentAnalysis, loading: isAnalysisLoading || isExtractingText }}
             onRunAnalysis={runAnalysis}
           />
         </section>

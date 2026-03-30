@@ -33,8 +33,7 @@ export async function uploadMaterial({ file, courseId, userId, type = 'pdf', tit
       type,
       source_url: urlData.publicUrl,
       owner_role: 'user',
-      processing_status: 'pending',
-      week: week || null
+      processing_status: 'pending'
     })
     .select()
     .single()
