@@ -7,11 +7,11 @@ import {
   HelpCircle, Search, Moon, ArrowLeftRight,
   Pencil, EyeOff, Send, Download,
   FileText, Trash2, BookOpen, FileCheck, FolderOpen,
-  Loader2, UploadCloud, Bell
+  Loader2, UploadCloud, Bell, Link as LinkIcon, Youtube, Music, Video, Image as ImageIcon, Database
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../supabaseClient'
-import { fetchCourseMaterials, fetchUserNotes, deleteMaterial, deleteUserNote, getStudySession, uploadMaterial } from '../../services/materialsService'
+import { fetchCourseMaterials, fetchUserNotes, deleteMaterial, deleteUserNote, getStudySession, uploadMaterial, addYoutubeMaterial } from '../../services/materialsService'
 
 export default function CourseOverviewPage({ course, onStartStudying }) {
   const navigate = useNavigate()
@@ -27,8 +27,25 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
   
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
-  const [uploadTitle, setUploadTitle] = useState('')
+  const [linkInput, setLinkInput] = useState('')
   const fileInputRef = React.useRef(null)
+  
+  const handleLinkUpload = async (e) => {
+    if (e.key === 'Enter' && linkInput.trim()) {
+       setIsUploading(true)
+       try {
+         await addYoutubeMaterial({ url: linkInput.trim(), title: linkInput.trim(), courseId: course.id, userId: user.id })
+         loadData()
+         setShowUploadModal(false)
+         setLinkInput('')
+       } catch (err) {
+         console.error('Link upload failed:', err)
+         alert('Failed to add link.')
+       } finally {
+         setIsUploading(false)
+       }
+    }
+  }
   
   const tabs = [
     { id: 'tracker', label: 'TRACKER' },
@@ -90,13 +107,12 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
         courseId: course.id,
         userId: user.id,
         type: type,
-        title: uploadTitle || file.name
+        title: file.name
       })
       
       // Reload the data instantly
       loadData()
       setShowUploadModal(false)
-      setUploadTitle('')
     } catch (err) {
       console.error('Upload failed:', err)
       alert('Failed to upload file.')
@@ -552,74 +568,135 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             style={{
-              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', 
-              backdropFilter: 'blur(8px)', zIndex: 1000, 
-              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+              position: 'fixed', inset: 0, background: 'rgba(255, 255, 255, 0.4)', 
+              backdropFilter: 'blur(12px)', zIndex: 1000, 
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', gap: '32px'
             }}
             onClick={() => !isUploading && setShowUploadModal(false)}
           >
+            {/* Dropzone Container */}
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
               onClick={e => e.stopPropagation()}
+              onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+              onDrop={e => {
+                e.preventDefault()
+                e.stopPropagation()
+                if (isUploading) return
+                const files = e.dataTransfer.files
+                if (files?.length && fileInputRef.current) {
+                   fileInputRef.current.files = files
+                   handleFileUpload({ target: { files }})
+                }
+              }}
               style={{
-                background: '#fff', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '480px',
-                boxShadow: '0 24px 48px rgba(0,0,0,0.2)', border: '1px solid #e2e8f0'
+                background: '#F5FCF7', // light green tint
+                borderRadius: '32px', padding: '48px 40px', width: '100%', maxWidth: '640px',
+                border: '1.5px solid #86D9A0',
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                boxShadow: '0 32px 64px rgba(4, 120, 87, 0.08)'
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
-                <div style={{ width: 64, height: 64, background: '#faf5ff', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <UploadCloud size={32} color={purpleColor} strokeWidth={2.5} />
-                </div>
-              </div>
-              <h2 style={{ fontSize: '24px', fontWeight: 900, textAlign: 'center', color: '#1a202c', marginBottom: '8px', textTransform: 'uppercase' }}>Upload Material</h2>
-              <p style={{ textAlign: 'center', color: lightGrey, fontSize: '14px', fontWeight: 600, marginBottom: '32px' }}>
-                PDF, Word, PPT, Image, or Video. The AI will instantly read and map your file.
-              </p>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileUpload} 
+                style={{ display: 'none' }}
+              />
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#4a5568', marginBottom: '8px', textTransform: 'uppercase' }}>Custom Title (Optional)</label>
-                  <input 
-                    type="text" 
-                    placeholder="Enter file name..."
-                    value={uploadTitle}
-                    onChange={e => setUploadTitle(e.target.value)}
-                    style={{ width: '100%', padding: '16px', borderRadius: '12px', border: '2px solid #e2e8f0', background: '#f8fafc', fontSize: '15px', fontWeight: 600, fontFamily: 'Outfit', outline: 'none', transition: 'all 0.2s', boxSizing: 'border-box' }}
-                    onFocus={e => e.target.style.borderColor = purpleColor}
-                    onBlur={e => e.target.style.borderColor = '#e2e8f0'}
-                  />
+              {isUploading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '20px 0' }}>
+                  <Loader2 size={40} color="#047857" className="animate-spin" />
+                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#047857', fontFamily: 'Outfit' }}>Processing your material...</span>
                 </div>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{ 
+                      background: '#D1FAE5', color: '#065F46', padding: '12px 28px', 
+                      borderRadius: '16px', fontSize: '15px', fontWeight: 800, 
+                      marginBottom: '16px', border: 'none', cursor: 'pointer',
+                      fontFamily: 'Outfit', transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#A7F3D0'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#D1FAE5'}
+                  >
+                    click to upload
+                  </button>
+                  
+                  <div style={{ color: '#059669', fontSize: '14px', fontWeight: 700, marginBottom: '40px', fontFamily: 'Outfit' }}>
+                    or drag & drop files here
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', justifyContent: 'center', marginBottom: '24px', color: '#64748B', fontSize: '14px', fontWeight: 600, fontFamily: 'Outfit' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><FileText size={16} color="#94A3B8" /> PDF</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ background: '#E34F26', width: 16, height: 16, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 10, fontWeight: 'bold' }}>P</div>
+                      Power Point
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ background: '#2563EB', width: 16, height: 16, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 10, fontWeight: 'bold' }}>W</div>
+                      Word docx
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ background: '#0EA5E9', width: 16, height: 16, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 10, fontWeight: 'bold' }}>
+                        <Database size={10} color="white" />
+                      </div>
+                      Anki import
+                    </span>
+                  </div>
 
-                <div 
-                  style={{
-                    border: `2px dashed ${purpleColor}`, borderRadius: '16px', padding: '40px 20px', textAlign: 'center', 
-                    background: '#faf5ff', cursor: isUploading ? 'not-allowed' : 'pointer', position: 'relative', transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={e => !isUploading && (e.currentTarget.style.background = '#f3e8ff')}
-                  onMouseLeave={e => !isUploading && (e.currentTarget.style.background = '#faf5ff')}
-                  onClick={() => !isUploading && fileInputRef.current?.click()}
-                >
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileUpload} 
-                    style={{ display: 'none' }}
-                  />
-                  {isUploading ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                      <Loader2 size={32} color={purpleColor} className="animate-spin" />
-                      <span style={{ fontSize: '14px', fontWeight: 800, color: purpleColor, textTransform: 'uppercase' }}>Extracting Text & Uploading...</span>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                      <FileText size={32} color={purpleColor} opacity={0.5} />
-                      <span style={{ fontSize: '15px', fontWeight: 800, color: purpleColor }}>Browse files to upload</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', justifyContent: 'center', color: '#64748B', fontSize: '14px', fontWeight: 600, fontFamily: 'Outfit' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Music size={16} color="#94A3B8" /> Audio file</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Video size={16} color="#94A3B8" /> Video file</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><ImageIcon size={16} color="#94A3B8" /> Image</span>
+                  </div>
+                </>
+              )}
+            </motion.div>
+
+            {/* Link Input Container */}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ delay: 0.05 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                 background: '#fff', borderRadius: '999px', padding: '16px 32px', width: '100%', maxWidth: '640px',
+                 border: '1.5px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                 boxShadow: '0 8px 32px rgba(0,0,0,0.03)'
+              }}
+            >
+               <input 
+                 type="text" 
+                 placeholder="or paste any link here"
+                 value={linkInput}
+                 onChange={e => setLinkInput(e.target.value)}
+                 onKeyDown={handleLinkUpload}
+                 disabled={isUploading}
+                 style={{
+                   border: 'none', outline: 'none', background: 'transparent',
+                   width: '45%', fontSize: '15px', fontWeight: 600, color: '#334155',
+                   fontFamily: 'Outfit'
+                 }}
+               />
+               
+               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: '#64748B', fontSize: '13px', fontWeight: 700, fontFamily: 'Outfit' }}>
+                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                   <LinkIcon size={14} color="#94A3B8" /> Websites,
+                 </span>
+                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                   <Youtube size={14} color="#EF4444" fill="#EF4444" /> YouTube,
+                 </span>
+                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ background: '#4285F4', width: 12, height: 12, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 10, fontWeight: 'bold' }}>=</div>
+                    Google Docs
+                 </span>
+               </div>
             </motion.div>
           </motion.div>
         )}
