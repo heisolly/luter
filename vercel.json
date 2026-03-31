@@ -9,5 +9,10 @@
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "build": {
+    "env": {
+      "PYTHON_VERSION": "3.11"
+    }
+  }
 }
