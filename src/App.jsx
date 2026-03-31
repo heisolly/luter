@@ -34,12 +34,14 @@ import AdminActivity from './admin/pages/AdminActivity'
 import AdminSystem from './admin/pages/AdminSystem'
 import AdminSettings from './admin/pages/AdminSettings'
 import AdminSyllabusManager from './admin/pages/AdminSyllabusManager'
+import AdminNotesManager from './admin/pages/AdminNotesManager'
 import LuterAdminUploadPage from './admin/pages/LuterAdminUploadPage'
 import StudyMaterialsPage from './components/dashboard/StudyMaterialsPage'
 import FilesPage from './components/dashboard/FilesPage'
 import AssignmentsPage from './components/dashboard/AssignmentsPage'
 import AINotesPage from './components/dashboard/AINotesPage'
 import StudyMaterialsWeekPage from './components/dashboard/StudyMaterialsWeekPage'
+import SemesterNotesPage from './components/dashboard/SemesterNotesPage'
 import UserUpload from './components/dashboard/UserUpload'
 
 function CompeteRedirect() {
@@ -97,6 +99,7 @@ export default function App() {
             <Route index element={<DashboardHome />} />
             <Route path="courses/:courseId/materials/:weekId" element={<StudyMaterialsWeekPage />} />
             <Route path="courses/:courseId/materials" element={<StudyMaterialsPage />} />
+            <Route path="courses/:courseId/semester-notes" element={<SemesterNotesPage />} />
             <Route path="files" element={<FilesPage />} />
             <Route path="ai-notes" element={<AINotesPage />} />
             <Route path="assignments" element={<AssignmentsPage />} />
@@ -121,6 +124,7 @@ export default function App() {
 
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminOverview />} />
+            <Route path="notes-manager" element={<AdminNotesManager />} />
             <Route path="upload" element={<LuterAdminUploadPage />} />
             <Route path="users/:userId" element={<AdminUserDetail />} />
             <Route path="users" element={<AdminUsers />} />

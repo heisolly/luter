@@ -22,6 +22,8 @@ export default function AdminUsers() {
   const [q, setQ] = useState('')
   const [page, setPage] = useState(0)
   const [total, setTotal] = useState(0)
+  
+  const { bundle, ready } = useAdminPrefetch()
 
   const fetchPage = async (pageIndex) => {
     setLoading(true)

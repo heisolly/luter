@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
-import { uploadMaterial } from '../../services/materialsService'
+import { uploadAdminMaterial } from '../../services/semesterNotesService'
 import { supabase } from '../../supabaseClient'
 import { UploadCloud, FileText, CheckCircle2, AlertCircle, Loader2, ChevronLeft } from 'lucide-react'
 
@@ -34,13 +34,16 @@ export default function LuterAdminUploadPage() {
     setStatus(null)
     
     try {
-      await uploadMaterial({ 
+      await uploadAdminMaterial({ 
         file, 
         courseId, 
-        userId: user.id, 
+        weekNumber: parseInt(week),
         title, 
         type: type, // 'pdf' or 'assignment'
-        week: parseInt(week)
+        learningObjectives: [],
+        academicYear: '2023/2024',
+        semesterNumber: 1,
+        sharingScope: 'course'
       })
       setStatus({ type: 'success', message: 'Material uploaded and processed successfully!' })
       setFile(null)

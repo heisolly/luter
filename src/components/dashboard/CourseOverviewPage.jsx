@@ -11,13 +11,12 @@ import {
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../supabaseClient'
-import { fetchCourseMaterials, fetchUserNotes, deleteMaterial, deleteUserNote, getStudySession, uploadMaterial, addYoutubeMaterial } from '../../services/materialsService'
+import { fetchCourseMaterialsWithContext, fetchUserNotes, deleteMaterial, deleteUserNote, getStudySession, uploadMaterial, addYoutubeMaterial } from '../../services/materialsService'
 
 export default function CourseOverviewPage({ course, onStartStudying }) {
   const navigate = useNavigate()
   const { user, isMobile } = useOutletContext()
   const [activeTab, setActiveTab] = useState('tracker')
-  const [fileSubTab, setFileSubTab] = useState('admin')
   const [showMenu, setShowMenu] = useState(false)
   const [materials, setMaterials] = useState([])
   const [userNotes, setUserNotes] = useState([])
@@ -49,6 +48,7 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
   
   const tabs = [
     { id: 'tracker', label: 'TRACKER' },
+    { id: 'semester-notes', label: 'SEMESTER NOTES' },
     { id: 'files', label: 'FILES' },
     { id: 'ai_notes', label: 'AI NOTES' },
     { id: 'assignments', label: 'ASSIGNMENTS' },
@@ -60,29 +60,19 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
     }
   }, [course?.id, user?.id])
 
-  async function loadData() {
+  const loadData = async () => {
     setLoading(true)
     try {
-      const [mats, notes, session] = await Promise.all([
-        fetchCourseMaterials(course.id, user.id),
+      const [materialsData, notesData, sessionData] = await Promise.all([
+        fetchCourseMaterialsWithContext(course.id, user.id, true),
         fetchUserNotes(user.id, course.id),
         getStudySession(user.id, course.id)
       ])
-      setMaterials(mats)
-      setUserNotes(notes)
-      setStudySession(session)
-
-      // Check for new assignments
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-      const newAdminMats = mats.filter(m => 
-        m.owner_role === 'admin' && 
-        new Date(m.created_at) > sevenDaysAgo &&
-        (m.title.toLowerCase().includes('assignment') || m.type === 'docx')
-      )
-      setHasNewAssignment(newAdminMats.length > 0)
-
+      setMaterials(materialsData)
+      setUserNotes(notesData)
+      setStudySession(sessionData)
     } catch (err) {
-      console.error('Failed to load overview data:', err)
+      console.error('Failed to load course data:', err)
     } finally {
       setLoading(false)
     }
@@ -170,11 +160,20 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
       case 'assignments':
         return materials.filter(m => m.title.toLowerCase().includes('assignment') || m.type === 'docx')
       case 'files':
-        if (fileSubTab === 'admin') {
-          return materials.filter(m => !m.user_id || m.owner_role === 'admin')
-        } else {
-          return materials.filter(m => m.user_id === user.id && m.owner_role !== 'admin')
-        }
+        // Show all materials together - both admin (Lutes) and user uploads, including shared materials
+        return materials.filter(m => {
+          // Include user's own materials
+          if (m.user_id === user.id) return true
+          // Include admin materials for this course
+          if (m.owner_role === 'admin' && m.course_id === course.id) return true
+          // Include program-shared materials
+          if (m.visibility_scope === 'program') return true
+          // Include year-shared materials
+          if (m.visibility_scope === 'year') return true
+          // Include global materials
+          if (m.visibility_scope === 'global') return true
+          return false
+        })
       default:
         return []
     }
@@ -415,42 +414,54 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
         >
+          {activeTab === 'semester-notes' && (
+            <div style={{ textAlign: 'center', padding: '60px' }}>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '20px',
+                background: 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 24px'
+              }}>
+                <BookOpen size={40} color="white" />
+              </div>
+              <h3 style={{ margin: '0 0 12px', fontSize: '24px', fontWeight: 800, color: '#7a12cc', fontFamily: 'Outfit' }}>
+                Semester Notes
+              </h3>
+              <p style={{ margin: '0 0 24px', fontSize: '16px', color: '#6c757d', maxWidth: '400px', marginLeft: 'auto', marginRight: 'auto', fontFamily: 'Varela Round' }}>
+                Access structured weekly notes, materials, and request specific content from our admin team.
+              </p>
+              <button
+                onClick={() => navigate(`/dashboard/courses/${course.id}/semester-notes`)}
+                style={{
+                  padding: '16px 32px',
+                  background: 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 20px rgba(122, 18, 204, 0.3)',
+                  fontFamily: 'Varela Round'
+                }}
+              >
+                Open Semester Notes
+                <ChevronDown size={20} style={{ transform: 'rotate(-90deg)' }} />
+              </button>
+            </div>
+          )}
+
           {activeTab === 'files' && (
             <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: '16px', marginBottom: '32px' }}>
               
-              {/* Sub-Tabs: Admin vs User */}
-              <div style={{ display: 'flex', gap: '8px', background: '#f8fafc', padding: '6px', borderRadius: '16px', border: '1px solid #e2e8f0', width: isMobile ? '100%' : 'auto' }}>
-                <button
-                  onClick={() => setFileSubTab('admin')}
-                  style={{
-                    flex: isMobile ? 1 : 'none',
-                    padding: '10px 24px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 800,
-                    background: fileSubTab === 'admin' ? '#fff' : 'transparent',
-                    color: fileSubTab === 'admin' ? purpleColor : lightGrey,
-                    boxShadow: fileSubTab === 'admin' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
-                    transition: 'all 0.2s',
-                    textTransform: 'uppercase'
-                  }}
-                >
-                  Admin Uploads
-                </button>
-                <button
-                  onClick={() => setFileSubTab('user')}
-                  style={{
-                    flex: isMobile ? 1 : 'none',
-                    padding: '10px 24px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 800,
-                    background: fileSubTab === 'user' ? '#fff' : 'transparent',
-                    color: fileSubTab === 'user' ? purpleColor : lightGrey,
-                    boxShadow: fileSubTab === 'user' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
-                    transition: 'all 0.2s',
-                    textTransform: 'uppercase'
-                  }}
-                >
-                  My Uploads
-                </button>
-              </div>
-
-              {/* Action Buttons */}
+              {/* Upload Button Only - since we're showing everything together */}
               <div style={{ display: 'flex', gap: '12px', width: isMobile ? '100%' : 'auto' }}>
                 <button 
                   onClick={() => alert('Request feature coming soon!')}
@@ -519,31 +530,63 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
                        item.type === 'docx' ? <FileCheck size={24} /> :
                        <Layout size={24} />}
                     </div>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDelete(item)
-                      }}
-                      style={{ 
-                        padding: '4px', 
-                        background: 'transparent', 
-                        border: 'none', 
-                        color: lightGrey, 
-                        cursor: 'pointer',
-                        borderRadius: '6px',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.color = '#ef4444'
-                        e.currentTarget.style.background = '#fef2f2'
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.color = lightGrey
-                        e.currentTarget.style.background = 'transparent'
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                      {/* Show source indicator */}
+                      <span style={{ 
+                        fontSize: '10px', 
+                        fontWeight: 800, 
+                        color: (() => {
+                          if (item.user_id === user.id) return purpleColor
+                          if (item.visibility_scope === 'program') return '#10B981'
+                          if (item.visibility_scope === 'year') return '#3B82F6'
+                          if (item.visibility_scope === 'global') return '#F59E0B'
+                          return '#10B981'
+                        })(),
+                        textTransform: 'uppercase',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        background: (() => {
+                          if (item.user_id === user.id) return '#faf5ff'
+                          if (item.visibility_scope === 'program') return '#f0fdf4'
+                          if (item.visibility_scope === 'year') return '#eff6ff'
+                          if (item.visibility_scope === 'global') return '#fef3c7'
+                          return '#f0fdf4'
+                        })()
+                      }}>
+                        {(() => {
+                          if (item.user_id === user.id) return 'My Upload'
+                          if (item.visibility_scope === 'program') return 'Program Share'
+                          if (item.visibility_scope === 'year') return 'Year Share'
+                          if (item.visibility_scope === 'global') return 'Global'
+                          return 'Lutes'
+                        })()}
+                      </span>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDelete(item)
+                        }}
+                        style={{ 
+                          padding: '4px', 
+                          background: 'transparent', 
+                          border: 'none', 
+                          color: lightGrey, 
+                          cursor: 'pointer',
+                          borderRadius: '6px',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.color = '#ef4444'
+                          e.currentTarget.style.background = '#fef2f2'
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.color = lightGrey
+                          e.currentTarget.style.background = 'transparent'
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#111', textTransform: 'uppercase', lineBreak: 'anywhere' }}>

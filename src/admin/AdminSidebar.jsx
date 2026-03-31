@@ -13,11 +13,14 @@ import {
   Shield,
   GraduationCap,
   UploadCloud,
+  Brain,
+  Calendar,
 } from 'lucide-react'
 import LuterLogo from '../components/shared/LuterLogo'
 
 const NAV = [
   { to: '/admin', end: true, icon: LayoutDashboard, label: 'Overview' },
+  { to: '/admin/notes-manager', icon: Brain, label: 'Notes Manager' },
   { to: '/admin/upload', icon: UploadCloud, label: 'Upload Content' },
   { to: '/admin/users', icon: Users, label: 'Users' },
   { to: '/admin/courses', icon: BookOpen, label: 'Courses' },

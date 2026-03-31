@@ -400,8 +400,8 @@ export default function AdminSyllabusManager() {
                           borderRadius: 6,
                           fontWeight: 800,
                           fontSize: 11,
-                          background: r.status === 'live' ? '#dcfce7' : '#fef3c7',
-                          color: r.status === 'live' ? '#166534' : '#92400e',
+                          background: r.status === 'live' ? '#faf5ff' : '#fef3c7',
+                          color: r.status === 'live' ? '#7a12cc' : '#92400e',
                         }}
                       >
                         {r.status === 'live' ? 'Live' : 'Draft'}

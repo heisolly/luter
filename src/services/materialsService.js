@@ -12,8 +12,19 @@ export async function fetchCourseMaterials(courseId, userId) {
   return data || []
 }
 
-/** Upload a file to Supabase Storage and create a materials row */
-export async function uploadMaterial({ file, courseId, userId, type = 'pdf', title, week }) {
+/** Upload a file to Supabase Storage and create a materials row with course-program-year-semester tagging */
+export async function uploadMaterial({ 
+  file, 
+  courseId, 
+  userId, 
+  type = 'pdf', 
+  title, 
+  week, 
+  programId = null, 
+  academicYear = '2023/2024',
+  semesterNumber = 1,
+  sharingScope = 'course' 
+}) {
   const ext = file.name.split('.').pop()
   const path = `${userId}/${courseId}/${Date.now()}.${ext}`
 
@@ -24,6 +35,21 @@ export async function uploadMaterial({ file, courseId, userId, type = 'pdf', tit
 
   const { data: urlData } = supabase.storage.from('materials').getPublicUrl(path)
 
+  // Auto-detect program if not provided
+  let finalProgramId = programId
+  
+  if (!finalProgramId) {
+    const { data: courseData } = await supabase
+      .from('courses')
+      .select('program_id')
+      .eq('id', courseId)
+      .single()
+    
+    if (courseData) {
+      finalProgramId = courseData.program_id
+    }
+  }
+
   const { data, error } = await supabase
     .from('materials')
     .insert({
@@ -33,7 +59,17 @@ export async function uploadMaterial({ file, courseId, userId, type = 'pdf', tit
       type,
       source_url: urlData.publicUrl,
       owner_role: 'user',
-      processing_status: 'pending'
+      processing_status: 'pending',
+      week_number: parseInt(week) || 1,
+      program_id: finalProgramId,
+      academic_year: academicYear,
+      semester_number: parseInt(semesterNumber) || 1,
+      sharing_scope: sharingScope,
+      metadata: {
+        uploaded_by_user: true,
+        file_size: file.size,
+        original_filename: file.name
+      }
     })
     .select()
     .single()
@@ -42,7 +78,96 @@ export async function uploadMaterial({ file, courseId, userId, type = 'pdf', tit
   // Run client-side text extraction (non-blocking — updates DB when done)
   extractAndSaveMaterialText(data.id, file, type)
 
+  // Create share records based on sharing scope
+  if (sharingScope === 'program' && finalProgramId) {
+    await createProgramShares(data.id, finalProgramId, userId, academicYear)
+  } else if (sharingScope === 'year') {
+    await createYearShares(data.id, userId, academicYear)
+  }
+
   return data
+}
+
+/** Create program-wide shares for a material */
+async function createProgramShares(materialId, programId, sharedByUserId, academicYear) {
+  try {
+    // Get all courses in this program
+    const { data: programCourses } = await supabase
+      .from('courses')
+      .select('id')
+      .eq('program_id', programId)
+
+    if (programCourses) {
+      const shares = programCourses.map(course => ({
+        material_id: materialId,
+        shared_by_user_id: sharedByUserId,
+        target_course_id: course.id,
+        target_program_id: programId,
+        target_academic_year: academicYear,
+        share_type: 'cross_program'
+      }))
+
+      await supabase
+        .from('material_shares')
+        .insert(shares)
+    }
+  } catch (error) {
+    console.error('Failed to create program shares:', error)
+  }
+}
+
+/** Create year-wide shares for a material */
+async function createYearShares(materialId, sharedByUserId, academicYear) {
+  try {
+    // Get all courses for the academic year
+    const { data: yearCourses } = await supabase
+      .from('materials')
+      .select('course_id')
+      .eq('academic_year', academicYear)
+      .distinct()
+
+    if (yearCourses) {
+      const shares = yearCourses.map(course => ({
+        material_id: materialId,
+        shared_by_user_id: sharedByUserId,
+        target_course_id: course.course_id,
+        target_academic_year: academicYear,
+        share_type: 'cross_year'
+      }))
+
+      await supabase
+        .from('material_shares')
+        .insert(shares)
+    }
+  } catch (error) {
+    console.error('Failed to create year shares:', error)
+  }
+}
+
+/** Enhanced fetch for materials with course-program-year-semester context */
+export async function fetchCourseMaterialsWithContext(courseId, userId, includeShared = true) {
+  let query = supabase
+    .from('materials_with_context')
+    .select('*')
+    .eq('course_id', courseId)
+    .order('created_at', { ascending: false })
+
+  if (includeShared) {
+    // Also get materials shared with this course's program and year
+    const { data: courseData } = await supabase
+      .from('courses')
+      .select('program_id')
+      .eq('id', courseId)
+      .single()
+
+    if (courseData?.program_id) {
+      query = query.or(`course_id.eq.${courseId},and(program_id.eq.${courseData.program_id},sharing_scope.in.(program,year,global))`)
+    }
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+  return data || []
 }
 
 /** Add a YouTube material row */
