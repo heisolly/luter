@@ -22,36 +22,8 @@ export default function EnhancedPdfRenderer({ material, activeTab, analysisState
   const [rotation, setRotation] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
   const [totalPages, setTotalPages] = useState(0)
-  const [serverStatus, setServerStatus] = useState('checking')
-  const [renderMode, setRenderMode] = useState('auto') // 'server', 'client', 'auto'
-
-  const PDF_SERVER_URL = 'http://127.0.0.1:8001'
-
-  // Check if PDF server is running
-  useEffect(() => {
-    const checkServer = async () => {
-      try {
-        const response = await fetch(`${PDF_SERVER_URL}/health`, { 
-          method: 'GET',
-          timeout: 3000 
-        })
-        if (response.ok) {
-          setServerStatus('online')
-          setRenderMode('server')
-        } else {
-          setServerStatus('offline')
-          setRenderMode('client')
-        }
-      } catch (error) {
-        setServerStatus('offline')
-        setRenderMode('client')
-        console.log('PDF server not available, using client-side rendering')
-      }
-    }
-    
-    checkServer()
-    // Only check once on mount, not repeatedly
-  }, [])
+  const [serverStatus, setServerStatus] = useState('client-only')
+  const [renderMode, setRenderMode] = useState('client') // Always use client-side now
 
   // Load PDF using client-side PDF.js
   const loadPdfClientSide = useCallback(async (pdfUrl) => {
@@ -124,130 +96,19 @@ export default function EnhancedPdfRenderer({ material, activeTab, analysisState
     }
   }, [pdfDocument, scale, rotation, totalPages, setViewportData])
 
-  // Process PDF using Python server
-  const processPdfWithServer = useCallback(async (pdfUrl) => {
-    if (serverStatus !== 'online') {
-      return null
-    }
-
-    setLoading(true)
-    setError(null)
-    
-    try {
-      // Download PDF from URL
-      const response = await fetch(pdfUrl)
-      if (!response.ok) throw new Error('Failed to download PDF')
-      
-      const blob = await response.blob()
-      const formData = new FormData()
-      formData.append('file', blob, 'document.pdf')
-      
-      // Send to Python server for processing
-      const processResponse = await fetch(`${PDF_SERVER_URL}/process-pdf`, {
-        method: 'POST',
-        body: formData
-      })
-      
-      if (!processResponse.ok) throw new Error('Failed to process PDF')
-      
-      const result = await processResponse.json()
-      
-      if (result.success) {
-        setPdfData(result)
-        setTotalPages(result.total_pages)
-        return result
-      } else {
-        throw new Error(result.error || 'Unknown processing error')
-      }
-      
-    } catch (error) {
-      console.error('PDF processing error:', error)
-      setError(error.message)
-      return null
-    } finally {
-      setLoading(false)
-    }
-  }, [serverStatus])
-
   // Initialize PDF when component mounts
   useEffect(() => {
     if (activeTab === 'content' && material.source_url) {
-      initializePdf()
+      loadPdfClientSide(material.source_url)
     }
-  }, [activeTab, material.source_url, renderMode])
+  }, [activeTab, material.source_url, loadPdfClientSide])
 
-  const initializePdf = async () => {
-    if (renderMode === 'server' && serverStatus === 'online') {
-      const processedData = await processPdfWithServer(material.source_url)
-      if (processedData) {
-        // Server processing successful
-        return
-      }
-    }
-    
-    // Fallback to client-side rendering
-    await loadPdfClientSide(material.source_url)
-  }
-
-  // Render page using processed data (server mode)
-  const renderPageServer = useCallback((pageNum) => {
-    if (!pdfData || !pdfData.pages || !canvasRef.current) return
-    
-    const pageData = pdfData.pages[pageNum - 1]
-    if (!pageData) return
-
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
-    
-    // Set canvas dimensions based on page data
-    const pageWidth = pageData.width * scale
-    const pageHeight = pageData.height * scale
-    
-    canvas.width = pageWidth
-    canvas.height = pageHeight
-    
-    // Clear canvas
-    ctx.fillStyle = 'white'
-    ctx.fillRect(0, 0, pageWidth, pageHeight)
-    
-    // Apply rotation
-    ctx.save()
-    ctx.translate(pageWidth / 2, pageHeight / 2)
-    ctx.rotate((rotation * Math.PI) / 180)
-    ctx.translate(-pageWidth / 2, -pageHeight / 2)
-    
-    // Render text blocks
-    ctx.fillStyle = 'black'
-    ctx.font = `${12 * scale}px Arial`
-    
-    pageData.text_blocks?.forEach(block => {
-      const x = block.x0 * scale
-      const y = block.y0 * scale
-      const text = block.text
-      
-      ctx.fillText(text, x, y)
-    })
-    
-    ctx.restore()
-    
-    // Update viewport data
-    setViewportData({
-      visibleText: pageData.text?.slice(0, 1000) || '',
-      scrollPercent: (pageNum / totalPages) * 100,
-      currentPage: pageNum,
-      totalPages: totalPages,
-      documentType: 'pdf'
-    })
-  }, [pdfData, scale, rotation, totalPages, setViewportData])
-
-  // Main render function
+  // Main render function - client-side only
   const renderPage = useCallback((pageNum) => {
-    if (renderMode === 'server' && pdfData) {
-      renderPageServer(pageNum)
-    } else if (renderMode === 'client' && pdfDocument) {
+    if (pdfDocument) {
       renderPageClientSide(pageNum)
     }
-  }, [renderMode, pdfData, pdfDocument, renderPageServer, renderPageClientSide])
+  }, [pdfDocument, renderPageClientSide])
 
   // Navigation functions
   const goToPage = (pageNum) => {
@@ -342,7 +203,7 @@ export default function EnhancedPdfRenderer({ material, activeTab, analysisState
           Loading PDF...
         </div>
         <div style={{ fontSize: '14px', color: '#64748B' }}>
-          {renderMode === 'server' ? 'Using enhanced processing' : 'Using standard viewer'}
+          Using standard PDF viewer
         </div>
       </div>
     )
@@ -403,19 +264,7 @@ export default function EnhancedPdfRenderer({ material, activeTab, analysisState
             <span style={{ fontSize: '14px', fontWeight: 600, color: '#1A102D' }}>
               PDF Viewer
             </span>
-            {renderMode === 'server' ? (
-              <span style={{
-                fontSize: '11px',
-                background: '#10B981',
-                color: 'white',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                fontWeight: 600
-              }}>
-                Enhanced Processing
-              </span>
-            ) : (
-              <span style={{
+            <span style={{
                 fontSize: '11px',
                 background: '#6B7280',
                 color: 'white',
@@ -425,7 +274,6 @@ export default function EnhancedPdfRenderer({ material, activeTab, analysisState
               }}>
                 Standard Viewer
               </span>
-            )}
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -621,7 +469,7 @@ export default function EnhancedPdfRenderer({ material, activeTab, analysisState
           Page {currentPage} of {totalPages} • Scale: {Math.round(scale * 100)}% • Rotation: {rotation}°
         </div>
         <div>
-          {material.title} • {renderMode === 'server' ? 'Enhanced Processing' : 'Standard Rendering'}
+          {material.title} • Standard Rendering
         </div>
       </div>
     </div>
