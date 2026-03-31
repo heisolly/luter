@@ -95,16 +95,40 @@ export function WorkstationFlashcards({ items = [], material }) {
   const [idx, setIdx] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
 
-  if (!items || items.length === 0) return <EmptyState icon={Brain} label="Creating flashcards..." />
+  // Handle error cases where items might be a string or invalid data
+  const safeItems = Array.isArray(items) ? items : []
+  
+  if (!safeItems || safeItems.length === 0) return <EmptyState icon={Brain} label="Creating flashcards..." />
+  
+  // Handle different flashcard formats
+  const normalizedItems = safeItems.map(item => {
+    if (typeof item === 'string') {
+      // If it's a string, try to parse or create a basic card
+      return {
+        front: item.substring(0, 100) + '...',
+        back: item.substring(0, 200) + '...',
+        question: item.substring(0, 100) + '...',
+        answer: item.substring(0, 200) + '...'
+      }
+    }
+    
+    // Handle different property names
+    return {
+      front: item.front || item.question || item.question || 'Question',
+      back: item.back || item.answer || item.answer || 'Answer',
+      question: item.question || item.front || item.question || 'Question',
+      answer: item.answer || item.back || item.answer || 'Answer'
+    }
+  })
 
-  const card = items[idx]
+  const card = normalizedItems[idx]
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px' }}>
         <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Recall Practice</h2>
         <div style={{ display: 'flex', gap: '8px' }}>
-          {items.map((_, i) => (
+          {normalizedItems.map((_, i) => (
             <div key={i} style={{ width: '8px', height: '8px', borderRadius: '50%', background: i === idx ? '#7a12cc' : '#E2E8F0' }} />
           ))}
         </div>

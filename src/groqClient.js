@@ -4,11 +4,11 @@ import { supabase } from './supabaseClient'
 export const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
 export const GROQ_BASE_URL = 'https://api.groq.com/openai/v1'
 
-// Model Selection Logic
+// Model Selection Logic - Updated to current supported models
 export const GROQ_MODELS = {
   PROFESSOR: 'llama-3.3-70b-versatile',  // For AI Notes, Complex Tutoring, Context Understanding
   SPEEDSTER: 'llama-3.1-8b-instant',      // For AI Summary, Flashcard Generation, Mock Exam MCQs
-  VISION: 'llama-3.2-90b-vision-preview', // High-fidelity visual understanding
+  VISION: 'llama-3.2-11b-vision-preview', // Updated vision model
   WHISPER: 'whisper-large-v3-turbo'       // Ultra-fast transcription
 }
 
@@ -145,7 +145,7 @@ class RequestQueue {
 
   async add(request) {
     return new Promise((resolve, reject) => {
-      this.queue.push({ request, resolve, reject })
+      this.queue.push({ request, resolve, reject, retryCount: 0 })
       this.processQueue()
     })
   }
@@ -156,18 +156,19 @@ class RequestQueue {
     this.processing = true
     
     while (this.queue.length > 0) {
-      const { request, resolve, reject } = this.queue.shift()
+      const { request, resolve, reject, retryCount } = this.queue.shift()
       
       try {
         const result = await this.executeRequest(request)
         resolve(result)
       } catch (error) {
-        // If rate limited, wait and retry
-        if (error.status === 429) {
-          console.log('Rate limited. Waiting 10 seconds before retry...')
-          await new Promise(resolve => setTimeout(resolve, 10000))
-          // Add back to front of queue to retry
-          this.queue.unshift({ request, resolve, reject })
+        // If rate limited, use exponential backoff and retry
+        if (error.status === 429 && retryCount < 3) {
+          const delay = Math.min(2000 * Math.pow(2, retryCount), 30000) // 2s, 4s, 8s max 30s
+          console.log(`Rate limited. Waiting ${delay/1000} seconds before retry... (attempt ${retryCount + 1}/3)`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+          // Add back to front of queue to retry with increased count
+          this.queue.unshift({ request, resolve, reject, retryCount: retryCount + 1 })
           continue // Skip to next iteration
         } else {
           reject(error)

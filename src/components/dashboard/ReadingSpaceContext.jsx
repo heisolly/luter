@@ -51,11 +51,29 @@ export function ReadingSpaceProvider({ children }) {
   }
 
   const highlightDocxText = (text, label, context) => {
+    // Enhanced context handling for DOCX
+    const enhancedContext = context || {
+      documentInfo: {
+        type: 'docx',
+        timestamp: Date.now()
+      },
+      location: {
+        documentType: 'docx',
+        position: 'document-body'
+      },
+      content: {
+        selectedText: text,
+        textLength: text?.length || 0,
+        wordCount: text?.split(/\s+/).length || 0
+      }
+    }
+    
     highlightText({
       documentType: 'docx',
       text,
-      context,
-      label
+      context: enhancedContext,
+      label,
+      fullContext: enhancedContext // Store full context for AI
     })
   }
 

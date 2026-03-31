@@ -214,6 +214,8 @@ export default function SettingsPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <label style={{ fontSize: 10, fontWeight: 1000, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Full Name</label>
                       <input 
+                        id="fullName"
+                        name="fullName"
                         value={profile.fullName} onChange={e => setProfile({...profile, fullName: e.target.value})}
                         style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}
                       />
@@ -221,6 +223,8 @@ export default function SettingsPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <label style={{ fontSize: 10, fontWeight: 1000, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Email</label>
                       <input 
+                        id="email"
+                        name="email"
                         value={profile.email} disabled
                         style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '2.5px solid #eee', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#f5f5f5', color: '#999', cursor: 'not-allowed', fontWeight: 700 }}
                       />
@@ -231,6 +235,8 @@ export default function SettingsPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <label style={{ fontSize: 10, fontWeight: 800, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>University</label>
                       <input 
+                        id="university"
+                        name="university"
                         value={profile.university} onChange={e => setProfile({...profile, university: e.target.value})}
                         style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700 }}
                       />
@@ -239,11 +245,15 @@ export default function SettingsPage() {
                       <label style={{ fontSize: 10, fontWeight: 1000, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Faculty & Level</label>
                       <div style={{ display: 'flex', gap: 12 }}>
                         <input 
+                          id="faculty"
+                          name="faculty"
                           value={profile.faculty} onChange={e => setProfile({...profile, faculty: e.target.value})}
                           placeholder="Faculty"
                           style={{ flex: 2, padding: '16px 20px', borderRadius: 16, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700 }}
                         />
                          <input 
+                          id="level"
+                          name="level"
                           value={profile.level} onChange={e => setProfile({...profile, level: e.target.value})}
                           placeholder="Level"
                           style={{ flex: 1, padding: '16px 20px', borderRadius: 16, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700, textAlign: 'center' }}

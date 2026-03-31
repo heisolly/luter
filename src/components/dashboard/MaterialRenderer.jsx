@@ -2,10 +2,13 @@ import React, { lazy, Suspense, useState, useEffect } from 'react'
 import { Loader2, FileText, Download, ExternalLink, Calendar, CheckCircle2, Clock } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
 import ReadingTracker from './ReadingTracker'
+import PdfErrorBoundary from './renderers/PdfErrorBoundary'
 
 // Lazy load specific rendering engines
 const PdfRenderer = lazy(() => import('./renderers/PdfRenderer'))
+const AdvancedPdfRenderer = lazy(() => import('./renderers/AdvancedPdfRenderer'))
 const NativePdfRenderer = lazy(() => import('./renderers/NativePdfRenderer'))
+const UniversalDocumentRenderer = lazy(() => import('./renderers/UniversalDocumentRenderer'))
 const VideoRenderer = lazy(() => import('./renderers/VideoRenderer'))
 const OfficeRenderer = lazy(() => import('./renderers/OfficeRenderer'))
 const ExcelRenderer = lazy(() => import('./renderers/ExcelRenderer'))
@@ -17,6 +20,8 @@ export default function MaterialRenderer({ material, activeTab, analysisState, o
   const [assignments, setAssignments] = useState([])
   const [activityLogs, setActivityLogs] = useState([])
   const [loading, setLoading] = useState(false)
+  const [useFallbackPdf, setUseFallbackPdf] = useState(false)
+  const [useUniversalConverter, setUseUniversalConverter] = useState(true) // Enable universal converter
   const [trackingData, setTrackingData] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -26,12 +31,155 @@ export default function MaterialRenderer({ material, activeTab, analysisState, o
     documentType: 'unknown'
   })
 
+  // Check for fallback parameter in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('pdfFallback') === 'true') {
+      setUseFallbackPdf(true)
+    }
+  }, [])
+
+  // Expose fallback function globally
+  useEffect(() => {
+    window.triggerPdfFallback = () => {
+      setUseFallbackPdf(true)
+    }
+    return () => {
+      delete window.triggerPdfFallback
+    }
+  }, [])
+
   // Handle progress updates from renderers
   const handleProgressUpdate = (progressData) => {
     setTrackingData(prev => ({
       ...prev,
       ...progressData
     }))
+  }
+
+  // Strategy detection based on file type/extension
+  const getRenderer = () => {
+    if (!material?.source_url) return <NoteRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
+
+    const type = material.type?.toLowerCase() || ''
+    const url = material.source_url || ''
+
+    // Universal Document Converter - Convert all documents to DOCX for best experience (except PDFs)
+    if (useUniversalConverter && [
+      'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'txt', 'md', 'rtf'
+    ].includes(type)) {
+      return (
+        <Suspense fallback={
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            height: '400px',
+            background: '#F8FAFC',
+            fontFamily: 'Outfit'
+          }}>
+            <Loader2 className="animate-spin" size={24} style={{ color: '#7a12cc', marginRight: '12px' }} />
+            <span style={{ color: '#64748B', fontSize: '14px' }}>Optimizing document for reading...</span>
+          </div>
+        }>
+          <UniversalDocumentRenderer 
+            material={material} 
+            activeTab={activeTab} 
+            analysisState={analysisState} 
+            onRunAnalysis={onRunAnalysis}
+            onProgressUpdate={handleProgressUpdate}
+          />
+        </Suspense>
+      )
+    }
+
+    // 1. Videos (YouTube, Vimeo, Direct Uploads)
+    if (type === 'video' || url.includes('youtube.com') || url.includes('vimeo.com') || url.includes('.mp4')) {
+      return <VideoRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
+    }
+
+    // 2. Anki Decks
+    if (type === 'anki' || url.endsWith('.apkg')) {
+      return <AnkiRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
+    }
+
+    // 3. Excel Files (.xlsx, .xls)
+    if (['xlsx', 'xls'].includes(type)) {
+      return <ExcelRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
+    }
+
+    // 4. Office Docs (Word & PowerPoint) - Fallback if universal converter disabled
+    if (['docx', 'pptx', 'doc', 'ppt'].includes(type)) {
+      return <OfficeRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
+    }
+
+    // 5. PDFs - Fallback if universal converter disabled
+    if (type === 'pdf' || url.endsWith('.pdf')) {
+      if (useFallbackPdf) {
+        // Use fallback native PDF viewer
+        return (
+          <Suspense fallback={
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              height: '400px',
+              background: '#F8FAFC',
+              fontFamily: 'Outfit'
+            }}>
+              <Loader2 className="animate-spin" size={24} style={{ color: '#7a12cc', marginRight: '12px' }} />
+              <span style={{ color: '#64748B', fontSize: '14px' }}>Loading basic PDF viewer...</span>
+            </div>
+          }>
+            <NativePdfRenderer 
+              material={material} 
+              activeTab={activeTab} 
+              analysisState={analysisState} 
+              onRunAnalysis={onRunAnalysis}
+              onProgressUpdate={handleProgressUpdate}
+            />
+          </Suspense>
+        )
+      } else {
+        // Try advanced PDF viewer with error boundary
+        return (
+          <PdfErrorBoundary 
+            material={material} 
+            useFallback={() => setUseFallbackPdf(true)}
+          >
+            <Suspense fallback={
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                height: '400px',
+                background: '#F8FAFC',
+                fontFamily: 'Outfit'
+              }}>
+                <Loader2 className="animate-spin" size={24} style={{ color: '#7a12cc', marginRight: '12px' }} />
+                <span style={{ color: '#64748B', fontSize: '14px' }}>Loading advanced PDF viewer...</span>
+              </div>
+            }>
+              <AdvancedPdfRenderer 
+                material={material} 
+                activeTab={activeTab} 
+                analysisState={analysisState} 
+                onRunAnalysis={onRunAnalysis}
+                onProgressUpdate={handleProgressUpdate}
+              />
+            </Suspense>
+          </PdfErrorBoundary>
+        )
+      }
+    }
+
+    // 6. Google Docs (Embed Strategy)
+    if (url.includes('docs.google.com')) {
+      return <OfficeRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
+    }
+    
+    // Default to a markdown/note renderer
+    return <NoteRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
   }
 
   useEffect(() => {
@@ -170,102 +318,22 @@ export default function MaterialRenderer({ material, activeTab, analysisState, o
     )
   }
 
-  // Content tab with integrated tracker
+  // Content tab - full content area without visible tracker
   if (activeTab === 'content') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        {/* Main content area */}
-        <div style={{ flex: 1, minHeight: 0 }}>
-          <div className="ws-canvas-container" style={{ width: '100%', height: '100%' }}>
-            <Suspense fallback={
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '16px' }}>
-                <Loader2 className="animate-spin" color="#7a12cc" size={32} />
-                <p style={{ fontFamily: 'Outfit', color: '#4C1D95', fontWeight: 600 }}>Loading Viewing Engine...</p>
-              </div>
-            }>
-              {getRenderer()}
-            </Suspense>
-          </div>
+      <div style={{ width: '100%', height: '100%' }}>
+        <div className="ws-canvas-container" style={{ width: '100%', height: '100%' }}>
+          <Suspense fallback={
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '16px' }}>
+              <Loader2 className="animate-spin" color="#7a12cc" size={32} />
+              <p style={{ fontFamily: 'Outfit', color: '#4C1D95', fontWeight: 600 }}>Loading Viewing Engine...</p>
+            </div>
+          }>
+            {getRenderer()}
+          </Suspense>
         </div>
-        
-        {/* Integrated Reading Tracker */}
-        {material && (material.type === 'pdf' || material.source_url?.endsWith('.pdf')) && (
-          <div style={{ 
-            height: '300px', 
-            borderTop: '1px solid #E2E8F0',
-            background: '#F8FAFC'
-          }}>
-            <ReadingTracker 
-              material={material} 
-              activeTab="content"
-              onProgressUpdate={handleProgressUpdate}
-            />
-          </div>
-        )}
       </div>
     )
-  }
-
-  // Strategy detection based on file type/extension
-  const getRenderer = () => {
-    const type = material.type?.toLowerCase()
-    const url = material.source_url || ''
-    
-    // 1. YouTube & Video
-    if (type === 'youtube' || url.includes('youtube.com') || url.includes('youtu.be')) {
-      return <VideoRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
-    }
-
-    // 2. Anki Imports (.apkg)
-    if (type === 'anki' || url.endsWith('.apkg')) {
-      return <AnkiRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
-    }
-
-    // 3. Excel Files (.xlsx, .xls)
-    if (['xlsx', 'xls'].includes(type)) {
-      return <ExcelRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
-    }
-
-    // 4. Office Docs (Word & PowerPoint)
-    if (['docx', 'pptx', 'doc', 'ppt'].includes(type)) {
-      return <OfficeRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
-    }
-
-    // 5. PDFs (Native Browser Viewer)
-    if (type === 'pdf' || url.endsWith('.pdf')) {
-      // Use native browser PDF viewer for best compatibility
-      return (
-        <Suspense fallback={
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            height: '400px',
-            background: '#F8FAFC',
-            fontFamily: 'Outfit'
-          }}>
-            <Loader2 className="animate-spin" size={24} style={{ color: '#7a12cc', marginRight: '12px' }} />
-            <span style={{ color: '#64748B', fontSize: '14px' }}>Loading PDF viewer...</span>
-          </div>
-        }>
-          <NativePdfRenderer 
-            material={material} 
-            activeTab={activeTab} 
-            analysisState={analysisState} 
-            onRunAnalysis={onRunAnalysis}
-            onProgressUpdate={handleProgressUpdate}
-          />
-        </Suspense>
-      )
-    }
-
-    // 6. Google Docs (Embed Strategy)
-    if (url.includes('docs.google.com')) {
-      return <OfficeRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
-    }
-    
-    // Default to a markdown/note renderer
-    return <NoteRenderer material={material} activeTab={activeTab} analysisState={analysisState} onRunAnalysis={onRunAnalysis} />
   }
 
   // Default case - return null if no tab matches

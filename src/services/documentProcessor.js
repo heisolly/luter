@@ -8,25 +8,34 @@ import { GROQ_API_KEY, GROQ_BASE_URL, GROQ_MODELS } from '../groqClient'
 // ─── PDF ─────────────────────────────────────────────────────────────────────
 
 export async function extractPdfText(file) {
-  const pdfjsLib = await import('pdfjs-dist')
-  // Use the bundled worker
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url
-  ).toString()
+  try {
+    const pdfjsLib = await import('pdfjs-dist')
+    
+    // Check if pdfjsLib is properly loaded
+    if (!pdfjsLib || !pdfjsLib.GlobalWorkerOptions) {
+      console.error('PDF.js library not properly loaded')
+      throw new Error('PDF.js library initialization failed')
+    }
+    
+    // Use the CDN worker instead of local file to avoid MIME type issues
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'
 
-  const arrayBuffer = await file.arrayBuffer()
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-  const pages = []
+    const arrayBuffer = await file.arrayBuffer()
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+    const pages = []
 
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i)
-    const content = await page.getTextContent()
-    const pageText = content.items.map(item => item.str).join(' ')
-    pages.push(pageText)
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i)
+      const content = await page.getTextContent()
+      const pageText = content.items.map(item => item.str).join(' ')
+      pages.push(pageText)
+    }
+
+    return pages.join('\n\n').trim()
+  } catch (error) {
+    console.error('PDF extraction failed:', error)
+    throw new Error(`PDF text extraction failed: ${error.message}`)
   }
-
-  return pages.join('\n\n').trim()
 }
 
 // ─── DOCX ─────────────────────────────────────────────────────────────────────

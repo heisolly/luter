@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { 
   Brain, Star, FileText, CheckCircle2, ChevronRight, ArrowLeft, ExternalLink, Sparkles, Layers, HelpCircle, Plus, Search, ChevronLeft, Briefcase, PlayCircle, Settings, User, LogOut, MoreVertical, Layout, Bookmark, Zap, Send, Loader2, AlertCircle 
@@ -15,6 +15,8 @@ import MaterialRenderer from './MaterialRenderer'
 import { WorkstationNotes, WorkstationSummary, WorkstationFlashcards, WorkstationQuiz } from './WorkstationAITools'
 import { saveToVault, fetchUserNotes, pollMaterialUntilReady } from '../../services/materialsService'
 import { AIHighlightService } from '../../services/aiHighlightService'
+import { MaterialAnalysisService } from '../../services/materialAnalysisService'
+import { debounce } from '../../utils/debounce'
 import './workstation.css'
 
 function WorkstationContent() {
@@ -29,11 +31,12 @@ function WorkstationContent() {
   const [isAiLoading, setIsAiLoading] = useState(false)
   const [courseMaterials, setCourseMaterials] = useState([])
   const [selectedMaterial, setSelectedMaterial] = useState(null)
+  const [analysisCache, setAnalysisCache] = useState({})
+  const [materialAnalysis, setMaterialAnalysis] = useState(null) // Cached analysis from Supabase
   const [showTools, setShowTools] = useState(false)
   const [hasNewAssignment, setHasNewAssignment] = useState(false)
   
   // Analysis cache: materialId -> { notes, summary, flashcards, quiz }
-  const [analysisCache, setAnalysisCache] = useState({})
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false)
   const [isExtractingText, setIsExtractingText] = useState(false)
   const [showDashboard, setShowDashboard] = useState(false) // Default to reader for "Workspace Home"
@@ -191,52 +194,153 @@ function WorkstationContent() {
     }
   }
 
-  // RAG & Analysis Logic
+  // RAG & Analysis Logic - Updated to use cached analysis
   const runAnalysis = async (type) => {
-    if (isExtractingText || isAnalysisLoading) return
+    if (isExtractingText || isAnalysisLoading || !selectedMaterial) return
     
     setIsAnalysisLoading(true)
     try {
-      let prompt;
-      let model = GROQ_MODELS.SPEEDSTER; // Use smaller model to avoid token limits
-
-      switch(type) {
-        case 'notes': 
-          prompt = GROQ_PROMPTS.AI_NOTES; 
-          model = GROQ_MODELS.PROFESSOR; // Use larger model only for notes
-          break;
-        case 'summary': 
-          prompt = GROQ_PROMPTS.SUMMARY; 
-          break;
-        case 'flashcards': 
-          prompt = GROQ_PROMPTS.FLASHCARDS; 
-          break;
-        case 'quiz': 
-          prompt = GROQ_PROMPTS.MOCK_EXAM; 
-          break;
-        default: prompt = GROQ_PROMPTS.AI_NOTES;
-      }
-
-      const context = selectedMaterial.extracted_text.slice(0, 6000); // Further reduced to avoid token limits
-      const response = await callGroqAPI(
-        [{ role: 'user', content: `Material Title: ${selectedMaterial.title}\n\nContent:\n${context}` }],
-        model,
-        { systemPromptOverride: prompt }
-      )
-      
-      const content = response.choices[0].message.content
-      let finalResult = content;
-      
-      if (type === 'flashcards' || type === 'quiz') {
-        try {
-          const jsonMatch = content.match(/\[[\s\S]*\]/);
-          finalResult = JSON.parse(jsonMatch ? jsonMatch[0] : content.replace(/```json|```/g, ''));
-        } catch (e) {
-          console.error("Failed to parse AI JSON:", e);
-          finalResult = content;
+      // Get or create cached analysis for this material
+      let currentAnalysis = materialAnalysis
+      if (!materialAnalysis || !materialAnalysis.summary) {
+        console.log('Getting material analysis for:', selectedMaterial.id)
+        const analysisResult = await MaterialAnalysisService.getOrCreateAnalysis(
+          selectedMaterial.id,
+          selectedMaterial,
+          user.id
+        )
+        
+        if (analysisResult.success) {
+          setMaterialAnalysis(analysisResult.analysis)
+          console.log('Analysis loaded:', analysisResult.isCached ? 'from cache' : 'newly generated')
+          currentAnalysis = analysisResult.analysis // Use the new analysis immediately
+          
+          // Validate analysis has required properties
+          if (!analysisResult.analysis || !analysisResult.analysis.summary) {
+            console.warn('Analysis missing summary, creating fallback')
+            const fallbackAnalysis = {
+              ...analysisResult.analysis,
+              summary: 'Analysis processing complete. Summary will be available shortly.',
+              keyTopics: analysisResult.analysis?.keyTopics || [],
+              learningObjectives: analysisResult.analysis?.learningObjectives || [],
+              extracted_text: selectedMaterial.extracted_text, // Add content for direct generation
+              materialMetadata: {
+                ...analysisResult.analysis?.materialMetadata,
+                content: selectedMaterial.extracted_text
+              }
+            }
+            setMaterialAnalysis(fallbackAnalysis)
+            currentAnalysis = fallbackAnalysis // Use fallback immediately
+          }
+        } else {
+          throw new Error(analysisResult.error)
         }
       }
-
+      
+      let finalResult
+      
+      // Generate content based on type using cached analysis
+      switch(type) {
+        case 'notes':
+          // Generate AI notes using Groq API
+          try {
+            // Check if we're rate limited
+            const dailyUsage = window.groqDailyUsage || 0
+            if (dailyUsage > 95000) {
+              console.log('Approaching daily token limit, using cached summary for notes')
+              finalResult = currentAnalysis?.summary || 'Notes generation temporarily unavailable due to API limits. Please try again later.'
+              break
+            }
+            
+            const content = selectedMaterial.extracted_text?.slice(0, 6000) || ''
+            if (!content) {
+              finalResult = 'No content available for note generation.'
+              break
+            }
+            
+            const notesPrompt = `Act as a world-class academic tutor. Create highly detailed, structured, and comprehensive study notes from the provided text.
+            
+            Structure:
+            1. **Topic Overview**: A brief 2-3 sentence introduction.
+            2. **Core Concepts & Definitions**: Use bolding for key terms.
+            3. **Detailed Breakdown**: Deep dive into the main arguments, mechanisms, or theories.
+            4. **Key Examples**: Practical applications or examples.
+            5. **Summary Points**: Bullet point summary of the most important takeaways.
+            
+            Material Title: ${selectedMaterial.title || 'Untitled'}
+            Material Type: ${selectedMaterial.type || 'document'}
+            
+            Content:
+            ${content}`
+            
+            const response = await callGroqAPI(
+              [{ role: 'user', content: notesPrompt }],
+              'llama-3.3-70b-versatile',
+              { systemPromptOverride: GROQ_PROMPTS.AI_NOTES }
+            )
+            
+            // Track usage
+            window.groqDailyUsage = (window.groqDailyUsage || 0) + 3000 // Estimate
+            
+            finalResult = response.choices[0].message.content
+            
+          } catch (notesError) {
+            console.error('AI notes generation failed:', notesError)
+            // Check if it's a rate limit error
+            if (notesError.message?.includes('Rate limit reached') || notesError.message?.includes('429')) {
+              console.log('Rate limit reached for notes, using fallback')
+              window.groqDailyUsage = 100000
+              finalResult = 'Notes generation temporarily unavailable due to API limits. Please try again later.'
+            } else {
+              finalResult = currentAnalysis?.summary || 'Notes are being generated. Please wait a moment for the analysis to complete.'
+            }
+          }
+          break
+          
+        case 'summary':
+          // Use cached summary
+          finalResult = currentAnalysis?.summary || 'Summary is being generated. Please wait a moment for the analysis to complete.'
+          break
+          
+        case 'flashcards':
+          // Generate flashcards from cached analysis
+          try {
+            const flashcardResult = await MaterialAnalysisService.generateFlashcards(currentAnalysis, 10)
+            if (flashcardResult.success) {
+              finalResult = flashcardResult.flashcards
+            } else {
+              throw new Error(flashcardResult.error)
+            }
+          } catch (flashcardError) {
+            console.error('Flashcard generation failed:', flashcardError)
+            // Use fallback flashcards
+            const fallbackResult = MaterialAnalysisService.createFallbackFlashcards(10)
+            finalResult = fallbackResult.flashcards
+          }
+          break
+          
+        case 'quiz':
+          // Generate quiz from cached analysis
+          try {
+            const quizResult = await MaterialAnalysisService.generateQuiz(currentAnalysis, 5, 'medium')
+            if (quizResult.success) {
+              finalResult = quizResult.quiz
+            } else {
+              throw new Error(quizResult.error)
+            }
+          } catch (quizError) {
+            console.error('Quiz generation failed:', quizError)
+            // Use fallback quiz
+            const fallbackResult = MaterialAnalysisService.createFallbackQuiz(5, 'medium')
+            finalResult = fallbackResult.quiz
+          }
+          break
+          
+        default:
+          throw new Error('Unknown analysis type')
+      }
+      
+      // Update cache with new result
       setAnalysisCache(prev => ({
         ...prev,
         [selectedMaterial.id]: {
@@ -244,55 +348,48 @@ function WorkstationContent() {
           [type]: finalResult
         }
       }))
-
-      // Persist AI Notes to the vault
-      if (type === 'notes') {
+      
+      // Persist AI Notes to the vault (only for notes type)
+      if (type === 'notes' && typeof finalResult === 'string') {
         try {
           await saveToVault({
-            userId: user.id,
-            courseId: courseId,
-            materialId: selectedMaterial.id,
-            title: `AI Notes: ${selectedMaterial.title}`,
+            material_id: selectedMaterial.id,
+            user_id: user.id,
             content: finalResult,
-            sourceType: 'ai',
-            tags: ['ai-generated', 'workstation']
+            type: 'ai_notes'
           })
-        } catch (saveErr) {
-          console.error("Failed to save AI notes to vault:", saveErr)
+        } catch (error) {
+          console.error('Failed to save notes to vault:', error)
         }
       }
-    } catch (err) {
-      console.error('Analysis failed:', err)
-      // Handle rate limiting gracefully
-      if (err.message.includes('413') || err.message.includes('tokens per minute')) {
-        setAnalysisCache(prev => ({
-          ...prev,
-          [selectedMaterial.id]: {
-            ...(prev[selectedMaterial.id] || {}),
-            [type]: `The document is too large for AI analysis. Try breaking it into smaller sections or upgrading your plan for higher limits.`
-          }
-        }))
-      } else if (err.message.includes('429') || err.message.includes('rate limit')) {
-        setAnalysisCache(prev => ({
-          ...prev,
-          [selectedMaterial.id]: {
-            ...(prev[selectedMaterial.id] || {}),
-            [type]: `AI analysis temporarily unavailable due to high demand. Please try again in a few minutes. Your document is still available for viewing.`
-          }
-        }))
-      } else {
-        setAnalysisCache(prev => ({
-          ...prev,
-          [selectedMaterial.id]: {
-            ...(prev[selectedMaterial.id] || {}),
-            [type]: `Analysis temporarily unavailable. Your document is still accessible. Error: ${err.message || 'Unknown error'}`
-          }
-        }))
-      }
+      
+    } catch (error) {
+      console.error('Analysis error:', error)
+      // Set error message in cache
+      setAnalysisCache(prev => ({
+        ...prev,
+        [selectedMaterial.id]: {
+          ...(prev[selectedMaterial.id] || {}),
+          [type]: `Error: ${error.message}`
+        }
+      }))
     } finally {
       setIsAnalysisLoading(false)
     }
   }
+  
+  // Reset analysis when material changes
+  useEffect(() => {
+    if (selectedMaterial) {
+      setMaterialAnalysis(null) // Reset cached analysis for new material
+      console.log('Material changed, resetting analysis cache')
+    }
+  }, [selectedMaterial?.id])
+  
+  // Create debounced version of runAnalysis to prevent excessive calls
+  const debouncedRunAnalysis = useCallback(debounce(async (type) => {
+    await runAnalysis(type)
+  }, 1000), [selectedMaterial, user, materialAnalysis])
 
   useEffect(() => {
     async function checkExistingAnalysis() {

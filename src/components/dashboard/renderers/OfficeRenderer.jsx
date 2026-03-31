@@ -681,15 +681,66 @@ export default function OfficeRenderer({ material, activeTab, analysisState, onR
     }
   }, [drawCommands])
 
-  // Expose DOCX highlighting function to global scope
+  // Expose DOCX highlighting function to global scope with enhanced context
   useEffect(() => {
     window.highlightDocxText = (text, label, context) => {
-      highlightDocxText(text, label, context)
+      // Create comprehensive context for DOCX
+      const fullContext = {
+        // Document metadata
+        documentInfo: {
+          title: material?.title || 'Untitled Document',
+          type: 'docx',
+          sourceUrl: material?.source_url,
+          courseId: material?.course_id,
+          materialId: material?.id,
+          timestamp: Date.now()
+        },
+        
+        // Location information for DOCX
+        location: {
+          documentType: 'docx',
+          position: 'document-body', // DOCX doesn't have pages like PDF
+          section: context?.section || 'main-content',
+          paragraph: context?.paragraph || 'unknown',
+          positionDescription: `DOCX document, section: ${context?.section || 'main'}, paragraph: ${context?.paragraph || 'unknown'}`,
+          textOffset: context?.offset || 0
+        },
+        
+        // Selected content
+        content: {
+          selectedText: text,
+          textLength: text.length,
+          wordCount: text.split(/\s+/).length,
+          characterCount: text.length
+        },
+        
+        // Reading context
+        readingContext: {
+          userHighlights: aiHighlights.length,
+          documentProgress: 50, // DOCX progress is harder to track
+          sessionTime: Date.now() - (material?.sessionStartTime || Date.now()),
+          isSelectionMode: false
+        },
+        
+        // System context
+        systemContext: {
+          component: 'OfficeRenderer',
+          viewer: 'docx-preview',
+          coordinateSystem: 'text-based',
+          renderingMethod: 'html-render',
+          viewportSize: {
+            width: window.innerWidth,
+            height: window.innerHeight
+          }
+        }
+      }
+      
+      highlightDocxText(text, label, fullContext)
     }
     return () => {
       delete window.highlightDocxText
     }
-  }, [highlightDocxText])
+  }, [highlightDocxText, material, aiHighlights.length])
 
   // Handle Live Highlights from AI
   useEffect(() => {
