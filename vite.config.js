@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
         manifest: {
           name: 'Luter',
           short_name: 'Luter',
-          description: 'AI-powered study notes, flashcards, and mock exams.',
+          description: 'Study notes, flashcards, and mock exams.',
           theme_color: '#9718fb',
           background_color: '#111116',
           display: 'standalone',

@@ -59,7 +59,7 @@ export const curriculum_db = {
       ],
       "2nd": [
         { code: "CSC 302", name: "Compiler Construction", credits: 3 },
-        { code: "CSC 304", name: "Artificial Intelligence I", credits: 3 },
+        { code: "CSC 304", name: "Intelligent Systems I", credits: 3 },
         { code: "CSC 306", name: "Computer Graphics & Visualisation", credits: 3 },
         { code: "CSC 308", name: "Information Security", credits: 3 },
         { code: "CSC 310", name: "Computer Networks II", credits: 3 },

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   X, Search, Plus, BookOpen, Loader2, ChevronDown, 
-  University, GraduationCap, Sparkles, CheckCircle
+  University, GraduationCap, Star, CheckCircle
 } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
 import { 
@@ -435,7 +435,7 @@ export default function CourseEnrollmentModal({
                                  <span style={{ fontSize: 15, fontWeight: 800, color: '#0f172a' }}>{course.code}</span>
                                  {course.hitKind === 'match' && (
                                    <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--primary)', background: 'rgba(151,24,251,0.1)', padding: '2px 6px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                                      <Sparkles size={9} /> AI MATCH
+                                      <Star size={9} /> MATCH
                                    </span>
                                  )}
                                </div>

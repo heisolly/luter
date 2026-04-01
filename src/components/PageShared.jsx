@@ -21,7 +21,6 @@ export function PageBackground() {
   );
 }
 
-/* Highlighted static text */
 export function HighlightedText({ texts, style = {} }) {
   const displayText = texts && texts.length > 0 ? texts[0] : '';
   return (
@@ -39,6 +38,7 @@ export function HighlightedText({ texts, style = {} }) {
   );
 }
 
+/* Fade-in on scroll hook */
 /* Fade-in on scroll hook */
 export function useReveal() {
   const ref = useRef(null);
@@ -60,8 +60,6 @@ export function RevealDiv({ children, style = {}, delay = 0 }) {
   );
 }
 
-/* Shared Navbar */
-/* Shared Navbar */
 export function SharedNavbar() {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);

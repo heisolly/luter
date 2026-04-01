@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { 
-  Brain, Star, FileText, CheckCircle2, ChevronRight, ArrowLeft, ExternalLink, Sparkles, Layers, HelpCircle, Plus, Search, ChevronLeft, Briefcase, PlayCircle, Settings, User, LogOut, MoreVertical, Layout, Bookmark, Zap, Send, Loader2, AlertCircle 
+  BookOpen, Star, FileText, CheckCircle2, ChevronRight, ArrowLeft, ExternalLink, Layers, HelpCircle, Plus, Search, ChevronLeft, Briefcase, PlayCircle, Settings, User, LogOut, MoreVertical, Layout, Bookmark, Zap, Send, Loader2, AlertCircle 
 } from 'lucide-react'
 
 import LuterLogo from '../shared/LuterLogo'
@@ -12,9 +12,9 @@ import { supabase } from '../../supabaseClient'
 import { ReadingSpaceProvider, useReadingSpace } from './ReadingSpaceContext'
 import { SelectionActionBar } from './WorkstationOverlays'
 import MaterialRenderer from './MaterialRenderer'
-import { WorkstationNotes, WorkstationSummary, WorkstationFlashcards, WorkstationQuiz } from './WorkstationAITools'
+import { WorkstationNotes, WorkstationSummary, WorkstationFlashcards, WorkstationQuiz } from './WorkstationTools'
 import { saveToVault, fetchUserNotes, pollMaterialUntilReady } from '../../services/materialsService'
-import { AIHighlightService } from '../../services/aiHighlightService'
+import { HighlightService } from '../../services/aiHighlightService'
 import { MaterialAnalysisService } from '../../services/materialAnalysisService'
 import { debounce } from '../../utils/debounce'
 import './workstation.css'
@@ -28,7 +28,7 @@ function WorkstationContent() {
   const [activeTab, setActiveTab] = useState('content')
   const [chatInput, setChatInput] = useState('')
   const [messages, setMessages] = useState([])
-  const [isAiLoading, setIsAiLoading] = useState(false)
+  const [isProcessingLoading, setIsProcessingLoading] = useState(false)
   const [courseMaterials, setCourseMaterials] = useState([])
   const [selectedMaterial, setSelectedMaterial] = useState(null)
   const [analysisCache, setAnalysisCache] = useState({})
@@ -66,7 +66,7 @@ function WorkstationContent() {
         if (!isMounted) return
         setIsExtractingText(false)
         setSelectedMaterial(prev => prev ? { ...prev, processing_status: 'failed' } : null)
-        setMessages(prev => [...prev, { role: 'ai', content: "I couldn't read the text inside this file. It might be corrupt or an unsupported format." }])
+        setMessages(prev => [...prev, { role: 'assistant', content: "I couldn't read the text inside this file. It might be corrupt or an unsupported format." }])
       }
     }).then(fn => {
       cleanup = fn
@@ -83,7 +83,7 @@ function WorkstationContent() {
 
   const toolLinks = [
     { id: 'files', label: 'Files', icon: FileText, path: '/dashboard/files' },
-    { id: 'ai-notes', label: 'AI Notes', icon: Brain, path: '/dashboard/ai-notes' },
+    { id: 'smart-notes', label: 'Smart Notes', icon: BookOpen, path: '/dashboard/ai-notes' },
     { id: 'assignments', label: 'Assignments', icon: Layers, path: '/dashboard/assignments' },
   ]
 

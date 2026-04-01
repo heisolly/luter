@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Loader2, Sparkles, BrainCircuit } from 'lucide-react';
+import { ArrowRight, Loader2, BookOpen, GraduationCap } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { SharedNavbar } from './PageShared';
 import GoogleLoginButton from './auth/GoogleLoginButton';
@@ -39,12 +39,12 @@ export default function SignIn() {
         <div className="hero-bg-grid" />
         <div style={{ position: 'absolute', top: '12%', left: '5%', animation: 'float-up-down 6s ease-in-out infinite', opacity: 0.5 }}>
           <div style={{ width: 50, height: 50, background: 'rgba(151,24,251,0.1)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'rotate(-10deg)', border: '1px solid rgba(151,24,251,0.2)' }}>
-            <Sparkles size={24} color="var(--primary)" />
+            <BookOpen size={24} color="var(--primary)" />
           </div>
         </div>
         <div style={{ position: 'absolute', bottom: '15%', right: '5%', animation: 'float-up-down 8s ease-in-out infinite reverse', opacity: 0.5 }}>
           <div style={{ width: 60, height: 60, background: 'rgba(2,132,199,0.08)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(2,132,199,0.15)' }}>
-            <BrainCircuit size={28} color="#0284c7" />
+            <GraduationCap size={28} color="#0284c7" />
           </div>
         </div>
       </div>

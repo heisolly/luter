@@ -205,8 +205,8 @@ export class PdfToWordConverter {
       // Extract text with advanced PDF processing
       const extractedData = await this.extractPdfWithStructure(pdfFile)
       
-      // Use AI to structure the content like Word would
-      const structuredContent = await this.structureContentWithAI(extractedData, metadata)
+      // Use advanced processing to structure the content
+      const structuredContent = await this.structureContentWithAdvanced(extractedData, metadata)
       
       return {
         success: true,
@@ -334,25 +334,25 @@ export class PdfToWordConverter {
   }
   
   /**
-   * Use AI to structure content like Word document (with rate limiting)
+   * Advanced content structuring with rate limiting
    */
-  static async structureContentWithAI(extractedData, metadata) {
+  static async structureContentWithAdvanced(extractedData, metadata) {
     try {
       const allText = extractedData.pages.map(page => page.text).join('\n\n')
       
       // Rate limiting and content size checks
       if (allText.length > 8000) {
-        console.log('Content too large for AI structuring, using basic format')
+        console.log('Content too large for advanced structuring, using basic format')
         return this.createBasicDocxStructure(allText, metadata)
       }
       
-      const lastCall = window.lastPdfAIstructuringCall || 0
+      const lastCall = window.lastPdfAdvancedStructuringCall || 0
       const now = Date.now()
       if (now - lastCall < 45000) { // 45 second cooldown for PDF conversion
-        console.log('PDF AI structuring rate limited, using basic format')
+        console.log('Advanced structuring rate limited, using basic format')
         return this.createBasicDocxStructure(allText, metadata)
       }
-      window.lastPdfAIstructuringCall = now
+      window.lastPdfAdvancedStructuringCall = now
       
       const prompt = `
 Convert this PDF content into a well-structured Word document format.
@@ -389,7 +389,7 @@ Return the content in a format that can be used in a Word document with proper m
       return documentHeader + '\n\n' + structuredContent
       
     } catch (error) {
-      console.error('AI structuring failed:', error)
+      console.error('Advanced structuring failed:', error)
       // Fallback to basic structure
       return this.createBasicDocxStructure(
         extractedData.pages.map(page => page.text).join('\n\n'),
@@ -409,7 +409,7 @@ Return the content in a format that can be used in a Word document with proper m
 - Converted: ${new Date().toLocaleDateString()}
 - Total Pages: ${extractedData.totalPages}
 - Author: ${metadata.author || 'Luter User'}
-- Conversion Method: AI-Powered Structure Analysis
+- Conversion Method: Advanced Structure Analysis
 
 ---
 

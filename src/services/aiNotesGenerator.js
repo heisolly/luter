@@ -1,7 +1,7 @@
 import { supabase } from '../supabaseClient'
 import { callGroqAPI } from './groqClient'
 
-// ==================== AI NOTES GENERATION ====================
+// ==================== NOTES GENERATION ====================
 
 export class AINotesGenerator {
   constructor() {
@@ -26,7 +26,7 @@ export class AINotesGenerator {
       
       return generatedNotes
     } catch (error) {
-      console.error('Failed to generate AI notes:', error)
+      console.error('Failed to generate notes:', error)
       throw error
     }
   }
@@ -320,7 +320,7 @@ Ensure questions test understanding, not just memorization.`
       const results = await Promise.all(promises)
       return results
     } catch (error) {
-      console.error('Failed to save AI notes:', error)
+      console.error('Failed to save notes:', error)
       throw error
     }
   }

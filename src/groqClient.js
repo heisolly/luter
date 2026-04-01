@@ -1,18 +1,18 @@
 import { supabase } from './supabaseClient'
 
-// Groq AI Configuration
+// System Configuration
 export const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
 export const GROQ_BASE_URL = 'https://api.groq.com/openai/v1'
 
-// Model Selection Logic - Updated to current supported models
+// Model Configuration
 export const GROQ_MODELS = {
-  PROFESSOR: 'llama-3.3-70b-versatile',  // For AI Notes, Complex Tutoring, Context Understanding
-  SPEEDSTER: 'llama-3.1-8b-instant',      // For AI Summary, Flashcard Generation, Mock Exam MCQs
+  PROFESSOR: 'llama-3.3-70b-versatile',  // For Notes, Complex Tutoring, Context Understanding
+  SPEEDSTER: 'llama-3.1-8b-instant',      // For Summary, Flashcard Generation, Mock Exam MCQs
   VISION: 'llama-3.2-11b-vision-preview', // Updated vision model
   WHISPER: 'whisper-large-v3-turbo'       // Ultra-fast transcription
 }
 
-// Master System Prompt - The Soul of Luter AI
+// System Prompt
 export const LUTER_SYSTEM_PROMPT = `You are Luter AI, a premium, high-energy Academic Tutor for Nigerian University students. Your goal is to simplify complex departmental materials into 'First Class' quality insights.
 
 Tone: Encouraging, sharp, and professional. Use Nigerian academic context where appropriate (e.g., referencing 'JAMB-style' or 'CBT-standard' questions).
@@ -40,7 +40,7 @@ export function buildLuterSystemPrompt(profile) {
   return prompt
 }
 
-// Feature-Specific Prompts
+// Service Prompts
 export const GROQ_PROMPTS = {
   AI_NOTES: `Act as a world-class academic tutor. Create highly detailed, structured, and comprehensive study notes from the provided text.
   
@@ -75,7 +75,7 @@ export const GROQ_PROMPTS = {
   
   Keep it professional, academic, and extremely high-signal.`,
   
-  AI_TUTOR: `You are Luter AI Tutor helping a student understand this course material. Be encouraging, use examples relevant to Nigerian university context, and provide clear, concise explanations.`,
+  TUTOR: `You are Luter Tutor helping a student understand this course material. Be encouraging, use examples relevant to Nigerian university context, and provide clear, concise explanations.`,
 
   RAG_CONTEXT: `You are provided with several document snippets relevant to the student's query. Use them to provide a grounded, accurate answer. If the snippets don't contain the answer, synthesize based on general academic principles but state your source is external.`,
 

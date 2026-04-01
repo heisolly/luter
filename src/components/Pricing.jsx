@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Plus, Star, ArrowRight, Sparkles } from 'lucide-react';
+import { Check, Plus, Star, ArrowRight, Zap } from 'lucide-react';
 import { PageBackground, HighlightedText, RevealDiv, SharedNavbar } from './PageShared';
 
 const FAQItem = ({ q, a }) => {
@@ -27,7 +27,7 @@ const plans = [
     bg: 'white', color: '#111', border: '#e5e7eb',
     buttonStyle: { background: 'white', color: '#111', border: '1px solid #e5e7eb' },
     buttonText: 'Start for Free',
-    features: ['5 uploads per month', 'AI Notes (Basic)', 'AI Summary', 'Flashcard generation', 'Community support']
+    features: ['5 uploads per month', 'Smart Notes (Basic)', 'Summary', 'Flashcard generation', 'Community support']
   },
   {
     name: 'University Pro', trial: 'Most popular for students',
@@ -36,7 +36,7 @@ const plans = [
     bg: 'linear-gradient(160deg, #6d28d9, #9718fb 60%, #7180FE)', color: 'white', border: 'transparent',
     buttonStyle: { background: 'white', color: 'var(--primary)', border: 'none' },
     buttonText: 'Get Started',
-    features: ['Unlimited uploads', 'Advanced AI Notes', 'AI Summary + Quizzes', 'Spaced-rep Flashcards', 'AI Math Expert', 'Live Lecture Recording', 'Priority support']
+    features: ['Unlimited uploads', 'Advanced Smart Notes', 'Summary + Quizzes', 'Spaced-rep Flashcards', 'Math Expert', 'Live Lecture Recording', 'Priority support']
   },
   {
     name: 'Premium', trial: 'For power users',
@@ -45,14 +45,14 @@ const plans = [
     bg: 'white', color: '#111', border: '#e5e7eb',
     buttonStyle: { background: 'linear-gradient(135deg, var(--primary), #7180fe)', color: 'white', border: 'none' },
     buttonText: 'Get Started',
-    features: ['Everything in University Pro', 'Analyze Images with AI', 'Multi-file Sessions', 'Team collaboration', 'Dedicated support', 'Early feature access']
+    features: ['Everything in University Pro', 'Analyze Images', 'Multi-file Sessions', 'Team collaboration', 'Dedicated support', 'Early feature access']
   }
 ];
 
 const testimonials = [
   { name: 'Adaeze O.', text: 'I went from a 2:2 to a First Class. No joke — Luter changed how I study.' },
   { name: 'Marcus L.', text: 'Uploaded a 200-slide deck at midnight. Flashcards ready in 10 seconds. Passed.' },
-  { name: 'Priya S.', text: 'The AI explained concepts better than my actual professor. Unreal.' },
+  { name: 'Priya S.', text: 'The smart tutor explained concepts better than my actual professor. Unreal.' },
   { name: 'Tom K.', text: 'Best study investment I\'ve made. Worth every penny.' },
   { name: 'Zara M.', text: 'I use it for law school reading. Summaries are clean and incredibly accurate.' },
   { name: 'Emeka B.', text: 'It understands Nigerian university syllabi too. Was not expecting that at all.' },

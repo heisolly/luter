@@ -5,16 +5,15 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Plus, ArrowRight, Brain, Zap, FileText, GraduationCap,
-  ChevronRight, Clock, Star, Check, BookOpen, Cpu,
-  BarChart2, Layers, MessageSquare, Upload, Play,
-  Sparkles, Shield, Globe, Users, TrendingUp, Award,
+  Plus, ArrowRight, BookOpen, Zap, FileText, GraduationCap,
+  ChevronRight, Clock, Star, Check, Layers, MessageSquare, Upload, Play,
+  Shield, Globe, Users, TrendingUp, Award,
   Headphones, Folder, RefreshCw, MessageCircleQuestion
 } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* ── small helpers ── */
+// Small helpers
 const AvatarGroup = () => {
   const initials = ['AO', 'BK', 'CM', 'DL', 'EF'];
   const colors = ['#c4b5f7', '#a78bfa', '#ddd6fe', '#ede9fe', '#e0d9ff'];
@@ -71,7 +70,7 @@ const plans = [
     bg: 'white', color: '#111', border: '#e5e7eb',
     buttonStyle: { background: 'white', color: '#111', border: '1px solid #e5e7eb' },
     buttonText: 'Start for Free',
-    features: ['5 uploads per month', 'AI Notes (Basic)', 'AI Summary', 'Flashcard generation', 'Community support']
+    features: ['5 uploads per month', 'Smart Notes (Basic)', 'Summary', 'Flashcard generation', 'Community support']
   },
   {
     name: 'University Pro', trial: 'Most popular for students',
@@ -80,7 +79,7 @@ const plans = [
     bg: 'linear-gradient(160deg, #6d28d9, #9718fb 60%, #7180FE)', color: 'white', border: 'transparent',
     buttonStyle: { background: 'white', color: 'var(--primary)', border: 'none' },
     buttonText: 'Get Started',
-    features: ['Unlimited uploads', 'Advanced AI Notes', 'AI Summary + Quizzes', 'Spaced-rep Flashcards', 'AI Math Expert', 'Live Lecture Recording', 'Priority support']
+    features: ['Unlimited uploads', 'Advanced Smart Notes', 'Summary + Quizzes', 'Spaced-rep Flashcards', 'Math Expert', 'Live Lecture Recording', 'Priority support']
   },
   {
     name: 'Premium', trial: 'For power users',
@@ -89,15 +88,14 @@ const plans = [
     bg: 'white', color: '#111', border: '#e5e7eb',
     buttonStyle: { background: 'linear-gradient(135deg, var(--primary), #7180fe)', color: 'white', border: 'none' },
     buttonText: 'Get Started',
-    features: ['Everything in University Pro', 'Analyze Images with AI', 'Multi-file Sessions', 'Team collaboration', 'Dedicated support', 'Early feature access']
+    features: ['Everything in University Pro', 'Analyze Images', 'Multi-file Sessions', 'Team collaboration', 'Dedicated support', 'Early feature access']
   }
 ];
 
-/* ─────────────────────────────────────────────────── */
 export default function LandingPage() {
   const containerRef = useRef(null);
 
-  /* GSAP animations */
+  // GSAP animations
   useEffect(() => {
     const ctx = gsap.context(() => {
       const heroTargets = containerRef.current.querySelectorAll('.hero-content > *');
@@ -315,7 +313,7 @@ export default function LandingPage() {
                 border: '1px solid rgba(151,24,251,0.1)'
               }}>
                 <h4 style={{ fontSize: 16, fontWeight: 800, color: 'var(--primary)', marginBottom: 4 }}>Level Up Your Grades</h4>
-                <p style={{ fontSize: 13, color: 'var(--primary)', opacity: 0.7, fontWeight: 500 }}>Join 5M+ students using AI to master their curriculum.</p>
+                <p style={{ fontSize: 13, color: 'var(--primary)', opacity: 0.7, fontWeight: 500 }}>Join 5M+ students mastering their curriculum.</p>
               </div>
               <Link 
                 to="/signup" 

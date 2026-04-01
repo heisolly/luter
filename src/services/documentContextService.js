@@ -1,7 +1,7 @@
 /**
  * Document Context Service
  * Provides comprehensive location and context information for all document types
- * Ensures AI tutor gets full context about exact document locations
+ * Ensures tutor gets full context about exact document locations
  */
 
 export class DocumentContextService {
@@ -241,7 +241,7 @@ export class DocumentContextService {
   }
   
   /**
-   * Send context to AI tutor with all available information
+   * Send context to tutor with all available information
    */
   static sendToAITutor(fullContext) {
     // Create a comprehensive prompt for the AI
@@ -263,7 +263,7 @@ export class DocumentContextService {
     
     // Send to tool interface
     if (window.aiToolInterface) {
-      console.log('Sending comprehensive context to AI tutor:', fullContext)
+      console.log('Sending comprehensive context to tutor:', fullContext)
     }
     
     // Enhanced global function
@@ -273,9 +273,9 @@ export class DocumentContextService {
     
     // Fallback: copy comprehensive prompt to clipboard
     navigator.clipboard.writeText(prompt).then(() => {
-      console.log('Comprehensive context copied to clipboard for AI tutor')
+      console.log('Comprehensive context copied to clipboard for tutor')
     }).catch(() => {
-      console.log('Comprehensive prompt for AI tutor:', prompt)
+      console.log('Comprehensive prompt for tutor:', prompt)
     })
     
     return prompt

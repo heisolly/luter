@@ -187,7 +187,7 @@ export async function updateRequestStatus(requestId, status, adminNotes = null) 
   return data
 }
 
-// ==================== AI GENERATED NOTES ====================
+// ==================== NOTES GENERATION ====================
 
 export async function generateAINotes(materialId, noteType, prompt = null) {
   // This would integrate with your AI service
