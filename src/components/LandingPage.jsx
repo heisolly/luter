@@ -435,7 +435,7 @@ export default function LandingPage() {
                 <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
                   {/* Left sidebar */}
                   <div style={{ width:56, borderRight:'1px solid #ebe9f5', background:'white', display:'flex', flexDirection:'column', alignItems:'center', padding:'12px 0', gap:20 }}>
-                    {[BookOpen, Layers, Brain, BarChart2, MessageSquare].map((Icon, i) => (
+                    {[BookOpen, Layers, Zap, FileText, MessageSquare].map((Icon, i) => (
                       <div key={i} style={{ width:32, height:32, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', background: i===1 ? 'var(--primary-bg)' : 'transparent', cursor:'pointer' }}>
                         <Icon style={{ width:16, height:16, color: i===1 ? 'var(--primary)' : '#bbb' }} />
                       </div>
@@ -445,7 +445,7 @@ export default function LandingPage() {
                   {/* Main section */}
                   <div style={{ flex:1, display:'flex', flexDirection:'column', background:'#F7F5FF' }}>
                     <div style={{ display:'flex', gap:4, padding:'8px 8px 0', background:'transparent' }}>
-                      {['Original', 'AI Notes', 'AI Summary', 'Flashcards', 'AI Quiz'].map((tab, i) => (
+                      {['Original', 'Smart Notes', 'Summary', 'Flashcards', 'Quiz'].map((tab, i) => (
                         <div key={i} style={{
                           padding:'6px 12px', borderRadius:'8px 8px 0 0', fontSize:11, fontWeight:700, cursor:'pointer',
                           background: i===1 ? 'white' : 'transparent',
@@ -817,7 +817,7 @@ export default function LandingPage() {
             <article style={{ display:'flex', flexDirection:'column', alignItems:'center', background:'white', borderRadius:20, padding:'32px 24px', border:'1px solid #e8e8ec', maxWidth:240, width:'100%', boxShadow:'0 8px 32px rgba(0,0,0,0.08)' }}>
               {/* Logo icon */}
               <div style={{ width:80, height:80, background:'linear-gradient(135deg,#ede9fe,#c4b5f7)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20, boxShadow:'0 4px 20px rgba(151,24,251,0.2)' }}>
-                <Brain style={{ width:38, height:38, color:'var(--primary)' }} />
+                <BookOpen style={{ width:38, height:38, color:'var(--primary)' }} />
               </div>
               <h4 style={{ color:'#333', textAlign:'center', fontFamily:'var(--font-inter)', fontWeight:700, lineHeight:'140%', fontSize:17, padding:'0 8px', marginBottom:10 }}>
                 Any file. Any format. Any subject.
