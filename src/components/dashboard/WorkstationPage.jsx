@@ -515,10 +515,10 @@ Provide a helpful response explaining the highlights.
 
   const tabs = [
     { id: 'content', label: 'Workspace Home', icon: FileText },
-    { id: 'notes', label: 'AI Notes', icon: Brain, description: 'Notes that write themselves' },
-    { id: 'summary', label: 'AI Summarization', icon: Sparkles, description: 'Review faster, anytime' },
-    { id: 'flashcards', label: 'AI Flashcards', icon: Layers, description: 'Make It Impossible to Forget' },
-    { id: 'quiz', label: 'AI Quizzes', icon: HelpCircle, description: 'Test yourself before exams do' },
+    { id: 'notes', label: 'Smart Notes', icon: BookOpen, description: 'Notes that write themselves' },
+    { id: 'summary', label: 'Summarization', icon: Zap, description: 'Review faster, anytime' },
+    { id: 'flashcards', label: 'Smart Flashcards', icon: Layers, description: 'Make It Impossible to Forget' },
+    { id: 'quiz', label: 'Practice Quizzes', icon: HelpCircle, description: 'Test yourself before exams do' },
   ]
 
 
