@@ -1058,7 +1058,7 @@ export default function LandingPage() {
           <div className="container-custom" style={{ textAlign: 'center', marginBottom: 60 }}>
             <RevealDiv>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, color: 'var(--primary)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 20, background: 'rgba(151,24,251,0.07)', padding: '6px 16px', borderRadius: 99, border: '1px solid rgba(151,24,251,0.12)' }}>
-                <Sparkles size={13} /> Upgrade anytime
+                <Zap size={13} /> Upgrade anytime
               </div>
             </RevealDiv>
             <RevealDiv delay={0.1}>
@@ -1099,7 +1099,7 @@ export default function LandingPage() {
                   }}>
                     {plan.isPopular && (
                       <div style={{ display: 'inline-flex', alignSelf: 'center', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.2)', color: 'white', padding: '5px 14px', borderRadius: 99, fontSize: 10, fontWeight: 800, marginBottom: 20, border: '1px solid rgba(255,255,255,0.3)' }}>
-                        <Sparkles size={11} /> MOST POPULAR
+                        <Zap size={11} /> MOST POPULAR
                       </div>
                     )}
                     <div style={{ marginBottom: 24 }}>
@@ -1152,7 +1152,7 @@ export default function LandingPage() {
             <div className="cta-glow-1" />
             <div className="cta-glow-2" />
             <div className="badge-dark reveal-child" style={{ marginBottom:24, position:'relative', zIndex:1 }}>
-              <Sparkles style={{ width:12, height:12, display:'inline', marginRight:4, verticalAlign:'middle' }}/>
+              <Zap style={{ width:12, height:12, display:'inline', marginRight:4, verticalAlign:'middle' }}/>
               Start for free today
             </div>
             <h2 style={{ fontSize:'clamp(2.4rem, 6vw, 5rem)', color:'white', marginBottom:20, position:'relative', zIndex:1, lineHeight:1.1 }}>
