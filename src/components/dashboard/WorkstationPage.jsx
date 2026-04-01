@@ -823,7 +823,7 @@ Provide a helpful response explaining the highlights.
           {/* Add Material Button */}
           <button 
             className="ws-send-btn" 
-            onClick={() => navigate('/dashboard/courses')} 
+            onClick={() => navigate('/dashboard/upload')} 
             style={{ 
               padding: '8px 16px', 
               fontSize: '12px',

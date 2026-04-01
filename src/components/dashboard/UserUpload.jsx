@@ -119,12 +119,46 @@ export default function UserUpload() {
 
   return (
     <div style={{ maxWidth: '800px', margin: '40px auto', padding: '0 24px', fontFamily: 'Outfit' }}>
-      <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#1A3A32', marginBottom: '8px' }}>
-        Add Resources
-      </h1>
-      <p style={{ color: '#64748B', marginBottom: '32px' }}>
-        Upload your personal notes, slides, or helpful links into your workspace.
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+        <div>
+          <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#1A3A32', marginBottom: '8px' }}>
+            Add Resources
+          </h1>
+          <p style={{ color: '#64748B', marginBottom: '0' }}>
+            Upload your personal notes, slides, or helpful links into your workspace.
+          </p>
+        </div>
+        
+        <button
+          onClick={() => navigate('/dashboard/workstation')}
+          style={{
+            padding: '10px 20px',
+            background: '#f8f9fa',
+            color: '#7a12cc',
+            border: '2px solid #7a12cc',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontFamily: 'Varela Round',
+            transition: 'all 0.2s ease',
+            whiteSpace: 'nowrap'
+          }}
+          onMouseEnter={e => {
+            e.target.style.background = '#7a12cc'
+            e.target.style.color = 'white'
+          }}
+          onMouseLeave={e => {
+            e.target.style.background = '#f8f9fa'
+            e.target.style.color = '#7a12cc'
+          }}
+        >
+          ← Back to Workstation
+        </button>
+      </div>
 
       <div style={{ marginBottom: '24px' }}>
         <label style={{ fontSize: '14px', fontWeight: 700, color: '#4A5568', display: 'block', marginBottom: '8px' }}>
