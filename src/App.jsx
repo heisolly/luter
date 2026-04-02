@@ -19,7 +19,9 @@ import SettingsPage from './components/dashboard/SettingsPage'
 import UpgradePage from './components/dashboard/UpgradePage'
 import StreakPage from './components/dashboard/StreakPage'
 import ReferPage from './components/dashboard/ReferPage'
-import CompetePage from './components/dashboard/CompetePage'
+import CompetePage from './components/dashboard/CompetePageEnhanced'
+import StandaloneBattle from './components/StandaloneBattle'
+import BattleExamPage from './components/dashboard/BattleExamPage'
 import PricingPage from './components/dashboard/PricingPage'
 import ExamSessionView from './components/ExamSessionView'
 import AdminLayout from './admin/AdminLayout'
@@ -121,6 +123,8 @@ export default function App() {
 
           <Route path="/exam-session/:sessionId" element={<ExamSessionView />} />
           <Route path="/compete" element={<CompeteRedirect />} />
+          <Route path="/battle/:sessionId" element={<StandaloneBattle />} />
+          <Route path="/battle-exam/:sessionId" element={<BattleExamPage />} />
 
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminOverview />} />

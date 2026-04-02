@@ -15,7 +15,7 @@ import wrongSound from '../../assets/sounds/universfield-wrong-answer-126515.mp3
 
 const PALETTE = ['#7a12cc','#9718fb','#b04dfc','#6d28d9','#7c3aed','#8b5cf6','#a78bfa','#6366f1']
 
-// Sample course materials for AI generation
+// Sample course materials for Luter generation
 const SAMPLE_COURSE_MATERIALS = {
   'CHM 101': `Atomic Theory and Chemical Bonding
 
@@ -107,6 +107,7 @@ export default function MockExamPage() {
   const [pastSessions, setPastSessions] = useState([])
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [lastAutoAdvancedIndex, setLastAutoAdvancedIndex] = useState(-1)
 
   useEffect(() => {
     if (user && mode === 'configure') {
@@ -248,7 +249,7 @@ export default function MockExamPage() {
     try {
       // Get current question context
       const currentQuestion = generatedQuestions[current]
-      let contextPrompt = 'You are Luter AI Tutor, a helpful assistant for Nigerian university students.'
+      let contextPrompt = 'You are Luter Tutor, a helpful assistant for Nigerian university students.'
       
       if (currentQuestion) {
         contextPrompt += `\n\nCurrent Question: ${currentQuestion.question}`
@@ -284,10 +285,10 @@ export default function MockExamPage() {
       if (response?.choices?.[0]?.message?.content) {
         setAiChatMessages(prev => [...prev, { role: 'assistant', content: response.choices[0].message.content }])
       } else {
-        throw new Error('Invalid response from AI service')
+        throw new Error('Invalid response from Luter service')
       }
     } catch (error) {
-      console.error('AI Tutor Error:', error)
+      console.error('Luter Tutor Error:', error)
       setAiChatMessages(prev => [...prev, { 
         role: 'assistant', 
         content: 'Sorry, I\'m having trouble connecting right now. Please try again in a moment.' 
@@ -304,17 +305,165 @@ export default function MockExamPage() {
     }
   }, [aiChatMessages, isAiLoading])
 
-  // Render AI markdown-style bold text
+  // Render AI markdown-style text with beautiful formatting
   const renderAiText = (text) => {
     if (!text) return null
-    const parts = text.split(/\*\*/g)
-    if (parts.length % 2 === 0) {
-      // Odd number of ** patterns, treat as plain text
-      return text
+    
+    let processedText = text
+    
+    // Remove ### headers and convert to styled sections
+    processedText = processedText.replace(/###\s*(.+?)(?=\n|$)/g, (match, header) => {
+      return `##HEADER##${header.trim()}##ENDHEADER##`
+    })
+    
+    // Convert **bold** to styled spans
+    processedText = processedText.replace(/\*\*(.+?)\*\*/g, (match, bold) => {
+      return `##BOLD##${bold}##ENDBOLD##`
+    })
+    
+    // Convert bullet points * item to styled list items
+    processedText = processedText.replace(/^\*\s(.+?)(?=\n|$)/gm, (match, item) => {
+      return `##BULLET##${item.trim()}##ENDBULLET##`
+    })
+    
+    // Convert numbered lists 1. item to styled list items
+    processedText = processedText.replace(/^\d+\.\s(.+?)(?=\n|$)/gm, (match, item) => {
+      return `##NUMBER##${item.trim()}##ENDNUMBER##`
+    })
+    
+    // Split by our special markers and render
+    const parts = processedText.split(/(##HEADER##|##ENDHEADER##|##BOLD##|##ENDBOLD##|##BULLET##|##ENDBULLET##|##NUMBER##|##ENDNUMBER##)/)
+    
+    const elements = []
+    let currentType = 'text'
+    let buffer = ''
+    
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i]
+      
+      switch (part) {
+        case '##HEADER##':
+          if (buffer.trim()) {
+            elements.push(<span key={elements.length}>{buffer}</span>)
+            buffer = ''
+          }
+          currentType = 'header'
+          break
+        case '##ENDHEADER##':
+          if (buffer.trim()) {
+            elements.push(
+              <div key={elements.length} style={{ 
+                fontWeight: 700, 
+                fontSize: '14px', 
+                color: '#7a12cc', 
+                marginBottom: '8px', 
+                marginTop: '12px',
+                textTransform: 'lowercase',
+                letterSpacing: '0.5px'
+              }}>
+                {buffer}
+              </div>
+            )
+            buffer = ''
+          }
+          currentType = 'text'
+          break
+        case '##BOLD##':
+          if (buffer.trim()) {
+            elements.push(<span key={elements.length}>{buffer}</span>)
+            buffer = ''
+          }
+          currentType = 'bold'
+          break
+        case '##ENDBOLD##':
+          if (buffer.trim()) {
+            elements.push(
+              <span key={elements.length} style={{ 
+                fontWeight: 600, 
+                color: '#111827',
+                fontSize: '13px'
+              }}>
+                {buffer}
+              </span>
+            )
+            buffer = ''
+          }
+          currentType = 'text'
+          break
+        case '##BULLET##':
+          if (buffer.trim()) {
+            elements.push(<span key={elements.length}>{buffer}</span>)
+            buffer = ''
+          }
+          currentType = 'bullet'
+          break
+        case '##ENDBULLET##':
+          if (buffer.trim()) {
+            elements.push(
+              <div key={elements.length} style={{ 
+                display: 'flex', 
+                alignItems: 'flex-start',
+                marginBottom: '4px',
+                fontSize: '12px',
+                color: '#374151',
+                lineHeight: '1.4'
+              }}>
+                <span style={{ 
+                  color: '#7a12cc', 
+                  marginRight: '8px',
+                  fontSize: '14px',
+                  fontWeight: 700
+                }}>•</span>
+                <span>{buffer}</span>
+              </div>
+            )
+            buffer = ''
+          }
+          currentType = 'text'
+          break
+        case '##NUMBER##':
+          if (buffer.trim()) {
+            elements.push(<span key={elements.length}>{buffer}</span>)
+            buffer = ''
+          }
+          currentType = 'number'
+          break
+        case '##ENDNUMBER##':
+          if (buffer.trim()) {
+            elements.push(
+              <div key={elements.length} style={{ 
+                display: 'flex', 
+                alignItems: 'flex-start',
+                marginBottom: '4px',
+                fontSize: '12px',
+                color: '#374151',
+                lineHeight: '1.4'
+              }}>
+                <span style={{ 
+                  color: '#7a12cc', 
+                  marginRight: '8px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  minWidth: '16px'
+                }}>•</span>
+                <span>{buffer}</span>
+              </div>
+            )
+            buffer = ''
+          }
+          currentType = 'text'
+          break
+        default:
+          buffer += part
+      }
     }
-    return parts.map((part, i) => 
-      i % 2 === 1 ? <strong key={i} style={{ fontWeight: 600 }}>{part}</strong> : <span key={i}>{part}</span>
-    )
+    
+    // Add any remaining buffer
+    if (buffer.trim()) {
+      elements.push(<span key={elements.length} style={{ fontSize: '13px', lineHeight: '1.5' }}>{buffer}</span>)
+    }
+    
+    return <>{elements}</>
   }
 
   const SUGGESTED_QUESTIONS = [
@@ -340,8 +489,10 @@ export default function MockExamPage() {
   if (ansIdx === -1) return acc
   
   if (question.type === 'typein') {
-    // For type-in questions, mark as correct if user provided an answer
-    return typeInAnswers[idx]?.trim() ? acc + 1 : acc
+    // For type-in questions, compare user answer to expected answer
+    const userAnswer = (typeInAnswers[idx]?.trim() || '').toLowerCase()
+    const expectedAnswer = (question.expectedAnswer || '').toLowerCase()
+    return userAnswer === expectedAnswer ? acc + 1 : acc
   } else {
     // For multiple choice and true/false
     return acc + (ansIdx == (question.answer ?? 0) ? 1 : 0)
@@ -352,7 +503,7 @@ export default function MockExamPage() {
   const currentQuestion = generatedQuestions[current]
   const isCorrect = isAnswered && currentQuestion && (
     currentQuestion.type === 'typein' 
-      ? !!typeInAnswers[current]?.trim() 
+      ? (typeInAnswers[current]?.trim()?.toLowerCase() || '') === (currentQuestion.expectedAnswer?.toLowerCase() || '')
       : selected[current] == currentQuestion.answer
   )
 
@@ -360,12 +511,12 @@ export default function MockExamPage() {
   useEffect(() => {
     if (instantFeedback && isAnswered && mode === 'exam' && lastAutoAdvancedIndex !== current) {
       const audio = new Audio(isCorrect ? correctSound : wrongSound);
-      audio.volume = 0.5; // Set a reasonable volume
+      audio.volume = 0.5;
       audio.play().catch(err => console.error('Sound playback failed:', err));
     }
-  }, [isAnswered, instantFeedback, mode]);
+  }, [isAnswered, isCorrect, instantFeedback, mode, current, lastAutoAdvancedIndex]);
 
-  // ── Persistence Logic (Supabase & AI Weakness) ──
+  // ── Persistence Logic (Supabase & Luter Weakness) ──
   useEffect(() => {
     if (mode === 'result' && !hasPersistedResults && user && generatedQuestions.length > 0) {
       persistResults();
@@ -438,7 +589,7 @@ export default function MockExamPage() {
         console.error('❌ session persistence error:', sessionError);
       }
 
-      // 4. Generate AI Weakness Analysis if there are errors
+      // 4. Generate Luter Weakness Analysis if there are errors
       const incorrectQuestions = generatedQuestions.filter((q, idx) => {
         const userAns = selected[idx];
         if (userAns === -1) return true;
@@ -477,7 +628,7 @@ export default function MockExamPage() {
       );
 
       let content = response.choices[0].message.content;
-      // Sanitize AI response to ensure it's valid JSON
+      // Sanitize Luter response to ensure it's valid JSON
       if (content.includes('```')) {
         content = content.replace(/```json\n?|```/g, '').trim();
       }
@@ -493,7 +644,7 @@ export default function MockExamPage() {
       const analysis = JSON.parse(content);
       setAiWeaknessAnalysis(analysis);
     } catch (err) {
-      console.error('AI Analysis Error:', err);
+      console.error('Luter Analysis Error:', err);
     } finally {
       setIsAnalyzingWeakness(false);
     }
@@ -592,7 +743,7 @@ export default function MockExamPage() {
     fetchCourses()
   }, [user, ready, bundle])
 
-  // Generate AI-powered questions
+  // Generate Luter-powered questions
   const generateQuestions = async () => {
     if (examCourses.length === 0) return
     
@@ -645,7 +796,23 @@ export default function MockExamPage() {
           jsonStructure = `{\n  "questions": [\n    {\n      "question": "question text here",\n      "type": "multiple",\n      "options": ["option A", "option B", "option C", "option D"],\n      "correct_answer": 1,\n      "explanation": "explanation text here"\n    }\n  ]\n}`
         }
 
-        const prompt = `${GROQ_PROMPTS.MOCK_EXAM}\n\nCourse: ${course.code} - ${course.name}\n\nStudy Materials:\n${courseMaterial}\n\n${questionTypeInstructions}\n\nGenerate exactly ${questionsToGenerate} questions.\n\nIMPORTANT: Return your response as a JSON object with this exact structure:\n${jsonStructure}\n\nDo NOT include any markdown formatting or code blocks. Return ONLY the JSON object.\n\n${existingQuestions.length > 0 ? `Existing questions: ${existingQuestions.length}. Generate ${questionsToGenerate} more questions.` : 'Generate: first batch of questions.'}`
+        const prompt = `Generate ${questionsToGenerate} challenging multiple-choice questions suitable for Nigerian university students based on this course material.
+
+Course: ${course.code} - ${course.name}
+
+Study Materials:
+${courseMaterial}
+
+${questionTypeInstructions}
+
+Each question must have exactly 4 distinct options (A, B, C, D) with only one correct answer. Questions should test understanding, not just memorization.
+
+IMPORTANT: Return your response as a JSON object with this exact structure:
+${jsonStructure}
+
+Do NOT include any markdown formatting or code blocks. Return ONLY the JSON object.
+
+${existingQuestions.length > 0 ? `Existing questions: ${existingQuestions.length}. Generate ${questionsToGenerate} more questions.` : 'Generate: first batch of questions.'}`
         
         const data = await callGroqAPI(
           [{ role: 'user', content: prompt }],
@@ -682,7 +849,7 @@ export default function MockExamPage() {
           let normalizedType = q.type || 'multiple';
           const questionText = (q.question || "").toLowerCase();
           
-          // Fallback: If AI includes "Boss Level" or "type" in text, force typein
+          // Fallback: If Luter includes "Boss Level" or "type" in text, force typein
           if (questionText.includes('boss level') || questionText.includes('type your answer')) {
             normalizedType = 'typein';
           } else if (normalizedType.toLowerCase().includes('type')) {
@@ -740,7 +907,7 @@ export default function MockExamPage() {
       
     } catch (error) {
       console.error('Error generating questions:', error)
-      // Fallback to sample questions if AI fails
+      // Fallback to sample questions if Luter fails
       const fallbackQuestions = [
         {
           id: 0,
@@ -765,11 +932,12 @@ export default function MockExamPage() {
           setMode('exam')
           setCurrent(0)
           setSelected({})
+          setTypeInAnswers({}) // Reset type-in answers
           setIsGenerating(false)
           setAiChatOpen(false)
           setLoadingStep(0)
-        }, 500)
-      }, 1000)
+        }, 1000)
+      }, 2000)
     }
   }
 
@@ -808,8 +976,6 @@ Please explain where I went wrong and why the correct answer is the right choice
   const choose = (idx) => {
     setSelected(prev => ({ ...prev, [current]: idx }))
   }
-
-  const [lastAutoAdvancedIndex, setLastAutoAdvancedIndex] = useState(-1)
 
   // ── Auto-advance logic ──
   useEffect(() => {
@@ -865,6 +1031,7 @@ Please explain where I went wrong and why the correct answer is the right choice
         setMode('exam');
         setCurrent(0);
         setSelected({});
+        setTypeInAnswers({});
         if (examTimer > 0) setTimeLeft(examTimer);
       }, 7000);
     }
@@ -872,7 +1039,7 @@ Please explain where I went wrong and why the correct answer is the right choice
       if (t) clearTimeout(t); 
       if (int) clearInterval(int); 
     };
-  }, [mode, examTimer, examQs]); // Added examQs to satisfy constant size if it was causing issues, or just kept it consistent
+  }, [mode, examTimer]);
 
   const handleResultShare = async () => {
     setShowShareModal(true);
@@ -1273,7 +1440,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                   { 
                     id: 'typein',
                     title: 'type-in answers', 
-                    desc: 'ai will provide questions and you type your answers manually',
+                    desc: 'luter will provide questions and you type your answers manually',
                     icon: <MessageSquare size={28} />,
                     active: includeTypeIn,
                     toggle: () => setIncludeTypeIn(!includeTypeIn)
@@ -1391,7 +1558,7 @@ Please explain where I went wrong and why the correct answer is the right choice
     const q = currentQuestion || { question: 'loading...', options: [], answer: 0 }
     const userAns = selected[current]
     const isCorrectAnswer = q.type === 'typein' 
-      ? !!typeInAnswers[current]?.trim() 
+      ? (typeInAnswers[current]?.trim()?.toLowerCase() || '') === (q.expectedAnswer?.toLowerCase() || '')
       : userAns == q.answer;
 
     return (
@@ -1523,7 +1690,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                   {isAnswered && instantFeedback && (
                     <div style={{ background: '#F0FDF4', padding: '20px', borderRadius: 16, border: '1.5px solid #22C55E' }}>
                       <div style={{ fontSize: 12, fontWeight: 900, color: '#166534', marginBottom: 8, textTransform: 'lowercase' }}>expected answer:</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: '#14532d' }}>{q.expectedAnswer || "No answer provided by AI"}</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: '#14532d' }}>{q.expectedAnswer || "No answer provided by Luter"}</div>
                     </div>
                   )}
                 </div>
@@ -1671,11 +1838,11 @@ Please explain where I went wrong and why the correct answer is the right choice
                   textTransform: 'lowercase' 
                 }}
               >
-                skip <ArrowRight size={18} strokeWidth={1.5} />
+                {current >= (generatedQuestions?.length || 1) - 1 ? 'finish' : 'skip'} <ArrowRight size={18} strokeWidth={1.5} />
               </button>
             ) : (
               <div style={{ display: 'flex', gap: 12 }}>
-                {!isCorrectAnswer && (
+                {instantFeedback && !isCorrectAnswer && (
                   <button 
                     onClick={() => explainWithTutor(q, false, userAns)} 
                     style={{ 
@@ -1718,7 +1885,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                     boxShadow: '4px 4px 0px 0px rgba(45, 138, 78, 0.2)'
                   }}
                 >
-                  next question <ArrowRight size={18} strokeWidth={1.5} />
+                  {current >= (generatedQuestions?.length || 1) - 1 ? 'finish' : 'next question'} <ArrowRight size={18} strokeWidth={1.5} />
                 </button>
               </div>
             )}
@@ -1786,7 +1953,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                       <div style={{ width: 32, height: 32, borderRadius: 10, background: '#7a12cc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                         <Zap size={18} />
                       </div>
-                      <h3 style={{ fontSize: 14, fontWeight: 800, color: '#111', margin: 0, textTransform: 'lowercase' }}>ai insight: where to focus</h3>
+                      <h3 style={{ fontSize: 14, fontWeight: 800, color: '#111', margin: 0, textTransform: 'lowercase' }}>luter insight: where to focus</h3>
                     </div>
                     <p style={{ fontSize: 13, color: '#475569', margin: '0 0 12px 0', lineHeight: 1.5, fontWeight: 500 }}>
                       <span style={{ fontWeight: 800, color: '#7a12cc' }}>weakness:</span> {aiWeaknessAnalysis.weakness}
@@ -1799,7 +1966,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                 {isAnalyzingWeakness && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px', background: '#f8fafc', borderRadius: 20, marginBottom: 24 }}>
                     <Loader2 className="animate-spin" size={20} color="#7a12cc" />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#64748b', textTransform: 'lowercase' }}>ai is analyzing your session...</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#64748b', textTransform: 'lowercase' }}>luter is analyzing your session...</span>
                   </div>
                 )}
               </AnimatePresence>
@@ -1825,7 +1992,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                         {generatedQuestions.map((q, idx) => {
                           const userAns = selected[idx];
                           const isCorrect = q.type === 'typein' 
-                            ? !!typeInAnswers[idx]?.trim() 
+                            ? (typeInAnswers[idx]?.trim()?.toLowerCase() || '') === (q.expectedAnswer?.toLowerCase() || '')
                             : userAns === q.answer;
                           
                           return (
@@ -1836,7 +2003,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                               </div>
                               <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'lowercase' }}>
                                 {q.type === 'typein' ? (
-                                  <>your answer: <span style={{ color: '#111' }}>{typeInAnswers[idx] || 'none'}</span></>
+                                  <>your answer: <span style={{ color: isCorrect ? '#166534' : '#991b1b' }}>{typeInAnswers[idx] || 'none'}</span></>
                                 ) : (
                                   <>your answer: <span style={{ color: isCorrect ? '#166534' : '#991b1b' }}>{userAns === -1 ? 'skipped' : (q.type === 'truefalse' ? (userAns === 1 ? 'true' : 'false') : q.options[userAns])}</span></>
                                 )}
@@ -1877,7 +2044,7 @@ Please explain where I went wrong and why the correct answer is the right choice
       {mode === 'exam' && renderExam()}
       {mode === 'result' && renderResult()}
 
-      {/* Shared Modals / Panels (AI Chat & Feedback) */}
+      {/* Shared Modals / Panels (Luter Chat & Feedback) */}
       <AnimatePresence>
         {showShareModal && (
           <motion.div 
@@ -1956,7 +2123,7 @@ Please explain where I went wrong and why the correct answer is the right choice
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: '360px', background: '#FFFFFF', borderLeft: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', zIndex: 1000, fontFamily: "'Outfit', 'Varela Round', sans-serif" }}
           >
-            {/* AI Chat Panel Content */}
+            {/* Luter Chat Panel Content */}
             <div style={{ display: 'flex', alignItems: 'flex-end', padding: '0 16px', borderBottom: '1px solid #E5E7EB', flexShrink: 0 }}>
               {[{ id: 'chat', label: 'chat' }, { id: 'source', label: 'view source' }].map((tab, i) => (
                 <button key={tab.id} onClick={() => setAiChatMode(tab.id)} style={{ background: 'none', border: 'none', borderBottom: aiChatMode === tab.id ? '2px solid #111827' : '2px solid transparent', padding: '16px 0', marginRight: i === 0 ? '24px' : '0', fontSize: '14px', fontWeight: 500, color: aiChatMode === tab.id ? '#111827' : '#6B7280', cursor: 'pointer', transition: 'color 0.2s ease', lineHeight: 1, whiteSpace: 'nowrap', fontFamily: 'inherit', textTransform: 'lowercase' }}>{tab.label}</button>
@@ -1979,9 +2146,25 @@ Please explain where I went wrong and why the correct answer is the right choice
                 <>
                   {aiChatMessages.filter(m => m.role !== 'system').map((msg, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: '12px' }}>
-                      <span style={{ background: msg.role === 'user' ? '#D1FAE5' : '#F3F4F6', color: msg.role === 'user' ? '#065F46' : '#111827', padding: '8px 14px', borderRadius: '18px', fontSize: '13px', maxWidth: '85%', lineHeight: 1.5, display: 'inline-block' }}>
+                      <div style={{ 
+                        background: msg.role === 'user' 
+                          ? 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)' 
+                          : '#ffffff', 
+                        color: msg.role === 'user' ? '#ffffff' : '#111827', 
+                        padding: '12px 16px', 
+                        borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                        fontSize: '13px', 
+                        maxWidth: '85%', 
+                        lineHeight: 1.5, 
+                        display: 'inline-block',
+                        boxShadow: msg.role === 'user' 
+                          ? '0 4px 12px rgba(122, 18, 204, 0.3)' 
+                          : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                        border: msg.role === 'user' ? 'none' : '1px solid #e5e7eb',
+                        position: 'relative'
+                      }}>
                         {msg.role === 'assistant' ? renderAiText(msg.content) : msg.content}
-                      </span>
+                      </div>
                     </div>
                   ))}
                   {isAiLoading && <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>{[0,1,2].map(i => (<motion.div key={i} animate={{ y: [0,-5,0] }} transition={{ duration: 0.6, repeat: Infinity, delay: i*0.15 }} style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#9CA3AF' }} />))}</div>}
@@ -1989,11 +2172,54 @@ Please explain where I went wrong and why the correct answer is the right choice
                 </>
               )}
             </div>
-            <div style={{ padding: '12px 16px', borderTop: '1px solid #E5E7EB', background: '#FFFFFF', flexShrink: 0 }}>
+            <div style={{ padding: '16px 20px', borderTop: '1px solid #E5E7EB', background: '#FAFAFA', flexShrink: 0 }}>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <input value={aiChatInput} onChange={e => setAiChatInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiMessage() } }} placeholder="ask luter ai anything..." disabled={isAiLoading} style={{ width: '100%', height: '40px', border: '1px solid #E5E7EB', borderRadius: '999px', padding: '0 40px 0 16px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', color: '#111827' }} />
-                <button onClick={() => sendAiMessage()} disabled={!aiChatInput.trim() || isAiLoading} style={{ position: 'absolute', right: '4px', width: '32px', height: '32px', borderRadius: '999px', background: aiChatInput.trim() && !isAiLoading ? '#10B981' : '#E5E7EB', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <ArrowRight size={14} color="white" />
+                <input 
+                  value={aiChatInput} 
+                  onChange={e => setAiChatInput(e.target.value)} 
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiMessage() } }} 
+                  placeholder="ask luter anything..." 
+                  disabled={isAiLoading} 
+                  style={{ 
+                    width: '100%', 
+                    height: '44px', 
+                    border: '2px solid #e5e7eb', 
+                    borderRadius: '22px', 
+                    padding: '0 48px 0 20px', 
+                    fontSize: '14px', 
+                    outline: 'none', 
+                    boxSizing: 'border-box', 
+                    fontFamily: 'inherit', 
+                    color: '#111827',
+                    background: '#ffffff',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
+                  }} 
+                />
+                <button 
+                  onClick={() => sendAiMessage()} 
+                  disabled={!aiChatInput.trim() || isAiLoading} 
+                  style={{ 
+                    position: 'absolute', 
+                    right: '6px', 
+                    width: '36px', 
+                    height: '36px', 
+                    borderRadius: '18px', 
+                    background: aiChatInput.trim() && !isAiLoading 
+                      ? 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)' 
+                      : '#e5e7eb', 
+                    border: 'none', 
+                    cursor: 'pointer', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease',
+                    boxShadow: aiChatInput.trim() && !isAiLoading 
+                      ? '0 4px 12px rgba(122, 18, 204, 0.3)' 
+                      : 'none'
+                  }}
+                >
+                  <ArrowRight size={16} color="white" />
                 </button>
               </div>
             </div>

@@ -3,7 +3,7 @@ import { useParams, useOutletContext, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { 
   BookOpen, Calendar, Download, MessageSquare, 
-  Clock, TrendingUp, Award, Brain, Zap,
+  Clock, TrendingUp, Award, Zap,
   FileText, Video, Headphones, Image, File,
   ChevronLeft, ChevronRight, Plus, Search,
   Filter, Bell, Send, Star, Users, Target,

@@ -32,7 +32,16 @@ export default defineConfig(({ mode }) => {
           theme_color: '#9718fb',
           background_color: '#111116',
           display: 'standalone',
-          icons: [{ src: '/favicon.svg', type: 'image/svg+xml', sizes: 'any', purpose: 'any' }],
+          orientation: 'portrait',
+          scope: '/',
+          start_url: '/',
+          icons: [
+            { src: '/favicon.svg', type: 'image/svg+xml', sizes: 'any', purpose: 'any' },
+            { src: '/favicon.png', type: 'image/png', sizes: '192x192', purpose: 'any' },
+            { src: '/favicon.png', type: 'image/png', sizes: '512x512', purpose: 'any' }
+          ],
+          prefer_related_applications: false,
+          categories: ['education', 'productivity']
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,svg,png,webp,woff2,webmanifest}'],

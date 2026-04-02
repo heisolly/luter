@@ -171,7 +171,7 @@ function WorkstationContent() {
     // Zero-latency: Immediately show user's action in chat
     const userMsg = { role: 'user', content: `[${action.toUpperCase()}] "${text.slice(0, 50)}..."` }
     setMessages(prev => [...prev, userMsg])
-    setIsAiLoading(true)
+    setIsProcessingLoading(true)
 
     try {
       // Get document context to ground the answer
@@ -190,7 +190,7 @@ function WorkstationContent() {
       console.error('Action error:', err)
       setMessages(prev => [...prev, { role: 'ai', content: "Sorry, I couldn't process that selection. Please try again." }])
     } finally {
-      setIsAiLoading(false)
+      setIsProcessingLoading(false)
     }
   }
 
@@ -352,14 +352,28 @@ function WorkstationContent() {
       // Persist AI Notes to the vault (only for notes type)
       if (type === 'notes' && typeof finalResult === 'string') {
         try {
+          console.log('Attempting to save to vault:', {
+            material_id: selectedMaterial.id,
+            user_id: user.id,
+            course_id: courseId,
+            title: `${selectedMaterial.title} - Smart Notes`,
+            sourceType: 'ai_notes'
+          })
+          
           await saveToVault({
             material_id: selectedMaterial.id,
             user_id: user.id,
+            course_id: courseId,
+            title: `${selectedMaterial.title} - Smart Notes`,
             content: finalResult,
-            type: 'ai_notes'
+            sourceType: 'ai_notes'
           })
+          
+          console.log('Successfully saved to vault')
         } catch (error) {
           console.error('Failed to save notes to vault:', error)
+          // Don't fail the entire operation if vault save fails
+          // This is a non-critical feature
         }
       }
       
@@ -423,12 +437,12 @@ function WorkstationContent() {
   }, [activeTab, selectedMaterial, currentAnalysis]);
 
   const handleSend = async () => {
-    if (!chatInput.trim() || isAiLoading) return
+    if (!chatInput.trim() || isProcessingLoading) return
     
     const userMsg = { role: 'user', content: chatInput }
     setMessages(prev => [...prev, userMsg])
     setChatInput('')
-    setIsAiLoading(true)
+    setIsProcessingLoading(true)
 
     try {
       // Use active context from the reading space, default to extracted_text
@@ -509,7 +523,7 @@ Provide a helpful response explaining the highlights.
       }
       setMessages(prev => [...prev, { role: 'ai', content: errorMessage }])
     } finally {
-      setIsAiLoading(false)
+      setIsProcessingLoading(false)
     }
   }
 
@@ -912,7 +926,7 @@ Provide a helpful response explaining the highlights.
                   {msg.content}
                 </div>
               ))}
-              {isAiLoading && (
+              {isProcessingLoading && (
                 <div className="ws-chat-bubble ws-chat-bubble--ai" style={{ display: 'flex', gap: '4px' }}>
                   <div className="ws-typing-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#7a12cc', animation: 'bounce 1s infinite' }}></div>
                   <div className="ws-typing-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#7a12cc', animation: 'bounce 1s infinite 0.2s' }}></div>
@@ -930,15 +944,15 @@ Provide a helpful response explaining the highlights.
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  disabled={isAiLoading}
+                  disabled={isProcessingLoading}
                 />
                 <button 
                   className="ws-send-btn" 
                   style={{ position: 'absolute', right: '8px', padding: '8px 12px' }}
                   onClick={handleSend}
-                  disabled={isAiLoading || !chatInput.trim()}
+                  disabled={isProcessingLoading || !chatInput.trim()}
                 >
-                  {isAiLoading ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
+                  {isProcessingLoading ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
                 </button>
               </div>
             </div>

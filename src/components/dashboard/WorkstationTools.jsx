@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
-import { Brain, Star, Sparkles, ChevronLeft, ChevronRight, Download, Share2, Printer, CheckCircle2, AlertCircle, Bookmark, RefreshCw, Trophy } from 'lucide-react'
+import { BookOpen, Star, Zap, ChevronLeft, ChevronRight, Download, Share2, Printer, CheckCircle2, AlertCircle, Bookmark, RefreshCw, Trophy } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export function WorkstationNotes({ content, material, onRegenerate }) {
-  if (!content) return <EmptyState icon={Brain} label="Notes are being drafted..." />
+  if (!content) return <EmptyState icon={BookOpen} label="Notes are being drafted..." />
 
   return (
     <motion.div 
@@ -15,7 +15,7 @@ export function WorkstationNotes({ content, material, onRegenerate }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px', borderBottom: '2px solid #F1F5F9', paddingBottom: '24px' }}>
         <div>
           <div style={{ color: '#7a12cc', fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <Brain size={16} /> Structured Study Notes
+             <BookOpen size={16} /> Structured Study Notes
           </div>
           <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#1A102D' }}>{material?.title}</h1>
         </div>
@@ -85,7 +85,7 @@ export function WorkstationSummary({ content, material }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         <SummaryTile title="Est. Read Time" value="2 Minutes" icon={RefreshCw} color="#7a12cc" />
-        <SummaryTile title="Complexity" value="Standard" icon={Brain} color="#F59E0B" />
+        <SummaryTile title="Complexity" value="Standard" icon={BookOpen} color="#F59E0B" />
       </div>
     </motion.div>
   )
@@ -98,7 +98,7 @@ export function WorkstationFlashcards({ items = [], material }) {
   // Handle error cases where items might be a string or invalid data
   const safeItems = Array.isArray(items) ? items : []
   
-  if (!safeItems || safeItems.length === 0) return <EmptyState icon={Brain} label="Creating flashcards..." />
+  if (!safeItems || safeItems.length === 0) return <EmptyState icon={Layers} label="Creating flashcards..." />
   
   // Handle different flashcard formats
   const normalizedItems = safeItems.map(item => {
@@ -171,7 +171,7 @@ export function WorkstationQuiz({ items = [], material, onComplete }) {
   const [showAnswer, setShowAnswer] = useState(false)
   const [isFinished, setIsFinished] = useState(false)
 
-  if (!items || items.length === 0) return <EmptyState icon={Brain} label="Generating mock exam..." />
+  if (!items || items.length === 0) return <EmptyState icon={HelpCircle} label="Generating mock exam..." />
 
   const q = items[idx]
   const progress = ((idx + 1) / items.length) * 100

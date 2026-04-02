@@ -292,12 +292,24 @@ export async function upsertStudySession({ userId, courseId, materialId, highlig
 
 /** Save an AI response to user_notes (Scrapbook) */
 export async function saveToVault({ userId, courseId, materialId, title, content, sourceType = 'ai', tags = [] }) {
+  console.log('saveToVault called with:', { userId, courseId, materialId, title, sourceType })
+  
   const { data, error } = await supabase
     .from('user_notes')
     .insert({ user_id: userId, course_id: courseId, material_id: materialId || null, title, content, source_type: sourceType, tags })
     .select()
     .single()
-  if (error) throw error
+    
+    if (error) {
+    if (error.code === '42501') {
+      console.warn('RLS Policy Error: You do not have permission to insert into user_notes. Please check your database policies.', error)
+    } else {
+      console.error('Supabase error in saveToVault:', error)
+    }
+    throw error
+  }
+  
+  console.log('saveToVault success:', data)
   return data
 }
 

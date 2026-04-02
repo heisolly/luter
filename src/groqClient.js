@@ -59,13 +59,14 @@ export const GROQ_PROMPTS = {
   
   Return ONLY the JSON array: [{"front": "...", "back": "..."}]`,
   
-  MOCK_EXAM: `Generate 10 challenging 'Mock Exam' questions based on this text. 
-  Instead of multiple choice, these should be short-answer or conceptual questions that require the student to think.
+  MOCK_EXAM: `Generate challenging multiple-choice questions suitable for Nigerian university students. Each question must have exactly 4 distinct options (A, B, C, D) with only one correct answer.
   
-  Format as a JSON array of objects: 
-  [{"question": "...", "answer": "...", "explanation": "Why this is the correct answer and the logic behind it", "difficulty": "Standard|Hard"}]
+  Questions should test understanding, not just memorization. Use clear, unambiguous language appropriate for university level.
   
-  Return ONLY the JSON array.`,
+  Return ONLY a JSON array with this exact structure:
+  [{"question": "question text here", "type": "multiple", "options": ["option A", "option B", "option C", "option D"], "correct_answer": 1, "explanation": "detailed explanation of why this answer is correct"}]
+  
+  Note: correct_answer should be 1, 2, 3, or 4 (not 0-indexed). All options must be plausible but only one should be correct.`,
 
   SUMMARY: `Create a concise executive summary of the following document. 
   Focus on:

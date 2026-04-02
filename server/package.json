@@ -1,0 +1,32 @@
+{
+  "name": "luter-battle-server",
+  "version": "1.0.0",
+  "description": "Real-time battle server for Luter exam platform",
+  "main": "battle-server.js",
+  "scripts": {
+    "start": "node battle-server.js",
+    "dev": "nodemon battle-server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "socket.io",
+    "real-time",
+    "battle",
+    "exam",
+    "education"
+  ],
+  "author": "Luter Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "cors": "^2.8.5",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

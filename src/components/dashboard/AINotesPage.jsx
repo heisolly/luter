@@ -59,18 +59,22 @@ export default function AINotesPage() {
       const content = response.choices[0].message.content
       setNotes(content)
       
-      // Save newly generated notes
-      await saveToVault({
-        userId: user.id,
-        courseId: selectedMaterial.course_id,
-        materialId: selectedMaterial.id,
-        title: `AI Notes: ${selectedMaterial.title}`,
-        content: content,
-        sourceType: 'ai',
-        tags: ['ai-generated']
-      })
+      // Save newly generated notes to vault (scaffolded to skip gracefully if policy fails)
+      try {
+        await saveToVault({
+          userId: user.id,
+          courseId: selectedMaterial.course_id,
+          materialId: selectedMaterial.id,
+          title: `AI Notes: ${selectedMaterial.title}`,
+          content: content,
+          sourceType: 'ai',
+          tags: ['ai-generated']
+        })
+        fetchAllAiNotes() // Only refresh if save was successful
+      } catch (saveErr) {
+        console.warn('Vault saving skipped due to policy or connection error:', saveErr)
+      }
       
-      fetchAllAiNotes() // Refresh list
       setViewMode('view')
     } catch (err) {
       console.error(err)

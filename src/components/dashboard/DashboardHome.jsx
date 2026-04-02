@@ -25,7 +25,7 @@ function GhostBubble({ onDismiss }) {
     <motion.div initial={{ opacity:0, y:6, scale:0.94 }} animate={{ opacity:1, y:0, scale:1 }}
       exit={{ opacity:0, y:6, scale:0.94 }} className="dhd-ghost-bubble">
       <button className="dhd-ghost-close" onClick={onDismiss}><X size={11} /></button>
-      <div className="dhd-ghost-avatar"><Brain size={13} /></div>
+      <div className="dhd-ghost-avatar"><BookOpen size={13} /></div>
       <p className="dhd-ghost-text">
         Got a tough assignment? <strong>Snap a photo now.</strong> I'll have the step-by-step solution ready in 30 minutes. Try it free!
       </p>
