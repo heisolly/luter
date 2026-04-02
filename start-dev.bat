@@ -1,0 +1,16 @@
+@echo off
+echo Starting Luter Development Environment...
+echo.
+echo Starting Battle Server...
+start "Battle Server" cmd /k "cd server && npm run dev"
+
+echo Starting Client Server...
+start "Client Server" cmd /k "npm run dev:client"
+
+echo.
+echo Both servers are starting in separate windows...
+echo Battle Server: http://localhost:3001
+echo Client Server: http://localhost:5173
+echo.
+echo Press any key to close this window...
+pause > nul

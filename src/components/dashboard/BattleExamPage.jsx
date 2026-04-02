@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useOutletContext, useNavigate, useParams } from 'react-router-dom'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
+import { battleQuestionGenerator } from '../../services/BattleQuestionGenerator'
 import { 
   Clock, CheckCircle2, XCircle, Users, Trophy, Zap, ArrowRight, 
   Loader2, Award, Flame, Star, Target, Sword, Shield, Crown,
-  Wifi, WifiOff, RefreshCw, X, Volume2, VolumeX
+  Wifi, WifiOff, RefreshCw, X, Volume2, VolumeX, Lightbulb, TrendingUp
 } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -23,7 +24,33 @@ const SOCKET_URL = process.env.NODE_ENV === 'production'
   : 'http://localhost:3001'
 
 export default function BattleExamPage() {
-  const { user, isMobile, sidebarCollapsed } = useOutletContext()
+  // Get user data from outlet context or fallback to Supabase
+  const outletContext = useOutletContext()
+  const { user: outletUser, isMobile = false, sidebarCollapsed = false } = outletContext || {}
+  
+  // Fallback to Supabase if not in outlet context
+  const [user, setUser] = useState(outletUser || null)
+  const [loading, setLoading] = useState(!outletUser)
+  
+  useEffect(() => {
+    if (!outletUser) {
+      // Get user directly from Supabase if not in outlet context
+      const getUser = async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser()
+          setUser(user)
+        } catch (error) {
+          console.error('Error getting user:', error)
+        } finally {
+          setLoading(false)
+        }
+      }
+      getUser()
+    } else {
+      setLoading(false)
+    }
+  }, [outletUser])
+  
   const { ready, bundle } = useDashboardPrefetch() || { ready: false, bundle: null }
   const { sessionId } = useParams()
   const navigate = useNavigate()
@@ -39,12 +66,15 @@ export default function BattleExamPage() {
   const [countdown, setCountdown] = useState(0)
   const [isReady, setIsReady] = useState(false)
   
-  // Question states (cloned from MockExam)
+  // Question states (enhanced with AI)
   const [current, setCurrent] = useState(0)
   const [selected, setSelected] = useState({})
   const [timeLeft, setTimeLeft] = useState(0)
   const [generatedQuestions, setGeneratedQuestions] = useState([])
   const [isAnswered, setIsAnswered] = useState(false)
+  const [showHint, setShowHint] = useState(false)
+  const [currentHint, setCurrentHint] = useState(null)
+  const [aiInsights, setAiInsights] = useState(null)
   
   // Progress tracking
   const [myProgress, setMyProgress] = useState({ currentQuestion: 0, score: 0, finished: false })
@@ -55,20 +85,22 @@ export default function BattleExamPage() {
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [showReconnectionModal, setShowReconnectionModal] = useState(false)
   const [battleResults, setBattleResults] = useState(null)
+  const [selectedSubject, setSelectedSubject] = useState('General')
+  const [selectedDifficulty, setSelectedDifficulty] = useState('medium')
   
   const battleTimerRef = useRef(null)
   const countdownTimerRef = useRef(null)
 
   // Initialize socket connection
   useEffect(() => {
-    if (!user || !sessionId) return
+    if (!user?.id || !sessionId) return
 
     const newSocket = io(SOCKET_URL, {
       query: { userId: user.id, sessionId }
     })
 
     newSocket.on('connect', () => {
-      console.log('Connected to battle server')
+      console.log('Connected to AI battle server')
       setConnectionStatus('connected')
       setShowReconnectionModal(false)
     })
@@ -131,6 +163,14 @@ export default function BattleExamPage() {
       setBattleResults(data.results)
       setShowOpponentScore(true)
       if (battleTimerRef.current) clearInterval(battleTimerRef.current)
+      
+      // Extract AI insights for the current user
+      if (user?.id) {
+        const userResult = data.results.find(r => r.userId === user.id)
+        if (userResult && userResult.aiAnalysis) {
+          setAiInsights(userResult.aiAnalysis)
+        }
+      }
     })
 
     setSocket(newSocket)
@@ -144,10 +184,10 @@ export default function BattleExamPage() {
 
   // Join battle room
   useEffect(() => {
-    if (socket && connectionStatus === 'connected') {
+    if (socket && connectionStatus === 'connected' && user?.id) {
       socket.emit('join_battle', { sessionId, userId: user.id })
     }
-  }, [socket, connectionStatus, sessionId, user.id])
+  }, [socket, connectionStatus, sessionId, user?.id])
 
   const startCountdown = (seconds) => {
     setCountdown(seconds)
@@ -178,8 +218,30 @@ export default function BattleExamPage() {
 
   const handleReady = () => {
     setIsReady(true)
-    if (socket) {
+    if (socket && user?.id) {
       socket.emit('player_ready', { sessionId, userId: user.id })
+    }
+  }
+
+  // Generate AI hint for current question
+  const generateHint = async () => {
+    if (!currentQuestion || showHint) return
+    
+    try {
+      const hintData = await battleQuestionGenerator.generateHint(
+        currentQuestion.question,
+        currentQuestion.options,
+        currentQuestion.subject || selectedSubject
+      )
+      setCurrentHint(hintData)
+      setShowHint(true)
+    } catch (error) {
+      console.error('Error generating hint:', error)
+      setCurrentHint({
+        hint: 'Think carefully about the key concepts involved.',
+        motivation: 'You can do this! Take your time and reason through it.'
+      })
+      setShowHint(true)
     }
   }
 
@@ -192,7 +254,7 @@ export default function BattleExamPage() {
     
     // Calculate if correct
     const question = generatedQuestions[current]
-    const isCorrect = answerIndex === question.correctAnswer
+    const isCorrect = answerIndex === question.correct_answer
     
     // Play sound
     if (soundEnabled) {
@@ -210,7 +272,7 @@ export default function BattleExamPage() {
     }))
     
     // Submit to server
-    if (socket) {
+    if (socket && user?.id) {
       socket.emit('submit_answer', {
         sessionId,
         userId: user.id,
@@ -225,9 +287,11 @@ export default function BattleExamPage() {
       if (current < generatedQuestions.length - 1) {
         setCurrent(current + 1)
         setIsAnswered(false)
+        setShowHint(false)
+        setCurrentHint(null)
       } else {
         // Finished all questions
-        if (socket) {
+        if (socket && user?.id) {
           socket.emit('finish_battle', {
             sessionId,
             userId: user.id,
@@ -243,9 +307,9 @@ export default function BattleExamPage() {
     
     const answer = forcedAnswer !== null ? forcedAnswer : selected[current]
     const question = generatedQuestions[current]
-    const isCorrect = answer === question.correctAnswer
+    const isCorrect = answer === question.correct_answer
     
-    if (socket) {
+    if (socket && user?.id) {
       socket.emit('submit_answer', {
         sessionId,
         userId: user.id,
@@ -600,8 +664,8 @@ export default function BattleExamPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 32, width: '100%' }}>
               {currentQuestion.options.map((opt, i) => {
                 const isSelected = selected[current] === i
-                const isCorrectOption = isAnswered && i === currentQuestion.correctAnswer
-                const isWrongOption = isAnswered && isSelected && i !== currentQuestion.correctAnswer
+                const isCorrectOption = isAnswered && i === currentQuestion.correct_answer
+                const isWrongOption = isAnswered && isSelected && i !== currentQuestion.correct_answer
                 
                 return (
                   <motion.button
@@ -662,6 +726,66 @@ export default function BattleExamPage() {
               })}
             </div>
             
+            {/* AI Hint Section */}
+            <AnimatePresence>
+              {showHint && currentHint && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  style={{
+                    background: '#fef3c7',
+                    border: '1px solid #f59e0b',
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 24,
+                    textAlign: 'left'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <Lightbulb size={16} color="#f59e0b" />
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#92400e' }}>AI Hint:</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: '#78350f', marginBottom: 8 }}>
+                    {currentHint.hint}
+                  </div>
+                  {currentHint.motivation && (
+                    <div style={{ fontSize: 12, color: '#92400e', fontStyle: 'italic' }}>
+                      💡 {currentHint.motivation}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: 12, marginBottom: 24, width: '100%' }}>
+              {!isAnswered && (
+                <button
+                  onClick={generateHint}
+                  disabled={showHint}
+                  style={{
+                    flex: 1,
+                    padding: '12px 20px',
+                    background: showHint ? '#f3f4f6' : '#f59e0b',
+                    color: showHint ? '#9ca3af' : 'white',
+                    border: 'none',
+                    borderRadius: 12,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: showHint ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8
+                  }}
+                >
+                  <Lightbulb size={16} />
+                  {showHint ? 'Hint Used' : 'Get AI Hint'}
+                </button>
+              )}
+            </div>
+            
             {/* Question Navigation */}
             <div style={{ display: 'flex', gap: 12, width: '100%' }}>
               <div style={{ flex: 1, display: 'flex', gap: 4 }}>
@@ -685,12 +809,13 @@ export default function BattleExamPage() {
     )
   }
 
-  // Results Screen
+  // Results Screen with AI Insights
   const renderResults = () => {
-    if (!battleResults) return null
+    if (!battleResults || !user?.id) return null
     
+    const userResult = battleResults.results.find(r => r.userId === user.id)
     const isWinner = battleResults.winnerId === user.id
-    const myAccuracy = Math.round((myProgress.score / generatedQuestions.length) * 100)
+    const myAccuracy = userResult?.accuracy || Math.round((myProgress.score / generatedQuestions.length) * 100)
     const opponentAccuracy = Math.round((opponentProgress.score / generatedQuestions.length) * 100)
     
     return (
@@ -710,8 +835,10 @@ export default function BattleExamPage() {
             borderRadius: 24,
             padding: 40,
             textAlign: 'center',
-            maxWidth: 500,
-            width: '100%'
+            maxWidth: 600,
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto'
           }}
         >
           {isWinner ? (
@@ -721,11 +848,11 @@ export default function BattleExamPage() {
           )}
           
           <h2 style={{ fontSize: 32, fontWeight: 800, color: '#111', marginBottom: 16 }}>
-            {isWinner ? 'Victory!' : 'Defeat!'}
+            {isWinner ? 'Victory!' : 'Good Fight!'}
           </h2>
           
           <p style={{ fontSize: 18, color: '#64748b', marginBottom: 32 }}>
-            {isWinner ? 'You dominated this battle!' : 'Good fight! Try again.'}
+            {isWinner ? 'You dominated this AI-powered battle!' : 'Great effort! The AI insights will help you improve.'}
           </p>
           
           {/* Score Comparison */}
@@ -755,19 +882,82 @@ export default function BattleExamPage() {
             </div>
           </div>
           
-          {/* Luter Grade */}
+          {/* Luter Grade & AI Insights */}
           <div style={{
             background: '#f8fafc',
-            padding: 16,
+            padding: 20,
             borderRadius: 12,
-            marginBottom: 24
+            marginBottom: 24,
+            textAlign: 'left'
           }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#111', marginBottom: 8 }}>
-              Luter Grade: {myAccuracy >= 90 ? 'A+' : myAccuracy >= 80 ? 'A' : myAccuracy >= 70 ? 'B' : myAccuracy >= 60 ? 'C' : 'D'}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#111' }}>
+                  Luter Grade: {userResult?.luterGrade || (myAccuracy >= 90 ? 'A+' : myAccuracy >= 80 ? 'A' : myAccuracy >= 70 ? 'B' : myAccuracy >= 60 ? 'C' : 'D')}
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>
+                  Exam Readiness: {userResult?.examReadiness || myAccuracy}%
+                </div>
+              </div>
+              <TrendingUp size={24} color="#7a12cc" />
             </div>
-            <div style={{ fontSize: 12, color: '#64748b' }}>
-              Exam Readiness: {myAccuracy}%
-            </div>
+            
+            {/* AI Performance Analysis */}
+            {aiInsights && (
+              <div style={{ marginTop: 16 }}>
+                <h4 style={{ fontSize: 12, fontWeight: 800, color: '#111', marginBottom: 8, textTransform: 'uppercase' }}>
+                  AI Performance Analysis
+                </h4>
+                
+                {aiInsights.strengths && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#16a34a', marginBottom: 4 }}>Strengths:</div>
+                    <ul style={{ margin: 0, paddingLeft: 16 }}>
+                      {aiInsights.strengths.map((strength, index) => (
+                        <li key={index} style={{ fontSize: 11, color: '#64748b', marginBottom: 2 }}>
+                          {strength}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {aiInsights.weaknesses && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#dc2626', marginBottom: 4 }}>Areas to Improve:</div>
+                    <ul style={{ margin: 0, paddingLeft: 16 }}>
+                      {aiInsights.weaknesses.map((weakness, index) => (
+                        <li key={index} style={{ fontSize: 11, color: '#64748b', marginBottom: 2 }}>
+                          {weakness}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {aiInsights.recommendations && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#7a12cc', marginBottom: 4 }}>AI Recommendations:</div>
+                    <ul style={{ margin: 0, paddingLeft: 16 }}>
+                      {aiInsights.recommendations.map((rec, index) => (
+                        <li key={index} style={{ fontSize: 11, color: '#64748b', marginBottom: 2 }}>
+                          {rec}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {aiInsights.nextSteps && (
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#059669', marginBottom: 4 }}>Next Steps:</div>
+                    <div style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic' }}>
+                      {aiInsights.nextSteps}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           
           {/* Action Buttons */}
@@ -785,24 +975,44 @@ export default function BattleExamPage() {
                 cursor: 'pointer'
               }}
             >
-              Find New Battle
+              Find New AI Battle
             </button>
             
-            <button
-              onClick={() => {/* TODO: Implement review */}}
-              style={{
-                padding: '12px 24px',
-                background: 'transparent',
-                color: '#7a12cc',
-                border: '2px solid #7a12cc',
-                borderRadius: 12,
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: 'pointer'
-              }}
-            >
-              Review Answers
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => {/* TODO: Implement detailed review */}}
+                style={{
+                  flex: 1,
+                  padding: '12px 24px',
+                  background: 'transparent',
+                  color: '#7a12cc',
+                  border: '2px solid #7a12cc',
+                  borderRadius: 12,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Review Answers
+              </button>
+              
+              <button
+                onClick={() => {/* TODO: Implement adaptive practice */}}
+                style={{
+                  flex: 1,
+                  padding: '12px 24px',
+                  background: 'transparent',
+                  color: '#16a34a',
+                  border: '2px solid #16a34a',
+                  borderRadius: 12,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Adaptive Practice
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>
@@ -856,6 +1066,63 @@ export default function BattleExamPage() {
       )}
     </AnimatePresence>
   )
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#ffffff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'column',
+        fontFamily: "'Outfit', 'Varela Round', sans-serif"
+      }}>
+        <Loader2 size={48} color="#7a12cc" style={{ animation: 'spin 1s linear infinite' }} />
+        <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1A3A32', marginTop: 16 }}>
+          Loading Battle System...
+        </h2>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#ffffff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'column',
+        fontFamily: "'Outfit', 'Varela Round', sans-serif",
+        padding: 20
+      }}>
+        <Shield size={48} color="#ef4444" style={{ marginBottom: 16 }} />
+        <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1A3A32', marginBottom: 8 }}>
+          Authentication Required
+        </h2>
+        <p style={{ fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 24 }}>
+          Please log in to access the AI Battle System
+        </p>
+        <button
+          onClick={() => navigate('/login')}
+          style={{
+            padding: '12px 24px',
+            background: '#7a12cc',
+            color: 'white',
+            border: 'none',
+            borderRadius: 12,
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: 'pointer'
+          }}
+        >
+          Go to Login
+        </button>
+      </div>
+    )
+  }
 
   return (
     <>

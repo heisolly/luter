@@ -1,7 +1,7 @@
 {
   "name": "luter-battle-server",
   "version": "1.0.0",
-  "description": "Real-time battle server for Luter exam platform",
+  "description": "AI-powered real-time battle server for Luter exam platform",
   "main": "battle-server.js",
   "scripts": {
     "start": "node battle-server.js",
@@ -13,7 +13,10 @@
     "real-time",
     "battle",
     "exam",
-    "education"
+    "education",
+    "ai",
+    "groq",
+    "adaptive-learning"
   ],
   "author": "Luter Team",
   "license": "MIT",
@@ -21,7 +24,8 @@
     "express": "^4.18.2",
     "socket.io": "^4.7.2",
     "cors": "^2.8.5",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
