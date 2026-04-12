@@ -16,6 +16,42 @@ import { RunnableSequence } from '@langchain/core/runnables'
 import { Document } from '@langchain/core/documents'
 import { supabase } from '../supabaseClient'
 import { GROQ_API_KEY, GROQ_MODELS, LUTER_SYSTEM_PROMPT } from '../groqClient'
+import { Readability } from '@mozilla/readability'
+
+// Hardened PDF Worker Initialization for the Brain (LangChain)
+import * as pdfjsLib from 'pdfjs-dist'
+const PDF_WORKER_URL = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`
+
+if (typeof window !== 'undefined') {
+  window.pdfjsLib = pdfjsLib
+}
+
+if (pdfjsLib.GlobalWorkerOptions) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL
+}
+
+/** Trigger Supabase Edge Function to convert PPTX to PDF */
+async function triggerConversion(material) {
+  if (material.type === 'pptx' || material.type === 'ppt') {
+    console.log('[Conversion] Triggering PPTX-to-PDF conversion...')
+    const { data, error } = await supabase.functions.invoke('pptx-to-pdf', {
+      body: { 
+        fileUrl: material.source_url, 
+        fileName: material.title,
+        materialId: material.id
+      }
+    })
+    
+    if (error) {
+      console.warn('[Conversion] Failed to trigger conversion:', error.message)
+      return null
+    }
+    
+    console.log('[Conversion] ✓ Conversion triggered successfully:', data?.pdfUrl)
+    return data?.pdfUrl
+  }
+  return null
+}
 
 // ─── LangChain Groq Client ────────────────────────────────────────────────────
 
@@ -38,10 +74,8 @@ const splitter = new RecursiveCharacterTextSplitter({
 
 /** Extract pages from PDF using pdfjs-dist */
 async function extractPdfText(file) {
-  const pdfjsLib = await import('pdfjs-dist')
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'
-  const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
+  const fileData = await file.arrayBuffer()
+  const pdf = await pdfjsLib.getDocument({ data: fileData }).promise
   const pages = []
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i)
@@ -168,6 +202,48 @@ async function transcribeMedia(file) {
   return text ? [{ text, pageNumber: 1 }] : []
 }
 
+/** Extract text from websites using Readability */
+async function extractWebText(url) {
+  try {
+    // We use a CORS proxy for browser-side scraping if needed, 
+    // but here we try direct fetch first (works for some)
+    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`)
+    const data = await res.json()
+    const html = data.contents
+    
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    const reader = new Readability(doc)
+    const article = reader.parse()
+    
+    if (!article?.textContent) return []
+    return [{ text: article.textContent.trim(), pageNumber: 1, isWeb: true }]
+  } catch (err) {
+    console.error('Web extraction failed:', err)
+    return []
+  }
+}
+
+/** Extract text from Anki .apkg files (simplified) */
+async function extractAnkiText(file) {
+  try {
+    const JSZip = (await import('jszip')).default
+    const zip = await JSZip.loadAsync(file)
+    // .apkg is essentially a zip with 'collection.anki2' (sqlite)
+    // For now, we look for 'media' or any text files to get a baseline
+    // In a full implementation, we'd use sql.js to query the 'notes' table
+    let fullText = ''
+    for (const [name, entry] of Object.entries(zip.files)) {
+      if (!entry.dir && (name.endsWith('.txt') || name.endsWith('.json'))) {
+        fullText += await entry.async('string') + '\n'
+      }
+    }
+    return fullText ? [{ text: fullText.trim(), pageNumber: 1 }] : []
+  } catch (err) {
+    console.error('Anki extraction failed:', err)
+    return []
+  }
+}
+
 // ─── Universal Extractor ──────────────────────────────────────────────────────
 
 /**
@@ -175,25 +251,36 @@ async function transcribeMedia(file) {
  * Returns: Array<{ text, pageNumber, ...extras }>
  */
 export async function extractTextChunks(file, type, url) {
-  const t = (type || file?.type || '').toLowerCase()
-
-  if (url && (url.includes('youtube.com') || url.includes('youtu.be'))) {
-    return extractYoutubeTranscript(url)
+  // 1. Check URL first (Web/YouTube)
+  if (url) {
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      return extractYoutubeTranscript(url)
+    }
+    // Generic website
+    const webChunks = await extractWebText(url)
+    if (webChunks.length) return webChunks
   }
-  if (!file) return []
 
+  if (!file) return []
+  const t = (type || file?.name?.split('.').pop() || '').toLowerCase()
+
+  // 2. Media / Whisper
   if (file.type?.startsWith('audio/') || file.type?.startsWith('video/') ||
-      ['mp4', 'mp3', 'wav', 'webm', 'mov', 'ogg'].some(ext => t.includes(ext))) {
+      ['mp4', 'mp3', 'wav', 'webm', 'mov', 'ogg'].some(ext => t === ext)) {
     return transcribeMedia(file)
   }
-  if (file.type?.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].some(ext => t.includes(ext))) {
+
+  // 3. Images / Vision
+  if (file.type?.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].some(ext => t === ext)) {
     return extractImageText(file)
   }
 
-  if (t.includes('pdf'))  return extractPdfText(file)
-  if (t.includes('docx') || t.includes('doc')) return extractDocxText(file)
-  if (t.includes('pptx') || t.includes('ppt')) return extractPptxText(file)
-  if (t.includes('xlsx') || t.includes('xls')) return extractExcelText(file)
+  // 4. Documents
+  if (t === 'pdf' || file.type?.includes('pdf')) return extractPdfText(file)
+  if (t === 'docx' || t === 'doc') return extractDocxText(file)
+  if (t === 'pptx' || t === 'ppt') return extractPptxText(file)
+  if (t === 'xlsx' || t === 'xls' || t === 'csv') return extractExcelText(file)
+  if (t === 'anki' || t === 'apkg') return extractAnkiText(file)
 
   // Plain text fallback
   const raw = await file.text().catch(() => '')
@@ -260,7 +347,20 @@ export async function ingestMaterial({ file, type, url, metadata }) {
       .from('materials')
       .update({ extracted_text: fullText, processing_status: 'ready' })
       .eq('id', metadata.materialId)
-    if (updateError) throw updateError
+    
+    if (updateError) {
+      console.error('[LangChain] materials update failed:', updateError)
+      throw new Error(`Failed to update material metadata: ${updateError.message}`)
+    }
+
+    // 6. Trigger PPTX Conversion in background (if applicable)
+    // We don't await this to keep the ingest fast, or we can await it if we want the user to wait
+    triggerConversion({
+      id: metadata.materialId,
+      type: type || 'pptx',
+      source_url: url || metadata.source_url,
+      title: metadata.title
+    }).catch(err => console.warn('[LangChain] Conversion trigger error:', err))
 
     console.log(`[LangChain] ✓ Ingested ${splitDocs.length} chunks for "${metadata.title}"`)
     return { success: true, chunkCount: splitDocs.length, fullText }

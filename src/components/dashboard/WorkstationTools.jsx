@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { BookOpen, Star, Zap, ChevronLeft, ChevronRight, Download, Share2, Printer, CheckCircle2, AlertCircle, Bookmark, RefreshCw, Trophy, Sparkles } from 'lucide-react'
+import { BookOpen, Star, Zap, ChevronLeft, ChevronRight, Download, Share2, Printer, CheckCircle2, AlertCircle, Bookmark, RefreshCw, Trophy, Sparkles, Layers, HelpCircle } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence } from 'framer-motion'
 

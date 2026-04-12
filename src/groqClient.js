@@ -162,6 +162,11 @@ class RequestQueue {
       try {
         const result = await this.executeRequest(request)
         resolve(result)
+        
+        // Anti-Burst Delay: Small cool-down to keep Rate Limits (TPD/RPM) healthy
+        if (this.queue.length > 0) {
+          await new Promise(resolve => setTimeout(resolve, 500))
+        }
       } catch (error) {
         // If rate limited, use exponential backoff and retry
         if (error.status === 429 && retryCount < 3) {

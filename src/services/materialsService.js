@@ -224,7 +224,7 @@ export async function extractAndSaveYoutubeTranscript(materialId, url) {
 }
 
 /** Poll a material row until extracted_text is populated or status is failed */
-export async function pollMaterialUntilReady(materialId, { onReady, onFailed, intervalMs = 2000, maxAttempts = 30 } = {}) {
+export function pollMaterialUntilReady(materialId, { onReady, onFailed, intervalMs = 2000, maxAttempts = 40 } = {}) {
   let attempts = 0
   const timer = setInterval(async () => {
     attempts++

@@ -5,7 +5,7 @@
  */
 
 import { supabase } from '../supabaseClient'
-import { callGroqAPI } from '../groqClient'
+import { callGroqAPI, GROQ_MODELS } from '../groqClient'
 
 export class MaterialAnalysisService {
   
@@ -180,7 +180,7 @@ Return the analysis in JSON format with the following structure:
 
       const response = await callGroqAPI([
         { role: 'user', content: analysisPrompt }
-      ], 'llama-3.3-70b-versatile', 0.3)
+      ], GROQ_MODELS.PROFESSOR, 0.3)
       
       // Track usage
       window.groqDailyUsage = (window.groqDailyUsage || 0) + 5000 // Estimate
@@ -188,12 +188,10 @@ Return the analysis in JSON format with the following structure:
       let analysisData
       try {
         // Try to parse JSON response
-        const jsonMatch = response.choices[0].message.content.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          analysisData = JSON.parse(jsonMatch[0])
-        } else {
-          throw new Error('No JSON found in response')
-        }
+        const rawContent = response.choices[0].message.content
+        const cleanJson = stripJsonFence(rawContent)
+        const jsonMatch = cleanJson.match(/\{[\s\S]*\}/)
+        analysisData = JSON.parse(jsonMatch ? jsonMatch[0] : cleanJson)
       } catch (parseError) {
         console.error('Failed to parse analysis JSON:', parseError)
         // Create basic analysis from text response
@@ -332,16 +330,14 @@ Focus on:
 
       const response = await callGroqAPI([
         { role: 'user', content: flashcardPrompt }
-      ], 'llama-3.3-70b-versatile', 0.3)
+      ], GROQ_MODELS.SPEEDSTER, 0.3)
       
       let flashcardData
       try {
-        const jsonMatch = response.choices[0].message.content.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          flashcardData = JSON.parse(jsonMatch[0])
-        } else {
-          throw new Error('No JSON found in flashcard response')
-        }
+        const rawContent = response.choices[0].message.content
+        const cleanJson = stripJsonFence(rawContent)
+        const jsonMatch = cleanJson.match(/\{[\s\S]*\}/)
+        flashcardData = JSON.parse(jsonMatch ? jsonMatch[0] : cleanJson)
       } catch (parseError) {
         console.error('Failed to parse flashcard JSON:', parseError)
         flashcardData = this.createBasicFlashcards(analysis, count)
@@ -415,16 +411,14 @@ Create questions that test:
 
       const response = await callGroqAPI([
         { role: 'user', content: quizPrompt }
-      ], 'llama-3.3-70b-versatile', 0.3)
+      ], GROQ_MODELS.SPEEDSTER, 0.3)
       
       let quizData
       try {
-        const jsonMatch = response.choices[0].message.content.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          quizData = JSON.parse(jsonMatch[0])
-        } else {
-          throw new Error('No JSON found in quiz response')
-        }
+        const rawContent = response.choices[0].message.content
+        const cleanJson = stripJsonFence(rawContent)
+        const jsonMatch = cleanJson.match(/\{[\s\S]*\}/)
+        quizData = JSON.parse(jsonMatch ? jsonMatch[0] : cleanJson)
       } catch (parseError) {
         console.error('Failed to parse quiz JSON:', parseError)
         quizData = this.createBasicQuiz(analysis, questionCount, difficulty)
@@ -597,16 +591,14 @@ Focus on:
 
       const response = await callGroqAPI([
         { role: 'user', content: flashcardPrompt }
-      ], 'llama-3.3-70b-versatile', 0.3)
+      ], GROQ_MODELS.SPEEDSTER, 0.3)
       
       let flashcardData
       try {
-        const jsonMatch = response.choices[0].message.content.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          flashcardData = JSON.parse(jsonMatch[0])
-        } else {
-          throw new Error('No JSON found in flashcard response')
-        }
+        const rawContent = response.choices[0].message.content
+        const cleanContent = stripJsonFence(rawContent)
+        const jsonMatch = cleanContent.match(/\{[\s\S]*\}/)
+        flashcardData = JSON.parse(jsonMatch ? jsonMatch[0] : cleanContent)
       } catch (parseError) {
         console.error('Failed to parse flashcard JSON:', parseError)
         flashcardData = this.createBasicFlashcards(analysis, count)
@@ -680,16 +672,14 @@ Create questions that test:
 
       const response = await callGroqAPI([
         { role: 'user', content: quizPrompt }
-      ], 'llama-3.3-70b-versatile', 0.3)
+      ], GROQ_MODELS.SPEEDSTER, 0.3)
       
       let quizData
       try {
-        const jsonMatch = response.choices[0].message.content.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          quizData = JSON.parse(jsonMatch[0])
-        } else {
-          throw new Error('No JSON found in quiz response')
-        }
+        const rawContent = response.choices[0].message.content
+        const cleanContent = stripJsonFence(rawContent)
+        const jsonMatch = cleanContent.match(/\{[\s\S]*\}/)
+        quizData = JSON.parse(jsonMatch ? jsonMatch[0] : cleanContent)
       } catch (parseError) {
         console.error('Failed to parse quiz JSON:', parseError)
         quizData = this.createBasicQuiz(analysis, questionCount, difficulty)
@@ -737,6 +727,15 @@ Create questions that test:
     }
   }
   
+}
+
+function stripJsonFence(text) {
+  if (!text) return ''
+  // Remove markdown code fences
+  let clean = text.replace(/```json\n?|```\s*$/g, '')
+  // Trim any leading/trailing whitespace
+  clean = clean.trim()
+  return clean
 }
 
 export default MaterialAnalysisService

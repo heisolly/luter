@@ -14,7 +14,8 @@ import { SelectionActionBar } from './WorkstationOverlays'
 import MaterialRenderer from './MaterialRenderer'
 import { WorkstationNotes, WorkstationSummary, WorkstationFlashcards, WorkstationQuiz } from './WorkstationTools'
 import { saveToVault, fetchUserNotes } from '../../services/materialsService'
-import { pollMaterialUntilReady, queryStudyMaterials } from '../../services/langchainPipeline'
+import { queryStudyMaterials } from '../../services/langchainPipeline'
+import { pollMaterialUntilReady } from '../../services/materialsService'
 import { MaterialAnalysisService } from '../../services/materialAnalysisService'
 import { debounce } from '../../utils/debounce'
 import './workstation.css'
@@ -55,7 +56,7 @@ function WorkstationContent() {
     let isMounted = true
     let cleanup = null
 
-    pollMaterialUntilReady(selectedMaterial.id, {
+    cleanup = pollMaterialUntilReady(selectedMaterial.id, {
       onReady: (text) => {
         if (!isMounted) return
         setSelectedMaterial(prev => prev ? { ...prev, extracted_text: text, processing_status: 'ready' } : null)
@@ -68,8 +69,6 @@ function WorkstationContent() {
         setSelectedMaterial(prev => prev ? { ...prev, processing_status: 'failed' } : null)
         setMessages(prev => [...prev, { role: 'assistant', content: "I couldn't read the text inside this file. It might be corrupt or an unsupported format." }])
       }
-    }).then(fn => {
-      cleanup = fn
     })
 
     return () => {
@@ -275,7 +274,7 @@ function WorkstationContent() {
             
             const response = await callGroqAPI(
               [{ role: 'user', content: notesPrompt }],
-              'llama-3.3-70b-versatile',
+              GROQ_MODELS.SPEEDSTER, // Switched to 8B for better TPD management
               { systemPromptOverride: GROQ_PROMPTS.AI_NOTES }
             )
             
@@ -481,28 +480,16 @@ function WorkstationContent() {
   ]
 
 
-  // AUTO-GENERATION ON ARRIVAL - Non-blocking with error handling
+  // AUTO-GENERATION ON ARRIVAL - Disabled to prevent 429 Rate Limits
   useEffect(() => {
+    // Only pre-generate the summary on arrival to give the student a starting point.
+    // Everything else (notes, quiz, flashcards) will generate ONLY when the tab is clicked.
     if (selectedMaterial?.processing_status === 'ready' && selectedMaterial?.extracted_text) {
-      const categories = ['notes', 'summary', 'flashcards', 'quiz']
-      categories.forEach(cat => {
-        if (!analysisCache[selectedMaterial.id]?.[cat]) {
-          // Run analysis in background without blocking UI
-          runAnalysis(cat).catch(err => {
-            console.warn(`Background analysis for ${cat} failed:`, err)
-            // Set a fallback message so users can still access the tab
-            setAnalysisCache(prev => ({
-              ...prev,
-              [selectedMaterial.id]: {
-                ...(prev[selectedMaterial.id] || {}),
-                [cat]: `AI analysis temporarily unavailable due to rate limits. Please try again later.`
-              }
-            }))
-          })
-        }
-      })
+      if (!analysisCache[selectedMaterial.id]?.summary) {
+        runAnalysis('summary').catch(err => console.warn('Background summary failed:', err))
+      }
     }
-  }, [selectedMaterial?.id, selectedMaterial?.processing_status, selectedMaterial?.extracted_text])
+  }, [selectedMaterial?.id, selectedMaterial?.processing_status])
 
   const AIDashboard = () => (
     <div style={{ padding: '40px', background: '#F8FAFC', minHeight: '100%', fontFamily: 'Outfit' }}>
