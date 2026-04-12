@@ -159,7 +159,7 @@ export class BattleQuestionGenerator {
       let questions
       try {
         questions = JSON.parse(response)
-      } catch (parseError) {
+      } catch {
         console.error('Failed to parse AI response:', response)
         throw new Error('Invalid question format from AI')
       }
@@ -405,7 +405,7 @@ export class BattleQuestionGenerator {
 
   // Fallback analysis if AI fails
   getFallbackAnalysis(battleData) {
-    const { score, totalQuestions, accuracy } = battleData
+    const { accuracy } = battleData
     
     return {
       strengths: accuracy >= 70 ? ['Good overall performance', 'Solid understanding'] : ['Attempted the battle'],

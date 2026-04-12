@@ -1,8 +1,8 @@
 import { supabase } from '../supabaseClient'
-import { extractTextFromFile } from './documentProcessor'
+import { ingestMaterial } from './langchainPipeline'
 
 /** Fetch all materials for a course (admin + user's own) */
-export async function fetchCourseMaterials(courseId, userId) {
+export async function fetchCourseMaterials(courseId) {
   const { data, error } = await supabase
     .from('materials')
     .select('id, title, type, source_url, extracted_text, owner_role, processing_status, metadata, created_at, user_id, topic_id')
@@ -75,8 +75,13 @@ export async function uploadMaterial({
     .single()
   if (error) throw error
 
-  // Run client-side text extraction (non-blocking — updates DB when done)
-  extractAndSaveMaterialText(data.id, file, type)
+  // Run LangChain ingestion pipeline (non-blocking — extracts, chunks, embeds, stores)
+  ingestMaterial({
+    file,
+    type,
+    url: null,
+    metadata: { materialId: data.id, courseId, userId, title: title || file.name }
+  }).catch(err => console.error('[LangChain] Ingestion error after upload:', err))
 
   // Create share records based on sharing scope
   if (sharingScope === 'program' && finalProgramId) {
@@ -187,50 +192,35 @@ export async function addYoutubeMaterial({ url, title, courseId, userId }) {
     .single()
   if (error) throw error
 
-  // YouTube: attempt transcript extraction
-  extractAndSaveYoutubeTranscript(data.id, url)
+  // YouTube: LangChain transcript ingestion
+  ingestMaterial({
+    file: null,
+    type: 'youtube',
+    url: url,
+    metadata: { materialId: data.id, courseId, userId, title: title || url }
+  }).catch(err => console.error('[LangChain] YouTube ingestion error:', err))
 
   return data
 }
 
-/** Client-side text extraction — runs after upload, saves result to DB */
+/** Re-ingest a material through LangChain (replaces old extractAndSaveMaterialText) */
 export async function extractAndSaveMaterialText(materialId, file, type) {
-  try {
-    const text = await extractTextFromFile(file, type)
-    if (text) {
-      await saveMaterialText(materialId, text)
-    } else {
-      // Mark as failed so the UI doesn't spin forever
-      await supabase
-        .from('materials')
-        .update({ processing_status: 'failed' })
-        .eq('id', materialId)
-    }
-  } catch (e) {
-    console.warn('extractAndSaveMaterialText failed', e)
-    await supabase
-      .from('materials')
-      .update({ processing_status: 'failed' })
-      .eq('id', materialId)
-  }
+  return ingestMaterial({
+    file,
+    type,
+    url: null,
+    metadata: { materialId, courseId: null, userId: null, title: file?.name || 'material' }
+  })
 }
 
-/** YouTube transcript extraction */
+/** YouTube transcript via LangChain */
 export async function extractAndSaveYoutubeTranscript(materialId, url) {
-  try {
-    const { extractYoutubeTranscript } = await import('./documentProcessor')
-    const text = await extractYoutubeTranscript(url)
-    if (text) {
-      await saveMaterialText(materialId, text)
-    } else {
-      await supabase
-        .from('materials')
-        .update({ processing_status: 'no_transcript' })
-        .eq('id', materialId)
-    }
-  } catch (e) {
-    console.warn('extractAndSaveYoutubeTranscript failed', e)
-  }
+  return ingestMaterial({
+    file: null,
+    type: 'youtube',
+    url,
+    metadata: { materialId, courseId: null, userId: null, title: url }
+  })
 }
 
 /** Poll a material row until extracted_text is populated or status is failed */

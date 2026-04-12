@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient'
+// groqClient.js — Groq API interface for Luter AI
 
 // System Configuration
 export const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
@@ -288,7 +288,7 @@ Generate a complete semester timetable-style list: at least 20 courses, ideally 
   }
 }
 
-function stripJsonFence(raw) {
+export function stripJsonFence(raw) {
   let s = (raw || '').trim()
   if (s.startsWith('```json')) s = s.slice(7)
   if (s.startsWith('```')) s = s.slice(3)

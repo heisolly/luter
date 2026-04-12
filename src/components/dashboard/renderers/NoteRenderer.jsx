@@ -3,10 +3,9 @@ import { useReadingSpace } from '../ReadingSpaceContext'
 import { SharedCanvasOverlay, LuterSpark } from '../WorkstationOverlays'
 import ReactMarkdown from 'react-markdown'
 import { Loader2, Download, Sparkles, ChevronLeft, ChevronRight, Star } from 'lucide-react'
-import { motion } from 'framer-motion'
 
 export default function NoteRenderer({ material, activeTab, analysisState, onRunAnalysis }) {
-  const { setViewportData, highlightText, updateSpark, clearHighlights, updateSelection } = useReadingSpace()
+  const { setViewportData, updateSelection } = useReadingSpace()
   const contentRef = useRef(null)
 
   const [currentIdx, setCurrentIdx] = useState(0)

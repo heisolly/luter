@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Plus, Star, ArrowRight, Zap } from 'lucide-react';
+import { Check, Plus, Star, ArrowRight, Zap, Sparkles } from 'lucide-react';
 import { PageBackground, HighlightedText, RevealDiv, SharedNavbar } from './PageShared';
 
 const FAQItem = ({ q, a }) => {

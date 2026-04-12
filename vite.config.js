@@ -1,7 +1,10 @@
+/* global process */
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwind from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { OAuth2Client } from 'google-auth-library'
 import { createClient } from '@supabase/supabase-js'
 import {
@@ -150,6 +153,11 @@ export default defineConfig(({ mode }) => {
         }
       }
     ],
+    resolve: {
+      alias: {
+        "@": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "./src"),
+      },
+    },
     optimizeDeps: {
       exclude: ['pdfjs-dist']
     },

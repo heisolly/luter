@@ -156,7 +156,7 @@ export default function Features() {
             </div>
           </RevealDiv>
           <RevealDiv delay={0.1}>
-            <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 800, fontFamily: 'var(--font-besley)', color: '#111', marginBottom: 20, lineHeight: 1.1 }}>
+            <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 4.5rem)', fontWeight: 800, color: '#111', marginBottom: 24, lineHeight: 1, textTransform: 'uppercase', letterSpacing: '-0.03em' }}>
               Your Complete{' '}
               <HighlightedText texts={['Study System']} />
               ,{' '}Built In.
@@ -169,43 +169,53 @@ export default function Features() {
           </RevealDiv>
         </div>
 
-        {/* Feature Cards Grid */}
+
+
+        {/* Detailed Feature Cards Grid */}
         <div className="container-full">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 28 }}>
+          <RevealDiv>
+            <div style={{ textAlign: 'center', marginBottom: 60 }}>
+              <div style={{ display: 'inline-block', fontSize: 12, fontWeight: 800, color: 'var(--primary)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 16 }}>The Toolbox</div>
+              <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, color: '#111', marginBottom: 20, textTransform: 'uppercase', letterSpacing: '-0.02em' }}>Everything you need to succeed</h2>
+            </div>
+          </RevealDiv>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 32 }}>
             {features.map((f, i) => (
               <RevealDiv key={f.label} delay={i * 0.08}>
                 <div
                   onMouseEnter={() => setHoveredIdx(i)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   style={{
-                    background: 'white', borderRadius: 24, padding: '32px', border: '1px solid #f0eaff',
-                    boxShadow: hoveredIdx === i ? '0 24px 48px rgba(151,24,251,0.1)' : '0 4px 12px rgba(0,0,0,0.03)',
-                    transform: hoveredIdx === i ? 'translateY(-6px)' : 'translateY(0)',
-                    transition: 'all 0.35s cubic-bezier(0.23, 1, 0.32, 1)',
-                    cursor: 'default', display: 'flex', flexDirection: 'column', gap: 24
+                    background: 'white', borderRadius: 32, padding: '40px', border: '1px solid #f0eaff',
+                    boxShadow: hoveredIdx === i ? '0 32px 64px rgba(151,24,251,0.12)' : '0 4px 20px rgba(0,0,0,0.02)',
+                    transform: hoveredIdx === i ? 'translateY(-8px)' : 'translateY(0)',
+                    transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
+                    cursor: 'default', display: 'flex', flexDirection: 'column', gap: 28
                   }}>
                   
                   {/* Icon + Label */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ width: 56, height: 56, borderRadius: 16, background: f.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: f.color }}>
-                      {f.icon}
+                    <div style={{ width: 64, height: 64, borderRadius: 20, background: f.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: f.color, boxShadow: `0 8px 16px ${f.bg}` }}>
+                      {React.cloneElement(f.icon, { size: 32 })}
                     </div>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: f.color, background: f.bg, padding: '4px 12px', borderRadius: 99, letterSpacing: '0.05em' }}>{f.label}</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: f.color, background: f.bg, padding: '6px 14px', borderRadius: 99, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{f.label}</span>
                   </div>
 
                   {/* Text */}
                   <div>
-                    <h3 style={{ fontSize: 22, fontWeight: 800, color: '#111', marginBottom: 10, fontFamily: 'var(--font-besley)' }}>{f.title}</h3>
-                    <p style={{ fontSize: 15, color: '#666', lineHeight: 1.65, margin: 0 }}>{f.desc}</p>
+                    <h3 style={{ fontSize: 24, fontWeight: 800, color: '#111', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '-0.01em' }}>{f.title}</h3>
+                    <p style={{ fontSize: 16, color: '#555', lineHeight: 1.7, margin: 0, fontWeight: 500 }}>{f.desc}</p>
                   </div>
 
                   {/* Mockup */}
-                  {f.mockup}
+                  <div style={{ position: 'relative', zIndex: 1 }}>
+                    {f.mockup}
+                  </div>
 
                   {/* Stats */}
-                  <div style={{ display: 'flex', gap: 12, paddingTop: 4, borderTop: '1px solid #f9f5ff' }}>
+                  <div style={{ display: 'flex', gap: 12, paddingTop: 12, borderTop: '1px solid #f3f0ff', flexWrap: 'wrap' }}>
                     {f.stats.map(s => (
-                      <span key={s} style={{ fontSize: 11, fontWeight: 700, color: f.color, background: f.bg, padding: '4px 10px', borderRadius: 99 }}>{s}</span>
+                      <span key={s} style={{ fontSize: 10, fontWeight: 800, color: f.color, background: f.bg, padding: '5px 12px', borderRadius: 99, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{s}</span>
                     ))}
                   </div>
                 </div>

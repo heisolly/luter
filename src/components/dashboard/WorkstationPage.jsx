@@ -13,8 +13,8 @@ import { ReadingSpaceProvider, useReadingSpace } from './ReadingSpaceContext'
 import { SelectionActionBar } from './WorkstationOverlays'
 import MaterialRenderer from './MaterialRenderer'
 import { WorkstationNotes, WorkstationSummary, WorkstationFlashcards, WorkstationQuiz } from './WorkstationTools'
-import { saveToVault, fetchUserNotes, pollMaterialUntilReady } from '../../services/materialsService'
-import { AIHighlightService } from '../../services/aiHighlightService'
+import { saveToVault, fetchUserNotes } from '../../services/materialsService'
+import { pollMaterialUntilReady, queryStudyMaterials } from '../../services/langchainPipeline'
 import { MaterialAnalysisService } from '../../services/materialAnalysisService'
 import { debounce } from '../../utils/debounce'
 import './workstation.css'
@@ -361,12 +361,12 @@ function WorkstationContent() {
           })
           
           await saveToVault({
-            material_id: selectedMaterial.id,
-            user_id: user.id,
-            course_id: courseId,
+            materialId: selectedMaterial.id,
+            userId: user.id,
+            courseId: courseId,
             title: `${selectedMaterial.title} - Smart Notes`,
             content: finalResult,
-            sourceType: 'ai_notes'
+            sourceType: 'ai'
           })
           
           console.log('Successfully saved to vault')
@@ -436,92 +436,37 @@ function WorkstationContent() {
     checkExistingAnalysis();
   }, [activeTab, selectedMaterial, currentAnalysis]);
 
+  // ─── LangChain RAG Chat ──────────────────────────────────────────────────────
   const handleSend = async () => {
     if (!chatInput.trim() || isProcessingLoading) return
-    
+
     const userMsg = { role: 'user', content: chatInput }
     setMessages(prev => [...prev, userMsg])
     setChatInput('')
     setIsProcessingLoading(true)
 
     try {
-      // Use active context from the reading space, default to extracted_text
-      const context = viewportData.visibleText || selectedMaterial?.extracted_text?.slice(0, 6000) || "" // Reduced token limit
-      const statusContext = selectedMaterial?.processing_status === 'pending' 
-        ? "NOTE: The document text is still being extracted so you cannot see it yet." 
-        : `Active Context from current view: ${context}`
-
-      // Check if user is asking for highlights
-      const isHighlightRequest = chatInput.toLowerCase().includes('highlight') || 
-                               chatInput.toLowerCase().includes('show me') ||
-                               chatInput.toLowerCase().includes('point out') ||
-                               chatInput.toLowerCase().includes('identify')
-
-      let aiResponse
-      let documentType = 'pdf' // Default, should be determined from material
-
-      // Determine document type from material
-      if (selectedMaterial?.type) {
-        const type = selectedMaterial.type.toLowerCase()
-        if (type.includes('pdf')) documentType = 'pdf'
-        else if (type.includes('docx')) documentType = 'docx'
-        else if (type.includes('xlsx') || type.includes('excel')) documentType = 'xlsx'
+      if (selectedMaterial?.processing_status === 'pending') {
+        setMessages(prev => [...prev, { role: 'ai', content: "Your document is still being processed by LangChain. Please wait a moment and try again." }])
+        return
       }
 
-      if (isHighlightRequest && selectedMaterial) {
-        // Generate contextual highlights
-        const highlightAnalysis = await AIHighlightService.triggerContextualHighlights(
-          selectedMaterial, 
-          chatInput, 
-          documentType
-        )
-        
-        // Generate AI response about the highlights
-        const highlightPrompt = `
-The user asked: "${chatInput}"
+      // LangChain RAG query — uses vector search when possible, falls back to raw text
+      const aiResponse = await queryStudyMaterials({
+        question: chatInput,
+        courseId: courseId,
+        materialId: selectedMaterial?.id,
+        fallbackContext: selectedMaterial?.extracted_text?.slice(0, 8000) || ''
+      })
 
-I have generated ${highlightAnalysis.highlights?.length || 0} highlights in the document. 
-Please explain what I highlighted and why it's relevant to their question.
-
-Highlights generated:
-${highlightAnalysis.highlights?.map(h => `- ${h.label}: ${h.reason}`).join('\n') || 'No highlights generated'}
-
-Provide a helpful response explaining the highlights.
-`
-
-        const response = await callGroqAPI(
-          [
-            { role: 'user', content: `Current Material: ${selectedMaterial?.title}. ${statusContext}\n\n${highlightPrompt}` }
-          ],
-          GROQ_MODELS.SPEEDSTER,
-          { systemPromptOverride: GROQ_PROMPTS.AI_TUTOR }
-        )
-        
-        aiResponse = response.choices[0].message.content
-      } else {
-        // Regular chat response
-        const response = await callGroqAPI(
-          [
-            { role: 'user', content: `Current Material: ${selectedMaterial?.title}. ${statusContext}\n\nUser Question: ${chatInput}` }
-          ],
-          GROQ_MODELS.SPEEDSTER,
-          { systemPromptOverride: GROQ_PROMPTS.AI_TUTOR }
-        )
-        
-        aiResponse = response.choices[0].message.content
-      }
-
-      const aiMsg = { role: 'ai', content: aiResponse }
-      setMessages(prev => [...prev, aiMsg])
+      setMessages(prev => [...prev, { role: 'ai', content: aiResponse }])
     } catch (err) {
-      console.error('Chat error:', err)
-      let errorMessage = `Luter encountered an error. Please try again.`
-      if (err.message.includes('413') || err.message.includes('tokens per minute')) {
-        errorMessage = `The message is too large. Try asking a shorter question or breaking it into parts.`
-      } else if (err.message) {
-        errorMessage = `Luter encountered an error: ${err.message}. Please check your connection or try again.`
+      console.error('[Chat] Error:', err)
+      let msg = 'Luter encountered an error. Please try again.'
+      if (err.message?.includes('413') || err.message?.includes('tokens per minute')) {
+        msg = 'Your question context is too large. Try a shorter question.'
       }
-      setMessages(prev => [...prev, { role: 'ai', content: errorMessage }])
+      setMessages(prev => [...prev, { role: 'ai', content: msg }])
     } finally {
       setIsProcessingLoading(false)
     }

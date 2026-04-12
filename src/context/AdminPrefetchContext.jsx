@@ -25,6 +25,7 @@ function writeCachedBundle(bundle) {
 
 const AdminPrefetchContext = createContext(null)
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAdminPrefetch() {
   return useContext(AdminPrefetchContext)
 }

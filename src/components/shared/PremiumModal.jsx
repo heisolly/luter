@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Crown, Lock, Zap, Star, Check, ArrowRight } from 'lucide-react'
 

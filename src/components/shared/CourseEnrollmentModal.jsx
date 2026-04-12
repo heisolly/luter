@@ -8,9 +8,7 @@ import { supabase } from '../../supabaseClient'
 import { 
   aggregateSyllabusSources
 } from '../../services/syllabusAggregator'
-import {
-  buildCurriculumKeyContext
-} from '../../services/curriculumService'
+
 import {
   fetchGroqLiveCourseSearch 
 } from '../../groqClient'
@@ -30,7 +28,7 @@ export default function CourseEnrollmentModal({
   const [courseOfStudy, setCourseOfStudy] = useState('')
   const [level, setLevel] = useState('100')
   const [semester, setSemester] = useState('1st')
-  const [country, setCountry] = useState('Nigeria')
+  const [country] = useState('Nigeria')
   
   // Course selection
   const [catalog, setCatalog] = useState([])
@@ -197,13 +195,31 @@ export default function CourseEnrollmentModal({
 
       // Insert missing courses into global catalog
       if (coursesToUpsert.length > 0) {
-        await supabase.from('courses').upsert(coursesToUpsert, { onConflict: 'code' })
+        console.log('Upserting courses to global catalog:', coursesToUpsert)
+        const { error: upsertErr } = await supabase.from('courses').upsert(coursesToUpsert, { onConflict: 'code' })
+        
+        if (upsertErr) {
+          console.error('Courses upsert err:', upsertErr)
+          // Specifically handle 42501 (RLS violation) with a cleaner message
+          if (upsertErr.code === '42501') {
+             alert('Database Security Error: You do not have permission to add new courses to the global directory, or a background trigger for "semester_weeks" is blocked. Please run the provided SQL fix in Supabase.')
+          } else {
+             alert('System Notice (Courses): ' + upsertErr.message)
+          }
+          throw upsertErr
+        }
 
         // Get the official DB IDs
-        const { data: globalCourses } = await supabase
+        const { data: globalCourses, error: fetchErr } = await supabase
           .from('courses')
           .select('id, code')
           .in('code', selectedCodes)
+          
+        if (fetchErr) {
+           console.error('Courses fetch err:', fetchErr)
+           alert('System Notice (Fetch): ' + fetchErr.message)
+           throw fetchErr
+        }
 
         // Link courses to user
         if (globalCourses && globalCourses.length > 0) {
@@ -211,32 +227,50 @@ export default function CourseEnrollmentModal({
             user_id: user.id,
             course_id: c.id,
             progress: 0,
-            target_score: 75, // Default target score
+            target_score: 75,
           }))
           
           const { error: insertError } = await supabase
             .from('user_courses')
             .upsert(rows, { onConflict: 'user_id,course_id' })
           
-          if (!insertError) {
-            // Apply freemium locking
-            const { error: lockingError } = await supabase.rpc('apply_freemium_locking', {
-              p_user_id: user.id,
-              p_course_ids: globalCourses.map(c => c.id)
-            })
-            
-            if (lockingError) {
-              console.error('Error applying freemium locking:', lockingError)
-            }
+          if (insertError) {
+            console.error('UserCourses insert err:', insertError)
+            alert('System Notice (UserCourses): ' + insertError.message)
+            throw insertError
           }
+
+          // Apply freemium locking
+          const { error: lockingError } = await supabase.rpc('apply_freemium_locking', {
+            p_user_id: user.id,
+            p_course_ids: globalCourses.map(c => c.id)
+          })
+          
+          if (lockingError) {
+            console.error('Error applying freemium locking:', lockingError)
+          }
+        } else {
+           alert('System Notice: No courses found in catalog after insertion.')
         }
       }
+
+      // 4. Save to peer selections (Optional but good for recommendations)
+      const levelNum = parseInt(user?.user_metadata?.level) || 100
+      const semester = user?.user_metadata?.semester || '1st'
+      
+      await saveUserCourseSelections(
+        user.id,
+        user?.user_metadata?.university || 'General',
+        user?.user_metadata?.courseOfStudy || 'General',
+        levelNum,
+        semester,
+        selectedCourses
+      )
 
       onCoursesAdded(selectedCourses)
       onClose()
     } catch (error) {
-      console.error('Error adding courses:', error)
-      alert('Failed to add courses. Please try again.')
+      console.error('Error in handleAddCourses:', error)
     } finally {
       setLoading(false)
     }

@@ -11,6 +11,8 @@ import {
 } from '../services/curriculumService';
 import { aggregateSyllabusSources } from '../services/syllabusAggregator';
 import { fetchGroqLiveCourseSearch, enrichManualCourseWithGroq } from '../groqClient';
+import { saveUserCourseSelections } from '../services/courseSuggestionService';
+import EnhancedCourseSuggestions from './EnhancedCourseSuggestions';
 
 /* ─── Static Data ─── */
 const GOALS = [
@@ -149,10 +151,10 @@ export default function Onboarding() {
   const [isPioneerMode, setIsPioneerMode] = useState(false);
   const [curriculumCtx, setCurriculumCtx] = useState(null);
   const [aiBaselineLoading, setAiBaselineLoading] = useState(false);
-  const [aiBaselineError, setAiBaselineError] = useState(null);
+  const [_aiBaselineError, setAiBaselineError] = useState(null);
   const [manualCode, setManualCode] = useState('');
   const [manualTitle, setManualTitle] = useState('');
-  const [manualEnriching, setManualEnriching] = useState(false);
+  const [_manualEnriching, setManualEnriching] = useState(false);
 
   // Step 4 - Alarms & Reminders
   const [alarmTime, setAlarmTime] = useState('08:00');
@@ -205,7 +207,7 @@ export default function Onboarding() {
     setFetchingSyllabus(false);
   }, [university, courseOfStudy, level, semester, country]);
 
-  const runAiBaseline = async () => {
+  const _runAiBaseline = async () => {
     setAiBaselineLoading(true);
     setAiBaselineError(null);
     try {
@@ -243,7 +245,7 @@ export default function Onboarding() {
       .slice(0, 30);
   }, [catalog, courseTypeahead]);
 
-  const combinedHits = useMemo(() => {
+  const _combinedHits = useMemo(() => {
     const seen = new Set();
     const out = [];
     for (const c of libraryHits) {
@@ -290,7 +292,7 @@ export default function Onboarding() {
     return () => clearTimeout(t);
   }, [courseTypeahead, step, country, university, courseOfStudy, level, semester]);
 
-  const pickCourse = (code, name, hitKind) => {
+  const _pickCourse = (code, name, hitKind) => {
     setSelectedCourses((prev) => {
       if (prev.some((p) => p.code === code)) return prev;
       return [...prev, { code, name, hitKind }];
@@ -299,11 +301,11 @@ export default function Onboarding() {
     setHitsOpen(false);
   };
 
-  const removeFromSelected = (code) => {
+  const _removeFromSelected = (code) => {
     setSelectedCourses((prev) => prev.filter((p) => p.code !== code));
   };
 
-  const addManualWithEnrich = async () => {
+  const _addManualWithEnrich = async () => {
     if (!manualCode.trim() || !manualTitle.trim()) return;
     const n = normalizeCourseRow({ code: manualCode, name: manualTitle });
     if (!n.code) return;
@@ -369,11 +371,11 @@ export default function Onboarding() {
     [step, loadCurriculumForStep3],
   );
 
-  const loadPct = Math.min(
+  const _loadPct = Math.min(
     100,
     Math.round((selectedCourses.length / 14) * 100),
   );
-  const aiMsg = () => {
+  const _aiMsg = () => {
     const n = selectedCourses.length;
     if (n === 0) return null;
     if (n >= 12)
@@ -409,6 +411,9 @@ export default function Onboarding() {
       ...(Object.keys(enriched_manual).length > 0 ? { enriched_manual } : {}),
     };
 
+    // Deep clone curriculum_context to avoid circular references
+    const clean_curriculum_context = JSON.parse(JSON.stringify(curriculum_context));
+
     // 1. Update primary profile using the specific metadata asked
     await supabase.from('profiles').upsert({
       id: authUser.id,
@@ -421,7 +426,7 @@ export default function Onboarding() {
       alarm_time: alarmTime,
       reminders_enabled: remindersEnabled,
       onboarding_complete: true,
-      curriculum_context,
+      curriculum_context: clean_curriculum_context,
     });
 
     const selectedCodes = selectedCourses.map((c) => c.code);
@@ -434,13 +439,21 @@ export default function Onboarding() {
     // Auto-upserting missing syllabus directly
     if (coursesToUpsert.length > 0) {
       // Step A: Safely insert or update missing global catalog syllabus
-      await supabase.from('courses').upsert(coursesToUpsert, { onConflict: 'code' });
+      const { error: upsertErr } = await supabase.from('courses').upsert(coursesToUpsert, { onConflict: 'code' });
+      if (upsertErr) {
+        console.error('Onboarding courses upsert error:', upsertErr);
+        if (upsertErr.code === '42501') {
+           alert('Database Security Error: Missing permission for courses/semester_weeks. Please contact admin to run RLS fixes.');
+        }
+      }
 
-      // Step B: Force fetch the final official DB Row IDs (Supabase returns nothing if upsert hits identical data with no changes)
-      const { data: globalCourses } = await supabase
+      // Step B: Force fetch the final official DB Row IDs
+      const { data: globalCourses, error: fetchErr } = await supabase
         .from('courses')
         .select('id, code')
         .in('code', selectedCodes);
+
+      if (fetchErr) console.error('Onboarding courses fetch error:', fetchErr);
 
       // 3. Link real tracked user_courses
       if (globalCourses && globalCourses.length > 0) {
@@ -454,7 +467,9 @@ export default function Onboarding() {
         // Insert user courses first
         const { error: insertError } = await supabase.from('user_courses').upsert(rows, { onConflict: 'user_id,course_id' });
         
-        if (!insertError) {
+        if (insertError) {
+          console.error('Onboarding user_courses link error:', insertError);
+        } else {
           // Apply freemium locking (20% rule)
           const { error: lockingError } = await supabase.rpc('apply_freemium_locking', {
             p_user_id: authUser.id,
@@ -499,7 +514,14 @@ export default function Onboarding() {
       { onConflict: 'user_id' },
     );
 
-    // 5. Celebration mapping
+    // 5. Save course selections for peer recommendations
+    try {
+      await saveUserCourseSelections(authUser.id, university, courseOfStudy, level, semester, selectedCourses);
+    } catch (_error) {
+      // Course selection save failed silently
+    }
+
+    // 6. Celebration mapping
     setConfetti(true);
     setTimeout(() => setShowXP(true), 400);
     setTimeout(() => navigate('/dashboard'), 2800);
@@ -546,7 +568,7 @@ export default function Onboarding() {
         )}
       </AnimatePresence>
 
-      <div style={{ width:'100%', maxWidth: step === 3 ? 780 : 660, position:'relative', zIndex:1 }}>
+      <div style={{ width:'100%', maxWidth: step === 3 ? 1000 : 660, position:'relative', zIndex:1 }}>
 
         {/* Header Progress Tracker */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
@@ -740,285 +762,237 @@ export default function Onboarding() {
 
             {/* ══ STEP 3 — Search & pick courses ══ */}
             {step === 3 && (
-              <div style={{ background:'white', borderRadius:24, padding:36, boxShadow:'0 20px 60px rgba(122,18,204,0.1)', border:'1px solid rgba(122,18,204,0.12)' }}>
-                <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.1em', color:'#7a12cc', textTransform:'uppercase', marginBottom:6 }}>Step 3 of 5</div>
-                <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:4 }}>
-                  <div>
-                    <h2 style={{ fontSize:24, fontWeight:900, color:'#111', letterSpacing:'-0.03em', margin:'0 0 4px' }}>Your courses</h2>
-                    <p style={{ color:'#888', fontSize:13, margin:0 }}>
-                      Search by code or course name (uppercase). We match your programme and semester in real time—tap a row to add it. Use &quot;Add &amp; verify&quot; only if it doesn&apos;t appear.
-                    </p>
-                    <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:10 }}>
-                      <span style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.04em', padding:'6px 10px', borderRadius:8, background:'#f0e8ff', color:'#6d28d9', border:'1px solid rgba(122,18,204,0.2)' }}>
-                        <Library size={12} style={{ display:'inline', verticalAlign:'middle', marginRight:4 }} />
-                        {fetchingSyllabus
-                          ? 'Getting courses…'
-                          : curriculumSlotMeta.fromRepository
-                            ? 'Includes your school&apos;s list'
-                            : isPioneerMode
-                              ? 'First for this programme — add anything missing'
-                              : 'Course list ready'}
-                      </span>
+              <div style={{ 
+                background: 'white', 
+                borderRadius: 24, 
+                padding: window.innerWidth <= 768 ? 24 : 36, 
+                boxShadow: '0 20px 60px rgba(122,18,204,0.1)', 
+                border: '1px solid rgba(122,18,204,0.12)',
+                width: '100%',
+                maxWidth: window.innerWidth <= 768 ? '100%' : '900px'
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: '#7a12cc', textTransform: 'uppercase', marginBottom: 6 }}>Step 3 of 5</div>
+                <h2 style={{ fontSize: window.innerWidth <= 768 ? 24 : 28, fontWeight: 900, color: '#111', letterSpacing: '-0.03em', margin: '0 0 8px' }}>Choose Your Courses</h2>
+                <p style={{ color: '#6b7280', fontSize: window.innerWidth <= 768 ? 14 : 15, margin: '0 0 24px', lineHeight: 1.5 }}>
+                  Select courses for your {level} level {semester.toLowerCase()} semester. These will help personalize your learning experience.
+                </p>
+
+                {/* Progress Card */}
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                  padding: '16px 20px',
+                  borderRadius: 16,
+                  border: '1px solid #e2e8f0',
+                  marginBottom: 24
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ 
+                      width: 40, 
+                      height: 40, 
+                      borderRadius: 14, 
+                      background: 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: 18,
+                      fontWeight: 900
+                    }}>
+                      3
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a' }}>
+                        Course Selection
+                      </div>
+                      <div style={{ fontSize: 12, color: '#6b7280' }}>
+                        {courseOfStudy} • {level}L
+                      </div>
                     </div>
                   </div>
-                  <div style={{ flexShrink:0, textAlign:'right' }}>
-                    <div style={{ fontSize:20, fontWeight:900, color:'#7a12cc' }}>{selectedCourses.length}</div>
-                    <div style={{ fontSize:10, color:'#999' }}>selected</div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: '#7a12cc' }}>
+                      {selectedCourses.length}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#999' }}>selected</div>
                   </div>
                 </div>
 
-                {fetchingSyllabus ? (
-                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 0' }}>
-                    <Loader2 className="animate-spin" size={32} color="#7a12cc" />
-                    <div style={{ marginTop:16, fontSize:15, fontWeight:800, color:'#111' }}>Getting courses…</div>
-                    <div style={{ fontSize:12, color:'#888', marginTop:4, fontWeight:600, textAlign:'center', maxWidth:320 }}>
-                      {courseOfStudy} · {level} Level · {university}
-                    </div>
-                  </div>
-                ) : (
+                {!fetchingSyllabus && (
                   <>
                     {isPioneerMode && (
-                      <div style={{ marginBottom:14, padding:14, borderRadius:14, background:'linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%)', border:'1px solid #f59e0b55' }}>
-                        <div style={{ fontSize:13, fontWeight:800, color:'#92400e', marginBottom:6 }}>You&apos;re the first here for this programme.</div>
-                        <p style={{ fontSize:12, color:'#78350f', margin:0, lineHeight:1.5, fontWeight:600 }}>
-                          Search and add your courses below. When you finish onboarding we save this list for students after you—and you earn <strong>+500 XP</strong>.
+                      <div style={{ 
+                        marginBottom: 24, 
+                        padding: 16, 
+                        borderRadius: 16, 
+                        background: 'linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%)', 
+                        border: '1px solid #f59e0b55' 
+                      }}>
+                        <div style={{ 
+                          fontSize: 13, 
+                          fontWeight: 800, 
+                          color: '#92400e', 
+                          marginBottom: 6 
+                        }}>
+                          🎉 First to Map This Programme
+                        </div>
+                        <p style={{ 
+                          fontSize: 12, 
+                          color: '#78350f', 
+                          margin: 0, 
+                          lineHeight: 1.5, 
+                          fontWeight: 600 
+                        }}>
+                          Add your courses below. When you finish, we'll save this list for future students—and you'll earn <strong>+500 XP</strong>!
                         </p>
                       </div>
                     )}
 
-                    <div style={{ marginBottom:12 }}>
-                      <label style={{ fontSize:10, fontWeight:800, color:'#555', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:6 }}>Search courses</label>
-                      <div style={{ position:'relative' }}>
-                        <Search size={14} color="#aaa" style={{ position:'absolute', left:12, top:14, pointerEvents:'none' }} />
-                        <input
-                          value={courseTypeahead}
-                          onChange={(e) => {
-                            const v = e.target.value.toUpperCase();
-                            setCourseTypeahead(v);
-                            setHitsOpen(true);
-                          }}
-                          onFocus={() => setHitsOpen(true)}
-                          placeholder="E.G. MCE303, THERMO, GST111…"
-                          style={{ ...inputStyles, paddingLeft:36, margin:0, textTransform:'uppercase', fontWeight:700, letterSpacing:'0.04em' }}
-                        />
-                        {liveSearchLoading && courseTypeahead.trim().length >= 2 && (
-                          <Loader2 className="animate-spin" size={16} color="#7a12cc" style={{ position:'absolute', right:14, top:14 }} />
-                        )}
-                      </div>
-                      <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:10, marginTop:8 }}>
-                        <span style={{ fontSize:10, color:'#9ca3af', fontWeight:600 }}>
-                          {courseTypeahead.trim().length < 1
-                            ? 'Type to search your library and live matches'
-                            : `${combinedHits.length} match${combinedHits.length === 1 ? '' : 'es'}`}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={runAiBaseline}
-                          disabled={aiBaselineLoading}
-                          style={{
-                            display:'inline-flex',
-                            alignItems:'center',
-                            gap:8,
-                            padding:'8px 12px',
-                            borderRadius:10,
-                            border:'1.5px solid rgba(122,18,204,0.35)',
-                            background:'#faf5ff',
-                            color:'#6d28d9',
-                            fontSize:11,
-                            fontWeight:800,
-                            cursor: aiBaselineLoading ? 'wait' : 'pointer',
-                            fontFamily:'inherit',
-                          }}
-                        >
-                          {aiBaselineLoading ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} />}
-                          {aiBaselineLoading ? 'Refreshing…' : 'Refresh library'}
-                        </button>
-                      </div>
-                      {aiBaselineError && (
-                        <p style={{ fontSize:11, color:'#b45309', margin:'8px 0 0', fontWeight:600 }}>{aiBaselineError}</p>
-                      )}
+                    {/* Course Suggestions - Full Width */}
+                    <div style={{ marginBottom: 24 }}>
+                      <EnhancedCourseSuggestions
+                        university={university}
+                        department={courseOfStudy}
+                        level={level}
+                        semester={semester}
+                        country={country}
+                        selectedCourses={selectedCourses}
+                        onCourseSelect={(course) => {
+                          setSelectedCourses(prev => {
+                            if (prev.some(p => p.code === course.code)) return prev;
+                            return [...prev, course];
+                          });
+                        }}
+                        onCourseRemove={(courseCode) => {
+                          setSelectedCourses(prev => prev.filter(p => p.code !== courseCode));
+                        }}
+                      />
                     </div>
 
-                    {courseTypeahead.trim() && !liveSearchLoading && combinedHits.length === 0 && (
-                      <p style={{ fontSize:12, color:'#9ca3af', margin:'0 0 12px', fontWeight:600 }}>
-                        No matches yet—try another keyword or add the course manually below.
-                      </p>
-                    )}
+                    {/* Manual Course Addition */}
+                    <details style={{ marginBottom: 24 }}>
+                      <summary style={{ 
+                        cursor: 'pointer', 
+                        fontSize: 12, 
+                        fontWeight: 700, 
+                        color: '#6b7280',
+                        padding: '12px 16px',
+                        borderRadius: 12,
+                        background: 'white',
+                        border: '1px solid #e5e7eb',
+                        outline: 'none'
+                      }}>
+                        🔍 Can't find your course? Add manually
+                      </summary>
+                      <div style={{ 
+                        marginTop: 12, 
+                        padding: 16, 
+                        background: '#f9fafb', 
+                        borderRadius: 12, 
+                        border: '1px solid #e5e7eb' 
+                      }}>
+                        <input
+                          type="text"
+                          placeholder="Course code (e.g., CSC101)"
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            borderRadius: 8,
+                            border: '2px solid #e5e7eb',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            outline: 'none',
+                            marginBottom: 12,
+                            textTransform: 'uppercase'
+                          }}
+                          onFocus={(e) => { e.target.style.borderColor = '#7a12cc' }}
+                          onBlur={(e) => { e.target.style.borderColor = '#e5e7eb' }}
+                          onChange={(e) => setManualCode(e.target.value)}
+                          value={manualCode}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Course name (e.g., Introduction to Computer Science)"
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            borderRadius: 8,
+                            border: '2px solid #e5e7eb',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            outline: 'none',
+                            marginBottom: 12
+                          }}
+                          onFocus={(e) => { e.target.style.borderColor = '#7a12cc' }}
+                          onBlur={(e) => { e.target.style.borderColor = '#e5e7eb' }}
+                          onChange={(e) => setManualTitle(e.target.value)}
+                          value={manualTitle}
+                        />
+                        <button
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            borderRadius: 8,
+                            border: 'none',
+                            background: 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)',
+                            color: 'white',
+                            fontSize: 14,
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Add Course
+                        </button>
+                      </div>
+                    </details>
 
-                    {hitsOpen && combinedHits.length > 0 && (
-                      <div
+                    {/* Navigation Buttons */}
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: 12, 
+                      marginTop: 32
+                    }}>
+                      <button
+                        onClick={() => setStep(2)}
                         style={{
-                          maxHeight:220,
-                          overflowY:'auto',
-                          border:'1.5px solid #e5e7eb',
-                          borderRadius:12,
-                          marginBottom:14,
-                          background:'#fafafa',
+                          flex: 1,
+                          padding: '16px',
+                          borderRadius: 12,
+                          border: '2px solid #e5e7eb',
+                          background: 'white',
+                          color: '#6b7280',
+                          fontSize: 15,
+                          fontWeight: 700,
+                          cursor: 'pointer'
                         }}
                       >
-                        {combinedHits.map((h) => {
-                          const taken = selectedCourses.some((p) => p.code === h.code);
-                          return (
-                            <button
-                              key={h.code}
-                              type="button"
-                              disabled={taken}
-                              onClick={() => !taken && pickCourse(h.code, h.name, h.hitKind)}
-                              style={{
-                                width:'100%',
-                                textAlign:'left',
-                                padding:'12px 14px',
-                                border:'none',
-                                borderBottom:'1px solid #eee',
-                                background: taken ? '#f3f4f6' : 'white',
-                                cursor: taken ? 'default' : 'pointer',
-                                fontFamily:'inherit',
-                                display:'block',
-                              }}
-                            >
-                              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
-                                <div>
-                                  <div style={{ fontSize:12, fontWeight:900, color:'#7a12cc', letterSpacing:'0.06em' }}>{h.code}</div>
-                                  <div style={{ fontSize:13, fontWeight:600, color:'#111', marginTop:2 }}>{h.name}</div>
-                                </div>
-                                <span style={{ fontSize:9, fontWeight:800, color:'#9ca3af', textTransform:'uppercase', flexShrink:0 }}>
-                                  {h.hitKind === 'library' ? 'From list' : 'Match'}
-                                </span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {selectedCourses.length > 0 && (
-                      <div style={{ marginBottom:14 }}>
-                        <div style={{ fontSize:10, fontWeight:800, color:'#555', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>Selected</div>
-                        <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-                          {selectedCourses.map((c) => (
-                            <span
-                              key={c.code}
-                              style={{
-                                display:'inline-flex',
-                                alignItems:'center',
-                                gap:6,
-                                padding:'8px 12px',
-                                borderRadius:999,
-                                background:'#f0e8ff',
-                                border:'1px solid rgba(122,18,204,0.25)',
-                                fontSize:12,
-                                fontWeight:700,
-                                color:'#5b21b6',
-                              }}
-                            >
-                              {c.code}
-                              <button
-                                type="button"
-                                onClick={() => removeFromSelected(c.code)}
-                                style={{ border:'none', background:'transparent', padding:0, cursor:'pointer', display:'flex', color:'#7a12cc' }}
-                                aria-label={`Remove ${c.code}`}
-                              >
-                                <X size={14} />
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div style={{ marginBottom:18, padding:14, borderRadius:14, border:'1px dashed #e5e7eb', background:'#fafafa' }}>
-                      <div style={{ fontSize:11, fontWeight:800, color:'#555', marginBottom:8 }}>Not listed? Add manually — we verify online &amp; save details</div>
-                      <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr auto', gap:8, alignItems:'end' }}>
-                        <input
-                          value={manualCode}
-                          onChange={(e) => setManualCode(e.target.value.toUpperCase())}
-                          placeholder="CODE"
-                          style={{ ...inputStyles, margin:0, textTransform:'uppercase', fontWeight:800 }}
-                        />
-                        <input
-                          value={manualTitle}
-                          onChange={(e) => setManualTitle(e.target.value)}
-                          placeholder="Full course title"
-                          style={{ ...inputStyles, margin:0 }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => addManualWithEnrich()}
-                          disabled={manualEnriching}
-                          style={{
-                            padding:'12px 14px',
-                            borderRadius:10,
-                            border:'none',
-                            background:'#7a12cc',
-                            color:'white',
-                            fontWeight:800,
-                            fontSize:12,
-                            cursor: manualEnriching ? 'wait' : 'pointer',
-                            fontFamily:'inherit',
-                            whiteSpace:'nowrap',
-                          }}
-                        >
-                          {manualEnriching ? <Loader2 className="animate-spin" size={14} style={{ display:'inline', verticalAlign:'middle' }} /> : null}{' '}
-                          {manualEnriching ? 'Verifying…' : 'Add & verify'}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div style={{ marginBottom:20 }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:5 }}>
-                        <span style={{ fontSize:10, fontWeight:800, color:'#666', textTransform:'uppercase', letterSpacing:'0.06em' }}>Semester load</span>
-                        <span style={{ fontSize:11, fontWeight:800, color: loadPct >= 100 ? '#dc2626' : '#7a12cc' }}>{loadPct}%</span>
-                      </div>
-                      <div style={{ height:7, background:'#f0e8ff', borderRadius:999, overflow:'hidden' }}>
-                        <motion.div
-                          animate={{ width: `${loadPct}%` }}
-                          transition={{ type:'spring', stiffness:200, damping:24 }}
-                          style={{
-                            height:'100%',
-                            borderRadius:999,
-                            background: loadPct >= 100 ? '#dc2626' : 'linear-gradient(90deg,#7a12cc,#b04dfc)',
-                          }}
-                        />
-                      </div>
-                      <AnimatePresence>
-                        {aiMsg() && (
-                          <motion.p
-                            initial={{ opacity:0, y:-4 }}
-                            animate={{ opacity:1, y:0 }}
-                            exit={{ opacity:0 }}
-                            style={{ fontSize:12, fontWeight:600, color:aiMsg().color, margin:'5px 0 0' }}
-                          >
-                            {aiMsg().msg}
-                          </motion.p>
-                        )}
-                      </AnimatePresence>
+                        ← Back
+                      </button>
+                      <button
+                        onClick={() => goTo(4)}
+                        disabled={selectedCourses.length === 0}
+                        style={{
+                          flex: 2,
+                          padding: '16px',
+                          borderRadius: 12,
+                          border: 'none',
+                          background: selectedCourses.length === 0 
+                            ? '#d1d5db' 
+                            : 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)',
+                          color: 'white',
+                          fontSize: 15,
+                          fontWeight: 700,
+                          cursor: selectedCourses.length === 0 ? 'not-allowed' : 'pointer',
+                          opacity: selectedCourses.length === 0 ? 0.6 : 1
+                        }}
+                      >
+                        {selectedCourses.length === 0 ? 'Select Courses to Continue' : 'Next Step: Reminders →'}
+                      </button>
                     </div>
                   </>
                 )}
-
-                <div style={{ display:'flex', gap:10 }}>
-                  <button onClick={() => goTo(2)} style={{ padding:'12px 18px', borderRadius:12, border:'1.5px solid #e5e7eb', background:'white', color:'#555', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>← Back</button>
-                  <button
-                    onClick={() => goTo(4)}
-                    disabled={selectedCourses.length === 0}
-                    style={{
-                      flex:1,
-                      padding:'12px',
-                      borderRadius:12,
-                      background: selectedCourses.length > 0 ? '#7a12cc' : '#e5e7eb',
-                      color: selectedCourses.length > 0 ? 'white' : '#9ca3af',
-                      fontSize:14,
-                      fontWeight:700,
-                      border:'none',
-                      cursor: selectedCourses.length > 0 ? 'pointer' : 'not-allowed',
-                      fontFamily:'inherit',
-                      boxShadow: selectedCourses.length > 0 ? '0 6px 20px rgba(122,18,204,0.3)' : 'none',
-                      transition:'all 0.2s',
-                    }}
-                  >
-                    My Alarm →
-                  </button>
-                </div>
               </div>
             )}
 

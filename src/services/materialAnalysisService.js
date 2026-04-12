@@ -737,32 +737,6 @@ Create questions that test:
     }
   }
   
-  /**
-   * Create basic flashcards from analysis when JSON parsing fails
-   */
-  static createBasicFlashcards(analysis, count = 10) {
-    const flashcards = []
-    const topics = analysis.keyTopics || []
-    const terms = analysis.keyTerms || []
-    
-    for (let i = 0; i < Math.min(count, Math.max(topics.length, terms.length, 5)); i++) {
-      const topic = topics[i] || `Concept ${i + 1}`
-      const term = terms[i]?.term || `Term ${i + 1}`
-      const definition = terms[i]?.definition || 'Definition of this term'
-      
-      flashcards.push({
-        id: `fc_${i + 1}`,
-        question: `What is ${topic}?`,
-        answer: definition || `${topic} is an important concept covered in this material.`,
-        difficulty: i % 3 === 0 ? 'easy' : i % 3 === 1 ? 'medium' : 'hard',
-        topic: topic
-      })
-    }
-    
-    return {
-      flashcards
-    }
-  }
 }
 
 export default MaterialAnalysisService

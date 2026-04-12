@@ -174,7 +174,7 @@ Ensure questions test understanding, not just memorization.`
 
   // Text extraction helpers
   extractBulletPoints(text) {
-    const bulletPattern = /^[•\-\*]\s+(.+)$/gm
+    const bulletPattern = /^[•\-*]\s+(.+)$/gm
     const points = []
     let match
     while ((match = bulletPattern.exec(text)) !== null) {
@@ -194,7 +194,7 @@ Ensure questions test understanding, not just memorization.`
   }
 
   extractDefinitions(text) {
-    const definitionPattern = /(\w+(?:\s+\w+)*)\s*[:\-]\s*([^.\n]+)/gm
+    const definitionPattern = /(\w+(?:\s+\w+)*)\s*[:-]\s*([^.\n]+)/gm
     const definitions = []
     let match
     while ((match = definitionPattern.exec(text)) !== null) {
@@ -207,7 +207,7 @@ Ensure questions test understanding, not just memorization.`
   }
 
   extractSection(text, sectionName) {
-    const pattern = new RegExp(`${sectionName}[^:]*:\s*([\s\S]*?)(?=\n\n|\n[A-Z]|\n#|$)`, 'i')
+    const pattern = new RegExp(`${sectionName}[^:]*:\\s*([\\s\\S]*?)(?=\\n\\n|\\n[A-Z]|\\n#|$)`, 'i')
     const match = pattern.exec(text)
     return match ? match[1].trim() : ''
   }

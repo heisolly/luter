@@ -192,7 +192,7 @@ export class DocumentContextService {
     if (!text || text.length < 10) return 'unknown'
     
     // Simple language detection based on character patterns
-    const englishPattern = /^[a-zA-Z\s\d\.,!?;:'"()-]+$/
+    const englishPattern = /^[a-zA-Z\s\d.,!?;:'"()-]+$/
     const frenchPattern = /[àâäéèêëïîôöùûüÿç]/i
     const spanishPattern = /[ñáéíóúü]/i
     const germanPattern = /[äöüß]/i

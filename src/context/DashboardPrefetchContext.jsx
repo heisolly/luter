@@ -26,6 +26,7 @@ function writeCachedBundle(userId, bundle) {
 
 const DashboardPrefetchContext = createContext(null)
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useDashboardPrefetch() {
   return useContext(DashboardPrefetchContext)
 }
