@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Check, Sparkles, Star } from 'lucide-react';
+import { Check, Sparkles, Star, Zap } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import PremiumModal from '../shared/PremiumModal';
 
@@ -101,9 +101,23 @@ export default function PricingPage() {
   return (
     <div className="dh-root" style={{ 
       overflowY: 'auto',
-      background: '#fafafa',
-      paddingBottom: isMobile ? 100 : 80 
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      paddingBottom: isMobile ? 100 : 80,
+      position: 'relative',
+      minHeight: '100vh'
     }}>
+      {/* Background overlay pattern */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="4"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        backgroundSize: '60px 60px',
+        backgroundRepeat: 'repeat',
+        pointerEvents: 'none'
+      }} />
       
       {/* ── Topbar ── */}
       <div style={{ 
@@ -141,7 +155,9 @@ export default function PricingPage() {
         maxWidth: 1100, 
         margin: '0 auto', 
         width: '100%',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        position: 'relative',
+        zIndex: 1
       }}>
         
         {/* Toggle */}
@@ -158,11 +174,11 @@ export default function PricingPage() {
         <div style={{ 
           display: 'flex', 
           flexDirection: isMobile ? 'column' : 'row', 
-          flexWrap: isMobile ? 'nowrap' : 'wrap', 
           justifyContent: 'center', 
-          gap: isMobile ? 32 : 0, 
-          maxWidth: 1050, 
-          margin: '0 auto' 
+          gap: isMobile ? 24 : 32, 
+          maxWidth: 1200, 
+          margin: '0 auto',
+          fontFamily: 'Outfit, sans-serif'
         }}>
           {plans.map((plan, idx) => (
             <motion.div 
@@ -171,54 +187,190 @@ export default function PricingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1 }}
               style={{
-                flex: isMobile ? 'initial' : '1 1 300px', 
-                maxWidth: isMobile ? '100%' : 360,
-                background: plan.bg, 
+                flex: '1',
+                maxWidth: isMobile ? '100%' : 380,
+                background: plan.isPopular 
+                  ? 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)' 
+                  : 'rgba(255, 255, 255, 0.95)', 
                 color: plan.color,
-                borderRadius: 24, 
-                padding: plan.isPopular ? (isMobile ? '36px 24px' : '44px 32px') : (isMobile ? '32px 24px' : '36px 28px'),
-                border: plan.isPopular ? 'none' : `1px solid ${plan.border}`,
-                boxShadow: plan.isPopular ? '0 32px 64px rgba(113,128,254,0.25)' : '0 4px 20px rgba(0,0,0,0.03)',
-                transform: plan.isPopular && !isMobile ? 'scaleY(1.04)' : 'scaleY(1)',
+                borderRadius: 0, // Sharp edges
+                padding: isMobile ? '32px 24px' : '48px 36px',
+                border: plan.isPopular 
+                  ? '2px solid rgba(255, 255, 255, 0.2)' 
+                  : '1px solid rgba(255, 255, 255, 0.3)',
+                boxShadow: plan.isPopular 
+                  ? '0 0 0 1px rgba(255, 255, 255, 0.1), 0 20px 40px rgba(122, 18, 204, 0.3)' 
+                  : '0 0 0 1px rgba(255, 255, 255, 0.1), 0 10px 30px rgba(0, 0, 0, 0.1)',
                 position: 'relative', 
                 zIndex: plan.isPopular ? 10 : 1,
                 display: 'flex', 
                 flexDirection: 'column',
-                margin: plan.isPopular && !isMobile ? '-8px 0' : '8px 0',
                 width: '100%',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                backdropFilter: 'blur(10px)',
+                clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%)' // Diagonal cut corner
               }}
             >
+              {/* Top accent line */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '4px',
+                background: plan.isPopular 
+                  ? 'linear-gradient(90deg, #fff, rgba(255,255,255,0.6))' 
+                  : 'linear-gradient(90deg, #7a12cc, #9718fb)',
+              }} />
+
+              {/* Popular badge */}
               {plan.isPopular && (
-                <div style={{ display: 'inline-flex', alignSelf: 'center', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.2)', color: 'white', padding: '5px 14px', borderRadius: 99, fontSize: 10, fontWeight: 800, marginBottom: 20, border: '1px solid rgba(255,255,255,0.3)' }}>
-                  <Sparkles size={11} /> MOST POPULAR
+                <div style={{ 
+                  position: 'absolute',
+                  top: -12,
+                  right: 24,
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: 6, 
+                  background: 'rgba(255,255,255,0.95)', 
+                  color: '#7a12cc', 
+                  padding: '6px 16px', 
+                  borderRadius: 0, // Sharp edges
+                  fontSize: 11, 
+                  fontWeight: 700, 
+                  fontFamily: 'Outfit',
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                }}>
+                  <Zap size={12} /> MOST POPULAR
                 </div>
               )}
-              <div style={{ marginBottom: 24 }}>
-                <h3 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 4px 0' }}>{plan.name}</h3>
-                <span style={{ fontSize: 12, fontWeight: 600, color: plan.isPopular ? 'rgba(255,255,255,0.8)' : '#888' }}>{plan.trial}</span>
+
+              {/* Plan name and trial */}
+              <div style={{ marginBottom: 32, textAlign: 'center' }}>
+                <h3 style={{ 
+                  fontSize: 32, 
+                  fontWeight: 800, 
+                  margin: '0 0 8px 0',
+                  fontFamily: 'Outfit',
+                  letterSpacing: '-0.02em',
+                  color: plan.isPopular ? 'white' : '#111'
+                }}>{plan.name}</h3>
+                <div style={{ 
+                  fontSize: 14, 
+                  fontWeight: 500, 
+                  color: plan.isPopular ? 'rgba(255,255,255,0.8)' : '#666',
+                  fontFamily: 'Outfit'
+                }}>{plan.trial}</div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 28 }}>
-                <span style={{ fontSize: 48, fontWeight: 900, lineHeight: 1 }}>{plan.priceMonthly === 0 ? '₦0' : `₦${(isSemester ? plan.priceSemester : plan.priceMonthly).toLocaleString()}`}</span>
-                {plan.priceMonthly > 0 && <span style={{ fontSize: 14, fontWeight: 600, color: plan.isPopular ? 'rgba(255,255,255,0.7)' : '#aaa', marginBottom: 8 }}>/{isSemester ? 'semester' : 'mo'}</span>}
+
+              {/* Price */}
+              <div style={{ 
+                textAlign: 'center', 
+                marginBottom: 32,
+                position: 'relative'
+              }}>
+                <div style={{ 
+                  fontSize: 64, 
+                  fontWeight: 900, 
+                  lineHeight: 1,
+                  fontFamily: 'Outfit',
+                  color: plan.isPopular ? 'white' : '#111',
+                  letterSpacing: '-0.03em'
+                }}>
+                  {plan.priceMonthly === 0 ? '₦0' : `₦${(isSemester ? plan.priceSemester : plan.priceMonthly).toLocaleString()}`}
+                </div>
+                {plan.priceMonthly > 0 && (
+                  <div style={{ 
+                    fontSize: 16, 
+                    fontWeight: 500, 
+                    color: plan.isPopular ? 'rgba(255,255,255,0.7)' : '#666',
+                    fontFamily: 'Outfit',
+                    marginTop: 4
+                  }}>
+                    per {isSemester ? 'semester' : 'month'}
+                  </div>
+                )}
               </div>
               
+              {/* CTA Button */}
               <button 
                 onClick={() => plan.id !== 'free' ? handleUpgrade(plan) : null}
-                style={{ width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 32, ...plan.buttonStyle, transition: 'all 0.2s' }}
-                onMouseEnter={e => { if (plan.isPopular) e.currentTarget.style.transform = 'scale(1.03)'; }}
-                onMouseLeave={e => { if (plan.isPopular) e.currentTarget.style.transform = 'none'; }}
+                style={{ 
+                  width: '100%', 
+                  padding: '18px', 
+                  borderRadius: 0, // Sharp edges
+                  fontSize: 16, 
+                  fontWeight: 700, 
+                  cursor: 'pointer', 
+                  marginBottom: 32, 
+                  fontFamily: 'Outfit',
+                  letterSpacing: '0.02em',
+                  background: plan.isPopular 
+                    ? 'rgba(255, 255, 255, 0.95)' 
+                    : 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)',
+                  color: plan.isPopular ? '#7a12cc' : 'white',
+                  border: plan.isPopular 
+                    ? '2px solid rgba(255, 255, 255, 0.3)' 
+                    : 'none',
+                  boxShadow: plan.isPopular 
+                    ? '0 8px 24px rgba(0,0,0,0.15)' 
+                    : '0 8px 24px rgba(122, 18, 204, 0.3)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={e => { 
+                  e.currentTarget.style.transform = 'translateY(-2px)'; 
+                  e.currentTarget.style.boxShadow = plan.isPopular 
+                    ? '0 12px 32px rgba(0,0,0,0.2)' 
+                    : '0 12px 32px rgba(122, 18, 204, 0.4)';
+                }}
+                onMouseLeave={e => { 
+                  e.currentTarget.style.transform = 'none'; 
+                  e.currentTarget.style.boxShadow = plan.isPopular 
+                    ? '0 8px 24px rgba(0,0,0,0.15)' 
+                    : '0 8px 24px rgba(122, 18, 204, 0.3)';
+                }}
               >
                 {plan.buttonText}
               </button>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
-                {plan.features.map(f => (
-                  <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <div style={{ width: 16, height: 16, borderRadius: '50%', background: plan.isPopular ? 'rgba(255,255,255,0.25)' : 'rgba(151,24,251,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                      <Check size={9} color={plan.isPopular ? 'white' : 'var(--primary)'} strokeWidth={3.5} />
+              {/* Features list */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
+                {plan.features.map((f, i) => (
+                  <div key={f} style={{ 
+                    display: 'flex', 
+                    gap: 12, 
+                    alignItems: 'flex-start',
+                    padding: '12px 0',
+                    borderBottom: i < plan.features.length - 1 
+                      ? `1px solid ${plan.isPopular ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.08)'}`
+                      : 'none'
+                  }}>
+                    <div style={{ 
+                      width: 20, 
+                      height: 20, 
+                      borderRadius: 0, // Sharp edges
+                      background: plan.isPopular 
+                        ? 'rgba(255,255,255,0.2)' 
+                        : 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      flexShrink: 0, 
+                      marginTop: 0,
+                      clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' // Sharp square
+                    }}>
+                      <Check size={12} color={plan.isPopular ? 'white' : 'white'} strokeWidth={3} />
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: plan.isPopular ? 'rgba(255,255,255,0.92)' : '#444' }}>{f}</span>
+                    <span style={{ 
+                      fontSize: 14, 
+                      fontWeight: 500, 
+                      lineHeight: 1.5, 
+                      color: plan.isPopular ? 'rgba(255,255,255,0.95)' : '#333',
+                      fontFamily: 'Outfit'
+                    }}>{f}</span>
                   </div>
                 ))}
               </div>

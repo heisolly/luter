@@ -64,7 +64,7 @@ const UNIS = [
 
 const plans = [
   {
-    name: 'Basic', trial: 'Free forever',
+    name: 'Basic', trial: 'Basic plan',
     priceMonthly: 0, priceSemester: 0,
     isPopular: false,
     bg: 'white', color: '#111', border: '#e5e7eb',
@@ -175,7 +175,7 @@ export default function LandingPage() {
           </Link>
 
           <div style={{ display: 'flex', gap: 32, fontSize: 14, fontWeight: 600, color: '#555' }}>
-            {[['Features','#features'],['How it works','#howitworks'],['Pricing','/pricing'],['About','/about']].map(([l,h]) => (
+            {[['Features','/features'],['How it works','/how-it-works'],['Pricing','/pricing'],['About','/about']].map(([l,h]) => (
               <Link key={l} to={h} style={{ transition: 'color 0.2s', color: 'inherit', textDecoration: 'none' }}
                 onMouseEnter={e => e.target.style.color='#000'}
                 onMouseLeave={e => e.target.style.color='#555'}>{l}</Link>
@@ -998,60 +998,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══════════════ FOR WHOM ═══════════════ */}
-      <section style={{ padding: '80px 0', background: 'white' }}>
-        <div className="container-custom">
-          <div style={{ textAlign:'center', marginBottom:48 }}>
-            <h2 className="reveal-child" style={{ fontSize:'clamp(1.8rem,3.5vw,2.6rem)', marginBottom:12 }}>Built for every kind of learner.</h2>
-            <p className="reveal-child" style={{ color:'#aaa', fontSize:16 }}>Luter adapts to your goals, not the other way around.</p>
-          </div>
-          <div className="section-16-grid">
-            {[
-              { emoji:'🎓', role:'University Students', desc:'Ace your semester with AI-powered notes, summaries, and mock exams tailored to your courses.' },
-              { emoji:'📚', role:'Self-Learners', desc:'Master any subject at your own pace with structured content and intelligent revision reminders.' },
-              { emoji:'🏥', role:'Professionals', desc:'Stay sharp on industry knowledge, certifications, and continuing education requirements.' },
-              { emoji:'✏️', role:'Tutors & Teachers', desc:'Create course materials instantly and track how well concepts are landing with your students.' },
-            ].map(({ emoji, role, desc }) => (
-              <div key={role} className="role-card reveal-child">
-                <div className="role-icon">{emoji}</div>
-                <h4 style={{ fontSize:17, fontWeight:700, fontFamily:'var(--font-inter)', marginBottom:10, color:'#111' }}>{role}</h4>
-                <p style={{ fontSize:14, color:'#888', lineHeight:1.7 }}>{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════ TESTIMONIALS ═══════════════ */}
-      <section style={{ padding: '96px 0', background: '#fafafa' }}>
-        <div className="container-custom">
-          <div style={{ textAlign:'center', marginBottom:56 }}>
-            <h2 className="reveal-child" style={{ fontSize:'clamp(2rem,4vw,3rem)', marginBottom:12 }}>Voices of Excellence.</h2>
-            <p className="reveal-child" style={{ color:'#aaa', fontSize:16 }}>Real students. Real results.</p>
-          </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20 }}>
-            {[
-              { text:'"Luter predicted my final exam questions almost perfectly. I went from a 2.5 to a 4.2 GPA in one semester."', name:'Tobe Okafor', school:'UNILAG — Computer Science', initials:'TO', color:'#c084fc' },
-              { text:'"I used to spend weekends rewriting notes. Now Luter does it in minutes. I actually have free time now."', name:'Amara Diallo', school:'University of Ghana — Medicine', initials:'AD', color:'#60a5fa' },
-              { text:'"The AI Tutor explained thermodynamics at 2am when I was panicking before my exam. Absolute game changer."', name:'James Osei', school:'Stellenbosch University — Engineering', initials:'JO', color:'#34d399' },
-            ].map(({ text, name, school, initials, color }) => (
-              <div key={name} className="testimonial-card reveal-child">
-                <div className="testimonial-quote">"</div>
-                <div style={{ display:'flex', gap:2, marginBottom:4 }}><Stars /></div>
-                <p style={{ fontSize:15, color:'#555', lineHeight:1.8, fontStyle:'italic', flex:1 }}>{text}</p>
-                <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                  <div style={{ width:40, height:40, borderRadius:'50%', background: color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:800, color:'white', flexShrink:0 }}>{initials}</div>
-                  <div>
-                    <div style={{ fontWeight:700, fontSize:14, color:'#111' }}>{name}</div>
-                    <div style={{ fontSize:12, color:'#aaa' }}>{school}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
+      
+      
       {/* ═══════════════ PRICING TEASER ═══════════════ */}
       <section id="pricing" style={{ padding:'80px 0', background:'white' }}>
         <div style={{ position: 'relative', zIndex: 1, paddingBottom: 60 }}>
@@ -1145,38 +1093,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══════════════ CTA FINAL ═══════════════ */}
-      <section style={{ padding:'80px 0 96px', background:'white' }}>
-        <div className="container-custom">
-          <div className="cta-section reveal-child" style={{ padding:'80px 48px', textAlign:'center', position:'relative' }}>
-            <div className="cta-glow-1" />
-            <div className="cta-glow-2" />
-            <div className="badge-dark reveal-child" style={{ marginBottom:24, position:'relative', zIndex:1 }}>
-              <Zap style={{ width:12, height:12, display:'inline', marginRight:4, verticalAlign:'middle' }}/>
-              Start for free today
-            </div>
-            <h2 style={{ fontSize:'clamp(2.4rem, 6vw, 5rem)', color:'white', marginBottom:20, position:'relative', zIndex:1, lineHeight:1.1 }}>
-              The future of learning<br />
-              <span style={{ color:'#c084fc', fontStyle:'italic' }}>starts now.</span>
-            </h2>
-            <p style={{ fontSize:17, color:'rgba(255,255,255,0.45)', maxWidth:440, margin:'0 auto 40px', position:'relative', zIndex:1, lineHeight:1.7 }}>
-              Join 5 million students who've replaced stress with strategy.
-            </p>
-            <div style={{ display:'flex', gap:14, justifyContent:'center', position:'relative', zIndex:1 }}>
-              <button className="btn-primary" style={{ background:'white', color:'var(--primary)', padding:'16px 36px', fontSize:16, fontWeight:800 }}>
-                Get Started — It's Free <ArrowRight style={{ width:18, height:18 }} />
-              </button>
-              <button className="btn-secondary" style={{ border:'1px solid rgba(255,255,255,0.15)', background:'rgba(255,255,255,0.07)', color:'white', padding:'16px 28px', fontSize:15 }}>
-                <Play style={{ width:15, height:15, fill:'white' }} /> Watch Demo
-              </button>
-            </div>
-            <p style={{ fontSize:12, color:'rgba(255,255,255,0.25)', marginTop:20, position:'relative', zIndex:1, fontWeight:500 }}>
-              Free forever · No credit card required · Cancel anytime
-            </p>
-          </div>
-        </div>
-      </section>
-
+      
       {/* ═══════════════ FOOTER ═══════════════ */}
       <footer style={{ borderTop:'1px solid var(--border-light)', padding:'56px 0 40px', background: '#fafafa' }}>
         <div className="container-full">

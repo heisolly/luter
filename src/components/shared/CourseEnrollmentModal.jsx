@@ -12,6 +12,7 @@ import {
 import {
   fetchGroqLiveCourseSearch 
 } from '../../groqClient'
+import { saveUserCourseSelections } from '../../services/courseSuggestionService'
 
 export default function CourseEnrollmentModal({ 
   isOpen, 
@@ -255,15 +256,13 @@ export default function CourseEnrollmentModal({
       }
 
       // 4. Save to peer selections (Optional but good for recommendations)
-      const levelNum = parseInt(user?.user_metadata?.level) || 100
-      const semester = user?.user_metadata?.semester || '1st'
       
       await saveUserCourseSelections(
         user.id,
-        user?.user_metadata?.university || 'General',
-        user?.user_metadata?.courseOfStudy || 'General',
-        levelNum,
-        semester,
+        university || 'General',
+        courseOfStudy || 'General',
+        level || '100',
+        semester || '1st',
         selectedCourses
       )
 

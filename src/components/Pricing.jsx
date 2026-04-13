@@ -21,7 +21,7 @@ const FAQItem = ({ q, a }) => {
 
 const plans = [
   {
-    name: 'Basic', trial: 'Free forever',
+    name: 'Basic', trial: 'Basic plan',
     priceMonthly: 0, priceSemester: 0,
     isPopular: false,
     bg: 'white', color: '#111', border: '#e5e7eb',
@@ -99,40 +99,144 @@ export default function Pricing() {
         {/* Plans */}
         <div className="container-full" style={{ marginBottom: 80 }}>
           <RevealDiv>
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 0, maxWidth: 1050, margin: '0 auto' }}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+              gap: 24, 
+              maxWidth: 1000, 
+              margin: '0 auto'
+            }}>
               {plans.map((plan) => (
                 <div key={plan.name} style={{
-                  flex: '1 1 300px', maxWidth: 360,
-                  background: plan.bg, color: plan.color,
-                  borderRadius: 24, padding: plan.isPopular ? '44px 32px' : '36px 28px',
-                  border: plan.isPopular ? 'none' : `1px solid ${plan.border}`,
-                  boxShadow: plan.isPopular ? '0 32px 64px rgba(113,128,254,0.25)' : '0 4px 20px rgba(0,0,0,0.03)',
-                  transform: plan.isPopular ? 'scaleY(1.04)' : 'scaleY(1)',
-                  position: 'relative', zIndex: plan.isPopular ? 10 : 1,
-                  display: 'flex', flexDirection: 'column',
-                  margin: plan.isPopular ? '-8px 0' : '8px 0'
+                  background: plan.isPopular ? 'var(--primary)' : 'white',
+                  color: plan.color,
+                  borderRadius: 16,
+                  padding: '32px 24px',
+                  border: plan.isPopular ? 'none' : '1px solid #e5e7eb',
+                  boxShadow: plan.isPopular ? '0 10px 30px rgba(122, 18, 204, 0.2)' : '0 4px 12px rgba(0,0,0,0.08)',
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  transition: 'transform 0.2s, box-shadow 0.2s'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.boxShadow = plan.isPopular 
+                    ? '0 15px 40px rgba(122, 18, 204, 0.25)' 
+                    : '0 8px 20px rgba(0,0,0,0.12)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = plan.isPopular 
+                    ? '0 10px 30px rgba(122, 18, 204, 0.2)' 
+                    : '0 4px 12px rgba(0,0,0,0.08)';
                 }}>
                   {plan.isPopular && (
-                    <div style={{ display: 'inline-flex', alignSelf: 'center', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.2)', color: 'white', padding: '5px 14px', borderRadius: 99, fontSize: 10, fontWeight: 800, marginBottom: 20, border: '1px solid rgba(255,255,255,0.3)' }}>
-                      <Sparkles size={11} /> MOST POPULAR
+                    <div style={{ 
+                      position: 'absolute',
+                      top: -12,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      background: 'white',
+                      color: 'var(--primary)',
+                      padding: '4px 12px',
+                      borderRadius: 12,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      fontFamily: 'Outfit'
+                    }}>
+                      MOST POPULAR
                     </div>
                   )}
-                  <div style={{ marginBottom: 24 }}>
-                    <h3 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 4px 0' }}>{plan.name}</h3>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: plan.isPopular ? 'rgba(255,255,255,0.8)' : '#888' }}>{plan.trial}</span>
+
+                  <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                    <h3 style={{ 
+                      fontSize: 24, 
+                      fontWeight: 700, 
+                      margin: '0 0 8px 0',
+                      fontFamily: 'Outfit',
+                      color: plan.isPopular ? 'white' : '#111'
+                    }}>{plan.name}</h3>
+                    <p style={{ 
+                      fontSize: 13, 
+                      fontWeight: 500, 
+                      margin: 0,
+                      color: plan.isPopular ? 'rgba(255,255,255,0.8)' : '#666',
+                      fontFamily: 'Outfit'
+                    }}>{plan.trial}</p>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 28 }}>
-                    <span style={{ fontSize: 48, fontWeight: 900, lineHeight: 1 }}>{plan.priceMonthly === 0 ? '₦0' : `₦${isSemester ? plan.priceSemester.toLocaleString() : plan.priceMonthly.toLocaleString()}`}</span>
-                    {plan.priceMonthly > 0 && <span style={{ fontSize: 14, fontWeight: 600, color: plan.isPopular ? 'rgba(255,255,255,0.7)' : '#aaa', marginBottom: 8 }}>/{isSemester ? 'semester' : 'mo'}</span>}
+
+                  <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                    <div style={{ 
+                      fontSize: 48, 
+                      fontWeight: 800, 
+                      lineHeight: 1,
+                      fontFamily: 'Outfit',
+                      color: plan.isPopular ? 'white' : '#111'
+                    }}>
+                      {plan.priceMonthly === 0 ? '₦0' : `₦${isSemester ? plan.priceSemester.toLocaleString() : plan.priceMonthly.toLocaleString()}`}
+                    </div>
+                    {plan.priceMonthly > 0 && (
+                      <div style={{ 
+                        fontSize: 14, 
+                        fontWeight: 500, 
+                        color: plan.isPopular ? 'rgba(255,255,255,0.7)' : '#666',
+                        fontFamily: 'Outfit'
+                      }}>
+                        per {isSemester ? 'semester' : 'month'}
+                      </div>
+                    )}
                   </div>
-                  <button style={{ width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 32, ...plan.buttonStyle, transition: 'all 0.2s' }}>{plan.buttonText}</button>
+                  
+                  <button style={{ 
+                    width: '100%', 
+                    padding: '16px', 
+                    borderRadius: 12, 
+                    fontSize: 15, 
+                    fontWeight: 600, 
+                    cursor: 'pointer', 
+                    marginBottom: 24, 
+                    fontFamily: 'Outfit',
+                    background: plan.isPopular ? 'white' : 'var(--primary)',
+                    color: plan.isPopular ? 'var(--primary)' : 'white',
+                    border: 'none',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}>
+                    {plan.buttonText}
+                  </button>
+                  
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
-                    {plan.features.map(f => (
-                      <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                        <div style={{ width: 16, height: 16, borderRadius: '50%', background: plan.isPopular ? 'rgba(255,255,255,0.25)' : 'rgba(151,24,251,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                          <Check size={9} color={plan.isPopular ? 'white' : 'var(--primary)'} strokeWidth={3.5} />
+                    {plan.features.map((f) => (
+                      <div key={f} style={{ 
+                        display: 'flex', 
+                        gap: 12, 
+                        alignItems: 'center'
+                      }}>
+                        <div style={{ 
+                          width: 20, 
+                          height: 20, 
+                          borderRadius: '50%', 
+                          background: plan.isPopular ? 'rgba(255,255,255,0.2)' : 'rgba(122, 18, 204, 0.1)', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          flexShrink: 0
+                        }}>
+                          <Check size={12} color={plan.isPopular ? 'white' : 'var(--primary)'} strokeWidth={3} />
                         </div>
-                        <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: plan.isPopular ? 'rgba(255,255,255,0.92)' : '#444' }}>{f}</span>
+                        <span style={{ 
+                          fontSize: 14, 
+                          fontWeight: 500, 
+                          lineHeight: 1.4, 
+                          color: plan.isPopular ? 'rgba(255,255,255,0.9)' : '#333',
+                          fontFamily: 'Outfit'
+                        }}>{f}</span>
                       </div>
                     ))}
                   </div>
@@ -183,7 +287,7 @@ export default function Pricing() {
             </div>
             {[
               { q: 'What files does Luter accept?', a: 'PDFs, Word documents, PowerPoints, YouTube links, and direct audio/video file uploads.' },
-              { q: 'Can I use Luter for free?', a: 'Yes! Our Basic plan is free forever and gives you 5 uploads per month so you can try out the core features.' },
+              { q: 'Can I use Luter for free?', a: 'Yes! Our Basic plan gives you 5 uploads per month so you can try out the core features.' },
               { q: 'Is my data safe?', a: 'Yes. All files are encrypted in transit and at rest. We never use your content to train our models.' },
               { q: 'Can I cancel anytime?', a: 'Absolutely. Cancel from your account settings — no hoops, no phone calls.' },
               { q: 'How does the Semester plan work?', a: 'The Semester plan is billed once every 4 months, which perfectly aligns with a typical university semester. It saves you money compared to the monthly option.' },

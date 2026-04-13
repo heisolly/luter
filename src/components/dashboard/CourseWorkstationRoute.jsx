@@ -31,16 +31,19 @@ export default function CourseWorkstationRoute({ workstationMode = false }) {
     }
     if (!ready) return
 
-    const applyRow = (fallback) => {
-      const c = fallback.course
+    const applyRow = (row) => {
+      const c = row.course
       setCourse({
         id: c.id,
+        ucId: row.id,
         code: c.code,
-        name: c.name,
+        name: row.custom_name || c.name,
         faculty: c.faculty,
         lecturer: 'Assigned Lecturer',
-        progress: fallback.progress ?? 0,
+        progress: row.progress ?? 0,
         color: colorForId(c.id),
+        is_archived: row.is_archived,
+        semester: row.semester
       })
       setMissing(false)
       setLoading(false)
@@ -58,7 +61,7 @@ export default function CourseWorkstationRoute({ workstationMode = false }) {
       setMissing(false)
       const { data: row, error } = await supabase
         .from('user_courses')
-        .select('id, progress, course:courses(id, code, name, faculty)')
+        .select('id, progress, custom_name, is_archived, semester, course:courses(id, code, name, faculty)')
         .eq('user_id', user.id)
         .eq('course_id', courseId)
         .maybeSingle()
@@ -66,7 +69,7 @@ export default function CourseWorkstationRoute({ workstationMode = false }) {
       if (error || !row?.course) {
         const { data: rows } = await supabase
           .from('user_courses')
-          .select('id, progress, course:courses(id, code, name, faculty)')
+          .select('id, progress, custom_name, is_archived, semester, course:courses(id, code, name, faculty)')
           .eq('user_id', user.id)
 
         const fallback = rows?.find((r) => r.course?.id === courseId)

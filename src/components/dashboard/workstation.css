@@ -407,3 +407,54 @@
   z-index: 15;
   box-shadow: var(--luter-shadow);
 }
+
+/* ── Mobile Responsiveness ── */
+@media (max-width: 768px) {
+  .ws-main-layout {
+    flex-direction: column;
+    padding: 0 16px 16px;
+    gap: 16px;
+    overflow-y: auto;
+  }
+  
+  .ws-pane-left {
+    flex: none;
+    min-height: 60vh; /* Make reading space big on mobile */
+  }
+
+  .ws-pane-right {
+    flex: none;
+    min-height: 60vh;
+  }
+
+  .ws-header {
+    padding: 12px 16px;
+  }
+
+  .ws-tabs-bar {
+    padding: 0 16px 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    height: auto !important;
+  }
+
+  .ws-nav-tabs {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none; /* Hide scrollbar for tabs */
+  }
+
+  .ws-nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ws-tab {
+    white-space: nowrap;
+  }
+
+  .ws-tabs-bar > div:first-child nav {
+    max-width: 200px;
+  }
+}

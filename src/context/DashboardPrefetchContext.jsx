@@ -35,7 +35,7 @@ async function fetchDashboardBundle(userId) {
   const [uc, stats, leaderboard, profile] = await Promise.all([
     supabase
       .from('user_courses')
-      .select('id, progress, last_studied_at, target_score, course:courses(id, code, name, faculty)')
+      .select('id, progress, last_studied_at, target_score, custom_name, is_archived, semester, course:courses(id, code, name, faculty)')
       .eq('user_id', userId)
       .order('created_at'),
     supabase.from('user_stats').select('total_xp, streak_days, lives, badges').eq('user_id', userId).maybeSingle(),

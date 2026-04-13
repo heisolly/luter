@@ -345,16 +345,22 @@ async function getHybridCourseSuggestions(university, department, level, semeste
  * Save user's course selections to improve peer recommendations
  */
 async function saveUserCourseSelections(userId, university, department, level, semester, selectedCourses) {
-  const ctx = buildCurriculumKeyContext(university, department, level, semester)
+  // Ensure we have strings even if objects are passed
+  const uniName = typeof university === 'object' ? (university?.name || university?.university_name) : university;
+  const deptName = typeof department === 'object' ? (department?.label || department?.name) : department;
   
-  const parsedLevel = parseInt(level, 10) || parseInt(ctx.level, 10) || 100;
+  const ctx = buildCurriculumKeyContext(uniName || 'General', deptName || 'General', level, semester)
+  
+  // Ensure level is a string for the TEXT column in DB
+  const levelStr = String(level || ctx.level || '100');
+  
   try {
     const selections = selectedCourses.map(course => ({
       user_id: userId,
-      university_slug: ctx.uni_slug,
-      department_slug: ctx.dept_slug,
-      level: parsedLevel,
-      semester,
+      university_slug: ctx.uni_slug || 'general',
+      department_slug: ctx.dept_slug || 'general',
+      level: levelStr,
+      semester: semester || '1st',
       course_code: course.code,
       course_name: course.name
     }))
@@ -365,6 +371,10 @@ async function saveUserCourseSelections(userId, university, department, level, s
 
     if (error) {
       console.error('Peer_course_selections error:', error);
+      // Detailed error for debugging
+      if (error.code === 'PGRST204') {
+        console.warn('Table "peer_course_selections" might be missing. Please run the course_suggestions_schema.sql migration.');
+      }
       return false
     }
 
