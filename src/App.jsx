@@ -24,6 +24,7 @@ import StandaloneBattle from './components/StandaloneBattle'
 import BattleExamPage from './components/dashboard/BattleExamPage'
 import PricingPage from './components/dashboard/PricingPage'
 import ExamSessionView from './components/ExamSessionView'
+import SharedFlashcardsView from './components/SharedFlashcardsView'
 import AdminLayout from './admin/AdminLayout'
 import AdminOverview from './admin/pages/AdminOverview'
 import AdminUsers from './admin/pages/AdminUsers'
@@ -122,6 +123,7 @@ export default function App() {
           </Route>
 
           <Route path="/exam-session/:sessionId" element={<ExamSessionView />} />
+          <Route path="/share/flashcards/:bundleId" element={<SharedFlashcardsView />} />
           <Route path="/compete" element={<CompeteRedirect />} />
           <Route path="/battle/:sessionId" element={<StandaloneBattle />} />
           <Route path="/battle-exam/:sessionId" element={<BattleExamPage />} />

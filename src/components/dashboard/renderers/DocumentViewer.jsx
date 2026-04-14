@@ -266,10 +266,12 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
 
   const type = (material.type || '').toLowerCase()
   const status = material.processing_status
+  
+  // Exclusive type detection to prevent double-rendering in iframes (which triggers downloads)
   const isVideo = type === 'video' || type === 'youtube' || material.source_url?.includes('youtube.com') || material.source_url?.includes('youtu.be')
-  const isAudio = type === 'audio' || material.source_url?.match(/\.(mp3|wav|ogg|m4a)$/)
-  const isWeb = type === 'web' || (material.source_url?.startsWith('http') && !isVideo)
-  const isImage = type === 'image' || material.source_url?.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/)
+  const isAudio = type === 'audio' || (!['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv'].includes(type) && material.source_url?.match(/\.(mp3|wav|ogg|m4a)$/))
+  const isWeb = type === 'web'
+  const isImage = type === 'image' || (!['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv'].includes(type) && material.source_url?.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/))
 
   // Toolbar Component
   const Toolbar = () => (
@@ -386,8 +388,9 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
 
 /** Office Embed Fallback */
 function OfficeEmbed({ fileUrl }) {
-  const embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`
-  return <iframe src={embedUrl} width="100%" height="100%" frameBorder="0" title="Office Viewer" />
+  // Use Google Docs Viewer which is more stable and less prone to auto-downloads
+  const embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`
+  return <iframe src={embedUrl} width="100%" height="100%" frameBorder="0" title="Document Viewer" />
 }
 
 // ─── States ──────────────────────────────────────────────────────────────────

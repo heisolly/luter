@@ -417,11 +417,16 @@ Create questions that test:
       try {
         const rawContent = response.choices[0].message.content
         const cleanJson = stripJsonFence(rawContent)
-        const jsonMatch = cleanJson.match(/\{[\s\S]*\}/)
-        quizData = JSON.parse(jsonMatch ? jsonMatch[0] : cleanJson)
+        quizData = JSON.parse(cleanJson)
       } catch (parseError) {
         console.error('Failed to parse quiz JSON:', parseError)
-        quizData = this.createBasicQuiz(analysis, questionCount, difficulty)
+        // Try one more deep Regex match if stripJsonFence wasn't enough
+        try {
+           const deepMatch = response.choices[0].message.content.match(/\{[\s\S]*\}/)
+           quizData = JSON.parse(deepMatch[0])
+        } catch(e) {
+           quizData = this.createBasicQuiz(analysis, questionCount, difficulty)
+        }
       }
       
       return {
@@ -730,12 +735,39 @@ Create questions that test:
 }
 
 function stripJsonFence(text) {
-  if (!text) return ''
-  // Remove markdown code fences
-  let clean = text.replace(/```json\n?|```\s*$/g, '')
-  // Trim any leading/trailing whitespace
-  clean = clean.trim()
-  return clean
+  if (!text) return null;
+  let clean = text.trim();
+  
+  // 1. Remove conversational prefixes and markdown bolding/headers
+  clean = clean.replace(/^(I have generated|Here is|Sure|Okay|Analyzing|The quiz is).+?:\s*/i, '');
+  clean = clean.replace(/\*\*.+?\*\*/g, '');
+  clean = clean.replace(/#{1,6}\s+.+?\n/g, '');
+  clean = clean.replace(/^=+\s*$/gm, ''); // Remove horizontal lines like ==========
+
+  // 2. Try to find the first '{' or '[' and match to the last counterpart
+  const firstBrace = clean.indexOf('{');
+  const firstBracket = clean.indexOf('[');
+  
+  let startIndex = -1;
+  let charMatch = '';
+  
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    startIndex = firstBrace;
+    charMatch = '}';
+  } else if (firstBracket !== -1) {
+    startIndex = firstBracket;
+    charMatch = ']';
+  }
+
+  if (startIndex !== -1) {
+    const lastIndex = clean.lastIndexOf(charMatch);
+    if (lastIndex !== -1 && lastIndex > startIndex) {
+      return clean.substring(startIndex, lastIndex + 1);
+    }
+  }
+
+  // Fallback to simple cleanup if no braces found
+  return clean.replace(/```json\n?|```\s*$/g, '').trim();
 }
 
-export default MaterialAnalysisService
+export default MaterialAnalysisService;

@@ -280,13 +280,22 @@ export async function upsertStudySession({ userId, courseId, materialId, highlig
   return data
 }
 
-/** Save an AI response to user_notes (Scrapbook) */
-export async function saveToVault({ userId, courseId, materialId, title, content, sourceType = 'ai', tags = [] }) {
-  console.log('saveToVault called with:', { userId, courseId, materialId, title, sourceType })
+/** Save an AI response or user note to user_notes (Scrapbook) with weekly context */
+export async function saveToVault({ userId, courseId, materialId, title, content, sourceType = 'ai', tags = [], weekNumber = 1 }) {
+  console.log('saveToVault called with:', { userId, courseId, materialId, title, sourceType, weekNumber })
   
   const { data, error } = await supabase
     .from('user_notes')
-    .insert({ user_id: userId, course_id: courseId, material_id: materialId || null, title, content, source_type: sourceType, tags })
+    .insert({ 
+      user_id: userId, 
+      course_id: courseId, 
+      material_id: materialId || null, 
+      title, 
+      content, 
+      source_type: sourceType, 
+      tags,
+      week_number: parseInt(weekNumber) || 1
+    })
     .select()
     .single()
     

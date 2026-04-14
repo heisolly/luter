@@ -149,6 +149,37 @@ function WorkstationContent() {
     }
   }
 
+  // Fetch analysis from Supabase and cache it
+  async function fetchAnalysis(materialId) {
+    try {
+      const { data, error } = await supabase
+        .from('material_analysis')
+        .select('*')
+        .eq('material_id', materialId)
+        .maybeSingle() // Use maybeSingle to handle no data gracefully
+      
+      if (data) {
+        setAnalysisCache(prev => ({
+          ...prev,
+          [materialId]: {
+            notes: data.smart_notes || null,
+            summary: data.summary || null,
+            flashcards: data.flashcards || null,
+            quiz: data.quiz || null
+          }
+        }))
+      }
+    } catch (err) {
+      console.error('Error fetching analysis:', err)
+    }
+  }
+
+  useEffect(() => {
+    if (selectedMaterial?.id) {
+       fetchAnalysis(selectedMaterial.id)
+    }
+  }, [selectedMaterial?.id])
+
 
 
   // Action Bar Logic
@@ -199,6 +230,12 @@ function WorkstationContent() {
     
     setIsAnalysisLoading(true)
     try {
+      // Check if we already have this type in cache
+      if (analysisCache[selectedMaterial.id]?.[type]) {
+        setIsAnalysisLoading(false)
+        return
+      }
+
       // Get or create cached analysis for this material
       let currentAnalysis = materialAnalysis
       if (!materialAnalysis || !materialAnalysis.summary) {
@@ -347,6 +384,28 @@ function WorkstationContent() {
           [type]: finalResult
         }
       }))
+      
+      // Save all analysis artifacts to material_analysis table for cross-session persistence
+      try {
+        const dbColumn = 
+          type === 'notes' ? 'smart_notes' : 
+          type === 'summary' ? 'summary' : 
+          type === 'flashcards' ? 'flashcards' : 
+          type === 'quiz' ? 'quiz' : null;
+
+        if (dbColumn) {
+          const { error: upsertError } = await supabase.from('material_analysis').upsert({
+            material_id: selectedMaterial.id,
+            user_id: user?.id,
+            [dbColumn]: finalResult,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'material_id' });
+
+          if (upsertError) console.error(`Upsert Error (${type}):`, upsertError.message, upsertError.details);
+        }
+      } catch (dbError) {
+        console.error('Failed to save analysis to DB:', dbError);
+      }
       
       // Persist AI Notes to the vault (only for notes type)
       if (type === 'notes' && typeof finalResult === 'string') {
@@ -826,6 +885,7 @@ function WorkstationContent() {
             <WorkstationFlashcards 
               items={currentAnalysis.flashcards} 
               material={selectedMaterial} 
+              user={user}
             />
           )}
 
