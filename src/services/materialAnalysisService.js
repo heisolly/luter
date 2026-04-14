@@ -308,7 +308,9 @@ Based on this educational material analysis, generate ${count} flashcards for st
 Analysis Data:
 ${JSON.stringify(analysis, null, 2)}
 
-Generate flashcards in this JSON format:
+Generate flashcards in this valid JSON format only. Do not include any preamble, introduction, or markdown formatting outside the JSON block.
+
+Format:
 {
   "flashcards": [
     {
@@ -336,11 +338,16 @@ Focus on:
       try {
         const rawContent = response.choices[0].message.content
         const cleanJson = stripJsonFence(rawContent)
-        const jsonMatch = cleanJson.match(/\{[\s\S]*\}/)
-        flashcardData = JSON.parse(jsonMatch ? jsonMatch[0] : cleanJson)
+        flashcardData = JSON.parse(cleanJson)
       } catch (parseError) {
-        console.error('Failed to parse flashcard JSON:', parseError)
-        flashcardData = this.createBasicFlashcards(analysis, count)
+        console.warn('Primary flashcard parse failed, trying regex fallback:', parseError)
+        try {
+          const deepMatch = response.choices[0].message.content.match(/\{[\s\S]*\}/)
+          flashcardData = JSON.parse(deepMatch[0])
+        } catch(e) {
+          console.error('Final flashcard parse failed:', e)
+          flashcardData = this.createBasicFlashcards(analysis, count)
+        }
       }
       
       return {
@@ -380,7 +387,9 @@ Based on this educational material analysis, generate a quiz with ${questionCoun
 Analysis Data:
 ${JSON.stringify(analysis, null, 2)}
 
-Generate a quiz in this JSON format:
+Generate a quiz in this valid JSON format only. Do not include any preamble or headers.
+
+Format:
 {
   "quiz": {
     "title": "Quiz on [Material Title]",
@@ -419,12 +428,12 @@ Create questions that test:
         const cleanJson = stripJsonFence(rawContent)
         quizData = JSON.parse(cleanJson)
       } catch (parseError) {
-        console.error('Failed to parse quiz JSON:', parseError)
-        // Try one more deep Regex match if stripJsonFence wasn't enough
+        console.warn('Primary quiz parse failed, trying regex fallback:', parseError)
         try {
            const deepMatch = response.choices[0].message.content.match(/\{[\s\S]*\}/)
            quizData = JSON.parse(deepMatch[0])
         } catch(e) {
+           console.error('Final quiz parse failed:', e)
            quizData = this.createBasicQuiz(analysis, questionCount, difficulty)
         }
       }
@@ -574,7 +583,9 @@ Material Content:
 ${content.substring(0, 4000)} ${content.length > 4000 ? '...' : ''}
 """
 
-Generate flashcards in this JSON format:
+Generate flashcards in this valid JSON format only. Do not include any preamble or extra text.
+
+Format:
 {
   "flashcards": [
     {
@@ -602,11 +613,16 @@ Focus on:
       try {
         const rawContent = response.choices[0].message.content
         const cleanContent = stripJsonFence(rawContent)
-        const jsonMatch = cleanContent.match(/\{[\s\S]*\}/)
-        flashcardData = JSON.parse(jsonMatch ? jsonMatch[0] : cleanContent)
+        flashcardData = JSON.parse(cleanContent)
       } catch (parseError) {
-        console.error('Failed to parse flashcard JSON:', parseError)
-        flashcardData = this.createBasicFlashcards(analysis, count)
+        console.warn('Direct flashcard parse failed, trying regex fallback:', parseError)
+        try {
+           const deepMatch = response.choices[0].message.content.match(/\{[\s\S]*\}/)
+           flashcardData = JSON.parse(deepMatch[0])
+        } catch(e) {
+           console.error('Final direct flashcard parse failed:', e)
+           flashcardData = this.createBasicFlashcards(analysis, count)
+        }
       }
       
       return {
@@ -646,7 +662,9 @@ Material Content:
 ${content.substring(0, 4000)} ${content.length > 4000 ? '...' : ''}
 """
 
-Generate a quiz in this JSON format:
+Generate a valid JSON quiz only. Do not include any preamble or extra text.
+
+Format:
 {
   "quiz": {
     "title": "Quiz on Material",
@@ -683,11 +701,16 @@ Create questions that test:
       try {
         const rawContent = response.choices[0].message.content
         const cleanContent = stripJsonFence(rawContent)
-        const jsonMatch = cleanContent.match(/\{[\s\S]*\}/)
-        quizData = JSON.parse(jsonMatch ? jsonMatch[0] : cleanContent)
+        quizData = JSON.parse(cleanContent)
       } catch (parseError) {
-        console.error('Failed to parse quiz JSON:', parseError)
-        quizData = this.createBasicQuiz(analysis, questionCount, difficulty)
+        console.warn('Direct quiz parse failed, trying regex fallback:', parseError)
+        try {
+           const deepMatch = response.choices[0].message.content.match(/\{[\s\S]*\}/)
+           quizData = JSON.parse(deepMatch[0])
+        } catch(e) {
+           console.error('Final direct quiz parse failed:', e)
+           quizData = this.createBasicQuiz(analysis, questionCount, difficulty)
+        }
       }
       
       return {
@@ -736,15 +759,38 @@ Create questions that test:
 
 function stripJsonFence(text) {
   if (!text) return null;
+  
+  // 1. First attempt: Use regex to extract the first valid JSON block
+  // This is the most reliable way to ignore AI preamble/postamble
+  const jsonBlockRegex = /(\{|\[)[\s\S]*(\}|\])/;
+  const match = text.match(jsonBlockRegex);
+  
+  if (match) {
+    let candidate = match[0].trim();
+    try {
+      // Validate it's actually parseable
+      JSON.parse(candidate);
+      return candidate;
+    } catch (e) {
+      // If it failed, it might be because the regex caught too much (e.g. multiple blocks)
+      // or there is trailing junk. We'll fall through to more aggressive cleaning.
+      console.warn('Regex match failed validation, falling back to aggressive cleaning');
+    }
+  }
+
   let clean = text.trim();
   
-  // 1. Remove conversational prefixes and markdown bolding/headers
-  clean = clean.replace(/^(I have generated|Here is|Sure|Okay|Analyzing|The quiz is).+?:\s*/i, '');
+  // 2. Remove markdown code fences
+  clean = clean.replace(/```json\n?|```\s*$/g, '').trim();
+  clean = clean.replace(/^```|```$/g, '').trim();
+
+  // 3. Remove conversational common prefixes and stray marks
+  clean = clean.replace(/^(I have generated|Here is|Sure|Okay|Analyzing|The quiz is|The flashcards are).+?:\s*/i, '');
+  clean = clean.replace(/^[-*•\s]+/, ''); // Remove starting dashes/bullets
   clean = clean.replace(/\*\*.+?\*\*/g, '');
   clean = clean.replace(/#{1,6}\s+.+?\n/g, '');
-  clean = clean.replace(/^=+\s*$/gm, ''); // Remove horizontal lines like ==========
-
-  // 2. Try to find the first '{' or '[' and match to the last counterpart
+  
+  // 4. Find the actual start and end
   const firstBrace = clean.indexOf('{');
   const firstBracket = clean.indexOf('[');
   
@@ -762,12 +808,13 @@ function stripJsonFence(text) {
   if (startIndex !== -1) {
     const lastIndex = clean.lastIndexOf(charMatch);
     if (lastIndex !== -1 && lastIndex > startIndex) {
-      return clean.substring(startIndex, lastIndex + 1);
+      const extracted = clean.substring(startIndex, lastIndex + 1);
+      // Final attempt to clean trailing commas which are common in AI output but break JSON.parse
+      return extracted.replace(/,\s*([\}\]])/g, '$1');
     }
   }
 
-  // Fallback to simple cleanup if no braces found
-  return clean.replace(/```json\n?|```\s*$/g, '').trim();
+  return clean;
 }
 
 export default MaterialAnalysisService;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
+import { useParams, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { 
   BookOpen, Star, FileText, CheckCircle2, ChevronRight, ArrowLeft, ExternalLink, Layers, HelpCircle, Plus, Search, ChevronLeft, Briefcase, PlayCircle, Settings, User, LogOut, MoreVertical, Layout, Bookmark, Zap, Send, Loader2, AlertCircle 
 } from 'lucide-react'
@@ -24,6 +24,8 @@ function WorkstationContent() {
   const navigate = useNavigate()
   const { courseId } = useParams()
   const { user } = useOutletContext()
+  const [searchParams] = useSearchParams()
+  const materialIdParam = searchParams.get('materialId')
   const { setViewportData, highlightText, updateSpark, clearHighlights, viewportData, updateSelection } = useReadingSpace()
   
   const [activeTab, setActiveTab] = useState('content')
@@ -144,7 +146,13 @@ function WorkstationContent() {
     
     if (data && data.length > 0) {
       setCourseMaterials(data)
-      setSelectedMaterial(data[0])
+      
+      // If materialId is provided in URL, find it. Otherwise default to first.
+      const initialMaterial = materialIdParam 
+        ? data.find(m => m.id === materialIdParam) || data[0]
+        : data[0]
+        
+      setSelectedMaterial(initialMaterial)
       setShowDashboard(false) // Default to reader on material arrival
     }
   }
@@ -159,15 +167,18 @@ function WorkstationContent() {
         .maybeSingle() // Use maybeSingle to handle no data gracefully
       
       if (data) {
+        // Support both legacy (analysis column) and modern (granular columns)
         setAnalysisCache(prev => ({
           ...prev,
           [materialId]: {
-            notes: data.smart_notes || null,
-            summary: data.summary || null,
-            flashcards: data.flashcards || null,
-            quiz: data.quiz || null
+            notes: data.smart_notes || (data.analysis?.smart_notes || data.analysis?.notes) || null,
+            summary: data.summary || data.analysis?.summary || null,
+            flashcards: data.flashcards || data.analysis?.flashcards || null,
+            quiz: data.quiz || data.analysis?.quiz || null
           }
         }))
+        // Store the full row as materialAnalysis to ensure we have the analysis object for fallbacks
+        setMaterialAnalysis(data.analysis || data)
       }
     } catch (err) {
       console.error('Error fetching analysis:', err)
@@ -398,6 +409,7 @@ function WorkstationContent() {
             material_id: selectedMaterial.id,
             user_id: user?.id,
             [dbColumn]: finalResult,
+            analysis: materialAnalysis || {}, // Fallback for legacy NOT NULL constraint
             updated_at: new Date().toISOString()
           }, { onConflict: 'material_id' });
 

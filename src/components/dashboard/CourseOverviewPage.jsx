@@ -67,16 +67,41 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [materialsData, notesData, sessionData, assignmentsData] = await Promise.all([
+      const [materialsData, notesData, sessionData, assignmentsResp] = await Promise.all([
         fetchCourseMaterialsWithContext(course.id, user.id, true),
         fetchUserNotes(user.id, course.id),
         getStudySession(user.id, course.id),
         supabase.from('assignments').select('*').eq('course_id', course.id).eq('user_id', user.id)
       ])
-      setMaterials(materialsData)
+
+      // Differentiate materials by source
+      const processedMaterials = (materialsData || []).map(m => ({
+        ...m,
+        is_admin: m.owner_role === 'admin'
+      }))
+
+      setMaterials(processedMaterials)
       setUserNotes(notesData)
       setStudySession(sessionData)
-      setAssignments(assignmentsData.data || [])
+      
+      // Combine manual assignments table with materials marked as assignments
+      const adminAssignments = processedMaterials.filter(m => 
+        m.is_admin && (m.type === 'assignment' || m.title.toLowerCase().includes('assignment'))
+      )
+      
+      const allAssignments = [
+        ...(assignmentsResp.data || []).map(a => ({ ...a, type: 'task' })),
+        ...adminAssignments.map(m => ({
+          id: m.id,
+          title: m.title,
+          week_number: m.week_number,
+          type: 'official',
+          material_id: m.id,
+          created_at: m.created_at
+        }))
+      ]
+
+      setAssignments(allAssignments)
     } catch (err) {
       console.error('Failed to load course data:', err)
     } finally {
@@ -251,10 +276,13 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
   const filteredMaterials = () => {
     switch(activeTab) {
       case 'ai_notes': return userNotes.filter(n => n.source_type === 'ai')
-      case 'assignments': return materials.filter(m => m.title.toLowerCase().includes('assignment') || m.type === 'docx')
+      case 'assignments': return assignments
       case 'files': return materials.filter(m => {
+          // If it's explicitly an assignment material that we already show in assignments tab, 
+          // we might want to hide it here to avoid clutter, but usually users expect everything in 'files'.
+          // Let's keep it visible in files for now as "All Files" view.
           if (m.user_id === user.id) return true
-          if (m.owner_role === 'admin' && m.course_id === course.id) return true
+          if (m.is_admin && m.course_id === course.id) return true
           return ['program', 'year', 'global'].includes(m.visibility_scope)
         })
       default: return []
@@ -677,7 +705,9 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
             width: '68px', 
             background: purpleColor, 
             color: 'white', 
-            border: 'none', 
+            borderRightStyle: 'none',
+            borderTopStyle: 'none',
+            borderBottomStyle: 'none',
             borderLeft: '1px solid rgba(255,255,255,0.2)',
             borderRadius: '0 34px 34px 0', 
             display: 'flex', 
@@ -819,24 +849,37 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
 }
 
 function MaterialCard({ item, idx, user, purpleColor, lightGrey, onDelete }) {
+  const navigate = useNavigate()
+  const isAssignment = item.type === 'official' || item.type === 'task'
+  
+  const handleClick = () => {
+    if (item.material_id) {
+       navigate(`/dashboard/courses/${item.course_id}/learn?materialId=${item.material_id}`)
+    } else if (item.type !== 'task') {
+       const cid = item.course_id || course?.id
+       if (cid) navigate(`/dashboard/courses/${cid}/learn?materialId=${item.id}`)
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: idx * 0.04 }}
+      onClick={handleClick}
       style={{
         padding: '28px', borderRadius: '24px', border: '1.8px solid #f1f5f9',
-        background: '#ffffff', cursor: 'pointer', transition: 'all 0.3s',
+        background: '#ffffff', cursor: (item.material_id || item.type !== 'task') ? 'pointer' : 'default', transition: 'all 0.3s',
         display: 'flex', flexDirection: 'column', gap: '14px', position: 'relative'
       }}
       className="material-card-hover"
     >
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         <div style={{ 
-          width: '50px', height: '50px', borderRadius: '14px', background: `${purpleColor}10`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', color: purpleColor
+          width: '50px', height: '50px', borderRadius: '14px', background: isAssignment ? (item.type === 'official' ? '#eff6ff' : '#f0fdf4') : `${purpleColor}10`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', color: isAssignment ? (item.type === 'official' ? '#2563eb' : '#16a34a') : purpleColor
         }}>
-           {item.type === 'pdf' ? <FileText size={22} /> : item.type === 'note' ? <BookOpen size={22} /> : <FileCheck size={22} />}
+           {isAssignment ? <FileCheck size={22} /> : (item.type === 'pdf' ? <FileText size={22} /> : item.type === 'note' ? <BookOpen size={22} /> : <FileCheck size={22} />)}
         </div>
         <button onClick={e => {e.stopPropagation(); onDelete()}} style={{ color: '#cbd5e1', background: 'none', border: 'none', cursor: 'pointer' }} className="hover:text-red-500">
           <Trash2 size={18} />
@@ -847,6 +890,7 @@ function MaterialCard({ item, idx, user, purpleColor, lightGrey, onDelete }) {
         <p style={{ margin: '6px 0 0', fontSize: '12px', color: lightGrey, fontWeight: 800, textTransform: 'uppercase' }}>
           {item.type} · {new Date(item.created_at).toLocaleDateString()}
         </p>
+        {item.type === 'official' && <span style={{ fontSize: '10px', fontWeight: 900, color: '#2563eb', textTransform: 'uppercase', marginTop: '8px', display: 'block' }}>Admin Uploaded</span>}
       </div>
     </motion.div>
   )
@@ -906,6 +950,27 @@ function SemesterNotesView({ materials, userNotes, assignments, course, user, pu
 
 function WeekDetailView({ week, onBack, materials, userNotes, assignments, course, user, purpleColor, lightGrey, onRefresh, isMobile, onUploadTrigger }) {
   const [activeTab, setActiveTab] = useState('resources')
+  const navigate = useNavigate()
+
+  const handleRequest = async (type) => {
+    const topic = window.prompt(`What ${type} are you looking for? (e.g. "Lecture slides on recursion")`)
+    if (!topic) return
+    
+    try {
+      const { error } = await supabase.from('notes_requests').insert({
+        user_id: user.id,
+        course_id: course.id,
+        week_number: week,
+        topic: topic,
+        request_type: type
+      })
+      if (error) throw error
+      alert(`${type.charAt(0).toUpperCase() + type.slice(1)} request sent to admin!`)
+    } catch (e) {
+      console.error(e)
+      alert("Failed to send request. Make sure you've run the SQL migration.")
+    }
+  }
 
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} style={{ paddingBottom: '40px' }}>
@@ -922,7 +987,7 @@ function WeekDetailView({ week, onBack, materials, userNotes, assignments, cours
 
       {/* Internal Tabs */}
       <div style={{ display: 'flex', gap: '24px', borderBottom: '1.5px solid #f1f5f9', marginBottom: '24px' }}>
-        {['resources', 'notes', 'assignments'].map(tab => (
+        {['resources', 'assignments'].map(tab => (
           <button 
             key={tab} 
             onClick={() => setActiveTab(tab)}
@@ -944,81 +1009,99 @@ function WeekDetailView({ week, onBack, materials, userNotes, assignments, cours
       <div style={{ minHeight: '300px' }}>
         {activeTab === 'resources' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Quick Upload Button for this week */}
-            <button 
-              onClick={() => onUploadTrigger(week)}
-              style={{
-                padding: '24px', borderRadius: '28px', border: `2px dashed ${purpleColor}40`,
-                background: `${purpleColor}05`, color: purpleColor, fontWeight: 800,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
-                cursor: 'pointer', transition: 'all 0.2s', fontSize: '15px'
-              }}
-            >
-              <UploadCloud size={24} />
-              UPLOAD MATERIAL FOR WEEK {week}
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Available Materials</span>
+              <button 
+                onClick={() => onUploadTrigger(week)}
+                style={{
+                  padding: '8px 16px', borderRadius: '12px', border: `1.5px solid ${purpleColor}20`,
+                  background: 'white', color: purpleColor, fontWeight: 800,
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  cursor: 'pointer', transition: 'all 0.2s', fontSize: '12px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                }}
+              >
+                <Plus size={16} strokeWidth={3} />
+                ADD MATERIAL
+              </button>
+            </div>
 
             {materials.length > 0 ? (
-              materials.map(m => (
-                <div key={m.id} style={{ padding: '24px', borderRadius: '28px', border: '1.5px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: m.owner_role === 'admin' ? '#f0fdf4' : `${purpleColor}10`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: m.owner_role === 'admin' ? '#16a34a' : purpleColor }}>
-                      {m.owner_role === 'admin' ? <FileCheck size={22} /> : <FileText size={22} />}
+              <>
+                {materials.map(m => (
+                  <div 
+                    key={m.id} 
+                    onClick={() => navigate(`/dashboard/courses/${course.id}/learn?materialId=${m.id}`)}
+                    style={{ padding: '24px', borderRadius: '28px', border: '1.5px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', cursor: 'pointer' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: m.is_admin ? '#f0fdf4' : `${purpleColor}10`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: m.is_admin ? '#16a34a' : purpleColor }}>
+                        {m.is_admin ? <FileCheck size={22} /> : <FileText size={22} />}
+                      </div>
+                      <div>
+                        <span style={{ fontWeight: 800, fontSize: '16px', color: '#000', display: 'block' }}>{m.title}</span>
+                        {m.is_admin && <span style={{ fontSize: '11px', fontWeight: 900, color: '#16a34a', background: '#f0fdf4', padding: '2px 8px', borderRadius: '6px', textTransform: 'uppercase', marginTop: '4px', display: 'inline-block' }}>Official Notes</span>}
+                      </div>
                     </div>
-                    <div>
-                      <span style={{ fontWeight: 800, fontSize: '16px', color: '#000', display: 'block' }}>{m.title}</span>
-                      {m.owner_role === 'admin' && <span style={{ fontSize: '11px', fontWeight: 900, color: '#16a34a', background: '#f0fdf4', padding: '2px 8px', borderRadius: '6px', textTransform: 'uppercase', marginTop: '4px', display: 'inline-block' }}>Official Notes</span>}
-                    </div>
+                    <ChevronRight size={20} color={lightGrey} />
                   </div>
-                  <ChevronRight size={20} color={lightGrey} />
+                ))}
+                <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                  <button onClick={() => handleRequest('note')} style={{ background: 'none', border: 'none', color: lightGrey, fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                    CAN'T FIND WHAT YOU NEED? <span style={{ color: purpleColor }}>REQUEST NOTES FROM ADMIN</span>
+                  </button>
                 </div>
-              ))
+              </>
             ) : (
-              <div style={{ textAlign: 'center', padding: '40px 24px', background: '#f8fafc', borderRadius: '28px', border: '1.5px dashed #e2e8f0' }}>
-                <p style={{ fontSize: '14px', color: lightGrey, fontWeight: 600 }}>No materials uploaded for this week yet.</p>
+              <div style={{ textAlign: 'center', padding: '60px 24px', background: '#f8fafc', borderRadius: '28px', border: '1.5px dashed #e2e8f0' }}>
+                <p style={{ fontSize: '14px', color: lightGrey, fontWeight: 600 }}>No materials for this week yet.</p>
+                <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '12px' }}>
+                  <button onClick={() => onUploadTrigger(week)} style={{ background: 'none', border: 'none', color: purpleColor, fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>+ Upload</button>
+                  <button onClick={() => handleRequest('note')} style={{ background: 'none', border: 'none', color: lightGrey, fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>Request Admin</button>
+                </div>
               </div>
             )}
           </div>
         )}
 
-        {activeTab === 'notes' && (
-           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <button 
-                onClick={async () => {
-                  const title = window.prompt("Enter note title:")
-                  if (!title) return
-                  try {
-                    await supabase.from('user_notes').insert({
-                      user_id: user.id, course_id: course.id, title, content: '', week_number: week, source_type: 'personal'
-                    })
-                    onRefresh()
-                  } catch (e) { console.error(e) }
-                }}
-                style={{ padding: '24px', borderRadius: '28px', border: `2px dashed ${purpleColor}40`, background: `${purpleColor}05`, color: purpleColor, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', fontSize: '15px' }}
-              >
-                <Pencil size={20} strokeWidth={3} /> 
-                WRITE A PERSONAL NOTE FOR WEEK {week}
-              </button>
-
-              {userNotes.map(n => (
-                <div key={n.id} style={{ padding: '24px', borderRadius: '28px', border: '1.5px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '20px', background: '#fff' }}>
-                   <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Pencil size={20} color={purpleColor} /></div>
-                   <span style={{ fontWeight: 800, color: '#000', fontSize: '16px' }}>{n.title}</span>
-                </div>
-              ))}
-           </div>
-        )}
-
         {activeTab === 'assignments' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-             {assignments.length > 0 ? (
-               assignments.map(a => (
-                <div key={a.id} style={{ padding: '20px', borderRadius: '24px', border: '1.5px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '16px', background: '#fff' }}>
-                   <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FileCheck size={18} color="#22c55e" /></div>
-                   <div style={{ flex: 1 }}>
-                     <p style={{ margin: 0, fontWeight: 700, color: '#000' }}>{a.title}</p>
-                     {a.due_date && <p style={{ margin: 0, fontSize: '12px', color: lightGrey }}>Due {new Date(a.due_date).toLocaleDateString()}</p>}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Weekly Tasks</span>
+              <button 
+                onClick={() => handleRequest('assignment')}
+                style={{
+                  padding: '8px 16px', borderRadius: '12px', border: `1.5px solid ${purpleColor}20`,
+                  background: 'white', color: purpleColor, fontWeight: 800,
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  cursor: 'pointer', transition: 'all 0.2s', fontSize: '12px'
+                }}
+              >
+                REQUEST ASSIGNMENT
+              </button>
+            </div>
+
+             {assignments.filter(a => a.week_number === week).length > 0 ? (
+               assignments.filter(a => a.week_number === week).map(a => (
+                <div 
+                  key={a.id} 
+                  onClick={() => a.material_id && navigate(`/dashboard/courses/${course.id}/learn?materialId=${a.material_id}`)}
+                  style={{ padding: '20px', borderRadius: '24px', border: '1.5px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', cursor: a.material_id ? 'pointer' : 'default' }}
+                >
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                     <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: a.type === 'official' ? '#eff6ff' : '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                       <FileCheck size={18} color={a.type === 'official' ? '#2563eb' : '#22c55e'} />
+                     </div>
+                     <div style={{ flex: 1 }}>
+                       <p style={{ margin: 0, fontWeight: 700, color: '#000' }}>{a.title}</p>
+                       {a.type === 'official' ? (
+                         <span style={{ fontSize: '10px', fontWeight: 900, color: '#2563eb', textTransform: 'uppercase' }}>Uploaded by Admin</span>
+                       ) : (
+                         <span style={{ fontSize: '10px', fontWeight: 800, color: lightGrey, textTransform: 'uppercase' }}>Personal Task</span>
+                       )}
+                     </div>
                    </div>
+                   {a.material_id && <ChevronRight size={18} color={lightGrey} />}
                 </div>
                ))
              ) : (
@@ -1027,19 +1110,22 @@ function WeekDetailView({ week, onBack, materials, userNotes, assignments, cours
                     <FileCheck size={40} style={{ opacity: 0.3 }} />
                   </div>
                   <p style={{ fontWeight: 800, color: '#000', margin: 0, textTransform: 'lowercase' }}>no assignments for week {week}</p>
-                  <button 
-                    onClick={async () => {
-                      const title = window.prompt("Assignment Name:")
-                      if (!title) return
-                      try {
-                        await supabase.from('assignments').insert({ course_id: course.id, user_id: user.id, title, week_number: week })
-                        onRefresh()
-                      } catch (e) { console.error(e) }
-                    }}
-                    style={{ marginTop: '16px', background: 'none', border: 'none', color: purpleColor, fontWeight: 700, cursor: 'pointer' }}
-                  >
-                    + Add Assignment Task
-                  </button>
+                  <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginTop: '16px' }}>
+                    <button 
+                      onClick={async () => {
+                        const title = window.prompt("Assignment Name:")
+                        if (!title) return
+                        try {
+                          await supabase.from('assignments').insert({ course_id: course.id, user_id: user.id, title, week_number: week })
+                          onRefresh()
+                        } catch (e) { console.error(e) }
+                      }}
+                      style={{ background: 'none', border: 'none', color: purpleColor, fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      + Add Task
+                    </button>
+                    <button onClick={() => handleRequest('assignment')} style={{ background: 'none', border: 'none', color: lightGrey, fontWeight: 700, cursor: 'pointer' }}>Request Admin</button>
+                  </div>
                 </div>
              )}
           </div>

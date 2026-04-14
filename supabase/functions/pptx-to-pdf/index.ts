@@ -1,3 +1,6 @@
+/// <reference lib="deno.ns" />
+/// <reference lib="deno.window" />
+
 import { createClient } from "@supabase/supabase-js"
 
 const CLOUDMERSIVE_API_KEY = Deno.env.get('CLOUDMERSIVE_API_KEY')
@@ -5,9 +8,15 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
 Deno.serve(async (req) => {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  }
+
   // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*' } })
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
@@ -80,17 +89,14 @@ Deno.serve(async (req) => {
     if (updateError) throw updateError
 
     return new Response(JSON.stringify({ success: true, pdfUrl: publicUrl }), {
-      headers: { 
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-      },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     })
 
   } catch (error) {
     console.error(`[Converter] Error: ${error.message}`)
     return new Response(JSON.stringify({ error: error.message }), { 
         status: 500,
-        headers: { "Access-Control-Allow-Origin": "*" }
+        headers: corsHeaders
     })
   }
 })
