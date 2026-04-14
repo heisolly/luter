@@ -15,6 +15,7 @@ import {
   UploadCloud,
   Brain,
   Calendar,
+  MessageSquare,
 } from 'lucide-react'
 import LuterLogo from '../components/shared/LuterLogo'
 
@@ -23,6 +24,7 @@ const NAV = [
   { to: '/admin/notes-manager', icon: Brain, label: 'Notes Manager' },
   { to: '/admin/upload', icon: UploadCloud, label: 'Upload Content' },
   { to: '/admin/users', icon: Users, label: 'Users' },
+  { to: '/admin/requests', icon: MessageSquare, label: 'Study Requests' },
   { to: '/admin/courses', icon: BookOpen, label: 'Courses' },
   { to: '/admin/syllabus', icon: GraduationCap, label: 'Syllabus manager' },
   { to: '/admin/enrollments', icon: Link2, label: 'Enrollments' },

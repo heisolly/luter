@@ -46,6 +46,8 @@ import AINotesPage from './components/dashboard/AINotesPage'
 import StudyMaterialsWeekPage from './components/dashboard/StudyMaterialsWeekPage'
 import SemesterNotesPage from './components/dashboard/SemesterNotesPage'
 import UserUpload from './components/dashboard/UserUpload'
+import NotesRequestsAdmin from './components/dashboard/NotesRequestsAdmin'
+import StudyRequestsPage from './components/dashboard/StudyRequestsPage'
 
 function CompeteRedirect() {
   const { search } = useLocation()
@@ -119,6 +121,7 @@ export default function App() {
             <Route path="refer" element={<ReferPage />} />
             <Route path="compete" element={<CompetePage />} />
             <Route path="upload" element={<UserUpload />} />
+            <Route path="requests" element={<StudyRequestsPage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
 
@@ -131,6 +134,7 @@ export default function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminOverview />} />
             <Route path="notes-manager" element={<AdminNotesManager />} />
+            <Route path="requests" element={<NotesRequestsAdmin />} />
             <Route path="upload" element={<LuterAdminUploadPage />} />
             <Route path="users/:userId" element={<AdminUserDetail />} />
             <Route path="users" element={<AdminUsers />} />

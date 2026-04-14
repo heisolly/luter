@@ -14,6 +14,7 @@ export function ReadingSpaceProvider({ children }) {
   const [drawCommands, setDrawCommands] = useState([])
   const [sparkPosition, setLuterSparkPosition] = useState({ x: 0, y: 0, visible: false })
   const [selection, setSelection] = useState({ text: '', rect: null, visible: false })
+  const [isSidePanelCollapsed, setSidePanelCollapsed] = useState(false)
   
   // Advanced AI highlighting with coordinate support
   const highlightText = (highlightData) => {
@@ -135,7 +136,9 @@ export function ReadingSpaceProvider({ children }) {
       // AI tool functions
       highlightPdfArea,
       highlightDocxText,
-      highlightExcelCells
+      highlightExcelCells,
+      isSidePanelCollapsed,
+      setSidePanelCollapsed
     }}>
       {children}
     </ReadingSpaceContext.Provider>

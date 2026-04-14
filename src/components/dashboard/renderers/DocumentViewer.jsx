@@ -8,20 +8,25 @@ import { useReadingSpace } from '../ReadingSpaceContext'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
-  Loader2, AlertCircle, FileText, Eye, Sparkles, Image as ImageIcon, Music, Play, Globe, Layers, Download, Maximize2
+  Loader2, AlertCircle, FileText, Eye, Sparkles, Image as ImageIcon, Music, Play, Globe, Layers, Download, Maximize2,
+  Search, Moon, Sun, Volume2, PanelLeft, RotateCcw, ChevronDown, Wand2, Lightbulb, GraduationCap
 } from 'lucide-react'
 
 // Professional Renderers
-import { Viewer, Worker } from '@react-pdf-viewer/core'
+import { Viewer, Worker, SpecialZoomLevel } from '@react-pdf-viewer/core'
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout'
 import { renderAsync } from 'docx-preview'
 import ReactPlayer from 'react-player'
 import QuickPinchZoom, { make3dTransformValue } from 'react-quick-pinch-zoom'
+import { searchPlugin } from '@react-pdf-viewer/search'
+import { fullScreenPlugin } from '@react-pdf-viewer/full-screen'
 import * as XLSX from 'xlsx'
 
 // Styles
 import '@react-pdf-viewer/core/lib/styles/index.css'
 import '@react-pdf-viewer/default-layout/lib/styles/index.css'
+import '@react-pdf-viewer/search/lib/styles/index.css'
+import '@react-pdf-viewer/full-screen/lib/styles/index.css'
 
 // Hardened PDF Worker Initialization (Vite-compatible)
 import * as pdfjsLib from 'pdfjs-dist'
@@ -36,221 +41,54 @@ if (pdfjsLib.GlobalWorkerOptions) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL
 }
 
-// Model Configuration
-export const GROQ_MODELS = {
-  PROFESSOR: 'llama-3.3-70b-versatile',  // For Complex Tutoring & Deep Analysis
-  SPEEDSTER: 'llama-3.1-8b-instant',      // DEFAULT for Summaries, Flashcards, Quizzes to avoid TPD limits
-  VISION: 'llama-3.2-11b-vision-preview', 
-  WHISPER: 'whisper-large-v3-turbo'       
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getTypeLabel(type) {
-  const map = {
-    pdf: 'PDF Document', docx: 'Word Document', doc: 'Word Document',
-    pptx: 'Presentation', ppt: 'Presentation',
-    xlsx: 'Spreadsheet', xls: 'Spreadsheet', csv: 'Data Sheet',
-    video: 'Video', youtube: 'YouTube Video',
-    audio: 'Audio File', image: 'Image',
-    anki: 'Anki Deck', apkg: 'Anki Deck',
-    txt: 'Text File', md: 'Markdown', web: 'Website'
-  }
-  return map[(type || '').toLowerCase()] || 'Document'
-}
-
-function getTypeColor(type) {
-  const t = (type || '').toLowerCase()
-  if (t === 'pdf') return '#ef4444'
-  if (['docx','doc'].includes(t)) return '#2563eb'
-  if (['pptx','ppt'].includes(t)) return '#f97316'
-  if (['xlsx','xls','csv'].includes(t)) return '#16a34a'
-  if (['video','youtube'].includes(t)) return '#dc2626'
-  if (['audio'].includes(t)) return '#8b5cf6'
-  if (['image'].includes(t)) return '#ec4899'
-  if (['anki','apkg'].includes(t)) return '#0ea5e9'
-  return '#7a12cc'
-}
-
-// ─── Specialized Renderers ───────────────────────────────────────────────────
-
-/** Visual PDF Viewer with Pro Layout */
-function HighFidelityPDF({ fileUrl, initialPage = 1 }) {
-  // Create a plugin instance
-  const defaultLayoutPluginInstance = defaultLayoutPlugin()
-  
-  return (
-    <div style={{ height: '100%', width: '100%', background: '#1a1a1a', borderRadius: '12px', overflow: 'hidden' }}>
-      <Worker workerUrl={PDF_WORKER_URL}>
-        <Viewer 
-          fileUrl={fileUrl} 
-          initialPage={initialPage > 0 ? initialPage - 1 : 0}
-          plugins={[defaultLayoutPluginInstance]} 
-          theme="dark"
-          defaultScale={1.2}
-        />
-      </Worker>
-    </div>
-  )
-}
-
-/** Visual Word Document Viewer */
-function HighFidelityWord({ fileUrl }) {
-  const containerRef = useRef(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const loadDoc = async () => {
-      setLoading(true)
-      try {
-        const response = await fetch(fileUrl, { method: 'GET', mode: 'cors' })
-        const blob = await response.blob()
-        const arrayBuffer = await blob.arrayBuffer()
-        if (containerRef.current) {
-          containerRef.current.innerHTML = ''
-          await renderAsync(arrayBuffer, containerRef.current, undefined, { breakPages: true, ignoreHeight: false })
-        }
-      } catch (err) { console.error('Word failed:', err) } finally { setLoading(false) }
-    }
-    loadDoc()
-  }, [fileUrl])
-
-  return (
-    <div style={{ height: '100%', overflowY: 'auto', background: '#F1F5F9', padding: '40px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      {loading && <Loader2 className="animate-spin" color="#7a12cc" style={{ marginTop: 100 }} />}
-      <div ref={containerRef} style={{ background: 'white', maxWidth: '850px', width: '100%', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
-    </div>
-  )
-}
-
-/** Visual Spreadsheet Viewer */
-function HighFidelityExcel({ fileUrl }) {
-  const [data, setData] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const loadExcel = async () => {
-      try {
-        const res = await fetch(fileUrl)
-        const ab = await res.arrayBuffer()
-        const wb = XLSX.read(ab, { type: 'array' })
-        const wsname = wb.SheetNames[0]
-        const ws = wb.Sheets[wsname]
-        const json = XLSX.utils.sheet_to_json(ws, { header: 1 })
-        setData(json)
-      } catch (err) { console.error('Excel failed:', err) } finally { setLoading(false) }
-    }
-    loadExcel()
-  }, [fileUrl])
-
-  if (loading) return <PendingState material={{ title: 'Spreadsheet' }} />
-
-  return (
-    <div style={{ height: '100%', overflow: 'auto', background: '#F8FAFC', padding: 20 }}>
-      <table style={{ borderCollapse: 'collapse', width: '100%', background: 'white', borderRadius: 8, overflow: 'hidden', border: '1px solid #E2E8F0' }}>
-        <tbody>
-          {data.map((row, i) => (
-            <tr key={i} style={{ borderBottom: '1px solid #F1F5F9', background: i === 0 ? '#F8FAFC' : 'transparent' }}>
-              {row.map((cell, j) => (
-                <td key={j} style={{ padding: '12px 16px', fontSize: 13, color: i === 0 ? '#1A102D' : '#475569', fontWeight: i === 0 ? 700 : 400 }}>{cell}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-/** Visual Image Viewer with Pinch-Zoom */
-function HighFidelityImage({ fileUrl }) {
-  const onUpdate = ({ x, y, scale }) => {
-    const img = document.getElementById('zoom-img')
-    if (img) img.style.transform = make3dTransformValue({ x, y, scale })
-  }
-  return (
-    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0F172A', overflow: 'hidden' }}>
-      <QuickPinchZoom onUpdate={onUpdate} enforceBounds>
-        <img id="zoom-img" src={fileUrl} alt="Visual Content" style={{ maxWidth: '100%', transition: 'transform 0.1s ease-out' }} />
-      </QuickPinchZoom>
-    </div>
-  )
-}
-
-/** High Fidelity Audio Workspace */
-function HighFidelityAudio({ material }) {
-  return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#FDFCFE', gap: 32 }}>
-       <div style={{ width: 140, height: 140, borderRadius: '50%', background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 20px 40px rgba(122, 18, 204, 0.1)' }}>
-         <Music size={48} color="#7a12cc" />
-       </div>
-       <div style={{ textAlign: 'center' }}>
-         <h2 style={{ fontSize: 24, fontWeight: 800, color: '#1A102D', marginBottom: 8 }}>{material.title}</h2>
-         <p style={{ color: '#64748B' }}>Audio Study Material</p>
-       </div>
-       <audio controls style={{ width: '400px', borderRadius: '32px' }} src={material.source_url} />
-    </div>
-  )
-}
-
-/** Web Content / Website Viewer */
-function HighFidelityWeb({ url }) {
-  return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '8px 16px', background: '#F1F5F9', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #E2E8F0' }}>
-         <Globe size={14} color="#64748B" />
-         <span style={{ fontSize: 12, color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{url}</span>
-      </div>
-      <iframe src={url} style={{ flex: 1, border: 'none' }} title="Website Content" />
-    </div>
-  )
-}
-
-/** Anki / Flashcard Preview */
-function HighFidelityAnki({ material }) {
-  return (
-    <div style={{ height: '100%', background: '#F8FAFC', padding: 40, overflowY: 'auto' }}>
-      <div style={{ maxWidth: 600, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
-           <Layers color="#0ea5e9" size={24} />
-           <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1A102D', margin: 0 }}>Anki Flashcard Deck</h2>
-        </div>
-        <div style={{ background: 'white', borderRadius: 16, padding: 32, textAlign: 'center', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
-           <p style={{ color: '#64748B', fontSize: 15, lineHeight: 1.6 }}>
-             This Anki deck has been imported into your <strong>Flashcards</strong> tool. 
-             You can study the cards using the active recall interface on the right.
-           </p>
-           <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center', gap: 12 }}>
-              <div style={{ padding: '12px 24px', borderRadius: '12px', background: '#F0F9FF', color: '#0369A1', fontWeight: 700, fontSize: 14 }}>
-                 {material.title}
-              </div>
-           </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ─── Main Document Viewer ─────────────────────────────────────────────────────
 
 export default function DocumentViewer({ material, onScrollUpdate }) {
-  const { setViewportData } = useReadingSpace()
-  const [viewMode, setViewMode] = useState('visuals') // 'visuals' or 'ai'
-  const [fontSize, setFontSize] = useState(16)
+  const { setViewportData, askAI } = useReadingSpace()
+  const [viewMode, setViewMode] = useState('visuals')
+  const [fontSize, setFontSize] = useState(17)
 
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(0)
+  const [highlightText, setHighlightText] = useState('')
+  const [selection, setSelection] = useState({ text: '', x: 0, y: 0, show: false })
+  
+  const aiReaderRef = useRef(null)
+  const canvasRef = useRef(null)
+
+  // PDF Plugins - Initialized once
+  const searchPluginInstance = searchPlugin()
+  const fullScreenPluginInstance = fullScreenPlugin()
+
+  const handlePageJump = (pg) => {
+    const p = parseInt(pg)
+    if (!isNaN(p) && p > 0 && p <= totalPages) {
+      setCurrentPage(p)
+      // Custom event to trigger PDF viewer page change if needed
+      window.dispatchEvent(new CustomEvent('luter-jump-to-page', { detail: { page: p } }))
+    }
+  }
 
   useEffect(() => {
     if (!material) return
     
-    // Listen for "jump-to-page" events from the Reading Space (AI Chat)
     const handleJump = (e) => {
       if (e.detail && e.detail.page) {
         setCurrentPage(e.detail.page)
-        setViewMode('visuals') // Switch to visuals if AI wants to show something
+        setViewMode('visuals')
       }
     }
+
+    const handleHighlight = (e) => {
+      if (e.detail && e.detail.text) {
+        setHighlightText(e.detail.text)
+        setViewMode('ai')
+        setTimeout(() => setHighlightText(''), 8000)
+      }
+    }
+
     window.addEventListener('luter-jump-to-page', handleJump)
+    window.addEventListener('luter-highlight-text', handleHighlight)
 
     setViewportData({
       visibleText: material.extracted_text?.slice(0, 3000) || '',
@@ -259,126 +97,250 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
       documentType: material.type || 'unknown',
     })
 
-    return () => window.removeEventListener('luter-jump-to-page', handleJump)
+    return () => {
+      window.removeEventListener('luter-jump-to-page', handleJump)
+      window.removeEventListener('luter-highlight-text', handleHighlight)
+    }
   }, [material?.id, material?.extracted_text])
+
+  // Contextual Selection Logic
+  useEffect(() => {
+    const handleMouseUp = () => {
+      const activeSelection = window.getSelection()
+      const text = activeSelection.toString().trim()
+      
+      if (text && text.length > 2) {
+        const range = activeSelection.getRangeAt(0)
+        const rect = range.getBoundingClientRect()
+        
+        setSelection({
+          text,
+          x: rect.left + rect.width / 2,
+          y: rect.top,
+          show: true
+        })
+      } else {
+        setSelection(s => ({ ...s, show: false }))
+      }
+    }
+
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => document.removeEventListener('mouseup', handleMouseUp)
+  }, [])
+
+  // AI Reader Scroll Logic
+  useEffect(() => {
+    if (highlightText && aiReaderRef.current && viewMode === 'ai') {
+      setTimeout(() => {
+        const el = aiReaderRef.current.querySelector('.luter-highlight-active')
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    }
+  }, [highlightText, viewMode])
+
+  const getProcessedText = () => {
+    if (!highlightText || !material.extracted_text) return material.extracted_text
+    const escaped = highlightText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const regex = new RegExp(`(${escaped})`, 'gi')
+    return material.extracted_text.replace(regex, '*$1*')
+  }
 
   if (!material) return null
 
   const type = (material.type || '').toLowerCase()
   const status = material.processing_status
-  
-  // Exclusive type detection to prevent double-rendering in iframes (which triggers downloads)
   const isVideo = type === 'video' || type === 'youtube' || material.source_url?.includes('youtube.com') || material.source_url?.includes('youtu.be')
   const isAudio = type === 'audio' || (!['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv'].includes(type) && material.source_url?.match(/\.(mp3|wav|ogg|m4a)$/))
   const isWeb = type === 'web'
   const isImage = type === 'image' || (!['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv'].includes(type) && material.source_url?.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/))
 
-  // Toolbar Component
-  const Toolbar = () => (
-    <div style={{
-      height: '56px', padding: '0 24px', background: 'white', borderBottom: '1px solid #E2E8F0',
-      display: 'flex', alignItems: 'center', gap: 16, zIndex: 10
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px', background: `${getTypeColor(type)}10`, borderRadius: '12px', color: getTypeColor(type), fontSize: '12px', fontWeight: 800 }}>
-        {isWeb ? <Globe size={14} /> : isVideo ? <Play size={14} /> : isImage ? <ImageIcon size={14} /> : <FileText size={14} />} 
-        {getTypeLabel(type)}
+  /** Flashka-Style Contextual Action Bubble */
+  const ActionBubble = () => {
+    if (!selection.show) return null
+    return (
+      <div className="luter-action-bubble" style={{ left: selection.x, top: selection.y }}>
+        <button className="bubble-tool" onClick={() => askAI(`Explain this: "${selection.text}"`)}>
+          <GraduationCap size={14} />
+          <span>Explain</span>
+        </button>
+        <div className="bubble-divider" />
+        <button className="bubble-tool" onClick={() => askAI(`Summarize this section: "${selection.text}"`)}>
+          <Wand2 size={14} />
+          <span>Summarize</span>
+        </button>
+        <div className="bubble-divider" />
+        <button className="bubble-tool" onClick={() => askAI(`Create a flashcard for: "${selection.text}"`)}>
+          <Lightbulb size={14} />
+          <span>Flashcard</span>
+        </button>
       </div>
-      
-      <div style={{ flex: 1, fontSize: '14px', fontWeight: 700, color: '#1A102D', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        {material.title}
-      </div>
+    )
+  }
 
-      <div style={{ display: 'flex', background: '#F1F5F9', borderRadius: '10px', padding: '3px' }}>
+  /** Floating Studio Navigation Bar */
+  const { isSidePanelCollapsed, setSidePanelCollapsed } = useReadingSpace()
+  const StudioNav = () => (
+    <div className="ws-studio-floating-bar">
+      <div className="ws-nav-section">
         <button 
-          onClick={() => setViewMode('visuals')}
-          style={{ 
-            padding: '6px 12px', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
-            background: viewMode === 'visuals' ? 'white' : 'transparent',
-            color: viewMode === 'visuals' ? '#7a12cc' : '#64748B',
-            boxShadow: viewMode === 'visuals' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
-            display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s'
-          }}
+          className="ws-nav-btn" 
+          onClick={() => setSidePanelCollapsed(!isSidePanelCollapsed)}
+          title="Toggle Sidebar"
         >
-          <Eye size={14} /> Full Viewer
+          <PanelLeft size={18} />
         </button>
         <button 
-          onClick={() => setViewMode('ai')}
-          style={{ 
-            padding: '6px 12px', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
-            background: viewMode === 'ai' ? 'white' : 'transparent',
-            color: viewMode === 'ai' ? '#7a12cc' : '#64748B',
-            boxShadow: viewMode === 'ai' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
-            display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s'
-          }}
+          className="ws-nav-btn" 
+          onClick={() => searchPluginInstance.openSearchPopover()}
+          title="Search Document"
         >
-          <Sparkles size={14} /> AI Context
+          <Search size={18} />
+        </button>
+        <button className="ws-nav-btn"><Moon size={18} /></button>
+        <button className="ws-nav-btn"><Volume2 size={18} /></button>
+      </div>
+      
+      <div className="ws-nav-center-group">
+        <div className="ws-nav-pg-wrap">
+          <input 
+            className="ws-nav-pg-input" 
+            key={currentPage}
+            defaultValue={currentPage}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handlePageJump(e.target.value)
+            }}
+          />
+          <span className="ws-pg-total">/ {totalPages || '--'}</span>
+        </div>
+        <div className="ws-nav-divider" />
+        <div className="ws-nav-dropdown">
+          <span>Page fit</span>
+          <ChevronDown size={14} />
+        </div>
+      </div>
+
+      <div className="ws-nav-section">
+        <button 
+          className="ws-nav-btn" 
+          onClick={() => setViewMode(viewMode === 'visuals' ? 'ai' : 'visuals')}
+          title={viewMode === 'visuals' ? 'Switch to AI View' : 'Switch to Visual View'}
+        >
+          {viewMode === 'visuals' ? <Sparkles size={18} color="var(--luter-primary)" /> : <Eye size={18} />}
+        </button>
+        <button className="ws-nav-btn"><RotateCcw size={18} /></button>
+        <button className="ws-nav-btn" onClick={() => window.open(material.source_url, '_blank')} title="Download">
+          <Download size={18} />
+        </button>
+        <button className="ws-nav-btn" onClick={() => fullScreenPluginInstance.enterFullScreen()} title="Fullscreen">
+          <Maximize2 size={18} />
         </button>
       </div>
     </div>
   )
 
-  // 1. Still being ingested
+  /** Flashka-Style Property Grid for Metadata */
+  const PropertyGridHeader = () => {
+    const isLandmark = material.title?.toLowerCase().includes('landmark') || material.description?.toLowerCase().includes('landmark')
+    return (
+      <div className="ws-property-card">
+        {isLandmark && <div className="ws-inst-logo" style={{ marginBottom: 16 }}>LMU</div>}
+        <h1 className="ws-ntn-h1" style={{ fontSize: 32, fontWeight: 800 }}>{material.course_code || 'Landmark University'}</h1>
+        <p style={{ color: '#64748B', fontSize: 18, fontWeight: 500, margin: 0 }}>{material.title}</p>
+        <div className="ws-property-grid">
+           <div className="ws-prop-item">
+              <span className="ws-prop-label">Course</span>
+              <span className="ws-prop-value">{material.course_name || 'Biochemistry'}</span>
+           </div>
+           <div className="ws-prop-item">
+              <span className="ws-prop-label">Level</span>
+              <span className="ws-prop-value">Level 400</span>
+           </div>
+           <div className="ws-prop-item">
+              <span className="ws-prop-label">Credit Units</span>
+              <span className="ws-prop-value">3 Units</span>
+           </div>
+           <div className="ws-prop-item">
+              <span className="ws-prop-label">Academic Subject</span>
+              <span className="ws-prop-value">Natural Sciences</span>
+           </div>
+        </div>
+      </div>
+    )
+  }
+
   if (status === 'pending' && !material.source_url) {
     return <PendingState material={material} />
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#fff', overflow: 'hidden' }}>
-      <Toolbar />
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        
-        {/* VIEW MODE: VISUALS */}
+    <div className="ws-infinite-reader-container" ref={canvasRef}>
+      <StudioNav />
+      <ActionBubble />
+      <div className="ws-canvas-surface">
+        {/* VISUAL VIEW: HIGH-FIDELITY PAPER MODE */}
         {viewMode === 'visuals' && (
-          <div style={{ height: '100%', width: '100%' }}>
+          <div className="ws-visual-viewport">
             {type === 'pdf' && material.source_url && (
-              <HighFidelityPDF fileUrl={material.source_url} initialPage={currentPage} />
+              <div className="ws-paper-sheet">
+                 <HighFidelityPDF 
+                   fileUrl={material.source_url} 
+                   initialPage={currentPage}
+                   onPageChange={(e) => setCurrentPage(e.currentPage + 1)}
+                   onDocumentLoad={(e) => setTotalPages(e.doc.numPages)}
+                   plugins={[searchPluginInstance, fullScreenPluginInstance]}
+                 />
+              </div>
             )}
-            {(type === 'docx' || type === 'doc') && material.source_url && <HighFidelityWord fileUrl={material.source_url} />}
-            {(type === 'pptx' || type === 'ppt') && material.source_url && (
-              // If we have metadata indicating a PDF conversion is ready, use it
-              material.metadata?.pdf_url ? (
-                <HighFidelityPDF fileUrl={material.metadata.pdf_url} initialPage={currentPage} />
-              ) : (
-                <OfficeEmbed fileUrl={material.source_url} />
-              )
+            {(type === 'docx' || type === 'doc' || type === 'pptx' || type === 'ppt') && material.source_url && (
+              <div className="ws-paper-sheet">
+                 <OfficeViewer fileUrl={material.source_url} />
+              </div>
             )}
-            {(type === 'xlsx' || type === 'xls' || type === 'csv') && material.source_url && <HighFidelityExcel fileUrl={material.source_url} />}
-            {isImage && <HighFidelityImage fileUrl={material.source_url} />}
+            {(type === 'xlsx' || type === 'xls' || type === 'csv') && material.source_url && (
+              <div className="ws-paper-sheet">
+                <HighFidelityExcel fileUrl={material.source_url} />
+              </div>
+            )}
+            {isImage && <div className="ws-paper-sheet"><HighFidelityImage fileUrl={material.source_url} /></div>}
             {isVideo && (
-               <div style={{ height: '100%', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <div style={{ height: '100%', background: '#000', borderRadius: 12, overflow: 'hidden' }}>
                  <ReactPlayer url={material.source_url} controls width="100%" height="100%" />
                </div>
             )}
             {isAudio && <HighFidelityAudio material={material} />}
             {isWeb && <HighFidelityWeb url={material.source_url} />}
             {(type === 'anki' || type === 'apkg') && <HighFidelityAnki material={material} />}
-
-            {!['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv', 'video', 'youtube', 'image', 'audio', 'web', 'anki', 'apkg'].includes(type) && !isVideo && !isAudio && !isWeb && (
-              <div style={{ height: '100%', background: '#fff', padding: '60px' }}>
-                <PendingState material={material} />
-              </div>
-            )}
           </div>
         )}
 
-        {/* VIEW MODE: AI */}
+        {/* AI VIEW: STRUCTURED DATA MODE */}
         {viewMode === 'ai' && (
-          <div style={{ height: '100%', overflowY: 'auto', background: 'white' }}>
-            {!material.extracted_text && status === 'pending' ? (
-              <PendingState material={material} />
-            ) : !material.extracted_text ? (
-              <ErrorState 
-                title="AI context unavailable" 
-                message="We couldn't extract text for the AI study tools. You can still use the Full Viewer to read it normally."
-                sourceUrl={material.source_url}
-              />
-            ) : (
-              <div style={{ maxWidth: '800px', margin: '0 auto', padding: '60px 48px' }}>
-                 <div className="luter-ai-reader" style={{ fontSize: `${fontSize}px`, lineHeight: 1.8, fontFamily: 'Outfit', color: '#1A102D' }}>
-                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{material.extracted_text}</ReactMarkdown>
-                 </div>
+          <div className="ws-native-canvas" style={{ background: '#F3F4F6' }}>
+            <div className="ws-notion-layout">
+              <PropertyGridHeader />
+              <div className="ws-notion-card" ref={aiReaderRef}>
+                <div className="ws-notion-body">
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      h1: ({ children }) => <h1 className="ws-ntn-h1">{children}</h1>,
+                      h2: ({ children }) => <h2 className="ws-ntn-h2">{children}</h2>,
+                      p: ({ children }) => <p className="ws-ntn-p">{children}</p>,
+                      em: ({ children, node, ...props }) => {
+                        const text = node?.children?.[0]?.value || ""
+                        if (highlightText && typeof text === 'string' && text.toLowerCase().includes(highlightText.toLowerCase())) {
+                          return <mark className="luter-highlight-active">{children}</mark>
+                        }
+                        return <em {...props}>{children}</em>
+                      }
+                    }}
+                  >
+                    {getProcessedText()}
+                  </ReactMarkdown>
+                </div>
               </div>
-            )}
+              <div style={{ height: 100 }} />
+            </div>
           </div>
         )}
       </div>
@@ -386,42 +348,148 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
   )
 }
 
-/** Office Embed Fallback */
-function OfficeEmbed({ fileUrl }) {
-  // Use Google Docs Viewer which is more stable and less prone to auto-downloads
-  const embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`
-  return <iframe src={embedUrl} width="100%" height="100%" frameBorder="0" title="Document Viewer" />
+// ─── High-Fidelity Renderers ─────────────────────────────────────────────────
+
+function HighFidelityPDF({ fileUrl, initialPage = 1, onPageChange, onDocumentLoad, plugins = [] }) {
+  const renderPage = (props) => (
+    <>
+      {props.canvasLayer.children}
+      {props.textLayer.children}
+      {props.annotationLayer.children}
+      <div className="ws-annotation-overlay" />
+    </>
+  )
+  return (
+    <div className="luter-pdf-canvas">
+      <Worker workerUrl={PDF_WORKER_URL}>
+        <Viewer 
+          fileUrl={fileUrl} 
+          initialPage={initialPage > 0 ? initialPage - 1 : 0}
+          onPageChange={onPageChange}
+          onDocumentLoad={onDocumentLoad}
+          renderPage={renderPage}
+          theme={{ theme: 'light' }}
+          defaultScale={SpecialZoomLevel.PageWidth}
+          plugins={plugins}
+        />
+      </Worker>
+    </div>
+  )
 }
 
-// ─── States ──────────────────────────────────────────────────────────────────
+/** The Pro Move: Microsoft/Google Office Viewer for PPT and DOCX */
+function OfficeViewer({ fileUrl }) {
+  const [loading, setLoading] = useState(true)
+  const containerRef = useRef(null)
+  const [scale, setScale] = useState(1)
+  
+  // Encodes the URL so Microsoft can fetch and render it
+  const microsoftViewer = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`
+
+  useEffect(() => {
+    if (!containerRef.current) return
+    const updateScale = () => {
+      if (!containerRef.current) return
+      const width = containerRef.current.clientWidth
+      // A4-style viewers are native ~814px. We scale to fill the container width.
+      // We add a tiny buffer (0.95) to ensure no scrollbars or weird clipping.
+      const newScale = width / 814
+      setScale(newScale > 1 ? newScale : 1)
+    }
+
+    const obs = new ResizeObserver(updateScale)
+    obs.observe(containerRef.current)
+    updateScale() // initial
+    return () => obs.disconnect()
+  }, [])
+  
+  return (
+    <div ref={containerRef} style={{ width: '100%', height: 'calc(100vh - 52px)', position: 'relative', overflow: 'hidden', background: 'white' }}>
+      {loading && (
+        <div style={{ position: 'absolute', inset: 0, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+           <Loader2 className="animate-spin" color="#7a12cc" size={32} />
+        </div>
+      )}
+      <iframe
+        src={microsoftViewer}
+        style={{ 
+          width: '814px', 
+          height: `calc(100% / ${scale})`,
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          border: 'none',
+          pointerEvents: 'auto'
+        }}
+        onLoad={() => setLoading(false)}
+        title="Office Document"
+      />
+    </div>
+  )
+}
+
+function HighFidelityExcel({ fileUrl }) {
+  const [data, setData] = useState([])
+  useEffect(() => {
+    const loadExcel = async () => {
+      const res = await fetch(fileUrl)
+      const ab = await res.arrayBuffer()
+      const wb = XLSX.read(ab, { type: 'array' })
+      const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 })
+      setData(json)
+    }
+    loadExcel()
+  }, [fileUrl])
+  return (
+    <div>
+      <table style={{ borderCollapse: 'collapse', width: '100%', background: 'white', border: '1px solid #E2E8F0' }}>
+        <tbody>
+          {data.map((row, i) => (
+            <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
+              {row.map((cell, j) => <td key={j} style={{ padding: 12, fontSize: 13, fontWeight: i === 0 ? 700 : 400 }}>{cell}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function HighFidelityImage({ fileUrl }) {
+  const onUpdate = ({ x, y, scale }) => {
+    const img = document.getElementById('zoom-img')
+    if (img) img.style.transform = make3dTransformValue({ x, y, scale })
+  }
+  return (
+    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <QuickPinchZoom onUpdate={onUpdate} enforceBounds>
+        <img id="zoom-img" src={fileUrl} alt="Visual" style={{ maxWidth: '100%', borderRadius: 8 }} />
+      </QuickPinchZoom>
+    </div>
+  )
+}
+
+function HighFidelityAudio({ material }) {
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 32 }}>
+       <Music size={48} color="#7a12cc" />
+       <audio controls src={material.source_url} />
+    </div>
+  )
+}
+
+function HighFidelityWeb({ url }) {
+  return <iframe src={url} style={{ width: '100%', height: '100%', border: 'none' }} title="Web" />
+}
+
+function HighFidelityAnki({ material }) {
+  return <div style={{ padding: 40, textAlign: 'center' }}>Anki Deck: {material.title}</div>
+}
 
 function PendingState({ material }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 24, padding: 40 }}>
-      <div style={{ width: 80, height: 80, borderRadius: '24px', background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 size={32} color="#7a12cc" className="animate-spin" />
-      </div>
-      <div style={{ textAlign: 'center', maxWidth: 320 }}>
-        <h3 style={{ fontSize: 22, fontWeight: 800, color: '#1A102D', margin: '0 0 12px', fontFamily: 'Outfit' }}>Preparing study space…</h3>
-        <p style={{ fontSize: 15, color: '#64748B', lineHeight: 1.6, margin: 0, fontFamily: 'Outfit' }}>Luter is optimizing <strong>{material?.title}</strong> for your session.</p>
-      </div>
-    </div>
-  )
-}
-
-function ErrorState({ title, message, sourceUrl }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16, padding: 40 }}>
-      <div style={{ width: 72, height: 72, background: '#FEE2E2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <AlertCircle size={36} color="#DC2626" />
-      </div>
-      <div style={{ textAlign: 'center', maxWidth: 400 }}>
-        <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px', fontFamily: 'Outfit' }}>{title}</h3>
-        <p style={{ fontSize: 14, color: '#64748B', lineHeight: 1.6, margin: 0, fontFamily: 'Outfit' }}>{message}</p>
-        {sourceUrl && (
-          <a href={sourceUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 16, color: '#7a12cc', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>Open Original File</a>
-        )}
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 24 }}>
+      <Loader2 size={32} color="#7a12cc" className="animate-spin" />
+      <p>Luter is optimizing <strong>{material?.title}</strong>...</p>
     </div>
   )
 }

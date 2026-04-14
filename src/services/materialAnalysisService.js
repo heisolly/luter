@@ -187,11 +187,8 @@ Return the analysis in JSON format with the following structure:
       
       let analysisData
       try {
-        // Try to parse JSON response
         const rawContent = response.choices[0].message.content
-        const cleanJson = stripJsonFence(rawContent)
-        const jsonMatch = cleanJson.match(/\{[\s\S]*\}/)
-        analysisData = JSON.parse(jsonMatch ? jsonMatch[0] : cleanJson)
+        analysisData = this.cleanAndParseJson(rawContent)
       } catch (parseError) {
         console.error('Failed to parse analysis JSON:', parseError)
         // Create basic analysis from text response
@@ -337,17 +334,10 @@ Focus on:
       let flashcardData
       try {
         const rawContent = response.choices[0].message.content
-        const cleanJson = stripJsonFence(rawContent)
-        flashcardData = JSON.parse(cleanJson)
+        flashcardData = this.cleanAndParseJson(rawContent)
       } catch (parseError) {
-        console.warn('Primary flashcard parse failed, trying regex fallback:', parseError)
-        try {
-          const deepMatch = response.choices[0].message.content.match(/\{[\s\S]*\}/)
-          flashcardData = JSON.parse(deepMatch[0])
-        } catch(e) {
-          console.error('Final flashcard parse failed:', e)
-          flashcardData = this.createBasicFlashcards(analysis, count)
-        }
+        console.error('Final flashcard parse failed:', parseError)
+        flashcardData = this.createBasicFlashcards(analysis, count)
       }
       
       return {
@@ -425,17 +415,10 @@ Create questions that test:
       let quizData
       try {
         const rawContent = response.choices[0].message.content
-        const cleanJson = stripJsonFence(rawContent)
-        quizData = JSON.parse(cleanJson)
+        quizData = this.cleanAndParseJson(rawContent)
       } catch (parseError) {
-        console.warn('Primary quiz parse failed, trying regex fallback:', parseError)
-        try {
-           const deepMatch = response.choices[0].message.content.match(/\{[\s\S]*\}/)
-           quizData = JSON.parse(deepMatch[0])
-        } catch(e) {
-           console.error('Final quiz parse failed:', e)
-           quizData = this.createBasicQuiz(analysis, questionCount, difficulty)
-        }
+        console.error('Final quiz parse failed:', parseError)
+        quizData = this.createBasicQuiz(analysis, questionCount, difficulty)
       }
       
       return {
@@ -760,44 +743,19 @@ Create questions that test:
 function stripJsonFence(text) {
   if (!text) return null;
   
-  // 1. First attempt: Use regex to extract the first valid JSON block
-  // This is the most reliable way to ignore AI preamble/postamble
-  const jsonBlockRegex = /(\{|\[)[\s\S]*(\}|\])/;
-  const match = text.match(jsonBlockRegex);
-  
-  if (match) {
-    let candidate = match[0].trim();
-    try {
-      // Validate it's actually parseable
-      JSON.parse(candidate);
-      return candidate;
-    } catch (e) {
-      // If it failed, it might be because the regex caught too much (e.g. multiple blocks)
-      // or there is trailing junk. We'll fall through to more aggressive cleaning.
-      console.warn('Regex match failed validation, falling back to aggressive cleaning');
-    }
-  }
-
+  // 1. Remove markdown code fences first
   let clean = text.trim();
-  
-  // 2. Remove markdown code fences
   clean = clean.replace(/```json\n?|```\s*$/g, '').trim();
   clean = clean.replace(/^```|```$/g, '').trim();
 
-  // 3. Remove conversational common prefixes and stray marks
-  clean = clean.replace(/^(I have generated|Here is|Sure|Okay|Analyzing|The quiz is|The flashcards are).+?:\s*/i, '');
-  clean = clean.replace(/^[-*•\s]+/, ''); // Remove starting dashes/bullets
-  clean = clean.replace(/\*\*.+?\*\*/g, '');
-  clean = clean.replace(/#{1,6}\s+.+?\n/g, '');
-  
-  // 4. Find the actual start and end
+  // 2. Extract the furthest possible JSON block
   const firstBrace = clean.indexOf('{');
   const firstBracket = clean.indexOf('[');
   
   let startIndex = -1;
   let charMatch = '';
   
-  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+  if (firstBrace !== -1 && (firstBracket === -1 || (firstBrace < firstBracket && firstBrace !== -1))) {
     startIndex = firstBrace;
     charMatch = '}';
   } else if (firstBracket !== -1) {
@@ -808,13 +766,49 @@ function stripJsonFence(text) {
   if (startIndex !== -1) {
     const lastIndex = clean.lastIndexOf(charMatch);
     if (lastIndex !== -1 && lastIndex > startIndex) {
-      const extracted = clean.substring(startIndex, lastIndex + 1);
-      // Final attempt to clean trailing commas which are common in AI output but break JSON.parse
-      return extracted.replace(/,\s*([\}\]])/g, '$1');
+      return clean.substring(startIndex, lastIndex + 1);
     }
   }
 
   return clean;
+}
+
+/**
+ * Robust JSON repair for common AI mistakes
+ */
+MaterialAnalysisService.cleanAndParseJson = function(text) {
+  const cleaned = stripJsonFence(text);
+  if (!cleaned) throw new Error('No JSON found in response');
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (initialError) {
+    console.warn('Initial JSON parse failed, attempting repair...', initialError.message);
+    
+    try {
+      // 1. Fix trailing commas in arrays/objects
+      let repaired = cleaned.replace(/,\s*([\}\]])/g, '$1');
+      
+      // 2. Fix unescaped newlines in strings
+      repaired = repaired.replace(/\n/g, '\\n');
+      
+      // 3. Fix minor quoting issues (this is aggressive, but often needed)
+      // Only repair if the previous fixes didn't work
+      return JSON.parse(repaired);
+    } catch (repairError) {
+      // 4. Final attempt: Extract just the object using a more permissive regex
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          const finalTry = jsonMatch[0].replace(/,\s*([\}\]])/g, '$1');
+          return JSON.parse(finalTry);
+        } catch (e) {
+          throw new Error('JSON repair failed: ' + e.message);
+        }
+      }
+      throw repairError;
+    }
+  }
 }
 
 export default MaterialAnalysisService;

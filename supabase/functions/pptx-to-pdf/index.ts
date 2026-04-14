@@ -1,5 +1,5 @@
-/// <reference lib="deno.ns" />
-/// <reference lib="deno.window" />
+// @ts-nocheck
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 import { createClient } from "@supabase/supabase-js"
 
@@ -92,9 +92,9 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     })
 
-  } catch (error) {
-    console.error(`[Converter] Error: ${error.message}`)
-    return new Response(JSON.stringify({ error: error.message }), { 
+  } catch (error: any) {
+    console.error(`[Converter] Error: ${error.message || 'Unknown error'}`)
+    return new Response(JSON.stringify({ error: error.message || 'Unknown error' }), { 
         status: 500,
         headers: corsHeaders
     })

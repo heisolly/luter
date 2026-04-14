@@ -28,60 +28,165 @@
   overflow: hidden;
 }
 
-/* ── Header & Navigation ── */
-.ws-header {
-  padding: 16px 24px;
+@media (max-width: 768px) {
+  .ws-root {
+    height: calc(100vh - 64px);
+  }
+}
+
+/* ── Global Glassmorphic Header ── */
+.ws-global-glass-header {
+  height: 56px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: transparent;
-  flex-shrink: 0;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.5);
 }
 
-/* ── Tabs Container ── */
-.ws-tabs-bar {
-  padding: 0 24px 16px;
+.ws-breadcrumb-minimal {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-}
-
-.ws-nav-tabs {
-  display: flex;
   gap: 8px;
-  padding: 4px;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 12px;
-  border: 1px solid var(--luter-mint-light);
+  font-family: var(--font-body);
 }
 
-.ws-tab {
-  padding: 8px 16px;
-  border-radius: 10px;
-  font-family: var(--font-heading);
-  font-size: 14px;
-  font-weight: 500;
+.ws-bc-course {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--luter-primary);
   cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-  background: transparent;
-  color: var(--luter-text-body);
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.ws-bc-course:hover { opacity: 1; }
+
+.ws-bc-sep { color: #CBD5E1; }
+
+.ws-bc-week {
+  font-size: 13px;
+  font-weight: 500;
+  color: #94A3B8;
+}
+
+.ws-bc-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1A102D;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
+}
+
+.ws-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ws-glass-action {
   display: flex;
   align-items: center;
   gap: 8px;
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748B;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
 }
 
-.ws-tab--active {
-  background-color: var(--luter-accent);
-  color: var(--luter-primary-dark);
+.ws-glass-action:hover { background: rgba(241, 245, 249, 0.5); color: #1E293B; }
+
+.ws-glass-exit {
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  color: #64748B;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
-.ws-tab:hover:not(.ws-tab--active) {
-  background-color: rgba(255, 255, 255, 0.8);
+.ws-glass-exit:hover {
+  background: #FEF2F2;
+  border-color: #FEE2E2;
+  color: #EF4444;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
 }
 
+/* ── Side Tabs Navigation (In Sidepanel) ── */
+.ws-side-tabs-header {
+  padding: 12px 16px;
+  background: white;
+  border-bottom: 1px solid #F1F5F9;
+  flex-shrink: 0; /* Ensures header doesn't shrink or cause layout shifts */
+  z-index: 5;
+}
 
+.ws-side-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ws-side-tabs::-webkit-scrollbar { display: none; }
+
+.ws-side-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #64748B;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ws-side-tab:hover {
+  background: #F8FAFC;
+  color: #1E293B;
+}
+
+.ws-side-tab--active {
+  background: #F1F5F9;
+  color: #1A102D;
+}
+
+.ws-tab-dot {
+  width: 6px;
+  height: 6px;
+  background: #E2E8F0;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.ws-tab-dot.active {
+  background: #10B981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
 
 /* ── Jungle Scrollbar ── */
 .ws-content-scroll::-webkit-scrollbar {
@@ -126,36 +231,119 @@
   border-bottom-left-radius: 4px;
 }
 
-/* ── Dual-Pane Layout ── */
+/* ── Flashka-Style Studio Canvas ── */
 .ws-main-layout {
   display: flex;
-  gap: 24px;
-  padding: 0 24px 24px;
+  gap: 0; 
+  padding: 0;
   flex: 1;
-  min-height: 0; /* Important for flex child height truncation */
+  background: #F3F4F6; 
+  overflow: hidden; 
+}
+
+/* Custom Ghost Selection */
+.ws-main-layout ::selection {
+  background: rgba(122, 18, 204, 0.15); /* Soft Luter Purple */
+  color: inherit;
 }
 
 .ws-pane-left {
-  flex: 0 0 70%;
-  background: var(--luter-card-bg);
-  border-radius: 16px;
-  box-shadow: var(--luter-shadow);
+  flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  border: 1px solid var(--luter-border);
+  min-height: min-content;
 }
 
 .ws-pane-right {
-  flex: 1;
-  background: var(--luter-card-bg);
-  border-radius: 16px;
-  box-shadow: var(--luter-shadow);
+  width: 420px;
+  background: white;
+  border-left: 1px solid #E2E8F0;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
+  height: calc(100vh - 56px); /* Adjusted for 56px global header */
+  position: sticky;
+  top: 56px;
   overflow: hidden;
-  border: 1px solid var(--luter-border);
-  min-width: 320px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10;
+}
+
+/* ── AI Pulse Pin System ── */
+.ws-pulse-pin {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--luter-primary);
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 0 10px rgba(122, 18, 204, 0.3);
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 100;
+}
+
+.ws-pulse-pin::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--luter-primary);
+  transform: translate(-50%, -50%);
+  animation: ws-pin-pulse 2s infinite;
+  opacity: 0.5;
+}
+
+@keyframes ws-pin-pulse {
+  0% { width: 100%; height: 100%; opacity: 0.5; }
+  100% { width: 300%; height: 300%; opacity: 0; }
+}
+
+/* Force children to not have their own scrollbars */
+.ws-infinite-reader-container, .ws-ai-content-pane, .ws-chat-container {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.ws-canvas-surface, .ws-visual-viewport, .ws-chat-messages {
+  height: auto !important;
+  overflow: visible !important;
+  min-height: 100vh;
+}
+
+/* Thinking / Loading States (Zen Dots) */
+.ws-thinking-bubble {
+  background: #F5F3FF !important;
+  border: 1px solid rgba(122, 18, 204, 0.1) !important;
+  padding: 12px 20px !important;
+  max-width: fit-content !important;
+  border-radius: 16px 16px 16px 4px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  margin-bottom: 32px;
+}
+
+.ws-thinking-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ws-thinking-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.ws-thinking-dots span {
+  width: 7px;
+  height: 7px;
+  background: #7a12cc;
+  border-radius: 50%;
+  display: inline-block;
+  opacity: 0.6;
 }
 
 /* ── AI Tutor Interface ── */
@@ -310,12 +498,6 @@
   box-shadow: 0 2px 0px #4A5568;
 }
 
-/* ── Typography Utility ── */
-.ws-heading {
-  font-family: var(--font-heading);
-  margin: 0;
-}
-
 /* ── Tab Layout Fixes ── */
 .ws-canvas-container {
   display: flex;
@@ -335,7 +517,20 @@
   flex: 1;
   overflow-y: auto;
   padding: 32px;
-  background: #F1F5F9;
+  background: var(--luter-bg);
+}
+
+.main-canvas-tool {
+  background: white !important;
+  padding: 0 !important;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-canvas-tool > div {
+  width: 100%;
+  margin: 0 !important;
 }
 
 .ws-svg-overlay {
@@ -412,24 +607,37 @@
 @media (max-width: 768px) {
   .ws-main-layout {
     flex-direction: column;
-    padding: 0 16px 16px;
-    gap: 16px;
+    padding: 0;
+    gap: 0;
     overflow-y: auto;
+    flex: 1;
   }
   
   .ws-pane-left {
-    flex: none;
-    min-height: 60vh; /* Make reading space big on mobile */
+    flex: 1;
+    min-height: auto;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
   }
 
   .ws-pane-right {
-    flex: none;
-    min-height: 60vh;
+    flex: 1;
+    min-height: auto;
+    width: 100% !important;
+    height: auto !important;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    top: 0;
   }
 
-  .ws-header {
-    padding: 12px 16px;
-  }
+  .ws-header { padding: 12px 16px; }
 
   .ws-tabs-bar {
     padding: 0 16px 12px;
@@ -437,24 +645,893 @@
     align-items: flex-start;
     gap: 16px;
     height: auto !important;
+    display: none !important;
   }
 
   .ws-nav-tabs {
     width: 100%;
     overflow-x: auto;
     padding-bottom: 4px;
-    scrollbar-width: none; /* Hide scrollbar for tabs */
+    scrollbar-width: none;
   }
 
-  .ws-nav-tabs::-webkit-scrollbar {
-    display: none;
+  .ws-nav-tabs::-webkit-scrollbar { display: none; }
+
+  .ws-tab { white-space: nowrap; }
+}
+
+/* ── Mobile Enhanced UI ── */
+.mobile-top-bar { display: none; }
+.mobile-bottom-nav { display: none; }
+
+@media (max-width: 768px) {
+  .mobile-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: white;
+    border-bottom: 1px solid #E2E8F0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
   }
 
-  .ws-tab {
-    white-space: nowrap;
+  .mobile-bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    padding: 12px 16px 24px;
+    background: white;
+    border-top: 1px solid #E2E8F0;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 100;
   }
 
-  .ws-tabs-bar > div:first-child nav {
-    max-width: 200px;
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: #64748B;
+    background: none;
+    border: none;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-body);
+    cursor: pointer;
+  }
+
+  .mobile-nav-item--active { color: var(--luter-primary); }
+
+  .mobile-segmented-control {
+    display: flex;
+    background: #F1F5F9;
+    padding: 4px;
+    border-radius: 14px;
+    margin: 16px;
+    gap: 4px;
+  }
+
+  .segmented-item {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--font-body);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #64748B;
+    background: transparent;
+  }
+
+  .segmented-item--active {
+    background: white;
+    color: #1A102D;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  .ws-pane-left, .ws-pane-right {
+    min-height: 0;
+    height: 100%;
   }
 }
+
+/* ── Workstation Chat UI Refinement ── */
+.ws-chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden; /* Lock the content within the panel */
+}
+
+.ws-chat-header-premium {
+  padding: 18px 24px;
+  background: white;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.ws-header-branding {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ws-branding-icon {
+  width: 28px;
+  height: 28px;
+  background: #7a12cc;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 4px 10px rgba(122, 18, 204, 0.2);
+}
+
+.ws-branding-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.ws-brand-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1E293B;
+  line-height: 1;
+}
+
+.ws-brand-status {
+  font-size: 10px;
+  font-weight: 700;
+  color: #10B981;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+.ws-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start !important;
+  gap: 24px;
+  min-height: 0;
+  scroll-behavior: smooth;
+}
+
+.ws-chat-messages > *:first-child {
+  margin-top: 0 !important;
+}
+
+/* Premium Scrollbar */
+.ws-chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ws-chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ws-chat-messages::-webkit-scrollbar-thumb {
+  background: #E2E8F0;
+  border-radius: 10px;
+}
+
+.ws-chat-messages::-webkit-scrollbar-thumb:hover {
+  background: #CBD5E1;
+}
+
+/* Empty State / Suggested Questions */
+.ws-chat-empty-state {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 0;
+}
+
+.ws-chat-empty-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1A102D;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+.ws-chat-empty-subtitle {
+  font-size: 14px;
+  color: #64748B;
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+
+.ws-suggested-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.ws-suggested-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+
+.ws-suggested-list-premium {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ws-suggested-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ws-suggested-row:hover {
+  background: white;
+  border-color: var(--luter-primary);
+  color: var(--luter-primary);
+  transform: translateX(4px);
+}
+
+.ws-suggested-text {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.ws-suggested-plus {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: #94A3B8;
+  background: #F8FAFC;
+  transition: all 0.2s;
+  margin-left: 12px;
+}
+
+.ws-suggested-row:hover .ws-suggested-plus {
+  background: #F5F3FF;
+  color: #7a12cc;
+}
+
+.ws-chat-input-area {
+  padding: 20px 24px 24px;
+  background: white;
+  border-top: 1px solid #F1F5F9;
+  flex-shrink: 0; /* Keeps input at the bottom */
+}
+
+.ws-chat-limit-info {
+  font-size: 12px !important;
+  color: #64748B !important;
+  margin-bottom: 12px !important;
+  font-weight: 500 !important;
+}
+
+.ws-chat-limit-info span {
+  color: var(--luter-primary) !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+}
+
+
+
+.ws-chat-input-outer {
+  display: flex;
+  align-items: center;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 20px !important;
+  padding: 8px 8px 8px 20px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+}
+
+.ws-chat-input-outer:focus-within {
+  border-color: var(--luter-primary) !important;
+  background: white;
+  box-shadow: 0 4px 20px rgba(122, 18, 204, 0.08) !important;
+  transform: translateY(-1px);
+}
+
+.ws-chat-input-field {
+  flex: 1;
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #1A102D !important;
+  padding: 10px 0 !important;
+}
+
+.ws-chat-input-field::placeholder { color: #94A3B8 !important; }
+
+.ws-chat-mic-btn {
+  padding: 10px !important;
+  color: #94A3B8 !important;
+  cursor: pointer;
+  background: none !important;
+}
+
+.ws-chat-mic-btn:hover { color: var(--luter-primary) !important; }
+
+.ws-chat-send-btn {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 12px !important;
+  background: #A7F3D0 !important;
+  color: #065F46 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none !important;
+}
+
+.ws-chat-send-btn:hover {
+  background: #6EE7B7 !important;
+  transform: scale(1.05);
+}
+
+.ws-chat-send-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  background: #F1F5F9 !important;
+  color: #94A3B8 !important;
+}
+
+.ws-chat-page-link, .ws-chat-source-link {
+  color: var(--luter-primary) !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  text-decoration: underline !important;
+  text-decoration-thickness: 2px;
+}
+
+/* ── Follow-up List (Minimalist) ── */
+.ws-follow-up-section {
+  margin-top: 1.5rem;
+  padding-left: 0.5rem;
+}
+
+.ws-follow-up-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #4A5568;
+  margin-bottom: 1rem;
+  font-family: var(--font-body);
+}
+
+.ws-follow-up-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.ws-follow-up-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 1rem 0;
+  background: transparent;
+  border: none;
+  border-top: 1px solid #F1F5F9;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #4A5568;
+}
+
+.ws-follow-up-item:hover {
+  padding-left: 8px;
+  color: var(--luter-primary);
+}
+
+.ws-follow-up-item span {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.ws-follow-up-plus {
+  color: #94A3B8;
+  flex-shrink: 0;
+  margin-left: 12px;
+  transition: color 0.2s;
+}
+
+.ws-follow-up-item:hover .ws-follow-up-plus {
+  color: var(--luter-primary);
+}
+
+/* ── Copy to Notes ── */
+.ws-copy-to-notes {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.8);
+  border: 1px solid #E2E8F0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748B;
+  opacity: 0;
+  transition: all 0.2s;
+  z-index: 5;
+}
+
+.ws-chat-bubble-ai-wrapper:hover .ws-copy-to-notes {
+  opacity: 1;
+}
+
+/* ── AI Tutor Interface (Zen Minimalist) ── */
+.ws-chat-bubble--ai {
+  line-height: 1.6;
+  background-color: #F5F3FF; /* Soft lavender solid */
+  padding: 1.25rem 1.5rem !important;
+  color: #2D3748;
+  border-radius: 12px 12px 12px 4px;
+  border: 1px solid rgba(122, 18, 204, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  margin-bottom: 4px;
+}
+
+.ws-chat-bubble--ai strong {
+  color: #551D90;
+  font-weight: 700;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+  border: none;
+}
+
+.ws-chat-bubble--ai p {
+  margin-bottom: 1rem;
+  font-size: 15px;
+}
+
+.ws-chat-bubble--ai ul, .ws-chat-bubble--ai ol {
+  margin: 1rem 0;
+  padding-left: 1.25rem;
+}
+
+.ws-chat-bubble--ai li {
+  margin-bottom: 0.75rem;
+}
+
+.ws-chat-bubble--ai h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: #1A102D;
+  font-weight: 700;
+  font-size: 16px;
+  font-family: inherit;
+}
+
+.ws-chat-bubble--ai h3::before { display: none; }
+
+.ws-chat-bubble--ai blockquote {
+  margin: 1.25rem 0;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-radius: 8px;
+  border-left: 3px solid #7a12cc;
+  font-size: 14px;
+  color: #4A5568;
+}
+
+.ws-chat-bubble--ai blockquote::before { display: none; }
+
+/* Citation Pill (Discrete) */
+.ws-citation-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  color: #7a12cc;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 4px 2px;
+  transition: all 0.2s;
+  vertical-align: middle;
+}
+
+.ws-citation-pill:hover {
+  background: #F8FAFC;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.ws-citation-pill svg { stroke-width: 2px; }
+
+.ws-citation-error {
+  color: #94A3B8;
+  text-decoration: line-through;
+  font-size: 10px;
+}
+
+/* ── Native Notion Workspace (Studio Style) ── */
+.ws-native-canvas {
+  flex: 1;
+  background: white;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 80px 40px;
+}
+
+.ws-notion-layout {
+  max-width: 800px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Institutional Header Template */
+.ws-institutional-header {
+  margin-bottom: 60px;
+  text-align: center;
+}
+
+.ws-inst-logo {
+  width: 64px;
+  height: 64px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--luter-primary);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+
+.ws-inst-heading {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1A102D;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+.ws-inst-subheading {
+  font-size: 16px;
+  color: #64748B;
+  margin-bottom: 32px;
+  font-weight: 500;
+}
+
+.ws-inst-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  padding: 24px;
+  background: #F8FAFC;
+  border-radius: 16px;
+  margin-bottom: 40px;
+}
+
+.ws-inst-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.ws-inst-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #94A3B8;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.ws-inst-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+.ws-inst-hr {
+  border: none;
+  border-top: 1px solid #E2E8F0;
+  margin-top: 20px;
+}
+
+/* Notion Body Typography */
+.ws-notion-body {
+  line-height: 1.8;
+  color: #1A102D;
+  font-family: 'Outfit', sans-serif;
+}
+
+.ws-ntn-h1 { font-size: 32px; font-weight: 800; margin-top: 48px; margin-bottom: 24px; }
+.ws-ntn-h2 { font-size: 24px; font-weight: 700; margin-top: 32px; margin-bottom: 16px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px; }
+.ws-ntn-p { font-size: inherit; margin-bottom: 24px; color: #334155; }
+
+/* Focus Selection Highlighting in Notion mode */
+.luter-highlight-active {
+  background: rgba(122, 18, 204, 0.08);
+  color: #7a12cc;
+  padding: 2px 0;
+  font-weight: 700;
+  border-bottom: 2px solid #7a12cc;
+}
+
+/* ── Studio Floating Navigation Bar ── */
+.ws-studio-floating-bar {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 48px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  min-width: 600px;
+  gap: 16px;
+}
+
+.ws-nav-center-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(248, 250, 252, 0.8);
+  padding: 4px 16px;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+}
+
+.ws-nav-pg-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.ws-nav-pg-input {
+  width: 32px;
+  height: 24px;
+  text-align: center;
+  border: none;
+  background: white;
+  border-radius: 4px;
+  font-weight: 700;
+  color: var(--luter-primary);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.ws-pg-total {
+  opacity: 0.7;
+}
+
+.ws-nav-section { display: flex; align-items: center; gap: 16px; }
+
+.ws-nav-btn {
+  background: transparent;
+  border: none;
+  color: #64748B;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.ws-nav-btn:hover { background: #F1F5F9; color: #1E293B; }
+
+.ws-nav-divider { width: 1px; height: 16px; background: #E2E8F0; margin: 0 8px; }
+
+.ws-nav-pg-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #F8FAFC;
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.ws-nav-pg-input {
+  width: 32px;
+  text-align: center;
+  border: none;
+  background: transparent;
+  font-weight: 700;
+  color: var(--luter-primary);
+}
+
+.ws-nav-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+}
+
+/* ── Visual View Mode: Paper Architecture ── */
+.ws-visual-viewport {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: flex-start;
+  padding: 0;
+  overflow-y: auto;
+  background: #F8FAFB;
+  position: relative;
+}
+
+.ws-paper-sheet {
+  background: white;
+  width: 100%;
+  max-width: 100%; 
+  min-height: 100%;
+  border-radius: 0;
+  overflow: hidden;
+  border: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.luter-pdf-canvas {
+  width: 100%;
+  height: 100%;
+  background: white;
+}
+
+.ws-notion-layout {
+  max-width: 840px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 0 20px;
+}
+
+/* Property Grid Header */
+.ws-property-card {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.02);
+  border: 1px solid #F1F5F9;
+}
+
+.ws-property-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
+  margin-top: 32px;
+}
+
+.ws-prop-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ws-prop-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ws-prop-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+/* Section Cards */
+.ws-notion-card {
+  background: white;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 10px 40px -10px rgba(0,0,0,0.03);
+  border: 1px solid #F1F5F9;
+}
+
+.ws-notion-body {
+  line-height: 1.6;
+  color: #1A102D;
+  font-family: 'Outfit', sans-serif;
+  font-size: 17px;
+}
+
+/* ── Contextual Action Bubble ── */
+.luter-action-bubble {
+  position: absolute;
+  background: white;
+  border-radius: 99px;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 30px -5px rgba(122, 18, 204, 0.25);
+  border: 1px solid #F5F3FF;
+  z-index: 2000;
+  transform: translateY(-100%) scale(0.9);
+  animation: bubblePop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  pointer-events: auto;
+}
+
+@keyframes bubblePop {
+  0% { opacity: 0; transform: translateY(-90%) scale(0.9); }
+  100% { opacity: 1; transform: translateY(-110%) scale(1); }
+}
+
+.bubble-tool {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #7a12cc;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.bubble-tool:hover { background: #F5F3FF; }
+
+.bubble-divider { width: 1px; height: 14px; background: #E2E8F0; }

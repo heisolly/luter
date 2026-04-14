@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { 
-  BookOpen, Star, FileText, CheckCircle2, ChevronRight, ArrowLeft, ExternalLink, Layers, HelpCircle, Plus, Search, ChevronLeft, Briefcase, PlayCircle, Settings, User, LogOut, MoreVertical, Layout, Bookmark, Zap, Send, Loader2, AlertCircle 
+  BookOpen, Star, FileText, CheckCircle2, ChevronRight, ArrowLeft, ExternalLink, Layers, HelpCircle, Plus, Search, ChevronLeft, Briefcase, PlayCircle, Settings, User, LogOut, MoreVertical, Layout, Bookmark, Zap, Send, Loader2, AlertCircle, Menu, Share, GraduationCap, Share2, ClipboardList, Mic, Baby, Copy, Check, Minus
 } from 'lucide-react'
 
 import LuterLogo from '../shared/LuterLogo'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
 import { supabase } from '../../supabaseClient'
 import { ReadingSpaceProvider, useReadingSpace } from './ReadingSpaceContext'
@@ -20,13 +21,20 @@ import { MaterialAnalysisService } from '../../services/materialAnalysisService'
 import { debounce } from '../../utils/debounce'
 import './workstation.css'
 
+const SUGGESTED_QUESTIONS = [
+  { id: 'el5', text: "explain it like i'm five years old" },
+  { id: 'analogy', text: "give me an analogy" },
+  { id: 'mnemonic', text: "give me a mnemonic to help me remember" },
+  { id: 'animals', text: "explain it through a conversation between two animals" },
+]
+
 function WorkstationContent() {
   const navigate = useNavigate()
   const { courseId } = useParams()
   const { user } = useOutletContext()
   const [searchParams] = useSearchParams()
   const materialIdParam = searchParams.get('materialId')
-  const { setViewportData, highlightText, updateSpark, clearHighlights, viewportData, updateSelection } = useReadingSpace()
+  const { setViewportData, highlightText, updateSpark, clearHighlights, viewportData, updateSelection, isSidePanelCollapsed } = useReadingSpace()
   
   const [activeTab, setActiveTab] = useState('content')
   const [chatInput, setChatInput] = useState('')
@@ -34,18 +42,46 @@ function WorkstationContent() {
   const [isProcessingLoading, setIsProcessingLoading] = useState(false)
   const [courseMaterials, setCourseMaterials] = useState([])
   const [selectedMaterial, setSelectedMaterial] = useState(null)
+  const [courseInfo, setCourseInfo] = useState(null)
   const [analysisCache, setAnalysisCache] = useState({})
   const [materialAnalysis, setMaterialAnalysis] = useState(null) // Cached analysis from Supabase
   const [showTools, setShowTools] = useState(false)
   const [hasNewAssignment, setHasNewAssignment] = useState(false)
+  const [showDashboard, setShowDashboard] = useState(false)
   
   // Analysis cache: materialId -> { notes, summary, flashcards, quiz }
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false)
   const [isExtractingText, setIsExtractingText] = useState(false)
-  const [showDashboard, setShowDashboard] = useState(false) // Default to reader for "Workspace Home"
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
+  const [mobileReadingMode, setMobileReadingMode] = useState('document') // 'document' or 'notes'
+  const messagesEndRef = useRef(null)
 
+  // Auto-scroll to bottom of chat with adaptive delay for smooth tracking
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+      }
+    }, 150)
+    return () => clearTimeout(timer)
+  }, [messages, isProcessingLoading])
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const currentAnalysis = selectedMaterial ? (analysisCache[selectedMaterial.id] || {}) : {}
+
+  const isPlaceholderContent = (content) => {
+    if (!content) return true
+    if (typeof content !== 'string') return false
+    return content.includes('will be available shortly') || 
+           content.includes('analysis to complete') || 
+           content.includes('temporarily unavailable') ||
+           content.startsWith('Error:')
+  }
 
 
   useEffect(() => {
@@ -118,10 +154,27 @@ function WorkstationContent() {
 
   useEffect(() => {
     if (courseId) {
+      fetchCourseInfo()
       fetchMaterials()
       checkAssignments()
     }
   }, [courseId])
+
+  async function fetchCourseInfo() {
+    try {
+      const { data, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('id', courseId)
+        .maybeSingle()
+      
+      if (data) {
+        setCourseInfo(data)
+      }
+    } catch (err) {
+      console.error('Error fetching course info:', err)
+    }
+  }
 
   async function checkAssignments() {
     // A simple check for any assignment in the last 24 hours
@@ -305,20 +358,20 @@ function WorkstationContent() {
               break
             }
             
-            const notesPrompt = `Act as a world-class academic tutor. Create highly detailed, structured, and comprehensive study notes from the provided text.
-            
-            Structure:
-            1. **Topic Overview**: A brief 2-3 sentence introduction.
-            2. **Core Concepts & Definitions**: Use bolding for key terms.
-            3. **Detailed Breakdown**: Deep dive into the main arguments, mechanisms, or theories.
-            4. **Key Examples**: Practical applications or examples.
-            5. **Summary Points**: Bullet point summary of the most important takeaways.
-            
-            Material Title: ${selectedMaterial.title || 'Untitled'}
-            Material Type: ${selectedMaterial.type || 'document'}
-            
-            Content:
-            ${content}`
+            const notesPrompt = `You are Luter Tutor. Your mission is to provide 'Addictive Learning' — notes that are so clear and visually beautiful that students want to keep reading.
+
+Rules for your layout:
+1. USE HEADERS: Break topics into sections with ### headings to create hierarchy.
+2. COLORFUL HIGHLIGHTS: Use **bolding** for critical keywords and terms.
+3. BITE-SIZED: Never use text blocks longer than 3 sentences. Frequent use of bullet points is mandatory.
+4. CALLOUTS: Use > blockquotes for 'Luter Lessons' or 'Exam Tips'.
+5. ACADEMIC GOLD: Maintain high academic rigour while using Nigerian university context examples.
+
+Material Title: ${selectedMaterial.title || 'Untitled'}
+Material Type: ${selectedMaterial.type || 'document'}
+
+Content:
+${content}`
             
             const response = await callGroqAPI(
               [{ role: 'user', content: notesPrompt }],
@@ -498,7 +551,8 @@ function WorkstationContent() {
         }
       }
       
-      if (activeTab !== 'content' && selectedMaterial && !currentAnalysis[activeTab] && selectedMaterial.processing_status !== 'pending') {
+      const content = currentAnalysis[activeTab]
+      if (activeTab !== 'content' && selectedMaterial && isPlaceholderContent(content) && selectedMaterial.processing_status !== 'pending' && !isAnalysisLoading) {
         runAnalysis(activeTab);
       }
     }
@@ -507,23 +561,26 @@ function WorkstationContent() {
   }, [activeTab, selectedMaterial, currentAnalysis]);
 
   // ─── LangChain RAG Chat ──────────────────────────────────────────────────────
-  const handleSend = async () => {
-    if (!chatInput.trim() || isProcessingLoading) return
+  const handleSend = async (forcedInput) => {
+    // If called from a suggestion button, forcedInput will be the string
+    // If called from the send button/Enter key, forcedInput might be the event object
+    const textToSend = typeof forcedInput === 'string' ? forcedInput : chatInput
+    
+    if (!textToSend.trim() || isProcessingLoading) return
 
-    const userMsg = { role: 'user', content: chatInput }
+    const userMsg = { role: 'user', content: textToSend }
     setMessages(prev => [...prev, userMsg])
-    setChatInput('')
+    setChatInput('') // Always clear manual input
     setIsProcessingLoading(true)
 
     try {
       if (selectedMaterial?.processing_status === 'pending') {
-        setMessages(prev => [...prev, { role: 'ai', content: "Your document is still being processed by LangChain. Please wait a moment and try again." }])
+        setMessages(prev => [...prev, { role: 'ai', content: "Your document is still being processed. Please wait a moment." }])
         return
       }
 
-      // LangChain RAG query — uses vector search when possible, falls back to raw text
       const aiResponse = await queryStudyMaterials({
-        question: chatInput,
+        question: textToSend,
         courseId: courseId,
         materialId: selectedMaterial?.id,
         fallbackContext: selectedMaterial?.extracted_text?.slice(0, 8000) || ''
@@ -532,18 +589,14 @@ function WorkstationContent() {
       setMessages(prev => [...prev, { role: 'ai', content: aiResponse }])
     } catch (err) {
       console.error('[Chat] Error:', err)
-      let msg = 'Luter encountered an error. Please try again.'
-      if (err.message?.includes('413') || err.message?.includes('tokens per minute')) {
-        msg = 'Your question context is too large. Try a shorter question.'
-      }
-      setMessages(prev => [...prev, { role: 'ai', content: msg }])
+      setMessages(prev => [...prev, { role: 'ai', content: 'Luter encountered an error. Please try again.' }])
     } finally {
       setIsProcessingLoading(false)
     }
   }
 
   const tabs = [
-    { id: 'content', label: 'Workspace Home', icon: FileText },
+    { id: 'content', label: 'Read', icon: FileText },
     { id: 'notes', label: 'Smart Notes', icon: BookOpen, description: 'Notes that write themselves' },
     { id: 'summary', label: 'Summarization', icon: Zap, description: 'Review faster, anytime' },
     { id: 'flashcards', label: 'Smart Flashcards', icon: Layers, description: 'Make It Impossible to Forget' },
@@ -562,407 +615,365 @@ function WorkstationContent() {
     }
   }, [selectedMaterial?.id, selectedMaterial?.processing_status])
 
-  const AIDashboard = () => (
-    <div style={{ padding: '40px', background: '#F8FAFC', minHeight: '100%', fontFamily: 'Outfit' }}>
-      <div style={{ marginBottom: '40px' }}>
-        <h1 style={{ fontSize: '32px', fontWeight: 900, color: '#1A102D', marginBottom: '8px' }}>Welcome to your Workspace</h1>
-        <p style={{ color: '#64748B', fontSize: '16px' }}>Luter has analyzed your material. What would you like to do first?</p>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-        {tabs.filter(t => ['notes', 'summary', 'flashcards', 'quiz'].includes(t.id)).map(feature => {
-          const isDone = !!analysisCache[selectedMaterial?.id]?.[feature.id]
-          const isLoading = isAnalysisLoading && activeTab === 'content' && !isDone
-          const hasError = analysisCache[selectedMaterial?.id]?.[feature.id]?.includes('temporarily unavailable') || 
-                          analysisCache[selectedMaterial?.id]?.[feature.id]?.includes('too large') ||
-                          analysisCache[selectedMaterial?.id]?.[feature.id]?.includes('Analysis failed')
-
-          return (
-            <motion.div
-              key={feature.id}
-              whileHover={{ y: -5, boxShadow: '0 20px 40px rgba(122, 18, 204, 0.1)' }}
-              onClick={() => setActiveTab(feature.id)}
-              style={{
-                background: 'white',
-                padding: '32px',
-                borderRadius: '24px',
-                border: '1.5px solid #E2E8F0',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '20px',
-                transition: 'all 0.3s ease',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              <div style={{ 
-                width: '56px', 
-                height: '56px', 
-                background: hasError ? '#FEE2E2' : '#F5F3FF', 
-                borderRadius: '16px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                color: hasError ? '#DC2626' : '#7a12cc'
-              }}>
-                {hasError ? <AlertCircle size={28} /> : <feature.icon size={28} />}
-              </div>
-              
-              <div>
-                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A102D', marginBottom: '8px' }}>{feature.label}</h3>
-                <p style={{ color: '#64748B', fontSize: '14px', lineHeight: 1.5 }}>
-                  {hasError ? 'AI analysis failed. Tap to retry.' : feature.description}
-                </p>
-              </div>
-
-              <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {isDone && !hasError ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10B981', fontSize: '13px', fontWeight: 700 }}>
-                    <CheckCircle2 size={16} /> Ready to use
-                  </div>
-                ) : hasError ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#F59E0B', fontSize: '13px', fontWeight: 700 }}>
-                    <AlertCircle size={16} /> Tap to retry
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#7a12cc', fontSize: '13px', fontWeight: 700 }}>
-                    <Loader2 className="animate-spin" size={16} /> Generating...
-                  </div>
-                )}
-                <div style={{ marginLeft: 'auto', color: '#94A3B8' }}>
-                  <ChevronRight size={20} />
-                </div>
-              </div>
-            </motion.div>
-          )
-        })}
-      </div>
-
-      {/* Document always available */}
-      <div style={{ marginTop: '48px', padding: '24px', background: '#F0FDF4', borderRadius: '16px', border: '1px solid #BBF7D0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-          <FileText size={20} color="#16A34A" />
-          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#16A34A', margin: 0 }}>Document Always Available</h3>
-        </div>
-        <p style={{ fontSize: '14px', color: '#15803D', margin: 0, lineHeight: 1.5 }}>
-          Your document "{selectedMaterial?.title}" is always accessible for viewing, even if AI features are temporarily unavailable due to high demand.
-        </p>
-        <button 
-          onClick={() => setShowDashboard(false)}
-          style={{ 
-            marginTop: '16px',
-            padding: '12px 24px', 
-            borderRadius: '12px', 
-            background: '#16A34A', 
-            color: 'white', 
-            fontWeight: 600, 
-            border: 'none', 
-            cursor: 'pointer', 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '8px' 
-          }}
-        >
-          Open Document <ExternalLink size={16} />
-        </button>
-      </div>
-    </div>
-  )
-
-
-  const currentTabIcon = tabs.find(t => t.id === activeTab)?.icon || FileText;
 
   return (
     <div className="ws-root">
       <SelectionActionBar onAction={handleSelectionAction} />
-      <header className="ws-tabs-bar" style={{ 
-        borderBottom: '1px solid #E2E8F0', 
-        background: 'white', 
-        height: '72px', 
-        padding: '0 32px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '24px'
-      }}>
-        {/* Left Section - Navigation */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: 0 }}>
-          <button 
-            onClick={() => navigate(-1)} 
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              cursor: 'pointer', 
-              padding: '8px', 
-              borderRadius: '8px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              transition: 'all 0.2s ease'
-            }} 
-            onMouseEnter={e => e.target.style.background = '#F5F3FF'} 
-            onMouseLeave={e => e.target.style.background = 'none'}
-          >
-            <ArrowLeft size={20} color="#7a12cc" />
-          </button>
-          
-          <div style={{ height: '20px', width: '1px', background: '#E2E8F0' }}></div>
-
-          <nav style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 500, color: '#64748B', minWidth: 0 }}>
-            <span>Home</span> 
-            <ChevronRight size={14} style={{ flexShrink: 0 }} /> 
-            <span style={{ 
-              color: '#1A102D', 
-              fontWeight: 700,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              maxWidth: '300px'
-            }}>
-              {selectedMaterial?.title || 'Loading...'}
-            </span>
-          </nav>
-        </div>
-
-        {/* Center Section - Tabs */}
-        <div className="ws-nav-tabs" style={{ 
-          background: '#F8FAFC', 
-          padding: '4px', 
-          borderRadius: '12px', 
-          border: '1px solid #E2E8F0', 
-          gap: '2px',
-          display: 'flex',
-          alignItems: 'center',
-          flexShrink: 0
-        }}>
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id)
-                if (tab.id === 'content') setShowDashboard(true) 
-                if (tab.id === 'assignments') setHasNewAssignment(false)
-              }}
-              className={`ws-tab ${activeTab === tab.id ? 'ws-tab--active' : ''}`}
-              style={{
-                fontSize: '12px',
-                padding: '8px 16px',
-                height: '36px',
-                minWidth: 'fit-content',
-                borderRadius: '8px',
-                border: 'none',
-                background: activeTab === tab.id ? '#7a12cc' : 'transparent',
-                color: activeTab === tab.id ? 'white' : '#64748B',
-                fontWeight: activeTab === tab.id ? 600 : 500,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-              onMouseEnter={e => {
-                if (activeTab !== tab.id) {
-                  e.target.style.background = '#F1F5F9'
-                }
-              }}
-              onMouseLeave={e => {
-                if (activeTab !== tab.id) {
-                  e.target.style.background = 'transparent'
-                }
-              }}
-            >
-              <tab.icon size={13} />
-              {tab.label === 'Workspace Home' ? 'Home' : tab.label.replace('AI ', '')}
-            </button>
-          ))}
-        </div>
-
-        {/* Right Section - Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, justifyContent: 'flex-end' }}>
-          {/* Reading Environment Indicator */}
-          {activeTab === 'content' && (
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px',
-              padding: '6px 12px',
-              background: '#F0FDF4',
-              borderRadius: '20px',
-              border: '1px solid #BBF7D0'
-            }}>
-              <div style={{ 
-                width: '6px', 
-                height: '6px', 
-                borderRadius: '50%', 
-                background: '#16A34A', 
-                boxShadow: '0 0 6px #16A34A' 
-              }} />
-              <span style={{ 
-                fontSize: '11px', 
-                fontWeight: 600, 
-                color: '#16A34A', 
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>
-                Reading Mode
+      
+      {/* ── Desktop Header ── */}
+      {!isMobile && (
+        <header className="ws-global-glass-header">
+          <div className="ws-header-left">
+            <div className="ws-breadcrumb-minimal">
+              <span className="ws-bc-course" onClick={() => navigate(`/dashboard/courses/${courseId}`)}>
+                {courseInfo?.code || 'Course'}
               </span>
-            </div>
-          )}
-
-          {/* Material Selector */}
-          {courseMaterials.length > 1 && (
-            <select 
-              value={selectedMaterial?.id}
-              onChange={(e) => {
-                const mat = courseMaterials.find(m => m.id === e.target.value)
-                setSelectedMaterial(mat)
-                clearHighlights()
-              }}
-              style={{ 
-                padding: '8px 12px', 
-                borderRadius: '8px', 
-                border: '1px solid #E2E8F0', 
-                fontSize: '12px', 
-                fontWeight: 500, 
-                outline: 'none', 
-                background: 'white',
-                cursor: 'pointer',
-                minWidth: '200px'
-              }}
-            >
-              {courseMaterials.map(m => (
-                <option key={m.id} value={m.id}>{m.title}</option>
-              ))}
-            </select>
-          )}
-          
-          {/* Add Material Button */}
-          <button 
-            className="ws-send-btn" 
-            onClick={() => navigate('/dashboard/upload')} 
-            style={{ 
-              padding: '8px 16px', 
-              fontSize: '12px',
-              background: '#7a12cc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={e => e.target.style.background = '#6d11b8'}
-            onMouseLeave={e => e.target.style.background = '#7a12cc'}
-          >
-            <Plus size={14} /> Add Material
-          </button>
-        </div>
-      </header>
-
-
-      {/* Removed Redundant Header Bar */}
-
-
-      <main className="ws-main-layout">
-        <section className="ws-pane-left" style={{ position: 'relative', overflowY: 'auto', background: '#F8FAFC' }}>
-          {activeTab === 'content' && (
-            <MaterialRenderer 
-              material={selectedMaterial} 
-              activeTab={activeTab}
-              analysisState={{ ...currentAnalysis, loading: isAnalysisLoading || isExtractingText }}
-              onRunAnalysis={runAnalysis}
-            />
-          )}
-
-          {activeTab === 'notes' && (
-            <WorkstationNotes 
-              content={currentAnalysis.notes} 
-              material={selectedMaterial} 
-              onRegenerate={() => runAnalysis('notes')} 
-            />
-          )}
-
-          {activeTab === 'summary' && (
-            <WorkstationSummary 
-              content={currentAnalysis.summary} 
-              material={selectedMaterial} 
-            />
-          )}
-
-          {activeTab === 'flashcards' && (
-            <WorkstationFlashcards 
-              items={currentAnalysis.flashcards} 
-              material={selectedMaterial} 
-              user={user}
-            />
-          )}
-
-          {activeTab === 'quiz' && (
-            <WorkstationQuiz 
-              items={currentAnalysis.quiz} 
-              material={selectedMaterial} 
-            />
-          )}
-        </section>
-
-        <section className="ws-pane-right">
-
-          <div className="ws-chat-container">
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #F3E8FF', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <LuterLogo size={20} showText={false} />
-              <span style={{ fontFamily: 'Varela Round', fontSize: '15px', color: '#4C1D95', fontWeight: 700 }}>Luter</span>
-              <div style={{ marginLeft: 'auto', width: 8, height: 8, borderRadius: '50%', background: '#7a12cc', boxShadow: '0 0 8px rgba(122, 18, 204, 0.4)' }}></div>
-            </div>
-            
-            <div className="ws-chat-messages">
-              {messages.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '40px 20px', opacity: 0.6 }}>
-                  <LuterLogo size={40} showText={false} style={{ margin: '0 auto 16px', filter: 'grayscale(0.2)' }} />
-                  <p style={{ fontSize: '14px', fontFamily: 'Outfit', color: '#4C1D95', fontWeight: 500 }}>I'm Luter, your personal tutor. Ask me anything about these materials!</p>
-                </div>
-              )}
-              {messages.map((msg, i) => (
-                <div key={i} className={`ws-chat-bubble ws-chat-bubble--${msg.role}`}>
-                  {msg.content}
-                </div>
-              ))}
-              {isProcessingLoading && (
-                <div className="ws-chat-bubble ws-chat-bubble--ai" style={{ display: 'flex', gap: '4px' }}>
-                  <div className="ws-typing-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#7a12cc', animation: 'bounce 1s infinite' }}></div>
-                  <div className="ws-typing-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#7a12cc', animation: 'bounce 1s infinite 0.2s' }}></div>
-                  <div className="ws-typing-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#7a12cc', animation: 'bounce 1s infinite 0.4s' }}></div>
-                </div>
-              )}
-            </div>
-
-            <div className="ws-chat-input-area">
-              <div className="ws-input-wrapper">
-                <input 
-                  type="text" 
-                  className="ws-chat-input" 
-                  placeholder="Ask Luter anything..."
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  disabled={isProcessingLoading}
-                />
-                <button 
-                  className="ws-send-btn" 
-                  style={{ position: 'absolute', right: '8px', padding: '8px 12px' }}
-                  onClick={handleSend}
-                  disabled={isProcessingLoading || !chatInput.trim()}
-                >
-                  {isProcessingLoading ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
-                </button>
-              </div>
+              <ChevronRight size={14} className="ws-bc-sep" />
+              <span className="ws-bc-week">Week {selectedMaterial?.week_number || '1'}</span>
+              <ChevronRight size={14} className="ws-bc-sep" />
+              <h1 className="ws-bc-title">{selectedMaterial?.title || 'Material'}</h1>
             </div>
           </div>
-        </section>
+
+          <div className="ws-header-right">
+            <button className="ws-glass-action">
+              <Share2 size={16} />
+              <span>Share</span>
+            </button>
+            <button 
+              className="ws-glass-exit"
+              onClick={() => navigate(`/dashboard/courses/${courseId}`)}
+            >
+              Exit Workspace
+            </button>
+          </div>
+        </header>
+      )}
+
+      {/* ── Mobile Toolbar (Unified) ── */}
+      {isMobile && !showDashboard && (
+        <div style={{ 
+          padding: '12px 20px', 
+          background: 'rgba(255, 255, 255, 0.95)', 
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid #E2E8F0', 
+          flexShrink: 0,
+          position: 'sticky',
+          top: 0,
+          zIndex: 50
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <div style={{ width: '36px', height: '36px', background: '#F5F3FF', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Zap size={20} color="#7a12cc" />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '15px', fontWeight: 900, color: '#1A102D' }}>{courseInfo?.code || 'Luter'}</span>
+                <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>Week {selectedMaterial?.week_number || '1'}</span>
+              </div>
+            </div>
+            <button 
+              className="ws-tactile-btn" 
+              style={{ padding: '8px 16px', fontSize: '12px', background: '#F5F3FF', color: '#7a12cc', border: '1px solid #E2E8F0' }}
+              onClick={() => navigate(`/dashboard/courses/${courseId}`)}
+            >
+              <ArrowLeft size={16} style={{ marginRight: '6px' }} /> Exit
+            </button>
+          </div>
+          
+          {activeTab === 'content' && (
+            <div className="mobile-segmented-control" style={{ margin: '0', background: '#F1F5F9', padding: '4px', borderRadius: '12px' }}>
+              <button 
+                className={`segmented-item ${mobileReadingMode === 'document' ? 'segmented-item--active' : ''}`} 
+                onClick={() => setMobileReadingMode('document')}
+                style={{ borderRadius: '8px' }}
+              >
+                 <FileText size={16} /> Document
+              </button>
+              <button 
+                className={`segmented-item ${mobileReadingMode === 'notes' ? 'segmented-item--active' : ''}`} 
+                onClick={() => setMobileReadingMode('notes')}
+                style={{ borderRadius: '8px' }}
+              >
+                 <BookOpen size={16} /> Notes
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <main className="ws-main-layout" style={{ 
+        flexDirection: isMobile ? 'column' : 'row',
+        background: '#F3F4F6',
+        overflow: isMobile ? 'auto' : 'hidden',
+        padding: '0'
+      }}>
+        <div className="ws-pane-left" style={{ 
+          display: (isMobile && activeTab !== 'content' && activeTab !== 'notes') ? 'none' : 'flex',
+          flex: 1,
+          overflow: 'hidden'
+        }}>
+          {/* Removed redundant mobile controls to unify with topbar */}
+
+          <div className="ws-canvas-container" style={{ flex: 1, overflowY: 'auto' }}>
+            {activeTab === 'notes' ? (
+              <div className="ws-ai-content-pane main-canvas-tool">
+                <WorkstationNotes material={selectedMaterial} content={currentAnalysis.notes} />
+              </div>
+            ) : activeTab === 'summary' ? (
+              <div className="ws-ai-content-pane main-canvas-tool">
+                <WorkstationSummary material={selectedMaterial} content={currentAnalysis.summary} />
+              </div>
+            ) : activeTab === 'flashcards' ? (
+              <div className="ws-ai-content-pane main-canvas-tool">
+                <WorkstationFlashcards material={selectedMaterial} items={currentAnalysis.flashcards} user={user} />
+              </div>
+            ) : activeTab === 'quiz' ? (
+              <div className="ws-ai-content-pane main-canvas-tool">
+                <WorkstationQuiz material={selectedMaterial} items={currentAnalysis.quiz} />
+              </div>
+            ) : (isMobile && mobileReadingMode === 'notes') ? (
+              <div className="ws-ai-content-pane">
+                <WorkstationNotes material={selectedMaterial} content={currentAnalysis.notes} />
+              </div>
+            ) : (
+              <div className="ws-content-scroll" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <MaterialRenderer 
+                  material={selectedMaterial} 
+                  activeTab="content"
+                  onScrollUpdate={setViewportData} 
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {!isSidePanelCollapsed && (
+          <div className="ws-pane-right" style={{ 
+            display: (isMobile && activeTab === 'content') ? 'none' : 'flex',
+            flexDirection: 'column'
+          }}>
+          {!isMobile || activeTab === 'content' ? (
+            <div className="ws-chat-container">
+              <header className="ws-side-tabs-header">
+                <div className="ws-side-tabs">
+                  {tabs.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`ws-side-tab ${activeTab === tab.id ? 'ws-side-tab--active' : ''}`}
+                    >
+                      <div className={`ws-tab-dot ${activeTab === tab.id ? 'active' : ''}`} />
+                      <tab.icon size={14} />
+                      <span>{tab.label.replace('AI ', '').replace('Smart ', '').replace('Practice ', '')}</span>
+                    </button>
+                  ))}
+                  <button className="ws-side-tab">
+                    <MoreVertical size={14} />
+                  </button>
+                </div>
+              </header>
+
+              <div className="ws-chat-messages">
+                {messages.length === 0 ? (
+                  <div className="ws-chat-empty-state">
+                    <h2 className="ws-chat-empty-title">Research Assistant</h2>
+                    <p className="ws-chat-empty-subtitle">I've analyzed this document. How can I help you today?</p>
+                    
+                    <div className="ws-suggested-section">
+                      <div className="ws-suggested-list-premium">
+                        {SUGGESTED_QUESTIONS.map(q => (
+                          <button key={q.id} className="ws-suggested-row" onClick={() => handleSend(q.text)}>
+                            <span className="ws-suggested-text">{q.text}</span>
+                            <Plus size={14} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  messages.map((msg, i) => {
+                    // Turn "page 5" or "Page 12" into clickable markdown links
+                    // Regex fix: AI sometimes adds a space between [View Source] and (source://)
+                    // We also ensure the URL part is properly encoded if it contains spaces
+                    const sanitizedContent = msg.content.replace(/\[View Source\]\s*\(source:\/\/([^)]+)\)/g, (match, p1) => {
+                      const encoded = p1.split('|').map((part, index) => {
+                        // If it's a text snippet (odd index after split by | if we count 0 as 'page', 1 as num, 2 as 'text', 3 as snippet)
+                        // Actually, parts are [key, val, key, val]
+                        return index % 2 === 1 ? encodeURIComponent(decodeURIComponent(part)) : part
+                      }).join('|')
+                      return `[View Source](source://${encoded})`
+                    })
+                    
+                    const withLinks = msg.role === 'ai' 
+                      ? sanitizedContent.replace(/\b(page\s*(\d+))\b/gi, '[$1](#page-$2)')
+                      : msg.content
+
+                    // Split suggestions from main content
+                    const [mainPart, suggestionPart] = withLinks.split('---SUGGESTIONS---')
+                    const suggestions = suggestionPart ? suggestionPart.split('|').map(s => s.trim()).filter(Boolean) : []
+
+                    return (
+                      <div key={i} className={`ws-chat-bubble-group`}>
+                        <div className={`ws-chat-bubble ws-chat-bubble--${msg.role}`}>
+                          {msg.role === 'ai' && (
+                            <button 
+                              className="ws-copy-to-notes" 
+                              title="Add to Smart Notes"
+                              onClick={() => {
+                                // Add to notes logic
+                                setAnalysisCache(prev => ({
+                                  ...prev,
+                                  [selectedMaterial.id]: {
+                                    ...(prev[selectedMaterial.id] || {}),
+                                    notes: (prev[selectedMaterial.id]?.notes || '') + '\n\n' + mainPart
+                                  }
+                                }))
+                                alert('Added to Smart Notes!')
+                              }}
+                            >
+                              <Plus size={14} />
+                            </button>
+                          )}
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              a: ({ children, href, ...props }) => {
+                                if (href?.startsWith('source://')) {
+                                  try {
+                                    const parts = href.replace('source://', '').split('|')
+                                    let pageNum = 1
+                                    let snippet = ""
+                                    for(let i=0; i<parts.length; i+=2) {
+                                      if(parts[i] === 'page' && parts[i+1]) pageNum = parseInt(parts[i+1])
+                                      if(parts[i] === 'text' && parts[i+1]) snippet = decodeURIComponent(parts[i+1])
+                                    }
+                                    return (
+                                      <button 
+                                        className="ws-citation-pill" 
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          window.dispatchEvent(new CustomEvent('luter-jump-to-page', { detail: { page: pageNum } }))
+                                          if (snippet) window.dispatchEvent(new CustomEvent('luter-highlight-text', { detail: { text: snippet } }))
+                                        }}
+                                      >
+                                        <Bookmark size={10} />
+                                        View Page {pageNum}
+                                      </button>
+                                    )
+                                  } catch (e) { return <span className="ws-citation-error">{children}</span> }
+                                }
+                                
+                                if (href?.startsWith('#page-')) {
+                                  const pageNum = parseInt(href.split('-')[1])
+                                  return (
+                                    <span 
+                                      className="ws-chat-page-link"
+                                      onClick={(e) => {
+                                        e.preventDefault()
+                                        window.dispatchEvent(new CustomEvent('luter-jump-to-page', { detail: { page: pageNum } }))
+                                      }}
+                                    >
+                                      {children}
+                                    </span>
+                                  )
+                                }
+                                return <a href={href} target="_blank" rel="noopener noreferrer" {...props}>{children}</a>
+                              }
+                            }}
+                          >
+                            {mainPart}
+                          </ReactMarkdown>
+                        </div>
+                        
+                        {suggestions.length > 0 && (
+                          <div className="ws-follow-up-section">
+                            <h4 className="ws-follow-up-title">Follow-up questions</h4>
+                            <div className="ws-follow-up-list">
+                              {suggestions.map((s, idx) => (
+                                <button 
+                                  key={idx} 
+                                  className="ws-follow-up-item"
+                                  onClick={() => handleSend(s)}
+                                >
+                                  <span>{s}</span>
+                                  <Plus size={16} className="ws-follow-up-plus" />
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })
+                )}
+                {isProcessingLoading && (
+                  <div className="ws-chat-bubble ws-chat-bubble--ai ws-thinking-bubble">
+                    <div className="ws-thinking-content">
+                      <div className="ws-thinking-dots">
+                        {[0, 1, 2].map((i) => (
+                          <motion.span
+                            key={i}
+                            animate={{ 
+                              scale: [1, 1.2, 1],
+                              opacity: [0.3, 1, 0.3]
+                            }}
+                            transition={{ 
+                              duration: 1.2, 
+                              repeat: Infinity, 
+                              delay: i * 0.2,
+                              ease: "easeInOut"
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              <div className="ws-chat-input-area">
+                <div className="ws-chat-input-outer">
+                  <input 
+                    className="ws-chat-input-field" 
+                    placeholder="Ask a question..." 
+                    value={chatInput} 
+                    onChange={e => setChatInput(e.target.value)} 
+                    onKeyDown={e => e.key === 'Enter' && handleSend()} 
+                  />
+                  <button className="ws-chat-mic-btn">
+                    <Mic size={18} />
+                  </button>
+                  <button 
+                    className="ws-chat-send-btn" 
+                    onClick={() => handleSend()} 
+                    disabled={isProcessingLoading || !chatInput.trim()}
+                    style={{ background: '#7a12cc', color: 'white' }}
+                  >
+                    {isProcessingLoading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+          </div>
+        )}
       </main>
+
+      {isMobile && (
+        <div className="mobile-bottom-nav">
+          <button className={`mobile-nav-item ${activeTab === 'content' ? 'mobile-nav-item--active mobile-nav-item--accent' : ''}`} onClick={() => setActiveTab('content')}>
+            <Layout size={20} /><span>Source</span>
+          </button>
+          <button className={`mobile-nav-item ${activeTab === 'flashcards' ? 'mobile-nav-item--active' : ''}`} onClick={() => setActiveTab('flashcards')}>
+            <Layers size={20} /><span>Flashcards</span>
+          </button>
+          <button className={`mobile-nav-item ${activeTab === 'quiz' ? 'mobile-nav-item--active' : ''}`} onClick={() => setActiveTab('quiz')}>
+            <ClipboardList size={20} /><span>Quizzes</span>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

@@ -5,8 +5,9 @@ import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import {
   Home, BookOpen, FlaskConical, BarChart3, Trophy,
   Settings, Flame, ChevronLeft, ChevronRight, Zap, X,
-  Brain, Sparkles, Layers, HelpCircle
+  Brain, Sparkles, Layers, HelpCircle, MessageSquare, ShieldCheck
 } from 'lucide-react'
+import { isAdminUser } from '../../admin/adminAuth'
 import LuterLogo from '../shared/LuterLogo'
 
 const NAV = [
@@ -16,6 +17,7 @@ const NAV = [
   { id: 'compete', path: '/dashboard/compete', icon: Trophy, label: 'Compete' },
   { id: 'analytics', path: '/dashboard/analytics', icon: BarChart3, label: 'Analytics' },
   { id: 'pricing', path: '/dashboard/pricing', icon: Zap, label: 'Upgrade' },
+  { id: 'requests', path: '/dashboard/requests', icon: MessageSquare, label: 'Requests' },
 ]
 
 function isNavActiveFixed(pathname, navPath) {
@@ -142,6 +144,19 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
             <div className="dsb-feedback-line" />
             <span>give feedback</span>
             <div className="dsb-feedback-line" />
+          </button>
+        )}
+
+        {isAdminUser(bundle?.profile, user?.email) && (
+          <button
+            onClick={() => navigate('/admin')}
+            className={`dsb-nav-item dsb-admin-btn ${collapsed ? 'dsb-nav-item--center' : ''}`}
+            style={{ marginTop: 8, color: '#7a12cc', border: '1.2px solid #7a12cc15', background: '#7a12cc05' }}
+          >
+            <div className="dsb-nav-icon-wrap">
+              <ShieldCheck size={20} strokeWidth={2} />
+            </div>
+            {!collapsed && <span className="dsb-nav-label-text">Admin Panel</span>}
           </button>
         )}
       </div>
