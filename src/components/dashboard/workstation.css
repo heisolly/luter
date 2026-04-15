@@ -2,15 +2,14 @@
 @import './highlight-styles.css';
 
 :root {
-  --luter-bg: #F5F3FF;
+  --luter-bg: #FCFCFD;
   --luter-card-bg: #FFFFFF;
-  --luter-primary: #7a12cc;
-  --luter-primary-dark: #4C1D95;
-  --luter-accent: #EDE9FE;
-  --luter-border: #DDD6FE;
-  --luter-mint-light: #F3E8FF;
-  --luter-text-body: #4A5568;
-  --luter-shadow: 0 4px 20px -2px rgba(122, 18, 204, 0.05);
+  --luter-primary: #6D28D9; /* Darker, high-contrast purple */
+  --luter-primary-dark: #1E1B4B; /* Very dark navy for maximum readability */
+  --luter-accent: #F5F3FF;
+  --luter-border: #E2E8F0; /* Sharp, clean line border color */
+  --luter-text-body: #334155;
+  --luter-shadow: none; /* Removing soft shadows as per user request for "lines" */
   --luter-tactile-shadow: 0 4px 0px #4A5568;
   
   --font-heading: 'Varela Round', sans-serif;
@@ -47,7 +46,7 @@
   position: sticky;
   top: 0;
   z-index: 1000;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+  border-bottom: 1px solid var(--luter-border); /* Explicit line border */
 }
 
 .ws-breadcrumb-minimal {
@@ -73,7 +72,7 @@
 .ws-bc-week {
   font-size: 13px;
   font-weight: 500;
-  color: #94A3B8;
+  color: #64748B; /* Darker grey for week label */
 }
 
 .ws-bc-title {
@@ -306,7 +305,7 @@
 .ws-pane-right {
   width: 500px; /* Increased to accommodate rail + chat workspace */
   background: white;
-  border-left: 1px solid rgba(226, 232, 240, 0.8);
+  border-left: 1px solid var(--luter-border);
   display: flex;
   flex-direction: row; /* Rail + Content */
   flex-shrink: 0;
@@ -316,7 +315,7 @@
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 10;
-  box-shadow: -4px 0 20px rgba(0,0,0,0.02);
+  box-shadow: none; /* No shadow, only lines */
 }
 
 /* ── AI Pulse Pin System ── */

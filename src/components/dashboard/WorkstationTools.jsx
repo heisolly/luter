@@ -1,8 +1,13 @@
-import React, { useState } from 'react'
-import { BookOpen, Star, Zap, ChevronLeft, ChevronRight, Download, Share2, Printer, CheckCircle2, AlertCircle, Bookmark, RefreshCw, Trophy, Sparkles, Layers, HelpCircle } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { 
+  BookOpen, Star, Zap, ChevronLeft, ChevronRight, Download, Share2, Printer, 
+  CheckCircle2, AlertCircle, Bookmark, RefreshCw, Trophy, Sparkles, Layers, 
+  HelpCircle, Edit3, Wand2, Save 
+} from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../supabaseClient'
+import { callGroqAPI, GROQ_MODELS } from '../../groqClient'
 
 export function WorkstationNotes({ content, material, onRegenerate }) {
   if (!content) return <EmptyState icon={BookOpen} label="Notes are being drafted..." />
@@ -562,16 +567,17 @@ export function WorkstationQuiz({ items = [], material, onComplete }) {
 
 function EmptyState({ icon: Icon, label }) {
   return (
-    <div style={{ height: '600px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
-      <div style={{ position: 'relative' }}>
-         <Icon size={64} style={{ color: '#7a12cc', marginBottom: '24px' }} />
+    <div style={{ height: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ position: 'relative', marginBottom: '32px' }}>
+         <Icon size={64} style={{ color: 'var(--luter-primary)' }} />
          <motion.div
-           animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
-           transition={{ repeat: Infinity, duration: 2 }}
-           style={{ position: 'absolute', inset: -10, border: '2px solid #7a12cc', borderRadius: '50%' }}
+           animate={{ scale: [1, 1.4, 1], opacity: [0.2, 0.4, 0.2] }}
+           transition={{ repeat: Infinity, duration: 2.5 }}
+           style={{ position: 'absolute', inset: -15, border: '2px solid var(--luter-primary)', borderRadius: '50%' }}
          />
       </div>
-      <p style={{ fontSize: '18px', fontWeight: 600, color: '#4C1D95' }}>{label}</p>
+      <p style={{ fontSize: '18px', fontWeight: '800', color: 'var(--luter-primary-dark)', letterSpacing: '-0.01em' }}>{label}</p>
+      <div style={{ marginTop: '16px', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Luter is drafting...</div>
     </div>
   )
 }
@@ -600,8 +606,191 @@ function SummaryTile({ title, value, icon: Icon, color }) {
 
 function NavButton({ icon: Icon, onClick, disabled }) {
   return (
-    <button onClick={onClick} disabled={disabled} style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'white', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: disabled ? '#E2E8F0' : '#7a12cc', cursor: disabled ? 'default' : 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+    <button onClick={onClick} disabled={disabled} style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'white', border: '1.5px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: disabled ? '#E2E8F0' : '#7a12cc', cursor: disabled ? 'default' : 'pointer', transition: 'all 0.2s', boxShadow: 'none' }}>
       <Icon size={24} />
     </button>
   )
+}
+
+/**
+ * WorkstationSummaryEnhanced
+ * Supports Full Summary and Page-by-Page Summary
+ */
+export function WorkstationSummaryEnhanced({ content, material, pageSummaries = {}, onFetchPageSummaries }) {
+  const [viewMode, setViewMode] = useState('full');
+  const [isSummarizingPages, setIsSummarizingPages] = useState(false);
+
+  const handleFetchPages = async () => {
+    setIsSummarizingPages(true);
+    await onFetchPageSummaries();
+    setIsSummarizingPages(false);
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ maxWidth: '900px', margin: '0 auto', padding: '40px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+        <div>
+          <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#1A102D', marginBottom: '8px' }}>Course Insights</h1>
+          <p style={{ color: '#64748B', fontSize: '14px', fontWeight: '500' }}>Distilled intelligence from your study material.</p>
+        </div>
+        <div style={{ display: 'flex', background: '#F1F5F9', padding: '4px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+          <button 
+            onClick={() => setViewMode('full')}
+            style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: viewMode === 'full' ? 'white' : 'transparent', color: viewMode === 'full' ? '#1A102D' : '#64748B', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' }}
+          >
+            Full Summary
+          </button>
+          <button 
+            onClick={() => setViewMode('pages')}
+            style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: viewMode === 'pages' ? 'white' : 'transparent', color: viewMode === 'pages' ? '#1A102D' : '#64748B', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' }}
+          >
+            By Page
+          </button>
+        </div>
+      </div>
+
+      {viewMode === 'full' ? (
+        <div style={{ background: 'white', padding: '60px', borderRadius: '32px', border: '1.5px solid #E2E8F0', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.05)' }}>
+          <div className="markdown-body" style={{ fontSize: '17px', lineHeight: 1.8, color: '#2D3748' }}>
+            <ReactMarkdown>{content || "Summary is still being processed..."}</ReactMarkdown>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {Object.keys(pageSummaries).length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px', background: 'white', borderRadius: '32px', border: '1px dashed #CBD5E1' }}>
+              <div style={{ width: '64px', height: '64px', background: '#F5F3FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#7a12cc' }}>
+                 <Sparkles size={32} />
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1A102D', marginBottom: '8px' }}>Page-by-Page Insights</h3>
+              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '24px', maxWidth: '300px', margin: '0 auto 24px' }}>Deep dive into every single page of your material with granular summaries.</p>
+              <button 
+                onClick={handleFetchPages}
+                disabled={isSummarizingPages}
+                style={{ padding: '12px 24px', background: 'var(--luter-primary-dark)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 auto' }}
+              >
+                {isSummarizingPages ? <RefreshCw className="animate-spin" size={16} /> : <Zap size={16} />}
+                {isSummarizingPages ? 'Generating...' : 'Analyze Page by Page'}
+              </button>
+            </div>
+          ) : (
+            Object.entries(pageSummaries).sort(([a],[b]) => parseInt(a)-parseInt(b)).map(([pg, sum]) => (
+              <motion.div key={pg} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ background: 'white', padding: '32px', borderRadius: '24px', border: '1px solid #E2E8F0', display: 'flex', gap: '24px' }}>
+                <div style={{ padding: '12px 16px', background: '#F8FAFB', borderRadius: '12px', border: '1.5px solid #F1F5F9', height: 'fit-content', textAlign: 'center' }}>
+                  <div style={{ fontSize: '10px', fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase' }}>PAGE</div>
+                  <div style={{ fontSize: '24px', fontWeight: '900', color: '#1A102D' }}>{pg}</div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div className="markdown-body" style={{ fontSize: '15px', lineHeight: 1.6, color: '#334155' }}>
+                    <ReactMarkdown>{typeof sum === 'string' ? sum : "No insights for this page."}</ReactMarkdown>
+                  </div>
+                </div>
+              </motion.div>
+            ))
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+/**
+ * WorkstationWrite
+ * A dedicated space for personal study notes with AI assistance
+ */
+export function WorkstationWrite({ initialContent = "", onSave, material, user }) {
+  const [content, setContent] = useState(initialContent);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isAssisting, setIsAssisting] = useState(false);
+
+  useEffect(() => {
+    setContent(initialContent);
+  }, [initialContent]);
+
+  const handleAiAssist = async (type) => {
+    if (isAssisting) return;
+    setIsAssisting(true);
+    try {
+      const prompt = `You are Luter AI. Assist the student with their study notes. 
+MATERIAL TITLE: ${material?.title}
+MATERIAL CONTEXT (Extracted): ${material?.extracted_text?.slice(0, 4000)}
+
+STUDENT CURRENT JOTS:
+"""
+${content}
+"""
+
+TASK: ${type === 'points' ? 'Expand these jots into structured academic points.' : 'Extract any important formulas, dates, or key terms from the context related to these jots.'}
+Return the assistance in markdown format. Be concise.`;
+
+      const res = await callGroqAPI([{ role: 'user', content: prompt }], GROQ_MODELS.SPEEDSTER, { systemPromptOverride: "You are an advanced academic study assistant." });
+      const aiNote = res.choices[0].message.content;
+      setContent(prev => prev + "\n\n---\n### AI Assist:\n" + aiNote);
+    } catch (e) {
+      console.error('AI Assist error:', e);
+    } finally {
+      setIsAssisting(false);
+    }
+  };
+
+  const handleManualSave = async () => {
+    setIsSaving(true);
+    await onSave(content);
+    setIsSaving(false);
+  };
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '24px', background: 'white' }}>
+      <header style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div>
+            <div style={{ color: 'var(--luter-primary)', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Edit3 size={12} /> Notepad
+            </div>
+            <h1 style={{ fontSize: '18px', fontWeight: '800', color: '#1A102D', margin: 0 }}>Study Jottings</h1>
+          </div>
+          <button 
+            onClick={handleManualSave}
+            disabled={isSaving}
+            style={{ padding: '8px 16px', borderRadius: '8px', background: 'var(--luter-primary-dark)', border: 'none', color: 'white', fontWeight: '700', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            {isSaving ? <RefreshCw className="animate-spin" size={14} /> : <Save size={14} />}
+            {isSaving ? 'Saving' : 'Save'}
+          </button>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button 
+            onClick={() => handleAiAssist('points')}
+            disabled={isAssisting}
+            style={{ flex: 1, padding: '8px', borderRadius: '8px', background: '#F5F3FF', border: '1px solid #DDD6FE', color: '#7a12cc', fontWeight: '700', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+          >
+            <Sparkles size={14} /> AI Points
+          </button>
+          <button 
+            onClick={() => handleAiAssist('formulas')}
+            disabled={isAssisting}
+            style={{ flex: 1, padding: '8px', borderRadius: '8px', background: '#FFF7ED', border: '1px solid #FFEDD5', color: '#EA580C', fontWeight: '700', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+          >
+            <Zap size={14} /> Formulas
+          </button>
+        </div>
+      </header>
+
+      <div style={{ flex: 1, position: 'relative', background: '#F9FAFB', borderRadius: '16px', border: '1px solid var(--luter-border)', padding: '20px' }}>
+        <textarea 
+          placeholder="Start jotting down what you're learning..."
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          style={{ width: '100%', height: '100%', border: 'none', resize: 'none', outline: 'none', fontSize: '15px', lineHeight: '1.6', color: '#334155', background: 'transparent', fontFamily: 'inherit' }}
+        />
+        {isAssisting && (
+          <div style={{ position: 'absolute', bottom: '16px', right: '16px', padding: '8px 16px', background: 'rgba(26, 16, 45, 0.9)', backdropFilter: 'blur(8px)', borderRadius: '100px', color: 'white', fontSize: '11px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Sparkles size={12} className="animate-pulse" />
+            Luter is thinking...
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

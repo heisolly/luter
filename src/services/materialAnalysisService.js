@@ -6,6 +6,7 @@
 
 import { supabase } from '../supabaseClient'
 import { callGroqAPI, GROQ_MODELS } from '../groqClient'
+import { queryStudyMaterials } from './langchainPipeline' // Import the extraction pipeline
 
 export class MaterialAnalysisService {
   
@@ -132,10 +133,30 @@ export class MaterialAnalysisService {
         return this.createFallbackAnalysis(material, userId)
       }
       
-      const content = material.extracted_text || ''
+      let content = material.extracted_text || ''
+      
+      // EMERGENCY FIX: If content is missing, try to extract it now!
+      if (!content || content.length < 100) {
+        console.warn('[AnalysisService] Content missing or too short, attempting emergency extraction...')
+        try {
+          // Trigger the LangChain pipeline to re-extract
+          await queryStudyMaterials('', material) 
+          
+          // Re-fetch the material to see if text is now present
+          const { data: updatedMaterial } = await supabase
+            .from('materials')
+            .select('extracted_text')
+            .eq('id', material.id)
+            .single()
+            
+          content = updatedMaterial?.extracted_text || ''
+        } catch (extractionError) {
+          console.error('[AnalysisService] Emergency extraction failed:', extractionError)
+        }
+      }
       
       if (!content || content.length < 100) {
-        throw new Error('Insufficient content for analysis')
+        throw new Error('Insufficient content for analysis. Please ensure the document has text and try again.')
       }
       
       // Generate comprehensive analysis
@@ -283,20 +304,22 @@ Return the analysis in JSON format with the following structure:
   }
   
   /**
-   * Generate flashcards from cached analysis
+   * Generate flashcards from cached analysis or material content
    */
-  static async generateFlashcards(analysis, count = 10) {
+  static async generateFlashcards(analysis, count = 10, material = null) {
     try {
+      // If analysis is empty or incomplete, and we have material, generate directly from content
+      const content = material?.extracted_text || analysis?.extracted_text || ""
+      
+      if ((!analysis || (!analysis.summary && !analysis.keyTopics && !analysis.keyTerms)) && content) {
+        console.log('Analysis is incomplete, generating flashcards directly from material content')
+        return this.generateDirectFlashcards({ ...analysis, extracted_text: content }, count)
+      }
+      
       if (!analysis) {
-        throw new Error('No analysis available for flashcard generation')
+        throw new Error('No analysis or material available for flashcard generation')
       }
-      
-      // If analysis is empty or incomplete, generate directly from content
-      if (!analysis.summary && !analysis.keyTopics && !analysis.keyTerms) {
-        console.log('Analysis is incomplete, generating flashcards directly from content')
-        return this.generateDirectFlashcards(analysis, count)
-      }
-      
+
       console.log('Using cached analysis to generate flashcards')
       
       const flashcardPrompt = `
@@ -355,20 +378,22 @@ Focus on:
   }
   
   /**
-   * Generate quiz from cached analysis
+   * Generate quiz from cached analysis or material content
    */
-  static async generateQuiz(analysis, questionCount = 5, difficulty = 'medium') {
+  static async generateQuiz(analysis, questionCount = 5, difficulty = 'medium', material = null) {
     try {
+      // If analysis is empty or incomplete, and we have material, generate directly from content
+      const content = material?.extracted_text || analysis?.extracted_text || ""
+      
+      if ((!analysis || (!analysis.summary && !analysis.keyTopics && !analysis.keyTerms)) && content) {
+        console.log('Analysis is incomplete, generating quiz directly from material content')
+        return this.generateDirectQuiz({ ...analysis, extracted_text: content }, questionCount, difficulty)
+      }
+      
       if (!analysis) {
-        throw new Error('No analysis available for quiz generation')
+        throw new Error('No analysis or material available for quiz generation')
       }
-      
-      // If analysis is empty or incomplete, generate directly from content
-      if (!analysis.summary && !analysis.keyTopics && !analysis.keyTerms) {
-        console.log('Analysis is incomplete, generating quiz directly from content')
-        return this.generateDirectQuiz(analysis, questionCount, difficulty)
-      }
-      
+
       console.log('Using cached analysis to generate quiz')
       
       const quizPrompt = `
@@ -737,7 +762,68 @@ Create questions that test:
       }
     }
   }
-  
+
+  /**
+   * Retrieves all text chunks for a material and groups them by page number
+   */
+  static async getPageTextMap(materialId) {
+    console.log('Fetching page text map for:', materialId);
+    const { data, error } = await supabase
+      .from('study_vault')
+      .select('content, metadata')
+      .eq('material_id', materialId);
+    
+    if (error) {
+      console.error('Error fetching page map:', error);
+      return {};
+    }
+
+    const pageMap = {};
+    (data || []).forEach(row => {
+      const pg = row.metadata?.pageNumber || row.metadata?.page || 1;
+      if (!pageMap[pg]) pageMap[pg] = "";
+      pageMap[pg] += row.content + "\n";
+    });
+    return pageMap;
+  }
+
+  /**
+   * Generates summaries for each page of the material
+   */
+  static async generatePageByPageSummary(materialId, pageTextMap) {
+    const pageSummaries = {};
+    const pages = Object.keys(pageTextMap).sort((a,b) => parseInt(a)-parseInt(b));
+    
+    const targetPages = pages.slice(0, 20);
+    console.log(`Generating summaries for ${targetPages.length} pages...`);
+
+    for (let i = 0; i < targetPages.length; i += 3) {
+      const batch = targetPages.slice(i, i + 3);
+      await Promise.all(batch.map(async (pg) => {
+        const text = pageTextMap[pg];
+        if (!text || text.length < 100) return;
+
+        const prompt = `Summarize the following page from an academic document in 2-4 concise bullet points. Focus on key definitions, formulas, or concepts.
+MATERIAL PAGE ${pg}:
+"""
+${text.substring(0, 3000)}
+"""`;
+
+        try {
+          const res = await callGroqAPI(
+            [{ role: 'user', content: prompt }], 
+            GROQ_MODELS.SPEEDSTER, 
+            { systemPromptOverride: "You are an expert academic summarizer. Be concise and precise." }
+          );
+          pageSummaries[pg] = res.choices[0].message.content;
+        } catch (e) {
+          console.warn(`Failed to summarize page ${pg}:`, e);
+        }
+      }));
+    }
+
+    return pageSummaries;
+  }
 }
 
 function stripJsonFence(text) {
@@ -773,6 +859,8 @@ function stripJsonFence(text) {
   return clean;
 }
 
+
+
 /**
  * Robust JSON repair for common AI mistakes
  */
@@ -792,8 +880,7 @@ MaterialAnalysisService.cleanAndParseJson = function(text) {
       // 2. Fix unescaped newlines in strings
       repaired = repaired.replace(/\n/g, '\\n');
       
-      // 3. Fix minor quoting issues (this is aggressive, but often needed)
-      // Only repair if the previous fixes didn't work
+      // 3. Fix minor quoting issues
       return JSON.parse(repaired);
     } catch (repairError) {
       // 4. Final attempt: Extract just the object using a more permissive regex

@@ -212,6 +212,7 @@ class RequestQueue {
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}))
+      console.error(`[GroqAPI] HTTP ${response.status}:`, errorBody?.error?.message || 'Unknown error', errorBody)
       const error = new Error(`HTTP error! status: ${response.status} - ${errorBody?.error?.message || 'Unknown error'}`)
       error.status = response.status
       error.details = errorBody

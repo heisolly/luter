@@ -157,6 +157,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "./src"),
+        "pdfjs-dist": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "./src/lib/pdfjs-shim.js"),
       },
     },
     optimizeDeps: {

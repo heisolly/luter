@@ -50,12 +50,14 @@ const plans = [
 ];
 
 const testimonials = [
-  { name: 'Adaeze O.', text: 'I went from a 2:2 to a First Class. No joke — Luter changed how I study.' },
-  { name: 'Marcus L.', text: 'Uploaded a 200-slide deck at midnight. Flashcards ready in 10 seconds. Passed.' },
-  { name: 'Priya S.', text: 'The smart tutor explained concepts better than my actual professor. Unreal.' },
-  { name: 'Tom K.', text: 'Best study investment I\'ve made. Worth every penny.' },
-  { name: 'Zara M.', text: 'I use it for law school reading. Summaries are clean and incredibly accurate.' },
-  { name: 'Emeka B.', text: 'It understands Nigerian university syllabi too. Was not expecting that at all.' },
+  { name: 'Casey', text: 'Luter\'s chatbot is awesome! I get answers to my questions anytime. 🤖', avatar: 'https://framerusercontent.com/modules/PLP5SWQpFPuFrn7tLf3t/suo2OcdmUu5xmjtBXZ7I/assets/XfjXHJ2H7SzzlzPr1bGFm1T9BpI.png' },
+  { name: 'Taylor', text: 'The quizzes on Luter are spot on. Helps me prep for tests like a boss! 📝', avatar: 'https://framerusercontent.com/modules/PLP5SWQpFPuFrn7tLf3t/suo2OcdmUu5xmjtBXZ7I/assets/GaxkgrTkzKlxI7B3EJtZp4dabI.png' },
+  { name: 'Raiven', text: 'Med school is drowning me in homework and I have tests coming up. You literally just saved the day with study material.', avatar: 'https://framerusercontent.com/modules/PLP5SWQpFPuFrn7tLf3t/suo2OcdmUu5xmjtBXZ7I/assets/5nnqp2inSINDktAAWpI7gxJei0w.png' },
+  { name: 'Sam', text: 'Love the step-by-step solutions on Luter. It\'s like having a tutor in my pocket! 📚', avatar: 'https://framerusercontent.com/modules/PLP5SWQpFPuFrn7tLf3t/suo2OcdmUu5xmjtBXZ7I/assets/Vu8TxX7VMCMZDjoliFK7D0nOyX0.png' },
+  { name: 'Susan S.', text: 'Perfect! I just discovered Luter a week back and I am in love. Wish I had found this before!!!', avatar: 'https://framerusercontent.com/modules/PLP5SWQpFPuFrn7tLf3t/suo2OcdmUu5xmjtBXZ7I/assets/ebCaegtDakUaQGRtXSYmPR43Q.png' },
+  { name: 'Raj P.', text: 'Luter is legit! I don\'t have to waste time making flashcards anymore. I just upload my stuff, and it does the rest. Plus, it\'s got my back even at 1am!', avatar: 'https://framerusercontent.com/modules/PLP5SWQpFPuFrn7tLf3t/suo2OcdmUu5xmjtBXZ7I/assets/Vu8TxX7VMCMZDjoliFK7D0nOyX0.png' },
+  { name: 'Jordan', text: 'Flashcards on Luter are dope! Makes memorizing stuff so much easier. 💡', avatar: 'https://framerusercontent.com/modules/PLP5SWQpFPuFrn7tLf3t/suo2OcdmUu5xmjtBXZ7I/assets/BJytCbStiWSy9rxpQ0wU6I3SNiI.png' },
+  { name: 'Alex', text: 'Luter\'s step-by-step solutions are a lifesaver! Finally, I get where I went wrong. 👍', avatar: 'https://framerusercontent.com/modules/PLP5SWQpFPuFrn7tLf3t/suo2OcdmUu5xmjtBXZ7I/assets/mhC7dhzvLcqmUofPcC2BW8vh4.png' },
 ];
 
 export default function Pricing() {
@@ -257,25 +259,329 @@ export default function Pricing() {
         </RevealDiv>
 
         {/* Testimonials */}
-        <div className="container-full" style={{ marginBottom: 100 }}>
-          <RevealDiv>
-            <div style={{ textAlign: 'center', marginBottom: 48 }}>
-              <h2 style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontWeight: 800, fontFamily: 'var(--font-besley)', color: '#111' }}>
-                Trusted by <span style={{ color: 'var(--primary)' }}>thousands</span>
-              </h2>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20, maxWidth: 1000, margin: '0 auto' }}>
-              {testimonials.map(t => (
-                <div key={t.name} style={{ background: 'white', borderRadius: 16, border: '1px solid #f0eaff', padding: '24px', borderLeft: '3px solid var(--primary)', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-                  <div style={{ display: 'flex', gap: 2, marginBottom: 12 }}>
-                    {[...Array(5)].map((_, i) => <Star key={i} size={12} fill="#f59e0b" color="#f59e0b" />)}
+        <div style={{ padding: '60px 0', position: 'relative', overflow: 'hidden' }}>
+          {/* Header with gradient badge */}
+          <div style={{ textAlign: 'center', marginBottom: 70 }}>
+            <div style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              marginBottom: 24 
+            }}>
+              <div style={{
+                background: 'white',
+                border: '1px solid rgb(245, 242, 255)',
+                borderRadius: '30px',
+                padding: '12px 32px',
+                boxShadow: 'rgba(42, 40, 46, 0.29) 0px 0.6px 0.6px -0.9px, rgba(42, 40, 46, 0.28) 0px 1.8px 1.8px -1.9px, rgba(42, 40, 46, 0.24) 0px 4.8px 4.8px -2.8px, rgba(42, 40, 46, 0.1) 0px 15px 15px -3.8px',
+                position: 'relative'
+              }}>
+                <div style={{
+                  background: 'linear-gradient(316deg, rgb(165, 143, 255) 0%, rgb(51, 0, 255) 55.7%, rgb(165, 143, 255) 100%)',
+                  borderRadius: '20px',
+                  padding: '8px 24px',
+                  position: 'relative'
+                }}>
+                  <div style={{ 
+                    color: 'white', 
+                    fontSize: 14, 
+                    fontWeight: 700, 
+                    fontFamily: 'Outfit, sans-serif',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Testimonials
                   </div>
-                  <p style={{ fontSize: 13, color: '#444', lineHeight: 1.65, fontWeight: 500, margin: '0 0 14px', fontStyle: 'italic' }}>"{t.text}"</p>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: '#111' }}>{t.name}</span>
                 </div>
-              ))}
+              </div>
             </div>
-          </RevealDiv>
+            <h2 style={{ 
+              fontSize: 'clamp(2rem, 4vw, 3rem)', 
+              fontWeight: 800, 
+              fontFamily: 'Outfit, sans-serif', 
+              color: '#111', 
+              textAlign: 'center',
+              marginBottom: 0
+            }}>
+              Why 1,000,000+ learners choose Luter
+            </h2>
+          </div>
+
+          {/* Animated Testimonial Cards */}
+          <div style={{ 
+            display: 'flex', 
+            width: '100%', 
+            height: '400px',
+            maxWidth: '1200px',
+            margin: '0 auto',
+            gap: '20px',
+            justifyContent: 'center'
+          }}>
+            {/* Left Column - Moving Up */}
+            <div style={{ 
+              display: 'flex', 
+              width: '100%', 
+              height: '100%', 
+              placeItems: 'center', 
+              margin: 0, 
+              padding: 0, 
+              listStyleType: 'none', 
+              opacity: 1, 
+              maskImage: 'linear-gradient(rgba(0, 0, 0, 0) 0%, rgb(0, 0, 0) 25%, rgb(0, 0, 0) 75%, rgba(0, 0, 0, 0) 100%)', 
+              overflow: 'hidden'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '20px',
+                animation: 'scrollUp 30s linear infinite'
+              }}>
+                {[...testimonials, ...testimonials].map((testimonial, index) => (
+                  <div key={`left-${index}`} style={{
+                    background: index % 2 === 0 
+                      ? 'linear-gradient(rgba(118, 84, 255, 0.3) 0%, rgb(251, 250, 255) 100%)'
+                      : 'rgba(236, 227, 255, 0.06)',
+                    border: index % 2 === 0 
+                      ? '1px solid rgb(255, 255, 255)'
+                      : '1px solid rgb(236, 227, 255)',
+                    borderRadius: '10px',
+                    padding: '20px',
+                    width: '280px',
+                    minHeight: '120px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    flexShrink: 0
+                  }}>
+                    <p style={{ 
+                      fontSize: 14, 
+                      color: '#000', 
+                      fontWeight: 500, 
+                      margin: 0,
+                      fontFamily: 'Outfit, sans-serif',
+                      lineHeight: 1.5,
+                      textAlign: 'left'
+                    }}>
+                      "{testimonial.text}"
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ 
+                        width: '40px', 
+                        height: '40px', 
+                        borderRadius: '50%',
+                        backgroundColor: 'rgb(201, 179, 255)',
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <img 
+                          src={testimonial.avatar} 
+                          alt={testimonial.name}
+                          style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            objectFit: 'cover',
+                            borderRadius: '50%'
+                          }}
+                        />
+                      </div>
+                      <div style={{ 
+                        fontSize: 14, 
+                        fontWeight: 600, 
+                        color: '#000',
+                        fontFamily: 'Outfit, sans-serif'
+                      }}>
+                        {testimonial.name}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Middle Column - Moving Down */}
+            <div style={{ 
+              display: 'flex', 
+              width: '100%', 
+              height: '100%', 
+              placeItems: 'center', 
+              margin: 0, 
+              padding: 0, 
+              listStyleType: 'none', 
+              opacity: 1, 
+              maskImage: 'linear-gradient(rgba(0, 0, 0, 0) 0%, rgb(0, 0, 0) 25%, rgb(0, 0, 0) 75%, rgba(0, 0, 0, 0) 100%)', 
+              overflow: 'hidden'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '20px',
+                animation: 'scrollDown 30s linear infinite'
+              }}>
+                {[...testimonials, ...testimonials].map((testimonial, index) => (
+                  <div key={`middle-${index}`} style={{
+                    background: index % 2 === 0 
+                      ? 'rgba(236, 227, 255, 0.06)'
+                      : 'linear-gradient(rgba(118, 84, 255, 0.3) 0%, rgb(251, 250, 255) 100%)',
+                    border: index % 2 === 0 
+                      ? '1px solid rgb(236, 227, 255)'
+                      : '1px solid rgb(255, 255, 255)',
+                    borderRadius: '10px',
+                    padding: '20px',
+                    width: '280px',
+                    minHeight: '120px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    flexShrink: 0
+                  }}>
+                    <p style={{ 
+                      fontSize: 14, 
+                      color: '#000', 
+                      fontWeight: 500, 
+                      margin: 0,
+                      fontFamily: 'Outfit, sans-serif',
+                      lineHeight: 1.5,
+                      textAlign: 'left'
+                    }}>
+                      "{testimonial.text}"
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ 
+                        width: '40px', 
+                        height: '40px', 
+                        borderRadius: '50%',
+                        backgroundColor: 'rgb(201, 179, 255)',
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <img 
+                          src={testimonial.avatar} 
+                          alt={testimonial.name}
+                          style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            objectFit: 'cover',
+                            borderRadius: '50%'
+                          }}
+                        />
+                      </div>
+                      <div style={{ 
+                        fontSize: 14, 
+                        fontWeight: 600, 
+                        color: '#000',
+                        fontFamily: 'Outfit, sans-serif'
+                      }}>
+                        {testimonial.name}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right Column - Moving Up */}
+            <div style={{ 
+              display: 'flex', 
+              width: '100%', 
+              height: '100%', 
+              placeItems: 'center', 
+              margin: 0, 
+              padding: 0, 
+              listStyleType: 'none', 
+              opacity: 1, 
+              maskImage: 'linear-gradient(rgba(0, 0, 0, 0) 0%, rgb(0, 0, 0) 25%, rgb(0, 0, 0) 75%, rgba(0, 0, 0, 0) 100%)', 
+              overflow: 'hidden'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '20px',
+                animation: 'scrollUp 30s linear infinite'
+              }}>
+                {[...testimonials, ...testimonials].map((testimonial, index) => (
+                  <div key={`right-${index}`} style={{
+                    background: index % 2 === 0 
+                      ? 'linear-gradient(rgba(118, 84, 255, 0.3) 0%, rgb(251, 250, 255) 100%)'
+                      : 'rgba(236, 227, 255, 0.06)',
+                    border: index % 2 === 0 
+                      ? '1px solid rgb(255, 255, 255)'
+                      : '1px solid rgb(236, 227, 255)',
+                    borderRadius: '10px',
+                    padding: '20px',
+                    width: '280px',
+                    minHeight: '120px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    flexShrink: 0
+                  }}>
+                    <p style={{ 
+                      fontSize: 14, 
+                      color: '#000', 
+                      fontWeight: 500, 
+                      margin: 0,
+                      fontFamily: 'Outfit, sans-serif',
+                      lineHeight: 1.5,
+                      textAlign: 'left'
+                    }}>
+                      "{testimonial.text}"
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ 
+                        width: '40px', 
+                        height: '40px', 
+                        borderRadius: '50%',
+                        backgroundColor: 'rgb(201, 179, 255)',
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <img 
+                          src={testimonial.avatar} 
+                          alt={testimonial.name}
+                          style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            objectFit: 'cover',
+                            borderRadius: '50%'
+                          }}
+                        />
+                      </div>
+                      <div style={{ 
+                        fontSize: 14, 
+                        fontWeight: 600, 
+                        color: '#000',
+                        fontFamily: 'Outfit, sans-serif'
+                      }}>
+                        {testimonial.name}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* CSS Animations */}
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              @keyframes scrollUp {
+                0% { transform: translateY(0); }
+                100% { transform: translateY(-50%); }
+              }
+              @keyframes scrollDown {
+                0% { transform: translateY(-50%); }
+                100% { transform: translateY(0); }
+              }
+            `
+          }} />
         </div>
 
         {/* FAQ */}

@@ -18,15 +18,12 @@ import { supabase } from '../supabaseClient'
 import { GROQ_API_KEY, GROQ_MODELS, LUTER_SYSTEM_PROMPT } from '../groqClient'
 import { Readability } from '@mozilla/readability'
 
-// Hardened PDF Worker Initialization for the Brain (LangChain)
 import * as pdfjsLib from 'pdfjs-dist'
-const PDF_WORKER_URL = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`
 
-if (typeof window !== 'undefined') {
-  window.pdfjsLib = pdfjsLib
-}
+// PDF Worker Initialization
+const PDF_WORKER_URL = 'https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js'
 
-if (pdfjsLib.GlobalWorkerOptions) {
+if (typeof window !== 'undefined' && pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL
 }
 
@@ -486,25 +483,22 @@ export async function queryStudyMaterials({ question, courseId, materialId, fall
       new StringOutputParser(),
     ])
 
+    console.log(`[LangChain] Querying Luter with ${contextText.length} chars of context...`)
     return chain.invoke({ context: contextText, question })
   } catch (err) {
-    console.error('[LangChain] RAG query failed:', err)
+    console.error('[LangChain] RAG query failed, trying emergency direct fallback:', err)
     // Last-resort fallback: direct Groq call with raw context
     if (fallbackContext) {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: GROQ_MODELS.SPEEDSTER,
-          messages: [
-            { role: 'system', content: LUTER_SYSTEM_PROMPT },
-            { role: 'user', content: `Context:\n${fallbackContext.slice(0, 8000)}\n\nQuestion: ${question}` },
-          ],
-          temperature: 0.3,
-        }),
-      })
-      const data = await response.json()
-      return data?.choices?.[0]?.message?.content || 'Sorry, I could not process your question right now.'
+      console.log('[LangChain] Fallback active: using raw extracted_text (8k window)')
+      try {
+        const response = await callGroqAPI([
+          { role: 'user', content: `Context:\n${fallbackContext.slice(0, 8000)}\n\nQuestion: ${question}` }
+        ], GROQ_MODELS.SPEEDSTER, { systemPromptOverride: TUTOR_PROMPT.template })
+        return typeof response === 'string' ? response : response.choices[0].message.content
+      } catch (fallbackErr) {
+        console.error('[LangChain] Emergency fallback failed:', fallbackErr)
+        throw fallbackErr
+      }
     }
     throw err
   }
@@ -620,4 +614,40 @@ export function pollMaterialUntilReady(
   }, intervalMs)
 
   return () => clearInterval(timer)
+}
+
+/**
+ * Emergency: Reprocess a material if text extraction was missed.
+ * Fetches the file from source_url and triggers ingestion.
+ */
+export async function reprocessMaterial(material) {
+  if (!material?.source_url) return { success: false, error: 'No source URL' }
+  
+  try {
+    console.log(`[LangChain] Triggering emergency re-processing for: ${material.title}`)
+    
+    // 1. Fetch the file as a Blob
+    const response = await fetch(material.source_url)
+    const blob = await response.blob()
+    
+    // 2. Create a File object (simulating a user upload)
+    const fileName = material.title || 'document'
+    const file = new File([blob], fileName, { type: blob.type })
+    
+    // 3. Call ingestMaterial
+    return await ingestMaterial({
+      file,
+      type: material.type,
+      url: null,
+      metadata: {
+        materialId: material.id,
+        courseId: material.course_id,
+        userId: material.user_id,
+        title: material.title
+      }
+    })
+  } catch (err) {
+    console.error('[LangChain] Emergency re-processing failed:', err)
+    return { success: false, error: err.message }
+  }
 }

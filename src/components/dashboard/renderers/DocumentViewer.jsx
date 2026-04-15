@@ -28,16 +28,12 @@ import '@react-pdf-viewer/default-layout/lib/styles/index.css'
 import '@react-pdf-viewer/search/lib/styles/index.css'
 import '@react-pdf-viewer/full-screen/lib/styles/index.css'
 
-// Hardened PDF Worker Initialization (Vite-compatible)
 import * as pdfjsLib from 'pdfjs-dist'
-const PDF_WORKER_URL = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`
 
-// Assign worker source to the main pdfjs object and expose to window for the Worker component
-if (typeof window !== 'undefined') {
-  window.pdfjsLib = pdfjsLib
-}
+// PDF Worker configuration
+const PDF_WORKER_URL = 'https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js'
 
-if (pdfjsLib.GlobalWorkerOptions) {
+if (typeof window !== 'undefined' && pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL
 }
 
@@ -385,7 +381,7 @@ function HighFidelityPDF({ fileUrl, initialPage = 1, onPageChange, onDocumentLoa
     </>
   )
   return (
-    <div className="luter-pdf-canvas">
+    <div className="luter-pdf-canvas" style={{ height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
       <Worker workerUrl={PDF_WORKER_URL}>
         <Viewer 
           fileUrl={fileUrl} 
@@ -405,43 +401,22 @@ function HighFidelityPDF({ fileUrl, initialPage = 1, onPageChange, onDocumentLoa
 /** The Pro Move: Microsoft/Google Office Viewer for PPT and DOCX */
 function OfficeViewer({ fileUrl }) {
   const [loading, setLoading] = useState(true)
-  const containerRef = useRef(null)
-  const [scale, setScale] = useState(1)
   
   // Encodes the URL so Microsoft can fetch and render it
   const microsoftViewer = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`
 
-  useEffect(() => {
-    if (!containerRef.current) return
-    const updateScale = () => {
-      if (!containerRef.current) return
-      const width = containerRef.current.clientWidth
-      // A4-style viewers are native ~814px. We scale to fill the container width.
-      // We add a tiny buffer (0.95) to ensure no scrollbars or weird clipping.
-      const newScale = width / 814
-      setScale(newScale > 1 ? newScale : 1)
-    }
-
-    const obs = new ResizeObserver(updateScale)
-    obs.observe(containerRef.current)
-    updateScale() // initial
-    return () => obs.disconnect()
-  }, [])
-  
   return (
-    <div ref={containerRef} style={{ width: '100%', height: 'calc(100vh - 52px)', position: 'relative', overflow: 'hidden', background: 'white' }}>
+    <div style={{ width: '100%', height: 'calc(100vh - 56px)', position: 'relative', overflow: 'hidden', background: 'white' }}>
       {loading && (
         <div style={{ position: 'absolute', inset: 0, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
-           <Loader2 className="animate-spin" color="#7a12cc" size={32} />
+           <Loader2 className="animate-spin" color="var(--luter-primary)" size={32} />
         </div>
       )}
       <iframe
         src={microsoftViewer}
         style={{ 
-          width: '814px', 
-          height: `calc(100% / ${scale})`,
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
+          width: '100%', 
+          height: '100%',
           border: 'none',
           pointerEvents: 'auto'
         }}
@@ -495,15 +470,15 @@ function HighFidelityImage({ fileUrl }) {
 
 function HighFidelityAudio({ material }) {
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 32 }}>
-       <Music size={48} color="#7a12cc" />
+    <div style={{ height: 'calc(100vh - 56px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 32 }}>
+       <Music size={48} color="var(--luter-primary)" />
        <audio controls src={material.source_url} />
     </div>
   )
 }
 
 function HighFidelityWeb({ url }) {
-  return <iframe src={url} style={{ width: '100%', height: '100%', border: 'none' }} title="Web" />
+  return <iframe src={url} style={{ width: '100%', height: 'calc(100vh - 56px)', border: 'none' }} title="Web" />
 }
 
 function HighFidelityAnki({ material }) {
@@ -512,9 +487,9 @@ function HighFidelityAnki({ material }) {
 
 function PendingState({ material }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 24 }}>
-      <Loader2 size={32} color="#7a12cc" className="animate-spin" />
-      <p>Luter is optimizing <strong>{material?.title}</strong>...</p>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - 56px)', gap: 24 }}>
+      <Loader2 size={32} color="var(--luter-primary)" className="animate-spin" />
+      <p style={{ color: 'var(--luter-primary-dark)', fontWeight: '600' }}>Luter is optimizing <strong>{material?.title}</strong>...</p>
     </div>
   )
 }

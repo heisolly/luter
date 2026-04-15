@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import LuterLogo from './shared/LuterLogo';
 import MagicRings from './MagicRings';
+import { SharedFooter } from './PageShared';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
@@ -1414,49 +1415,7 @@ export default function LandingPage() {
       </section>
 
       
-      {/* ═══════════════ FOOTER ═══════════════ */}
-      <footer style={{ borderTop:'1px solid var(--border-light)', padding:'56px 0 40px', background: '#fafafa' }}>
-        <div className="container-full">
-          <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr', gap:48, marginBottom:48 }}>
-            {/* Brand */}
-            <div>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
-                <LuterLogo size={32} fontSize={28} />
-              </div>
-              <p style={{ fontSize:14, color:'#aaa', lineHeight:1.8, maxWidth:240 }}>
-                The AI-powered study platform built to help you learn faster, remember more, and stress less.
-              </p>
-            </div>
-            {/* Links */}
-            {[
-              { title:'Product', links:['Features','Pricing','How it works','Changelog'] },
-              { title:'Company', links:['About','Blog','Careers','Press'] },
-              { title:'Legal', links:['Privacy','Terms','Cookie Policy','Security'] },
-            ].map(({ title, links }) => (
-              <div key={title}>
-                <div style={{ fontSize:12, fontWeight:800, letterSpacing:'0.08em', textTransform:'uppercase', color:'#ccc', marginBottom:16 }}>{title}</div>
-                <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                  {links.map(l => (
-                    <a key={l} href="#" style={{ fontSize:14, color:'#999', fontWeight:500, transition:'color 0.15s' }}
-                      onMouseEnter={e => e.target.style.color='#111'}
-                      onMouseLeave={e => e.target.style.color='#999'}>{l}</a>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={{ borderTop:'1px solid var(--border-light)', paddingTop:28, display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:12 }}>
-            <span style={{ fontSize:13, color:'#ccc', fontWeight:500 }}>© 2025 Luter AI Corp. All rights reserved.</span>
-            <div style={{ display:'flex', gap:20 }}>
-              {['Twitter','Instagram','LinkedIn','YouTube'].map(s => (
-                <a key={s} href="#" style={{ fontSize:13, color:'#bbb', fontWeight:600, transition:'color 0.15s' }}
-                  onMouseEnter={e => e.target.style.color='#111'}
-                  onMouseLeave={e => e.target.style.color='#bbb'}>{s}</a>
-              ))}
-            </div>
-          </div>
-        </div>
-      </footer>
+      <SharedFooter />
     </div>
   );
 }

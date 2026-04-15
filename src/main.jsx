@@ -15,14 +15,33 @@ if (typeof window !== 'undefined') {
   })
 }
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <AppErrorBoundary>
-      <GoogleOAuthProvider clientId={clientId}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </GoogleOAuthProvider>
-    </AppErrorBoundary>
-  </StrictMode>,
-)
+// Safe Boot Loader: Ensures PDF.js and crucial globals are ready before React mounts
+function mountApp() {
+  createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <AppErrorBoundary>
+        <GoogleOAuthProvider clientId={clientId}>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </GoogleOAuthProvider>
+      </AppErrorBoundary>
+    </StrictMode>,
+  )
+}
+
+if (typeof window !== 'undefined') {
+  // Poll for pdfjsLib if not immediately available
+  const checkReady = () => {
+    if (window.pdfjsLib) {
+      console.log('✅ PDF.js Ready');
+      mountApp();
+    } else {
+      console.warn('🕒 Waiting for PDF.js...');
+      setTimeout(checkReady, 50);
+    }
+  };
+  checkReady();
+} else {
+  mountApp();
+}

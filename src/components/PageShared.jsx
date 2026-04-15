@@ -253,3 +253,470 @@ export function SharedNavbar() {
     </>
   );
 }
+
+export function SharedFooter() {
+  return (
+    <footer style={{ 
+      position: 'relative',
+      background: 'transparent',
+      color: '#000000',
+      padding: '60px 0 30px',
+      marginTop: '0px',
+      paddingTop: '120px'
+    }}>
+      {/* Overlapping Image with better positioning */}
+      <div style={{
+        position: 'absolute',
+        bottom: '0px',
+        right: '8%',
+        width: '650px',
+        height: '550px',
+        zIndex: 10,
+        pointerEvents: 'none'
+      }}>
+        <img 
+          src="/footer-img.png" 
+          alt="Luter Study Platform" 
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            borderRadius: 0,
+            boxShadow: 'none',
+            filter: 'none',
+            background: 'transparent'
+          }}
+        />
+      </div>
+      
+      <div className="container-full" style={{ position: 'relative', zIndex: 5 }}>
+        {/* Brand Signature */}
+        <div style={{ 
+          marginBottom: '40px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px'
+        }}>
+          <img 
+            src="/logo.png" 
+            alt="Luter Logo" 
+            style={{
+              width: '40px',
+              height: '40px',
+              objectFit: 'contain'
+            }}
+          />
+          <div style={{ 
+            fontSize: '24px', 
+            fontWeight: '800', 
+            color: '#2d1b69', // Purple-black for brand integration
+            fontFamily: 'Outfit, sans-serif',
+            letterSpacing: '-0.02em'
+          }}>
+            Luter
+          </div>
+        </div>
+        
+        {/* Main Content - Links Layout with better alignment */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns:'1fr', 
+          gap: 80, 
+          alignItems: 'start',
+          maxWidth: '900px'
+        }}>
+          {/* Left Side - All Links */}
+          <div style={{ paddingTop: '20px' }}> {/* Align with mascot head top */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns:'1fr 1fr 1fr', 
+              gap: 80, // More spacing between columns
+              paddingRight: '120px' // Give mascot more buffer space
+            }}>
+              {/* Product Links */}
+              <div>
+                <div style={{ 
+                  fontSize: 22, // Increased from 18 for better visual weight
+                  fontWeight: 800, // Increased from 700
+                  color: '#2d1b69', // Purple-black instead of pure black
+                  marginBottom: 32, // Increased from 24
+                  fontFamily: 'Outfit, sans-serif',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em' // Slightly increased
+                }}>
+                  Product
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', gap: 20 }}> {/* Increased from 16 */}
+                  <Link 
+                    to="/features"
+                    style={{ 
+                      fontSize: 17, // Increased from 16
+                      color: '#1a1a1a', 
+                      fontWeight: 600, // Increased from 500
+                      transition: 'all 0.2s ease',
+                      textDecoration: 'none',
+                      fontFamily: 'Outfit, sans-serif',
+                      padding: '12px 0', // Increased from 8px
+                      opacity: 0.85,
+                      lineHeight: 1.4
+                    }}
+                    onMouseEnter={e => {
+                      e.target.style.opacity = '1';
+                      e.target.style.color = '#9718fb';
+                      e.target.style.transform = 'translateX(6px)'; // Increased from 4px
+                    }}
+                    onMouseLeave={e => {
+                      e.target.style.opacity = '0.85';
+                      e.target.style.color = '#1a1a1a';
+                      e.target.style.transform = 'translateX(0)';
+                    }}
+                  >
+                    Features
+                  </Link>
+                  <Link 
+                    to="/pricing"
+                    style={{ 
+                      fontSize: 17, 
+                      color: '#1a1a1a', 
+                      fontWeight: 600, 
+                      transition: 'all 0.2s ease',
+                      textDecoration: 'none',
+                      fontFamily: 'Outfit, sans-serif',
+                      padding: '12px 0',
+                      opacity: 0.85,
+                      lineHeight: 1.4
+                    }}
+                    onMouseEnter={e => {
+                      e.target.style.opacity = '1';
+                      e.target.style.color = '#9718fb';
+                      e.target.style.transform = 'translateX(6px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.target.style.opacity = '0.85';
+                      e.target.style.color = '#1a1a1a';
+                      e.target.style.transform = 'translateX(0)';
+                    }}
+                  >
+                    Pricing
+                  </Link>
+                  <Link 
+                    to="/how-it-works"
+                    style={{ 
+                      fontSize: 17, 
+                      color: '#1a1a1a', 
+                      fontWeight: 600, 
+                      transition: 'all 0.2s ease',
+                      textDecoration: 'none',
+                      fontFamily: 'Outfit, sans-serif',
+                      padding: '12px 0',
+                      opacity: 0.85,
+                      lineHeight: 1.4
+                    }}
+                    onMouseEnter={e => {
+                      e.target.style.opacity = '1';
+                      e.target.style.color = '#9718fb';
+                      e.target.style.transform = 'translateX(6px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.target.style.opacity = '0.85';
+                      e.target.style.color = '#1a1a1a';
+                      e.target.style.transform = 'translateX(0)';
+                    }}
+                  >
+                    How it works
+                  </Link>
+                  <Link 
+                    to="/changelog"
+                    style={{ 
+                      fontSize: 17, 
+                      color: '#1a1a1a', 
+                      fontWeight: 600, 
+                      transition: 'all 0.2s ease',
+                      textDecoration: 'none',
+                      fontFamily: 'Outfit, sans-serif',
+                      padding: '12px 0',
+                      opacity: 0.85,
+                      lineHeight: 1.4
+                    }}
+                    onMouseEnter={e => {
+                      e.target.style.opacity = '1';
+                      e.target.style.color = '#9718fb';
+                      e.target.style.transform = 'translateX(6px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.target.style.opacity = '0.85';
+                      e.target.style.color = '#1a1a1a';
+                      e.target.style.transform = 'translateX(0)';
+                    }}
+                  >
+                    Changelog
+                  </Link>
+                </div>
+              </div>
+              
+              {/* Company Links */}
+              <div>
+                <div style={{ 
+                  fontSize: 22, 
+                  fontWeight: 800, 
+                  color: '#2d1b69', 
+                  marginBottom: 32,
+                  fontFamily: 'Outfit, sans-serif',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em'
+                }}>
+                  Company
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', gap: 20 }}>
+                  <Link 
+                    to="/about"
+                    style={{ 
+                      fontSize: 17, 
+                      color: '#1a1a1a', 
+                      fontWeight: 600, 
+                      transition: 'all 0.2s ease',
+                      textDecoration: 'none',
+                      fontFamily: 'Outfit, sans-serif',
+                      padding: '12px 0',
+                      opacity: 0.85,
+                      lineHeight: 1.4
+                    }}
+                    onMouseEnter={e => {
+                      e.target.style.opacity = '1';
+                      e.target.style.color = '#9718fb';
+                      e.target.style.transform = 'translateX(6px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.target.style.opacity = '0.85';
+                      e.target.style.color = '#1a1a1a';
+                      e.target.style.transform = 'translateX(0)';
+                    }}
+                  >
+                    About
+                  </Link>
+                  <Link 
+                    to="/blog"
+                    style={{ 
+                      fontSize: 17, 
+                      color: '#1a1a1a', 
+                      fontWeight: 600, 
+                      transition: 'all 0.2s ease',
+                      textDecoration: 'none',
+                      fontFamily: 'Outfit, sans-serif',
+                      padding: '12px 0',
+                      opacity: 0.85,
+                      lineHeight: 1.4
+                    }}
+                    onMouseEnter={e => {
+                      e.target.style.opacity = '1';
+                      e.target.style.color = '#9718fb';
+                      e.target.style.transform = 'translateX(6px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.target.style.opacity = '0.85';
+                      e.target.style.color = '#1a1a1a';
+                      e.target.style.transform = 'translateX(0)';
+                    }}
+                  >
+                    Blog
+                  </Link>
+                  <Link 
+                    to="/careers"
+                    style={{ 
+                      fontSize: 17, 
+                      color: '#1a1a1a', 
+                      fontWeight: 600, 
+                      transition: 'all 0.2s ease',
+                      textDecoration: 'none',
+                      fontFamily: 'Outfit, sans-serif',
+                      padding: '12px 0',
+                      opacity: 0.85,
+                      lineHeight: 1.4
+                    }}
+                    onMouseEnter={e => {
+                      e.target.style.opacity = '1';
+                      e.target.style.color = '#9718fb';
+                      e.target.style.transform = 'translateX(6px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.target.style.opacity = '0.85';
+                      e.target.style.color = '#1a1a1a';
+                      e.target.style.transform = 'translateX(0)';
+                    }}
+                  >
+                    Careers
+                  </Link>
+                  <Link 
+                    to="/press"
+                    style={{ 
+                      fontSize: 17, 
+                      color: '#1a1a1a', 
+                      fontWeight: 600, 
+                      transition: 'all 0.2s ease',
+                      textDecoration: 'none',
+                      fontFamily: 'Outfit, sans-serif',
+                      padding: '12px 0',
+                      opacity: 0.85,
+                      lineHeight: 1.4
+                    }}
+                    onMouseEnter={e => {
+                      e.target.style.opacity = '1';
+                      e.target.style.color = '#9718fb';
+                      e.target.style.transform = 'translateX(6px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.target.style.opacity = '0.85';
+                      e.target.style.color = '#1a1a1a';
+                      e.target.style.transform = 'translateX(0)';
+                    }}
+                  >
+                    Press
+                  </Link>
+                </div>
+              </div>
+              
+              {/* Legal Links */}
+              <div>
+                <div style={{ 
+                  fontSize: 22, 
+                  fontWeight: 800, 
+                  color: '#2d1b69', 
+                  marginBottom: 32,
+                  fontFamily: 'Outfit, sans-serif',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em'
+                }}>
+                  Legal
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', gap: 20 }}>
+                  <Link 
+                    to="/privacy"
+                    style={{ 
+                      fontSize: 17, 
+                      color: '#1a1a1a', 
+                      fontWeight: 600, 
+                      transition: 'all 0.2s ease',
+                      textDecoration: 'none',
+                      fontFamily: 'Outfit, sans-serif',
+                      padding: '12px 0',
+                      opacity: 0.85,
+                      lineHeight: 1.4
+                    }}
+                    onMouseEnter={e => {
+                      e.target.style.opacity = '1';
+                      e.target.style.color = '#9718fb';
+                      e.target.style.transform = 'translateX(6px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.target.style.opacity = '0.85';
+                      e.target.style.color = '#1a1a1a';
+                      e.target.style.transform = 'translateX(0)';
+                    }}
+                  >
+                    Privacy
+                  </Link>
+                  <Link 
+                    to="/terms"
+                    style={{ 
+                      fontSize: 17, 
+                      color: '#1a1a1a', 
+                      fontWeight: 600, 
+                      transition: 'all 0.2s ease',
+                      textDecoration: 'none',
+                      fontFamily: 'Outfit, sans-serif',
+                      padding: '12px 0',
+                      opacity: 0.85,
+                      lineHeight: 1.4
+                    }}
+                    onMouseEnter={e => {
+                      e.target.style.opacity = '1';
+                      e.target.style.color = '#9718fb';
+                      e.target.style.transform = 'translateX(6px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.target.style.opacity = '0.85';
+                      e.target.style.color = '#1a1a1a';
+                      e.target.style.transform = 'translateX(0)';
+                    }}
+                  >
+                    Terms
+                  </Link>
+                  <Link 
+                    to="/cookie-policy"
+                    style={{ 
+                      fontSize: 17, 
+                      color: '#1a1a1a', 
+                      fontWeight: 600, 
+                      transition: 'all 0.2s ease',
+                      textDecoration: 'none',
+                      fontFamily: 'Outfit, sans-serif',
+                      padding: '12px 0',
+                      opacity: 0.85,
+                      lineHeight: 1.4
+                    }}
+                    onMouseEnter={e => {
+                      e.target.style.opacity = '1';
+                      e.target.style.color = '#9718fb';
+                      e.target.style.transform = 'translateX(6px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.target.style.opacity = '0.85';
+                      e.target.style.color = '#1a1a1a';
+                      e.target.style.transform = 'translateX(0)';
+                    }}
+                  >
+                    Cookie Policy
+                  </Link>
+                  <Link 
+                    to="/security"
+                    style={{ 
+                      fontSize: 17, 
+                      color: '#1a1a1a', 
+                      fontWeight: 600, 
+                      transition: 'all 0.2s ease',
+                      textDecoration: 'none',
+                      fontFamily: 'Outfit, sans-serif',
+                      padding: '12px 0',
+                      opacity: 0.85,
+                      lineHeight: 1.4
+                    }}
+                    onMouseEnter={e => {
+                      e.target.style.opacity = '1';
+                      e.target.style.color = '#9718fb';
+                      e.target.style.transform = 'translateX(6px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.target.style.opacity = '0.85';
+                      e.target.style.color = '#1a1a1a';
+                      e.target.style.transform = 'translateX(0)';
+                    }}
+                  >
+                    Security
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Copyright Row */}
+        <div style={{
+          marginTop: '50px',
+          paddingTop: '25px',
+          borderTop: '1px solid rgba(0, 0, 0, 0.1)',
+          textAlign: 'left'
+        }}>
+          <div style={{ 
+            fontSize: '13px', 
+            color: '#888888', 
+            fontWeight: '500',
+            fontFamily: 'Outfit, sans-serif',
+            letterSpacing: '0.02em'
+          }}>
+            © 2026 Luter. All rights reserved.
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
