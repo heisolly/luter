@@ -1834,4 +1834,7 @@
 }
 
 
-.ws-bubble-icon-btn:hover { background
+.ws-bubble-icon-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+
+.ws-bubble-divider { width: 1px; height: 16px; background: rgba(255,255,255,0.1); margin: 0 4px; }
+

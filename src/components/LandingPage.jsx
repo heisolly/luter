@@ -1320,7 +1320,6 @@ export default function LandingPage() {
       </section>
 
       
-      
       {/* ═══════════════ PRICING TEASER ═══════════════ */}
       <section id="pricing" style={{ padding:'80px 0', background:'white' }}>
         <div style={{ position: 'relative', zIndex: 1, paddingBottom: 60 }}>

@@ -297,65 +297,7 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
     <div className="ws-infinite-reader-container" ref={canvasRef}>
       <div className="ws-canvas-scroller">
         {/* Minimal Tool Overlay */}
-        <div className="ws-minimal-doc-nav" style={{
-          position: 'sticky',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-0%)',
-          zIndex: 50,
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(0,0,0,0.06)',
-          borderRadius: '12px',
-          height: '48px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 12px',
-          marginBottom: '20px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.04), 0 2px 6px rgba(0,0,0,0.02)',
-          width: 'calc(100% - 40px)',
-          margin: '12px auto'
-        }}>
-          <div className="ws-doc-nav-left" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button 
-              className="ws-icon-doc-btn" 
-              onClick={() => setSidePanelCollapsed(!isSidePanelCollapsed)}
-              style={{ background: 'none', border: 'none', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#71717A' }}
-            >
-              <PanelLeft size={16} />
-            </button>
-            <div className="ws-doc-divider" style={{ width: '1px', height: '16px', background: 'rgba(0,0,0,0.1)', margin: '0 4px' }} />
-            <div className="ws-pg-indicator" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <input 
-                defaultValue={currentPage}
-                onKeyDown={(e) => e.key === 'Enter' && handlePageJump(e.target.value)}
-                style={{ 
-                  width: '32px', height: '28px', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '6px', textAlign: 'center', fontSize: '12px', fontWeight: '600',
-                  background: 'white', color: '#18181B', outline: 'none'
-                }}
-              />
-              <span style={{ fontSize: '12px', fontWeight: '500', color: '#71717A' }}>/ {totalPages || '--'}</span>
-            </div>
-          </div>
-          <div className="ws-doc-nav-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <button 
-               className="ws-icon-doc-btn" 
-               onClick={() => setViewMode(viewMode === 'visuals' ? 'ai' : 'visuals')}
-               style={{ background: 'none', border: 'none', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-             >
-               {viewMode === 'visuals' ? <Sparkles size={16} color="#7a12cc" /> : <Eye size={16} color="#71717A" />}
-             </button>
-             <button 
-               className="ws-icon-doc-btn" 
-               onClick={() => fullScreenPluginInstance.enterFullScreen()}
-               style={{ background: 'none', border: 'none', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#71717A' }}
-             >
-               <Maximize2 size={16} />
-             </button>
-          </div>
-        </div>
-
+        {/* Minimal Tool Overlay Removed */}
         <ActionBubble />
         
         <div className="ws-canvas-surface" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -363,7 +305,7 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
           {viewMode === 'visuals' && (
             <div className="ws-visual-viewport" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                {type === 'pdf' && material.source_url && (
-                 <div className="ws-clean-content-wrap" style={{ flex: 1, height: '100%', borderRadius: '0' }}>
+                 <div className="ws-paper-sheet">
                     <HighFidelityPDF 
                       fileUrl={material.source_url} 
                       initialPage={currentPage}
@@ -374,24 +316,24 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
                  </div>
                )}
                {(type === 'docx' || type === 'doc' || type === 'pptx' || type === 'ppt') && material.source_url && (
-                 <div className="ws-clean-content-wrap" style={{ flex: 1, height: '100%', padding: '0 40px', background: 'white' }}>
+                 <div className="ws-paper-sheet">
                     <OfficeViewer fileUrl={material.source_url} />
                  </div>
                )}
-              {(type === 'xlsx' || type === 'xls' || type === 'csv') && material.source_url && (
-                <div className="ws-paper-sheet">
-                  <HighFidelityExcel fileUrl={material.source_url} />
-                </div>
-              )}
-              {isImage && <div className="ws-paper-sheet"><HighFidelityImage fileUrl={material.source_url} /></div>}
-              {isVideo && (
-                 <div style={{ height: '100%', background: '#000', borderRadius: 12, overflow: 'hidden' }}>
-                   <ReactPlayer url={material.source_url} controls width="100%" height="100%" />
+               {(type === 'xlsx' || type === 'xls' || type === 'csv') && material.source_url && (
+                 <div className="ws-paper-sheet">
+                   <HighFidelityExcel fileUrl={material.source_url} />
                  </div>
-              )}
-              {isAudio && <HighFidelityAudio material={material} />}
-              {isWeb && <HighFidelityWeb url={material.source_url} />}
-              {(type === 'anki' || type === 'apkg') && <HighFidelityAnki material={material} />}
+               )}
+               {isImage && <div className="ws-paper-sheet"><HighFidelityImage fileUrl={material.source_url} /></div>}
+               {isVideo && (
+                  <div style={{ height: '100%', background: '#000', borderRadius: 12, overflow: 'hidden' }}>
+                    <ReactPlayer url={material.source_url} controls width="100%" height="100%" />
+                  </div>
+               )}
+               {isAudio && <HighFidelityAudio material={material} />}
+               {isWeb && <HighFidelityWeb url={material.source_url} />}
+               {(type === 'anki' || type === 'apkg') && <HighFidelityAnki material={material} />}
             </div>
           )}
 
