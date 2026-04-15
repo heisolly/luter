@@ -7,6 +7,7 @@ export function ReadingSpaceProvider({ children }) {
     visibleText: '',
     scrollPercent: 0,
     currentPage: 1,
+    totalPages: 0,
     documentType: 'pdf', // pdf, docx, pptx, xlsx
     coordinateMap: {} // AI-generated coordinate map for precise highlighting
   })

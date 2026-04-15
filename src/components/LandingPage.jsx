@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import LuterLogo from './shared/LuterLogo';
+import MagicRings from './MagicRings';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import {
   Plus, ArrowRight, BookOpen, Zap, FileText, GraduationCap,
   ChevronRight, Clock, Star, Check, Layers, MessageSquare, Upload, Play,
@@ -35,6 +36,79 @@ const Stars = ({ n = 5 }) => (
     ))}
   </div>
 );
+
+/* ── Floating Image Component with Beautiful Animations ── */
+const FloatingImage = ({ src, alt, style, delay, opacity, rotate }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  
+  // Mouse movement values for parallax effect
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  
+  // Transform mouse values to rotation
+  const rotateX = useTransform(mouseY, [-0.5, 0.5], [rotate - 2, rotate + 2]);
+  const rotateY = useTransform(mouseX, [-0.5, 0.5], [rotate + 2, rotate - 2]);
+  
+  // Smooth spring animations
+  const springRotateX = useSpring(rotateX, { stiffness: 300, damping: 30 });
+  const springRotateY = useSpring(rotateY, { stiffness: 300, damping: 30 });
+  
+  const handleMouseMove = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const x = (event.clientX - centerX) / (rect.width / 2);
+    const y = (event.clientY - centerY) / (rect.height / 2);
+    mouseX.set(x * 0.5);
+    mouseY.set(y * 0.5);
+  };
+  
+  const handleMouseLeave = () => {
+    mouseX.set(0);
+    mouseY.set(0);
+    setIsHovered(false);
+  };
+  
+  return (
+    <motion.div 
+      className="floating-image"
+      initial={{ opacity: 0, scale: 0.8, rotate: rotate }}
+      animate={{ 
+        opacity: isHovered ? Math.min(opacity * 2.5, 0.8) : opacity, 
+        scale: isHovered ? 1.08 : 1, 
+      }}
+      transition={{ 
+        duration: 0.8, 
+        delay: delay,
+        type: "spring",
+        stiffness: 100
+      }}
+      whileHover={{ 
+        scale: 1.05,
+        boxShadow: '0 12px 40px rgba(151, 24, 251, 0.3)',
+        rotate: 2,
+        zIndex: 20
+      }}
+      whileTap={{ scale: 0.95 }}
+    >
+      <img 
+        src={src} 
+        alt={alt}
+        style={{ 
+          width: '100%', 
+          height: '100%', 
+          objectFit: 'cover',
+          display: 'block'
+        }}
+        animate={{
+          rotateY: springRotateY,
+          rotateX: springRotateX
+        }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      />
+    </motion.div>
+  );
+};
 
 /* ── FAQ item with toggle ── */
 const FAQItem = ({ q, a }) => {
@@ -92,6 +166,69 @@ const plans = [
   }
 ];
 
+// Draggable Doodle Component
+const DraggableDoodle = ({ children, initialX, initialY, delay = 0 }) => {
+  const [position, setPosition] = useState({ x: initialX, y: initialY });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef(null);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    dragStartPos.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    };
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    
+    setPosition({
+      x: e.clientX - dragStartPos.current.x,
+      y: e.clientY - dragStartPos.current.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging]);
+
+  return (
+    <motion.div
+      ref={dragRef}
+      style={{
+        position: 'absolute',
+        left: position.x,
+        top: position.y,
+        cursor: isDragging ? 'grabbing' : 'grab',
+        zIndex: isDragging ? 1000 : 15,
+        userSelect: 'none',
+        touchAction: 'none'
+      }}
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5, delay: delay }}
+      whileHover={{ scale: 1.1, rotate: 5 }}
+      onMouseDown={handleMouseDown}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
 export default function LandingPage() {
   const containerRef = useRef(null);
 
@@ -111,6 +248,21 @@ export default function LandingPage() {
           y: 60, opacity: 0, duration: 1.2, ease: 'power3.out', delay: 0.5
         });
       }
+
+      // Parallax effect for floating images
+      const floatingImages = containerRef.current.querySelectorAll('.floating-image');
+      floatingImages.forEach((img, index) => {
+        gsap.to(img, {
+          yPercent: -20,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: img,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 1 + (index * 0.2),
+          }
+        });
+      });
 
       gsap.utils.toArray('section').forEach(sec => {
         const children = sec.querySelectorAll('.reveal-child');
@@ -329,162 +481,425 @@ export default function LandingPage() {
       </AnimatePresence>
 
       {/* ═══════════════ HERO ═══════════════ */}
-      <section className="hero-section" style={{ paddingTop: 80, position: 'relative' }}>
-        <div className="hero-bg">
-          <div className="hero-bg-grid" />
+      <section style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #ffffff 0%, #faf8ff 100%)'
+      }}>
+        {/* MagicRings Background */}
+        <div style={{ 
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          zIndex: 1, 
+          background: 'transparent' 
+        }}>
+          <MagicRings
+            color="#8b5cf6"
+            colorTwo="#a78bfa"
+            ringCount={8}
+            speed={0.6}
+            attenuation={15}
+            lineThickness={2}
+            baseRadius={0.2}
+            radiusStep={0.08}
+            scaleRate={0.12}
+            opacity={0.15}
+            blur={1}
+            noiseAmount={0.01}
+            rotation={10}
+            ringGap={1.6}
+            fadeIn={0.7}
+            fadeOut={0.3}
+            followMouse={true}
+            mouseInfluence={0.08}
+            hoverScale={1.02}
+            parallax={0.04}
+            clickBurst={false}
+          />
         </div>
 
-        <div className="container-custom" style={{ textAlign: 'center', position: 'relative', zIndex: 1, padding: '0 20px' }}>
-          {/* Social Proof */}
-          <RevealDiv>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 28 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <AvatarGroup />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                  <Stars />
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>
-                    5M+ students <span style={{ color: '#aaa', fontWeight: 500 }}>· Studying smarter</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </RevealDiv>
+        {/* Subtle Floating Elements */}
+        <div style={{ 
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          zIndex: 2,
+          pointerEvents: 'none'
+        }}>
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              style={{
+                position: 'absolute',
+                width: Math.random() * 4 + 2,
+                height: Math.random() * 4 + 2,
+                borderRadius: '50%',
+                background: `rgba(139, 92, 246, ${Math.random() * 0.1 + 0.05})`,
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                y: [0, -20, 0],
+                opacity: [0.1, 0.3, 0.1],
+              }}
+              transition={{
+                duration: Math.random() * 3 + 4,
+                repeat: Infinity,
+                delay: Math.random() * 2,
+                ease: 'easeInOut'
+              }}
+            />
+          ))}
+        </div>
 
-          <RevealDiv delay={0.1}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 99, background: 'rgba(151,24,251,0.05)', border: '1px solid rgba(151,24,251,0.1)', marginBottom: 32 }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)' }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.01em' }}>AI-Powered Study Platform</span>
-            </div>
-          </RevealDiv>
-          
-          <RevealDiv delay={0.2}>
-            <h1 style={{ fontSize: 'clamp(2.4rem, 9vw, 4.5rem)', fontWeight: 900, fontFamily: 'var(--font-varela)', color: '#111', marginBottom: 24, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
-              Learn 10× Faster.<br />
-              <span style={{ color: 'var(--primary)', fontStyle: 'italic' }}>Remember More.</span><br />
-              Stress Less.
-            </h1>
-          </RevealDiv>
-          
-          <RevealDiv delay={0.3}>
-            <p style={{ fontSize: 'clamp(1rem, 4.5vw, 1.2rem)', color: '#555', maxWidth: 620, margin: '0 auto 40px', fontWeight: 500, lineHeight: 1.6 }}>
-              Upload any lecture, PDF, or video — Luter instantly builds notes, flashcards, and mock exams tailored to <em>your</em> curriculum.
-            </p>
-          </RevealDiv>
+        {/* Main Content */}
+        <div style={{ 
+          position: 'relative', 
+          zIndex: 10, 
+          textAlign: 'center',
+          maxWidth: '900px',
+          padding: '0 24px',
+          width: '100%'
+        }}>
+          {/* Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              backgroundColor: 'rgba(139, 92, 246, 0.08)',
+              border: '1px solid rgba(139, 92, 246, 0.16)',
+              borderRadius: '100px',
+              marginBottom: '32px',
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#8b5cf6'
+            }}
+          >
+            <div style={{ 
+              width: '6px', 
+              height: '6px', 
+              borderRadius: '50%', 
+              backgroundColor: '#8b5cf6',
+              animation: 'pulse 2s infinite'
+            }} />
+            AI-Powered Reading Assistant
+          </motion.div>
 
-          <RevealDiv delay={0.4}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-              <Link to="/signup" className="btn-primary" style={{ 
-                padding: '18px 36px', 
-                fontSize: 16, 
-                textDecoration: 'none', 
-                borderRadius: 16,
-                width: '100%',
-                maxWidth: 320,
-                boxShadow: '0 15px 35px rgba(151, 24, 251, 0.3)',
+          {/* Headline */}
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            style={{
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: 'clamp(2.5rem, 8vw, 4rem)',
+              fontWeight: '700',
+              lineHeight: '1.1',
+              letterSpacing: '-0.02em',
+              color: '#1f2937',
+              marginBottom: '24px'
+            }}
+          >
+            Read Smarter.
+            <br />
+            <span style={{ 
+              color: '#8b5cf6',
+              background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              Understand Deeper.
+            </span>
+            <br />
+            Excel Faster.
+          </motion.h1>
+
+          {/* Description */}
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+            style={{
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: 'clamp(1rem, 2.5vw, 1.25rem)',
+              lineHeight: '1.6',
+              color: '#6b7280',
+              maxWidth: '600px',
+              margin: '0 auto 48px',
+              fontWeight: '400'
+            }}
+          >
+            Transform your reading experience with AI-powered tools that help you understand faster and remember longer. The intelligent way to study.
+          </motion.p>
+
+          {/* CTA Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.7 }}
+          >
+            <Link
+              to="/signup"
+              className="btn-primary"
+              style={{
+                fontSize: '16px',
+                padding: '14px 28px',
+                fontFamily: 'var(--font-inter)',
+                textDecoration: 'none'
+              }}
+            >
+              Get Started <ArrowRight style={{ width: 15, height: 15 }} />
+            </Link>
+          </motion.div>
+        </div>
+
+        
+        {/* Draggable Doodles Around Hero */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, pointerEvents: 'none' }}>
+          {/* Top Left Corner */}
+          <DraggableDoodle initialX={50} initialY={50} delay={1.0}>
+            <div style={{
+              width: 60,
+              height: 60,
+              backgroundColor: '#fef3c7',
+              border: '2px dashed #f59e0b',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px',
+              pointerEvents: 'auto'
+            }}>
+              💡
+            </div>
+          </DraggableDoodle>
+
+          {/* Top Right Corner */}
+          <DraggableDoodle initialX={window.innerWidth - 150} initialY={80} delay={1.2}>
+            <div style={{
+              width: 80,
+              height: 80,
+              backgroundColor: '#dbeafe',
+              border: '2px solid #3b82f6',
+              borderRadius: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '32px',
+              transform: 'rotate(15deg)',
+              pointerEvents: 'auto'
+            }}>
+              📚
+            </div>
+          </DraggableDoodle>
+
+          {/* Left Side */}
+          <DraggableDoodle initialX={30} initialY={300} delay={1.4}>
+            <div style={{
+              padding: '12px 16px',
+              backgroundColor: '#f3e8ff',
+              border: '2px solid #8b5cf6',
+              borderRadius: '12px',
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#6b21a8',
+              transform: 'rotate(-5deg)',
+              pointerEvents: 'auto'
+            }}>
+              Study Smarter! 🎯
+            </div>
+          </DraggableDoodle>
+
+          {/* Right Side */}
+          <DraggableDoodle initialX={window.innerWidth - 200} initialY={250} delay={1.6}>
+            <div style={{
+              width: 70,
+              height: 70,
+              backgroundColor: '#dcfce7',
+              border: '3px solid #22c55e',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '28px',
+              pointerEvents: 'auto'
+            }}>
+              ✨
+            </div>
+          </DraggableDoodle>
+
+          {/* Bottom Left */}
+          <DraggableDoodle initialX={80} initialY={window.innerHeight - 200} delay={1.8}>
+            <div style={{
+              padding: '16px 20px',
+              backgroundColor: '#fff7ed',
+              border: '2px dashed #ea580c',
+              borderRadius: '20px',
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: '16px',
+              fontWeight: '700',
+              color: '#c2410c',
+              transform: 'rotate(8deg)',
+              pointerEvents: 'auto'
+            }}>
+              AI-Powered 🤖
+            </div>
+          </DraggableDoodle>
+
+          {/* Bottom Right */}
+          <DraggableDoodle initialX={window.innerWidth - 180} initialY={window.innerHeight - 150} delay={2.0}>
+            <div style={{
+              width: 90,
+              height: 90,
+              backgroundColor: '#fce7f3',
+              border: '2px solid #ec4899',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '36px',
+              transform: 'rotate(-10deg)',
+              pointerEvents: 'auto'
+            }}>
+              🚀
+            </div>
+          </DraggableDoodle>
+
+          {/* Scattered Elements */}
+          <DraggableDoodle initialX={200} initialY={120} delay={2.2}>
+            <div style={{
+              width: 40,
+              height: 40,
+              backgroundColor: '#e0e7ff',
+              border: '2px solid #6366f1',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '20px',
+              pointerEvents: 'auto'
+            }}>
+              📝
+            </div>
+          </DraggableDoodle>
+
+          <DraggableDoodle initialX={window.innerWidth - 300} initialY={400} delay={2.4}>
+            <div style={{
+              padding: '8px 12px',
+              backgroundColor: '#f0fdf4',
+              border: '1px solid #86efac',
+              borderRadius: '8px',
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: '12px',
+              fontWeight: '500',
+              color: '#166534',
+              pointerEvents: 'auto'
+            }}>
+              Learn Faster! ⚡
+            </div>
+          </DraggableDoodle>
+
+          <DraggableDoodle initialX={150} initialY={window.innerHeight - 300} delay={2.6}>
+            <div style={{
+              width: 50,
+              height: 50,
+              backgroundColor: '#fef2f2',
+              border: '2px dotted #ef4444',
+              borderRadius: '25px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px',
+              pointerEvents: 'auto'
+            }}>
+              🔥
+            </div>
+          </DraggableDoodle>
+
+          {/* Mobile: Show fewer doodles */}
+          <div className="md:hidden">
+            <DraggableDoodle initialX={20} initialY={100} delay={1.0}>
+              <div style={{
+                width: 40,
+                height: 40,
+                backgroundColor: '#fef3c7',
+                border: '2px dashed #f59e0b',
+                borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 10,
-                fontWeight: 800
+                fontSize: '18px',
+                pointerEvents: 'auto'
               }}>
-                Start Free — No Card Needed <ArrowRight size={18} />
-              </Link>
-              <button className="btn-secondary" style={{ 
-                padding: '16px 32px', 
-                fontSize: 15, 
-                borderRadius: 16,
-                background: '#fff',
-                border: '1px solid #eee',
-                width: '100%',
-                maxWidth: 240,
+                💡
+              </div>
+            </DraggableDoodle>
+
+            <DraggableDoodle initialX={window.innerWidth - 80} initialY={150} delay={1.2}>
+              <div style={{
+                width: 50,
+                height: 50,
+                backgroundColor: '#dbeafe',
+                border: '2px solid #3b82f6',
+                borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 10,
-                fontWeight: 700,
-                color: '#444'
+                fontSize: '20px',
+                pointerEvents: 'auto'
               }}>
-                <Play size={16} fill="currentColor" /> Watch Demo
-              </button>
-              <p style={{ fontSize: 14, color: '#aaa', fontWeight: 500, marginTop: 8 }}>Free forever tier · No credit card</p>
-            </div>
-          </RevealDiv>
-        </div>
-
-        {/* Dashboard Mockup */}
-        <div className="hidden md:block" style={{ width: '100%', maxWidth: 1100, margin: '60px auto 0' }}>
-          <div className="dashboard-wrapper">
-             <div className="dashboard-content" style={{ height: 560 }}>
-                {/* Header bar */}
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:'1px solid #ebe9f5', background:'white' }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-                    <LuterLogo size={22} fontSize={18} />
-                    <div style={{ borderLeft: '1px solid #e8e8ec', height: 20, margin: '0 4px' }} />
-                    <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'#7180FE' }}>
-                      <span>Home</span>
-                      <ChevronRight style={{ width:12, height:12, color:'#bbb' }} />
-                      <span style={{ color:'#111', fontWeight:600, textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:3 }}>Earth Wiki Session</span>
-                    </div>
-                  </div>
-                  <button style={{ background:'#7180FE', color:'white', padding:'7px 14px', borderRadius:8, fontSize:12, fontWeight:700, display:'flex', alignItems:'center', gap:6, border:'none', cursor:'pointer' }}>
-                    <Plus style={{ width:13, height:13 }} /> New Session
-                  </button>
-                </div>
-
-                {/* Body */}
-                <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
-                  {/* Left sidebar */}
-                  <div style={{ width:56, borderRight:'1px solid #ebe9f5', background:'white', display:'flex', flexDirection:'column', alignItems:'center', padding:'12px 0', gap:20 }}>
-                    {[BookOpen, Layers, Zap, FileText, MessageSquare].map((Icon, i) => (
-                      <div key={i} style={{ width:32, height:32, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', background: i===1 ? 'var(--primary-bg)' : 'transparent', cursor:'pointer' }}>
-                        <Icon style={{ width:16, height:16, color: i===1 ? 'var(--primary)' : '#bbb' }} />
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Main section */}
-                  <div style={{ flex:1, display:'flex', flexDirection:'column', background:'#F7F5FF' }}>
-                    <div style={{ display:'flex', gap:4, padding:'8px 8px 0', background:'transparent' }}>
-                      {['Original', 'Smart Notes', 'Summary', 'Flashcards', 'Quiz'].map((tab, i) => (
-                        <div key={i} style={{
-                          padding:'6px 12px', borderRadius:'8px 8px 0 0', fontSize:11, fontWeight:700, cursor:'pointer',
-                          background: i===1 ? 'white' : 'transparent',
-                          color: i===1 ? '#7180FE' : '#aaa'
-                        }}>{tab}</div>
-                      ))}
-                    </div>
-                    <div style={{ flex:1, background:'white', margin:'0 8px 8px', borderRadius:12, padding:28, overflow:'auto' }}>
-                       <h2 style={{ fontFamily:'var(--font-besley)', fontSize:24, marginBottom:16 }}>The Big Bang Theory</h2>
-                       <p style={{ fontSize:14, color:'#666', lineHeight:1.7, marginBottom:16 }}>The Big Bang theory is the prevailing cosmological model explaining the existence of the observable universe from the earliest known periods through its subsequent large-scale evolution.</p>
-                       {[1,2,3].map(i => <div key={i} style={{ height:8, background:'#f3f4f6', borderRadius:4, marginBottom:10, width:`${90-i*10}%` }} />)}
-                    </div>
-                  </div>
-                </div>
-             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════ STATS BAR ═══════════════ */}
-      <section style={{ padding: '48px 0', background: '#fff', borderTop: '1px solid var(--border-light)', borderBottom: '1px solid var(--border-light)' }}>
-        <div className="container-full">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 24, textAlign: 'center' }}>
-            {[
-              { num: '5M+', label: 'Active Students', icon: <Users style={{ width:20, height:20 }} /> },
-              { num: '150+', label: 'Universities', icon: <GraduationCap style={{ width:20, height:20 }} /> },
-              { num: '99%', label: 'Exam Relevance', icon: <Award style={{ width:20, height:20 }} /> },
-              { num: '10×', label: 'Faster Learning', icon: <TrendingUp style={{ width:20, height:20 }} /> },
-            ].map(({ num, label, icon }) => (
-              <div key={label} className="stat-card reveal-child">
-                <div style={{ display:'flex', justifyContent:'center', marginBottom:8, color:'var(--primary)' }}>{icon}</div>
-                <div className="stat-number">{num}</div>
-                <div className="stat-label">{label}</div>
+                📚
               </div>
-            ))}
+            </DraggableDoodle>
+
+            <DraggableDoodle initialX={30} initialY={window.innerHeight - 120} delay={1.4}>
+              <div style={{
+                padding: '8px 12px',
+                backgroundColor: '#f3e8ff',
+                border: '2px solid #8b5cf6',
+                borderRadius: '8px',
+                fontFamily: 'Outfit, sans-serif',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: '#6b21a8',
+                pointerEvents: 'auto'
+              }}>
+                Study Smart! 🎯
+              </div>
+            </DraggableDoodle>
           </div>
         </div>
+
+        <style jsx>{`
+          @keyframes pulse {
+            0%, 100% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0.5;
+            }
+          }
+        `}</style>
       </section>
 
+      
       {/* ═══════════════ TRUST STRIP ═══════════════ */}
       <section style={{ padding: '40px 0', background: 'white' }}>
         <p style={{ textAlign:'center', fontSize:13, fontWeight:600, color:'#bbb', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:20 }}>
@@ -868,101 +1283,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══════════════ CBT SIMULATOR (light theme) ═══════════════ */}
-      <section id="cbt" style={{ padding: '120px 0', background: 'linear-gradient(to bottom, #FFFFFF, #FCFAFF)', position: 'relative', overflow: 'hidden' }}>
-        <div className="container-custom" style={{ position: 'relative', zIndex: 2 }}>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:80, alignItems:'center' }}>
-            
-            {/* Left Content */}
-            <div className="reveal-child">
-              {/* Pill badge */}
-              <div style={{ display:'inline-block', fontSize:11, fontFamily:'var(--font-inter)', fontWeight:800, letterSpacing:'0.08em', color:'var(--primary)', textTransform:'uppercase', border:'1px solid rgba(151,24,251,0.2)', borderRadius:99, padding:'6px 14px', marginBottom:28, background:'rgba(151,24,251,0.06)' }}>
-                CBT Simulation
-              </div>
-
-              <h2 style={{ fontSize:'clamp(2.5rem, 4.5vw, 3.8rem)', color:'#333333', fontFamily:'var(--font-besley)', fontWeight:700, lineHeight:'1.15', marginBottom:28, letterSpacing:'-0.02em' }}>
-                Score higher with<br/><span style={{ color:'var(--primary)' }}>AI mock exams.</span>
-              </h2>
-              <p style={{ fontSize:18, color:'#666', fontFamily:'var(--font-inter)', fontWeight:500, lineHeight:'180%', marginBottom:40, maxWidth:500 }}>
-                Luter generates questions that mirror your university's real format. The more you practice, the sharper your instincts become.
-              </p>
-              
-              <div style={{ display:'flex', flexDirection:'column', gap:18, marginBottom:48 }}>
-                {[
-                  'Trained on actual university past questions',
-                  'Adaptive difficulty that grows with you',
-                  'Detailed explanations for every answer'
-                ].map((pt, index) => (
-                  <div key={index} style={{ display:'flex', gap:14, alignItems:'center' }}>
-                    <div style={{ width:24, height:24, borderRadius:'50%', background:'var(--primary)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 2px 8px rgba(151,24,251,0.2)' }}>
-                      <Check style={{ width:12, height:12, color:'white', strokeWidth:3 }} />
-                    </div>
-                    <span style={{ fontSize:16, color:'#555', fontFamily:'var(--font-inter)', fontWeight:600 }}>{pt}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button className="btn-primary" style={{ padding:'14px 28px', fontSize:15, boxShadow:'0 4px 14px rgba(151,24,251,0.3)', display:'inline-flex', alignItems:'center', gap:8 }}>
-                Start Practice Exam <Zap style={{ width:16, height:16 }} />
-              </button>
-            </div>
-
-            {/* Right mock exam card (Light interface) */}
-            <div className="reveal-child" style={{ position: 'relative' }}>
-              {/* Decorative blurred blob */}
-              <div style={{ position:'absolute', top:'-15%', right:'-15%', width:'400px', height:'400px', background:'linear-gradient(135deg, rgba(151,24,251,0.15), rgba(196,181,247,0.3))', borderRadius:'50%', filter:'blur(60px)', zIndex: 0 }} />
-              <div style={{ position:'absolute', bottom:'-5%', left:'-10%', width:'250px', height:'250px', background:'linear-gradient(135deg, rgba(100,50,255,0.1), rgba(151,24,251,0.1))', borderRadius:'50%', filter:'blur(50px)', zIndex: 0 }} />
-              
-              <div style={{ position: 'relative', zIndex: 1, background:'white', borderRadius:32, padding:40, border:'1px solid #ebe9f5', boxShadow:'0 24px 64px rgba(151,24,251,0.08), 0 4px 12px rgba(0,0,0,0.02)' }}>
-                
-                <div style={{ marginBottom:32 }}>
-                  <div style={{ fontSize:11, fontFamily:'var(--font-inter)', fontWeight:800, letterSpacing:'0.1em', color:'#a1a1aa', textTransform:'uppercase', marginBottom:12 }}>Question 14 of 30</div>
-                  <div style={{ background:'#fafafa', borderRadius:16, padding:'24px 28px', fontSize:16, fontFamily:'var(--font-inter)', color:'#333', fontWeight:600, lineHeight:1.6, border:'1px solid #f4f4f5' }}>
-                    Which of the following best describes the role of the hypothalamus?
-                  </div>
-                </div>
-
-                <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-                  {[
-                    { letter:'A', text:'Regulates body temperature and hunger', correct:true },
-                    { letter:'B', text:'Controls voluntary muscle movement', correct:false },
-                    { letter:'C', text:'Processes visual information', correct:false },
-                    { letter:'D', text:'Manages long-term memory storage', correct:false },
-                  ].map(({ letter, text, correct }) => (
-                    <div key={letter} style={{
-                      display:'flex', gap:16, alignItems:'center', padding:'16px 20px', borderRadius:16,
-                      border:`1px solid ${correct ? 'rgba(151,24,251,0.3)' : '#f4f4f5'}`,
-                      background: correct ? 'rgba(151,24,251,0.04)' : 'white',
-                      transition: 'all 0.2s',
-                    }}>
-                      <div style={{ 
-                        width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, fontFamily:'var(--font-inter)', flexShrink:0, 
-                        background: correct ? 'var(--primary)' : '#f3f4f6', 
-                        color: correct ? 'white' : '#9ca3af' 
-                      }}>
-                        {letter}
-                      </div>
-                      <span style={{ fontSize:15, fontFamily:'var(--font-inter)', color: correct ? '#111' : '#6b7280', fontWeight: correct ? 700 : 500 }}>{text}</span>
-                      {correct && <Check style={{ width:16, height:16, color:'var(--primary)', marginLeft:'auto', flexShrink:0 }} />}
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:32, paddingTop:24, borderTop:'1px solid #ebe9f5' }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, color:'#a1a1aa', fontSize:13, fontFamily:'var(--font-inter)', fontWeight:700 }}>
-                    <Clock style={{ width:14, height:14 }} /> 8:45 remaining
-                  </div>
-                  <button className="btn-primary" style={{ padding:'10px 24px', borderRadius:10, fontSize:14, fontFamily:'var(--font-inter)', paddingLeft:24, paddingRight:20 }}>
-                    Next <ArrowRight style={{ width:14, height:14 }} />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
+      
 
 
       {/* ═══════════════ COMPARISON ═══════════════ */}

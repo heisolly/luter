@@ -190,7 +190,7 @@ export default function Dashboard() {
           paddingBottom: 0,
         }}
       >
-        <Outlet context={{ user, isMobile, sidebarCollapsed }} />
+        <Outlet context={{ user, isMobile, sidebarCollapsed, setSidebarCollapsed }} />
       </main>
 
       <AnimatePresence>

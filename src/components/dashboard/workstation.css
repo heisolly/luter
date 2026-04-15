@@ -130,62 +130,111 @@
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
 }
 
-/* ── Side Tabs Navigation (In Sidepanel) ── */
-.ws-side-tabs-header {
-  padding: 12px 16px;
+/* ── Premium Research Vertical Rail ── */
+.ws-pane-right {
+  width: 440px; 
   background: white;
-  border-bottom: 1px solid #F1F5F9;
-  flex-shrink: 0; /* Ensures header doesn't shrink or cause layout shifts */
-  z-index: 5;
+  border-left: 1px solid #f1f1f1;
+  display: flex;
+  flex-direction: column; 
+  flex-shrink: 0;
+  height: calc(100vh - 56px);
+  position: sticky;
+  top: 56px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  z-index: 10;
 }
 
-.ws-side-tabs {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
+
+.ws-side-tool-container {
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #f1f1f1 transparent;
 }
 
-.ws-side-tabs::-webkit-scrollbar { display: none; }
+.ws-side-tool-container::-webkit-scrollbar {
+  width: 4px;
+}
 
-.ws-side-tab {
+.ws-side-tool-container::-webkit-scrollbar-thumb {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+/* ── Cool & Clean Minimalist Tab Bar ── */
+.ws-side-tabs-header {
+  padding: 40px 40px 0 40px; 
+  background: white;
+}
+
+.ws-text-tabs-bar {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 32px;
+}
+
+.ws-text-tab {
+  padding-bottom: 20px;
   background: transparent;
   border: none;
-  border-radius: 8px;
-  color: #64748B;
   font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
+  font-weight: 500;
+  color: #a1a1aa;
   cursor: pointer;
-  transition: all 0.2s;
+  border-bottom: 1px solid transparent; 
+  transition: all 0.2s ease;
+  text-transform: lowercase;
+  letter-spacing: 0.01em;
 }
 
-.ws-side-tab:hover {
-  background: #F8FAFC;
+.ws-text-tab--active {
+  color: #111;
+  border-bottom-color: #111;
+  font-weight: 600;
+}
+
+.ws-text-tab:hover {
+  color: #18181B;
+}
+
+.ws-assistant-title-area { display: none; } /* Hide old title */
+
+.ws-tab-btn-horiz span {
+  display: inline;
+}
+
+@media (max-width: 1200px) {
+  .ws-tab-btn-horiz span { display: none; }
+  .ws-tab-btn-horiz { padding: 8px 4px; }
+}
+
+.ws-assistant-title-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-assistant-name {
+  font-size: 14px;
+  font-weight: 800;
   color: #1E293B;
+  margin: 0;
 }
 
-.ws-side-tab--active {
-  background: #F1F5F9;
-  color: #1A102D;
-}
-
-.ws-tab-dot {
+.ws-status-dot-pulse {
   width: 6px;
   height: 6px;
-  background: #E2E8F0;
+  background: #10B981;
   border-radius: 50%;
-  transition: all 0.3s;
+  box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+  animation: ws-dot-pulse 2s infinite;
 }
 
-.ws-tab-dot.active {
-  background: #10B981;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+@keyframes ws-dot-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
 /* ── Jungle Scrollbar ── */
@@ -209,26 +258,24 @@
 
 /* ── Chat Bubbles ── */
 .ws-chat-bubble {
-  max-width: 85%;
-  padding: 12px 16px;
-  border-radius: 14px;
-  font-size: 14px;
+  max-width: 90%;
+  padding: 0;
+  font-size: 15px;
   line-height: 1.6;
+  color: #333;
 }
 
 .ws-chat-bubble--user {
-  align-self: flex-end;
-  background: var(--luter-card-bg);
-  border: 1px solid var(--luter-border);
-  color: var(--luter-primary-dark);
-  border-bottom-right-radius: 4px;
+  align-self: flex-start;
+  color: #111;
+  font-weight: 600;
+  margin-bottom: 4px;
 }
 
 .ws-chat-bubble--ai {
   align-self: flex-start;
-  background: var(--luter-mint-light);
-  color: var(--luter-primary-dark);
-  border-bottom-left-radius: 4px;
+  color: #444;
+  margin-bottom: 24px;
 }
 
 /* ── Flashka-Style Studio Canvas ── */
@@ -237,7 +284,7 @@
   gap: 0; 
   padding: 0;
   flex: 1;
-  background: #F3F4F6; 
+  background: #F8FAFB; /* Studio White */
   overflow: hidden; 
 }
 
@@ -249,24 +296,27 @@
 
 .ws-pane-left {
   flex: 1;
+  background: #F8FAFB; /* Studio White - Universal Background */
+  overflow: hidden;
+  position: relative;
   display: flex;
   flex-direction: column;
-  min-height: min-content;
 }
 
 .ws-pane-right {
-  width: 420px;
+  width: 500px; /* Increased to accommodate rail + chat workspace */
   background: white;
-  border-left: 1px solid #E2E8F0;
+  border-left: 1px solid rgba(226, 232, 240, 0.8);
   display: flex;
-  flex-direction: column;
+  flex-direction: row; /* Rail + Content */
   flex-shrink: 0;
-  height: calc(100vh - 56px); /* Adjusted for 56px global header */
+  height: calc(100vh - 56px);
   position: sticky;
   top: 56px;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 10;
+  box-shadow: -4px 0 20px rgba(0,0,0,0.02);
 }
 
 /* ── AI Pulse Pin System ── */
@@ -303,17 +353,7 @@
   100% { width: 300%; height: 300%; opacity: 0; }
 }
 
-/* Force children to not have their own scrollbars */
-.ws-infinite-reader-container, .ws-ai-content-pane, .ws-chat-container {
-  height: auto !important;
-  overflow: visible !important;
-}
-
-.ws-canvas-surface, .ws-visual-viewport, .ws-chat-messages {
-  height: auto !important;
-  overflow: visible !important;
-  min-height: 100vh;
-}
+/* ── Thinking / Loading States (Zen Dots) ── */
 
 /* Thinking / Loading States (Zen Dots) */
 .ws-thinking-bubble {
@@ -379,9 +419,8 @@
 }
 
 .ws-chat-input-area {
-  padding: 20px;
-  border-top: 1px solid var(--luter-mint-light);
-  background: var(--luter-card-bg);
+  padding: 32px 40px;
+  background: white;
   flex-shrink: 0;
 }
 
@@ -389,45 +428,46 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  background: #f8f8f8;
+  border-radius: 12px;
+  padding: 4px 8px 4px 16px;
+  border: 1px solid #f0f0f0;
+  transition: all 0.2s;
+}
+
+.ws-input-wrapper:focus-within {
+  background: white;
+  border-color: #e5e5e5;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
 }
 
 .ws-chat-input {
   width: 100%;
-  padding: 12px 20px;
-  border-radius: 99px;
-  border: 1px solid var(--luter-border);
+  padding: 12px 0;
+  background: transparent;
+  border: none;
   font-family: var(--font-body);
   font-size: 14px;
   outline: none;
-  box-shadow: var(--luter-tactile-shadow);
-  transition: transform 0.1s ease;
-}
-
-.ws-chat-input:focus {
-  transform: translateY(1px);
-  box-shadow: 0 3px 0px #4A5568;
+  color: #111;
 }
 
 .ws-send-btn {
-  background: var(--luter-primary);
+  background: #111;
   color: white;
   border: none;
-  padding: 10px 20px;
-  border-radius: 99px;
-  font-family: var(--font-body);
-  font-size: 13px;
-  text-transform: lowercase;
-  font-weight: 600;
-  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .ws-send-btn:hover {
-  background: var(--luter-primary-dark);
+  background: #333;
 }
 
 /* ── Flashcard Styling ── */
@@ -496,6 +536,21 @@
 .ws-tactile-btn:active {
   transform: translateY(2px);
   box-shadow: 0 2px 0px #4A5568;
+}
+
+.ws-flashka-card {
+  background: white;
+  border-radius: 20px;
+  padding: 48px;
+  border: 1px solid #f1f1f1;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.02);
+  margin-bottom: 40px;
+  transition: all 0.3s ease;
+}
+
+.ws-flashka-card:hover {
+  border-color: #e5e5e5;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.04);
 }
 
 /* ── Tab Layout Fixes ── */
@@ -750,6 +805,79 @@
   overflow: hidden; /* Lock the content within the panel */
 }
 
+/* ── Micro-Minimalist Chat Empty State ── */
+.ws-chat-empty-state {
+  padding: 60px 32px; /* Generous breathing room */
+  display: flex;
+  flex-direction: column;
+}
+
+.ws-suggested-header {
+  font-size: 13px;
+  font-weight: 500;
+  color: #71717A;
+  margin-bottom: 32px;
+  text-transform: lowercase;
+  opacity: 0.8;
+}
+
+.ws-suggested-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ws-suggested-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04); /* Thin line */
+  color: #3F3F46;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.ws-suggested-item:hover {
+  color: #000;
+  padding-left: 4px; /* Subtle hover motion */
+}
+
+.ws-suggested-plus {
+  color: #D4D4D8;
+  opacity: 0.5;
+}
+
+.ws-center-refresh {
+  margin-top: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ws-refresh-circle {
+  width: 44px;
+  height: 44px;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ws-refresh-circle:hover {
+  transform: rotate(90deg);
+  border-color: #18181B;
+}
+
 .ws-chat-header-premium {
   padding: 18px 24px;
   background: white;
@@ -830,188 +958,79 @@
   background: #CBD5E1;
 }
 
-/* Empty State / Suggested Questions */
-.ws-chat-empty-state {
-  display: flex;
-  flex-direction: column;
-  padding: 12px 0;
-}
-
-.ws-chat-empty-title {
-  font-size: 20px;
-  font-weight: 800;
-  color: #1A102D;
-  margin-bottom: 8px;
-  letter-spacing: -0.02em;
-}
-
-.ws-chat-empty-subtitle {
-  font-size: 14px;
-  color: #64748B;
-  margin-bottom: 32px;
-  line-height: 1.5;
-}
-
-.ws-suggested-section {
-  display: flex;
-  flex-direction: column;
-}
-
-.ws-suggested-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #94A3B8;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 16px;
-}
-
-.ws-suggested-list-premium {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.ws-suggested-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: #475569;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.ws-suggested-row:hover {
-  background: white;
-  border-color: var(--luter-primary);
-  color: var(--luter-primary);
-  transform: translateX(4px);
-}
-
-.ws-suggested-text {
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.5;
-  flex: 1;
-}
-
-.ws-suggested-plus {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  color: #94A3B8;
-  background: #F8FAFC;
-  transition: all 0.2s;
-  margin-left: 12px;
-}
-
-.ws-suggested-row:hover .ws-suggested-plus {
-  background: #F5F3FF;
-  color: #7a12cc;
-}
-
 .ws-chat-input-area {
-  padding: 20px 24px 24px;
+  padding: 32px;
   background: white;
-  border-top: 1px solid #F1F5F9;
-  flex-shrink: 0; /* Keeps input at the bottom */
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
 }
-
-.ws-chat-limit-info {
-  font-size: 12px !important;
-  color: #64748B !important;
-  margin-bottom: 12px !important;
-  font-weight: 500 !important;
-}
-
-.ws-chat-limit-info span {
-  color: var(--luter-primary) !important;
-  font-weight: 700 !important;
-  cursor: pointer;
-}
-
-
 
 .ws-chat-input-outer {
   display: flex;
   align-items: center;
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0 !important;
-  border-radius: 20px !important;
-  padding: 8px 8px 8px 20px !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  background: #F4F4F5; /* Cool gray */
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 4px 4px 4px 20px;
+  transition: all 0.3s ease;
 }
 
 .ws-chat-input-outer:focus-within {
-  border-color: var(--luter-primary) !important;
   background: white;
-  box-shadow: 0 4px 20px rgba(122, 18, 204, 0.08) !important;
-  transform: translateY(-1px);
+  border-color: #18181B;
+  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05);
 }
 
 .ws-chat-input-field {
   flex: 1;
-  border: none !important;
-  background: transparent !important;
-  outline: none !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  color: #1A102D !important;
-  padding: 10px 0 !important;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: #18181B;
+  outline: none;
+  font-weight: 400;
+  padding: 12px 0;
 }
 
-.ws-chat-input-field::placeholder { color: #94A3B8 !important; }
+.ws-input-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 
-.ws-chat-mic-btn {
-  padding: 10px !important;
-  color: #94A3B8 !important;
+.ws-chat-mic-btn-simple {
+  border: none;
+  background: transparent;
+  color: #A1A1AA;
   cursor: pointer;
-  background: none !important;
+  padding: 10px;
+  transition: color 0.2s;
 }
 
-.ws-chat-mic-btn:hover { color: var(--luter-primary) !important; }
+.ws-chat-mic-btn-simple:hover {
+  color: #18181B;
+}
 
-.ws-chat-send-btn {
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: 12px !important;
-  background: #A7F3D0 !important;
-  color: #065F46 !important;
+.ws-chat-send-btn-square {
+  background: #18181B; /* Matrix/Deep Black */
+  color: white;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border: none !important;
+  transition: all 0.2s;
 }
 
-.ws-chat-send-btn:hover {
-  background: #6EE7B7 !important;
-  transform: scale(1.05);
+.ws-chat-send-btn-square:hover {
+  background: #3F3F46;
+  transform: translateY(-1px);
 }
 
-.ws-chat-send-btn:disabled {
-  opacity: 0.5 !important;
-  cursor: not-allowed !important;
-  background: #F1F5F9 !important;
-  color: #94A3B8 !important;
-}
-
-.ws-chat-page-link, .ws-chat-source-link {
-  color: var(--luter-primary) !important;
-  font-weight: 800 !important;
-  cursor: pointer !important;
-  text-decoration: underline !important;
-  text-decoration-thickness: 2px;
+.ws-chat-send-btn-square svg {
+  transform: rotate(-45deg) translateX(1px);
 }
 
 /* ── Follow-up List (Minimalist) ── */
@@ -1072,6 +1091,71 @@
 }
 
 /* ── Copy to Notes ── */
+/* ── Raycast-Inspired Pro Action Bubble ── */
+.ws-pro-action-bubble {
+  position: fixed; /* Keep it relative to viewport */
+  display: flex;
+  align-items: center;
+  background: #111827; /* Dark Mode Pro Prompt */
+  color: white;
+  padding: 6px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+  z-index: 10000;
+  animation: ws-bubble-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 4px;
+}
+
+@keyframes ws-bubble-pop {
+  from { transform: scale(0.9) translateY(10px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.ws-bubble-main-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ws-bubble-main-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.ws-bubble-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0 4px;
+}
+
+.ws-bubble-icon-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ws-bubble-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
 .ws-copy-to-notes {
   position: absolute;
   top: 12px;
@@ -1391,47 +1475,138 @@
   border: none;
   background: transparent;
   font-weight: 700;
+}
+
+/* ── Flashka Boundless Studio Architecture ── */
+
+.ws-infinite-reader-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: white; /* Clean, pure reading base */
+  overflow: hidden;
+}
+
+.ws-canvas-scroller {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0; /* Clear padding for edge-to-edge look */
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.ws-minimal-doc-nav {
+  position: sticky;
+  top: 16px;
+  z-index: 100;
+  width: calc(100% - 48px);
+  max-width: 900px;
+  margin: 12px auto 24px auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0,0,0,0.05);
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.ws-doc-nav-left, .ws-doc-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ws-icon-doc-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #94A3B8;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ws-icon-doc-btn:hover {
+  background: #F8FAFC;
   color: var(--luter-primary);
 }
 
-.ws-nav-dropdown {
+.ws-pg-indicator {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-  cursor: pointer;
+  font-weight: 800;
+  color: #1E293B;
+  background: #F1F5F9;
+  padding: 4px 12px;
+  border-radius: 8px;
 }
 
-/* ── Visual View Mode: Paper Architecture ── */
-.ws-visual-viewport {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: flex-start;
+.ws-pg-indicator input {
+  width: 20px;
+  background: transparent;
+  border: none;
+  text-align: center;
+  font-weight: 800;
+  color: var(--luter-primary);
   padding: 0;
-  overflow-y: auto;
-  background: #F8FAFB;
-  position: relative;
+}
+
+.ws-canvas-surface {
+  width: 100%;
+  max-width: 1000px;
 }
 
 .ws-paper-sheet {
   background: white;
   width: 100%;
-  max-width: 100%; 
+  flex: 1;
   min-height: 100%;
-  border-radius: 0;
-  overflow: hidden;
-  border: none;
-  display: flex;
-  flex-direction: column;
+  /* Removed shadow and borders for "just there" look */
 }
 
-.luter-pdf-canvas {
+.ws-main-layout {
+  display: flex;
+  height: calc(100vh - 56px);
+  background: #F8FAFB; /* Studio White */
+}
+
+/* ── Boundless Studio Canvas ── */
+.ws-pane-left {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #F8FAFB;
+  position: relative;
+}
+
+.ws-canvas-studio {
+  flex: 1;
+  padding: 60px; /* More white space for focus */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  scroll-behavior: smooth;
+}
+
+/* AI Structured Mode (Notion-esque) */
+.ws-native-canvas {
   width: 100%;
-  height: 100%;
-  background: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .ws-notion-layout {
@@ -1439,30 +1614,28 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  padding: 0 20px;
+  gap: 40px;
 }
 
-/* Property Grid Header */
 .ws-property-card {
   background: white;
-  border-radius: 16px;
-  padding: 32px;
+  border-radius: 20px;
+  padding: 40px;
   box-shadow: 0 4px 24px rgba(0,0,0,0.02);
-  border: 1px solid #F1F5F9;
+  border: 1px solid rgba(226, 232, 240, 0.5);
 }
 
 .ws-property-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 32px;
-  margin-top: 32px;
+  gap: 40px;
+  margin-top: 40px;
 }
 
 .ws-prop-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .ws-prop-label {
@@ -1470,68 +1643,195 @@
   font-weight: 700;
   color: #94A3B8;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 
 .ws-prop-value {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: #1E293B;
 }
 
-/* Section Cards */
 .ws-notion-card {
   background: white;
-  border-radius: 16px;
-  padding: 40px;
-  box-shadow: 0 10px 40px -10px rgba(0,0,0,0.03);
-  border: 1px solid #F1F5F9;
+  border-radius: 20px;
+  padding: 60px; /* Immense padding for focus */
+  box-shadow: 0 10px 50px -10px rgba(0,0,0,0.03);
+  border: 1px solid rgba(226, 232, 240, 0.5);
 }
 
 .ws-notion-body {
-  line-height: 1.6;
+  line-height: 1.8;
   color: #1A102D;
   font-family: 'Outfit', sans-serif;
-  font-size: 17px;
+  font-size: 18px; /* High legibility */
 }
 
-/* ── Contextual Action Bubble ── */
-.luter-action-bubble {
-  position: absolute;
+/* Pro Component Overwrites */
+.luter-pdf-canvas {
+  width: 100%;
+  height: auto;
+  min-height: 1000px;
   background: white;
-  border-radius: 99px;
+}
+
+.ws-studio-floating-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   padding: 6px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  box-shadow: 0 10px 30px -5px rgba(122, 18, 204, 0.25);
-  border: 1px solid #F5F3FF;
-  z-index: 2000;
-  transform: translateY(-100%) scale(0.9);
-  animation: bubblePop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-  pointer-events: auto;
+  background: white;
+  border-radius: 14px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
 }
 
-@keyframes bubblePop {
-  0% { opacity: 0; transform: translateY(-90%) scale(0.9); }
-  100% { opacity: 1; transform: translateY(-110%) scale(1); }
-}
-
-.bubble-tool {
+.ws-nav-section {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #7a12cc;
-  cursor: pointer;
-  background: none;
+  gap: 8px;
+}
+
+.ws-nav-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
   border: none;
-  padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: 10px;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ws-nav-btn:hover {
+  background: #F8FAFC;
+  color: var(--luter-primary);
+  transform: translateY(-1px);
+}
+
+.ws-nav-center-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  border-left: 1px solid #F1F5F9;
+  border-right: 1px solid #F1F5F9;
+}
+
+.ws-nav-pg-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #F8FAFC;
+  padding: 6px 16px;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+}
+
+.ws-nav-pg-input {
+  width: 32px;
+  background: transparent;
+  border: none;
+  text-align: center;
+  font-weight: 800;
+  color: #1E293B;
+  font-size: 15px;
+  outline: none;
+}
+
+.ws-pg-total {
+  font-size: 14px;
+  color: #94A3B8;
+  font-weight: 600;
+}
+
+/* Contextual Pro Bubble */
+.ws-pro-action-bubble {
+  position: absolute;
+  background: #1A1A1A; /* Raycast Dark */
+  border-radius: 12px;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  z-index: 5000;
+  border: 1px solid rgba(255,255,255,0.1);
+  transform: translateX(-50%) translateY(-100%);
+  animation: ws-bubble-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes ws-bubble-pop {
+  from { opacity: 0; transform: translateX(-50%) translateY(-90%) scale(0.95); }
+  to { opacity: 1; transform: translateX(-50%) translateY(-110%) scale(1); }
+}
+
+.ws-glass-action {
+  background: white;
+  border: 1px solid #f1f1f1;
+  color: #71717A;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
   transition: all 0.2s;
 }
 
-.bubble-tool:hover { background: #F5F3FF; }
+.ws-glass-action:hover {
+  background: #fafafa;
+  border-color: #e5e5e5;
+  color: #111;
+}
 
-.bubble-divider { width: 1px; height: 14px; background: #E2E8F0; }
+.ws-glass-exit {
+  color: #71717A;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ws-glass-exit:hover {
+  color: #f43f5e;
+}
+
+.ws-bubble-main-btn {
+  background: #7a12cc;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ws-bubble-main-btn:hover { background: #8b2ee0; }
+
+.ws-bubble-icon-btn {
+  width: 34px;
+  height: 34px;
+  background: transparent;
+  border: none;
+  color: #A1A1AA;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.ws-bubble-icon-btn:hover { background
