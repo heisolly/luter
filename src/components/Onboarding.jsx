@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { useDashboardPrefetch } from '../context/DashboardPrefetchContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, CheckCircle2, Search, ChevronDown, Bell, Clock, User, RefreshCw, Library, X, Sparkles } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Search, ChevronDown, Bell, Clock, User, RefreshCw, Library, X, Sparkles, ArrowRight, ArrowLeft, Trash2, GraduationCap as GradIcon, Target, Award, Calendar, Layout, ShieldCheck, Activity, Zap, MapPin, Plus } from 'lucide-react';
 import logo from '../../asset/logo.png';
+import LuterLogo from './shared/LuterLogo';
 import { normalizeCourseRow } from '../lib/curriculumSlugs';
 import {
   buildCurriculumKeyContext,
@@ -16,14 +18,30 @@ import EnhancedCourseSuggestions from './EnhancedCourseSuggestions';
 
 /* ─── Static Data ─── */
 const GOALS = [
-  { id: 'first',  label: '1st Class',       sub: 'CGPA 4.5+',       emoji: '🏆', ai: "I'll push you hard — no shortcuts." },
-  { id: 'second', label: '2nd Class Upper', sub: 'CGPA 3.5+',       emoji: '⭐', ai: "Solid goal. Let's build steady habits." },
+  { id: 'first',  label: '1st Class',       sub: 'CGPA 4.5\\+',       emoji: '🏆', ai: "I'll push you hard — no shortcuts." },
+  { id: 'second', label: '2nd Class Upper', sub: 'CGPA 3.5\\+',       emoji: '⭐', ai: "Solid goal. Let's build steady habits." },
   { id: 'pass',   label: 'Just let me pass',sub: 'Pass all courses', emoji: '🙏', ai: "Respect. I'll make sure nothing slips through." },
+];
+
+const ROLES = [
+  { id: 'student', label: 'Student', icon: '🎓' },
+  { id: 'teacher', label: 'Teacher', icon: '👨‍🏫' }
+];
+
+const FEATURES_COMPARISON = [
+  { name: 'Notes & flashcards', teacher: true, student: true },
+  { name: 'Live Record Class', teacher: true, student: true },
+  { name: 'PDF Summarizer', teacher: true, student: true },
+  { name: 'Mobile App Access', teacher: false, student: true },
+  { name: 'AP, IB, SAT, etc. practice', teacher: false, student: true },
+  { name: '1:1 Tutoring with Lute', teacher: false, student: true },
+  { name: 'Take assessments', teacher: false, student: true },
+  { name: 'Access monitored chats', teacher: false, student: true },
 ];
 
 const SOURCES = [
   'Instagram', 'TikTok', 'ChatGPT', 'App Store',
-  'Teacher/professor', 'Friend', 'Google', 'YouTube', 'other'
+  'Teacher\u002Fprofessor', 'Friend', 'Google', 'YouTube', 'other'
 ];
 
 const COMMON_COURSES = [
@@ -41,7 +59,7 @@ const COMMON_COURSES = [
 function Confetti() {
   const pieces = Array.from({ length: 36 }, (_, i) => ({
     id: i, x: Math.random() * 100,
-    color: ['#7a12cc','#9718fb','#f59e0b','#10B981','#3b82f6'][i % 5],
+    color: ['#9718fb','#7a12cc','#b04dfc','#6d28d9','#a78bfa'][i % 5],
     delay: Math.random() * 0.6, duration: 1.4 + Math.random() * 0.8,
   }));
   return (
@@ -62,24 +80,86 @@ function Confetti() {
 function IDCard({ name, university, course, level }) {
   return (
     <motion.div
-      initial={{ rotateY:-15, scale:0.92, opacity:0 }}
+      initial={{ rotateY:-20, scale:0.9, opacity:0 }}
       animate={{ rotateY:0, scale:1, opacity:1 }}
-      transition={{ type:'spring', stiffness:150, damping:20 }}
+      transition={{ type:'spring', stiffness:120, damping:20 }}
       style={{
-        background:'linear-gradient(135deg,#7a12cc 0%,#b04dfc 100%)',
-        borderRadius:20, padding:'24px 20px', color:'white',
-        width:210, flexShrink:0, boxShadow:'0 20px 50px rgba(122,18,204,0.35)',
-        position:'relative', overflow:'hidden',
+        background: 'white', 
+        borderRadius: 24, padding: '24px', color: '#111',
+        width: 320, flexShrink: 0, 
+        boxShadow: '0 40px 80px -15px rgba(151, 24, 251, 0.08), 0 10px 20px -5px rgba(0,0,0,0.03)',
+        border: '1px solid #f1f5f9', 
+        position: 'relative', overflow: 'hidden',
+        fontFamily: 'var(--font-outfit)',
+        perspective: 1000
       }}
     >
-      <div style={{ position:'absolute', top:-40, right:-40, width:100, height:100, background:'rgba(255,255,255,0.08)', borderRadius:'50%' }} />
-      <div style={{ fontSize:9, fontWeight:800, letterSpacing:'0.1em', opacity:0.65, marginBottom:16 }}>LUTER AI · STUDENT ID</div>
-      <motion.div key={`name-${name || 'default'}`} style={{ fontSize:18, fontWeight:900, color:'#fff', marginBottom:4, minHeight:22 }}>{name || 'Student'}</motion.div>
-      <motion.div key={`university-${university || 'default'}`} style={{ fontSize:15, fontWeight:800, letterSpacing:'-0.02em', minHeight:20, lineHeight: 1.2 }}>{university || '—'}</motion.div>
-      <motion.div key={`course-${course || 'default'}`} style={{ fontSize:11, opacity:0.8, marginTop:8, minHeight:14, fontWeight: 600 }}>{course || 'Programme'}</motion.div>
-      <motion.div key={`level-${level || 'default'}`} style={{ fontSize:10, opacity:0.6, marginTop:2, minHeight:12 }}>{level ? `${level} Level` : 'Level'}</motion.div>
-      <div style={{ marginTop:18, display:'flex', gap:3 }}>
-        {[1,2,3,4,5].map(i => <div key={i} style={{ flex:1, height:4, borderRadius:999, background:'rgba(255,255,255,0.25)' }} />)}
+      {/* Soft Background Accents */}
+      <div style={{ 
+        position: 'absolute', top: -50, right: -50, width: 150, height: 150, 
+        background: 'var(--primary-bg)', borderRadius: '50%', opacity: 0.4, filter: 'blur(30px)' 
+      }} />
+      
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.15em', color: 'var(--primary)', textTransform: 'uppercase', marginBottom: 2 }}>Luter</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#111' }}>OFFICIAL MEMBER</div>
+          </div>
+          <div style={{ width: 44, height: 44, background: '#111', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}>
+            <LuterLogo size={22} white showText={false} />
+          </div>
+        </div>
+
+        {/* Student Name & Uni */}
+        <div style={{ marginBottom: 32 }}>
+          <motion.div 
+            key={`name-${name || 'default'}`}
+            style={{ fontSize: 28, fontWeight: 900, color: '#111', marginBottom: 4, letterSpacing: '-0.03em', lineHeight: 1 }}
+          >
+            {name || 'Prospective Scholar'}
+          </motion.div>
+          <motion.div 
+            key={`university-${university || 'default'}`}
+            style={{ fontSize: 13, fontWeight: 600, color: 'var(--primary)', opacity: 0.8 }}
+          >
+            {university || 'Awaiting Institution'}
+          </motion.div>
+        </div>
+
+        {/* Details Section */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 32 }}>
+          <div style={{ padding: '12px', background: '#F8FAFC', borderRadius: 16, border: '1px solid #F1F5F9' }}>
+            <div style={{ fontSize: 9, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: 4, letterSpacing: '0.05em' }}>Faculty</div>
+            <motion.div 
+              key={`course-${course || 'default'}`}
+              style={{ fontSize: 12, fontWeight: 700, color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+            >
+              {course || 'Pending Set'}
+            </motion.div>
+          </div>
+          <div style={{ padding: '12px', background: '#F8FAFC', borderRadius: 16, border: '1px solid #F1F5F9' }}>
+            <div style={{ fontSize: 9, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: 4, letterSpacing: '0.05em' }}>Level</div>
+            <motion.div 
+              key={`level-${level || 'default'}`}
+              style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}
+            >
+              {level ? `${level} Level` : 'Auth Req.'}
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Footer Bar */}
+        <div style={{ 
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+          padding: '12px 16px', background: 'var(--primary-bg)', borderRadius: 14
+        }}>
+          <div style={{ display:'flex', gap:4 }}>
+            {[1,2,3,4].map(idx => <div key={idx} style={{ width:6, height:6, borderRadius:'50%', background: idx === 1 ? 'var(--primary)' : 'rgba(151, 24, 251, 0.2)' }} />)}
+          </div>
+          <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--primary)', letterSpacing: '0.1em' }}>IDVERIFIED</div>
+        </div>
       </div>
     </motion.div>
   );
@@ -87,30 +167,72 @@ function IDCard({ name, university, course, level }) {
 
 /* ─── Slide Transitions ─── */
 const slide = {
-  enter: d => ({ x: d > 0 ? 60 : -60, opacity: 0 }),
-  center: { x: 0, opacity: 1 },
-  exit:   d => ({ x: d > 0 ? -60 : 60, opacity: 0 }),
+  enter: (d) => ({
+    x: d > 0 ? 50 : -50,
+    opacity: 0,
+    scale: 0.98
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    scale: 1,
+    transition: {
+      duration: 0.4,
+      ease: [0.22, 1, 0.36, 1]
+    }
+  },
+  exit: (d) => ({
+    x: d > 0 ? -50 : 50,
+    opacity: 0,
+    scale: 0.98,
+    transition: {
+      duration: 0.3,
+      ease: [0.22, 1, 0.36, 1]
+    }
+  }),
 };
 
 /* ═══════════════════════════════════════════
-   MAIN ONBOARDING
+   ══ ONBOARDING USER FLOW STEPS ══════════════
+   1. Welcome + Account Details
+   2. Role Selection (Student\\u002FTeacher)
+   3. Academic Registry (University, Major, Level, Term)
+   4. Discovery Source (Where they heard about us)
+   5. Academic Catalog (Course Selection)
+   6. Study Routine (Habits, preferences)
+   7. Goals (What they want to achieve)
+   8. Referral (Optional)
 ═══════════════════════════════════════════ */
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { refresh } = useDashboardPrefetch() || {};
   const [step, setStep]             = useState(1);
+  const [totalSteps]                = useState(8);
   const [dir,  setDir]              = useState(1);
   const [authUser, setAuthUser]     = useState(null);
   const [loading, setLoading]       = useState(true);
   const [saving, setSaving]         = useState(false);
   const [showConfetti, setConfetti] = useState(false);
   const [showXP, setShowXP]         = useState(false);
+  const [isMobile, setIsMobile]     = useState(window.innerWidth <= 768);
 
-  // Step 1 - Origin
-  const [nickname, setNickname] = useState('');
-  const [source, setSource] = useState('');
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-  // Step 2 - Registry 
-  const [country, setCountry] = useState('');
+  // New Step 1 - Account Details
+  const [fullName, setFullName] = useState('');
+  const [userName, setUserName] = useState('');
+  const [birthday, setBirthday] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // New Step 2 - Role
+  const [role, setRole] = useState('student');
+
+  // Step 3 - Registry (Old Step 2)
+  const [country, setCountry] = useState('Nigeria');
   const [university, setUniversity] = useState('');
   const [universities, setUniversities] = useState([
     'University of Lagos', 'Obafemi Awolowo University', 'Covenant University',
@@ -125,6 +247,16 @@ export default function Onboarding() {
   const [showUniDrop,setUniDrop]    = useState(false);
   const [courseSearch, setCourseSearch] = useState('');
   const [showCourseDrop, setShowCourseDrop] = useState(false);
+
+  // Step 4 - Source (Old Step 1)
+  const [source, setSource] = useState('');
+
+  const [referralCode, setReferralCode] = useState('');
+
+  // Username validation
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
+  const [usernameAvailable, setUsernameAvailable] = useState(false);
 
   useEffect(() => {
     if (!country) return;
@@ -163,21 +295,69 @@ export default function Onboarding() {
   // Step 5 - Goal
   const [goal, setGoal] = useState('');
 
-  /* ── Auth check ── */
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { navigate('/signin'); return; }
       setAuthUser(session.user);
-      if (!nickname && session.user.user_metadata?.full_name) {
-        setNickname(session.user.user_metadata.full_name);
+      if (!fullName && session.user.user_metadata?.full_name) {
+        setFullName(session.user.user_metadata.full_name);
+      }
+      // Set initial username from email if not set
+      if (!userName && session.user.email) {
+        const defaultUser = session.user.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        setUserName(defaultUser);
       }
       setLoading(false);
     });
-  }, [navigate, nickname]);
+  }, [navigate, fullName]);
+
+  // Check username availability
+  useEffect(() => {
+    if (!userName || userName.length < 3) {
+      setUsernameAvailable(false);
+      setUsernameError(userName.length > 0 ? 'Username must be at least 3 characters' : '');
+      return;
+    }
+
+    const checkAvailability = async () => {
+      setCheckingUsername(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', userName)
+          .single();
+
+        if (error && error.code === 'PGRST116') { // No rows found
+          setUsernameAvailable(true);
+          setUsernameError('');
+        } else if (data) {
+          // If it's the current user, it's fine
+          if (authUser && data.id === authUser.id) {
+            setUsernameAvailable(true);
+            setUsernameError('');
+          } else {
+            setUsernameAvailable(false);
+            setUsernameError('This username is already taken');
+          }
+        } else {
+          setUsernameAvailable(false);
+          setUsernameError('Error checking username');
+        }
+      } catch (err) {
+        console.error('Username check failed:', err);
+      } finally {
+        setCheckingUsername(false);
+      }
+    };
+
+    const timer = setTimeout(checkAvailability, 500);
+    return () => clearTimeout(timer);
+  }, [userName, authUser]);
 
   const [fetchingSyllabus, setFetchingSyllabus] = useState(false);
 
-  const loadCurriculumForStep3 = useCallback(async () => {
+  const loadCurriculumData = useCallback(async () => {
     setFetchingSyllabus(true);
     setSelectedCourses([]);
     setCourseTypeahead('');
@@ -362,13 +542,14 @@ export default function Onboarding() {
 
   const goTo = useCallback(
     (next) => {
-      if (next === 3 && step === 2) {
-        loadCurriculumForStep3();
+      if (next === 6 && step < 6) {
+        loadCurriculumData();
       }
       setDir(next > step ? 1 : -1);
       setStep(next);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    [step, loadCurriculumForStep3],
+    [step, loadCurriculumData],
   );
 
   const _loadPct = Math.min(
@@ -390,9 +571,9 @@ export default function Onboarding() {
     if (!authUser) return;
     setSaving(true);
 
-    const finalName = nickname || authUser.user_metadata?.full_name || '';
+    const finalName = fullName || authUser.user_metadata?.full_name || '';
 
-    // 0. Update auth user metadata so the name is globally available
+    // 0. Update auth user metadata
     if (finalName && finalName !== authUser.user_metadata?.full_name) {
       await supabase.auth.updateUser({
         data: { full_name: finalName }
@@ -414,20 +595,29 @@ export default function Onboarding() {
     // Deep clone curriculum_context to avoid circular references
     const clean_curriculum_context = JSON.parse(JSON.stringify(curriculum_context));
 
-    // 1. Update primary profile using the specific metadata asked
-    await supabase.from('profiles').upsert({
+    // 1. Update primary profile using the specific metadata and existing columns
+    const { error: profileErr } = await supabase.from('profiles').upsert({
       id: authUser.id,
-      full_name: finalName,
+      full_name: fullName || authUser.user_metadata?.full_name || '',
+      username: userName || authUser.email?.split('@')[0],
       university: university?.name || university,
       level: level,
+      semester: semester,
       faculty: courseOfStudy,
-      academic_goal: chosenGoal,
-      source,
-      alarm_time: alarmTime,
-      reminders_enabled: remindersEnabled,
       onboarding_complete: true,
-      curriculum_context: clean_curriculum_context,
+      updated_at: new Date(),
     });
+
+    if (profileErr) {
+      if (profileErr.code === '23505') {
+        setSaving(false);
+        setStep(2); // Go back to profile step
+        setUsernameError('This username is already taken. Please choose another.');
+        setUsernameAvailable(false);
+        return;
+      }
+      console.error('Profile upsert error:', profileErr);
+    }
 
     const selectedCodes = selectedCourses.map((c) => c.code);
     const coursesToUpsert = selectedCourses.map((c) => ({
@@ -442,9 +632,6 @@ export default function Onboarding() {
       const { error: upsertErr } = await supabase.from('courses').upsert(coursesToUpsert, { onConflict: 'code' });
       if (upsertErr) {
         console.error('Onboarding courses upsert error:', upsertErr);
-        if (upsertErr.code === '42501') {
-           alert('Database Security Error: Missing permission for courses/semester_weeks. Please contact admin to run RLS fixes.');
-        }
       }
 
       // Step B: Force fetch the final official DB Row IDs
@@ -464,7 +651,7 @@ export default function Onboarding() {
           target_score: chosenGoal === 'first' ? 90 : chosenGoal === 'second' ? 75 : 50,
         }));
         
-        // Insert user courses first
+        // Insert user courses
         const { error: insertError } = await supabase.from('user_courses').upsert(rows, { onConflict: 'user_id,course_id' });
         
         if (insertError) {
@@ -506,7 +693,7 @@ export default function Onboarding() {
     await supabase.from('user_stats').upsert(
       {
         user_id: authUser.id,
-        total_xp: pioneerXp,
+        total_xp: pioneerXp + 100,
         streak_days: 0,
         lives: 3,
         badges: [],
@@ -522,6 +709,7 @@ export default function Onboarding() {
     }
 
     // 6. Celebration mapping
+    if (refresh) await refresh();
     setConfetti(true);
     setTimeout(() => setShowXP(true), 400);
     setTimeout(() => navigate('/dashboard'), 2800);
@@ -535,770 +723,929 @@ export default function Onboarding() {
     c.toLowerCase().includes(courseSearch.toLowerCase())
   ).slice(0, 8);
 
-  const COLORS = ['#7a12cc','#9718fb','#b04dfc','#6d28d9','#7c3aed','#8b5cf6','#a78bfa','#6366f1'];
-  const inputStyles = { width:'100%', padding:'12px 14px', borderRadius:12, border: '1.5px solid #e5e7eb', fontSize:14, color:'#111', outline:'none', fontFamily:'inherit', background:'white', boxSizing:'border-box', transition:'all 0.18s', appearance: 'none' };
-  const activeInputStyles = { ...inputStyles, border: '1.5px solid #7a12cc', background: '#faf5ff' };
+  const inputStyles = { 
+    width:'100%', 
+    padding:'16px 20px', 
+    borderRadius:16, 
+    border: '2px solid rgba(151,24,251,0.1)', 
+    fontSize:16, 
+    color:'#111', 
+    outline:'none', 
+    fontFamily:'inherit', 
+    background:'rgba(255,255,255,0.8)', 
+    backdropFilter: 'blur(10px)',
+    boxSizing:'border-box', 
+    transition:'all 0.2s', 
+    appearance: 'none',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+  };
+  const activeInputStyles = { ...inputStyles, border: '2px solid var(--primary)', background: 'white' };
 
-  if (loading) return (
-    <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <Loader2 className="animate-spin" size={32} color="#7a12cc" />
-    </div>
-  );
+  if (loading) {
+    return (
+      <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#fbfcfd' }}>
+        <motion.div animate={{ rotate: 360 }} transition={{ repeat:Infinity, duration:1, ease:'linear' }}
+          style={{ width:40, height:40, border:'3px solid var(--primary)', borderTopColor:'transparent', borderRadius:'50%' }} />
+      </div>
+    );
+  }
 
   return (
-    <div style={{ minHeight:'100vh', background:'linear-gradient(135deg,#faf5ff 0%,#f0e8ff 50%,#fafafa 100%)', display:'flex', alignItems:'center', justifyContent:'center', padding:20, fontFamily:"'Outfit',sans-serif", position:'relative', overflow:'hidden' }}>
+    <div style={{ minHeight:'100vh', background:'#fff', color:'#111', fontFamily:'var(--font-outfit)', overflowX: 'hidden' }}>
 
-      <div style={{ position:'fixed', top:'-20%', right:'-10%', width:460, height:460, background:'radial-gradient(ellipse,rgba(151,24,251,0.08) 0%,transparent 70%)', pointerEvents:'none' }} />
-      <div style={{ position:'fixed', bottom:'-15%', left:'-10%', width:360, height:360, background:'radial-gradient(ellipse,rgba(122,18,204,0.06) 0%,transparent 70%)', pointerEvents:'none' }} />
-
-      {showConfetti && <Confetti />}
-
-      <AnimatePresence>
-        {showXP && (
-          <motion.div initial={{ scale:0, opacity:0 }} animate={{ scale:1, opacity:1 }} exit={{ scale:0 }}
-            style={{ position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)', zIndex:1000, background:'white', borderRadius:24, padding:'32px 48px', textAlign:'center', boxShadow:'0 40px 80px rgba(122,18,204,0.25)', border:'2px solid rgba(122,18,204,0.15)' }}>
-            <div style={{ fontSize:56 }}>🎓</div>
-            <div style={{ fontSize:28, fontWeight:900, color:'#7a12cc', letterSpacing:'-0.03em', marginTop:8 }}>+500 XP</div>
-            <div style={{ fontSize:16, fontWeight:700, color:'#111', marginTop:4 }}>Setup Complete!</div>
-            <div style={{ fontSize:13, color:'#666', marginTop:4 }}>You are now a <b style={{ color:'#7a12cc' }}>Freshman</b> rank</div>
-            <div style={{ marginTop:16, fontSize:12, color:'#999', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-              <Loader2 size={14} className="animate-spin" /> Launching your command center…
-            </div>
-          </motion.div>
+      {/* ─── PROGRESS BAR & BACK ─── */}
+      <div style={{ 
+        position:'fixed', top:0, left:0, right:0, height:60, 
+        background:'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', zIndex:100, display:'flex', alignItems:'center', padding: '0 24px',
+        borderBottom: '1px solid rgba(0,0,0,0.05)'
+      }}>
+        {step > 1 && (
+          <button 
+            onClick={() => goTo(step - 1)}
+            style={{ color: '#afafaf', padding: 8, display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
+            onMouseEnter={(e) => e.target.style.color = '#333'}
+            onMouseLeave={(e) => e.target.style.color = '#afafaf'}
+          >
+            <ArrowLeft size={32} strokeWidth={3} />
+          </button>
         )}
-      </AnimatePresence>
-
-      <div style={{ width:'100%', maxWidth: step === 3 ? 1000 : 660, position:'relative', zIndex:1 }}>
-
-        {/* Header Progress Tracker */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
-          <img src={logo} alt="Luter AI" style={{ height:30 }} />
-          <div style={{ display:'flex', gap:6 }}>
-            {[1,2,3,4,5].map(s => (
-              <div key={s} style={{ width: s===step ? 24 : 8, height:6, borderRadius:999, background: s<=step ? '#7a12cc' : '#e5e7eb', transition:'all 0.3s' }} />
-            ))}
-          </div>
+        <div style={{ flex: 1, height: 10, background: 'rgba(0,0,0,0.05)', borderRadius: 99, margin: '0 24px', position: 'relative', overflow: 'hidden' }}>
+          <motion.div 
+            initial={false}
+            animate={{ width: `${(step / totalSteps) * 100}%` }}
+            style={{ height: '100%', background: 'var(--primary)', borderRadius: 99 }} 
+          />
         </div>
+        <div style={{ width: 40 }} /> {/* Spacer */}
+      </div>
 
-        <AnimatePresence mode="wait" custom={dir}>
-          <motion.div key={step} custom={dir} variants={slide} initial="enter" animate="center" exit="exit" transition={{ duration:0.32, ease:[0.23,1,0.32,1] }}>
+      <div className="hero-bg">
+        <div className="hero-bg-grid" />
+        <div style={{ position: 'absolute', top: '15%', right: '10%', animation: 'float-up-down 8s ease-in-out infinite', opacity: 0.3 }}>
+          <Library size={48} color="var(--primary)" />
+        </div>
+        <div style={{ position: 'absolute', bottom: '20%', left: '8%', animation: 'float-up-down 6s ease-in-out infinite reverse', opacity: 0.3 }}>
+          <GradIcon size={40} color="var(--primary)" />
+        </div>
+      </div>
 
-            {/* ══ STEP 1 — Profile / Intro ══ */}
-            {step === 1 && (
-              <div style={{ background:'white', borderRadius:24, padding:36, boxShadow:'0 20px 60px rgba(122,18,204,0.1)', border:'1px solid rgba(122,18,204,0.12)' }}>
-                <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.1em', color:'#7a12cc', textTransform:'uppercase', marginBottom:6 }}>Step 1 of 5</div>
-                <h2 style={{ fontSize:26, fontWeight:900, color:'#111', letterSpacing:'-0.03em', margin:'0 0 4px' }}>Welcome to Luter AI.</h2>
-                <p style={{ color:'#888', fontSize:13, margin:'0 0 30px' }}>Let's start putting your profile together.</p>
-
-                <div style={{ marginBottom: 26 }}>
-                  <label style={{ fontSize:12, fontWeight:800, color:'#333', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
-                    <User size={15} color="#7a12cc" /> What should we call you?
-                  </label>
-                  <input 
-                    value={nickname} onChange={e => setNickname(e.target.value)} 
-                    placeholder="Nickname or First Name" 
-                    style={nickname ? activeInputStyles : inputStyles} 
-                  />
-                </div>
-
-                <div style={{ marginBottom: 30 }}>
-                  <label style={{ fontSize:12, fontWeight:800, color:'#333', marginBottom:12, display:'block' }}>
-                    Where did you first hear about us?
-                  </label>
-                  <div style={{ display: 'flex', flexWrap:'wrap', gap: 10 }}>
-                    {SOURCES.map(s => (
-                      <button key={s} onClick={() => setSource(s)}
-                        style={{ padding: '10px 18px', borderRadius: 99, border: `1.5px solid ${source === s ? '#7a12cc' : '#e5e7eb'}`, background: source === s ? '#faf5ff' : 'white', color: source === s ? '#7a12cc' : '#555', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'inherit' }}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <button onClick={() => goTo(2)} disabled={!nickname || !source}
-                  style={{ width:'100%', padding:'14px', borderRadius:12, background: nickname&&source?'#7a12cc':'#e5e7eb', color: nickname&&source?'white':'#9ca3af', fontSize:14, fontWeight:700, border:'none', cursor: nickname&&source?'pointer':'not-allowed', fontFamily:'inherit', boxShadow: nickname&&source?'0 6px 20px rgba(122,18,204,0.3)':'none', transition:'all 0.2s' }}>
-                  Next step →
-                </button>
-              </div>
-            )}
-
-            {/* ══ STEP 2 — Academic Registry ══ */}
-            {step === 2 && (
-              <div style={{ background:'white', borderRadius:24, padding:36, boxShadow:'0 20px 60px rgba(122,18,204,0.1)', border:'1px solid rgba(122,18,204,0.12)' }}>
-                <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.1em', color:'#7a12cc', textTransform:'uppercase', marginBottom:6 }}>Step 2 of 5</div>
-                <h2 style={{ fontSize:26, fontWeight:900, color:'#111', letterSpacing:'-0.03em', margin:'0 0 4px' }}>Where do you study, {nickname}?</h2>
-                <p style={{ color:'#888', fontSize:13, margin:'0 0 26px' }}>We&apos;ll use this to load your courses on the next step.</p>
-
-                <div className="stack-on-mobile" style={{ display:'flex', gap:32, alignItems:'flex-start' }}>
-                  <div style={{ flex:1, display:'flex', flexDirection:'column', gap:16 }}>
-                    <div>
-                      <label style={{ fontSize:11, fontWeight:800, color:'#555', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:6 }}>Country</label>
-                      <div style={{ position: 'relative' }}>
-                        <select value={country} onChange={e => setCountry(e.target.value)} style={country ? activeInputStyles : inputStyles}>
-                          <option value="">Select country...</option>
-                          <option value="Nigeria">Nigeria</option>
-                          <option value="Ghana">Ghana</option><option value="Kenya">Kenya</option><option value="South Africa">South Africa</option><option value="United States">United States</option><option value="United Kingdom">United Kingdom</option>
-                        </select>
-                        <ChevronDown size={14} color="#888" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize:11, fontWeight:800, color:'#555', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:6 }}>University</label>
-                      <div style={{ position:'relative' }}>
-                        <div style={{ position:'absolute', left:13, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', color:'#bbb', display:'flex' }}><Search size={14} /></div>
-                        <input value={uniSearch}
-                          onChange={e => { setUniSearch(e.target.value); setUniDrop(true); if(!e.target.value) setUniversity(''); }}
-                          onFocus={() => setUniDrop(true)} placeholder="Search university…"
-                          style={{ ...inputStyles, paddingLeft: 36, ...(university ? activeInputStyles : {}) }}
-                        />
-                        {university && <CheckCircle2 size={15} color="#7a12cc" style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)' }} />}
-                        {showUniDrop && uniSearch && !university && filteredUnis.length > 0 && (
-                          <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'white', border:'1.5px solid #e5e7eb', borderRadius:12, marginTop:4, zIndex:20, boxShadow:'0 12px 28px rgba(0,0,0,0.08)', overflow:'hidden' }}>
-                            {filteredUnis.map(u => (
-                              <div key={u} onClick={() => { setUniversity(u); setUniSearch(u); setUniDrop(false); }} style={{ padding:'11px 16px', fontSize:13, cursor:'pointer', color:'#333', borderBottom:'1px solid #f3f4f6' }}>{u}</div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize:11, fontWeight:800, color:'#555', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:6 }}>Programme / Course</label>
-                      <div style={{ position:'relative' }}>
-                        <div style={{ position:'absolute', left:13, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', color:'#bbb', display:'flex' }}><Search size={14} /></div>
-                        <input 
-                          value={courseSearch}
-                          onChange={(e) => { 
-                            setCourseSearch(e.target.value)
-                            setShowCourseDrop(true)
-                            if(!e.target.value) {
-                              setCourseOfStudy('')
-                              setShowCourseDrop(false)
-                            }
-                          }}
-                          onFocus={() => setShowCourseDrop(true)}
-                          placeholder="Search or type your programme..." 
-                          style={{ 
-                            ...inputStyles, 
-                            paddingLeft: 36, 
-                            ...(courseOfStudy ? activeInputStyles : {})
-                          }} 
-                        />
-                        {courseOfStudy && <CheckCircle2 size={15} color="#7a12cc" style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)' }} />}
-                        {showCourseDrop && courseSearch && !courseOfStudy && filteredCourses.length > 0 && (
-                          <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'white', border:'1.5px solid #e5e7eb', borderRadius:12, marginTop:4, zIndex:20, boxShadow:'0 12px 28px rgba(0,0,0,0.08)', overflow:'hidden' }}>
-                            {filteredCourses.map(course => (
-                              <button
-                                key={course}
-                                onClick={() => {
-                                  setCourseOfStudy(course)
-                                  setCourseSearch(course)
-                                  setShowCourseDrop(false)
-                                }}
-                                style={{ 
-                                  width:'100%', 
-                                  padding:'12px 14px', 
-                                  border:'none', 
-                                  background:'white', 
-                                  textAlign:'left', 
-                                  fontSize:14, 
-                                  color:'#111', 
-                                  cursor:'pointer', 
-                                  fontFamily:'inherit',
-                                  borderBottom:'1px solid #f3f4f6',
-                                  transition:'background 0.15s'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                              >
-                                {course}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                      <div>
-                        <label style={{ fontSize:11, fontWeight:800, color:'#555', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:6 }}>Level</label>
-                        <div style={{ position: 'relative' }}>
-                          <select value={level} onChange={e => setLevel(e.target.value)} style={level ? activeInputStyles : inputStyles}>
-                            <option value="">Select level...</option>
-                            {['100','200','300','400','500'].map(l => <option key={l} value={l}>{l} Level</option>)}
-                          </select>
-                          <ChevronDown size={14} color="#888" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                        </div>
-                      </div>
-                      <div>
-                        <label style={{ fontSize:11, fontWeight:800, color:'#555', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:6 }}>Semester</label>
-                        <div style={{ position: 'relative' }}>
-                          <select value={semester} onChange={e => setSemester(e.target.value)} style={semester ? activeInputStyles : inputStyles}>
-                            <option value="">Select semester...</option>
-                            <option value="1st">1st Semester</option><option value="2nd">2nd Semester</option>
-                          </select>
-                          <ChevronDown size={14} color="#888" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display:'flex', gap:10, marginTop: 8 }}>
-                      <button onClick={() => goTo(1)} style={{ padding:'14px 18px', borderRadius:12, border:'1.5px solid #e5e7eb', background:'white', color:'#555', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>← Back</button>
-                      <button onClick={() => goTo(3)} disabled={!country || !university || !courseOfStudy || !level || !semester}
-                        style={{ flex:1, padding:'14px', borderRadius:12, background: country&&university&&courseOfStudy&&level&&semester?'#7a12cc':'#e5e7eb', color: country&&university&&courseOfStudy&&level&&semester?'white':'#9ca3af', fontSize:14, fontWeight:700, border:'none', cursor: country&&university&&courseOfStudy&&level&&semester?'pointer':'not-allowed', fontFamily:'inherit', boxShadow: country&&university&&courseOfStudy&&level&&semester?'0 6px 20px rgba(122,18,204,0.3)':'none', transition:'all 0.2s' }}>
-                        Continue →
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="full-width-mobile" style={{ display: 'flex', justifyContent: 'center', width: 'auto' }}>
-                    <IDCard name={nickname} university={university} course={courseOfStudy} level={level} />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ══ STEP 3 — Search & pick courses ══ */}
-            {step === 3 && (
-              <div style={{ 
-                background: 'white', 
-                borderRadius: 24, 
-                padding: window.innerWidth <= 768 ? 24 : 36, 
-                boxShadow: '0 20px 60px rgba(122,18,204,0.1)', 
-                border: '1px solid rgba(122,18,204,0.12)',
-                width: '100%',
-                maxWidth: window.innerWidth <= 768 ? '100%' : '900px'
-              }}>
-                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: '#7a12cc', textTransform: 'uppercase', marginBottom: 6 }}>Step 3 of 5</div>
-                <h2 style={{ fontSize: window.innerWidth <= 768 ? 24 : 28, fontWeight: 900, color: '#111', letterSpacing: '-0.03em', margin: '0 0 8px' }}>Choose Your Courses</h2>
-                <p style={{ color: '#6b7280', fontSize: window.innerWidth <= 768 ? 14 : 15, margin: '0 0 24px', lineHeight: 1.5 }}>
-                  Select courses for your {level} level {semester.toLowerCase()} semester. These will help personalize your learning experience.
-                </p>
-
-                {/* Progress Card */}
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-                  padding: '16px 20px',
-                  borderRadius: 16,
-                  border: '1px solid #e2e8f0',
-                  marginBottom: 24
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ 
-                      width: 40, 
-                      height: 40, 
-                      borderRadius: 14, 
-                      background: 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: 18,
-                      fontWeight: 900
-                    }}>
-                      3
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a' }}>
-                        Course Selection
-                      </div>
-                      <div style={{ fontSize: 12, color: '#6b7280' }}>
-                        {courseOfStudy} • {level}L
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: '#7a12cc' }}>
-                      {selectedCourses.length}
-                    </div>
-                    <div style={{ fontSize: 10, color: '#999' }}>selected</div>
-                  </div>
-                </div>
-
-                {!fetchingSyllabus && (
-                  <>
-                    {isPioneerMode && (
-                      <div style={{ 
-                        marginBottom: 24, 
-                        padding: 16, 
-                        borderRadius: 16, 
-                        background: 'linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%)', 
-                        border: '1px solid #f59e0b55' 
-                      }}>
-                        <div style={{ 
-                          fontSize: 13, 
-                          fontWeight: 800, 
-                          color: '#92400e', 
-                          marginBottom: 6 
-                        }}>
-                          🎉 First to Map This Programme
-                        </div>
-                        <p style={{ 
-                          fontSize: 12, 
-                          color: '#78350f', 
-                          margin: 0, 
-                          lineHeight: 1.5, 
-                          fontWeight: 600 
-                        }}>
-                          Add your courses below. When you finish, we'll save this list for future students—and you'll earn <strong>+500 XP</strong>!
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Course Suggestions - Full Width */}
-                    <div style={{ marginBottom: 24 }}>
-                      <EnhancedCourseSuggestions
-                        university={university}
-                        department={courseOfStudy}
-                        level={level}
-                        semester={semester}
-                        country={country}
-                        selectedCourses={selectedCourses}
-                        onCourseSelect={(course) => {
-                          setSelectedCourses(prev => {
-                            if (prev.some(p => p.code === course.code)) return prev;
-                            return [...prev, course];
-                          });
-                        }}
-                        onCourseRemove={(courseCode) => {
-                          setSelectedCourses(prev => prev.filter(p => p.code !== courseCode));
-                        }}
-                      />
-                    </div>
-
-                    {/* Manual Course Addition */}
-                    <details style={{ marginBottom: 24 }}>
-                      <summary style={{ 
-                        cursor: 'pointer', 
-                        fontSize: 12, 
-                        fontWeight: 700, 
-                        color: '#6b7280',
-                        padding: '12px 16px',
-                        borderRadius: 12,
-                        background: 'white',
-                        border: '1px solid #e5e7eb',
-                        outline: 'none'
-                      }}>
-                        🔍 Can't find your course? Add manually
-                      </summary>
-                      <div style={{ 
-                        marginTop: 12, 
-                        padding: 16, 
-                        background: '#f9fafb', 
-                        borderRadius: 12, 
-                        border: '1px solid #e5e7eb' 
-                      }}>
-                        <input
-                          type="text"
-                          placeholder="Course code (e.g., CSC101)"
-                          style={{
-                            width: '100%',
-                            padding: '12px 16px',
-                            borderRadius: 8,
-                            border: '2px solid #e5e7eb',
-                            fontSize: 14,
-                            fontWeight: 600,
-                            outline: 'none',
-                            marginBottom: 12,
-                            textTransform: 'uppercase'
-                          }}
-                          onFocus={(e) => { e.target.style.borderColor = '#7a12cc' }}
-                          onBlur={(e) => { e.target.style.borderColor = '#e5e7eb' }}
-                          onChange={(e) => setManualCode(e.target.value)}
-                          value={manualCode}
-                        />
-                        <input
-                          type="text"
-                          placeholder="Course name (e.g., Introduction to Computer Science)"
-                          style={{
-                            width: '100%',
-                            padding: '12px 16px',
-                            borderRadius: 8,
-                            border: '2px solid #e5e7eb',
-                            fontSize: 14,
-                            fontWeight: 600,
-                            outline: 'none',
-                            marginBottom: 12
-                          }}
-                          onFocus={(e) => { e.target.style.borderColor = '#7a12cc' }}
-                          onBlur={(e) => { e.target.style.borderColor = '#e5e7eb' }}
-                          onChange={(e) => setManualTitle(e.target.value)}
-                          value={manualTitle}
-                        />
-                        <button
-                          style={{
-                            width: '100%',
-                            padding: '12px',
-                            borderRadius: 8,
-                            border: 'none',
-                            background: 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)',
-                            color: 'white',
-                            fontSize: 14,
-                            fontWeight: 700,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Add Course
-                        </button>
-                      </div>
-                    </details>
-
-                    {/* Navigation Buttons */}
-                    <div style={{ 
-                      display: 'flex', 
-                      gap: 12, 
-                      marginTop: 32
-                    }}>
-                      <button
-                        onClick={() => setStep(2)}
-                        style={{
-                          flex: 1,
-                          padding: '16px',
-                          borderRadius: 12,
-                          border: '2px solid #e5e7eb',
-                          background: 'white',
-                          color: '#6b7280',
-                          fontSize: 15,
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        ← Back
-                      </button>
-                      <button
-                        onClick={() => goTo(4)}
-                        disabled={selectedCourses.length === 0}
-                        style={{
-                          flex: 2,
-                          padding: '16px',
-                          borderRadius: 12,
-                          border: 'none',
-                          background: selectedCourses.length === 0 
-                            ? '#d1d5db' 
-                            : 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)',
-                          color: 'white',
-                          fontSize: 15,
-                          fontWeight: 700,
-                          cursor: selectedCourses.length === 0 ? 'not-allowed' : 'pointer',
-                          opacity: selectedCourses.length === 0 ? 0.6 : 1
-                        }}
-                      >
-                        {selectedCourses.length === 0 ? 'Select Courses to Continue' : 'Next Step: Reminders →'}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* ══ STEP 4 — Study Schedule & Reminders ══ */}
-            {step === 4 && (
-              <div style={{ background:'white', borderRadius:24, padding:36, boxShadow:'0 20px 60px rgba(122,18,204,0.1)', border:'1px solid rgba(122,18,204,0.12)' }}>
-                <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.1em', color:'#7a12cc', textTransform:'uppercase', marginBottom:6 }}>Step 4 of 5</div>
-                <h2 style={{ fontSize:26, fontWeight:900, color:'#111', letterSpacing:'-0.03em', margin:'0 0 4px' }}>Create your study routine</h2>
-                <p style={{ color:'#888', fontSize:13, margin:'0 0 32px' }}>Set up daily reminders to build consistent study habits</p>
-
-                {/* Main Reminder Card */}
-                <div style={{ 
-                  background: 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)', 
-                  borderRadius: 20, 
-                  padding: 28, 
-                  marginBottom: 24,
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}>
-                  {/* Background decoration */}
-                  <div style={{ 
-                    position: 'absolute', 
-                    top: -20, 
-                    right: -20, 
-                    width: 80, 
-                    height: 80, 
-                    background: 'rgba(255,255,255,0.1)', 
-                    borderRadius: '50%' 
-                  }} />
-                  <div style={{ 
-                    position: 'absolute', 
-                    bottom: -30, 
-                    left: -30, 
+      <main style={{ 
+        paddingTop: 80, 
+        paddingBottom: 60,
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        minHeight: '100vh', 
+        width: '100%',
+        background: 'transparent',
+        position: 'relative'
+      }}>
+        {/* Content Container (The Box) */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          style={{ 
+            width: '100%', 
+            maxWidth: (step === 6 ? 1100 : (step === 4 || step === 5) ? 1000 : 720), 
+            zIndex: 20, 
+            padding: isMobile ? '24px 20px' : '48px 60px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            background: 'rgba(255,255,255,0.95)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 32,
+            border: '1.5px solid rgba(255,255,255,0.2)',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.02)',
+            margin: 'auto 20px',
+            position: 'relative'
+          }}
+        >
+          {step > 1 && step < 9 && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              style={{ 
+                position: 'absolute', 
+                top: -40, 
+                left: -40, 
+                zIndex: 40,
+                pointerEvents: 'none'
+              }}
+            >
+               <img 
+                  src="/onboard-mascot.png" 
+                  style={{ 
                     width: 100, 
-                    height: 100, 
-                    background: 'rgba(255,255,255,0.08)', 
-                    borderRadius: '50%' 
+                    height: 'auto', 
+                    filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.15))' 
+                  }}
+                  alt="Lute"
+                />
+            </motion.div>
+          )}
+          
+          <AnimatePresence mode="wait" custom={dir}>
+            <motion.div
+              key={step}
+              custom={dir}
+              variants={slide}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              style={{ 
+                width: '100%',
+                background: 'transparent'
+              }}
+            >
+
+            {/* ══ STEP 1 — Welcome ══ */}
+            {step === 1 && (
+              <div style={{
+                display:'flex',
+                flexDirection:'column',
+                alignItems:'center',
+                justifyContent:'center',
+                textAlign: 'center',
+                minHeight: 500,
+                width: '100%',
+                position: 'relative'
+              }}>
+                {/* Speech Bubble */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  style={{
+                    background: 'white',
+                    padding: '16px 32px',
+                    borderRadius: 24,
+                    border: '2px solid #E5E7EB',
+                    position: 'relative',
+                    marginBottom: 32,
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
+                    maxWidth: 320
+                  }}
+                >
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#111', lineHeight: 1.2 }}>
+                    Hi there! I'm Lute!
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: '#666', marginTop: 4 }}>
+                    Let's get everything set up for you.
+                  </div>
+                  {/* Bubble Pointer */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: -10,
+                    left: '50%',
+                    transform: 'translateX(-50%) rotate(45deg)',
+                    width: 20,
+                    height: 20,
+                    background: 'white',
+                    borderRight: '2px solid #E5E7EB',
+                    borderBottom: '2px solid #E5E7EB',
+                    zIndex: -1
                   }} />
-                  
-                  <div style={{ position: 'relative', zIndex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        <div style={{ 
-                          width: 48, 
-                          height: 48, 
-                          borderRadius: 14, 
-                          background: 'rgba(255,255,255,0.2)', 
-                          color: 'white', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center',
-                          backdropFilter: 'blur(10px)'
-                        }}>
-                          <Bell size={22} />
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: 'white', marginBottom: 2 }}>Daily Study Reminder</div>
-                          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
-                            {remindersEnabled ? `Get notified at ${alarmTime}` : 'Reminders turned off'}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Enhanced Toggle Switch */}
-                      <motion.div 
-                        onClick={() => setRemindersEnabled(!remindersEnabled)}
-                        style={{ 
-                          width: 52, 
-                          height: 28, 
-                          borderRadius: 99, 
-                          background: remindersEnabled ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.15)', 
-                          position: 'relative', 
-                          cursor: 'pointer', 
-                          transition: 'background 0.3s',
-                          border: '1px solid rgba(255,255,255,0.2)'
-                        }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <motion.div 
-                          initial={false}
-                          animate={{ x: remindersEnabled ? 24 : 2 }}
-                          style={{ 
-                            width: 24, 
-                            height: 24, 
-                            borderRadius: '50%', 
-                            background: 'white', 
-                            position: 'absolute', 
-                            top: 2, 
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)' 
-                          }}
-                        />
-                      </motion.div>
-                    </div>
+                </motion.div>
 
-                    {/* Time Selection */}
-                    {remindersEnabled && (
-                      <motion.div 
-                        initial={{ opacity: 0, height: 0 }} 
-                        animate={{ opacity: 1, height: 'auto' }}
-                        transition={{ duration: 0.3, ease: "easeInOut" }}
-                      >
-                        <div style={{ 
-                          background: 'rgba(255,255,255,0.15)', 
-                          borderRadius: 12, 
-                          padding: 16,
-                          backdropFilter: 'blur(10px)',
-                          border: '1px solid rgba(255,255,255,0.2)'
-                        }}>
-                          <label style={{ 
-                            fontSize: 11, 
-                            fontWeight: 700, 
-                            color: 'rgba(255,255,255,0.9)', 
-                            textTransform: 'uppercase', 
-                            letterSpacing: '0.06em', 
-                            display: 'block', 
-                            marginBottom: 8 
-                          }}>
-                            Study Time
-                          </label>
-                          <div style={{ position: 'relative' }}>
-                            <Clock size={18} color="rgba(255,255,255,0.8)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
-                            <input 
-                              type="time" 
-                              value={alarmTime} 
-                              onChange={e => setAlarmTime(e.target.value)}
-                              style={{ 
-                                width: '100%',
-                                padding: '12px 14px 12px 42px', 
-                                borderRadius: 10, 
-                                border: '1px solid rgba(255,255,255,0.3)', 
-                                fontSize: 16, 
-                                fontWeight: 700, 
-                                color: '#111',
-                                background: 'rgba(255,255,255,0.9)',
-                                outline: 'none',
-                                fontFamily: 'inherit',
-                                boxSizing: 'border-box',
-                                transition: 'all 0.2s',
-                                cursor: 'pointer'
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
-                </div>
+                {/* Mascot */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                  style={{ marginBottom: 40 }}
+                >
+                  <motion.img 
+                    src="/onboard-mascot.png" 
+                    alt="Lute Mascot" 
+                    style={{ width: 220, height: 'auto', filter: 'drop-shadow(0 20px 40px rgba(151, 24, 251, 0.15))' }}
+                    animate={{ 
+                      y: [0, -10, 0],
+                      rotate: [0, -2, 2, 0]
+                    }}
+                    transition={{ 
+                      duration: 4, 
+                      repeat: Infinity, 
+                      ease: "easeInOut" 
+                    }}
+                  />
+                </motion.div>
 
-                {/* Quick Time Options */}
-                <div style={{ marginBottom: 24 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#555', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Quick Suggestions
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
-                    {['06:00', '08:00', '12:00', '18:00', '20:00'].map(time => (
-                      <motion.button
-                        key={time}
-                        onClick={() => setAlarmTime(time)}
-                        whileHover={{ y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        style={{
-                          padding: '12px 16px',
-                          borderRadius: 12,
-                          border: alarmTime === time ? '2px solid #7a12cc' : '1px solid #e5e7eb',
-                          background: alarmTime === time ? '#faf5ff' : 'white',
-                          color: alarmTime === time ? '#7a12cc' : '#555',
-                          fontSize: 13,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                          transition: 'all 0.2s',
-                          boxShadow: alarmTime === time ? '0 4px 12px rgba(122,18,204,0.15)' : 'none'
-                        }}
-                      >
-                        {time}
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Info Card */}
-                <div style={{ 
-                  background: '#f8fafc', 
-                  border: '1px solid #e2e8f0', 
-                  borderRadius: 12, 
-                  padding: 16, 
-                  marginBottom: 24 
-                }}>
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    <div style={{ 
-                      width: 32, 
-                      height: 32, 
-                      borderRadius: 8, 
-                      background: '#e0e7ff', 
-                      color: '#3730a3', 
-                      display: 'flex', 
-                      alignItems: 'center', 
+                <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                  <button 
+                    onClick={() => goTo(2)}
+                    className="btn-primary"
+                    style={{ 
+                      padding: '18px 48px', 
+                      borderRadius: 18,
+                      fontSize: 16,
+                      fontWeight: 800,
+                      width: 'fit-content',
+                      minWidth: 280,
                       justifyContent: 'center',
-                      flexShrink: 0
-                    }}>
-                      <Sparkles size={16} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>
-                        Smart Reminders
-                      </div>
-                      <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.4 }}>
-                        We'll send you gentle nudges at your preferred time to help you stay consistent with your studies.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display:'flex', gap:10 }}>
-                  <motion.button 
-                    onClick={() => goTo(3)} 
-                    whileHover={{ x: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    style={{ 
-                      padding:'14px 20px', 
-                      borderRadius:12, 
-                      border:'1.5px solid #e5e7eb', 
-                      background:'white', 
-                      color:'#555', 
-                      fontSize:13, 
-                      fontWeight:600, 
-                      cursor:'pointer', 
-                      fontFamily:'inherit',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                      boxShadow: '0 10px 30px var(--primary-glow)'
                     }}
                   >
-                    ← Back
-                  </motion.button>
-                  <motion.button 
-                    onClick={() => goTo(5)} 
-                    whileHover={{ x: 2 }}
-                    whileTap={{ scale: 0.98 }}
-                    style={{ 
-                      flex:1, 
-                      padding:'14px', 
-                      borderRadius:12, 
-                      background: 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)', 
-                      color: 'white', 
-                      fontSize:14, 
-                      fontWeight:700, 
-                      border:'none', 
-                      cursor: 'pointer', 
-                      fontFamily:'inherit', 
-                      boxShadow: '0 6px 20px rgba(122,18,204,0.3)', 
-                      transition:'all 0.2s'
-                    }}
-                  >
-                    Continue to Goals →
-                  </motion.button>
-                </div>
-              </div>
-            )}
-
-            {/* ══ STEP 5 — Goal ══ */}
-            {step === 5 && (
-              <div style={{ background:'white', borderRadius:24, padding:36, boxShadow:'0 20px 60px rgba(122,18,204,0.1)', border:'1px solid rgba(122,18,204,0.12)' }}>
-                <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.1em', color:'#7a12cc', textTransform:'uppercase', marginBottom:6 }}>Step 5 of 5</div>
-                <h2 style={{ fontSize:24, fontWeight:900, color:'#111', letterSpacing:'-0.03em', margin:'0 0 4px' }}>What's the target?</h2>
-                <p style={{ color:'#888', fontSize:13, margin:'0 0 24px' }}>This sets how your AI tutor speaks to you.</p>
-
-                <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:24 }}>
-                  {GOALS.map(g => (
-                    <motion.button key={g.id} onClick={() => setGoal(g.id)}
-                      whileHover={{ x:4 }} whileTap={{ scale:0.98 }}
-                      style={{ display:'flex', alignItems:'center', gap:14, padding:'16px 18px', borderRadius:14, border:`2px solid ${goal===g.id?'#7a12cc':'#e5e7eb'}`, background: goal===g.id?'#faf5ff':'white', cursor:'pointer', textAlign:'left', fontFamily:'inherit', boxShadow: goal===g.id?'0 6px 20px rgba(122,18,204,0.15)':'none', transition:'border-color 0.18s,background 0.18s' }}>
-                      <span style={{ fontSize:26 }}>{g.emoji}</span>
-                      <div style={{ flex:1 }}>
-                        <div style={{ fontSize:15, fontWeight:800, color: goal===g.id?'#7a12cc':'#111' }}>{g.label}</div>
-                        <div style={{ fontSize:11, color:'#888', fontWeight:500, marginTop:2 }}>{g.sub}</div>
-                      </div>
-                      <AnimatePresence>
-                        {goal===g.id && <motion.div initial={{ scale:0 }} animate={{ scale:1 }} exit={{ scale:0 }}><CheckCircle2 size={20} color="#7a12cc" /></motion.div>}
-                      </AnimatePresence>
-                    </motion.button>
-                  ))}
-                </div>
-
-                <AnimatePresence>
-                  {goal && (
-                    <motion.div initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
-                      style={{ display:'flex', alignItems:'center', gap:10, padding:'11px 14px', background:'#faf5ff', borderRadius:12, marginBottom:18, border:'1px solid rgba(122,18,204,0.12)' }}>
-                      <img src={logo} alt="" style={{ width:26, height:26, objectFit:'contain' }} />
-                      <span style={{ fontSize:12, fontWeight:600, color:'#555' }}>"{GOALS.find(g2=>g2.id===goal)?.ai}"</span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <div style={{ display:'flex', gap:10 }}>
-                  <button onClick={() => goTo(4)} style={{ padding:'12px 18px', borderRadius:12, border:'1.5px solid #e5e7eb', background:'white', color:'#555', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>← Back</button>
-                  <button onClick={() => !saving && goal && finish(goal)} disabled={!goal||saving}
-                    style={{ flex:1, padding:'13px', borderRadius:12, background: goal?'#7a12cc':'#e5e7eb', color: goal?'white':'#9ca3af', fontSize:14, fontWeight:700, border:'none', cursor: goal?'pointer':'not-allowed', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow: goal?'0 6px 20px rgba(122,18,204,0.3)':'none', transition:'all 0.2s' }}>
-                    {saving ? <><Loader2 size={16} className="animate-spin" /> Compiling Platform…</> : '🚀 Compile Dashboard & Enter'}
+                    CONTINUE
                   </button>
                 </div>
               </div>
             )}
 
+            {/* ══ STEP 2 — Profile ══ */}
+            {step === 2 && (
+              <div>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:24 }}>
+                  <span style={{ fontSize:12, fontWeight:800, color:'var(--primary)', background:'var(--primary-bg)', padding:'4px 12px', borderRadius:99, textTransform:'uppercase', letterSpacing:'0.05em' }}>Step 2: Your Profile</span>
+                </div>
+                <h1 style={{ fontSize: window.innerWidth <= 768 ? 28 : 36, fontWeight:800, letterSpacing:'-0.03em', marginBottom:12, color:'#111', lineHeight:1.1 }}>Let's personalize Luter.</h1>
+                <p style={{ color:'#666', fontSize:16, lineHeight:1.6, marginBottom:32, fontWeight:500 }}>Tell us a bit about yourself so Lute can tailor your experience.</p>
+                
+                <div style={{ display:'flex', flexDirection:'column', gap:24 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:16, position:'relative' }}>
+                    <div style={{ width:80, height:80, borderRadius:'50%', background:'linear-gradient(135deg, var(--primary-dark), var(--primary))', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:32, fontWeight:700, boxShadow:'0 8px 20px var(--primary-glow)' }}>
+                      {fullName ? fullName.charAt(0).toUpperCase() : '?'}
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <label style={{ fontSize:12, fontWeight:700, color:'#64748B', display:'block', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.05em' }}>Full Name</label>
+                      <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Olly Luter" style={{ width:'100%', padding:'12px 16px', borderRadius:12, border:'1px solid #e2e8f0', background:'white', fontSize:15, outline:'none' }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize:12, fontWeight:700, color:'#64748B', display:'block', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.05em' }}>Username</label>
+                    <div style={{ position: 'relative' }}>
+                      <input 
+                        value={userName} 
+                        onChange={e => setUserName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))} 
+                        placeholder="luter_student" 
+                        style={{ 
+                          width:'100%', 
+                          padding:'14px 16px', 
+                          paddingRight: 40,
+                          borderRadius:12, 
+                          border:`1px solid ${usernameError ? '#ef4444' : usernameAvailable ? '#10b981' : '#e2e8f0'}`, 
+                          background:'white', 
+                          fontSize:15, 
+                          outline:'none' 
+                        }} 
+                      />
+                      <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>
+                        {checkingUsername ? (
+                          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
+                            <RefreshCw size={16} color="#64748B" />
+                          </motion.div>
+                        ) : usernameAvailable ? (
+                          <CheckCircle2 size={18} color="#10b981" />
+                        ) : usernameError ? (
+                          <AlertCircle size={18} color="#ef4444" />
+                        ) : null}
+                      </div>
+                    </div>
+                    {usernameError && (
+                      <p style={{ color: '#ef4444', fontSize: 12, marginTop: 4, fontWeight: 500 }}>{usernameError}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 48, width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  <button 
+                    onClick={() => goTo(3)}
+                    disabled={!fullName || !userName || !usernameAvailable || checkingUsername}
+                    className="btn-primary"
+                    style={{ 
+                      padding: '18px 48px', 
+                      borderRadius: 18,
+                      fontSize: 16,
+                      fontWeight: 800,
+                      width: 'fit-content',
+                      minWidth: 280,
+                      opacity: (!fullName || !userName || !usernameAvailable || checkingUsername) ? 0.3 : 1,
+                      cursor: (!fullName || !userName || !usernameAvailable || checkingUsername) ? 'not-allowed' : 'pointer',
+                      justifyContent: 'center',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    CONTINUE
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ══ STEP 3 — Role Selection ══ */}
+            {step === 3 && (
+              <div style={{ textAlign:'center' }}>
+                <div style={{ display:'flex', justifyContent:'center', marginBottom:24 }}>
+                  <span style={{ fontSize:12, fontWeight:800, color:'var(--primary)', background:'var(--primary-bg)', padding:'4px 12px', borderRadius:99, textTransform:'uppercase', letterSpacing:'0.05em' }}>Step 3: Your Identity</span>
+                </div>
+                <h1 style={{ fontSize: window.innerWidth <= 768 ? 28 : 36, fontWeight:800, letterSpacing:'-0.03em', marginBottom:12, color:'#111' }}>How will you use Luter?</h1>
+                <p style={{ color:'#666', fontSize:16, marginBottom:40, fontWeight:500 }}>We'll customize your workspace based on your role.</p>
+                
+                <div style={{ display:'flex', gap:20, justifyContent:'center', marginBottom:48, flexDirection: window.innerWidth <= 640 ? 'column' : 'row' }}>
+                  {ROLES.map(r => (
+                    <motion.div
+                      key={r.id}
+                      whileHover={{ y:-4, boxShadow: '0 20px 40px rgba(151, 24, 251, 0.12)' }}
+                      onClick={() => setRole(r.id)}
+                      style={{
+                        flex:1, 
+                        maxWidth: window.innerWidth <= 640 ? '100%' : 240, 
+                        padding:'40px 24px', borderRadius:24, cursor:'pointer',
+                        border:'2px solid', borderColor: role === r.id ? 'var(--primary)' : '#e2e8f0',
+                        background: role === r.id ? 'var(--primary-bg)' : 'white',
+                        transition:'all 0.2s', textAlign:'center'
+                      }}
+                    >
+                      <div style={{ fontSize:40, marginBottom:16 }}>{r.icon}</div>
+                      <div style={{ fontWeight:800, fontSize:18, color:'#111' }}>{r.label}</div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <button 
+                    onClick={() => goTo(4)}
+                    className="btn-primary"
+                    style={{ 
+                      padding: '18px 60px', 
+                      borderRadius: 18,
+                      fontSize: 16,
+                      fontWeight: 800,
+                      justifyContent: 'center'
+                    }}
+                  >
+                    CONTINUE
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ══ STEP 4 — Registry ══ */}
+            {step === 4 && (
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ display:'flex', gap:48, flexDirection: (isMobile || window.innerWidth <= 1024) ? 'column' : 'row', width: '100%' }}>
+                  <div style={{ flex:1.5 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:24 }}>
+                      <span style={{ fontSize:12, fontWeight:800, color:'var(--primary)', background:'var(--primary-bg)', padding:'4px 12px', borderRadius:99, textTransform:'uppercase', letterSpacing:'0.05em' }}>Step 4: Academic Registry</span>
+                    </div>
+                    <h1 style={{ fontSize: 32, fontWeight:800, letterSpacing:'-0.03em', marginBottom:12, color:'#111', lineHeight:1.1 }}>Where are you studying?</h1>
+                    <p style={{ color:'#666', fontSize:15, marginBottom:32, fontWeight:500 }}>Lute needs this to find your official curriculum and courses.</p>
+
+                    <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+                      <div style={{ position:'relative' }}>
+                        <label style={{ fontSize:11, fontWeight:800, color:'#94A3B8', display:'block', marginBottom:10, textTransform:'uppercase', letterSpacing:'0.1em' }}>Institution name</label>
+                        <div style={{ position:'relative' }}>
+                          <div style={{ position:'absolute', left:18, top:'50%', transform:'translateY(-50%)', color:'#94A3B8' }}><Search size={18}/></div>
+                          <input 
+                            value={uniSearch} 
+                            onChange={e => {
+                              setUniSearch(e.target.value);
+                              setUniversity(e.target.value);
+                              setUniDrop(true);
+                            }}
+                            onFocus={() => {
+                              setUniDrop(true);
+                              setShowCourseDrop(false);
+                            }} 
+                            placeholder="Search for your university..." 
+                            style={{ width:'100%', padding:'18px 18px 18px 48px', borderRadius:18, border:'1.5px solid #F1F5F9', background:'white', fontSize:15, fontWeight:700, outline:'none' }} 
+                          />
+                        </div>
+                        {showUniDrop && uniSearch.length > 0 && filteredUnis.length > 0 && (
+                          <div style={{ 
+                            position:'absolute', top:'100%', left:0, right:0, zIndex:30, 
+                            background:'white', borderRadius:18, padding:8, marginTop:8, 
+                            boxShadow:'0 20px 50px rgba(0,0,0,0.1)', border:'1px solid #F1F5F9',
+                            maxHeight: 250, overflowY: 'auto'
+                          }}>
+                            {filteredUnis.map(u => (
+                              <div key={u} onClick={() => { setUniversity(u); setUniSearch(u); setUniDrop(false); }} style={{ padding:'12px 16px', borderRadius:12, cursor:'pointer', fontWeight:600, fontSize:14, color:'#334155' }} className="hover-bg-primary-lite">
+                                {u}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ position:'relative' }}>
+                        <label style={{ fontSize:11, fontWeight:800, color:'#94A3B8', display:'block', marginBottom:10, textTransform:'uppercase', letterSpacing:'0.1em' }}>What's your major?</label>
+                        <div style={{ position:'relative' }}>
+                          <div style={{ position:'absolute', left:18, top:'50%', transform:'translateY(-50%)', color:'#94A3B8' }}><GradIcon size={18}/></div>
+                          <input 
+                            value={courseSearch} 
+                            onChange={e => {
+                              setCourseSearch(e.target.value);
+                              setCourseOfStudy(e.target.value);
+                              setShowCourseDrop(true);
+                            }}
+                            onFocus={() => {
+                              setShowCourseDrop(true);
+                              setUniDrop(false);
+                            }}
+                            placeholder="Computer Science, Nursing, etc." 
+                            style={{ width:'100%', padding:'18px 18px 18px 48px', borderRadius:18, border:'1.5px solid #F1F5F9', background:'white', fontSize:15, fontWeight:700, outline:'none' }} 
+                          />
+                        </div>
+                        {showCourseDrop && courseSearch.length > 0 && filteredCourses.length > 0 && (
+                          <div style={{ 
+                            position:'absolute', top:'100%', left:0, right:0, zIndex:30, 
+                            background:'white', borderRadius:18, padding:8, marginTop:8, 
+                            boxShadow:'0 20px 50px rgba(0,0,0,0.1)', border:'1px solid #F1F5F9',
+                            maxHeight: 250, overflowY: 'auto'
+                          }}>
+                            {filteredCourses.map(c => (
+                              <div key={c} onClick={() => { setCourseOfStudy(c); setCourseSearch(c); setShowCourseDrop(false); }} style={{ padding:'12px 16px', borderRadius:12, cursor:'pointer', fontWeight:600, fontSize:14, color:'#334155' }} className="hover-bg-primary-lite">{c}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ display:'flex', gap:16 }}>
+                        <div style={{ flex:1, minWidth: 140 }}>
+                          <label style={{ fontSize:11, fontWeight:800, color:'#94A3B8', display:'block', marginBottom:10, textTransform:'uppercase', letterSpacing:'0.1em' }}>Current Level</label>
+                          <select value={level} onChange={e => setLevel(e.target.value)} style={{ width:'100%', padding:'18px 12px', borderRadius:18, border:'1.5px solid #F1F5F9', background:'white', fontSize:14, fontWeight:700, outline:'none', cursor:'pointer' }}>
+                            <option value="">Select Level</option>
+                            {['100', '200', '300', '400', '500', '600', 'Postgraduate'].map(l => <option key={l} value={l}>{l} Level</option>)}
+                          </select>
+                        </div>
+                        <div style={{ flex:1, minWidth: 140 }}>
+                          <label style={{ fontSize:11, fontWeight:800, color:'#94A3B8', display:'block', marginBottom:10, textTransform:'uppercase', letterSpacing:'0.1em' }}>Academic term</label>
+                          <select value={semester} onChange={e => setSemester(e.target.value)} style={{ width:'100%', padding:'18px 12px', borderRadius:18, border:'1.5px solid #F1F5F9', background:'white', fontSize:14, fontWeight:700, outline:'none', cursor:'pointer' }}>
+                            <option value="">Select Term</option>
+                            <option value="1">1st Semester</option>
+                            <option value="2">2nd Semester</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ flex:0.8, display:'flex', justifyContent:'center', alignItems: 'center' }}>
+                    <div style={{ position:'relative', width: '100%', maxWidth: 320 }}>
+                      <div style={{ position:'absolute', inset:-20, background:'var(--primary-bg)', filter:'blur(40px)', opacity:0.3, borderRadius:'50%', zIndex:0 }} />
+                      <IDCard name={fullName} university={university} level={level} course={courseOfStudy} />
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ width: '100%', marginTop: 12, display: 'flex', justifyContent: 'center' }}>
+                    <button 
+                      onClick={() => goTo(5)}
+                      disabled={!university || !courseOfStudy || !level || !semester}
+                      className="btn-primary"
+                      style={{ 
+                        padding: '18px 48px', 
+                        borderRadius: 18,
+                        fontSize: 16,
+                        fontWeight: 800,
+                        width: 'fit-content',
+                        minWidth: 280,
+                        opacity: (!university || !courseOfStudy || !level || !semester) ? 0.3 : 1,
+                        cursor: (!university || !courseOfStudy || !level || !semester) ? 'not-allowed' : 'pointer',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      CONTINUE
+                    </button>
+                  </div>
+              </div>
+            )}
+
+            {/* ══ STEP 5 — Academic Catalog ══ */}
+            {step === 5 && (
+              <div style={{ width:'100%', maxWidth:900, margin:'0 auto' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:24 }}>
+                  <span style={{ fontSize:12, fontWeight:800, color:'var(--primary)', background:'var(--primary-bg)', padding:'4px 12px', borderRadius:99, textTransform:'uppercase', letterSpacing:'0.05em' }}>Step 5: Your Catalog</span>
+                </div>
+                 <div style={{ display:'grid', gridTemplateColumns: window.innerWidth <= 1024 ? '1fr' : '1.5fr 1fr', gap:48, alignItems:'flex-start' }}>
+                  <div style={{ display:'flex', flexDirection:'column', gap:32 }}>
+                    <EnhancedCourseSuggestions
+                      university={university}
+                      department={courseOfStudy}
+                      level={level}
+                      semester={semester}
+                      country={country}
+                      selectedCourses={selectedCourses}
+                      onCourseSelect={(c) => _pickCourse(c.code, c.name, c.hitKind || 'library')}
+                      onCourseRemove={_removeFromSelected}
+                    />
+
+                    {/* Manual Entry — Discreet */}
+                    <div style={{ 
+                      padding: 24, background: '#F8FAFC', borderRadius: 24, border: '1px solid #F1F5F9',
+                      display: 'flex', flexDirection: 'column', gap: 16
+                    }}>
+                      <div style={{ fontSize: 11, fontWeight: 900, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Can't find a course?
+                      </div>
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        <input 
+                          value={manualCode} 
+                          onChange={e => setManualCode(e.target.value.toUpperCase())} 
+                          placeholder="Code" 
+                          style={{ width: 100, padding: '14px', borderRadius: 16, border: '1.5px solid #E2E8F0', background: 'white', fontSize: 13, fontWeight: 700, outline: 'none' }} 
+                        />
+                        <input 
+                          value={manualTitle} 
+                          onChange={e => setManualTitle(e.target.value)} 
+                          placeholder="Course Title" 
+                          style={{ flex: 1, padding: '14px', borderRadius: 16, border: '1.5px solid #E2E8F0', background: 'white', fontSize: 13, fontWeight: 700, outline: 'none' }} 
+                        />
+                        <button 
+                          onClick={_addManualWithEnrich} 
+                          style={{ width: 48, height: 48, borderRadius: 16, background: '#111', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <Plus size={20} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Registry / Basket */}
+                  <div style={{ 
+                    background: 'white', border: '1.5px solid #F1F5F9', borderRadius: 28, padding: 32,
+                    position: 'sticky', top: 24, boxShadow: '0 20px 40px rgba(0,0,0,0.03)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                      <h3 style={{ fontSize: 18, fontWeight: 800, color: '#111', margin: 0 }}>Enrolled</h3>
+                      <div style={{ padding: '4px 12px', background: 'var(--primary-bg)', borderRadius: 10, color: 'var(--primary)', fontSize: 12, fontWeight: 900 }}>
+                        {selectedCourses.length} COURSES
+                      </div>
+                    </div>
+
+                    {selectedCourses.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px 0', opacity: 0.4 }}>
+                        <div style={{ marginBottom: 12 }}><Sparkles size={24} style={{ margin: '0 auto' }} /></div>
+                        <p style={{ fontSize: 14, fontWeight: 600 }}>Your catalog is empty.<br/>Select courses to start.</p>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {selectedCourses.map((course) => (
+                          <motion.div
+                            key={course.code}
+                            layout
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            style={{ 
+                              display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, 
+                              background: '#F8FAFC', border: '1px solid #F1F5F9' 
+                            }}
+                          >
+                            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 900, color: 'var(--primary)', border: '1px solid #F1F5F9' }}>
+                              {course.code.substring(0, 3)}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 800 }}>{course.code}</div>
+                            </div>
+                            <button 
+                              onClick={() => _removeFromSelected(course.code)}
+                              style={{ padding: 6, borderRadius: 8, color: '#94A3B8', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                            >
+                              <X size={16} />
+                            </button>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div style={{ marginTop: 32, paddingTop: 32, borderTop: '1px solid #F1F5F9' }}>
+                        <button 
+                          onClick={() => goTo(6)}
+                          disabled={selectedCourses.length === 0}
+                          className="btn-primary"
+                          style={{ 
+                            width: '100%', 
+                            opacity: selectedCourses.length === 0 ? 0.3 : 1,
+                            padding: '18px 0',
+                            borderRadius: 18,
+                            fontSize: 14,
+                            fontWeight: 800,
+                            letterSpacing: '0.05em',
+                            cursor: selectedCourses.length === 0 ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            boxShadow: selectedCourses.length > 0 ? '0 10px 25px var(--primary-glow)' : 'none'
+                          }}
+                        >
+                          CONTINUE
+                          <ArrowRight size={16} />
+                        </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ══ STEP 6 — Routine ══ */}
+            {step === 6 && (
+              <div style={{ textAlign:'center' }}>
+                <div style={{ display:'flex', justifyContent:'center', marginBottom:24 }}>
+                  <span style={{ fontSize:12, fontWeight:800, color:'var(--primary)', background:'var(--primary-bg)', padding:'4px 12px', borderRadius:99, textTransform:'uppercase', letterSpacing:'0.05em' }}>Step 6: Habits</span>
+                </div>
+                <h1 style={{ fontSize: 32, fontWeight:800, letterSpacing:'-0.03em', marginBottom:12, color:'#111' }}>Build your routine.</h1>
+                <p style={{ color:'#666', fontSize:16, marginBottom:40, fontWeight:500 }}>Lute will wake you up and send study reminders.</p>
+
+                <div style={{ maxWidth: 400, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 32 }}>
+                   <div style={{ background:'white', padding:32, borderRadius:24, border:'1px solid #e2e8f0', boxShadow:'0 10px 30px rgba(0,0,0,0.03)' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20, justifyContent:'center' }}>
+                      <Clock size={24} color="var(--primary)" />
+                      <h3 style={{ fontSize:18, fontWeight:800, color:'#111', margin:0 }}>Study Wake-up</h3>
+                    </div>
+                    <input 
+                      type="time" 
+                      value={alarmTime}
+                      onChange={e => setAlarmTime(e.target.value)}
+                      style={{ 
+                        width:'100%', padding:'16px', borderRadius:16, border:'2px solid var(--primary-bg)', 
+                        background:'var(--primary-bg)', fontSize:32, fontWeight:800, textAlign:'center', 
+                        color:'var(--primary-dark)', outline:'none' 
+                      }}
+                    />
+                  </div>
+
+                  <div onClick={() => setRemindersEnabled(!remindersEnabled)} style={{ 
+                    display:'flex', alignItems:'center', gap:16, padding:24, borderRadius:20, 
+                    border:'2px solid', borderColor: remindersEnabled ? 'var(--primary)' : '#e2e8f0',
+                    background: remindersEnabled ? 'var(--primary-bg)' : 'white', cursor:'pointer', transition:'all 0.2s'
+                  }}>
+                    <div style={{ 
+                      width:50, height:50, borderRadius:12, 
+                      background: remindersEnabled ? 'var(--primary)' : '#f1f5f9', 
+                      display:'flex', alignItems:'center', justifyContent:'center', color: remindersEnabled ? 'white' : '#94A3B8'
+                    }}>
+                      <Bell size={24} />
+                    </div>
+                    <div style={{ flex:1, textAlign:'left' }}>
+                      <div style={{ fontWeight:800, fontSize:16, color:'#111' }}>Smart Reminders</div>
+                      <div style={{ fontSize:13, color:'#666', fontWeight:500 }}>Lute will nudge you when it's time to study.</div>
+                    </div>
+                    <div style={{ 
+                      width:44, height:24, borderRadius:99, background: remindersEnabled ? 'var(--primary)' : '#cbd5e1',
+                      position:'relative', padding:4
+                    }}>
+                      <motion.div 
+                        animate={{ x: remindersEnabled ? 20 : 0 }}
+                        style={{ width:16, height:16, borderRadius:'50%', background:'white' }} 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ width: '100%', maxWidth: 400, marginTop: 40, margin: '40px auto 0', display: 'flex', justifyContent: 'center' }}>
+                  <button 
+                    onClick={() => goTo(7)}
+                    className="btn-primary"
+                    style={{ 
+                      padding: '18px 48px', 
+                      borderRadius: 18,
+                      fontSize: 16,
+                      fontWeight: 800,
+                      width: 'fit-content', 
+                      minWidth: 280,
+                      justifyContent: 'center'
+                    }}
+                  >
+                    CONTINUE
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ══ STEP 7 — Goals ══ */}
+            {step === 7 && (
+              <div style={{ textAlign:'center' }}>
+                <div style={{ display:'flex', justifyContent:'center', marginBottom:24 }}>
+                  <span style={{ fontSize:12, fontWeight:800, color:'var(--primary)', background:'var(--primary-bg)', padding:'4px 12px', borderRadius:99, textTransform:'uppercase', letterSpacing:'0.05em' }}>Step 7: Ambition</span>
+                </div>
+                <h1 style={{ fontSize: 32, fontWeight:800, letterSpacing:'-0.03em', marginBottom:12, color:'#111' }}>Aim for the clouds.</h1>
+                <p style={{ color:'#666', fontSize:16, marginBottom:40, fontWeight:500 }}>What's your target this semester?</p>
+
+                <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+                  {GOALS.map(g => (
+                    <motion.div
+                      key={g.id}
+                      whileHover={{ scale: 1.01 }}
+                      onClick={() => setGoal(g.id)}
+                      style={{
+                        padding:24, borderRadius:24, cursor:'pointer',
+                        border:'2px solid', borderColor: goal === g.id ? 'var(--primary)' : '#e2e8f0',
+                        background: goal === g.id ? 'var(--primary-bg)' : 'white',
+                        display:'flex', alignItems:'center', gap:20, textAlign:'left', transition:'all 0.2s'
+                      }}
+                    >
+                      <div style={{ fontSize:32 }}>{g.emoji}</div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontWeight:800, fontSize:18, color:'#111' }}>{g.label}</div>
+                        <div style={{ fontSize:14, color:'#666', fontWeight:500 }}>{g.sub}</div>
+                      </div>
+                      {goal === g.id && (
+                        <div style={{ padding:12, background: 'rgba(151, 24, 251, 0.05)', borderRadius:16, maxWidth:200 }}>
+                          <p style={{ margin:0, fontSize:12, color: 'var(--primary-dark)', fontWeight:600, fontStyle:'italic' }}>"{g.ai}"</p>
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+
+                <div style={{ width: '100%', maxWidth: 400, margin: '24px auto 0', display: 'flex', justifyContent: 'center' }}>
+                  <button 
+                    onClick={() => goTo(8)}
+                    className="btn-primary"
+                    style={{ 
+                      padding: '18px 48px', 
+                      borderRadius: 18,
+                      fontSize: 16,
+                      fontWeight: 800,
+                      width: 'fit-content',
+                      minWidth: 280, 
+                      justifyContent: 'center'
+                    }}
+                  >
+                    CONTINUE
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ══ STEP 8 — Referral ══ */}
+            {step === 8 && (
+              <div style={{ textAlign:'center' }}>
+                <div style={{ display:'flex', justifyContent:'center', marginBottom:24 }}>
+                  <span style={{ fontSize:12, fontWeight:800, color:'var(--primary)', background:'var(--primary-bg)', padding:'4px 12px', borderRadius:99, textTransform:'uppercase', letterSpacing:'0.05em' }}>Step 8: Network</span>
+                </div>
+                <h1 style={{ fontSize: 32, fontWeight:800, letterSpacing:'-0.03em', marginBottom:12, color:'#111' }}>Better with friends.</h1>
+                <p style={{ color:'#666', fontSize:16, marginBottom:40, fontWeight:500 }}>If you were referred, enter the code below to earn 100 XP.</p>
+
+                <div style={{ maxWidth: 400, margin: '0 auto' }}>
+                  <div style={{ position:'relative' }}>
+                    <div style={{ position:'absolute', left:18, top:'50%', transform:'translateY(-50%)', color:'#94A3B8' }}><Award size={20}/></div>
+                    <input value={referralCode} onChange={e => setReferralCode(e.target.value.toUpperCase())} placeholder="REF-CODE" style={{ width:'100%', padding:'18px 18px 18px 48px', borderRadius:18, border:'1.5px solid #F1F5F9', background:'white', fontSize:18, fontWeight:800, outline:'none', letterSpacing:'0.1em' }} />
+                  </div>
+                  <div style={{ marginTop:24, padding:20, background: 'rgba(151,24,251,0.03)', borderRadius:20, border: '1px dashed var(--primary)' }}>
+                    <p style={{ margin:0, fontSize:14, color: 'var(--primary-dark)', fontWeight:600 }}>Tip: You'll get your own referral code after finishing the setup!</p>
+                  </div>
+                </div>
+
+                <div style={{ width: '100%', maxWidth: 400, margin: '24px auto 0', display: 'flex', justifyContent: 'center' }}>
+                  <button 
+                    onClick={() => finish(goal)} 
+                    disabled={saving}
+                    className="btn-primary"
+                    style={{ 
+                      padding: '18px 48px', 
+                      borderRadius: 18,
+                      fontSize: 16,
+                      fontWeight: 800,
+                      width: 'fit-content',
+                      minWidth: 280,
+                      justifyContent: 'center',
+                      cursor: saving ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {saving ? 'PREPARING...' : 'FINISH'}
+                  </button>
+                </div>
+              </div>
+            )}
           </motion.div>
-        </AnimatePresence>
-      </div>
+          </AnimatePresence>
+        </motion.div>
+
+      {/* Completion Overlay — High Fidelity Celebration */}
+      <AnimatePresence>
+        {showConfetti && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            style={{ 
+              position: 'fixed', inset: 0, zIndex: 2000, 
+              background: 'white', 
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden'
+            }}
+          >
+            <Confetti />
+            
+            {/* Background Studio Glows */}
+            <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: 500, height: 500, background: 'rgba(151, 24, 251, 0.04)', borderRadius: '50%', filter: 'blur(80px)' }} />
+            <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: 500, height: 500, background: 'rgba(151, 24, 251, 0.04)', borderRadius: '50%', filter: 'blur(80px)' }} />
+
+            <motion.div 
+              style={{ textAlign: 'center', zIndex: 10, position: 'relative' }}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, type: 'spring', stiffness: 200, damping: 20 }}
+            >
+              {/* Celebrating Mascot */}
+              <div style={{ marginBottom: 40, position: 'relative' }}>
+                <motion.div
+                  initial={{ rotate: -20, scale: 0 }}
+                  animate={{ rotate: 0, scale: 1 }}
+                  transition={{ delay: 0.5, type: 'spring' }}
+                  style={{ 
+                    position: 'absolute', top: -30, right: -20, 
+                    background: 'var(--primary)', color: 'white', 
+                    padding: '8px 16px', borderRadius: 20, 
+                    fontSize: 14, fontWeight: 900, 
+                    boxShadow: '0 8px 20px var(--primary-glow)',
+                    zIndex: 2
+                  }}
+                >
+                  YEAH! 🚀
+                </motion.div>
+                <motion.img 
+                  src="/onboard-mascot.png" 
+                  alt="Celebration" 
+                  style={{ width: 240, height: 'auto', filter: 'drop-shadow(0 30px 60px rgba(151, 24, 251, 0.2))' }}
+                  animate={{ 
+                    y: [0, -40, 0],
+                    rotate: [0, -5, 5, 0],
+                    scale: [1, 1.1, 1]
+                  }}
+                  transition={{ 
+                    duration: 3, 
+                    repeat: Infinity, 
+                    ease: "easeInOut" 
+                  }}
+                />
+              </div>
+
+              <motion.h2 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.7 }}
+                style={{ fontSize: 42, fontWeight: 900, letterSpacing: '-0.04em', color: '#111', margin: '0 0 12px 0' }}
+              >
+                You're all set!
+              </motion.h2>
+              <motion.p 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.8 }}
+                style={{ fontSize: 18, color: '#666', fontWeight: 500, marginBottom: 48 }}
+              >
+                Your academic studio is ready for greatness, {fullName?.split(' ')[0] || 'Scholar'}.
+              </motion.p>
+
+              {/* XP Reward Card */}
+              <motion.div 
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 1, type: 'spring' }}
+                style={{ 
+                  background: 'var(--primary-bg)', 
+                  padding: '24px 40px', 
+                  borderRadius: 32, 
+                  border: '2px solid var(--primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 16,
+                  margin: '0 auto 64px',
+                  width: 'fit-content'
+                }}
+              >
+                <div style={{ width: 48, height: 48, background: 'var(--primary)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 24 }}>
+                  <Award size={28} />
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>New Reward</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--primary-dark)' }}>+100 XP EARNED</div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 1.5 }}
+              >
+                <button 
+                  onClick={async () => {
+                    if (refresh) await refresh();
+                    navigate('/dashboard');
+                  }}
+                  className="btn-primary"
+                  style={{ 
+                    padding: '20px 64px', 
+                    borderRadius: 20,
+                    fontSize: 18,
+                    fontWeight: 800,
+                    width: 'fit-content',
+                    minWidth: 320,
+                    boxShadow: '0 20px 40px var(--primary-glow)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ENTER WORKSPACE
+                </button>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      </main>
     </div>
   );
 }

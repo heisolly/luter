@@ -43,6 +43,16 @@ BEGIN
         ALTER TABLE material_analysis DROP CONSTRAINT IF EXISTS material_analysis_material_id_key;
         ALTER TABLE material_analysis ADD CONSTRAINT material_analysis_material_id_key UNIQUE (material_id);
     END IF;
+
+    -- Add deleted_at to materials for soft delete
+    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'materials' AND COLUMN_NAME = 'deleted_at') THEN
+        ALTER TABLE materials ADD COLUMN deleted_at TIMESTAMP WITH TIME ZONE;
+    END IF;
+
+    -- Add deleted_at to user_notes for soft delete
+    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'user_notes' AND COLUMN_NAME = 'deleted_at') THEN
+        ALTER TABLE user_notes ADD COLUMN deleted_at TIMESTAMP WITH TIME ZONE;
+    END IF;
 END $$;
 
 -- 2. Flashcard Bundles Table (For Public Sharing)

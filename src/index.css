@@ -106,6 +106,8 @@ h2, h3, h4 {
   padding: 0 32px;
 }
 
+.show-on-mobile-only { display: none; }
+
 @media (max-width: 768px) {
   .container-full,
   .container-custom {
@@ -114,6 +116,7 @@ h2, h3, h4 {
   
   /* Generic Responsive Helpers */
   .hide-on-mobile { display: none !important; }
+  .show-on-mobile-only { display: block !important; }
   .stack-on-mobile { flex-direction: column !important; }
   .full-width-mobile { width: 100% !important; max-width: 100% !important; }
   

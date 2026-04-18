@@ -19,9 +19,7 @@ import SettingsPage from './components/dashboard/SettingsPage'
 import UpgradePage from './components/dashboard/UpgradePage'
 import StreakPage from './components/dashboard/StreakPage'
 import ReferPage from './components/dashboard/ReferPage'
-import CompetePage from './components/dashboard/CompetePageEnhanced'
-import StandaloneBattle from './components/StandaloneBattle'
-import BattleExamPage from './components/dashboard/BattleExamPage'
+import PlaygroundPage from './components/dashboard/PlaygroundPage'
 import PricingPage from './components/dashboard/PricingPage'
 import ExamSessionView from './components/ExamSessionView'
 import SharedFlashcardsView from './components/SharedFlashcardsView'
@@ -48,11 +46,14 @@ import SemesterNotesPage from './components/dashboard/SemesterNotesPage'
 import UserUpload from './components/dashboard/UserUpload'
 import NotesRequestsAdmin from './components/dashboard/NotesRequestsAdmin'
 import StudyRequestsPage from './components/dashboard/StudyRequestsPage'
+import ExamSessionPage from './components/dashboard/ExamSessionPage'
+import NotificationsPage from './components/dashboard/NotificationsPage'
+import StudyGroupsPage from './components/dashboard/StudyGroupsPage'
+import StudyGroupDetailsPage from './components/dashboard/StudyGroupDetailsPage'
+import JoinGroupPage from './components/dashboard/JoinGroupPage'
+import LibraryPage from './components/dashboard/LibraryPage'
+import TrashPage from './components/dashboard/TrashPage'
 
-function CompeteRedirect() {
-  const { search } = useLocation()
-  return <Navigate to={`/dashboard/compete${search}`} replace />
-}
 
 const OFFLINE_BAR_PT = '2.75rem'
 
@@ -104,6 +105,7 @@ export default function App() {
             <Route index element={<DashboardHome />} />
             <Route path="courses/:courseId/materials/:weekId" element={<StudyMaterialsWeekPage />} />
             <Route path="courses/:courseId/materials" element={<StudyMaterialsPage />} />
+            <Route path="library" element={<LibraryPage />} />
             <Route path="courses/:courseId/semester-notes" element={<SemesterNotesPage />} />
             <Route path="files" element={<FilesPage />} />
             <Route path="ai-notes" element={<AINotesPage />} />
@@ -119,18 +121,21 @@ export default function App() {
             <Route path="pricing" element={<PricingPage />} />
             <Route path="streak" element={<StreakPage />} />
             <Route path="refer" element={<ReferPage />} />
-            <Route path="compete" element={<CompetePage />} />
+            <Route path="compete" element={<PlaygroundPage />} />
             <Route path="upload" element={<UserUpload />} />
             <Route path="requests" element={<StudyRequestsPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="study-groups" element={<StudyGroupsPage />} />
+            <Route path="study-groups/:groupId" element={<StudyGroupDetailsPage />} />
+            <Route path="trash" element={<TrashPage />} />
+            <Route path="exam-session/:sessionId" element={<ExamSessionPage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
 
           <Route path="/exam-session/:sessionId" element={<ExamSessionView />} />
           <Route path="/share/flashcards/:bundleId" element={<SharedFlashcardsView />} />
-          <Route path="/compete" element={<CompeteRedirect />} />
-          <Route path="/battle/:sessionId" element={<StandaloneBattle />} />
-          <Route path="/battle-exam/:sessionId" element={<BattleExamPage />} />
 
+          <Route path="/join/:inviteCode" element={<JoinGroupPage />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminOverview />} />
             <Route path="notes-manager" element={<AdminNotesManager />} />

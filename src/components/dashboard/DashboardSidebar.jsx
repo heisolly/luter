@@ -2,22 +2,27 @@ import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
-import {
-  Home, BookOpen, FlaskConical, BarChart3, Trophy,
-  Settings, Flame, ChevronLeft, ChevronRight, Zap, X,
-  Brain, Sparkles, Layers, HelpCircle, MessageSquare, ShieldCheck
+import { 
+  Home, Book, Briefcase, User, Gamepad2, Layers, 
+  Folder, ClipboardList, PenTool, CheckCircle, 
+  Settings, Crown, BarChart, ChevronDown, ChevronRight,
+  Monitor, Star, ShieldCheck, X, ChevronLeft,
+  Users, Bell, Trash2, FlaskConical, Hash, Plus
 } from 'lucide-react'
 import { isAdminUser } from '../../admin/adminAuth'
 import LuterLogo from '../shared/LuterLogo'
 
-const NAV = [
-  { id: 'home', path: '/dashboard', icon: Home, label: 'Home' },
-  { id: 'courses', path: '/dashboard/courses', icon: BookOpen, label: 'Backpack' },
-  { id: 'mock-exam', path: '/dashboard/mock-exam', icon: FlaskConical, label: 'Mock Exam' },
-  { id: 'compete', path: '/dashboard/compete', icon: Trophy, label: 'Compete' },
-  { id: 'analytics', path: '/dashboard/analytics', icon: BarChart3, label: 'Analytics' },
-  { id: 'pricing', path: '/dashboard/pricing', icon: Zap, label: 'Upgrade' },
-  { id: 'requests', path: '/dashboard/requests', icon: MessageSquare, label: 'Requests' },
+const TOP_NAV = [
+  { id: 'home', label: 'Home', icon: Home, path: '/dashboard' },
+  { id: 'library', label: 'Your library', icon: Book, path: '/dashboard/library' },
+  { id: 'study-groups', label: 'Study groups', icon: Users, path: '/dashboard/study-groups', badge: 'New' },
+  { id: 'notifications', label: 'Notifications', icon: Bell, path: '/dashboard/notifications', count: 3 },
+]
+
+const BOTTOM_NAV = [
+  { id: 'playground', label: 'Playground', icon: Gamepad2, path: '/dashboard/compete', highlight: true },
+  { id: 'trash', label: 'Trash', icon: Trash2, path: '/dashboard/trash' },
+  { id: 'mock-exam', label: 'Mock Exam', icon: FlaskConical, labelAlt: 'Mock Exam', path: '/dashboard/mock-exam' },
 ]
 
 function isNavActiveFixed(pathname, navPath) {
@@ -28,6 +33,7 @@ function isNavActiveFixed(pathname, navPath) {
 
 export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobile, onClose, onNavigate }) {
   const [streak, setStreak] = useState(0)
+  const [expandedItems, setExpandedItems] = useState(['library', 'backpack'])
   const { ready, bundle } = useDashboardPrefetch()
   const location = useLocation()
   const navigate = useNavigate()
@@ -46,13 +52,76 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
     getStreak()
   }, [user, ready, bundle])
 
-  const profileName = bundle?.profile?.full_name || user?.user_metadata?.full_name
-  const firstName = profileName ? profileName.split(' ')[0] : 'Student'
-  const initials = firstName.slice(0, 2).toUpperCase()
+  const profile = bundle?.profile?.data || bundle?.profile
+  const displayUsername = profile?.username ? `@${profile.username}` : (profile?.full_name?.split(' ')[0] || 'Scholar')
+  const initials = (profile?.username?.slice(0, 2) || profile?.full_name?.slice(0, 2) || 'SC').toUpperCase()
 
   const go = (path) => {
     navigate(path)
     onNavigate?.()
+  }
+
+  const NavButton = ({ item }) => {
+    const { id, path, icon: Icon, label, children, highlight, badge, count } = item
+    const isActive = isNavActiveFixed(pathname, path)
+    const isExpanded = expandedItems.includes(id)
+
+    return (
+      <div className="dsb-nav-group">
+        <button
+          className={`dsb-nav-item 
+            ${isActive ? 'dsb-nav-item--active' : ''} 
+            ${highlight ? 'dsb-nav-item--playground' : ''}
+            ${collapsed ? 'dsb-nav-item--center' : ''}`}
+          onClick={() => {
+            if (children && !collapsed) {
+              setExpandedItems(prev => 
+                prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+              )
+            } else {
+              go(path)
+            }
+          }}
+          title={collapsed ? label : ''}
+        >
+          <div className="dsb-nav-icon-wrap">
+            <Icon size={18} strokeWidth={2.5} />
+            {count > 0 && collapsed && <div className="dsb-nav-badge dsb-nav-badge--count">{count}</div>}
+          </div>
+          {!collapsed && (
+            <>
+              <span className="dsb-nav-label-text">{label}</span>
+              {badge && <span className="dsb-nav-badge-pill">{badge}</span>}
+              {count > 0 && <span className="dsb-nav-badge-count">{count}</span>}
+              {children && (
+                <div className="dsb-nav-arrow" style={{ marginLeft: 'auto' }}>
+                  {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </div>
+              )}
+            </>
+          )}
+        </button>
+
+        {children && isExpanded && !collapsed && (
+          <div className="dsb-nav-children">
+            {children.map((child, idx) => {
+              const isChildActive = pathname.startsWith(child.path)
+              const ChildIcon = child.icon
+              return (
+                <button
+                   key={idx}
+                   className={`dsb-nav-child-item ${isChildActive ? 'dsb-nav-child--active' : ''}`}
+                   onClick={() => go(child.path)}
+                >
+                  {ChildIcon && <ChildIcon size={14} strokeWidth={3.5} style={{ marginRight: 8 }} />}
+                  <span>{child.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -64,7 +133,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
 
         {isMobile ? (
           <button className="dsb-close-btn" onClick={onClose}>
-            <X size={20} strokeWidth={2.2} />
+            <X size={20} strokeWidth={3.8} />
           </button>
         ) : (
           <button
@@ -72,93 +141,105 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
             onClick={() => setCollapsed(!collapsed)}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            {collapsed ? <ChevronRight size={16} strokeWidth={2.2} /> : <ChevronLeft size={16} strokeWidth={2.2} />}
+            {collapsed ? <ChevronRight size={14} strokeWidth={2.5} /> : <ChevronLeft size={14} strokeWidth={2.5} />}
           </button>
         )}
       </div>
 
       <nav className="dsb-nav">
-        {NAV.map(({ id, path, icon: Icon, label }) => {
-          const isActive = isNavActiveFixed(pathname, path)
-          return (
-            <button
-              key={id}
-              className={`dsb-nav-item ${isActive ? 'dsb-nav-item--active' : ''} ${collapsed ? 'dsb-nav-item--center' : ''}`}
-              onClick={() => go(path)}
-              title={collapsed ? label : ''}
-            >
-              <div className="dsb-nav-icon-wrap">
-                <Icon size={20} strokeWidth={1.8} />
-              </div>
-              {!collapsed && <span className="dsb-nav-label-text">{label}</span>}
-            </button>
-          )
-        })}
-      </nav>
+        {/* Top Section */}
+        <div className="dsb-nav-section">
+          {TOP_NAV.map((item) => (
+            <NavButton key={item.id} item={item} />
+          ))}
+        </div>
 
-      <div className="dsb-bottom">
-        <button
-          onClick={() => go('/dashboard/streak')}
-          className={`dsb-streak ${collapsed ? 'dsb-streak--collapsed' : ''}`}
-          style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', padding: 0 }}
-        >
-          <div className="dsb-streak-flame">
-            <Flame size={20} strokeWidth={2} fill="#d97706" color="#d97706" />
-          </div>
-          {!collapsed && <span className="dsb-streak-count">{streak} day streak</span>}
-        </button>
+        <div className="dsb-divider" />
 
-        <div className={`dsb-user ${collapsed ? 'dsb-user--collapsed' : ''}`}>
-          <div
-            className="dsb-avatar"
-            style={{ background: 'linear-gradient(135deg, #9718fb, #7a12cc)', color: 'white', fontSize: 13, fontWeight: 700 }}
+        {/* Middle Section - Backpack (Courses) */}
+        {!collapsed && (
+          <div 
+            className="dsb-section-label dsb-section-label--clickable" 
+            style={{ marginTop: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+            onClick={() => go('/dashboard/courses')}
           >
-            {initials}
+            <span>Backpack</span>
+            <ChevronRight size={12} strokeWidth={3} />
           </div>
-          {!collapsed && (
-            <>
-              <div className="dsb-user-info">
-                <span className="dsb-user-name">{firstName}</span>
-              </div>
-              <div className="dsb-user-actions" style={{ marginLeft: 'auto' }}>
-                <button
-                  title="Settings"
-                  onClick={() => go('/dashboard/settings')}
-                  style={{
-                    background: pathname.startsWith('/dashboard/settings') ? '#f0f0f0' : 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 6,
-                    borderRadius: 6,
-                  }}
-                >
-                  <Settings size={14} strokeWidth={2} color={pathname.startsWith('/dashboard/settings') ? '#111' : '#666'} />
-                </button>
-              </div>
-            </>
+        )}
+        <div className="dsb-nav-section dsb-backpack-section" style={{ maxHeight: '320px', overflowY: 'auto', paddingRight: '4px' }}>
+          {bundle?.uc?.data?.length > 0 ? (
+            bundle.uc.data
+              .filter(row => row && (row.courses || row.course))
+              .map((row, idx) => {
+                const c = row.courses || row.course;
+                return (
+                  <button
+                    key={c?.id || `course-${idx}`}
+                    className={`dsb-nav-item dsb-course-item ${pathname.includes(c?.id) ? 'dsb-nav-item--active' : ''} ${collapsed ? 'dsb-nav-item--center' : ''}`}
+                    onClick={() => go(`/dashboard/courses/${c?.id}`)}
+                    title={c?.name}
+                  >
+                    <div className="dsb-nav-icon-wrap">
+                      <Hash size={18} strokeWidth={3.8} />
+                    </div>
+                    {!collapsed && (
+                      <span className="dsb-nav-label-text" style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {c?.code || c?.name}
+                      </span>
+                    )}
+                  </button>
+                );
+              })
+          ) : (
+             <button
+                className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`}
+                onClick={() => go('/dashboard/courses')}
+              >
+                <div className="dsb-nav-icon-wrap"><Plus size={20} strokeWidth={3.8} /></div>
+                {!collapsed && <span className="dsb-nav-label-text">Add Course</span>}
+              </button>
           )}
         </div>
 
-        {!collapsed && (
-          <button className="dsb-feedback-btn">
-            <div className="dsb-feedback-line" />
-            <span>give feedback</span>
-            <div className="dsb-feedback-line" />
-          </button>
-        )}
+        <div className="dsb-divider" />
 
-        {isAdminUser(bundle?.profile, user?.email) && (
-          <button
-            onClick={() => navigate('/admin')}
-            className={`dsb-nav-item dsb-admin-btn ${collapsed ? 'dsb-nav-item--center' : ''}`}
-            style={{ marginTop: 8, color: '#7a12cc', border: '1.2px solid #7a12cc15', background: '#7a12cc05' }}
-          >
-            <div className="dsb-nav-icon-wrap">
-              <ShieldCheck size={20} strokeWidth={2} />
-            </div>
-            {!collapsed && <span className="dsb-nav-label-text">Admin Panel</span>}
+        {/* Down Section */}
+        <div className="dsb-nav-section">
+          {BOTTOM_NAV.map((item) => (
+            <NavButton key={item.id} item={item} />
+          ))}
+        </div>
+      </nav>
+
+      <div className="dsb-bottom">
+        {!collapsed && <div className="dsb-section-label">Personal</div>}
+        
+        <div className="dsb-personal-group">
+          <button className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/dashboard/analytics')}>
+            <div className="dsb-nav-icon-wrap"><BarChart size={18} strokeWidth={2.5} /></div>
+            {!collapsed && <span className="dsb-nav-label-text">My Progress</span>}
           </button>
-        )}
+          
+          <button className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/dashboard/settings')}>
+            <div className="dsb-nav-icon-wrap"><Settings size={18} strokeWidth={2.5} /></div>
+            {!collapsed && <span className="dsb-nav-label-text">Settings</span>}
+          </button>
+
+          <button className={`dsb-nav-item dsb-nav-item--pro ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/dashboard/pricing')}>
+            <div className="dsb-nav-icon-wrap"><Crown size={18} strokeWidth={2.5} /></div>
+            {!collapsed && <span className="dsb-nav-label-text">Upgrade to Pro</span>}
+          </button>
+        </div>
+
+        <div className={`dsb-user-compact ${collapsed ? 'dsb-user--collapsed' : ''}`}>
+          <div className="dsb-avatar-sm">{initials}</div>
+          {!collapsed && (
+            <div className="dsb-user-info-inner" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <span className="dsb-user-name-alt">{displayUsername}</span>
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   )

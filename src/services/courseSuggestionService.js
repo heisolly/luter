@@ -48,31 +48,39 @@ async function getAiSuggestions(university, department, level, semester, country
     return cached.suggestions
   }
 
-  // Check database cache
   try {
     const { data: dbCache, error: cacheError } = await supabase
       .from('ai_suggestion_cache')
       .select('*')
       .eq('cache_key', cacheKey)
-      .single()
+      .single();
 
-    if (!cacheError && dbCache && new Date(dbCache.expires_at) > new Date()) {
-      // Update hit count
-      await supabase
+    if (cacheError) {
+      if (cacheError.code === 'PGRST116') {
+        // Just a cache miss, which is normal
+      } else {
+        console.warn('AI suggestion cache lookup failed:', cacheError.message, cacheError.code);
+      }
+    } else if (dbCache && new Date(dbCache.expires_at) > new Date()) {
+      // Update hit count (non-blocking)
+      supabase
         .from('ai_suggestion_cache')
-        .update({ hit_count: dbCache.hit_count + 1 })
+        .update({ hit_count: (dbCache.hit_count || 0) + 1 })
         .eq('cache_key', cacheKey)
+        .then(({ error }) => {
+          if (error) console.warn('Failed to update cache hit count:', error.message);
+        });
 
       // Store in memory cache
       aiCache.set(cacheKey, {
         suggestions: dbCache.suggestions,
         timestamp: Date.now()
-      })
+      });
 
-      return dbCache.suggestions
+      return dbCache.suggestions;
     }
-  } catch {
-    // Database cache check failed silently
+  } catch (err) {
+    console.error('Critical failure in AI cache logic:', err);
   }
 
   // Generate new AI suggestions

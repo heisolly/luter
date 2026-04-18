@@ -30,21 +30,28 @@ export default function CoursesPage() {
   const [editingCourseId, setEditingCourseId] = useState(null)
   const [editValue, setEditValue] = useState('')
 
-  const mapRows = useCallback((uc) =>
-    uc.map((row, i) => ({
-      id:       row.course.id,
-      ucId:     row.id,
-      code:     row.course.code,
-      name:     row.custom_name || row.course.name,
-      originalName: row.course.name,
-      dept:     row.course.faculty || 'General',
-      progress: row.progress || 0,
-      color:    PALETTE[i % PALETTE.length],
-      isLocked: row.is_locked || false,
-      isArchived: row.is_archived || false,
-      semester: row.semester || '1st',
-      lockedReason: row.locked_reason
-    })), [])
+  const mapRows = useCallback((uc) => {
+    if (!Array.isArray(uc)) return []
+    return uc
+      .filter(row => row && (row.courses || row.course)) // Support both plural and singular joins
+      .map((row, i) => {
+        const c = row.courses || row.course
+        return {
+          id:       c.id,
+          ucId:     row.id,
+          code:     c.code,
+          name:     row.custom_name || c.name,
+          originalName: c.name,
+          dept:     c.faculty || 'General',
+          progress: row.progress || 0,
+          color:    PALETTE[i % PALETTE.length],
+          isLocked: row.is_locked || false,
+          isArchived: row.is_archived || false,
+          semester: row.semester || '1st',
+          lockedReason: row.locked_reason
+        }
+      })
+  }, [])
 
   const loadRemote = useCallback(async () => {
     if (!user) return

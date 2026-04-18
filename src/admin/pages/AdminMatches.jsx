@@ -23,7 +23,7 @@ export default function AdminMatches() {
     setLoading(true)
     setError(null)
     const { data, error: e } = await supabase
-      .from('matches')
+      .from('battles')
       .select('*')
       .order('id', { ascending: false })
       .limit(150)
@@ -45,15 +45,15 @@ export default function AdminMatches() {
 
   return (
     <>
-      <h1 className="adm-page-title">Matches</h1>
-      <p className="adm-page-desc">Arena / duel sessions. Inspect linkage between challenger and opponent.</p>
+      <h1 className="adm-page-title">Battles & Duels</h1>
+      <p className="adm-page-desc">Arena sessions and competitive duels. Inspect linkage between scholars.</p>
 
       {error && <div className="adm-error-banner">{error}</div>}
 
       <div className="adm-card">
         <div className="adm-toolbar">
           <span className="adm-muted" style={{ fontWeight: 600 }}>
-            {rows.length} matches
+            {rows.length} sessions
           </span>
           <button type="button" className="adm-btn adm-btn--ghost" onClick={() => { refresh(); load() }}>
             <RefreshCw size={16} /> Refresh
@@ -68,11 +68,11 @@ export default function AdminMatches() {
             <table className="adm-table">
               <thead>
                 <tr>
-                  <th>Session</th>
+                  <th>Session ID</th>
                   <th>Type</th>
                   <th>Status</th>
-                  <th>Challenger</th>
-                  <th>Opponent</th>
+                  <th>Subject</th>
+                  <th>Difficulty</th>
                   <th>Created</th>
                 </tr>
               </thead>
@@ -80,26 +80,14 @@ export default function AdminMatches() {
                 {rows.map((r) => (
                   <tr key={r.id}>
                     <td className="adm-mono" style={{ fontSize: 12 }}>
-                      {r.session_id || r.id}
+                      {r.session_id || r.id.slice(0, 8)}
                     </td>
-                    <td>{r.match_type || '—'}</td>
+                    <td>{r.battle_type || 'duel'}</td>
                     <td>
-                      <span className="adm-pill">{r.status || '—'}</span>
+                      <span className="adm-pill">{r.status || 'waiting'}</span>
                     </td>
-                    <td>
-                      <Link to={`/admin/users/${r.challenger_id}`} className="adm-link adm-mono">
-                        {r.challenger_id?.slice(0, 8)}…
-                      </Link>
-                    </td>
-                    <td>
-                      {r.opponent_id ? (
-                        <Link to={`/admin/users/${r.opponent_id}`} className="adm-link adm-mono">
-                          {r.opponent_id.slice(0, 8)}…
-                        </Link>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
+                    <td>{r.subject || '—'}</td>
+                    <td>{r.difficulty || '—'}</td>
                     <td className="adm-muted">{formatTs(r.created_at)}</td>
                   </tr>
                 ))}

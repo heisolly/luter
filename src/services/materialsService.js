@@ -7,6 +7,7 @@ export async function fetchCourseMaterials(courseId) {
     .from('materials')
     .select('id, title, type, source_url, extracted_text, owner_role, processing_status, metadata, created_at, user_id, topic_id')
     .eq('course_id', courseId)
+    .is('deleted_at', null) // Filter out deleted items
     .order('created_at', { ascending: false })
   if (error) throw error
   return data || []
@@ -155,6 +156,7 @@ export async function fetchCourseMaterialsWithContext(courseId, userId, includeS
     .from('materials_with_context')
     .select('*')
     .eq('course_id', courseId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
 
   if (includeShared) {
@@ -319,6 +321,7 @@ export async function fetchUserNotes(userId, courseId) {
     .select('*')
     .eq('user_id', userId)
     .eq('course_id', courseId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (error) throw error
   return data || []
@@ -345,8 +348,23 @@ export async function saveChatMessage({ userId, courseId, role, content }) {
   if (error) console.warn('saveChatMessage', error)
 }
 
-/** Delete a material and its associated file in storage */
+/** Soft delete a material (moves to Trash) */
 export async function deleteMaterial(materialId) {
+  if (!materialId) {
+    console.error('deleteMaterial: materialId is required');
+    return { error: 'Material ID is missing' };
+  }
+  
+  const { error } = await supabase
+    .from('materials')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', materialId)
+  
+  if (error) throw error
+}
+
+/** Permanently delete a material and its associated file in storage */
+export async function permanentlyDeleteMaterial(materialId) {
   // 1. Get the material to find the source_url
   const { data: material, error: fetchErr } = await supabase
     .from('materials')
@@ -370,7 +388,7 @@ export async function deleteMaterial(materialId) {
     }
   }
 
-  // 3. Delete from DB
+  // 3. Hard delete from DB
   const { error } = await supabase
     .from('materials')
     .delete()
@@ -379,8 +397,22 @@ export async function deleteMaterial(materialId) {
   if (error) throw error
 }
 
-/** Delete a user note */
+/** Soft delete a user note (moves to Trash) */
 export async function deleteUserNote(noteId) {
+  if (!noteId) {
+    console.error('deleteUserNote: noteId is required');
+    return { error: 'Note ID is missing' };
+  }
+
+  const { error } = await supabase
+    .from('user_notes')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', noteId)
+  if (error) throw error
+}
+
+/** Permanently delete a user note */
+export async function permanentlyDeleteUserNote(noteId) {
   const { error } = await supabase
     .from('user_notes')
     .delete()

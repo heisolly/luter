@@ -14,7 +14,6 @@ export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [showInviteNotify, setShowInviteNotify] = useState(null)
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
@@ -38,25 +37,6 @@ export default function Dashboard() {
         }
         updateHeartbeat()
         hb = setInterval(updateHeartbeat, 30000)
-
-        channel = supabase
-          .channel('global_notifications')
-          .on(
-            'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'notifications',
-              filter: `user_id=eq.${session.user.id}`,
-            },
-            (payload) => {
-              if (payload.new.type === 'match_request') {
-                setShowInviteNotify(payload.new)
-                setTimeout(() => setShowInviteNotify(null), 12000)
-              }
-            }
-          )
-          .subscribe()
       } else {
         const currentPath = window.location.pathname + window.location.search
         navigate(`/signin?redirect=${encodeURIComponent(currentPath)}`)
@@ -193,65 +173,6 @@ export default function Dashboard() {
         <Outlet context={{ user, isMobile, sidebarCollapsed, setSidebarCollapsed }} />
       </main>
 
-      <AnimatePresence>
-        {showInviteNotify && (
-          <motion.div
-            initial={{ y: 50, opacity: 0, scale: 0.9 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 50, opacity: 0, scale: 0.9 }}
-            style={{
-              position: 'fixed',
-              bottom: 30,
-              right: 30,
-              zIndex: 9999,
-              width: 320,
-              background: '#111',
-              borderRadius: 24,
-              border: '1.5px solid #7a12cc',
-              padding: '20px',
-              color: 'white',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(122, 18, 204, 0.2)', padding: '4px 10px', borderRadius: 99 }}>
-                <Sword size={12} color="#c4b5fd" fill="#c4b5fd" />
-                <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#c4b5fd' }}>Challenge Received</span>
-              </div>
-              <button onClick={() => setShowInviteNotify(null)} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
-                <X size={16} />
-              </button>
-            </div>
-
-            <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.02em' }}>{showInviteNotify.title}</h3>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 500, margin: '0 0 20px', lineHeight: 1.4 }}>{showInviteNotify.body}</p>
-
-            <button
-              onClick={() => {
-                navigate('/dashboard/compete')
-                setShowInviteNotify(null)
-              }}
-              style={{
-                width: '100%',
-                height: 44,
-                borderRadius: 14,
-                background: '#7a12cc',
-                color: 'white',
-                border: 'none',
-                fontSize: 13,
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-              }}
-            >
-              ACCEPT DUEL <ArrowRight size={16} />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
     </DashboardPrefetchProvider>
   )

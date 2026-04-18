@@ -1,19 +1,37 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
   User, Bell, CreditCard, Shield, LogOut, 
   Trash2, ChevronRight, Save, Loader2,
-  CheckCircle2, Sparkles
+  CheckCircle2, Sparkles, GraduationCap,
+  Briefcase, Monitor, Github, Mail,
+  X, Check, ExternalLink, ShieldAlert,
+  Ghost, Cat, Dog, Bird, Rabbit, Turtle, Smile
 } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 
+const PRIMARY_COLOR = '#9718fb'
+const PRIMARY_BG = '#F3E8FF'
+
 const TABS = [
-  { id: 'profile', icon: User, label: 'Profile & Academic' },
-  { id: 'notifications', icon: Bell, label: 'Notifications' },
-  { id: 'billing', icon: CreditCard, label: 'Plan & Billing' },
+  { id: 'profile', icon: User, label: 'Profile' },
+  { id: 'academic', icon: GraduationCap, label: 'Academic' },
+  { id: 'vault', icon: Briefcase, label: 'Vault' },
+  { id: 'preferences', icon: Monitor, label: 'Preferences' },
   { id: 'security', icon: Shield, label: 'Security' },
+  { id: 'social', icon: Bell, label: 'Alerts' },
+]
+
+const MASCOT_ICONS = [
+  { id: 'ghost', icon: Ghost, color: '#FF7597' },
+  { id: 'cat', icon: Cat, color: '#4FB0FF' },
+  { id: 'dog', icon: Dog, color: '#00D084' },
+  { id: 'bird', icon: Bird, color: PRIMARY_COLOR },
+  { id: 'rabbit', icon: Rabbit, color: '#FFAB2D' },
+  { id: 'turtle', icon: Turtle, color: '#111' },
+  { id: 'smile', icon: Smile, color: '#A855F7' },
 ]
 
 export default function SettingsPage() {
@@ -23,68 +41,81 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
 
-  // Profile Form State
-  const [profile, setProfile] = useState({
+  const [formData, setFormData] = useState({
     fullName: user?.user_metadata?.full_name || '',
-    email: user?.email || '',
+    username: '',
+    bio: '',
+    avatarUrl: 'ghost',
     university: '',
     faculty: '',
-    level: '',
+    level: '100',
+    semester: '1',
+    aiPersonality: 'Encouraging',
+    readingMode: 'Annotator',
+    language: 'English',
+    liveVisibility: true,
+    groupInvitePermission: 'Anyone',
+    pushAlerts: true,
+    emailReports: true,
+    soundEffects: true
   })
 
   useEffect(() => {
-    if (!user) return
-    if (!ready) return
-
-    const apply = (data) => {
+    if (!user || !ready) return
+    const fetchData = async () => {
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
       if (data) {
-        setProfile((p) => ({
-          ...p,
+        setFormData(prev => ({
+          ...prev,
+          fullName: data.full_name || user?.user_metadata?.full_name || '',
+          username: data.username || '',
+          bio: data.bio || '',
+          avatarUrl: data.avatar_url || 'ghost',
           university: data.university || '',
           faculty: data.faculty || '',
-          level: data.level || '',
+          level: data.level || '100',
+          semester: data.semester || '1',
+          aiPersonality: data.ai_personality || 'Encouraging',
+          readingMode: data.reading_mode || 'Annotator',
+          language: data.primary_language || 'English',
+          liveVisibility: data.live_visibility ?? true,
+          groupInvitePermission: data.group_invite_permission || 'Anyone',
+          pushAlerts: data.push_alerts_enabled ?? true,
+          emailReports: data.email_reports_enabled ?? true,
+          soundEffects: data.sound_effects_enabled ?? true
         }))
       }
       setLoading(false)
     }
+    fetchData()
+  }, [user, ready])
 
-    if (bundle?.profile?.data && !bundle.profile.error) {
-      apply(bundle.profile.data)
-      return
-    }
-
-    const fetchProfile = async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-      apply(data)
-    }
-    fetchProfile()
-  }, [user, ready, bundle])
-
-  const handleSaveProfile = async () => {
+  const handleUpdate = async (updates) => {
     setSaving(true)
-    await supabase.auth.updateUser({
-      data: { full_name: profile.fullName }
-    })
+    const newFormData = { ...formData, ...updates }
+    setFormData(newFormData)
     
     await supabase.from('profiles').upsert({
       id: user.id,
-      full_name: profile.fullName,
-      university: profile.university,
-      faculty: profile.faculty,
-      level: profile.level
+      ...newFormData,
+      primary_language: newFormData.language,
+      live_visibility: newFormData.liveVisibility,
+      group_invite_permission: newFormData.groupInvitePermission,
+      push_alerts_enabled: newFormData.pushAlerts,
+      email_reports_enabled: newFormData.emailReports,
+      sound_effects_enabled: newFormData.soundEffects,
+      updated_at: new Date()
     })
 
-    await refresh()
-
+    if (updates.fullName && updates.fullName !== user?.user_metadata?.full_name) {
+      await supabase.auth.updateUser({ data: { full_name: updates.fullName } })
+    }
+    setSaveSuccess(true)
     setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+    setTimeout(() => setSaveSuccess(false), 2000)
+    await refresh()
   }
 
   const handleSignOut = async () => {
@@ -93,282 +124,244 @@ export default function SettingsPage() {
   }
 
   if (loading) return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-      <Loader2 size={28} className="animate-spin" color="#7a12cc" />
+    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#fff' }}>
+      <Loader2 size={32} className="animate-spin" color={PRIMARY_COLOR} />
     </div>
   )
 
-  return (
-    <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      
-      {/* ── Header ── */}
-      <div style={{ padding: isMobile ? '24px 20px 8px' : '40px 48px 0', background: '#fff' }}>
-         <h1 style={{ fontSize: isMobile ? 26 : 32, fontWeight: 800, color: '#111', margin: 0, letterSpacing: '-0.04em' }}>
-           {isMobile ? 'Account config' : 'Settings'}
-         </h1>
-         <p style={{ fontSize: isMobile ? 12 : 14, color: '#666', fontWeight: 700, margin: '4px 0 0' }}>
-           {isMobile ? 'Manage your scholarly profile.' : 'Manage your Luter workstation and preferences.'}
-         </p>
-      </div>
+  const stats = bundle?.stats?.data || {}
+  const aiCreditsLimit = stats.ai_credits_monthly || 50
+  const aiCreditsUsed = stats.ai_credits_used || 0
 
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: isMobile ? 'column' : 'row',
-        flex: 1, 
-        padding: isMobile ? '12px 16px 80px' : '40px 48px', 
-        gap: isMobile ? 20 : 48, 
-        maxWidth: 1200, 
-        margin: isMobile ? '0' : '0 auto', 
-        width: '100%',
-        boxSizing: 'border-box',
-        fontFamily: "'Outfit', 'Inter', sans-serif"
-      }}>
-        
-        {/* ── Sidebar / Navigation ── */}
-        <div style={{ width: isMobile ? '100%' : 260, flexShrink: 0 }}>
-          <div className="no-scrollbar" style={{ 
-            display: 'flex', 
-            flexDirection: isMobile ? 'row' : 'column', 
-            gap: isMobile ? 10 : 8,
-            overflowX: isMobile ? 'auto' : 'visible',
-            paddingBottom: isMobile ? 4 : 0,
-            whiteSpace: 'nowrap',
-            marginLeft: isMobile ? -16 : 0,
-            padding: isMobile ? '0 16px' : 0,
-            boxSizing: 'border-box'
-          }}>
+  return (
+    <div style={{ background: '#fff', minHeight: '100vh', display: 'flex', flexDirection: 'column', color: '#111', fontFamily: "'Outfit', sans-serif", flex: 1 }}>
+      
+      {/* ── CRISP HEADER ── */}
+      <div style={{ padding: isMobile ? '24px 20px 0' : '48px 60px 0', borderBottom: '1px solid #F1F5F9' }}>
+         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+            <div>
+               <h1 style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, margin: 0, letterSpacing: '-0.03em' }}>Settings</h1>
+            </div>
+            {!isMobile && (
+              <button onClick={handleSignOut} style={signOutBtn}>
+                 <LogOut size={14} strokeWidth={2} /> LOG OUT
+              </button>
+            )}
+         </div>
+
+         {/* ── SHARP TAB SYSTEM ── */}
+         <div className="no-scrollbar" style={{ display: 'flex', gap: 32, overflowX: 'auto' }}>
             {TABS.map(tab => {
-              const Icon = tab.icon
               const active = activeTab === tab.id
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 12, padding: isMobile ? '10px 18px' : '14px 20px',
-                    borderRadius: 16, border: active ? '1.5px solid var(--primary)' : '1.5px solid #e5e7eb', background: active ? 'var(--primary-bg)' : 'white',
-                    color: active ? 'var(--primary)' : '#111', fontWeight: 900,
-                    fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
-                    boxShadow: active ? 'none' : '0 2px 8px rgba(0,0,0,0.02)',
-                    transform: 'none',
-                    transition: 'all 0.2s', textAlign: 'left',
-                    flexShrink: 0
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '12px 2px 14px', border: 'none', background: 'none',
+                    color: active ? PRIMARY_COLOR : '#64748B', fontWeight: 600, fontSize: 14, cursor: 'pointer',
+                    position: 'relative', whiteSpace: 'nowrap', transition: 'all 0.2s', fontFamily: 'inherit'
                   }}
                 >
-                  <Icon size={16} strokeWidth={2.5} fill={active ? 'var(--primary)' : 'transparent'} />
+                  <tab.icon size={16} strokeWidth={active ? 2.5 : 2} />
                   {tab.label}
+                  {active && (
+                    <motion.div layoutId="setting-tab" style={{ position: 'absolute', bottom: -1, left: 0, right: 0, height: 2, background: PRIMARY_COLOR }} />
+                  )}
                 </button>
               )
-            } )}
-          </div>
-          {isMobile && <div style={{ height: 1, background: '#eee', margin: '16px 0' }} />}
+            })}
+         </div>
+      </div>
 
-          {!isMobile && (
-            <div style={{ marginTop: 40, borderTop: '1.5px solid #e5e7eb', paddingTop: 32 }}>
-              <button
-                onClick={handleSignOut}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '16px 24px',
-                  width: '100%', borderRadius: 16, border: '1.5px solid #fee2e2', background: '#fef2f2',
-                  color: '#dc2626', fontWeight: 800, fontSize: 13, cursor: 'pointer',
-                  fontFamily: 'inherit', textAlign: 'left', transition: 'all 0.2s',
-                  boxShadow: '0 4px 12px rgba(220,38,38,0.05)'
-                }}
-              >
-                <LogOut size={18} /> SIGN OUT OF LUTER
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* ── Content Area ── */}
-        <div style={{ flex: 1 }}>
-          
-          {/* PROFILE TAB */}
-          {activeTab === 'profile' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-              <div style={{ 
-                background: '#fff', 
-                borderRadius: isMobile ? 28 : 40, 
-                border: '1.5px solid #e5e7eb', 
-                overflow: 'hidden', 
-                boxShadow: '0 20px 60px -12px rgba(0,0,0,0.06)' 
-              }}>
-                <div style={{ 
-                  padding: isMobile ? '24px' : '32px 40px', 
-                  borderBottom: '1.5px solid #e5e7eb', 
-                  background: 'linear-gradient(135deg, var(--primary-bg) 0%, #fff 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}>
-                  <div>
-                    <h2 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 800, margin: 0, color: '#111', letterSpacing: '-0.02em' }}>Personal Profile</h2>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', margin: '4px 0 0' }}>Update your scholar details</p>
-                  </div>
-                  <User size={isMobile ? 24 : 32} color="var(--primary)" strokeWidth={2.5} />
-                </div>
-                
-                <div style={{ padding: isMobile ? '24px' : '40px', display: 'flex', flexDirection: 'column', gap: 32 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <label style={{ fontSize: 10, fontWeight: 1000, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Full Name</label>
-                      <input 
-                        id="fullName"
-                        name="fullName"
-                        value={profile.fullName} onChange={e => setProfile({...profile, fullName: e.target.value})}
-                        style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <label style={{ fontSize: 10, fontWeight: 1000, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Email</label>
-                      <input 
-                        id="email"
-                        name="email"
-                        value={profile.email} disabled
-                        style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '2.5px solid #eee', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#f5f5f5', color: '#999', cursor: 'not-allowed', fontWeight: 700 }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <label style={{ fontSize: 10, fontWeight: 800, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>University</label>
-                      <input 
-                        id="university"
-                        name="university"
-                        value={profile.university} onChange={e => setProfile({...profile, university: e.target.value})}
-                        style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700 }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <label style={{ fontSize: 10, fontWeight: 1000, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Faculty & Level</label>
-                      <div style={{ display: 'flex', gap: 12 }}>
-                        <input 
-                          id="faculty"
-                          name="faculty"
-                          value={profile.faculty} onChange={e => setProfile({...profile, faculty: e.target.value})}
-                          placeholder="Faculty"
-                          style={{ flex: 2, padding: '16px 20px', borderRadius: 16, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700 }}
-                        />
-                         <input 
-                          id="level"
-                          name="level"
-                          value={profile.level} onChange={e => setProfile({...profile, level: e.target.value})}
-                          placeholder="Level"
-                          style={{ flex: 1, padding: '16px 20px', borderRadius: 16, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700, textAlign: 'center' }}
-                        />
+      {/* ── HIGH DENSITY CONTENT ── */}
+      <div style={{ flex: 1, padding: isMobile ? '24px 20px 100px' : '40px 60px', maxWidth: 900, width: '100%' }}>
+        
+        <AnimatePresence mode="wait">
+          <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+            
+            {/* PROFILE PAGE */}
+            {activeTab === 'profile' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
+                <div>
+                   <Label>Mascot Selection</Label>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginTop: 16 }}>
+                      <div style={{ 
+                        width: 80, height: 80, borderRadius: 14, background: PRIMARY_COLOR, 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                        fontSize: 32, fontWeight: 800, color: '#fff'
+                      }}>
+                         {formData.fullName.charAt(0)}
                       </div>
-                    </div>
-                  </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                         {MASCOT_ICONS.map(m => (
+                           <button
+                             key={m.id}
+                             onClick={() => handleUpdate({ avatarUrl: m.id })}
+                             style={{
+                               width: 40, height: 40, borderRadius: 10, background: m.color, 
+                               border: formData.avatarUrl === m.id ? '2px solid #000' : '1px solid transparent',
+                               display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', 
+                               cursor: 'pointer', transition: 'all 0.1s'
+                             }}
+                           >
+                             <m.icon size={18} strokeWidth={2} />
+                           </button>
+                         ))}
+                      </div>
+                   </div>
                 </div>
 
-                <div style={{ 
-                  padding: isMobile ? '24px' : '32px 40px', 
-                  borderTop: '1.5px solid #e5e7eb', 
-                  background: '#fafafa', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: isMobile ? 'stretch' : 'flex-end', 
-                  gap: 16 
-                }}>
-                  <button 
-                    onClick={handleSaveProfile} 
-                    disabled={saving} 
-                    style={{ 
-                      flex: isMobile ? 1 : 'none',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, 
-                      padding: '16px 40px', borderRadius: 16, border: 'none', 
-                      background: '#111', color: 'white', fontSize: 14, fontWeight: 800, 
-                      cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.1s', 
-                      boxShadow: '0 8px 20px rgba(0,0,0,0.15)' 
-                    }}
-                  >
-                    {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={18} />} 
-                    SAVE CHANGES
-                  </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+                   <CleanEditableRow label="Full Name" value={formData.fullName} onSave={val => handleUpdate({ fullName: val })} />
+                   <CleanEditableRow label="Username" value={formData.username} prefix="@" onSave={val => handleUpdate({ username: val })} />
+                   <CleanEditableRow label="Bio / Research Focus" value={formData.bio} multiline onSave={val => handleUpdate({ bio: val })} />
                 </div>
               </div>
+            )}
 
-              {isMobile && (
-                 <button
-                    onClick={handleSignOut}
-                    style={{
-                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, 
-                   padding: '18px',
-                   marginTop: 24, width: '100%', borderRadius: 20, border: '1.5px solid #fee2e2', 
-                   background: '#fef2f2',
-                   color: '#dc2626', fontWeight: 800, fontSize: 14, cursor: 'pointer',
-                   fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(220,38,38,0.1)'
-                 }}
-               >
-                 <LogOut size={18} strokeWidth={3} /> SIGN OUT
-               </button>
-              )}
-            </motion.div>
-          )}
-
-          {/* BILLING TAB */}
-          {activeTab === 'billing' && (
-            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}>
-              <div style={{ 
-                background: '#fff', 
-                borderRadius: isMobile ? 28 : 40, 
-                border: '1.5px solid #e5e7eb', 
-                overflow: 'hidden', 
-                boxShadow: '0 20px 60px -12px rgba(0,0,0,0.06)' 
-              }}>
-                <div style={{ padding: isMobile ? '24px' : '32px 40px', borderBottom: '1.5px solid #e5e7eb', background: '#f0fdf4' }}>
-                  <h2 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 800, margin: 0, color: '#111' }}>Plan & Subscription</h2>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: '#059669', margin: '4px 0 0' }}>Manage your scholarly benefits</p>
-                </div>
-                
-                <div style={{ padding: isMobile ? '24px' : '40px' }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    gap: 24,
-                    padding: isMobile ? '32px 24px' : '48px 40px', 
-                    borderRadius: 32, 
-                    background: 'linear-gradient(135deg, #fff 0%, var(--primary-bg) 100%)', 
-                    color: '#111', 
-                    border: '1.5px solid #e5e7eb',
-                    boxShadow: '0 10px 30px -10px rgba(0,0,0,0.05)',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{ position: 'relative', zIndex: 1 }}>
-                      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--primary)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Sparkles size={16} fill="var(--primary)" /> CURRENT TIER
-                      </div>
-                      <div style={{ fontSize: isMobile ? 28 : 40, fontWeight: 800, marginBottom: 8, letterSpacing: '-0.03em' }}>Luter Scholar (Free)</div>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: '#666', maxWidth: 400, lineHeight: 1.6 }}>You're currently using the fundamental workstation. Upgrade for unlimited AI support and advanced tracking.</p>
-                    </div>
-
-                    <button style={{ 
-                      width: isMobile ? '100% ' : 'fit-content',
-                      padding: '18px 40px', 
-                      borderRadius: 16, 
-                      background: 'var(--primary)', 
-                      border: 'none', 
-                      color: 'white', 
-                      fontSize: 15, 
-                      fontWeight: 800, 
-                      cursor: 'pointer', 
-                      fontFamily: 'inherit', 
-                      boxShadow: '0 8px 24px -6px rgba(151,24,251,0.5)',
-                      transition: 'all 0.2s'
-                    }}>
-                      UPGRADE TO SCHOLAR+
-                    </button>
-                  </div>
-                </div>
+            {/* ACADEMIC PAGE */}
+            {activeTab === 'academic' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+                 <CleanEditableRow label="University" value={formData.university} onSave={val => handleUpdate({ university: val })} />
+                 <CleanEditableRow label="Field of Study" value={formData.faculty} onSave={val => handleUpdate({ faculty: val })} />
+                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+                    <CleanSelect label="Academic Level" value={formData.level} options={['100', '200', '300', '400', '500', '600', 'Postgrad']} onChange={val => handleUpdate({ level: val })} />
+                    <CleanSelect label="Semester" value={formData.semester} options={['Semester 1', 'Semester 2']} valueMap={['1', '2']} onChange={val => handleUpdate({ semester: val })} />
+                 </div>
               </div>
-            </motion.div>
-          )}
+            )}
 
-        </div>
+            {/* VAULT PAGE */}
+            {activeTab === 'vault' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+                 <div style={{ 
+                   padding: 40, borderRadius: 16, background: '#111', color: '#fff', 
+                   backgroundImage: `linear-gradient(135deg, ${PRIMARY_COLOR}22 0%, transparent 100%)`,
+                   border: '1px solid #333'
+                 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: PRIMARY_COLOR, marginBottom: 8 }}>MEMBERSHIP</div>
+                    <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em' }}>The Scholar Vault</div>
+                    
+                    <div style={{ marginTop: 32, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                       <VaultSub label="AVAILABLE CREDITS" value={`${aiCreditsLimit - aiCreditsUsed}/${aiCreditsLimit}`} />
+                       <VaultSub label="ACCOUNT TYPE" value="Luter Pro" />
+                    </div>
+                 </div>
+                 
+                 <button style={manageBtn}>
+                    <ExternalLink size={14} strokeWidth={2} /> Manage Billing & Invoices
+                 </button>
+              </div>
+            )}
+
+            {/* PREFERENCES PAGE */}
+            {activeTab === 'preferences' && (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                 <ToggleRow label="Focus Mode" desc="Automatically cleaner workspace when reading." active={formData.readingMode === 'Focus'} onToggle={v => handleUpdate({ readingMode: v ? 'Focus' : 'Annotator'})} />
+                 <ToggleRow label="Socratic AI" desc="Guides you with prompts instead of straight answers." active={formData.aiPersonality === 'Socratic'} onToggle={v => handleUpdate({ aiPersonality: v ? 'Socratic' : 'Encouraging'})} />
+                 <ToggleRow label="Feedback Sounds" desc="Productivity audio cues for workstation actions." active={formData.soundEffects} onToggle={v => handleUpdate({ soundEffects: v })} />
+              </div>
+            )}
+
+            {/* SECURITY PAGE */}
+            {activeTab === 'security' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
+                 <CleanEditableRow label="Primary Email" value={user.email} disabled />
+                 
+                 <div style={{ padding: 24, borderRadius: 12, background: '#FFF1F2', border: '1px solid #FECACA', display: 'flex', alignItems: 'center', gap: 20 }}>
+                    <div style={{ flex: 1 }}>
+                       <div style={{ fontSize: 15, fontWeight: 800, color: '#991B1B' }}>Delete Workspace</div>
+                       <div style={{ fontSize: 13, color: '#B91C1C', fontWeight: 500, marginTop: 2 }}>Permanently remove all data.</div>
+                    </div>
+                    <button style={dangerBtn}>Delete Account</button>
+                 </div>
+              </div>
+            )}
+
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* SYNC TOAST */}
+      <AnimatePresence>
+         {saveSuccess && (
+           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={toast}>
+             <Check size={14} strokeWidth={3} /> Changes Saved
+           </motion.div>
+         )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function CleanEditableRow({ label, value, onSave, multiline, prefix, disabled }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [val, setVal] = useState(value)
+  return (
+    <div style={{ paddingBottom: 24, borderBottom: '1px solid #F1F5F9' }}>
+      <Label>{label}</Label>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+         <div style={{ flex: 1 }}>
+            {isEditing ? (
+              <input 
+                autoFocus value={val} onChange={e => setVal(e.target.value)} 
+                style={sInput} placeholder={prefix ? prefix : ''} 
+              />
+            ) : (
+              <div style={{ fontSize: 16, fontWeight: 600, color: value ? '#000' : '#CBD5E1' }}>{prefix}{value || 'Not set'}</div>
+            )}
+         </div>
+         {!disabled && (
+           <button onClick={() => isEditing ? (onSave(val), setIsEditing(false)) : setIsEditing(true)} style={actionBtn}>
+             {isEditing ? 'Save' : 'Edit'}
+           </button>
+         )}
       </div>
     </div>
   )
 }
+
+function CleanSelect({ label, value, options, valueMap, onChange }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+       <Label>{label}</Label>
+       <select value={value} onChange={e => onChange(e.target.value)} style={sSelect}>
+          {options.map((opt, i) => <option key={opt} value={valueMap ? valueMap[i] : opt}>{opt}</option>)}
+       </select>
+    </div>
+  )
+}
+
+function ToggleRow({ label, desc, active, onToggle }) {
+  return (
+    <div style={{ padding: '20px 0', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+       <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#000' }}>{label}</div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: '#64748B' }}>{desc}</div>
+       </div>
+       <button onClick={() => onToggle(!active)} style={{ width: 36, height: 20, borderRadius: 20, background: active ? PRIMARY_COLOR : '#E2E8F0', position: 'relative', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
+          <motion.div animate={{ x: active ? 18 : 2 }} style={{ width: 16, height: 16, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2 }} />
+       </button>
+    </div>
+  )
+}
+
+function VaultSub({ label, value }) {
+  return (
+    <div>
+       <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.5, letterSpacing: '0.05em' }}>{label}</div>
+       <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>{value}</div>
+    </div>
+  )
+}
+
+const Label = ({ children }) => <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94A3B8' }}>{children}</div>
+
+const sInput = { width: '100%', padding: '8px 0', border: 'none', borderBottom: `1px solid ${PRIMARY_COLOR}`, fontSize: 16, fontWeight: 600, outline: 'none', background: 'transparent', color: '#000', fontFamily: 'inherit' }
+const sSelect = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 14, fontWeight: 600, outline: 'none', background: '#fff', color: '#000', fontFamily: 'inherit' }
+const actionBtn = { background: 'none', border: 'none', color: PRIMARY_COLOR, fontWeight: 700, fontSize: 14, cursor: 'pointer' }
+const manageBtn = { width: '100%', padding: '14px', borderRadius: 10, background: '#fff', border: '1px solid #E2E8F0', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: '#111' }
+const dangerBtn = { padding: '8px 16px', borderRadius: 8, background: '#F43F5E', color: '#fff', border: 'none', fontWeight: 700, fontSize: 13, cursor: 'pointer' }
+const signOutBtn = { padding: '8px 12px', borderRadius: 8, background: '#FFF1F2', color: '#F43F5E', fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }
+const toast = { position: 'fixed', bottom: 32, right: 32, background: '#000', color: '#fff', padding: '12px 24px', borderRadius: 8, fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }

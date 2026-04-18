@@ -1,19 +1,20 @@
 /* eslint-disable no-unused-vars */
 import { motion } from 'framer-motion'
-import logo from '../../../asset/logo.png'
 
-export default function LuterLogo({ size = 32, fontSize = 28, showText = true, className = "" }) {
+export default function LuterLogo({ size = 32, fontSize = 28, showText = true, white = false, className = "" }) {
   return (
     <div 
       className={`luter-logo-container ${className}`} 
-      style={{ display: 'flex', alignItems: 'center', gap: 12 }}
+      style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
     >
-      
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         <motion.img 
-          src={logo} 
+          src="/logo.png" 
           alt="Luter" 
-          style={{ height: size, width: 'auto', objectFit: 'contain', display: 'block' }}
+          style={{ 
+            height: size, width: 'auto', objectFit: 'contain', display: 'block',
+            filter: white ? 'brightness(0) invert(1)' : 'none'
+          }}
           whileHover={{ rotate: [0, -5, 5, 0], scale: 1.05 }}
           transition={{ duration: 0.3 }}
         />
@@ -21,17 +22,16 @@ export default function LuterLogo({ size = 32, fontSize = 28, showText = true, c
 
       {showText && (
         <h1 style={{ 
-          fontFamily: "'Caveat', cursive", 
+          fontFamily: "'Outfit', sans-serif", 
           fontSize: fontSize, 
-          fontWeight: 700,
+          fontWeight: 1000,
           margin: 0, 
-          color: '#111', 
+          color: white ? 'white' : '#111', 
           lineHeight: 1,
-          transform: 'rotate(-2deg)',
-          letterSpacing: '-0.02em',
+          letterSpacing: '-0.04em',
           userSelect: 'none'
         }}>
-          Luter
+          luter.
         </h1>
       )}
     </div>

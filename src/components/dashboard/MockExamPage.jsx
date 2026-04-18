@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useOutletContext, useLocation } from 'react-router-dom'
+import { useOutletContext, useLocation, useNavigate } from 'react-router-dom'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import { FlaskConical, Clock, CheckCircle2, XCircle, Search, Loader2, Zap, ArrowRight, ArrowLeft, Dices, Share2, Award, Trophy, RotateCcw, BarChart3, Flame, Star, Users, ThumbsUp, ThumbsDown, MessageCircle, MessageSquare, Gift, Trash2, MoreHorizontal, X, BookOpen } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
@@ -55,6 +55,7 @@ const SAMPLE_COURSE_MATERIALS = {
 
 export default function MockExamPage() {
   const { user, isMobile, sidebarCollapsed } = useOutletContext()
+  const navigate = useNavigate()
   const { ready, bundle } = useDashboardPrefetch() || { ready: false, bundle: null }
   const location = useLocation()
   const preselectedCourse = location.state?.preselectedCourse
@@ -98,6 +99,7 @@ export default function MockExamPage() {
   const [aiChatInput, setAiChatInput] = useState('')
   const [isAiLoading, setIsAiLoading] = useState(false)
   const [aiChatMode, setAiChatMode] = useState('chat')
+  const [activeTab, setActiveTab] = useState('arena') // arena | history
   const [showReview, setShowReview] = useState(false)
   const [aiWeaknessAnalysis, setAiWeaknessAnalysis] = useState(null)
   const [isAnalyzingWeakness, setIsAnalyzingWeakness] = useState(false)
@@ -123,7 +125,7 @@ export default function MockExamPage() {
         .select('id, course_code, course_name, score, total_questions, accuracy, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(20);
 
       if (data) setPastSessions(data);
     } catch (err) {
@@ -1323,17 +1325,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {pastSessions.map((session) => (
-                        <motion.button
-                          key={session.id}
-                          whileHover={{ x: 4, background: '#f8fafc' }}
-                          onClick={() => loadSession(session.id)}
-                          style={{ 
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-                            padding: '16px 20px', borderRadius: 16, background: 'white', 
-                            border: '1.5px solid #e2e8f0', cursor: 'pointer', textAlign: 'left',
-                            transition: 'all 0.2s ease', width: '100%'
-                          }}
-                        >
+                        <motion.div key={session.id} whileHover={{ x: 4 }} onClick={() => navigate(`/dashboard/exam-session/${session.id}`)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderRadius: 16, border: '1.5px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s', background: 'white' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                             <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a12cc' }}>
                               <BookOpen size={20} />
@@ -1347,7 +1339,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                             <div style={{ fontSize: 16, fontWeight: 900, color: session.accuracy >= 50 ? '#10b981' : '#ef4444' }}>{session.score}/{session.total_questions}</div>
                             <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', textTransform: 'lowercase' }}>{session.accuracy}% accuracy</div>
                           </div>
-                        </motion.button>
+                        </motion.div>
                       ))}
                     </div>
                   </div>
@@ -1921,10 +1913,56 @@ Please explain where I went wrong and why the correct answer is the right choice
                 <motion.h2 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} style={{ fontSize: isMobile ? 28 : 36, fontWeight: 1000, color: '#111', margin: '0 0 4px', letterSpacing: '-0.04em', textTransform: 'lowercase' }}>{pass ? 'incredible work!' : 'keep going!'}</motion.h2>
                 <motion.p initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} style={{ fontSize: isMobile ? 14 : 16, color: '#555', fontWeight: 600, margin: 0, textTransform: 'lowercase' }}>{isMobile ? 'session complete 🎯' : `you completed your ${examCourses[0]?.name || 'mock exam'} session`}</motion.p>
               </div>
-              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.4, type: "spring" }} style={{ background: pass ? '#f0fdf4' : '#fff7ed', borderRadius: 24, padding: isMobile ? '32px 20px' : '40px 32px', marginBottom: 20, border: '1.5px solid #eaeaea', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'relative', zIndex: 1 }}>
-                  <div style={{ fontSize: 12, fontWeight: 900, color: '#111', textTransform: 'lowercase', letterSpacing: '0.2em', marginBottom: 12, opacity: 0.6 }}>final score</div>
-                  <div style={{ fontSize: isMobile ? 64 : 88, fontWeight: 1000, color: '#111', lineHeight: 1, letterSpacing: '-0.05em' }}>{score}<span style={{ opacity: 0.3, fontSize: isMobile ? 24 : 32 }}>/{generatedQuestions?.length || 1}</span></div>
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }} 
+                animate={{ scale: 1, opacity: 1 }} 
+                transition={{ delay: 0.4, type: "spring" }} 
+                style={{ 
+                  background: '#ECFDF5', 
+                  borderRadius: 40, 
+                  padding: isMobile ? '40px 24px' : '48px 40px', 
+                  marginBottom: 40, 
+                  position: 'relative', 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  minHeight: isMobile ? 200 : 260,
+                  overflow: 'visible',
+                  boxShadow: '0 20px 40px -10px rgba(0,0,0,0.05)',
+                  border: '1px solid rgba(0,0,0,0.02)'
+                }}
+              >
+                {/* Left Section: Score */}
+                <div style={{ flex: 1, textAlign: 'left', zIndex: 2 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#4A5568', textTransform: 'lowercase', marginBottom: 8, letterSpacing: '0.02em', opacity: 0.8 }}>
+                    final exam score
+                  </div>
+                  <div style={{ fontSize: isMobile ? 64 : 110, fontWeight: 1000, color: '#111', lineHeight: 1, display: 'flex', alignItems: 'baseline', letterSpacing: '-0.04em' }}>
+                    {score}<span style={{ fontSize: isMobile ? 28 : 48, color: '#D1D5DB', marginLeft: 4 }}>/{generatedQuestions?.length || 1}</span>
+                  </div>
+                  <div style={{ marginTop: 24, fontSize: isMobile ? 18 : 22, fontWeight: 1000, color: '#059669', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {pass ? 'Smashed it! 🎉' : 'Keep going! 💪'}
+                  </div>
+                </div>
+
+                {/* Right Section: Mascot BREAKOUT */}
+                <div style={{ 
+                  position: 'absolute', 
+                  right: isMobile ? -30 : -80, 
+                  top: '50%', 
+                  transform: 'translateY(-50%)',
+                  zIndex: 10,
+                  width: isMobile ? 220 : 380,
+                  pointerEvents: 'none'
+                }}>
+                  <motion.img 
+                    initial={{ x: 30, opacity: 0, scale: 0.9 }}
+                    animate={{ x: 0, opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.6, type: 'spring', damping: 15 }}
+                    src="/mock-session-mascot.png" 
+                    alt="Mascot" 
+                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                  />
                 </div>
               </motion.div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 12 : 16, marginBottom: 24 }}>
@@ -2023,9 +2061,19 @@ Please explain where I went wrong and why the correct answer is the right choice
               </div>
             </div>
             {/*Retake and Share*/}
-            <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-              <button onClick={() => { setMode('configure'); setConfigStep(1); setCurrent(0); setSelected({}); setExamCourses(preselectedCourse ? [preselectedCourse] : []); setHasPersistedResults(false); setAiWeaknessAnalysis(null); setShowReview(false); setCurrentSessionId(null); }} style={{ flex: 1, padding: '16px', borderRadius: 16, background: '#f8f8f8', color: '#111', border: '1.5px solid #111', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 900, textTransform: 'lowercase' }}><RotateCcw size={20} /> retake</button>
-              <button onClick={handleResultShare} disabled={isSharing} style={{ flex: 2, padding: '16px', borderRadius: 16, background: '#7a12cc', color: 'white', border: '1.5px solid #111', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 900, textTransform: 'lowercase' }}>{isSharing ? <Loader2 className="animate-spin" size={20} /> : <Share2 size={20} />} share proof</button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 24 }}>
+              <button 
+                onClick={() => navigate(`/dashboard/exam-session/${currentSessionId}`)}
+                disabled={!currentSessionId}
+                style={{ width: '100%', padding: '18px', borderRadius: 20, background: '#111', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontWeight: 900, fontSize: 16 }}
+              >
+                <BarChart3 size={22} /> View Full Performance Analysis
+              </button>
+              
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button onClick={() => { setMode('configure'); setConfigStep(1); setCurrent(0); setSelected({}); setExamCourses(preselectedCourse ? [preselectedCourse] : []); setHasPersistedResults(false); setAiWeaknessAnalysis(null); setShowReview(false); setCurrentSessionId(null); }} style={{ flex: 1, padding: '16px', borderRadius: 16, background: '#f8f8f8', color: '#111', border: '1.5px solid #111', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 900, textTransform: 'lowercase' }}><RotateCcw size={20} /> retake</button>
+                <button onClick={handleResultShare} disabled={isSharing} style={{ flex: 1, padding: '16px', borderRadius: 16, background: '#7a12cc', color: 'white', border: '1.5px solid #111', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 900, textTransform: 'lowercase' }}>{isSharing ? <Loader2 className="animate-spin" size={20} /> : <Share2 size={20} />} share proof</button>
+              </div>
             </div>
           </div>
         </div>
@@ -2038,9 +2086,88 @@ Please explain where I went wrong and why the correct answer is the right choice
   return (
     <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Outfit', 'Varela Round', sans-serif" }}>
       
+      {/* Tabs - Only show in configure mode */}
+      {mode === 'configure' && (
+        <div style={{ padding: '24px 40px 0', display: 'flex', gap: 32, borderBottom: '1px solid #eee' }}>
+          {['arena', 'history'].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                padding: '0 0 16px',
+                background: 'none',
+                border: 'none',
+                borderBottom: activeTab === tab ? '3px solid #7a12cc' : '3px solid transparent',
+                color: activeTab === tab ? '#111' : '#94a3b8',
+                fontWeight: 900,
+                fontSize: 15,
+                textTransform: 'lowercase',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              {tab === 'arena' ? 'luter arena' : 'session history'}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Dynamic Content based on mode */}
       {mode === 'preparing' && renderPreparing()}
-      {mode === 'configure' && renderConfigure()}
+      {mode === 'configure' && (
+        activeTab === 'arena' ? renderConfigure() : (
+          <div style={{ padding: '40px', maxWidth: 800, margin: '0 auto', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
+               <Trophy size={32} color="#7a12cc" />
+               <h2 style={{ fontSize: 24, fontWeight: 1000, margin: 0 }}>Your Mock Exam Legacy</h2>
+            </div>
+            
+            {loadingHistory ? (
+              <div style={{ textAlign: 'center', padding: '100px 0' }}>
+                 <Loader2 className="animate-spin" size={40} color="#7a12cc" />
+              </div>
+            ) : pastSessions.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '100px 40px', background: '#f8fafc', borderRadius: 32, border: '1.5px dashed #e2e8f0' }}>
+                 <BookOpen size={48} color="#cbd5e1" style={{ marginBottom: 20 }} />
+                 <h3 style={{ fontSize: 18, fontWeight: 800, color: '#64748b' }}>No sessions yet</h3>
+                 <p style={{ color: '#94a3b8', fontWeight: 500, marginTop: 8 }}>Complete your first mock exam to build your history!</p>
+                 <button onClick={() => setActiveTab('arena')} style={{ marginTop: 24, padding: '12px 24px', background: '#111', color: '#fff', borderRadius: 12, border: 'none', fontWeight: 800, cursor: 'pointer' }}>Start Exam</button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {pastSessions.map((session) => (
+                  <motion.div 
+                    key={session.id} 
+                    whileHover={{ x: 6, borderColor: '#7a12cc' }} 
+                    onClick={() => navigate(`/dashboard/exam-session/${session.id}`)} 
+                    style={{ 
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                      padding: '24px', borderRadius: 24, border: '1.5px solid #E2E8F0', 
+                      cursor: 'pointer', transition: 'all 0.2s', background: 'white',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                      <div style={{ width: 56, height: 56, borderRadius: 18, background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a12cc' }}>
+                        <BarChart3 size={28} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: '#111' }}>{session.course_code}</div>
+                        <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>{session.course_name}</div>
+                        <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500, marginTop: 4 }}>{new Date(session.created_at).toLocaleDateString()} • {session.total_questions} questions</div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 24, fontWeight: 1000, color: session.accuracy >= 50 ? '#10b981' : '#ef4444', lineHeight: 1 }}>{session.score}/{session.total_questions}</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', textTransform: 'lowercase', marginTop: 8 }}>{session.accuracy}% accuracy</div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      )}
       {mode === 'exam' && renderExam()}
       {mode === 'result' && renderResult()}
 

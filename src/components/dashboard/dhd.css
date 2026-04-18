@@ -1,251 +1,157 @@
 /* ==============================================
-   DASHBOARD HOME — BENTO COMMAND CENTER
+   LUTER NEBULA MINI — COURSE-CENTRIC FOCUS
    ============================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --n-primary: #9718fb;
+  --n-primary-light: #b04dfc;
+  --n-bg: #ffffff;
+  --n-card: #ffffff;
+  --n-text: #0f172a;
+  --n-muted: #64748b;
+  --n-radius: 32px;
+  --n-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+}
+
+body {
+  background-color: var(--n-bg);
+  font-family: 'Outfit', sans-serif;
+  color: var(--n-text);
+}
 
 .dhd-root {
   min-height: 100vh;
-  background: #fafafa;
+  padding: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  font-family: var(--font);
+  gap: 40px;
 }
 
-/* ── Hero ── */
-.dhd-hero {
+/* ── Minimal Top Bar ── */
+.dhd-header {
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
-  padding: 28px 28px 20px;
-  background: #fff;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  align-items: center;
 }
 
-.dhd-hero-title {
-  font-size: 28px; font-weight: 800;
-  color: var(--text); letter-spacing: -0.04em; line-height: 1.15; margin: 0 0 4px;
-}
-.dhd-hero-name { color: var(--primary); }
-.dhd-hero-sub  { font-size: 14px; font-weight: 600; color: var(--muted); margin: 0; }
-
-.dhd-pill {
-  display: flex; align-items: center; gap: 6px;
-  padding: 6px 14px; border-radius: 999px;
-  font-size: 12px; font-weight: 700;
-}
-.dhd-pill--fire { background: rgba(217,119,6,0.08); border: 1px solid rgba(217,119,6,0.18); color: #d97706; }
-.dhd-pill--xp   { background: var(--primary-bg); border: 1px solid rgba(151,24,251,0.18); color: var(--primary); }
-
-.dhd-xp-bar-wrap {
-  display: flex; align-items: center; gap: 10px;
-  min-width: 220px;
-}
-.dhd-xp-rank {
-  font-size: 11px; font-weight: 800; color: var(--primary);
-  white-space: nowrap; letter-spacing: 0.02em;
+.dhd-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--n-bg);
+  border: 1px solid #f1f5f9;
+  border-radius: 99px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
 }
 
-/* ── Bento Grid ── */
-.dhd-bento-grid {
+/* ── Minimal Hero (Nebula Accent) ── */
+.dhd-hero-mini {
+  background: linear-gradient(135deg, #111827 0%, #1e1b4b 100%);
+  border-radius: var(--n-radius);
+  padding: 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.dhd-hero-content h1 {
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+
+.dhd-hero-mascot {
+  height: 120px;
+  filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
+}
+
+/* ── Course Grid (The Focus) ── */
+.dhd-course-grid {
   display: grid;
-  grid-template-areas:
-    "mission vault"
-    "courses courses"
-    "feed    quiz"
-    "feed    refer";
-  grid-template-columns: 1.2fr 1fr;
-  grid-template-rows: auto auto auto auto;
-  gap: 14px;
-  padding: 18px 20px 32px;
-  flex: 1;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
 }
 
-/* ── Base Bento Card ── */
-.dhd-bento-card {
-  background: #fff;
-  border: 1.5px solid var(--border);
-  border-radius: 20px;
-  padding: 20px;
-  transition: all 0.2s;
-}
-.dhd-bento-card:hover {
-  box-shadow: 0 8px 28px -6px rgba(0,0,0,0.08);
-  border-color: rgba(151,24,251,0.14);
-}
-
-.dhd-bento-label {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 10px; font-weight: 800; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--muted); margin-bottom: 14px;
+.dhd-course-card {
+  background: white;
+  border: 1px solid #f1f5f9;
+  border-radius: var(--n-radius);
+  padding: 32px;
+  box-shadow: var(--n-shadow);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 220px;
 }
 
-/* ── A — Active Mission ── */
-.dhd-bento-mission { grid-area: mission; }
-
-.dhd-mission-code { font-size: 11px; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 4px; }
-.dhd-mission-name { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.03em; margin: 0 0 4px; }
-.dhd-mission-topic { font-size: 13px; color: var(--muted); margin: 0 0 14px; font-weight: 500; }
-
-.dhd-mission-prog { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-.dhd-mission-prog-track { flex: 1; height: 6px; background: #f0e8ff; border-radius: 999px; overflow: hidden; }
-.dhd-mission-prog-fill  { height: 100%; border-radius: 999px; }
-
-.dhd-mission-foot { display: flex; align-items: center; justify-content: space-between; }
-.dhd-mission-deadline {
-  display: flex; align-items: center; gap: 4px;
-  font-size: 11px; font-weight: 700; color: var(--muted);
-  background: #f4f4f8; padding: 4px 10px; border-radius: 999px;
-}
-.dhd-mission-deadline--hot { color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; }
-
-.dhd-mission-resume {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 18px; border-radius: 999px;
-  color: white; font-size: 13px; font-weight: 700;
-  border: none; cursor: pointer; font-family: var(--font);
-  box-shadow: 0 4px 14px rgba(122,18,204,0.3);
-  transition: all 0.18s;
-}
-.dhd-mission-resume:hover { filter: brightness(1.1); transform: translateY(-1px); }
-
-/* ── B — Solution Vault ── */
-.dhd-bento-vault { grid-area: vault; display: flex; flex-direction: column; }
-
-.dhd-vault-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; flex: 1; justify-content: center; text-align: center; }
-
-.dhd-vault-upload-btn {
-  width: 64px; height: 64px; border-radius: 50%;
-  background: var(--primary-bg);
-  border: 1.5px dashed var(--primary);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--primary); cursor: pointer;
-  transition: all 0.2s; position: relative;
-}
-.dhd-vault-upload-btn:hover { background: var(--primary); color: white; border-style: solid; }
-
-.dhd-vault-empty-text {
-  font-size: 12.5px; color: var(--muted); line-height: 1.6; margin: 0;
-  max-width: 200px; font-weight: 500;
+.dhd-course-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 30px 60px -15px rgba(151, 24, 251, 0.15);
+  border-color: rgba(151, 24, 251, 0.1);
 }
 
-.dhd-vault-timer { display: flex; align-items: center; justify-content: center; flex: 1; position: relative; }
-.dhd-vault-time {
-  position: absolute; font-size: 18px; font-weight: 800; color: var(--primary);
+.dhd-course-tag {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--n-muted);
+  margin-bottom: 24px;
+}
+
+.dhd-course-name {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--n-text);
+  margin: 0 0 8px;
   letter-spacing: -0.02em;
 }
 
-/* ── Ghost Tutorial Bubble ── */
-.dhd-ghost-bubble {
-  position: absolute;
-  bottom: calc(100% + 12px);
-  left: 50%; transform: translateX(-50%);
-  background: var(--text);
-  color: white; border-radius: 14px;
-  padding: 12px 14px;
-  width: 220px; z-index: 50;
-  font-size: 12.5px; line-height: 1.5; font-weight: 500;
-}
-.dhd-ghost-bubble strong { color: #c4b5fd; }
-
-.dhd-ghost-arrow {
-  position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%);
-  width: 14px; height: 14px; background: var(--text);
-  clip-path: polygon(0 0, 100% 0, 50% 100%);
-}
-.dhd-ghost-avatar {
-  width: 24px; height: 24px; border-radius: 50%; background: var(--primary);
-  display: flex; align-items: center; justify-content: center; margin-bottom: 8px;
-}
-.dhd-ghost-close {
-  position: absolute; top: 8px; right: 8px;
-  width: 18px; height: 18px; border-radius: 50%;
-  background: rgba(255,255,255,0.15); color: white;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; border: none; font-size: 10px;
+.dhd-course-progress-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--n-muted);
 }
 
-/* ── Course Strip ── */
-.dhd-bento-courses { grid-area: courses; }
-
-.dhd-strip-scroll {
-  display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px;
-  -ms-overflow-style: none; scrollbar-width: none;
-}
-.dhd-strip-scroll::-webkit-scrollbar { display: none; }
-
-.dhd-strip-card {
-  flex-shrink: 0; width: 160px;
-  background: #fff; border: 1.5px solid var(--border);
-  border-radius: 14px; overflow: hidden; cursor: pointer;
-  transition: all 0.2s;
-}
-.dhd-strip-card:hover { border-color: rgba(151,24,251,0.2); box-shadow: 0 8px 24px -6px rgba(151,24,251,0.12); }
-
-.dhd-strip-stripe { height: 3px; width: 100%; }
-
-.dhd-strip-due {
-  font-size: 9.5px; font-weight: 700; color: var(--muted);
-  background: #f4f4f8; padding: 2px 6px; border-radius: 999px;
-}
-.dhd-strip-due--hot { color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; }
-
-/* ── C — Feed ── */
-.dhd-bento-feed { grid-area: feed; }
-
-.dhd-proxy-feed-list { display: flex; flex-direction: column; gap: 0; }
-.dhd-proxy-feed-row {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 10px 0; border-bottom: 1px solid var(--border);
-  transition: background 0.15s;
-}
-.dhd-proxy-feed-row:last-child { border-bottom: none; }
-.dhd-proxy-feed-icon { width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
-
-.dhd-feed-hot { font-size: 10px; font-weight: 800; color: #10B981; letter-spacing: 0.04em; }
-
-.dhd-live-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: #10B981; box-shadow: 0 0 6px rgba(16,185,129,0.5);
-  animation: dhd-pulse 2s ease-in-out infinite;
-}
-@keyframes dhd-pulse {
-  0%,100% { opacity:1; transform:scale(1); }
-  50%     { opacity:.5; transform:scale(.8); }
+.dhd-prog-bar {
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 99px;
+  margin-top: 24px;
+  overflow: hidden;
 }
 
-/* ── Quiz Empty ── */
-.dhd-bento-quiz { grid-area: quiz; display: flex; flex-direction: column; align-items: center; text-align: center; justify-content: center; gap: 10px; }
-
-.dhd-quiz-empty-icon { font-size: 40px; }
-.dhd-quiz-empty-text { font-size: 13px; color: var(--muted); line-height: 1.6; margin: 0; max-width: 200px; font-weight: 500; }
-.dhd-quiz-empty-text strong { color: var(--text); }
-
-.dhd-quiz-start-btn {
-  display: flex; align-items: center; gap: 6px;
-  padding: 10px 20px; border-radius: 999px;
-  background: var(--primary-bg); border: 1.5px solid rgba(122,18,204,0.2);
-  color: var(--primary); font-size: 13px; font-weight: 700;
-  cursor: pointer; transition: all 0.18s; font-family: var(--font);
+.dhd-prog-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--n-primary);
 }
-.dhd-quiz-start-btn:hover { background: var(--primary); color: white; }
 
-/* ── Responsive ── */
-@media (max-width: 900px) {
-  .dhd-bento-grid {
-    grid-template-areas:
-      "mission"
-      "vault"
-      "courses"
-      "feed"
-      "quiz"
-      "refer";
-    grid-template-columns: 1fr;
-  }
+/* ── Quick Stats ── */
+.dhd-stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--n-text);
 }
-@media (max-width: 600px) {
-  .dhd-hero { padding: 20px 16px; flex-direction: column; }
-  .dhd-hero-title { font-size: 22px; }
-  .dhd-bento-grid { padding: 12px 12px 24px; gap: 10px; }
-  .dhd-xp-bar-wrap { min-width: 0; width: 100%; }
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .dhd-root { padding: 20px; gap: 24px; }
+  .dhd-hero-mini { padding: 32px; flex-direction: column; text-align: center; gap: 24px; }
+  .dhd-hero-content h1 { font-size: 32px; }
+  .dhd-course-grid { grid-template-columns: 1fr; }
 }

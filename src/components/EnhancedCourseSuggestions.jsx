@@ -3,7 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Search, 
   X, 
-  Loader2
+  Loader2,
+  Sparkles,
+  CheckCircle2,
+  Plus
 } from 'lucide-react'
 import { getOnboardingCourseSuggestions, getEnhancedCourseSearch } from '../services/courseSuggestionService'
 
@@ -26,6 +29,7 @@ export default function EnhancedCourseSuggestions({
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [searchLoading, setSearchLoading] = useState(false)
+  const [errorStatus, setErrorStatus] = useState(null)
 
   // Load suggestions on component mount
   useEffect(() => {
@@ -36,6 +40,7 @@ export default function EnhancedCourseSuggestions({
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSearchResults([])
+      setErrorStatus(null)
       return
     }
 
@@ -48,25 +53,17 @@ export default function EnhancedCourseSuggestions({
 
   const loadSuggestions = async () => {
     setLoading(true)
+    setErrorStatus(null)
     try {
       const data = await getOnboardingCourseSuggestions(university, department, level, semester, country)
       setSuggestions(data)
     } catch (error) {
       console.error('Failed to load course suggestions:', error)
+      setErrorStatus('connection')
       setSuggestions({
         all: [],
-        categories: {
-          highlyRecommended: [],
-          popular: [],
-          trending: [],
-          core: [],
-          electives: []
-        },
-        context: {
-          totalSuggestions: 0,
-          hasPeerData: false,
-          hasAiData: false
-        }
+        categories: { highlyRecommended: [], popular: [], trending: [], core: [], electives: [] },
+        context: { totalSuggestions: 0, hasPeerData: false, hasAiData: false }
       })
     } finally {
       setLoading(false)
@@ -75,11 +72,13 @@ export default function EnhancedCourseSuggestions({
 
   const performSearch = async (query) => {
     setSearchLoading(true)
+    setErrorStatus(null)
     try {
       const results = await getEnhancedCourseSearch(query, university, department, level, semester, country)
       setSearchResults(results)
     } catch (error) {
       console.error('Search failed:', error)
+      setErrorStatus('search')
       setSearchResults([])
     } finally {
       setSearchLoading(false)
@@ -123,58 +122,68 @@ export default function EnhancedCourseSuggestions({
   }, {}) || {}
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: window.innerWidth <= 768 ? 16 : 24 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
       
-      {/* Search Bar */}
-      <div style={{ 
-        background: 'white', 
-        borderRadius: 16, 
-        padding: window.innerWidth <= 768 ? 16 : 20, 
-        border: '1px solid #e2e8f0' 
-      }}>
-        <div style={{ position: 'relative' }}>
-          <label htmlFor="course-search-input" style={{ position: 'absolute', left: -9999, width: 1, height: 1, overflow: 'hidden' }}>
-            Search courses
-          </label>
-          <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: 14, top: 14, pointerEvents: 'none' }} />
+      {/* Search Console */}
+      <div style={{ position: 'relative' }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          background: 'white', 
+          borderRadius: 18, 
+          padding: '4px 6px',
+          border: '1.5px solid #F1F5F9',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+          transition: 'all 0.3s ease'
+        }}
+        onFocusCapture={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.boxShadow = '0 10px 30px var(--primary-glow-subtle)'; }}
+        onBlurCapture={(e) => { e.currentTarget.style.borderColor = '#F1F5F9'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.02)'; }}
+        >
+          <div style={{ padding: '0 16px', color: '#94A3B8' }}>
+            {searchLoading ? <Loader2 size={20} className="animate-spin" /> : <Search size={20} />}
+          </div>
           <input
             type="text"
-            id="course-search-input"
-            name="courseSearch"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
-            placeholder="Search courses by code or name"
+            placeholder="Search by course code or name..."
             style={{
-              width: '100%',
-              padding: '12px 14px 12px 42px',
-              borderRadius: 12,
-              border: '2px solid #e2e8f0',
-              fontSize: window.innerWidth <= 768 ? 16 : 14,
-              fontWeight: 600,
+              flex: 1,
+              padding: '16px 0',
+              border: 'none',
+              fontSize: 15,
+              fontWeight: 700,
               outline: 'none',
-              background: 'white',
-              textTransform: 'uppercase',
-              transition: 'all 0.2s'
+              background: 'transparent',
+              color: '#111'
             }}
-            onFocus={(e) => { e.target.style.borderColor = '#7a12cc' }}
-            onBlur={(e) => { e.target.style.borderColor = '#e2e8f0' }}
           />
-                  </div>
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} style={{ padding: '0 16px', color: '#94A3B8' }}>
+              <X size={18} />
+            </button>
+          )}
+        </div>
 
-        {/* Search Results */}
+        {/* Floating Search Results */}
         <AnimatePresence>
-          {searchResults.length > 0 && (
+          {searchQuery && searchResults.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 4, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.98 }}
               style={{
-                marginTop: 12,
-                background: '#f8fafc',
-                borderRadius: 12,
-                border: '1px solid #e2e8f0',
-                overflow: 'hidden',
-                maxHeight: window.innerWidth <= 768 ? 150 : 200,
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                background: 'white',
+                borderRadius: 20,
+                marginTop: 8,
+                boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
+                border: '1px solid #F1F5F9',
+                zIndex: 100,
+                maxHeight: 320,
                 overflowY: 'auto'
               }}
             >
@@ -183,40 +192,30 @@ export default function EnhancedCourseSuggestions({
                   key={course.code}
                   onClick={() => handleCourseClick(course)}
                   style={{
-                    padding: window.innerWidth <= 768 ? '14px 16px' : '12px 16px',
-                    borderBottom: '1px solid #f1f5f9',
+                    padding: '16px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 16,
                     cursor: isCourseSelected(course.code) ? 'default' : 'pointer',
-                    background: isCourseSelected(course.code) ? '#f8fafc' : 'white',
-                    opacity: isCourseSelected(course.code) ? 0.6 : 1,
-                    transition: 'background 0.2s'
+                    background: isCourseSelected(course.code) ? '#F8FAFC' : 'white',
+                    borderBottom: '1px solid #F1F5F9'
                   }}
-                  onMouseEnter={(e) => !isCourseSelected(course.code) && (e.currentTarget.style.background = '#f8fafc')}
-                  onMouseLeave={(e) => !isCourseSelected(course.code) && (e.currentTarget.style.background = 'white')}
+                  className="search-item-hover"
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: window.innerWidth <= 768 ? 14 : 13, fontWeight: 900, color: '#7a12cc', letterSpacing: '0.06em' }}>
-                        {course.code}
-                      </div>
-                      <div style={{ fontSize: window.innerWidth <= 768 ? 13 : 12, fontWeight: 600, color: '#334155', marginTop: 2, lineHeight: 1.3 }}>
-                        {course.name}
-                      </div>
-                    </div>
-                    {isCourseSelected(course.code) && (
-                      <div style={{ 
-                        width: 20, 
-                        height: 20, 
-                        borderRadius: '50%', 
-                        background: '#10b981',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}>
-                        <div style={{ width: 6, height: 3, background: 'white', transform: 'rotate(-45deg)' }} />
-                      </div>
-                    )}
+                  <div style={{ 
+                    width: 44, height: 44, borderRadius: 12, background: isCourseSelected(course.code) ? '#10B981' : 'var(--primary-bg)', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: isCourseSelected(course.code) ? 'white' : 'var(--primary)',
+                    fontWeight: 900, fontSize: 11
+                  }}>
+                    {isCourseSelected(course.code) ? <CheckCircle2 size={20} /> : course.code.substring(0, 3)}
                   </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 900, color: '#111' }}>{course.code}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#666' }}>{course.name}</div>
+                  </div>
+                  {!isCourseSelected(course.code) && (
+                    <div style={{ color: 'var(--primary)', opacity: 0.3 }}><Plus size={20} /></div>
+                  )}
                 </div>
               ))}
             </motion.div>
@@ -224,147 +223,82 @@ export default function EnhancedCourseSuggestions({
         </AnimatePresence>
       </div>
 
-      {/* Filtered Suggestions */}
-      {Object.keys(groupedSuggestions).length > 0 && (
-        <div>
-          <div style={{ fontSize: window.innerWidth <= 768 ? 16 : 14, fontWeight: 700, color: '#334155', marginBottom: 16 }}>
-            Filtered Suggestions
+      {/* Recommended Grid — Minimal & Clean */}
+      {!searchQuery && Object.keys(groupedSuggestions).length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 20 }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Sparkles size={16} color="var(--primary)" />
+            <span style={{ fontSize: 13, fontWeight: 900, color: '#111', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recommended for you</span>
           </div>
-          
-          {Object.entries(groupedSuggestions).map(([prefix, courses]) => (
-            <div key={prefix} style={{ marginBottom: window.innerWidth <= 768 ? 16 : 20 }}>
-              <div style={{ 
-                fontSize: window.innerWidth <= 768 ? 13 : 12, 
-                fontWeight: 800, 
-                color: '#7a12cc', 
-                marginBottom: 8,
-                letterSpacing: '0.06em'
-              }}>
-                {prefix}
-              </div>
-              
-              <div style={{ 
-                display: 'flex', 
-                flexWrap: 'wrap', 
-                gap: window.innerWidth <= 768 ? 6 : 8 
-              }}>
-                {courses.slice(0, window.innerWidth <= 768 ? 8 : 6).map((course) => (
-                  <motion.button
-                    key={course.code}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.2 }}
-                    onClick={() => handleCourseClick(course)}
-                    disabled={isCourseSelected(course.code)}
-                    style={{
-                      padding: window.innerWidth <= 768 ? '10px 14px' : '8px 12px',
-                      borderRadius: 8,
-                      border: isCourseSelected(course.code) 
-                        ? '2px solid #10b981' 
-                        : '1px solid #e2e8f0',
-                      background: isCourseSelected(course.code) ? '#f0fdf4' : 'white',
-                      cursor: isCourseSelected(course.code) ? 'default' : 'pointer',
-                      fontSize: window.innerWidth <= 768 ? 12 : 11,
-                      fontWeight: 700,
-                      color: isCourseSelected(course.code) ? '#166534' : '#374151',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      minWidth: window.innerWidth <= 768 ? 'auto' : 'fit-content'
-                    }}
-                    whileHover={!isCourseSelected(course.code) ? { y: -2, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' } : {}}
-                  >
-                    <span style={{ fontSize: window.innerWidth <= 768 ? 11 : 10, fontWeight: 900, letterSpacing: '0.04em' }}>
-                      {course.code}
-                    </span>
-                    {isCourseSelected(course.code) && (
-                      <div style={{ 
-                        width: 12, 
-                        height: 12, 
-                        borderRadius: '50%', 
-                        background: '#10b981',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <div style={{ width: 4, height: 2, background: 'white', transform: 'rotate(-45deg)' }} />
-                      </div>
-                    )}
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
-      {/* Selected Courses */}
-      {selectedCourses.length > 0 && (
-        <div style={{ 
-          padding: window.innerWidth <= 768 ? 20 : 16, 
-          background: '#f8fafc', 
-          borderRadius: 12, 
-          border: '1px solid #e2e8f0' 
-        }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#6b7280', marginBottom: 8 }}>
-            SELECTED ({selectedCourses.length})
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {selectedCourses.map((course) => (
-              <div
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
+            {suggestions.all.slice(0, 8).map((course) => (
+              <motion.button
                 key={course.code}
+                whileHover={{ y: -4, boxShadow: '0 12px 24px rgba(151,24,251,0.08)' }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleCourseClick(course)}
+                disabled={isCourseSelected(course.code)}
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '6px 10px',
-                  borderRadius: 20,
-                  background: '#7a12cc',
-                  color: 'white',
-                  fontSize: 11,
-                  fontWeight: 700
+                  padding: '16px',
+                  borderRadius: 18,
+                  border: isCourseSelected(course.code) ? '2px solid #10B981' : '1px solid #F1F5F9',
+                  background: isCourseSelected(course.code) ? '#F0FDF4' : 'white',
+                  textAlign: 'left',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                  cursor: isCourseSelected(course.code) ? 'default' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
                 }}
               >
-                {course.code}
-                <button
-                  type="button"
-                  onClick={() => onCourseRemove(course.code)}
-                  style={{ 
-                    border: 'none', 
-                    background: 'transparent', 
-                    padding: 0, 
-                    cursor: 'pointer', 
-                    display: 'flex',
-                    color: 'white' 
-                  }}
-                >
-                  <X size={12} />
-                </button>
-              </div>
+                <div style={{ fontSize: 10, fontWeight: 900, color: isCourseSelected(course.code) ? '#10B981' : 'var(--primary)', letterSpacing: '0.05em' }}>
+                  {isCourseSelected(course.code) ? 'ADDED' : course.code}
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#111', lineHeight: 1.2 }}>
+                  {course.name.length > 25 ? course.name.substring(0, 25) + '...' : course.name}
+                </div>
+              </motion.button>
             ))}
           </div>
+        </motion.div>
+      )}
+
+      {/* Error States */}
+      {errorStatus && (
+        <div style={{ 
+          padding: 16, borderRadius: 18, background: '#FEF2F2', border: '1px solid #FEE2E2',
+          display: 'flex', alignItems: 'center', gap: 12, color: '#991B1B' 
+        }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={18} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 800 }}>Search connection lost</div>
+            <div style={{ fontSize: 12, opacity: 0.8 }}>We're having trouble reaching the catalog.</div>
+          </div>
+          {errorStatus === 'connection' && (
+            <button 
+              onClick={loadSuggestions}
+              style={{ padding: '8px 16px', borderRadius: 10, background: '#991B1B', color: 'white', border: 'none', fontSize:12, fontWeight:700, cursor: 'pointer' }}
+            >
+              Retry
+            </button>
+          )}
         </div>
       )}
 
-      {/* Empty State */}
-      {Object.keys(groupedSuggestions).length === 0 && !searchQuery && (
-        <div style={{
-          textAlign: 'center',
-          padding: window.innerWidth <= 768 ? '32px 20px' : '40px 20px',
-          background: '#f8fafc',
-          borderRadius: 16,
-          border: '1px solid #e2e8f0'
-        }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-            <Search size={20} color="#64748b" />
-          </div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-            No courses found
-          </div>
-          <div style={{ fontSize: 12, color: '#64748b' }}>
-            Try searching with different keywords
-          </div>
+      {/* Empty Search State */}
+      {searchQuery && searchResults.length === 0 && !searchLoading && !errorStatus && (
+        <div style={{ textAlign: 'center', padding: '40px 0', opacity: 0.5 }}>
+          <Search size={32} style={{ marginBottom: 16, margin: '0 auto', display: 'block' }} />
+          <p style={{ fontWeight: 700 }}>No results found for "{searchQuery}"</p>
+          <p style={{ fontSize: 13 }}>Try searching for the course code (e.g. CSC 101)</p>
         </div>
       )}
     </div>

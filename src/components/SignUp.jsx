@@ -7,6 +7,7 @@ import GoogleLoginButton from './auth/GoogleLoginButton';
 
 export default function SignUp() {
   const navigate = useNavigate();
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,6 +25,11 @@ export default function SignUp() {
     const { data, error: err } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          full_name: fullName,
+        }
+      }
     });
     setLoading(false);
     if (err) { setError(err.message); return; }
@@ -41,13 +47,13 @@ export default function SignUp() {
       <div className="hero-bg">
         <div className="hero-bg-grid" />
         <div style={{ position: 'absolute', top: '12%', right: '5%', animation: 'float-up-down 7s ease-in-out infinite', opacity: 0.5 }}>
-          <div style={{ width: 60, height: 60, background: 'rgba(5,150,105,0.08)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'rotate(12deg)', border: '1px solid rgba(5,150,105,0.15)' }}>
-            <BookOpen size={28} color="#059669" />
+          <div style={{ width: 60, height: 60, background: 'rgba(151,24,251,0.08)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'rotate(12deg)', border: '1px solid rgba(151,24,251,0.15)' }}>
+            <BookOpen size={28} color="var(--primary)" />
           </div>
         </div>
         <div style={{ position: 'absolute', bottom: '15%', left: '5%', animation: 'float-up-down 5s ease-in-out infinite reverse', opacity: 0.5 }}>
-          <div style={{ width: 50, height: 50, background: 'rgba(220,38,38,0.08)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(220,38,38,0.15)' }}>
-            <GraduationCap size={24} color="#dc2626" />
+          <div style={{ width: 50, height: 50, background: 'rgba(2,132,199,0.08)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(2,132,199,0.15)' }}>
+            <GraduationCap size={24} color="#0284c7" />
           </div>
         </div>
       </div>
@@ -74,9 +80,9 @@ export default function SignUp() {
             
             <div style={{ textAlign: 'center', marginBottom: 40 }}>
               <h2 style={{ fontSize: 'clamp(2.2rem, 5vw, 2.8rem)', fontWeight: 800, fontFamily: 'var(--font-varela)', color: '#111', marginBottom: 12, lineHeight: 1.2, letterSpacing: '-0.02em' }}>
-                Create an account
+                Start your journey.
               </h2>
-              <p style={{ fontSize: 16, color: '#666', fontWeight: 500 }}>Start studying 10x faster today.</p>
+              <p style={{ fontSize: 16, color: '#666', fontWeight: 500 }}>Create your account to access Luter.</p>
             </div>
 
             {error && (
@@ -87,7 +93,26 @@ export default function SignUp() {
 
             <GoogleLoginButton />
 
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, margin: '24px 0', opacity: 0.15 }}>
+              <div style={{ flex: 1, height: 1, background: '#000' }} />
+              <span style={{ fontSize: 11, fontWeight: 800, color: '#666' }}>OR</span>
+              <div style={{ flex: 1, height: 1, background: '#000' }} />
+            </div>
+
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+              <div>
+                <input 
+                  type="text" 
+                  required 
+                  value={fullName} 
+                  onChange={e => setFullName(e.target.value)} 
+                  style={inputStyle} 
+                  placeholder="Full Name" 
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
+                />
+              </div>
 
               <div>
                 <input 
@@ -95,12 +120,13 @@ export default function SignUp() {
                   required 
                   value={email} 
                   onChange={e => setEmail(e.target.value)} 
-                  style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '2px solid rgba(151,24,251,0.1)', fontSize: 16, outline: 'none', transition: 'all 0.2s', background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', fontFamily: 'var(--font-inter)', color: '#111', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }} 
+                  style={inputStyle} 
                   placeholder="Email Address" 
-                  onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.background = 'white'; }}
-                  onBlur={(e) => { e.target.style.borderColor = 'rgba(151,24,251,0.1)'; e.target.style.background = 'rgba(255,255,255,0.8)'; }}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
                 />
               </div>
+
               <div>
                 <input 
                   type="password" 
@@ -108,21 +134,26 @@ export default function SignUp() {
                   minLength={6}
                   value={password} 
                   onChange={e => setPassword(e.target.value)} 
-                  style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '2px solid rgba(151,24,251,0.1)', fontSize: 16, outline: 'none', transition: 'all 0.2s', background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', fontFamily: 'var(--font-inter)', color: '#111', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }} 
-                  placeholder="Password (min 6 chars)" 
-                  onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.background = 'white'; }}
-                  onBlur={(e) => { e.target.style.borderColor = 'rgba(151,24,251,0.1)'; e.target.style.background = 'rgba(255,255,255,0.8)'; }}
+                  style={inputStyle} 
+                  placeholder="Create Password" 
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
                 />
               </div>
 
               <button type="submit" disabled={loading} className="btn-primary" style={{ padding: '16px', fontSize: 16, width: '100%', marginTop: 8, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, borderRadius: 16, boxShadow: '0 8px 24px rgba(151,24,251,0.25)' }}>
-                {loading ? <Loader2 className="animate-spin" size={20} style={{ animation: 'spin 1s linear infinite' }} /> : <>Create Account <ArrowRight size={18} /></>}
+                {loading ? <Loader2 className="animate-spin" size={20} /> : <>Create Free Account <ArrowRight size={18} /></>}
               </button>
             </form>
 
             <div style={{ textAlign: 'center', marginTop: 40, fontSize: 15, color: '#666', fontWeight: 500 }}>
-              Already have an account? <Link to="/signin" style={{ color: 'var(--primary)', fontWeight: 800, textDecoration: 'none' }}>Sign in</Link>
+              Already have an account? <Link to="/signin" style={{ color: 'var(--primary)', fontWeight: 800, textDecoration: 'none' }}>Sign in here</Link>
             </div>
+
+            <p style={{ textAlign: 'center', marginTop: 32, fontSize: 12, color: '#999', lineHeight: 1.5 }}>
+              By signing up, you agree to our <br />
+              <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>Terms of Service</span> and <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>Privacy Policy</span>.
+            </p>
             
           </div>
         )}
@@ -130,3 +161,28 @@ export default function SignUp() {
     </div>
   );
 }
+
+const inputStyle = { 
+  width: '100%', 
+  padding: '16px 20px', 
+  borderRadius: 16, 
+  border: '2px solid rgba(151,24,251,0.1)', 
+  fontSize: 16, 
+  outline: 'none', 
+  transition: 'all 0.2s', 
+  background: 'rgba(255,255,255,0.8)', 
+  backdropFilter: 'blur(10px)', 
+  fontFamily: 'var(--font-inter)', 
+  color: '#111', 
+  boxShadow: '0 4px 12px rgba(0,0,0,0.02)' 
+};
+
+const handleFocus = (e) => { 
+  e.target.style.borderColor = 'var(--primary)'; 
+  e.target.style.background = 'white'; 
+};
+
+const handleBlur = (e) => { 
+  e.target.style.borderColor = 'rgba(151,24,251,0.1)'; 
+  e.target.style.background = 'rgba(255,255,255,0.8)'; 
+};

@@ -1,8 +1,8 @@
 import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Trophy, Sword, Sparkles } from 'lucide-react'
+import { Sparkles, BrainCircuit } from 'lucide-react'
 
-export default function CompetePage() {
+export default function PlaygroundPage() {
   const { isMobile } = useOutletContext()
 
   return (
@@ -20,35 +20,39 @@ export default function CompetePage() {
     }}>
       {/* Decorative background elements */}
       <div style={{ 
-        position: 'absolute', top: -50, left: -50, width: 300, height: 300, 
-        borderRadius: '50%', background: 'rgba(122, 18, 204, 0.03)', filter: 'blur(80px)' 
+        position: 'absolute', top: -100, right: -100, width: 400, height: 400, 
+        borderRadius: '50%', background: 'rgba(151, 24, 251, 0.03)', filter: 'blur(80px)' 
       }} />
-      
+      <div style={{ 
+        position: 'absolute', bottom: -50, left: -50, width: 300, height: 300, 
+        borderRadius: '50%', background: 'rgba(151, 24, 251, 0.05)', filter: 'blur(60px)' 
+      }} />
+
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         style={{ textAlign: 'center', zIndex: 1, maxWidth: 600 }}
       >
         <div style={{ 
           display: 'inline-flex', 
           padding: '10px 20px', 
-          background: 'rgba(122, 18, 204, 0.06)', 
+          background: 'rgba(151, 24, 251, 0.06)', 
           borderRadius: 99, 
           marginBottom: 32,
-          border: '1px solid rgba(122, 18, 204, 0.1)',
+          border: '1px solid rgba(151, 24, 251, 0.1)',
           alignItems: 'center',
           gap: 10
         }}>
-          <Trophy size={18} color="#7a12cc" />
+          <Sparkles size={18} color="var(--primary)" />
           <span style={{ 
             fontSize: 12, 
             fontWeight: 900, 
             textTransform: 'uppercase', 
             letterSpacing: '0.15em', 
-            color: '#7a12cc' 
+            color: 'var(--primary)' 
           }}>
-            Luter Arena
+            Luter Playground
           </span>
         </div>
 
@@ -60,7 +64,7 @@ export default function CompetePage() {
           marginBottom: 24,
           letterSpacing: '-0.04em'
         }}>
-          Prepare for <span style={{ color: '#7a12cc' }}>Battle.</span>
+          A new way to <span style={{ color: 'var(--primary)' }}>Master.</span>
         </h1>
 
         <p style={{ 
@@ -70,19 +74,15 @@ export default function CompetePage() {
           lineHeight: 1.6,
           marginBottom: 48
         }}>
-          We're forging a new competitive landscape where knowledge is power. The arena is being optimized for the next generation of scholars.
+          We're hand-crafting a revolutionary study space. The future of academic mastery is under construction.
         </p>
 
         <div style={{ 
           display: 'flex',
-          justifyContent: 'center',
-          gap: 20
+          justifyContent: 'center'
         }}>
-          <div style={{ width: 80, height: 80, borderRadius: 24, background: '#7a12cc10', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a12cc' }}>
-            <Sword size={32} className="animate-pulse" />
-          </div>
-          <div style={{ width: 80, height: 80, borderRadius: 24, background: '#7a12cc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 10px 20px rgba(122, 18, 204, 0.3)' }}>
-            <Sparkles size={32} />
+          <div style={{ width: 120, height: 120, borderRadius: 32, background: 'rgba(151, 24, 251, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+            <BrainCircuit size={48} className="animate-pulse" />
           </div>
         </div>
       </motion.div>

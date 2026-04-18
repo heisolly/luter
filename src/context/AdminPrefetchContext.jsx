@@ -52,7 +52,7 @@ async function fetchAdminBundle() {
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
     supabase.from('courses').select('*', { count: 'exact', head: true }),
     supabase.from('user_courses').select('*', { count: 'exact', head: true }),
-    supabase.from('matches').select('*', { count: 'exact', head: true }),
+    supabase.from('battles').select('*', { count: 'exact', head: true }),
     supabase.from('notifications').select('*', { count: 'exact', head: true }),
     supabase.from('profiles').select('*', { count: 'exact', head: true }).gt('last_active_at', fiveAgo),
     supabase
@@ -63,23 +63,14 @@ async function fetchAdminBundle() {
     supabase.from('courses').select('*').order('code', { ascending: true }),
     supabase
       .from('user_courses')
-      .select(
-        `
-        id,
-        progress,
-        target_score,
-        user_id,
-        course_id,
-        courses (code, name, faculty)
-      `
-      )
+      .select(`id, progress, target_score, user_id, course_id, courses (code, name, faculty)`)
       .order('id', { ascending: false })
       .limit(200),
-    supabase.from('matches').select('*').order('id', { ascending: false }).limit(150),
+    supabase.from('battles').select('*').order('id', { ascending: false }).limit(150),
     supabase.from('notifications').select('*').order('id', { ascending: false }).limit(100),
     supabase
       .from('profiles')
-      .select('id, full_name, university, last_active_at')
+      .select('id, full_name, university, level, faculty, last_active_at')
       .gt('last_active_at', fiveAgo)
       .order('last_active_at', { ascending: false })
       .limit(100),

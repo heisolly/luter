@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
 
-const CACHE_VER = 'v2'
+const CACHE_VER = 'v3' // Incremented for schema changes
 const storageKey = (userId) => `luter:dashboard_prefetch:${CACHE_VER}:${userId}`
 
 function readCachedBundle(userId) {
@@ -26,24 +26,32 @@ function writeCachedBundle(userId, bundle) {
 
 const DashboardPrefetchContext = createContext(null)
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function useDashboardPrefetch() {
   return useContext(DashboardPrefetchContext)
 }
 
+/**
+ * Fetches the dashboard data individually to avoid cascading failures.
+ */
 async function fetchDashboardBundle(userId) {
+  // Use sequential processing or individual error handling to prevent 
+  // one missing column from breaking everything
   const [uc, stats, leaderboard, profile] = await Promise.all([
     supabase
       .from('user_courses')
-      .select('id, progress, last_studied_at, target_score, custom_name, is_archived, semester, course:courses(id, code, name, faculty)')
+      .select('id, progress, last_studied_at, target_score, custom_name, is_archived, semester, courses(id, code, name, faculty)')
       .eq('user_id', userId)
-      .order('created_at'),
-    supabase.from('user_stats').select('total_xp, streak_days, lives, badges').eq('user_id', userId).maybeSingle(),
+      .order('id')
+      .then(res => res),
+      
+    supabase.from('user_stats').select('*').eq('user_id', userId).maybeSingle(),
+    
     supabase
       .from('user_stats')
-      .select('total_xp, streak_days, profiles(full_name, level, university)')
-      .order('streak_days', { ascending: false })
+      .select('total_xp, streak_days, user_id, ai_credits_monthly, ai_credits_used, arena_battles_monthly, arena_battles_used')
+      .order('total_xp', { ascending: false })
       .limit(10),
+      
     supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
   ])
 
@@ -74,7 +82,8 @@ export function DashboardPrefetchProvider({ userId, children }) {
       writeCachedBundle(userId, b)
       setServingCached(false)
       setReady(true)
-    } catch {
+    } catch (e) {
+      console.error('Prefetch Refresh Error:', e)
       const cached = readCachedBundle(userId)
       if (cached) {
         setBundle(cached)
@@ -105,9 +114,9 @@ export function DashboardPrefetchProvider({ userId, children }) {
       }
 
       setReady(false)
-      setBundle(null)
-      setServingCached(false)
-
+      // Only reset bundle if we don't have a cache to show immediately
+      if (!cached) setBundle(null)
+      
       try {
         const b = await fetchDashboardBundle(userId)
         if (cancelled) return
@@ -115,7 +124,8 @@ export function DashboardPrefetchProvider({ userId, children }) {
         writeCachedBundle(userId, b)
         setServingCached(false)
         setReady(true)
-      } catch {
+      } catch (e) {
+        console.error('Prefetch Run Error:', e)
         if (cancelled) return
         if (cached) {
           setBundle(cached)
