@@ -4,70 +4,73 @@ import {
   Check, 
   Settings, 
   X,
-  BellOff,
   Sparkles,
   Flame,
   Zap,
-  Bell
+  Bell,
+  BookOpen,
+  Trophy,
+  Users,
+  ChevronRight,
+  Archive
 } from 'lucide-react'
 
 const MOCK_NOTIFICATIONS = [
   {
     id: 1,
-    title: 'It only takes two minutes 🔥',
-    description: 'Keep your streak going by tuning in for a quick study session. Turn that 5 days streak into 6 days!',
-    time: '6 hours ago',
+    title: '🔥 Keep Your Streak Alive!',
+    description: 'You\'re on a 5-day streak! Just 2 minutes of study today to make it 6 days straight.',
+    time: '2 hours ago',
     unread: true,
     type: 'streak',
-    icon: <Flame size={24} strokeWidth={2.5} fill="currentColor" />
+    icon: <Flame size={20} strokeWidth={2.5} />,
+    priority: 'high',
+    action: { label: 'Continue Streak', path: '/dashboard/workstation' }
   },
   {
     id: 2,
-    title: 'New AI Summary Ready ✨',
-    description: 'Your notes for "Modern Physics" have been summarized and are ready for review in your workstation.',
-    time: 'Yesterday',
+    title: '✨ AI Summary Complete',
+    description: 'Your "Modern Physics" notes have been processed. Smart summary and flashcards are ready.',
+    time: '4 hours ago',
     unread: true,
     type: 'ai',
-    icon: <Sparkles size={24} strokeWidth={2.5} fill="currentColor" />
+    icon: <Sparkles size={20} strokeWidth={2.5} />,
+    priority: 'medium',
+    action: { label: 'View Summary', path: '/dashboard/courses/physics' }
   },
   {
     id: 3,
-    title: 'Weekly Pulse Update ✅',
-    description: 'You earned 1,250 XP this week! You are in the top 5% of scholars at your university.',
+    title: '📚 Study Group Invitation',
+    description: 'Sarah invited you to join "CS101 Study Squad" for exam prep.',
+    time: 'Yesterday',
+    unread: true,
+    type: 'social',
+    icon: <Users size={20} strokeWidth={2.5} />,
+    priority: 'medium',
+    action: { label: 'Join Group', path: '/dashboard/study-groups/123' }
+  },
+  {
+    id: 4,
+    title: '🏆 Weekly Achievement',
+    description: 'You earned 1,250 XP this week! Top 5% at your university. Keep it up!',
     time: '2 days ago',
     unread: false,
-    type: 'stats',
-    icon: <Zap size={24} strokeWidth={2.5} fill="currentColor" />
+    type: 'achievement',
+    icon: <Trophy size={20} strokeWidth={2.5} />,
+    priority: 'low'
+  },
+  {
+    id: 5,
+    title: '📖 New Course Material',
+    description: 'Week 8 materials for "Data Structures" are now available.',
+    time: '3 days ago',
+    unread: false,
+    type: 'course',
+    icon: <BookOpen size={20} strokeWidth={2.5} />,
+    priority: 'low',
+    action: { label: 'View Materials', path: '/dashboard/courses/ds/materials/week8' }
   }
 ]
-
-const containerVariants = {
-  hidden: { opacity: 0, scale: 0.98, y: 15 },
-  visible: { 
-    opacity: 1, 
-    scale: 1, 
-    y: 0,
-    transition: {
-      type: "spring",
-      damping: 30,
-      stiffness: 400,
-      staggerChildren: 0.12,
-      delayChildren: 0.1
-    }
-  },
-  exit: { 
-    opacity: 0, 
-    scale: 0.98, 
-    y: 15,
-    transition: { duration: 0.2 }
-  }
-}
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0 },
-  exit: { opacity: 0, scale: 0.95 }
-}
 
 const NotificationsOverlay = ({ isOpen, onClose }) => {
   const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS)
@@ -80,148 +83,161 @@ const NotificationsOverlay = ({ isOpen, onClose }) => {
     setNotifications(prev => prev.filter(n => n.id !== id))
   }
 
+  const markAsRead = (id) => {
+    setNotifications(prev => prev.map(n => 
+      n.id === id ? { ...n, unread: false } : n
+    ))
+  }
+
+  const unreadCount = notifications.filter(n => n.unread).length
+
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Subtle Studio Backdrop */}
+          {/* Backdrop */}
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-slate-900/10 backdrop-blur-[4px] z-[3000]"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
           />
 
-          {/* Premium Notification Center */}
+          {/* Notification Panel */}
           <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            style={{
-              boxShadow: '0 40px 100px -20px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06)',
-            }}
-            className="fixed top-12 right-12 w-[520px] bg-white rounded-[48px] z-[3001] flex flex-col border border-white max-h-[calc(100vh-100px)]"
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] max-h-[600px] bg-white rounded-3xl shadow-2xl z-50 flex flex-col overflow-hidden"
           >
-            {/* Glossy Header Highlight */}
-            <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-slate-50/60 to-transparent pointer-events-none rounded-t-[48px]" />
-            <div className="notifications-glow" />
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Notifications</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  {unreadCount} unread {unreadCount === 1 ? 'notification' : 'notifications'}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllRead}
+                    className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    Mark all read
+                  </button>
+                )}
+                <button
+                  onClick={onClose}
+                  className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X size={20} strokeWidth={2} />
+                </button>
+              </div>
+            </div>
 
-            <div className="relative z-10 flex flex-col h-full overflow-hidden">
-              {/* Header Section - Spaced & Bold */}
-              <div className="px-10 pt-10 pb-8 flex justify-between items-center bg-white/40 backdrop-blur-[20px] rounded-t-[48px]">
-                <div>
-                  <h2 className="text-[32px] font-[900] text-slate-900 tracking-[-0.04em] leading-tight">Notifications</h2>
-                  <p className="text-[14px] font-[700] text-slate-400 uppercase tracking-[0.08em] mt-1">
-                    {notifications.filter(n => n.unread).length} Unread Updates
+            {/* Notifications List */}
+            <div className="flex-1 overflow-y-auto">
+              {notifications.length > 0 ? (
+                <div className="p-4 space-y-3">
+                  {notifications.map((notif) => (
+                    <motion.div
+                      key={notif.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      onClick={() => markAsRead(notif.id)}
+                      className={`relative p-4 rounded-2xl border cursor-pointer transition-all ${
+                        notif.unread 
+                          ? 'bg-white border-gray-200 shadow-sm hover:shadow-md' 
+                          : 'bg-gray-50 border-gray-100 hover:bg-gray-100'
+                      }`}
+                    >
+                      {/* Unread indicator */}
+                      {notif.unread && (
+                        <div className="absolute top-4 right-4 w-2 h-2 bg-blue-500 rounded-full" />
+                      )}
+
+                      <div className="flex gap-4">
+                        {/* Icon */}
+                        <div 
+                          className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                            notif.type === 'streak' ? 'bg-orange-100 text-orange-600' :
+                            notif.type === 'ai' ? 'bg-purple-100 text-purple-600' :
+                            notif.type === 'social' ? 'bg-blue-100 text-blue-600' :
+                            notif.type === 'achievement' ? 'bg-yellow-100 text-yellow-600' :
+                            'bg-green-100 text-green-600'
+                          }`}
+                        >
+                          {notif.icon}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h3 className={`text-base font-semibold text-gray-900 leading-tight ${
+                              notif.unread ? 'font-bold' : ''
+                            }`}>
+                              {notif.title}
+                            </h3>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                deleteNotification(notif.id)
+                              }}
+                              className="opacity-0 hover:opacity-100 text-gray-400 hover:text-red-500 transition-all p-1 -mt-1 -mr-1"
+                            >
+                              <X size={16} strokeWidth={2} />
+                            </button>
+                          </div>
+                          
+                          <p className="text-sm text-gray-600 leading-relaxed mb-3">
+                            {notif.description}
+                          </p>
+                          
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-400 font-medium">
+                              {notif.time}
+                            </span>
+                            
+                            {notif.action && (
+                              <button className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors">
+                                {notif.action.label} →
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                    <Bell size={32} className="text-gray-400" strokeWidth={2} />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                    All caught up!
+                  </h3>
+                  <p className="text-sm text-gray-500 max-w-sm">
+                    No new notifications. Check back later for updates.
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <motion.button 
-                    whileHover={{ scale: 1.05, background: '#F4F4FF' }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={markAllRead}
-                    title="Mark all as read"
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-all border border-slate-100"
-                  >
-                    <Check size={24} strokeWidth={2.5} />
-                  </motion.button>
-                  <motion.button 
-                    whileHover={{ scale: 1.05, background: '#F4F4FF' }}
-                    whileTap={{ scale: 0.95 }}
-                    title="Settings"
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all border border-slate-100"
-                  >
-                    <Settings size={24} strokeWidth={2.5} />
-                  </motion.button>
-                  <motion.button 
-                    whileHover={{ scale: 1.05, background: '#FEF2F2' }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={onClose}
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 transition-all border border-slate-100"
-                  >
-                    <X size={24} strokeWidth={2.5} />
-                  </motion.button>
-                </div>
-              </div>
+              )}
+            </div>
 
-              {/* Scrollable Notification Stream */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar px-10 pb-10 pt-2">
-                <AnimatePresence mode="popLayout">
-                  {notifications.length > 0 ? (
-                    <div className="flex flex-col gap-10">
-                      {notifications.map((notif) => (
-                        <motion.div 
-                          key={notif.id} 
-                          variants={itemVariants}
-                          layout
-                          className="relative flex items-start gap-7 pr-2 group"
-                        >
-                          {/* Indicator Dot */}
-                          {notif.unread && (
-                            <motion.div 
-                              layoutId={`unread-p-${notif.id}`}
-                              className="absolute left-[-18px] top-[32px] w-3 h-3 bg-red-500 rounded-full shadow-[0_0_15px_rgba(239,68,68,0.7)] z-20" 
-                            />
-                          )}
-
-                          {/* Dynamic Icon Wrapper */}
-                          <div 
-                            style={{ 
-                              background: notif.type === 'streak' ? '#FEF2E2' : notif.type === 'ai' ? '#F5F3FF' : '#F0F9FF',
-                              color: notif.type === 'streak' ? '#EA580C' : notif.type === 'ai' ? '#7C3AED' : '#0284C7'
-                            }}
-                            className="w-[72px] h-[72px] rounded-[24px] flex items-center justify-center flex-shrink-0 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:rotate-[4deg] group-hover:shadow-md"
-                          >
-                            {notif.icon}
-                          </div>
-
-                          {/* Message Content */}
-                          <div className="flex-1 min-w-0 pt-1">
-                            <h4 className="text-[19px] font-[800] text-slate-900 leading-[1.2] mb-1.5 tracking-tight group-hover:text-indigo-600 transition-colors">
-                              {notif.title}
-                            </h4>
-                            <p className="text-[15px] font-[500] text-slate-500 leading-relaxed mb-3">
-                              {notif.description}
-                            </p>
-                            <div className="flex items-center gap-4">
-                              <span className="text-[13px] font-[800] text-slate-300 uppercase tracking-widest">
-                                {notif.time}
-                              </span>
-                              <div className="w-1 h-1 rounded-full bg-slate-200" />
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); deleteNotification(notif.id); }}
-                                className="opacity-0 group-hover:opacity-100 text-[13px] font-[800] text-red-400 hover:text-red-600 transition-all uppercase tracking-widest"
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  ) : (
-                    <motion.div 
-                      key="empty"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="py-24 flex flex-col items-center justify-center text-center px-6"
-                    >
-                      <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-8 border border-slate-100 text-slate-200">
-                        <Bell size={48} strokeWidth={1} />
-                      </div>
-                      <h3 className="text-[20px] font-bold text-slate-900 mb-3 tracking-tight">Clear Skies</h3>
-                      <p className="text-slate-400 text-[15px] leading-relaxed max-w-[280px]">
-                        No new updates identified. Your study studio is currently up to date.
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Sophisticated Footer Gradient */}
-              <div className="h-10 bg-gradient-to-t from-white to-transparent shrink-0" />
+            {/* Footer */}
+            <div className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50">
+              <button className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2">
+                <Settings size={16} strokeWidth={2} />
+                Settings
+              </button>
+              <button className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2">
+                <Archive size={16} strokeWidth={2} />
+                Archive
+              </button>
             </div>
           </motion.div>
         </>

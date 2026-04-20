@@ -1345,7 +1345,7 @@ export default function Onboarding() {
                   <span style={{ fontSize:12, fontWeight:800, color:'var(--primary)', background:'var(--primary-bg)', padding:'4px 12px', borderRadius:99, textTransform:'uppercase', letterSpacing:'0.05em' }}>Step 6: Habits</span>
                 </div>
                 <h1 style={{ fontSize: 32, fontWeight:800, letterSpacing:'-0.03em', marginBottom:12, color:'#111' }}>Build your routine.</h1>
-                <p style={{ color:'#666', fontSize:16, marginBottom:40, fontWeight:500 }}>Lute will wake you up and send study reminders.</p>
+                <p style={{ color:'#666', fontSize:16, marginBottom:40, fontWeight:500 }}>Luter will send you study notifications.</p>
 
                 <div style={{ maxWidth: 400, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 32 }}>
                    <div style={{ background:'white', padding:32, borderRadius:24, border:'1px solid #e2e8f0', boxShadow:'0 10px 30px rgba(0,0,0,0.03)' }}>
