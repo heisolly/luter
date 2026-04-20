@@ -2,17 +2,16 @@
    LUTER NEBULA MINI — COURSE-CENTRIC FOCUS
    ============================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
-
 :root {
-  --n-primary: #9718fb;
-  --n-primary-light: #b04dfc;
+  --n-primary: var(--tt-brand-color-600);
+  --n-primary-light: var(--tt-brand-color-500);
   --n-bg: #ffffff;
   --n-card: #ffffff;
-  --n-text: #0f172a;
+  --n-text: #0a0a0a;
   --n-muted: #64748b;
-  --n-radius: 32px;
-  --n-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+  --n-radius: var(--tt-radius-xl);
+  --n-shadow: 0 1px 2px rgba(0,0,0,0.05), 0 8px 32px rgba(0,0,0,0.04);
+  --accent-gold: #fbbf24;
 }
 
 body {
@@ -22,13 +21,22 @@ body {
 }
 
 .dhd-root {
-  min-height: 100vh;
-  padding: 40px;
   max-width: 1400px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
+  padding: 0 40px 60px;
+}
+
+.dhd-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 32px;
+  margin-top: 32px;
+}
+
+@media (max-width: 1100px) {
+  .dhd-main-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Minimal Top Bar ── */
@@ -36,6 +44,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 24px;
 }
 
 .dhd-user-pill {
@@ -43,30 +52,41 @@ body {
   align-items: center;
   gap: 12px;
   padding: 8px 16px;
-  background: var(--n-bg);
-  border: 1px solid #f1f5f9;
-  border-radius: 99px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  background: #f8fafc;
+  border: 1px solid var(--tt-gray-light-a-200);
+  border-radius: var(--tt-radius-md);
 }
 
 /* ── Minimal Hero (Nebula Accent) ── */
 .dhd-hero-mini {
-  background: linear-gradient(135deg, #111827 0%, #1e1b4b 100%);
-  border-radius: var(--n-radius);
-  padding: 48px;
+  background: #0f172a;
+  border-radius: var(--tt-radius-xl);
+  padding: 48px 60px;
+  color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: white;
-  position: relative;
   overflow: hidden;
+  position: relative;
+  box-shadow: 0 30px 60px -12px rgba(0,0,0,0.25);
+  margin-top: 24px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.dhd-hero-mini::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background: radial-gradient(circle at top right, rgba(122,82,255,0.25), transparent 60%);
+  pointer-events: none;
 }
 
 .dhd-hero-content h1 {
   font-size: 42px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  font-weight: 900;
+  letter-spacing: -0.05em;
   margin: 0;
+  line-height: 1;
 }
 
 .dhd-hero-mascot {
@@ -74,61 +94,112 @@ body {
   filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
 }
 
-/* ── Course Grid (The Focus) ── */
+/* ── Course Grid ── */
 .dhd-course-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
+  gap: 20px;
 }
 
 .dhd-course-card {
   background: white;
-  border: 1px solid #f1f5f9;
-  border-radius: var(--n-radius);
+  border-radius: var(--tt-radius-lg);
   padding: 32px;
-  box-shadow: var(--n-shadow);
-  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-  cursor: pointer;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 220px;
+  gap: 24px;
+  border: 1px solid var(--tt-gray-light-a-200);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
 }
 
 .dhd-course-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 30px 60px -15px rgba(151, 24, 251, 0.15);
-  border-color: rgba(151, 24, 251, 0.1);
+  transform: translateY(-8px) scale(1.02);
+  border-color: var(--n-primary);
+  box-shadow: 0 20px 40px -12px rgba(122, 18, 204, 0.15);
+}
+
+.dhd-activity-card {
+  background: #f8fafc;
+  border-radius: var(--tt-radius-md);
+  padding: 20px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid var(--tt-gray-light-a-100);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.dhd-activity-card:hover {
+  background: white;
+  transform: translateX(4px);
+  border-color: var(--n-primary);
+  box-shadow: var(--card-shadow);
+}
+
+.dhd-quick-action {
+  background: white;
+  border-radius: var(--tt-radius-lg);
+  padding: 24px;
+  border: 1px solid var(--tt-gray-light-a-200);
+  margin-bottom: 16px;
+}
+
+.dhd-action-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--tt-radius-md);
+  border: 1px solid var(--tt-gray-light-a-200);
+  background: white;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 8px;
+}
+
+.dhd-action-btn:hover {
+  border-color: var(--n-primary);
+  background: var(--primary-bg);
+  transform: scale(1.02);
 }
 
 .dhd-course-tag {
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.15em;
   color: var(--n-muted);
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .dhd-course-name {
-  font-size: 24px;
-  font-weight: 800;
+  font-size: 22px;
+  font-weight: 900;
   color: var(--n-text);
-  margin: 0 0 8px;
-  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
 }
 
 .dhd-course-progress-text {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--n-muted);
 }
 
 .dhd-prog-bar {
-  height: 8px;
+  height: 6px;
   background: #f1f5f9;
   border-radius: 99px;
-  margin-top: 24px;
+  margin-top: 16px;
   overflow: hidden;
 }
 
@@ -138,20 +209,22 @@ body {
   background: var(--n-primary);
 }
 
-/* ── Quick Stats ── */
 .dhd-stat-pill {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 900;
   color: var(--n-text);
+  background: #f8fafc;
+  padding: 8px 16px;
+  border-radius: var(--tt-radius-md);
+  border: 1px solid var(--tt-gray-light-a-100);
 }
 
-/* ── Mobile ── */
 @media (max-width: 768px) {
-  .dhd-root { padding: 20px; gap: 24px; }
-  .dhd-hero-mini { padding: 32px; flex-direction: column; text-align: center; gap: 24px; }
+  .dhd-root { padding: 20px; }
+  .dhd-hero-mini { padding: 32px; flex-direction: column; text-align: center; gap: 24px; border-radius: var(--tt-radius-lg); }
   .dhd-hero-content h1 { font-size: 32px; }
   .dhd-course-grid { grid-template-columns: 1fr; }
 }

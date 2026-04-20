@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, Suspense } from 'react';
 import { Link } from 'react-router-dom';
+import Spline from '@splinetool/react-spline';
 import LuterLogo from './shared/LuterLogo';
-import MagicRings from './MagicRings';
 import { SharedFooter } from './PageShared';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import {
-  Plus, ArrowRight, BookOpen, Zap, FileText, GraduationCap,
+  Plus, ArrowRight, ArrowUpRight, BookOpen, Zap, FileText, GraduationCap,
   ChevronRight, Clock, Star, Check, Layers, MessageSquare, Upload, Play,
   Shield, Globe, Users, TrendingUp, Award,
   Headphones, Folder, RefreshCw, MessageCircleQuestion
@@ -143,7 +143,8 @@ const plans = [
     priceMonthly: 0, priceSemester: 0,
     isPopular: false,
     bg: 'white', color: '#111', border: '#e5e7eb',
-    buttonStyle: { background: 'white', color: '#111', border: '1px solid #e5e7eb' },
+    buttonStyle: {},
+    buttonClass: 'btn-secondary',
     buttonText: 'Start for Free',
     features: ['5 uploads per month', 'Smart Notes (Basic)', 'Summary', 'Flashcard generation', 'Community support']
   },
@@ -152,7 +153,8 @@ const plans = [
     priceMonthly: 4000, priceSemester: 9000,
     isPopular: true,
     bg: 'linear-gradient(160deg, #6d28d9, #9718fb 60%, #7180FE)', color: 'white', border: 'transparent',
-    buttonStyle: { background: 'white', color: 'var(--primary)', border: 'none' },
+    buttonStyle: {},
+    buttonClass: 'btn-primary',
     buttonText: 'Get Started',
     features: ['Unlimited uploads', 'Advanced Smart Notes', 'Summary + Quizzes', 'Spaced-rep Flashcards', 'Math Expert', 'Live Lecture Recording', 'Priority support']
   },
@@ -161,7 +163,8 @@ const plans = [
     priceMonthly: 7000, priceSemester: 16000,
     isPopular: false,
     bg: 'white', color: '#111', border: '#e5e7eb',
-    buttonStyle: { background: 'linear-gradient(135deg, var(--primary), #7180fe)', color: 'white', border: 'none' },
+    buttonStyle: {},
+    buttonClass: 'btn-primary',
     buttonText: 'Get Started',
     features: ['Everything in University Pro', 'Analyze Images', 'Multi-file Sessions', 'Team collaboration', 'Dedicated support', 'Early feature access']
   }
@@ -230,6 +233,60 @@ const DraggableDoodle = ({ children, initialX, initialY, delay = 0 }) => {
   );
 };
 
+// Nebula Aura Background Component
+const NebulaBackground = () => {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  const handleMouseMove = (e) => {
+    const { clientX, clientY } = e;
+    const moveX = (clientX - window.innerWidth / 2) * 0.05;
+    const moveY = (clientY - window.innerHeight / 2) * 0.05;
+    mouseX.set(moveX);
+    mouseY.set(moveY);
+  };
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  return (
+    <div className="hero-bg">
+      {/* 12-Column Grid Structure */}
+      <div className="hero-columns" style={{ padding: '0 40px' }}>
+        {[...Array(12)].map((_, i) => (
+          <div key={i} className="hero-column" />
+        ))}
+      </div>
+
+      {/* Primary Grid Overlay */}
+      <div className="hero-grid" />
+
+      {/* Interactive Aura Glow */}
+      <motion.div 
+        className="hero-aura"
+        style={{
+          x: mouseX,
+          y: mouseY,
+        }}
+      />
+    </div>
+  );
+};
+
+// RevealDiv Component
+const RevealDiv = ({ children, delay = 0 }) => {
+  const ref = useRef(null);
+  useEffect(() => {
+    gsap.fromTo(ref.current, 
+      { y: 40, opacity: 0 }, 
+      { y: 0, opacity: 1, duration: 0.9, ease: 'power2.out', delay: delay }
+    );
+  }, [delay]);
+  return <div ref={ref}>{children}</div>;
+};
+
 export default function LandingPage() {
   const containerRef = useRef(null);
 
@@ -282,20 +339,6 @@ export default function LandingPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isSemester, setIsSemester] = useState(true);
 
-  // Placeholder for RevealDiv - assuming it's defined elsewhere or will be added.
-  // For the purpose of this change, we'll just use a simple div.
-  const RevealDiv = ({ children, delay = 0 }) => {
-    const ref = useRef(null);
-    useEffect(() => {
-      gsap.fromTo(ref.current, 
-        { y: 40, opacity: 0 }, 
-        { y: 0, opacity: 1, duration: 0.9, ease: 'power2.out', delay: delay }
-      );
-    }, [delay]);
-    return <div ref={ref}>{children}</div>;
-  };
-
-
   return (
     <div ref={containerRef} style={{ background: '#fff', minHeight: '100vh' }}>
 
@@ -327,18 +370,21 @@ export default function LandingPage() {
             <LuterLogo size={36} fontSize={28} />
           </Link>
 
-          <div style={{ display: 'flex', gap: 32, fontSize: 14, fontWeight: 600, color: '#555' }}>
-            {[['Features','/features'],['How it works','/how-it-works'],['Pricing','/pricing'],['About','/about']].map(([l,h]) => (
-              <Link key={l} to={h} style={{ transition: 'color 0.2s', color: 'inherit', textDecoration: 'none' }}
-                onMouseEnter={e => e.target.style.color='#000'}
-                onMouseLeave={e => e.target.style.color='#555'}>{l}</Link>
+          <div style={{ display: 'flex', gap: 40, fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.5)', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+            {[['Solution','/solution'],['Product','/product'],['Pricing','/pricing'],['About','/about'],['Blog','/blog']].map(([l,h]) => (
+              <Link key={l} to={h} style={{ transition: 'color 0.2s, transform 0.2s', color: 'inherit', textDecoration: 'none', display: 'inline-block' }}
+                onMouseEnter={e => { e.target.style.color='#000'; e.target.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => { e.target.style.color='rgba(0,0,0,0.5)'; e.target.style.transform = 'translateY(0)'; }}>{l}</Link>
             ))}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <Link to="/signin" style={{ fontSize: 14, fontWeight: 600, color: '#444', textDecoration: 'none' }}>Log in</Link>
-            <Link to="/signup" className="btn-primary" style={{ padding: '10px 24px', fontSize: 14, textDecoration: 'none' }}>
-              Get Started <ArrowRight style={{ width: 15, height: 15 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+            <Link to="/signin" style={{ fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.7)', textDecoration: 'none', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Log in</Link>
+            <Link to="/signup" className="btn-primary" style={{ textDecoration: 'none', padding: '10px 10px 10px 24px', fontSize: '13px' }}>
+              GET STARTED 
+              <span className="btn-icon-container" style={{ width: 32, height: 32 }}>
+                <ArrowUpRight style={{ width: 14, height: 14 }} />
+              </span>
             </Link>
           </div>
         </div>
@@ -354,16 +400,11 @@ export default function LandingPage() {
           </Link>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Link to="/signup" className="btn-primary" style={{ 
-              padding: '8px 18px', 
-              fontSize: 13, 
-              textDecoration: 'none', 
-              fontFamily: 'var(--font-varela)',
-              borderRadius: 10,
-              boxShadow: '0 4px 15px rgba(151, 24, 251, 0.3)',
-              fontWeight: 800
-            }}>
+            <Link to="/signup" className="btn-primary" style={{ textDecoration: 'none', padding: '4px 4px 4px 16px', gap: 12, fontSize: 13 }}>
               Get Started
+              <span className="btn-icon-container" style={{ width: 32, height: 32, borderRadius: 8 }}>
+                <ArrowUpRight style={{ width: 14, height: 14 }} />
+              </span>
             </Link>
             <button 
               onClick={() => setMobileOpen(!mobileOpen)}
@@ -472,9 +513,12 @@ export default function LandingPage() {
                 to="/signup" 
                 onClick={() => setMobileOpen(false)}
                 className="btn-primary" 
-                style={{ width: '100%', justifyContent: 'center', padding: '18px', fontSize: 16, borderRadius: 16, fontFamily: 'var(--font-varela)', boxShadow: '0 10px 30px rgba(151,24,251,0.3)' }}
+                style={{ width: '100%', textDecoration: 'none', justifyContent: 'space-between' }}
               >
-                Start Free Today <ArrowRight size={18} style={{ marginLeft: 8 }} />
+                Start Free Today 
+                <span className="btn-icon-container">
+                  <ArrowUpRight size={18} />
+                </span>
               </Link>
             </motion.div>
           </motion.div>
@@ -482,85 +526,9 @@ export default function LandingPage() {
       </AnimatePresence>
 
       {/* ═══════════════ HERO ═══════════════ */}
-      <section style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-        background: 'linear-gradient(135deg, #ffffff 0%, #faf8ff 100%)'
-      }}>
-        {/* MagicRings Background */}
-        <div style={{ 
-          position: 'absolute', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          zIndex: 1, 
-          background: 'transparent' 
-        }}>
-          <MagicRings
-            color="#8b5cf6"
-            colorTwo="#a78bfa"
-            ringCount={8}
-            speed={0.6}
-            attenuation={15}
-            lineThickness={2}
-            baseRadius={0.2}
-            radiusStep={0.08}
-            scaleRate={0.12}
-            opacity={0.15}
-            blur={1}
-            noiseAmount={0.01}
-            rotation={10}
-            ringGap={1.6}
-            fadeIn={0.7}
-            fadeOut={0.3}
-            followMouse={true}
-            mouseInfluence={0.08}
-            hoverScale={1.02}
-            parallax={0.04}
-            clickBurst={false}
-          />
-        </div>
-
-        {/* Subtle Floating Elements */}
-        <div style={{ 
-          position: 'absolute', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          zIndex: 2,
-          pointerEvents: 'none'
-        }}>
-          {[...Array(6)].map((_, i) => (
-            <motion.div
-              key={i}
-              style={{
-                position: 'absolute',
-                width: Math.random() * 4 + 2,
-                height: Math.random() * 4 + 2,
-                borderRadius: '50%',
-                background: `rgba(139, 92, 246, ${Math.random() * 0.1 + 0.05})`,
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                y: [0, -20, 0],
-                opacity: [0.1, 0.3, 0.1],
-              }}
-              transition={{
-                duration: Math.random() * 3 + 4,
-                repeat: Infinity,
-                delay: Math.random() * 2,
-                ease: 'easeInOut'
-              }}
-            />
-          ))}
-        </div>
+      <section className="hero-section">
+        {/* Custom Interactive Background */}
+        <NebulaBackground />
 
         {/* Main Content */}
         <div style={{ 
@@ -586,8 +554,8 @@ export default function LandingPage() {
               borderRadius: '100px',
               marginBottom: '32px',
               fontFamily: 'Outfit, sans-serif',
-              fontSize: '14px',
-              fontWeight: '500',
+              fontSize: '13px',
+              fontWeight: '600',
               color: '#8b5cf6'
             }}
           >
@@ -608,23 +576,17 @@ export default function LandingPage() {
             transition={{ duration: 0.8, delay: 0.3 }}
             style={{
               fontFamily: 'Outfit, sans-serif',
-              fontSize: 'clamp(2.5rem, 8vw, 4rem)',
-              fontWeight: '700',
-              lineHeight: '1.1',
-              letterSpacing: '-0.02em',
+              fontSize: 'clamp(3rem, 10vw, 5rem)',
+              fontWeight: '800',
+              lineHeight: '1.05',
+              letterSpacing: '-0.04em',
               color: '#1f2937',
-              marginBottom: '24px'
+              marginBottom: '32px'
             }}
           >
             Read Smarter.
             <br />
-            <span style={{ 
-              color: '#8b5cf6',
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}>
+            <span className="text-gradient">
               Understand Deeper.
             </span>
             <br />
@@ -649,244 +611,51 @@ export default function LandingPage() {
             Transform your reading experience with AI-powered tools that help you understand faster and remember longer. The intelligent way to study.
           </motion.p>
 
-          {/* CTA Button */}
+          {/* CTA Button Group */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.7 }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px' }}
           >
+            <Link to="/features" className="btn-secondary-outline">
+              Learn More
+            </Link>
+
             <Link
               to="/signup"
               className="btn-primary"
               style={{
-                fontSize: '16px',
-                padding: '14px 28px',
-                fontFamily: 'var(--font-inter)',
                 textDecoration: 'none'
               }}
             >
-              Get Started <ArrowRight style={{ width: 15, height: 15 }} />
+              Get Started
+              <span className="btn-icon-container">
+                <ArrowUpRight style={{ width: 18, height: 18 }} />
+              </span>
             </Link>
           </motion.div>
         </div>
 
-        
-        {/* Draggable Doodles Around Hero */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, pointerEvents: 'none' }}>
-          {/* Top Left Corner */}
-          <DraggableDoodle initialX={50} initialY={50} delay={1.0}>
-            <div style={{
-              width: 60,
-              height: 60,
-              backgroundColor: '#fef3c7',
-              border: '2px dashed #f59e0b',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '24px',
-              pointerEvents: 'auto'
-            }}>
-              💡
-            </div>
-          </DraggableDoodle>
-
-          {/* Top Right Corner */}
-          <DraggableDoodle initialX={window.innerWidth - 150} initialY={80} delay={1.2}>
-            <div style={{
-              width: 80,
-              height: 80,
-              backgroundColor: '#dbeafe',
-              border: '2px solid #3b82f6',
-              borderRadius: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '32px',
-              transform: 'rotate(15deg)',
-              pointerEvents: 'auto'
-            }}>
-              📚
-            </div>
-          </DraggableDoodle>
-
-          {/* Left Side */}
-          <DraggableDoodle initialX={30} initialY={300} delay={1.4}>
-            <div style={{
-              padding: '12px 16px',
-              backgroundColor: '#f3e8ff',
-              border: '2px solid #8b5cf6',
-              borderRadius: '12px',
-              fontFamily: 'Outfit, sans-serif',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#6b21a8',
-              transform: 'rotate(-5deg)',
-              pointerEvents: 'auto'
-            }}>
-              Study Smarter! 🎯
-            </div>
-          </DraggableDoodle>
-
-          {/* Right Side */}
-          <DraggableDoodle initialX={window.innerWidth - 200} initialY={250} delay={1.6}>
-            <div style={{
-              width: 70,
-              height: 70,
-              backgroundColor: '#dcfce7',
-              border: '3px solid #22c55e',
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '28px',
-              pointerEvents: 'auto'
-            }}>
-              ✨
-            </div>
-          </DraggableDoodle>
-
-          {/* Bottom Left */}
-          <DraggableDoodle initialX={80} initialY={window.innerHeight - 200} delay={1.8}>
-            <div style={{
-              padding: '16px 20px',
-              backgroundColor: '#fff7ed',
-              border: '2px dashed #ea580c',
-              borderRadius: '20px',
-              fontFamily: 'Outfit, sans-serif',
-              fontSize: '16px',
-              fontWeight: '700',
-              color: '#c2410c',
-              transform: 'rotate(8deg)',
-              pointerEvents: 'auto'
-            }}>
-              AI-Powered 🤖
-            </div>
-          </DraggableDoodle>
-
-          {/* Bottom Right */}
-          <DraggableDoodle initialX={window.innerWidth - 180} initialY={window.innerHeight - 150} delay={2.0}>
-            <div style={{
-              width: 90,
-              height: 90,
-              backgroundColor: '#fce7f3',
-              border: '2px solid #ec4899',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '36px',
-              transform: 'rotate(-10deg)',
-              pointerEvents: 'auto'
-            }}>
-              🚀
-            </div>
-          </DraggableDoodle>
-
-          {/* Scattered Elements */}
-          <DraggableDoodle initialX={200} initialY={120} delay={2.2}>
-            <div style={{
-              width: 40,
-              height: 40,
-              backgroundColor: '#e0e7ff',
-              border: '2px solid #6366f1',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '20px',
-              pointerEvents: 'auto'
-            }}>
-              📝
-            </div>
-          </DraggableDoodle>
-
-          <DraggableDoodle initialX={window.innerWidth - 300} initialY={400} delay={2.4}>
-            <div style={{
-              padding: '8px 12px',
-              backgroundColor: '#f0fdf4',
-              border: '1px solid #86efac',
-              borderRadius: '8px',
-              fontFamily: 'Outfit, sans-serif',
-              fontSize: '12px',
-              fontWeight: '500',
-              color: '#166534',
-              pointerEvents: 'auto'
-            }}>
-              Learn Faster! ⚡
-            </div>
-          </DraggableDoodle>
-
-          <DraggableDoodle initialX={150} initialY={window.innerHeight - 300} delay={2.6}>
-            <div style={{
-              width: 50,
-              height: 50,
-              backgroundColor: '#fef2f2',
-              border: '2px dotted #ef4444',
-              borderRadius: '25px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '24px',
-              pointerEvents: 'auto'
-            }}>
-              🔥
-            </div>
-          </DraggableDoodle>
-
-          {/* Mobile: Show fewer doodles */}
-          <div className="md:hidden">
-            <DraggableDoodle initialX={20} initialY={100} delay={1.0}>
-              <div style={{
-                width: 40,
-                height: 40,
-                backgroundColor: '#fef3c7',
-                border: '2px dashed #f59e0b',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '18px',
-                pointerEvents: 'auto'
-              }}>
-                💡
-              </div>
-            </DraggableDoodle>
-
-            <DraggableDoodle initialX={window.innerWidth - 80} initialY={150} delay={1.2}>
-              <div style={{
-                width: 50,
-                height: 50,
-                backgroundColor: '#dbeafe',
-                border: '2px solid #3b82f6',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '20px',
-                pointerEvents: 'auto'
-              }}>
-                📚
-              </div>
-            </DraggableDoodle>
-
-            <DraggableDoodle initialX={30} initialY={window.innerHeight - 120} delay={1.4}>
-              <div style={{
-                padding: '8px 12px',
-                backgroundColor: '#f3e8ff',
-                border: '2px solid #8b5cf6',
-                borderRadius: '8px',
-                fontFamily: 'Outfit, sans-serif',
-                fontSize: '12px',
-                fontWeight: '600',
-                color: '#6b21a8',
-                pointerEvents: 'auto'
-              }}>
-                Study Smart! 🎯
-              </div>
-            </DraggableDoodle>
+        {/* Draggable Doodles and Floating Context Elements */}
+        <DraggableDoodle initialX={100} initialY={200} delay={1}>
+          <div style={{ background: 'white', padding: '12px', borderRadius: '16px', boxShadow: 'var(--card-shadow)', border: '1px solid #f0f0f0' }}>
+            <span style={{ fontSize: '20px' }}>📚</span>
           </div>
-        </div>
+        </DraggableDoodle>
+
+        <DraggableDoodle initialX={window.innerWidth - 200} initialY={300} delay={1.2}>
+          <div style={{ background: 'white', padding: '12px', borderRadius: '16px', boxShadow: 'var(--card-shadow)', border: '1px solid #f0f0f0' }}>
+            <span style={{ fontSize: '20px' }}>🧠</span>
+          </div>
+        </DraggableDoodle>
+
+        <DraggableDoodle initialX={200} initialY={500} delay={1.4}>
+          <div style={{ background: 'white', padding: '12px', borderRadius: '16px', boxShadow: 'var(--card-shadow)', border: '1px solid #f0f0f0' }}>
+            <span style={{ fontSize: '20px' }}>⚡</span>
+          </div>
+        </DraggableDoodle>
+
 
         <style>{`
           @keyframes pulse {
@@ -958,8 +727,11 @@ export default function LandingPage() {
             <p style={{ fontSize:17, fontWeight:500, color:'#666', maxWidth:540, fontFamily:'var(--font-inter)', lineHeight:'160%', margin:0 }}>
               <strong style={{ color:'#333', fontWeight:700 }}>There's a better way.</strong> Luter turns this chaos into a structured learning system automatically. Studying feels easier.
             </p>
-            <button className="btn-primary" style={{ flexShrink:0, padding:'14px 24px', fontSize:14 }}>
-              Start a Free Study Session <ArrowRight style={{ width:16, height:16 }} />
+            <button className="btn-primary" style={{ flexShrink:0 }}>
+              Start a Free Study Session
+              <span className="btn-icon-container">
+                <ArrowUpRight style={{ width:18, height:18 }} />
+              </span>
             </button>
           </div>
         </div>
@@ -1379,7 +1151,14 @@ export default function LandingPage() {
                       <span style={{ fontSize: 48, fontWeight: 900, lineHeight: 1 }}>{plan.priceMonthly === 0 ? '₦0' : `₦${isSemester ? plan.priceSemester.toLocaleString() : plan.priceMonthly.toLocaleString()}`}</span>
                       {plan.priceMonthly > 0 && <span style={{ fontSize: 14, fontWeight: 600, color: plan.isPopular ? 'rgba(255,255,255,0.7)' : '#aaa', marginBottom: 8 }}>/{isSemester ? 'semester' : 'mo'}</span>}
                     </div>
-                    <Link to="/signup" style={{ width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 32, ...plan.buttonStyle, transition: 'all 0.2s', textAlign: 'center', textDecoration: 'none', display: 'inline-block' }}>{plan.buttonText}</Link>
+                    <Link to="/signup" className={plan.buttonClass} style={{ width: '100%', marginBottom: 32, justifyContent: 'space-between' }}>
+                      {plan.buttonText}
+                      {plan.buttonClass === 'btn-primary' && (
+                        <span className="btn-icon-container" style={{ width: 34, height: 34, borderRadius: 8 }}>
+                          <ArrowUpRight size={14} />
+                        </span>
+                      )}
+                    </Link>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
                       {plan.features.map(f => (
                         <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>

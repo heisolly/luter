@@ -47,7 +47,6 @@ import UserUpload from './components/dashboard/UserUpload'
 import NotesRequestsAdmin from './components/dashboard/NotesRequestsAdmin'
 import StudyRequestsPage from './components/dashboard/StudyRequestsPage'
 import ExamSessionPage from './components/dashboard/ExamSessionPage'
-import NotificationsPage from './components/dashboard/NotificationsPage'
 import StudyGroupsPage from './components/dashboard/StudyGroupsPage'
 import StudyGroupDetailsPage from './components/dashboard/StudyGroupDetailsPage'
 import JoinGroupPage from './components/dashboard/JoinGroupPage'
@@ -124,7 +123,6 @@ export default function App() {
             <Route path="compete" element={<PlaygroundPage />} />
             <Route path="upload" element={<UserUpload />} />
             <Route path="requests" element={<StudyRequestsPage />} />
-            <Route path="notifications" element={<NotificationsPage />} />
             <Route path="study-groups" element={<StudyGroupsPage />} />
             <Route path="study-groups/:groupId" element={<StudyGroupDetailsPage />} />
             <Route path="trash" element={<TrashPage />} />

@@ -23,9 +23,9 @@ export default function AnalyticsPage() {
 
     const apply = (ucData, stData, sessionData) => {
       if (ucData) {
-        setCourses(ucData.map((row, i) => ({
-          code: row.course.code,
-          name: row.course.name,
+        setCourses(ucData.filter(row => row && row.course).map((row, i) => ({
+          code: row.course?.code || 'N/A',
+          name: row.course?.name || 'Unknown',
           progress: row.progress || 0,
           target: row.target_score,
           color: PALETTE[i % PALETTE.length]
@@ -41,8 +41,8 @@ export default function AnalyticsPage() {
       try {
         // If prefetch bundle exists, use it first to reduce flicker
         if (bundle?.uc && !bundle.uc.error && Array.isArray(bundle.uc.data)) {
-          const ucData = bundle.uc.data.map((row) => ({
-            course: row.course,
+          const ucData = bundle.uc.data.filter(r => r).map((row) => ({
+            course: row.courses || row.course,
             progress: row.progress,
             target_score: row.target_score,
           }))
@@ -187,7 +187,7 @@ export default function AnalyticsPage() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   {[...courses].sort((a,b) => b.progress - a.progress).map((c, i) => (
-                    <div key={c.code} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <div key={c.code || i} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                       <div style={{ width: 60, fontSize: 12, fontWeight: 900, color: '#111' }}>{c.code}</div>
                       <div style={{ flex: 1, position: 'relative' }}>
                         <div style={{ height: 10, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden', border: '1px solid #e2e8f0' }}>

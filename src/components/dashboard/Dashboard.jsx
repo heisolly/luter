@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import DashboardSidebar from './DashboardSidebar'
+import FloatingDock from './FloatingDock'
 import { Loader2, Sword, X, ArrowRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import LuterLogo from '../shared/LuterLogo'
 import './dashboard.css'
 import { DashboardPrefetchProvider } from '../../context/DashboardPrefetchContext'
+import NotificationsOverlay from './NotificationsOverlay'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -16,6 +18,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
 
   useEffect(() => {
     let hb
@@ -160,6 +163,7 @@ export default function Dashboard() {
           onNavigate={() => {
             if (isMobile) setMobileSidebarOpen(false)
           }}
+          onNotificationsClick={() => setNotificationsOpen(true)}
         />
       </div>
 
@@ -173,6 +177,8 @@ export default function Dashboard() {
         <Outlet context={{ user, isMobile, sidebarCollapsed, setSidebarCollapsed }} />
       </main>
 
+      <FloatingDock />
+      <NotificationsOverlay isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
     </div>
     </DashboardPrefetchProvider>
   )

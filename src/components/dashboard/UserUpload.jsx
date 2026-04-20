@@ -5,7 +5,8 @@ import { supabase } from '../../supabaseClient'
 import { 
   FileText, Presentation, FileArchive, SearchCode,
   Music, Video, Image as ImageIcon, Link2, Youtube,
-  FileBox, Loader2, CheckCircle2, AlertCircle, Trash2, Plus, PenTool, UploadCloud
+  FileBox, Loader2, CheckCircle2, AlertCircle, Trash2, Plus, PenTool, UploadCloud,
+  ChevronLeft
 } from 'lucide-react'
 
 export default function UserUpload() {
@@ -13,7 +14,6 @@ export default function UserUpload() {
   const navigate = useNavigate()
   const location = useLocation()
   
-  // Parse URL params: ?course_id=...&week=...
   const queryParams = new URLSearchParams(location.search)
   const preSelectedCourse = queryParams.get('course_id') || ''
   const preSelectedWeek = queryParams.get('week') ? parseInt(queryParams.get('week')) : null
@@ -23,7 +23,7 @@ export default function UserUpload() {
   const [file, setFile] = useState(null)
   const [linkInput, setLinkInput] = useState('')
   const [textNote, setTextNote] = useState('')
-  const [activeInputTab, setActiveInputTab] = useState('files') // 'files', 'links', 'notes'
+  const [activeInputTab, setActiveInputTab] = useState('files')
   const [uploading, setUploading] = useState(false)
   const [status, setStatus] = useState(null)
   
@@ -54,20 +54,15 @@ export default function UserUpload() {
 
   const navigateToCourse = () => {
     if (selectedCourse && preSelectedWeek) {
-      navigate(`/dashboard/course/${selectedCourse}?week=${preSelectedWeek}`)
+      navigate(`/dashboard/courses/${selectedCourse}?week=${preSelectedWeek}`)
     } else if (selectedCourse) {
-      navigate(`/dashboard/course/${selectedCourse}`)
+      navigate(`/dashboard/courses/${selectedCourse}`)
     } else {
-      navigate('/dashboard/workstation')
+      navigate('/dashboard/courses') // Navigate to Library/Vault
     }
   }
 
   const handleUploadSubmit = async () => {
-    if (!selectedCourse) {
-      setStatus({ type: 'error', message: 'Please select a course first.' })
-      return
-    }
-
     setUploading(true)
     setStatus(null)
 
@@ -81,196 +76,222 @@ export default function UserUpload() {
         else if (['mp4', 'webm', 'mov'].includes(ext)) type = 'video'
         else if (['mp3', 'wav', 'm4a'].includes(ext)) type = 'audio'
         else if (['jpg', 'png', 'jpeg', 'webp'].includes(ext)) type = 'image'
-        else if (ext === 'txt') type = 'pdf' // Text files handled as pdf-like documents in pipeline
 
         await uploadMaterial({
-          file, courseId: selectedCourse, userId: user.id,
+          file, courseId: selectedCourse || null, userId: user.id,
           title: file.name, type: type, week: preSelectedWeek
         })
-        setStatus({ type: 'success', message: 'File saved smoothly! Redirecting...' })
-        setTimeout(() => navigateToCourse(), 1500)
+        setStatus({ type: 'success', message: 'Resource saved to your vault.' })
+        setTimeout(() => navigateToCourse(), 1200)
       } else if (activeInputTab === 'links' && linkInput) {
         let isYoutube = linkInput.includes('youtube.com') || linkInput.includes('youtu.be')
         if (isYoutube) {
           await addYoutubeMaterial({ 
-            url: linkInput, courseId: selectedCourse, userId: user.id, week: preSelectedWeek
+            url: linkInput, courseId: selectedCourse || null, userId: user.id, week: preSelectedWeek
           })
         } else {
           await supabase.from('materials').insert({
-             course_id: selectedCourse, user_id: user.id,
+             course_id: selectedCourse || null, user_id: user.id,
              title: linkInput, type: linkInput.includes('docs.google.com') ? 'google_doc' : 'link',
              source_url: linkInput, owner_role: 'user', processing_status: 'ready', week_number: preSelectedWeek
           })
         }
-        setStatus({ type: 'success', message: 'Link added successfully! Redirecting...' })
-        setTimeout(() => navigateToCourse(), 1500)
+        setStatus({ type: 'success', message: 'Link indexed successfully.' })
+        setTimeout(() => navigateToCourse(), 1200)
       } else if (activeInputTab === 'notes' && textNote) {
         const title = textNote.split('\n')[0].substring(0, 50) || 'New Note'
         await supabase.from('user_notes').insert({
-          user_id: user.id, course_id: selectedCourse, title, content: textNote,
+          user_id: user.id, course_id: selectedCourse || null, title, content: textNote,
           week_number: preSelectedWeek, source_type: 'personal'
         })
-        setStatus({ type: 'success', message: 'Note saved to your workspace! Redirecting...' })
-        setTimeout(() => navigateToCourse(), 1500)
+        setStatus({ type: 'success', message: 'Research note saved.' })
+        setTimeout(() => navigateToCourse(), 1200)
       }
     } catch (err) {
       console.error(err)
-      setStatus({ type: 'error', message: 'Failed to save. Please try again.' })
+      setStatus({ type: 'error', message: 'Transmission failure. Try again.' })
     } finally {
       setUploading(false)
     }
   }
 
   const hasContent = (activeInputTab === 'files' && file) || 
-                   (activeInputTab === 'links' && linkInput.length > 0) ||
-                   (activeInputTab === 'notes' && textNote.length > 0)
-
-  const purpleColor = '#7a12cc'
+                    (activeInputTab === 'links' && linkInput.length > 0) ||
+                    (activeInputTab === 'notes' && textNote.length > 0)
 
   return (
-    <div style={{ maxWidth: '800px', margin: '40px auto', padding: '0 24px', fontFamily: 'Outfit, sans-serif' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
-        <div>
-          <h1 style={{ fontSize: '32px', fontWeight: 900, color: '#000', marginBottom: '8px', letterSpacing: '-0.02em' }}>
-            Add Resources
-          </h1>
-          <p style={{ color: '#64748B', fontWeight: 500 }}>
-            Upload slides, paste links, or write notes for <strong>{courses.find(c=>c.id === selectedCourse)?.code || 'your course'}</strong>.
-          </p>
+    <div className="max-w-4xl mx-auto px-8 py-12 bg-white min-h-full">
+      
+      {/* ── HEADER ── */}
+      <header className="flex items-center justify-between mb-12">
+        <div className="flex items-center gap-6">
+          <button 
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 rounded-xl border border-[#f1f1f1] flex items-center justify-center text-slate-400 hover:bg-slate-50 transition-all"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter leading-none mb-2">Ingest Material</h1>
+            <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Protocol V2.0 // Resource Management</p>
+          </div>
         </div>
-        <button
-          onClick={() => navigate(-1)}
-          style={{ padding: '12px 20px', background: '#f8fafc', color: '#000', border: 'none', borderRadius: '16px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}
-        >
-          Cancel
-        </button>
       </header>
 
-      {/* Course Selection */}
-      <div style={{ marginBottom: '32px', background: '#f8fafc', padding: '24px', borderRadius: '24px', border: '1.5px solid #f1f5f9' }}>
-        <label style={{ fontSize: '12px', fontWeight: 900, color: '#94a3b8', display: 'block', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Select Destination Course
-        </label>
-        <select 
-          value={selectedCourse} 
-          onChange={e => setSelectedCourse(e.target.value)}
-          style={{ width: '100%', padding: '16px', borderRadius: '16px', border: '2px solid #e2e8f0', outline: 'none', fontSize: '16px', fontWeight: 700, appearance: 'none', background: 'white' }}
-        >
-          <option value="">Choose a course...</option>
-          {courses.map(c => (
-            <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
-          ))}
-        </select>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        
+        {/* ── SELECTION & INPUT ── */}
+        <div className="lg:col-span-2 space-y-8">
+          
+          {/* Tabs */}
+          <div className="flex gap-2 p-1.5 bg-[#f8f9fa] border border-[#f1f1f1] rounded-2xl">
+            {[
+              { id: 'files', label: 'Files', icon: FileText },
+              { id: 'links', label: 'Links', icon: Link2 },
+              { id: 'notes', label: 'Notes', icon: PenTool },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveInputTab(tab.id)}
+                className={`flex-1 h-12 rounded-xl flex items-center justify-center gap-2.5 text-[13px] font-bold transition-all
+                  ${activeInputTab === tab.id 
+                    ? 'bg-white text-purple-600 shadow-sm border border-[#f1f1f1]' 
+                    : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <tab.icon size={16} strokeWidth={2.5} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-      {status && (
-        <div style={{ 
-          padding: '16px 24px', borderRadius: '16px', marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '12px',
-          background: status.type === 'success' ? '#F0FDF4' : '#FEF2F2',
-          color: status.type === 'success' ? '#16A34A' : '#DC2626',
-          border: `1px solid ${status.type === 'success' ? '#BBF7D0' : '#FECACA'}`, fontSize: '15px', fontWeight: 700
-        }}>
-          {status.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
-          {status.message}
-        </div>
-      )}
-
-      {/* Input Type Switcher */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-        {[
-          { id: 'files', label: 'Files', icon: FileText },
-          { id: 'links', label: 'Links', icon: Link2 },
-          { id: 'notes', label: 'Notes', icon: PenTool },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveInputTab(tab.id)}
-            style={{
-              flex: 1, padding: '16px', borderRadius: '20px', border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-              background: activeInputTab === tab.id ? purpleColor : '#f8fafc',
-              color: activeInputTab === tab.id ? 'white' : '#64748B',
-              fontWeight: 800, transition: 'all 0.2s',
-              boxShadow: activeInputTab === tab.id ? '0 10px 20px -5px rgba(122, 18, 204, 0.3)' : 'none'
-            }}
-          >
-            <tab.icon size={20} strokeWidth={2.5} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div style={{ minHeight: '300px' }}>
-        {activeInputTab === 'files' && (
-          <div 
-            onDragOver={e => e.preventDefault()}
-            onDrop={e => { e.preventDefault(); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]) }}
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '32px',
-              padding: '80px 40px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s'
-            }}
-          >
-            <input type="file" ref={fileInputRef} hidden onChange={e => e.target.files[0] && setFile(e.target.files[0])} />
-            {file ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                <div style={{ width: '64px', height: '64px', background: `${purpleColor}10`, borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: purpleColor }}><FileText size={32} /></div>
-                <div style={{ fontSize: '18px', fontWeight: 800 }}>{file.name}</div>
-                <button onClick={e => { e.stopPropagation(); setFile(null) }} style={{ color: '#ef4444', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}>Remove</button>
+          {/* Input Area */}
+          <div className="min-h-[360px]">
+            {activeInputTab === 'files' && (
+              <div 
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => { e.preventDefault(); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]) }}
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full h-[360px] border-2 border-dashed border-[#e5e7eb] rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-purple-300 hover:bg-purple-50/30 transition-all group p-8"
+              >
+                <input type="file" ref={fileInputRef} hidden onChange={e => e.target.files[0] && setFile(e.target.files[0])} />
+                {file ? (
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mb-6">
+                      <FileText size={32} strokeWidth={2.5} />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2 truncate max-w-xs">{file.name}</h3>
+                    <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-6">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                    <button onClick={e => { e.stopPropagation(); setFile(null) }} className="text-red-500 font-bold text-[13px] hover:underline">Discard and change</button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <UploadCloud size={32} strokeWidth={1.5} />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">Drop study materials</h3>
+                    <p className="text-slate-400 font-medium text-[14px]">PDF, Word, or Slide decks supported</p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div>
-                <UploadCloud size={64} color="#94a3b8" style={{ marginBottom: '24px', opacity: 0.5 }} />
-                <h3 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 900 }}>Drop your files here</h3>
-                <p style={{ color: '#64748B', fontWeight: 600 }}>PDF, PPTX, DOCX or Images supported</p>
+            )}
+
+            {activeInputTab === 'links' && (
+              <div className="bg-[#f8f9fa] border border-[#f1f1f1] rounded-2xl p-8 h-[360px] flex flex-col justify-center">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-red-100 text-red-600 rounded-xl flex items-center justify-center">
+                    <Youtube size={20} />
+                  </div>
+                  <h3 className="font-bold text-slate-900">Resource URL</h3>
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="https://..."
+                  value={linkInput} 
+                  onChange={e => setLinkInput(e.target.value)}
+                  className="w-full bg-white border border-[#e5e7eb] rounded-xl px-6 py-5 text-[15px] font-bold text-slate-800 focus:outline-none focus:border-purple-500 transition-all shadow-sm"
+                />
+                <p className="mt-6 text-[13px] text-slate-400 font-medium leading-relaxed">
+                  Luter will automatically index the content of your links for AI analysis and mock exam generation.
+                </p>
+              </div>
+            )}
+
+            {activeInputTab === 'notes' && (
+              <div className="h-[360px] flex flex-col">
+                <textarea 
+                  placeholder="Paste research data or quick lecture notes..."
+                  value={textNote} 
+                  onChange={e => setTextNote(e.target.value)}
+                  className="flex-1 w-full bg-white border border-[#e5e7eb] rounded-2xl px-8 py-8 text-[15px] font-medium leading-relaxed text-slate-800 focus:outline-none focus:border-purple-500 transition-all shadow-sm resize-none"
+                />
               </div>
             )}
           </div>
-        )}
+        </div>
 
-        {activeInputTab === 'links' && (
-          <div style={{ background: '#f8fafc', padding: '40px', borderRadius: '32px', border: '1.5px solid #f1f5f9' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-               <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: '#FF000010', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FF0000' }}><Youtube size={24} /></div>
-               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 900 }}>Paste URL</h3>
+        {/* ── SIDEBAR CONTROLS ── */}
+        <div className="space-y-6">
+          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-6">Target Archive</h4>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Contextual Course</label>
+                <select 
+                  value={selectedCourse} 
+                  onChange={e => setSelectedCourse(e.target.value)}
+                  className="w-full bg-white border border-[#e5e7eb] rounded-xl px-4 py-3.5 text-[13px] font-bold text-slate-700 focus:outline-none shadow-sm appearance-none"
+                >
+                  <option value="">Personal Archive (Standalone)</option>
+                  {courses.map(c => (
+                    <option key={c.id} value={c.id}>{c.code}</option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedCourse && (
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Week Track</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[1,2,3,4,5,6,7,8].map(w => (
+                      <button 
+                        key={w}
+                        className={`h-9 rounded-lg border text-[11px] font-black transition-all
+                          ${preSelectedWeek === w ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-[#f1f1f1] text-slate-400 hover:border-slate-300'}`}
+                      >
+                        W{w}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            <input 
-              type="text" placeholder="https://youtube.com/watch?v=..."
-              value={linkInput} onChange={e => setLinkInput(e.target.value)}
-              style={{ width: '100%', padding: '20px', borderRadius: '20px', border: '2px solid #e2e8f0', outline: 'none', fontSize: '16px', fontWeight: 700, background: 'white' }}
-            />
-            <p style={{ marginTop: '16px', fontSize: '13px', color: '#64748B', fontWeight: 600 }}>YouTube videos will be transcribed and summarized by AI.</p>
           </div>
-        )}
 
-        {activeInputTab === 'notes' && (
-          <div style={{ background: '#f8fafc', padding: '32px', borderRadius: '32px', border: '1.5px solid #f1f5f9' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: 900 }}>Quick Note</h3>
-            <textarea 
-              placeholder="Paste your research, lecture snippets or draft notes here..."
-              value={textNote} onChange={e => setTextNote(e.target.value)}
-              style={{ width: '100%', minHeight: '260px', padding: '24px', borderRadius: '24px', border: '2px solid #e2e8f0', outline: 'none', fontSize: '16px', fontWeight: 500, fontFamily: 'Outfit, sans-serif', background: 'white', resize: 'vertical' }}
-            />
-          </div>
-        )}
+          <button
+            onClick={handleUploadSubmit}
+            disabled={uploading || !hasContent}
+            className="w-full py-5 bg-purple-600 text-white rounded-2xl font-black text-[14px] uppercase tracking-widest shadow-xl shadow-purple-100 hover:bg-purple-700 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
+          >
+            {uploading ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
+            {uploading ? 'Processing...' : 'Commit to Vault'}
+          </button>
+
+          {status && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`p-5 rounded-2xl flex items-center gap-3 border
+                ${status.type === 'success' ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-700'}`}
+            >
+              {status.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+              <span className="text-[13px] font-bold">{status.message}</span>
+            </motion.div>
+          )}
+        </div>
+
       </div>
 
-      <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'center' }}>
-        <button
-          onClick={handleUploadSubmit}
-          disabled={uploading || !hasContent || !selectedCourse}
-          style={{
-            background: purpleColor, color: 'white', padding: '20px 60px', borderRadius: '24px',
-            fontSize: '18px', fontWeight: 900, border: 'none', cursor: 'pointer',
-            opacity: (uploading || !hasContent || !selectedCourse) ? 0.6 : 1,
-            boxShadow: '0 15px 30px -5px rgba(122, 18, 204, 0.4)',
-            display: 'flex', alignItems: 'center', gap: '12px', transition: 'all 0.2s'
-          }}
-        >
-          {uploading ? <Loader2 className="animate-spin" size={24} /> : null}
-          {uploading ? 'SAVING...' : 'ADD TO MY VAULT'}
-        </button>
-      </div>
     </div>
   )
 }

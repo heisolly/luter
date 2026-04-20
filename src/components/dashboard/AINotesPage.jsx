@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { Brain, Plus, Loader2, Download, Share2, FileText, ChevronRight, Sparkles } from 'lucide-react'
+import { 
+  Brain, Plus, Loader2, Download, Share2, FileText, 
+  ChevronRight, Sparkles, CheckCircle 
+} from 'lucide-react'
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
 import { fetchUserNotes, saveToVault } from '../../services/materialsService'
+import { useDeckStore } from '../../store/useDeckStore'
 import ReactMarkdown from 'react-markdown'
 import LuterLogo from '../shared/LuterLogo'
 
@@ -84,9 +88,14 @@ export default function AINotesPage() {
   }
 
   const handleNoteClick = (note) => {
+    setSelectedMaterial(note) // Temporarily use this for the deck ID match
     setNotes(note.content)
     setViewMode('view')
   }
+
+  const { addToDeck, activeDeckItems } = useDeckStore()
+  const currentNoteId = savedAiNotes.find(n => n.content === notes)?.id
+  const isAdded = activeDeckItems.some(i => i.content_id === currentNoteId)
 
   return (
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'Outfit' }}>
@@ -187,7 +196,39 @@ export default function AINotesPage() {
                 <button onClick={() => setViewMode('list')} style={{ color: '#7a12cc', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <ChevronRight size={14} style={{ transform: 'rotate(180deg)' }} /> Back to list
                 </button>
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <button 
+                    onClick={() => {
+                      if (!currentNoteId) return;
+                      const noteObj = savedAiNotes.find(n => n.id === currentNoteId);
+                      addToDeck({
+                        content_id: currentNoteId,
+                        content_type: 'ai_note',
+                        metadata: {
+                          title: noteObj?.title || 'AI Note',
+                          icon: 'brain'
+                        }
+                      })
+                    }}
+                    disabled={isAdded || !currentNoteId}
+                    style={{ 
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      background: isAdded ? 'var(--accent-gold)' : '#F1F5F9',
+                      color: isAdded ? 'white' : '#7a12cc',
+                      fontSize: '13px', 
+                      fontWeight: 700, 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px',
+                      border: 'none',
+                      cursor: isAdded ? 'default' : 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {isAdded ? <CheckCircle size={16} /> : <Plus size={16} />}
+                    {isAdded ? 'Added to Deck' : 'Add to Deck'}
+                  </button>
                   <button style={{ color: '#7a12cc', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}><Download size={14} /> PDF</button>
                   <button style={{ color: '#7a12cc', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}><Share2 size={14} /> Share</button>
                 </div>

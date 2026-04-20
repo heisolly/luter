@@ -11,7 +11,7 @@
 .course-full-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--tt-radius-lg);
   overflow: hidden;
   transition: all 0.2s var(--ease);
   display: flex;
@@ -69,7 +69,7 @@
   color: var(--muted);
   padding: 4px;
   margin: -4px;
-  border-radius: 8px;
+  border-radius: var(--tt-radius-sm);
   transition: all 0.2s;
 }
 
@@ -130,7 +130,7 @@
 
 .course-add-card {
   border: 2px dashed var(--border);
-  border-radius: 16px;
+  border-radius: var(--tt-radius-lg);
   cursor: pointer;
   transition: all 0.2s var(--ease);
   background: transparent;
@@ -149,18 +149,18 @@
 :root {
   --dsb-w: 260px;
   --dsb-w-col: 80px;
-  --primary: #7a12cc; 
-  --primary-light: #9718fb;
-  --primary-bg: #f5f3ff;
-  --primary-glow: rgba(122,18,204,0.15);
-  --border: #e5e7eb;
-  --bg: #fafafa;
+  --primary: var(--tt-brand-color-600);
+  --primary-light: var(--tt-brand-color-500);
+  --primary-bg: var(--tt-brand-color-50);
+  --primary-glow: rgba(98, 41, 255, 0.12);
+  --border: var(--tt-gray-light-a-200);
+  --bg: #ffffff;
   --card: #ffffff;
-  --text: #111111;
+  --text: #0a0a0a;
   --muted: #6b7280;
   --font: 'Outfit', sans-serif;
-  --ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --card-shadow: 0 10px 30px -10px rgba(0,0,0,0.06);
+  --ease: cubic-bezier(0.46, 0.03, 0.52, 0.96);
+  --card-shadow: 0px 1px 2px 0px rgba(17, 24, 39, .05), 0px 4px 12px 0px rgba(17, 24, 39, .04);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -233,7 +233,7 @@ input { font-family: var(--font); }
   width: 32px;
   height: 32px;
   background: linear-gradient(135deg, var(--primary), var(--primary));
-  border-radius: 9px;
+  border-radius: var(--tt-radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -375,7 +375,7 @@ input { font-family: var(--font); }
   padding: 16px 20px;
   background: transparent;
   color: #666;
-  border-radius: 999px; 
+  border-radius: var(--tt-radius-md); 
   font-family: var(--font-nav);
   font-size: 15px;
   font-weight: 500;
@@ -410,7 +410,7 @@ input { font-family: var(--font); }
   justify-content: flex-start;
   gap: 14px; /* Increased gap */
   padding: 12px 20px; /* Increased padding for better spacing */
-  border-radius: 14px; /* More rounded */
+  border-radius: var(--tt-radius-md);
   color: #111;
   font-size: 14px;
   font-weight: 700;
@@ -535,7 +535,7 @@ input { font-family: var(--font); }
   font-size: 13px;
   font-weight: 600;
   color: #52525b;
-  border-radius: 8px;
+  border-radius: var(--tt-radius-sm);
   transition: all 0.2s;
   text-align: left;
 }
@@ -575,14 +575,16 @@ input { font-family: var(--font); }
   width: 20px;
   height: 20px;
   stroke: currentColor;
-  stroke-width: 2.8px; /* Optimized weight for clarity */
+  stroke-width: 3.5px; /* Super thick for "Power Icon" look */
   stroke-linecap: round;
   stroke-linejoin: round;
-  transition: stroke-width 0.2s;
+  transition: all 0.2s var(--ease);
+  filter: drop-shadow(0px 0px 0.5px rgba(0,0,0,0.1)); /* Subtle sharpening */
 }
 
 .dsb-nav-item--active svg {
-  stroke-width: 3.2px; /* Differentiates the active state */
+  stroke-width: 4px; /* Extra weight for active state */
+  filter: drop-shadow(0px 0px 1px rgba(151, 24, 251, 0.2)); /* Purple glow for active */
 }
 
 .dsb-nav-badge {
@@ -634,7 +636,7 @@ input { font-family: var(--font); }
   gap: 8px;
   width: 100%;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--tt-radius-sm);
   font-size: 12.5px;
   font-weight: 500;
   color: #555;
@@ -727,7 +729,7 @@ input { font-family: var(--font); }
   margin: 12px 16px 4px;
   padding: 10px 12px;
   background: #f8fafc;
-  border-radius: 16px;
+  border-radius: var(--tt-radius-lg);
   border: 1px solid #f1f5f9;
   transition: all 0.2s;
 }
@@ -740,7 +742,7 @@ input { font-family: var(--font); }
 .dsb-avatar-sm {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--tt-radius-sm);
   background: var(--primary);
   color: white;
   display: flex;
@@ -1167,7 +1169,7 @@ input { font-family: var(--font); }
 /* Exam Countdown */
 .dh-exam-card {
   background: linear-gradient(135deg, #1a0a2e, #0d1a3a);
-  border-radius: 16px;
+  border-radius: var(--tt-radius-lg);
   padding: 18px;
   color: white;
   position: relative;
@@ -1197,7 +1199,7 @@ input { font-family: var(--font); }
   font-weight: 800;
   color: white;
   background: rgba(255,255,255,0.08);
-  border-radius: 8px;
+  border-radius: var(--tt-radius-sm);
   padding: 6px 0;
   display: block;
   letter-spacing: -0.02em;
@@ -1647,7 +1649,7 @@ input { font-family: var(--font); }
 .cw-folder-icon-wrap {
   width: 30px;
   height: 30px;
-  border-radius: 8px;
+  border-radius: var(--tt-radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1688,7 +1690,7 @@ input { font-family: var(--font); }
   width: 32px;
   height: 32px;
   background: var(--primary-bg);
-  border-radius: 8px;
+  border-radius: var(--tt-radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1718,7 +1720,7 @@ input { font-family: var(--font); }
   font-weight: 600;
   color: var(--fc, var(--primary));
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--tt-radius-sm);
   border: none;
   background: none;
   cursor: pointer;
@@ -1734,7 +1736,7 @@ input { font-family: var(--font); }
   gap: 10px;
   padding: 28px;
   border: 1.5px dashed var(--border);
-  border-radius: 16px;
+  border-radius: var(--tt-radius-lg);
   text-align: center;
   color: var(--muted);
   background: rgba(151,24,251,0.02);
@@ -1749,7 +1751,7 @@ input { font-family: var(--font); }
   padding: 9px 18px;
   background: var(--primary-bg);
   color: var(--primary);
-  border-radius: 8px;
+  border-radius: var(--tt-radius-sm);
   font-size: 13px;
   font-weight: 600;
   border: none;
@@ -1797,7 +1799,7 @@ input { font-family: var(--font); }
   width: 56px;
   height: 56px;
   background: var(--primary-bg);
-  border-radius: 16px;
+  border-radius: var(--tt-radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1927,7 +1929,7 @@ input { font-family: var(--font); }
 .cw-sol-close {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--tt-radius-sm);
   background: #f4f4f5;
   border: none;
   cursor: pointer;
@@ -2179,7 +2181,7 @@ input { font-family: var(--font); }
   width: 100%;
   background: #fafafa;
   border: 1.5px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--tt-radius-lg);
   padding: 16px 20px;
 }
 .cw-quiz-rule {
@@ -2260,7 +2262,7 @@ input { font-family: var(--font); }
   background: linear-gradient(135deg, #f59e0b, #fbbf24);
   color: white;
   padding: 4px 10px;
-  border-radius: 8px;
+  border-radius: var(--tt-radius-sm);
   flex-shrink: 0;
   box-shadow: 0 4px 12px rgba(245,158,11,0.4);
 }
@@ -2323,7 +2325,7 @@ input { font-family: var(--font); }
 .cw-quiz-opt-letter {
   width: 30px;
   height: 30px;
-  border-radius: 8px;
+  border-radius: var(--tt-radius-sm);
   background: #f4f4f8;
   display: flex;
   align-items: center;
@@ -2613,7 +2615,40 @@ input { font-family: var(--font); }
 
 
 /* ==============================================
-   DARK DASHBOARD HOME  (dhd-*)
-   Background: #080808  Accent: #10B981 (Emerald)
+   PRODUCTION UTILITIES & CUSTOM OVERLAYS
    ============================================== */
 
+/* Premium Scrollbar for Studio Components */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.08);
+  border-radius: 20px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(98, 41, 255, 0.15);
+  border-radius: 20px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* Specific Notification Overlay Tweaks */
+.notifications-glow {
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(98, 41, 255, 0.05) 0%, transparent 70%);
+  z-index: 0;
+  pointer-events: none;
+}

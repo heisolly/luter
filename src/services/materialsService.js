@@ -27,7 +27,9 @@ export async function uploadMaterial({
   sharingScope = 'course' 
 }) {
   const ext = file.name.split('.').pop()
-  const path = `${userId}/${courseId}/${Date.now()}.${ext}`
+  const path = courseId 
+    ? `${userId}/${courseId}/${Date.now()}.${ext}`
+    : `${userId}/standalone/${Date.now()}.${ext}`
 
   const { error: storageErr } = await supabase.storage
     .from('materials')
@@ -36,15 +38,15 @@ export async function uploadMaterial({
 
   const { data: urlData } = supabase.storage.from('materials').getPublicUrl(path)
 
-  // Auto-detect program if not provided
+  // Auto-detect program if not provided and course exists
   let finalProgramId = programId
   
-  if (!finalProgramId) {
+  if (!finalProgramId && courseId) {
     const { data: courseData } = await supabase
       .from('courses')
       .select('program_id')
       .eq('id', courseId)
-      .single()
+      .maybeSingle()
     
     if (courseData) {
       finalProgramId = courseData.program_id
@@ -54,7 +56,7 @@ export async function uploadMaterial({
   const { data, error } = await supabase
     .from('materials')
     .insert({
-      course_id: courseId,
+      course_id: courseId || null,
       user_id: userId,
       title: title || file.name,
       type,
@@ -81,7 +83,7 @@ export async function uploadMaterial({
     file,
     type,
     url: null,
-    metadata: { materialId: data.id, courseId, userId, title: title || file.name }
+    metadata: { materialId: data.id, courseId: courseId || null, userId, title: title || file.name }
   }).catch(err => console.error('[LangChain] Ingestion error after upload:', err))
 
   // Create share records based on sharing scope
@@ -182,7 +184,7 @@ export async function addYoutubeMaterial({ url, title, courseId, userId }) {
   const { data, error } = await supabase
     .from('materials')
     .insert({
-      course_id: courseId,
+      course_id: courseId || null,
       user_id: userId,
       title: title || url,
       type: 'youtube',
@@ -199,7 +201,7 @@ export async function addYoutubeMaterial({ url, title, courseId, userId }) {
     file: null,
     type: 'youtube',
     url: url,
-    metadata: { materialId: data.id, courseId, userId, title: title || url }
+    metadata: { materialId: data.id, courseId: courseId || null, userId, title: title || url }
   }).catch(err => console.error('[LangChain] YouTube ingestion error:', err))
 
   return data

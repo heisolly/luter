@@ -1305,7 +1305,9 @@ Please explain where I went wrong and why the correct answer is the right choice
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                           <div style={{ width: 40, height: 40, borderRadius: 12, background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <span style={{ fontSize: 14, fontWeight: 900, color: '#111' }}>{c.code.slice(0, 3)}</span>
+                            <span style={{ fontSize: 14, fontWeight: 900, color: '#111' }}>
+                              {(c.code || '??').slice(0, 3)}
+                            </span>
                           </div>
                           {isSelected && <CheckCircle2 size={24} color="#111" />}
                         </div>
@@ -1324,8 +1326,8 @@ Please explain where I went wrong and why the correct answer is the right choice
                       <h3 style={{ fontSize: 14, fontWeight: 800, color: '#64748b', margin: 0, textTransform: 'lowercase' }}>recent sessions</h3>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {pastSessions.map((session) => (
-                        <motion.div key={session.id} whileHover={{ x: 4 }} onClick={() => navigate(`/dashboard/exam-session/${session.id}`)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderRadius: 16, border: '1.5px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s', background: 'white' }}>
+                      {pastSessions.map((session, idx) => (
+                        <motion.div key={session.id || `session-${idx}`} whileHover={{ x: 4 }} onClick={() => navigate(`/dashboard/exam-session/${session.id}`)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderRadius: 16, border: '1.5px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s', background: 'white' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                             <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a12cc' }}>
                               <BookOpen size={20} />

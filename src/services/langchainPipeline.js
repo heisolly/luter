@@ -380,15 +380,20 @@ export async function ingestMaterial({ file, type, url, metadata }) {
  */
 async function retrieveRelevantChunks(question, courseId, materialId, limit = 8) {
   try {
-    // Build query — filter by course/material, order by most recent
+    // Build query — filter by course/material/deck, order by most recent
     let query = supabase
       .from('study_vault')
       .select('content, metadata')
       .order('created_at', { ascending: false })
       .limit(limit * 4) // Fetch more than we need, then score
 
-    if (materialId) query = query.eq('material_id', materialId)
-    else if (courseId) query = query.eq('course_id', courseId)
+    if (Array.isArray(materialId)) {
+      query = query.in('material_id', materialId)
+    } else if (materialId) {
+      query = query.eq('material_id', materialId)
+    } else if (courseId) {
+      query = query.eq('course_id', courseId)
+    }
 
     const { data, error } = await query
     if (error || !data?.length) return []

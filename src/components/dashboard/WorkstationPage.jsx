@@ -23,6 +23,7 @@ import { saveToVault, fetchUserNotes, deleteUserNote } from '../../services/mate
 import { queryStudyMaterials, reprocessMaterial } from '../../services/langchainPipeline'
 import { pollMaterialUntilReady } from '../../services/materialsService'
 import { MaterialAnalysisService } from '../../services/materialAnalysisService'
+import { useDeckStore } from '../../store/useDeckStore'
 import { debounce } from '../../utils/debounce'
 import './workstation.css'
 
@@ -65,6 +66,9 @@ function WorkstationContent() {
   const [userJottings, setUserJottings] = useState("")
   const [jottingNoteId, setJottingNoteId] = useState(null)
   const messagesEndRef = useRef(null)
+  
+  // Deck Store integration
+  const { activeDeckItems } = useDeckStore()
 
   // Use the context from useOutletContext to handle sidebar
   const { sidebarCollapsed, setSidebarCollapsed } = context
@@ -171,8 +175,37 @@ function WorkstationContent() {
       fetchCourseInfo()
       fetchMaterials()
       checkAssignments()
+    } else if (activeDeckItems.length > 0) {
+      // Load materials from deck if no courseId is provided
+      loadDeckMaterials()
     }
-  }, [courseId])
+  }, [courseId, activeDeckItems.length])
+
+  async function loadDeckMaterials() {
+    setLoading(true)
+    try {
+      const materialIds = activeDeckItems
+        .filter(item => item.content_type !== 'assignment' && item.content_type !== 'ai_note')
+        .map(item => item.content_id)
+      
+      const { data, error } = await supabase
+        .from('materials')
+        .select('*')
+        .in('id', materialIds)
+      
+      if (data) {
+        setCourseMaterials(data)
+        const initialMaterial = materialIdParam 
+          ? data.find(m => m.id === materialIdParam) || data[0]
+          : data[0]
+        setSelectedMaterial(initialMaterial)
+      }
+    } catch (err) {
+      console.error('Error loading deck materials:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   async function fetchCourseInfo() {
     try {
@@ -472,7 +505,15 @@ function WorkstationContent() {
     setChatInput('')
     setIsProcessingLoading(true)
     try {
-      const aiResponse = await queryStudyMaterials({ question: textToSend, courseId, materialId: selectedMaterial?.id, fallbackContext: selectedMaterial?.extracted_text?.slice(0, 8000) || '' })
+      // Determine retrieval context: Specific material, or the whole deck?
+      const materialContext = selectedMaterial?.id || activeDeckItems.map(i => i.content_id)
+      
+      const aiResponse = await queryStudyMaterials({ 
+        question: textToSend, 
+        courseId, 
+        materialId: materialContext, 
+        fallbackContext: selectedMaterial?.extracted_text?.slice(0, 8000) || '' 
+      })
       setMessages(prev => [...prev, { role: 'ai', content: aiResponse }])
     } catch (err) {
       setMessages(prev => [...prev, { role: 'ai', content: 'Luter encountered an error.' }])
