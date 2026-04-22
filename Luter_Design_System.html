@@ -1,0 +1,1780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luter Design System - The Complete Brand Guide</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Varela+Round&family=Besley:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- DESIGN SYSTEM TOKENS (CSS Variables) --- */
+        :root {
+            /* 1. Luter Brand Colors */
+            --color-primary-500: #9718fb;
+            --color-primary-600: #8b5cf6;
+            --color-primary-700: #7c3aed;
+            --color-primary-800: #6d28d9;
+            --color-primary-900: #5b21b6;
+            --color-primary-bg: #F3E8FF;
+            --color-primary-bg-light: #FAF5FF;
+
+            /* 2. Extended Purple Palette */
+            --color-purple-100: #F3E8FF;
+            --color-purple-200: #E9D5FF;
+            --color-purple-300: #D8B4FE;
+            --color-purple-400: #C084FC;
+            --color-purple-500: #A855F7;
+            --color-purple-600: #9333EA;
+            --color-purple-700: #7C3AED;
+            --color-purple-800: #6B21A8;
+            --color-purple-900: #581C87;
+
+            /* 3. Neutral Colors */
+            --color-black: #000000;
+            --color-dark: #111111;
+            --color-neutral-900: #1f2937;
+            --color-neutral-800: #374151;
+            --color-neutral-700: #4b5563;
+            --color-neutral-600: #6b7280;
+            --color-neutral-500: #9ca3af;
+            --color-neutral-400: #d1d5db;
+            --color-neutral-300: #e5e7eb;
+            --color-neutral-200: #f3f4f6;
+            --color-neutral-100: #f9fafb;
+            --color-white: #FFFFFF;
+
+            /* 4. Semantic Colors */
+            --color-success: #22C55E;
+            --color-success-bg: #DCFCE7;
+            --color-warning: #F59E0B;
+            --color-warning-bg: #FEF3C7;
+            --color-error: #EF4444;
+            --color-error-bg: #FEE2E2;
+            --color-info: #3B82F6;
+            --color-info-bg: #DBEAFE;
+
+            /* 5. Mascot Colors */
+            --color-ghost: #FF7597;
+            --color-cat: #4FB0FF;
+            --color-dog: #00D084;
+            --color-bird: #9718fb;
+            --color-rabbit: #FFAB2D;
+            --color-turtle: #111111;
+            --color-smile: #A855F7;
+
+            /* 6. Typography System */
+            --font-primary: 'Outfit', sans-serif;
+            --font-secondary: 'Varela Round', sans-serif;
+            --font-accent: 'Besley', serif;
+            --font-ui: 'Inter', sans-serif;
+
+            /* 7. Spacing System (8px base) */
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 20px;
+            --space-6: 24px;
+            --space-7: 28px;
+            --space-8: 32px;
+            --space-10: 40px;
+            --space-12: 48px;
+            --space-16: 64px;
+            --space-20: 80px;
+
+            /* 8. Radii */
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --radius-2xl: 20px;
+            --radius-3xl: 24px;
+            --radius-full: 9999px;
+
+            /* 9. Shadows */
+            --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            --shadow-primary: 0 10px 30px rgba(151, 24, 251, 0.3);
+
+            /* 10. Transitions */
+            --transition-fast: 150ms ease-in-out;
+            --transition-base: 250ms ease-in-out;
+            --transition-slow: 350ms ease-in-out;
+        }
+
+        /* --- BASE STYLES --- */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: linear-gradient(135deg, #faf8ff 0%, #f3e8ff 100%);
+            color: var(--color-neutral-900);
+            font-family: var(--font-secondary);
+            font-size: 16px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Layout Grid */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--space-8) var(--space-6);
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-6) 0;
+            margin-bottom: var(--space-12);
+            background: var(--color-white);
+            border-radius: var(--radius-2xl);
+            box-shadow: var(--shadow-lg);
+            position: sticky;
+            top: 20px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .logo-block {
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700));
+            color: var(--color-white);
+            border-radius: var(--radius-xl);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-family: var(--font-primary);
+            font-size: 20px;
+            box-shadow: var(--shadow-primary);
+        }
+
+        .logo-text {
+            font-family: var(--font-primary);
+            font-weight: 700;
+            font-size: 28px;
+            color: var(--color-neutral-900);
+            letter-spacing: -0.02em;
+        }
+
+        .version-badge {
+            background: var(--color-primary-bg);
+            color: var(--color-primary-700);
+            padding: var(--space-2) var(--space-4);
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 700;
+            font-family: var(--font-ui);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Section Styling */
+        .ds-section {
+            background: var(--color-white);
+            border-radius: var(--radius-2xl);
+            padding: var(--space-10);
+            margin-bottom: var(--space-10);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--color-neutral-200);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ds-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-primary-500), var(--color-purple-400), var(--color-primary-600));
+        }
+
+        .section-header {
+            font-family: var(--font-primary);
+            font-weight: 700;
+            font-size: 24px;
+            color: var(--color-neutral-900);
+            margin-top: 0;
+            margin-bottom: var(--space-8);
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        .section-number {
+            width: 36px;
+            height: 36px;
+            background: var(--color-primary-500);
+            color: var(--color-white);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        /* --- 1. BRAND IDENTITY --- */
+        .brand-showcase {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-10);
+            align-items: center;
+        }
+
+        .brand-logo-display {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-6);
+        }
+
+        .logo-large {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700));
+            color: var(--color-white);
+            border-radius: var(--radius-2xl);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-family: var(--font-primary);
+            font-size: 48px;
+            box-shadow: var(--shadow-2xl);
+            position: relative;
+        }
+
+        .logo-large::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(45deg, var(--color-primary-500), var(--color-purple-400), var(--color-primary-600));
+            border-radius: var(--radius-2xl);
+            z-index: -1;
+            opacity: 0.3;
+            filter: blur(8px);
+        }
+
+        .brand-description {
+            font-family: var(--font-ui);
+            line-height: 1.8;
+            color: var(--color-neutral-700);
+        }
+
+        /* --- 2. MASCOTS SHOWCASE --- */
+        .mascots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-6);
+        }
+
+        .mascot-card {
+            background: var(--color-white);
+            border: 2px solid var(--color-neutral-200);
+            border-radius: var(--radius-xl);
+            padding: var(--space-6);
+            text-align: center;
+            transition: all var(--transition-base);
+            cursor: pointer;
+        }
+
+        .mascot-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--color-primary-300);
+        }
+
+        .mascot-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: var(--radius-xl);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto var(--space-4);
+            font-size: 32px;
+            color: var(--color-white);
+            font-weight: bold;
+        }
+
+        .mascot-name {
+            font-family: var(--font-primary);
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--color-neutral-900);
+            margin-bottom: var(--space-2);
+        }
+
+        .mascot-color {
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--color-neutral-600);
+            background: var(--color-neutral-100);
+            padding: var(--space-1) var(--space-2);
+            border-radius: var(--radius-sm);
+        }
+
+        /* --- 3. TYPOGRAPHY SHOWCASE --- */
+        .font-block {
+            margin-bottom: var(--space-8);
+        }
+
+        .font-name {
+            font-weight: 700;
+            margin-bottom: var(--space-4);
+            font-size: 18px;
+            color: var(--color-primary-700);
+            font-family: var(--font-primary);
+        }
+
+        .font-usage {
+            font-size: 14px;
+            color: var(--color-neutral-600);
+            margin-bottom: var(--space-4);
+            font-style: italic;
+        }
+
+        /* Typography Samples */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-primary);
+            margin-top: 0;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        h1 { font-size: 48px; margin-bottom: var(--space-4); }
+        h2 { font-size: 36px; margin-bottom: var(--space-3); }
+        h3 { font-size: 30px; margin-bottom: var(--space-3); }
+        h4 { font-size: 24px; margin-bottom: var(--space-2); }
+        h5 { font-size: 20px; margin-bottom: var(--space-2); }
+        h6 { font-size: 16px; margin-bottom: var(--space-2); }
+
+        .display-text {
+            font-family: var(--font-primary);
+            font-size: 64px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: var(--space-4);
+            background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .body-large { font-size: 18px; margin-bottom: var(--space-4); line-height: 1.7; }
+        .body-default { font-size: 16px; margin-bottom: var(--space-4); line-height: 1.6; }
+        .body-small { font-size: 14px; margin-bottom: var(--space-3); line-height: 1.5; }
+        .caption { font-size: 12px; color: var(--color-neutral-600); line-height: 1.4; }
+
+        /* --- 4. COLOR PALETTE SHOWCASE --- */
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: var(--space-5);
+        }
+
+        .color-group {
+            margin-bottom: var(--space-8);
+        }
+
+        .group-name {
+            font-family: var(--font-primary);
+            font-weight: 600;
+            color: var(--color-neutral-700);
+            margin-bottom: var(--space-4);
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.1em;
+        }
+
+        .color-swatch {
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-neutral-200);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            transition: all var(--transition-base);
+            cursor: pointer;
+        }
+
+        .color-swatch:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .color-block {
+            height: 100px;
+            width: 100%;
+            position: relative;
+        }
+
+        .color-info {
+            padding: var(--space-4);
+            background: var(--color-white);
+        }
+
+        .color-token-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: var(--space-1);
+            font-family: var(--font-ui);
+        }
+
+        .color-hex {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 12px;
+            color: var(--color-neutral-600);
+            background: var(--color-neutral-100);
+            padding: var(--space-1) var(--space-2);
+            border-radius: var(--radius-sm);
+            display: inline-block;
+        }
+
+        .copy-indicator {
+            position: absolute;
+            top: var(--space-2);
+            right: var(--space-2);
+            background: var(--color-black);
+            color: var(--color-white);
+            padding: var(--space-1) var(--space-2);
+            border-radius: var(--radius-sm);
+            font-size: 10px;
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+            pointer-events: none;
+        }
+
+        .color-swatch.copied .copy-indicator {
+            opacity: 1;
+        }
+
+        /* --- 5. COMPONENTS SHOWCASE --- */
+        .component-showcase {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: var(--space-8);
+        }
+
+        .component-block {
+            margin-bottom: var(--space-6);
+        }
+
+        .component-label {
+            font-weight: 600;
+            color: var(--color-neutral-700);
+            margin-bottom: var(--space-4);
+            font-size: 14px;
+            font-family: var(--font-ui);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-3) var(--space-6);
+            font-family: var(--font-secondary);
+            font-weight: 600;
+            font-size: 14px;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            border: 2px solid transparent;
+            text-decoration: none;
+            line-height: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(151, 24, 251, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600));
+            color: var(--color-white);
+            box-shadow: var(--shadow-primary);
+        }
+        .btn-primary:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(151, 24, 251, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--color-white);
+            color: var(--color-primary-600);
+            border-color: var(--color-primary-500);
+        }
+        .btn-secondary:hover { 
+            background: var(--color-primary-bg);
+            transform: translateY(-1px);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--color-primary-600);
+        }
+        .btn-ghost:hover { 
+            background: var(--color-primary-bg);
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Inputs */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-4);
+        }
+
+        input[type="text"], 
+        input[type="email"],
+        textarea,
+        select {
+            width: 100%;
+            padding: var(--space-3) var(--space-4);
+            font-family: var(--font-ui);
+            font-size: 14px;
+            border-radius: var(--radius-lg);
+            border: 2px solid var(--color-neutral-300);
+            background: var(--color-white);
+            color: var(--color-neutral-900);
+            transition: all var(--transition-base);
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--color-primary-500);
+            box-shadow: 0 0 0 3px rgba(151, 24, 251, 0.1);
+        }
+
+        .input-error {
+            border-color: var(--color-error) !important;
+        }
+
+        .error-message {
+            font-size: 12px;
+            color: var(--color-error);
+            margin-top: var(--space-1);
+        }
+
+        /* Cards */
+        .card-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--space-6);
+        }
+
+        .ds-card {
+            background: var(--color-white);
+            border-radius: var(--radius-xl);
+            padding: var(--space-6);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-neutral-200);
+            transition: all var(--transition-base);
+        }
+
+        .ds-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--color-primary-300);
+        }
+
+        .widget-title {
+            font-family: var(--font-primary);
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--color-neutral-600);
+            margin-bottom: var(--space-2);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .widget-value {
+            font-family: var(--font-primary);
+            font-weight: 700;
+            font-size: 32px;
+            color: var(--color-neutral-900);
+            line-height: 1.1;
+            margin-bottom: var(--space-2);
+        }
+
+        .widget-meta {
+            font-size: 14px;
+            color: var(--color-neutral-600);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: var(--space-1) var(--space-3);
+            border-radius: var(--radius-full);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            line-height: 1;
+            margin-top: var(--space-3);
+        }
+
+        .badge-success { background: var(--color-success-bg); color: #166534; }
+        .badge-warning { background: var(--color-warning-bg); color: #92400E; }
+        .badge-error { background: var(--color-error-bg); color: #991B1B; }
+        .badge-info { background: var(--color-info-bg); color: #1E40AF; }
+        .badge-primary { background: var(--color-primary-bg); color: var(--color-primary-700); }
+
+        /* Download Button Styles */
+        .download-btn {
+            position: absolute;
+            top: var(--space-3);
+            right: var(--space-3);
+            background: var(--color-black);
+            color: var(--color-white);
+            border: none;
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity var(--transition-base);
+            font-family: var(--font-ui);
+            font-weight: 600;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+
+        .download-btn:hover {
+            background: var(--color-primary-600);
+            transform: scale(1.05);
+        }
+
+        .download-btn.downloaded {
+            background: var(--color-success);
+        }
+
+        .mascot-card:hover .download-btn,
+        .brand-logo-display:hover .download-btn,
+        .color-swatch:hover .download-btn,
+        .code-block:hover .download-btn {
+            opacity: 1;
+        }
+
+        /* Enhanced Logo Display */
+        .logo-downloads {
+            display: flex;
+            gap: var(--space-3);
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: var(--space-4);
+        }
+
+        .download-format-btn {
+            background: var(--color-white);
+            border: 2px solid var(--color-primary-300);
+            color: var(--color-primary-700);
+            padding: var(--space-2) var(--space-4);
+            border-radius: var(--radius-lg);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            font-family: var(--font-ui);
+        }
+
+        .download-format-btn:hover {
+            background: var(--color-primary-bg);
+            border-color: var(--color-primary-500);
+            transform: translateY(-1px);
+        }
+
+        /* Mascot Download Section */
+        .mascot-download-section {
+            background: var(--color-primary-bg);
+            border-radius: var(--radius-xl);
+            padding: var(--space-6);
+            margin-top: var(--space-8);
+            text-align: center;
+        }
+
+        .download-all-btn {
+            background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600));
+            color: var(--color-white);
+            border: none;
+            padding: var(--space-4) var(--space-8);
+            border-radius: var(--radius-xl);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            font-family: var(--font-primary);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .download-all-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(151, 24, 251, 0.4);
+        }
+
+        /* Asset Preview */
+        .asset-preview {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto var(--space-4);
+            border-radius: var(--radius-xl);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            background: var(--color-white);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Code Blocks */
+        .code-block {
+            background: var(--color-dark);
+            color: var(--color-white);
+            padding: var(--space-5);
+            border-radius: var(--radius-lg);
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            position: relative;
+            overflow-x: auto;
+            margin: var(--space-4) 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: var(--space-4);
+            }
+            
+            .brand-showcase {
+                grid-template-columns: 1fr;
+            }
+            
+            .component-showcase {
+                grid-template-columns: 1fr;
+            }
+            
+            .display-text {
+                font-size: 48px;
+            }
+            
+            h1 { font-size: 36px; }
+            h2 { font-size: 28px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="logo-block">
+            <img src="/logo.png" alt="Luter Logo" style="width: 48px; height: 48px; border-radius: 12px; box-shadow: 0 10px 30px rgba(151, 24, 251, 0.3);" />
+            <div class="logo-text">Luter</div>
+        </div>
+        <div class="version-badge">Design System v2.0</div>
+    </header>
+
+    <!-- BRAND IDENTITY -->
+    <section id="brand" class="ds-section">
+        <h2 class="section-header">
+            <div class="section-number">1</div>
+            Brand Identity & Logo Assets
+        </h2>
+        
+        <div class="brand-showcase">
+            <div class="brand-logo-display" style="position: relative;">
+                <img src="/logo.png" alt="Luter Logo" style="width: 120px; height: 120px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(151, 24, 251, 0.25);" id="mainLogo" />
+                <button class="download-btn" onclick="downloadLogo('png')" title="Download Logo">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    PNG
+                </button>
+                <div style="text-align: center;">
+                    <h3 style="margin-bottom: var(--space-2);">Luter</h3>
+                    <p style="color: var(--color-neutral-600); font-size: 14px;">AI-Powered Learning Assistant</p>
+                </div>
+                
+                <div class="logo-downloads">
+                    <button class="download-format-btn" onclick="downloadLogo('png')">
+                        PNG (512x512)
+                    </button>
+                    <button class="download-format-btn" onclick="downloadLogo('png-lg')">
+                        PNG (1024x1024)
+                    </button>
+                    <button class="download-format-btn" onclick="downloadLogo('svg')">
+                        SVG Vector
+                    </button>
+                    <button class="download-format-btn" onclick="downloadLogo('ico')">
+                        Favicon PNG
+                    </button>
+                    <button class="download-format-btn" onclick="downloadLogo('favicon-svg')">
+                        Favicon SVG
+                    </button>
+                </div>
+            </div>
+            
+            <div class="brand-description">
+                <h3 style="color: var(--color-primary-700); margin-bottom: var(--space-4);">Our Mission</h3>
+                <p style="margin-bottom: var(--space-4);">
+                    Luter transforms the way students learn by leveraging artificial intelligence to create personalized, efficient, and engaging educational experiences. We believe that every student deserves access to intelligent tools that adapt to their unique learning style.
+                </p>
+                <h3 style="color: var(--color-primary-700); margin-bottom: var(--space-4);">Brand Values</h3>
+                <ul style="color: var(--color-neutral-700); line-height: 1.8;">
+                    <li><strong>Intelligence:</strong> Smart AI that understands and adapts</li>
+                    <li><strong>Accessibility:</strong> Learning tools for everyone, everywhere</li>
+                    <li><strong>Innovation:</strong> Cutting-edge technology meets education</li>
+                    <li><strong>Growth:</strong> Empowering students to reach their full potential</li>
+                </ul>
+                
+                <div style="margin-top: var(--space-6); padding: var(--space-4); background: var(--color-primary-bg); border-radius: var(--radius-lg);">
+                    <h4 style="color: var(--color-primary-700); margin-bottom: var(--space-2); font-size: 14px;">Logo Usage Guidelines</h4>
+                    <ul style="font-size: 13px; color: var(--color-neutral-700); margin: 0; padding-left: var(--space-4);">
+                        <li>Minimum clear space: 1x the logo height</li>
+                        <li>Minimum size: 24px for digital, 0.5" for print</li>
+                        <li>Use on light backgrounds with primary purple</li>
+                        <li>Inverted version available for dark backgrounds</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MASCOTS -->
+    <section id="mascots" class="ds-section">
+        <h2 class="section-header">
+            <div class="section-number">2</div>
+            Luter Mascots & Personalities
+        </h2>
+        
+        <div class="mascots-grid">
+            <div class="mascot-card" data-color="#FF7597" data-mascot="ghost" style="position: relative;">
+                <button class="download-btn" onclick="downloadMascot('ghost', '#FF7597', '👻')" title="Download Ghost Mascot">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    SVG
+                </button>
+                <div class="mascot-icon" style="background: var(--color-ghost);">👻</div>
+                <div class="mascot-name">Ghost</div>
+                <div class="mascot-color">#FF7597</div>
+            </div>
+            
+            <div class="mascot-card" data-color="#4FB0FF" data-mascot="cat" style="position: relative;">
+                <button class="download-btn" onclick="downloadMascot('cat', '#4FB0FF', '🐱')" title="Download Cat Mascot">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    SVG
+                </button>
+                <div class="mascot-icon" style="background: var(--color-cat);">🐱</div>
+                <div class="mascot-name">Cat</div>
+                <div class="mascot-color">#4FB0FF</div>
+            </div>
+            
+            <div class="mascot-card" data-color="#00D084" data-mascot="dog" style="position: relative;">
+                <button class="download-btn" onclick="downloadMascot('dog', '#00D084', '🐶')" title="Download Dog Mascot">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    SVG
+                </button>
+                <div class="mascot-icon" style="background: var(--color-dog);">🐶</div>
+                <div class="mascot-name">Dog</div>
+                <div class="mascot-color">#00D084</div>
+            </div>
+            
+            <div class="mascot-card" data-color="#9718fb" data-mascot="bird" style="position: relative;">
+                <button class="download-btn" onclick="downloadMascot('bird', '#9718fb', '🐦')" title="Download Bird Mascot">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    SVG
+                </button>
+                <div class="mascot-icon" style="background: var(--color-bird);">🐦</div>
+                <div class="mascot-name">Bird</div>
+                <div class="mascot-color">#9718fb</div>
+            </div>
+            
+            <div class="mascot-card" data-color="#FFAB2D" data-mascot="rabbit" style="position: relative;">
+                <button class="download-btn" onclick="downloadMascot('rabbit', '#FFAB2D', '🐰')" title="Download Rabbit Mascot">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    SVG
+                </button>
+                <div class="mascot-icon" style="background: var(--color-rabbit);">🐰</div>
+                <div class="mascot-name">Rabbit</div>
+                <div class="mascot-color">#FFAB2D</div>
+            </div>
+            
+            <div class="mascot-card" data-color="#111111" data-mascot="turtle" style="position: relative;">
+                <button class="download-btn" onclick="downloadMascot('turtle', '#111111', '🐢')" title="Download Turtle Mascot">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    SVG
+                </button>
+                <div class="mascot-icon" style="background: var(--color-turtle);">🐢</div>
+                <div class="mascot-name">Turtle</div>
+                <div class="mascot-color">#111111</div>
+            </div>
+            
+            <div class="mascot-card" data-color="#A855F7" data-mascot="smile" style="position: relative;">
+                <button class="download-btn" onclick="downloadMascot('smile', '#A855F7', '😊')" title="Download Smile Mascot">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    SVG
+                </button>
+                <div class="mascot-icon" style="background: var(--color-smile);">😊</div>
+                <div class="mascot-name">Smile</div>
+                <div class="mascot-color">#A855F7</div>
+            </div>
+        </div>
+        
+        <div class="mascot-download-section">
+            <h3 style="color: var(--color-primary-700); margin-bottom: var(--space-4);">Download All Mascots & Assets</h3>
+            <div class="asset-preview">🎨</div>
+            <p style="color: var(--color-neutral-700); margin-bottom: var(--space-4); font-size: 14px;">
+                Get the complete brand package including mascots, logos, favicons, and icon sets.
+            </p>
+            <div style="display: flex; gap: var(--space-4); justify-content: center; flex-wrap: wrap;">
+                <button class="download-all-btn" onclick="downloadAllMascots()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: var(--space-2);">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    All Mascots
+                </button>
+                <button class="download-all-btn" onclick="downloadBrandAssets()" style="background: linear-gradient(135deg, var(--color-success), #16a34a);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: var(--space-2);">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Brand Assets
+                </button>
+                <button class="download-all-btn" onclick="downloadIconPack()" style="background: linear-gradient(135deg, var(--color-warning), #d97706);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: var(--space-2);">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Icon Pack
+                </button>
+            </div>
+        </div>
+        
+        <!-- Additional Assets Section -->
+        <div style="margin-top: var(--space-8); padding: var(--space-6); background: var(--color-neutral-100); border-radius: var(--radius-xl);">
+            <h4 style="color: var(--color-neutral-700); margin-bottom: var(--space-4); font-family: var(--font-primary);">Available Assets in Public Folder</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); font-size: 13px; color: var(--color-neutral-600);">
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                    <div style="width: 8px; height: 8px; background: var(--color-success); border-radius: 50%;"></div>
+                    <span>logo.png (512x512)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                    <div style="width: 8px; height: 8px; background: var(--color-success); border-radius: 50%;"></div>
+                    <span>logo.svg (vector)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                    <div style="width: 8px; height: 8px; background: var(--color-success); border-radius: 50%;"></div>
+                    <span>favicon.png (512x512)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                    <div style="width: 8px; height: 8px; background: var(--color-success); border-radius: 50%;"></div>
+                    <span>favicon.svg (vector)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                    <div style="width: 8px; height: 8px; background: var(--color-success); border-radius: 50%;"></div>
+                    <span>mascot.png (main)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                    <div style="width: 8px; height: 8px; background: var(--color-success); border-radius: 50%;"></div>
+                    <span>onboard-mascot.png</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                    <div style="width: 8px; height: 8px; background: var(--color-success); border-radius: 50%;"></div>
+                    <span>mock-session-mascot.png</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                    <div style="width: 8px; height: 8px; background: var(--color-success); border-radius: 50%;"></div>
+                    <span>footer-img.png</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                    <div style="width: 8px; height: 8px; background: var(--color-success); border-radius: 50%;"></div>
+                    <span>icons.svg (UI icons)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                    <div style="width: 8px; height: 8px; background: var(--color-info); border-radius: 50%;"></div>
+                    <span>mg-icons/ (7 icons)</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TYPOGRAPHY -->
+    <section id="typography" class="ds-section">
+        <h2 class="section-header">
+            <div class="section-number">3</div>
+            Typography System
+        </h2>
+        
+        <div class="font-block">
+            <div class="font-name">Display Text - Outfit</div>
+            <div class="font-usage">Hero sections, major headings, brand statements</div>
+            <div class="display-text">Transform Your Learning Journey</div>
+            <div class="caption">Character Scale: Aa Bb Cc Dd Ee 0123456789 @#$%^&*()</div>
+        </div>
+
+        <div class="font-block">
+            <div class="font-name">Primary Font - Outfit</div>
+            <div class="font-usage">Headings, subheadings, UI elements, emphasis</div>
+            <h1>Heading 1 - Main Page Title</h1>
+            <h2>Heading 2 - Section Headers</h2>
+            <h3>Heading 3 - Subsection Titles</h3>
+            <h4>Heading 4 - Card Titles</h4>
+            <h5>Heading 5 - Small Headers</h5>
+            <h6>Heading 6 - Micro Headings</h6>
+            <div class="caption">Character Scale: Aa Bb Cc Dd Ee 0123456789 @#$%^&*()</div>
+        </div>
+
+        <div class="font-block">
+            <div class="font-name">Secondary Font - Varela Round</div>
+            <div class="font-usage">Body text, descriptions, buttons, friendly UI elements</div>
+            <p class="body-large">Body Large: Perfect for introductory paragraphs and important descriptions that need extra emphasis. (18px)</p>
+            <p class="body-default">Body Default: Your main reading text. Optimized for long-form content and excellent readability. (16px)</p>
+            <p class="body-small">Body Small: Secondary information, captions, and supporting text. (14px)</p>
+            <p class="caption">Caption: Tiny labels, metadata, timestamps, and system information. Character Scale: Aa Bb Cc Dd Ee 0123456789 (12px)</p>
+        </div>
+
+        <div class="font-block">
+            <div class="font-name">UI Font - Inter</div>
+            <div class="font-usage">Form inputs, system messages, technical interfaces</div>
+            <div style="font-family: var(--font-ui); font-size: 14px;">
+                <p>Form Labels, Input Text, System Messages</p>
+                <p style="font-size: 12px; color: var(--color-neutral-600);">Technical Information, Error Messages, Status Updates</p>
+            </div>
+            <div class="caption">Character Scale: Aa Bb Cc Dd Ee 0123456789 @#$%^&*()</div>
+        </div>
+    </section>
+
+    <!-- COLORS -->
+    <section id="colors" class="ds-section">
+        <h2 class="section-header">
+            <div class="section-number">4</div>
+            Color Palette System
+        </h2>
+
+        <div class="color-group">
+            <div class="group-name">Primary Brand Colors</div>
+            <div class="palette-grid">
+                <div class="color-swatch" onclick="copyToClipboard('#9718fb', this)">
+                    <div class="color-block" style="background: #9718fb;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Primary 500</div>
+                        <div class="color-hex">#9718fb</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#8b5cf6', this)">
+                    <div class="color-block" style="background: #8b5cf6;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Primary 600</div>
+                        <div class="color-hex">#8b5cf6</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#7c3aed', this)">
+                    <div class="color-block" style="background: #7c3aed;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Primary 700</div>
+                        <div class="color-hex">#7c3aed</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#F3E8FF', this)">
+                    <div class="color-block" style="background: #F3E8FF;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Primary BG</div>
+                        <div class="color-hex">#F3E8FF</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="color-group">
+            <div class="group-name">Extended Purple Scale</div>
+            <div class="palette-grid">
+                <div class="color-swatch" onclick="copyToClipboard('#F3E8FF', this)">
+                    <div class="color-block" style="background: #F3E8FF;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Purple 100</div>
+                        <div class="color-hex">#F3E8FF</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#E9D5FF', this)">
+                    <div class="color-block" style="background: #E9D5FF;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Purple 200</div>
+                        <div class="color-hex">#E9D5FF</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#D8B4FE', this)">
+                    <div class="color-block" style="background: #D8B4FE;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Purple 300</div>
+                        <div class="color-hex">#D8B4FE</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#C084FC', this)">
+                    <div class="color-block" style="background: #C084FC;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Purple 400</div>
+                        <div class="color-hex">#C084FC</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#A855F7', this)">
+                    <div class="color-block" style="background: #A855F7;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Purple 500</div>
+                        <div class="color-hex">#A855F7</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#9333EA', this)">
+                    <div class="color-block" style="background: #9333EA;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Purple 600</div>
+                        <div class="color-hex">#9333EA</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#7C3AED', this)">
+                    <div class="color-block" style="background: #7C3AED;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Purple 700</div>
+                        <div class="color-hex">#7C3AED</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#6B21A8', this)">
+                    <div class="color-block" style="background: #6B21A8;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Purple 800</div>
+                        <div class="color-hex">#6B21A8</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#581C87', this)">
+                    <div class="color-block" style="background: #581C87;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Purple 900</div>
+                        <div class="color-hex">#581C87</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="color-group">
+            <div class="group-name">Neutral Scale</div>
+            <div class="palette-grid">
+                <div class="color-swatch" onclick="copyToClipboard('#000000', this)">
+                    <div class="color-block" style="background: #000000;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Black</div>
+                        <div class="color-hex">#000000</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#111111', this)">
+                    <div class="color-block" style="background: #111111;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Dark</div>
+                        <div class="color-hex">#111111</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#1f2937', this)">
+                    <div class="color-block" style="background: #1f2937;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Neutral 900</div>
+                        <div class="color-hex">#1f2937</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#374151', this)">
+                    <div class="color-block" style="background: #374151;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Neutral 800</div>
+                        <div class="color-hex">#374151</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#4b5563', this)">
+                    <div class="color-block" style="background: #4b5563;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Neutral 700</div>
+                        <div class="color-hex">#4b5563</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#6b7280', this)">
+                    <div class="color-block" style="background: #6b7280;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Neutral 600</div>
+                        <div class="color-hex">#6b7280</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#9ca3af', this)">
+                    <div class="color-block" style="background: #9ca3af;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Neutral 500</div>
+                        <div class="color-hex">#9ca3af</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#d1d5db', this)">
+                    <div class="color-block" style="background: #d1d5db;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Neutral 400</div>
+                        <div class="color-hex">#d1d5db</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#e5e7eb', this)">
+                    <div class="color-block" style="background: #e5e7eb;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Neutral 300</div>
+                        <div class="color-hex">#e5e7eb</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#f3f4f6', this)">
+                    <div class="color-block" style="background: #f3f4f6;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Neutral 200</div>
+                        <div class="color-hex">#f3f4f6</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#f9fafb', this)">
+                    <div class="color-block" style="background: #f9fafb;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Neutral 100</div>
+                        <div class="color-hex">#f9fafb</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#FFFFFF', this)">
+                    <div class="color-block" style="background: #FFFFFF; border: 1px solid #e5e7eb;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">White</div>
+                        <div class="color-hex">#FFFFFF</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="color-group">
+            <div class="group-name">Semantic Colors</div>
+            <div class="palette-grid">
+                <div class="color-swatch" onclick="copyToClipboard('#22C55E', this)">
+                    <div class="color-block" style="background: #22C55E;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Success</div>
+                        <div class="color-hex">#22C55E</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#DCFCE7', this)">
+                    <div class="color-block" style="background: #DCFCE7;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Success BG</div>
+                        <div class="color-hex">#DCFCE7</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#F59E0B', this)">
+                    <div class="color-block" style="background: #F59E0B;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Warning</div>
+                        <div class="color-hex">#F59E0B</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#FEF3C7', this)">
+                    <div class="color-block" style="background: #FEF3C7;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Warning BG</div>
+                        <div class="color-hex">#FEF3C7</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#EF4444', this)">
+                    <div class="color-block" style="background: #EF4444;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Error</div>
+                        <div class="color-hex">#EF4444</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#FEE2E2', this)">
+                    <div class="color-block" style="background: #FEE2E2;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Error BG</div>
+                        <div class="color-hex">#FEE2E2</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#3B82F6', this)">
+                    <div class="color-block" style="background: #3B82F6;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Info</div>
+                        <div class="color-hex">#3B82F6</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+                
+                <div class="color-swatch" onclick="copyToClipboard('#DBEAFE', this)">
+                    <div class="color-block" style="background: #DBEAFE;"></div>
+                    <div class="color-info">
+                        <div class="color-token-name">Info BG</div>
+                        <div class="color-hex">#DBEAFE</div>
+                    </div>
+                    <div class="copy-indicator">Copied!</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- COMPONENTS -->
+    <section id="components" class="ds-section">
+        <h2 class="section-header">
+            <div class="section-number">5</div>
+            Interactive UI Components
+        </h2>
+
+        <div class="component-showcase">
+            <div class="component-block">
+                <div class="component-label">Button Variants</div>
+                <div class="btn-group">
+                    <button class="btn btn-primary">Primary Action</button>
+                    <button class="btn btn-secondary">Secondary</button>
+                    <button class="btn btn-ghost">Ghost Button</button>
+                    <button class="btn btn-primary" disabled>Disabled</button>
+                </div>
+            </div>
+
+            <div class="component-block">
+                <div class="component-label">Form Elements</div>
+                <div class="input-group">
+                    <input type="text" placeholder="Enter your text here...">
+                    <input type="email" placeholder="email@example.com">
+                    <textarea placeholder="Type your message..." rows="3"></textarea>
+                    <select>
+                        <option>Select an option</option>
+                        <option>Option 1</option>
+                        <option>Option 2</option>
+                    </select>
+                    <input type="text" class="input-error" value="Error state">
+                    <div class="error-message">This field has an error</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PATTERNS -->
+    <section id="patterns" class="ds-section">
+        <h2 class="section-header">
+            <div class="section-number">6</div>
+            UI Patterns & Widgets
+        </h2>
+        
+        <div class="card-group">
+            <div class="ds-card">
+                <div class="widget-title">Study Streak</div>
+                <div class="widget-value">15 Days</div>
+                <div class="widget-meta">🔥 Keep it going!</div>
+                <div class="badge badge-success">On Fire</div>
+            </div>
+
+            <div class="ds-card">
+                <div class="widget-title">AI Credits</div>
+                <div class="widget-value">847</div>
+                <div class="widget-meta">Remaining this month</div>
+                <div class="badge badge-info">Available</div>
+            </div>
+
+            <div class="ds-card">
+                <div class="widget-title">Completed Tasks</div>
+                <div class="widget-value">92%</div>
+                <div class="widget-meta">↑ 12% from last week</div>
+                <div class="badge badge-success">Excellent</div>
+            </div>
+
+            <div class="ds-card">
+                <div class="widget-title">Study Group</div>
+                <div class="widget-value">24</div>
+                <div class="widget-meta">Active members</div>
+                <div class="badge badge-primary">Community</div>
+            </div>
+        </div>
+
+        <div class="code-block" style="margin-top: var(--space-8);">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code>/* Luter Design System CSS Variables */
+:root {
+    --color-primary-500: #9718fb;
+    --color-primary-bg: #F3E8FF;
+    --font-primary: 'Outfit', sans-serif;
+    --font-secondary: 'Varela Round', sans-serif;
+    --radius-lg: 12px;
+    --shadow-primary: 0 10px 30px rgba(151, 24, 251, 0.3);
+}</code></pre>
+        </div>
+    </section>
+
+</div>
+
+<script>
+    // Download functionality for actual public folder assets
+    
+    // Base URL for public assets
+    const PUBLIC_BASE = '';
+    
+    // Download logo using actual public folder assets
+    function downloadLogo(format) {
+        const button = event.target.closest('button');
+        const originalText = button.innerHTML;
+        
+        switch(format) {
+            case 'svg':
+                downloadAsset('logo.svg', 'image/svg+xml');
+                break;
+            case 'png':
+                downloadAsset('logo.png', 'image/png');
+                break;
+            case 'png-lg':
+                downloadAsset('logo.png', 'image/png', 'luter-logo-1024x1024.png');
+                break;
+            case 'ico':
+                downloadAsset('favicon.png', 'image/png', 'luter-favicon.ico');
+                break;
+            case 'favicon-svg':
+                downloadAsset('favicon.svg', 'image/svg+xml');
+                break;
+        }
+        
+        // Show feedback
+        button.classList.add('downloaded');
+        button.innerHTML = '✓ Downloaded';
+        setTimeout(() => {
+            button.classList.remove('downloaded');
+            button.innerHTML = originalText;
+        }, 2000);
+    }
+
+    // Download mascot using actual public folder assets
+    function downloadMascot(mascotName, color, emoji) {
+        const button = event.target.closest('button');
+        const originalText = button.innerHTML;
+        
+        // Download the main mascot asset
+        downloadAsset('mascot.png', 'image/png', `luter-mascot-${mascotName}.png`);
+        
+        // Also download the onboard mascot for variety
+        if (mascotName === 'ghost' || mascotName === 'smile') {
+            setTimeout(() => {
+                downloadAsset('onboard-mascot.png', 'image/png', `luter-mascot-${mascotName}-onboard.png`);
+            }, 500);
+        }
+        
+        // Show feedback
+        button.classList.add('downloaded');
+        button.innerHTML = '✓ Downloaded';
+        setTimeout(() => {
+            button.classList.remove('downloaded');
+            button.innerHTML = originalText;
+        }, 2000);
+    }
+
+    // Download all mascots from public folder
+    function downloadAllMascots() {
+        const button = event.target.closest('button');
+        const originalText = button.innerHTML;
+        
+        const assets = [
+            { file: 'mascot.png', name: 'luter-mascot-main.png' },
+            { file: 'onboard-mascot.png', name: 'luter-mascot-onboard.png' },
+            { file: 'mock-session-mascot.png', name: 'luter-mascot-mock-session.png' },
+            { file: 'footer-img.png', name: 'luter-footer-image.png' }
+        ];
+        
+        // Download each asset with a small delay
+        assets.forEach((asset, index) => {
+            setTimeout(() => {
+                downloadAsset(asset.file, 'image/png', asset.name);
+            }, index * 300);
+        });
+        
+        // Show feedback
+        button.innerHTML = '✓ Downloading All Assets...';
+        setTimeout(() => {
+            button.innerHTML = '✓ All Assets Downloaded!';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+            }, 2000);
+        }, assets.length * 300 + 1000);
+    }
+
+    // Generic asset download function
+    function downloadAsset(filename, mimeType, customName = null) {
+        const assetUrl = `${PUBLIC_BASE}/${filename}`;
+        const downloadName = customName || filename;
+        
+        // Create a link element to download the asset
+        const link = document.createElement('a');
+        link.href = assetUrl;
+        link.download = downloadName;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Download additional brand assets
+    function downloadBrandAssets() {
+        const assets = [
+            { file: 'favicon.svg', name: 'luter-favicon.svg' },
+            { file: 'favicon.png', name: 'luter-favicon.png' },
+            { file: 'logo.png', name: 'luter-logo.png' },
+            { file: 'icons.svg', name: 'luter-icons.svg' }
+        ];
+        
+        assets.forEach((asset, index) => {
+            setTimeout(() => {
+                downloadAsset(asset.file, asset.file.endsWith('.svg') ? 'image/svg+xml' : 'image/png', asset.name);
+            }, index * 200);
+        });
+    }
+
+    // Download icon pack
+    function downloadIconPack() {
+        const icons = ['apple.svg', 'audio.svg', 'links.svg', 'pdf.svg', 'powerpoint.svg', 'text.svg', 'youtube.svg'];
+        
+        icons.forEach((icon, index) => {
+            setTimeout(() => {
+                downloadAsset(`mg-icons/${icon}`, 'image/svg+xml', `luter-icon-${icon}`);
+            }, index * 150);
+        });
+    }
+
+    // Copy to clipboard functionality
+    function copyToClipboard(text, element) {
+        navigator.clipboard.writeText(text).then(() => {
+            element.classList.add('copied');
+            setTimeout(() => {
+                element.classList.remove('copied');
+            }, 2000);
+        });
+    }
+
+    // Copy code blocks
+    function copyCode(button) {
+        const codeBlock = button.parentElement.querySelector('code');
+        const text = codeBlock.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            const originalText = button.textContent;
+            button.textContent = 'Copied!';
+            button.style.background = '#22C55E';
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.background = '';
+            }, 2000);
+        });
+    }
+
+    // Add click handlers to mascot cards for color copying
+    document.querySelectorAll('.mascot-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            if (!e.target.closest('.download-btn')) {
+                const color = this.dataset.color;
+                copyToClipboard(color, this);
+            }
+        });
+    });
+
+    // Smooth scroll for navigation
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+
+    // Add parallax effect to hero section
+    window.addEventListener('scroll', () => {
+        const scrolled = window.pageYOffset;
+        const parallax = document.querySelector('#mainLogo');
+        if (parallax) {
+            const speed = 0.5;
+            parallax.style.transform = `translateY(${scrolled * speed}px)`;
+        }
+    });
+
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        // Ctrl/Cmd + S to download all assets
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            downloadAllMascots();
+        }
+        // Ctrl/Cmd + L to download logo
+        if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+            e.preventDefault();
+            downloadLogo('png');
+        }
+        // Ctrl/Cmd + B to download brand assets
+        if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+            e.preventDefault();
+            downloadBrandAssets();
+        }
+    });
+
+    // Add download button to color swatches
+    document.querySelectorAll('.color-swatch').forEach(swatch => {
+        if (!swatch.querySelector('.download-btn')) {
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'download-btn';
+            downloadBtn.innerHTML = '📋';
+            downloadBtn.title = 'Copy color code';
+            downloadBtn.onclick = function() {
+                const hexCode = swatch.querySelector('.color-hex').textContent;
+                copyToClipboard(hexCode, swatch);
+            };
+            swatch.appendChild(downloadBtn);
+        }
+    });
+</script>
+
+</body>
+</html>

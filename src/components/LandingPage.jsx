@@ -673,213 +673,218 @@ export default function LandingPage() {
         
         {/* Draggable Doodles Around Hero */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, pointerEvents: 'none' }}>
-          {/* Top Left Corner */}
-          <DraggableDoodle initialX={50} initialY={50} delay={1.0}>
-            <div style={{
-              width: 60,
-              height: 60,
-              backgroundColor: '#fef3c7',
-              border: '2px dashed #f59e0b',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '24px',
-              pointerEvents: 'auto'
-            }}>
-              💡
-            </div>
-          </DraggableDoodle>
-
-          {/* Top Right Corner */}
-          <DraggableDoodle initialX={window.innerWidth - 150} initialY={80} delay={1.2}>
-            <div style={{
-              width: 80,
-              height: 80,
-              backgroundColor: '#dbeafe',
-              border: '2px solid #3b82f6',
-              borderRadius: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '32px',
-              transform: 'rotate(15deg)',
-              pointerEvents: 'auto'
-            }}>
-              📚
-            </div>
-          </DraggableDoodle>
-
-          {/* Left Side */}
-          <DraggableDoodle initialX={30} initialY={300} delay={1.4}>
-            <div style={{
-              padding: '12px 16px',
-              backgroundColor: '#f3e8ff',
-              border: '2px solid #8b5cf6',
-              borderRadius: '12px',
-              fontFamily: 'Outfit, sans-serif',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#6b21a8',
-              transform: 'rotate(-5deg)',
-              pointerEvents: 'auto'
-            }}>
-              Study Smarter! 🎯
-            </div>
-          </DraggableDoodle>
-
-          {/* Right Side */}
-          <DraggableDoodle initialX={window.innerWidth - 200} initialY={250} delay={1.6}>
-            <div style={{
-              width: 70,
-              height: 70,
-              backgroundColor: '#dcfce7',
-              border: '3px solid #22c55e',
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '28px',
-              pointerEvents: 'auto'
-            }}>
-              ✨
-            </div>
-          </DraggableDoodle>
-
-          {/* Bottom Left */}
-          <DraggableDoodle initialX={80} initialY={window.innerHeight - 200} delay={1.8}>
-            <div style={{
-              padding: '16px 20px',
-              backgroundColor: '#fff7ed',
-              border: '2px dashed #ea580c',
-              borderRadius: '20px',
-              fontFamily: 'Outfit, sans-serif',
-              fontSize: '16px',
-              fontWeight: '700',
-              color: '#c2410c',
-              transform: 'rotate(8deg)',
-              pointerEvents: 'auto'
-            }}>
-              AI-Powered 🤖
-            </div>
-          </DraggableDoodle>
-
-          {/* Bottom Right */}
-          <DraggableDoodle initialX={window.innerWidth - 180} initialY={window.innerHeight - 150} delay={2.0}>
-            <div style={{
-              width: 90,
-              height: 90,
-              backgroundColor: '#fce7f3',
-              border: '2px solid #ec4899',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '36px',
-              transform: 'rotate(-10deg)',
-              pointerEvents: 'auto'
-            }}>
-              🚀
-            </div>
-          </DraggableDoodle>
-
-          {/* Scattered Elements */}
-          <DraggableDoodle initialX={200} initialY={120} delay={2.2}>
-            <div style={{
-              width: 40,
-              height: 40,
-              backgroundColor: '#e0e7ff',
-              border: '2px solid #6366f1',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '20px',
-              pointerEvents: 'auto'
-            }}>
-              📝
-            </div>
-          </DraggableDoodle>
-
-          <DraggableDoodle initialX={window.innerWidth - 300} initialY={400} delay={2.4}>
-            <div style={{
-              padding: '8px 12px',
-              backgroundColor: '#f0fdf4',
-              border: '1px solid #86efac',
-              borderRadius: '8px',
-              fontFamily: 'Outfit, sans-serif',
-              fontSize: '12px',
-              fontWeight: '500',
-              color: '#166534',
-              pointerEvents: 'auto'
-            }}>
-              Learn Faster! ⚡
-            </div>
-          </DraggableDoodle>
-
-          <DraggableDoodle initialX={150} initialY={window.innerHeight - 300} delay={2.6}>
-            <div style={{
-              width: 50,
-              height: 50,
-              backgroundColor: '#fef2f2',
-              border: '2px dotted #ef4444',
-              borderRadius: '25px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '24px',
-              pointerEvents: 'auto'
-            }}>
-              🔥
-            </div>
-          </DraggableDoodle>
-
-          {/* Mobile: Show fewer doodles */}
-          <div className="md:hidden">
-            <DraggableDoodle initialX={20} initialY={100} delay={1.0}>
+          {/* Desktop: Show all doodles */}
+          <div className="hidden md:block">
+            {/* Top Left Corner */}
+            <DraggableDoodle initialX={50} initialY={50} delay={1.0}>
               <div style={{
-                width: 40,
-                height: 40,
+                width: 60,
+                height: 60,
                 backgroundColor: '#fef3c7',
                 border: '2px dashed #f59e0b',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '18px',
+                fontSize: '24px',
                 pointerEvents: 'auto'
               }}>
                 💡
               </div>
             </DraggableDoodle>
 
-            <DraggableDoodle initialX={window.innerWidth - 80} initialY={150} delay={1.2}>
+            {/* Top Right Corner */}
+            <DraggableDoodle initialX={window.innerWidth - 150} initialY={80} delay={1.2}>
               <div style={{
-                width: 50,
-                height: 50,
+                width: 80,
+                height: 80,
                 backgroundColor: '#dbeafe',
                 border: '2px solid #3b82f6',
-                borderRadius: '12px',
+                borderRadius: '16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '20px',
+                fontSize: '32px',
+                transform: 'rotate(15deg)',
                 pointerEvents: 'auto'
               }}>
                 📚
               </div>
             </DraggableDoodle>
 
-            <DraggableDoodle initialX={30} initialY={window.innerHeight - 120} delay={1.4}>
+            {/* Left Side */}
+            <DraggableDoodle initialX={30} initialY={300} delay={1.4}>
               <div style={{
-                padding: '8px 12px',
+                padding: '12px 16px',
                 backgroundColor: '#f3e8ff',
                 border: '2px solid #8b5cf6',
+                borderRadius: '12px',
+                fontFamily: 'Outfit, sans-serif',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#6b21a8',
+                transform: 'rotate(-5deg)',
+                pointerEvents: 'auto'
+              }}>
+                Study Smarter! 🎯
+              </div>
+            </DraggableDoodle>
+
+            {/* Right Side */}
+            <DraggableDoodle initialX={window.innerWidth - 200} initialY={250} delay={1.6}>
+              <div style={{
+                width: 70,
+                height: 70,
+                backgroundColor: '#dcfce7',
+                border: '3px solid #22c55e',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '28px',
+                pointerEvents: 'auto'
+              }}>
+                ✨
+              </div>
+            </DraggableDoodle>
+
+            {/* Bottom Left */}
+            <DraggableDoodle initialX={80} initialY={window.innerHeight - 200} delay={1.8}>
+              <div style={{
+                padding: '16px 20px',
+                backgroundColor: '#fff7ed',
+                border: '2px dashed #ea580c',
+                borderRadius: '20px',
+                fontFamily: 'Outfit, sans-serif',
+                fontSize: '16px',
+                fontWeight: '700',
+                color: '#c2410c',
+                transform: 'rotate(8deg)',
+                pointerEvents: 'auto'
+              }}>
+                AI-Powered 🤖
+              </div>
+            </DraggableDoodle>
+
+            {/* Bottom Right */}
+            <DraggableDoodle initialX={window.innerWidth - 180} initialY={window.innerHeight - 150} delay={2.0}>
+              <div style={{
+                width: 90,
+                height: 90,
+                backgroundColor: '#fce7f3',
+                border: '2px solid #ec4899',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '36px',
+                transform: 'rotate(-10deg)',
+                pointerEvents: 'auto'
+              }}>
+                🚀
+              </div>
+            </DraggableDoodle>
+
+            {/* Scattered Elements */}
+            <DraggableDoodle initialX={200} initialY={120} delay={2.2}>
+              <div style={{
+                width: 40,
+                height: 40,
+                backgroundColor: '#e0e7ff',
+                border: '2px solid #6366f1',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                pointerEvents: 'auto'
+              }}>
+                📝
+              </div>
+            </DraggableDoodle>
+
+            <DraggableDoodle initialX={window.innerWidth - 300} initialY={400} delay={2.4}>
+              <div style={{
+                padding: '8px 12px',
+                backgroundColor: '#f0fdf4',
+                border: '1px solid #86efac',
                 borderRadius: '8px',
                 fontFamily: 'Outfit, sans-serif',
                 fontSize: '12px',
+                fontWeight: '500',
+                color: '#166534',
+                pointerEvents: 'auto'
+              }}>
+                Learn Faster! ⚡
+              </div>
+            </DraggableDoodle>
+
+            <DraggableDoodle initialX={150} initialY={window.innerHeight - 300} delay={2.6}>
+              <div style={{
+                width: 50,
+                height: 50,
+                backgroundColor: '#fef2f2',
+                border: '2px dotted #ef4444',
+                borderRadius: '25px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '24px',
+                pointerEvents: 'auto'
+              }}>
+                🔥
+              </div>
+            </DraggableDoodle>
+          </div>
+
+          {/* Mobile: Show only 3 doodles */}
+          <div className="md:hidden">
+            <DraggableDoodle initialX={20} initialY={120} delay={1.0}>
+              <div style={{
+                width: 35,
+                height: 35,
+                backgroundColor: '#fef3c7',
+                border: '2px dashed #f59e0b',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px',
+                pointerEvents: 'auto'
+              }}>
+                💡
+              </div>
+            </DraggableDoodle>
+
+            <DraggableDoodle initialX={window.innerWidth - 70} initialY={180} delay={1.3}>
+              <div style={{
+                width: 45,
+                height: 45,
+                backgroundColor: '#dbeafe',
+                border: '2px solid #3b82f6',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '18px',
+                transform: 'rotate(10deg)',
+                pointerEvents: 'auto'
+              }}>
+                📚
+              </div>
+            </DraggableDoodle>
+
+            <DraggableDoodle initialX={30} initialY={window.innerHeight - 100} delay={1.6}>
+              <div style={{
+                padding: '6px 10px',
+                backgroundColor: '#f3e8ff',
+                border: '2px solid #8b5cf6',
+                borderRadius: '6px',
+                fontFamily: 'Outfit, sans-serif',
+                fontSize: '10px',
                 fontWeight: '600',
                 color: '#6b21a8',
+                transform: 'rotate(-3deg)',
                 pointerEvents: 'auto'
               }}>
                 Study Smart! 🎯

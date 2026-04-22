@@ -26,10 +26,19 @@ export default function DashboardHome() {
   const mapCourses = useCallback((uc) => {
     if (!Array.isArray(uc)) return []
     return uc
-      .filter(row => row && (row.courses || row.course))
+      .filter(row => {
+        const hasJoined = row && (row.courses || row.course)
+        if (!hasJoined && row) {
+          console.warn('User course row missing joined course data:', row)
+        }
+        return hasJoined
+      })
       .map((row) => {
         // Handle both aliased 'course' and direct 'courses' joins
-        const c = row.courses || row.course
+        // Also handle cases where PostgREST returns an array for joins
+        let c = row.courses || row.course
+        if (Array.isArray(c)) c = c[0]
+        
         const hash = c?.code?.split('').reduce((acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0) || 0
         const color = `hsl(${Math.abs(hash) % 360}, 75%, 65%)`
         return {
@@ -52,7 +61,12 @@ export default function DashboardHome() {
         .select('id, progress, courses(id, code, name, faculty)')
         .eq('user_id', user.id)
 
-      if (uc) setCourses(mapCourses(uc))
+      if (uc) {
+        console.log(`Fetched ${uc.length} user courses for ${user.id}`)
+        setCourses(mapCourses(uc))
+      } else {
+        console.log('No user courses returned for ID:', user.id)
+      }
 
       const { data: st } = await supabase
         .from('user_stats')

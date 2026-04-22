@@ -34,25 +34,24 @@ export function useDashboardPrefetch() {
  * Fetches the dashboard data individually to avoid cascading failures.
  */
 async function fetchDashboardBundle(userId) {
-  // Use sequential processing or individual error handling to prevent 
-  // one missing column from breaking everything
   const [uc, stats, leaderboard, profile] = await Promise.all([
     supabase
       .from('user_courses')
-      .select('id, progress, last_studied_at, target_score, custom_name, is_archived, semester, courses(id, code, name, faculty)')
+      .select('id, progress, last_studied_at, target_score, custom_name, is_archived, semester, created_at, courses(id, code, name, faculty)')
       .eq('user_id', userId)
-      .order('id')
+      .order('created_at', { ascending: false })
       .then(res => res),
       
-    supabase.from('user_stats').select('*').eq('user_id', userId).maybeSingle(),
+    supabase.from('user_stats').select('*').eq('user_id', userId).maybeSingle().then(res => res),
     
     supabase
       .from('user_stats')
       .select('total_xp, streak_days, user_id, ai_credits_monthly, ai_credits_used, arena_battles_monthly, arena_battles_used')
       .order('total_xp', { ascending: false })
-      .limit(10),
+      .limit(10)
+      .then(res => res),
       
-    supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+    supabase.from('profiles').select('*').eq('id', userId).maybeSingle().then(res => res),
   ])
 
   return { uc, stats, leaderboard, profile }

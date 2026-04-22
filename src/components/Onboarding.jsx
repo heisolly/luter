@@ -15,6 +15,7 @@ import { aggregateSyllabusSources } from '../services/syllabusAggregator';
 import { fetchGroqLiveCourseSearch, enrichManualCourseWithGroq } from '../groqClient';
 import { saveUserCourseSelections } from '../services/courseSuggestionService';
 import EnhancedCourseSuggestions from './EnhancedCourseSuggestions';
+import GridMotionBackground from './shared/GridMotionBackground';
 
 /* ─── Static Data ─── */
 const GOALS = [
@@ -632,6 +633,8 @@ export default function Onboarding() {
       const { error: upsertErr } = await supabase.from('courses').upsert(coursesToUpsert, { onConflict: 'code' });
       if (upsertErr) {
         console.error('Onboarding courses upsert error:', upsertErr);
+      } else {
+        console.log('Successfully upserted global courses:', coursesToUpsert.length);
       }
 
       // Step B: Force fetch the final official DB Row IDs
@@ -640,7 +643,11 @@ export default function Onboarding() {
         .select('id, code')
         .in('code', selectedCodes);
 
-      if (fetchErr) console.error('Onboarding courses fetch error:', fetchErr);
+      if (fetchErr) {
+        console.error('Onboarding courses fetch error:', fetchErr);
+      }
+      
+      console.log(`Matched ${globalCourses?.length || 0} courses from global catalog`);
 
       // 3. Link real tracked user_courses
       if (globalCourses && globalCourses.length > 0) {
@@ -651,23 +658,35 @@ export default function Onboarding() {
           target_score: chosenGoal === 'first' ? 90 : chosenGoal === 'second' ? 75 : 50,
         }));
         
+        console.log(`Upserting ${rows.length} user_courses...`);
         // Insert user courses
         const { error: insertError } = await supabase.from('user_courses').upsert(rows, { onConflict: 'user_id,course_id' });
         
         if (insertError) {
           console.error('Onboarding user_courses link error:', insertError);
         } else {
+          console.log('Successfully linked user_courses');
           // Apply freemium locking (20% rule)
-          const { error: lockingError } = await supabase.rpc('apply_freemium_locking', {
-            p_user_id: authUser.id,
-            p_course_ids: globalCourses.map(c => c.id)
-          });
-          
-          if (lockingError) {
-            console.error('Error applying freemium locking:', lockingError);
+          try {
+            const { error: lockingError } = await supabase.rpc('apply_freemium_locking', {
+              p_user_id: authUser.id,
+              p_course_ids: globalCourses.map(c => c.id)
+            });
+            
+            if (lockingError) {
+              console.error('Error applying freemium locking:', lockingError);
+            } else {
+              console.log('Applied freemium locking');
+            }
+          } catch (e) {
+            console.error('RPC apply_freemium_locking failed:', e);
           }
         }
+      } else {
+        console.warn('No global courses found to link for the user. Selected codes:', selectedCodes);
       }
+    } else {
+      console.log('No courses selected to upsert.');
     }
 
     let pioneerXp = 0;
@@ -751,7 +770,7 @@ export default function Onboarding() {
   }
 
   return (
-    <div style={{ minHeight:'100vh', background:'#fff', color:'#111', fontFamily:'var(--font-outfit)', overflowX: 'hidden' }}>
+    <div style={{ minHeight:'100vh', background:'transparent', color:'#111', fontFamily:'var(--font-outfit)', overflowX: 'hidden' }}>
 
       {/* ─── PROGRESS BAR & BACK ─── */}
       <div style={{ 
@@ -779,12 +798,13 @@ export default function Onboarding() {
         <div style={{ width: 40 }} /> {/* Spacer */}
       </div>
 
-      <div className="hero-bg">
-        <div className="hero-bg-grid" />
-        <div style={{ position: 'absolute', top: '15%', right: '10%', animation: 'float-up-down 8s ease-in-out infinite', opacity: 0.3 }}>
+      <GridMotionBackground />
+      
+      <div className="hero-bg" style={{ pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', top: '15%', right: '10%', animation: 'float-up-down 8s ease-in-out infinite', opacity: 0.2 }}>
           <Library size={48} color="var(--primary)" />
         </div>
-        <div style={{ position: 'absolute', bottom: '20%', left: '8%', animation: 'float-up-down 6s ease-in-out infinite reverse', opacity: 0.3 }}>
+        <div style={{ position: 'absolute', bottom: '20%', left: '8%', animation: 'float-up-down 6s ease-in-out infinite reverse', opacity: 0.2 }}>
           <GradIcon size={40} color="var(--primary)" />
         </div>
       </div>

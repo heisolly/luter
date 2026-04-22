@@ -164,15 +164,18 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
         {!collapsed && (
           <div 
             className="dsb-section-label dsb-section-label--clickable" 
-            style={{ marginTop: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+            style={{ marginTop: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}
           >
-            <span onClick={() => go('/dashboard/courses')}>Backpack</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} onClick={() => go('/dashboard/courses')}>
+              <div style={{ width: 4, height: 16, background: '#7a12cc', borderRadius: 2 }} />
+              <span style={{ fontWeight: 800, fontSize: 11, letterSpacing: '0.05em', color: '#111' }}>BACKPACK</span>
+            </div>
             <button 
               onClick={(e) => {
                 e.stopPropagation();
                 setExpandedItems(prev => prev.includes('backpack') ? prev.filter(i => i !== 'backpack') : [...prev, 'backpack']);
               }}
-              style={{ display: 'flex', alignItems: 'center', padding: '4px' }}
+              style={{ display: 'flex', alignItems: 'center', padding: '4px', color: '#94a3b8' }}
             >
               <ChevronDown 
                 size={14} 
@@ -187,37 +190,61 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
         )}
 
         {expandedItems.includes('backpack') && (
-          <div className="dsb-nav-section dsb-backpack-section" style={{ maxHeight: '320px', overflowY: 'auto', paddingRight: '4px', marginBottom: '8px' }}>
+          <div className="dsb-nav-section dsb-backpack-section" style={{ maxHeight: '380px', overflowY: 'auto', paddingRight: '4px', marginBottom: '8px', marginTop: '8px' }}>
             {bundle?.uc?.data?.length > 0 ? (
-              bundle.uc.data
-                .filter(row => row && (row.courses || row.course))
-                .map((row, idx) => {
-                  const c = row.courses || row.course;
-                  return (
-                    <button
-                      key={c?.id || `course-${idx}`}
-                      className={`dsb-nav-item dsb-course-item ${pathname.includes(c?.id) ? 'dsb-nav-item--active' : ''} ${collapsed ? 'dsb-nav-item--center' : ''}`}
-                      onClick={() => go(`/dashboard/courses/${c?.id}`)}
-                      title={c?.name}
-                    >
-                      <div className="dsb-nav-icon-wrap">
-                        <Hash size={18} />
-                      </div>
-                      {!collapsed && (
-                        <span className="dsb-nav-label-text" style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {c?.code || c?.name}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })
+              <>
+                {bundle.uc.data
+                  .filter(row => row && (row.courses || row.course))
+                  .map((row, idx) => {
+                    const c = row.courses || row.course;
+                    const isActive = pathname.includes(c?.id);
+                    return (
+                      <button
+                        key={c?.id || `course-${idx}`}
+                        className={`dsb-nav-item dsb-course-item ${isActive ? 'dsb-nav-item--active' : ''} ${collapsed ? 'dsb-nav-item--center' : ''}`}
+                        onClick={() => go(`/dashboard/courses/${c?.id}`)}
+                        style={{ 
+                          padding: '10px 16px', 
+                          marginBottom: '2px',
+                          background: isActive ? 'rgba(122, 18, 204, 0.05)' : 'transparent',
+                          border: 'none'
+                        }}
+                        title={c?.name}
+                      >
+                        <div className="dsb-nav-icon-wrap" style={{ color: isActive ? '#7a12cc' : '#94a3b8' }}>
+                          <Hash size={16} strokeWidth={isActive ? 3 : 2} />
+                        </div>
+                        {!collapsed && (
+                          <span className="dsb-nav-label-text" style={{ 
+                            fontSize: '13px', 
+                            fontWeight: isActive ? 700 : 500,
+                            color: isActive ? '#111' : '#64748b',
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis' 
+                          }}>
+                            {c?.code || c?.name}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                <button
+                  className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`}
+                  onClick={() => go('/dashboard/courses')}
+                  style={{ marginTop: '4px', border: '1px dashed #e2e8f0', borderRadius: '12px', margin: '8px 12px', padding: '8px' }}
+                >
+                  <div className="dsb-nav-icon-wrap" style={{ color: '#7a12cc' }}><Plus size={16} strokeWidth={3} /></div>
+                  {!collapsed && <span className="dsb-nav-label-text" style={{ color: '#7a12cc', fontWeight: 700, fontSize: '12px' }}>Enroll More</span>}
+                </button>
+              </>
             ) : (
               <button
                   className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`}
                   onClick={() => go('/dashboard/courses')}
+                  style={{ margin: '8px 12px', background: 'rgba(122, 18, 204, 0.05)', borderRadius: '12px', padding: '12px' }}
                 >
-                  <div className="dsb-nav-icon-wrap"><Plus size={20} /></div>
-                  {!collapsed && <span className="dsb-nav-label-text">Add Course</span>}
+                  <div className="dsb-nav-icon-wrap" style={{ color: '#7a12cc' }}><Plus size={20} strokeWidth={3} /></div>
+                  {!collapsed && <span className="dsb-nav-label-text" style={{ color: '#7a12cc', fontWeight: 800 }}>Add Your First Course</span>}
                 </button>
             )}
           </div>
