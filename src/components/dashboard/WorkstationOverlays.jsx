@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useReadingSpace } from './ReadingSpaceContext'
-import { Sparkles, MessageSquare, Brain, Lightbulb, Zap, PlusCircle } from 'lucide-react'
+import { RiMagicFill as Sparkles, RiChat3Fill as MessageSquare, RiBrainFill as Brain, RiLightbulbFill as Lightbulb, RiFlashlightFill as Zap, RiAddCircleFill as PlusCircle } from 'react-icons/ri'
 import LuterLogo from '../shared/LuterLogo'
 
 export function SelectionActionBar({ onAction }) {

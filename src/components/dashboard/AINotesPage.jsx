@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { 
-  Brain, Plus, Loader2, Download, Share2, FileText, 
-  ChevronRight, Sparkles, CheckCircle 
-} from 'lucide-react'
+  RiBrainFill as Brain, RiAddLine as Plus, RiLoader4Line as Loader2, RiDownloadFill as Download, RiShareFill as Share2, RiFileTextFill as FileText, 
+  RiArrowRightSLine as ChevronRight, RiMagicFill as Sparkles, RiCheckboxCircleFill as CheckCircle 
+} from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
 import { fetchUserNotes, saveToVault } from '../../services/materialsService'

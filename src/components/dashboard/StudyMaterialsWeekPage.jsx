@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, FileText, Video, BookOpen, Download, ExternalLink, Clock } from 'lucide-react'
+import { RiArrowLeftLine as ArrowLeft, RiFileTextFill as FileText, RiVideoFill as Video, RiBookOpenFill as BookOpen, RiDownloadLine as Download, RiExternalLinkFill as ExternalLink, RiTimeFill as Clock } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { fetchCourseMaterials } from '../../services/materialsService'
 

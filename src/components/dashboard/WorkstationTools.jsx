@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react'
 import { 
-  BookOpen, Star, Zap, ChevronLeft, ChevronRight, Download, Share2, Printer, 
-  CheckCircle2, AlertCircle, Bookmark, RefreshCw, Trophy, Sparkles, Layers, 
-  HelpCircle, Edit3, Wand2, Save 
-} from 'lucide-react'
+  RiBookOpenFill as BookOpen, RiStarFill as Star, RiFlashlightFill as Zap, RiArrowLeftSLine as ChevronLeft, RiArrowRightSLine as ChevronRight, 
+  RiDownloadFill as Download, RiShareForwardFill as Share2, RiPrinterFill as Printer, 
+  RiCheckboxCircleFill as CheckCircle, RiErrorWarningFill as AlertCircle, RiBookmarkFill as Bookmark, RiRefreshLine as RefreshCw, 
+  RiTrophyFill as Trophy, RiMagicFill as Sparkle, RiStackFill as Layers, RiQuestionFill as HelpCircle, 
+  RiPencilFill as Edit3, RiMagicFill as Wand2, RiSaveFill as Save,
+  RiCloseCircleFill as XCircle, RiListCheck as List, RiLayoutMasonryFill as Layout, RiEyeFill as Eye, RiTimeFill as Clock, RiBarChartFill as BarChart3, RiGraduationCapFill as GraduationCap
+} from 'react-icons/ri'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS } from '../../groqClient'
+import canvasConfetti from 'canvas-confetti'
+import LuterLogo from '../shared/LuterLogo'
 
 export function WorkstationNotes({ content, material, onRegenerate }) {
   if (!content) return <EmptyState icon={BookOpen} label="Notes are being drafted..." />
@@ -16,14 +21,14 @@ export function WorkstationNotes({ content, material, onRegenerate }) {
     <motion.div 
       initial={{ opacity: 0, y: 20 }} 
       animate={{ opacity: 1, y: 0 }}
-      style={{ maxWidth: '900px', margin: '0 auto', padding: '40px' }}
+      style={{ maxWidth: '900px', margin: '0 auto', padding: '40px', fontFamily: "var(--font-varela)" }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px', borderBottom: '2px solid #F1F5F9', paddingBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', padding: '24px 32px', borderRadius: '24px', border: '1.5px solid #F1F5F9', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.04)' }}>
         <div>
-          <div style={{ color: '#7a12cc', fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <BookOpen size={16} /> Structured Study Notes
+          <div style={{ color: '#4B0082', fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: "var(--font-outfit)" }}>
+             <BookOpen size={16} /> Structured study notes
           </div>
-          <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#1A102D' }}>{material?.title}</h1>
+          <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#1A102D', margin: 0, fontFamily: "var(--font-outfit)", letterSpacing: '-0.02em' }}>{material?.title}</h1>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <ActionButton onClick={() => window.print()} icon={Printer} label="Print" />
@@ -31,7 +36,7 @@ export function WorkstationNotes({ content, material, onRegenerate }) {
           <ActionButton icon={Share2} label="Share" />
           <button 
             onClick={onRegenerate}
-            style={{ padding: '10px 20px', borderRadius: '12px', background: '#F5F3FF', color: '#7a12cc', border: 'none', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+            style={{ padding: '12px 24px', borderRadius: '14px', background: '#6D28D9', color: 'white', border: 'none', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 10px 20px -5px rgba(109, 40, 217, 0.25)', fontFamily: 'var(--font-outfit)' }}
           >
             <RefreshCw size={16} /> Regenerate
           </button>
@@ -43,22 +48,26 @@ export function WorkstationNotes({ content, material, onRegenerate }) {
         style={{ 
           background: 'white', 
           padding: '60px', 
-          borderRadius: '32px', 
+          borderRadius: '40px', 
           border: '1.5px solid #E2E8F0', 
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.05)',
-          fontSize: '17px',
-          lineHeight: 1.7,
-          color: '#2D3748'
+          boxShadow: '0 40px 100px -20px rgba(0, 0, 0, 0.08)',
+          fontSize: '18px',
+          lineHeight: 1.8,
+          color: '#2D3748',
+          position: 'relative'
         }}
       >
+        <div style={{ position: 'absolute', top: 32, right: 40, opacity: 0.05 }}><LuterLogo size={120} /></div>
         <ReactMarkdown>{content}</ReactMarkdown>
       </div>
 
-      <div style={{ marginTop: '40px', padding: '24px', background: '#FDFCF7', borderRadius: '20px', border: '1px solid #FEF3C7', display: 'flex', gap: '16px' }}>
-        <AlertCircle color="#D97706" />
+      <div style={{ marginTop: '40px', padding: '32px', background: '#FFFBEB', borderRadius: '32px', border: '1.5px solid #FEF3C7', display: 'flex', gap: '24px', alignItems: 'center' }}>
+        <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <AlertCircle weight="bold" size={28} color="#D97706" />
+        </div>
         <div>
-          <h4 style={{ color: '#92400E', fontWeight: 700, marginBottom: '4px' }}>Professor's Insight</h4>
-          <p style={{ color: '#B45309', fontSize: '14px', margin: 0 }}>These notes cover all major points from your lecture slides. Focus specifically on the "Core Mechanisms" section for the upcoming exam.</p>
+          <h4 style={{ color: '#92400E', fontWeight: 700, marginBottom: '4px', fontSize: '18px', fontFamily: "var(--font-outfit)" }}>Professor's Insight</h4>
+          <p style={{ color: '#B45309', fontSize: '15px', margin: 0, fontWeight: 500 }}>These notes cover all major points from your lecture slides. Focus specifically on the "Core Mechanisms" section for the upcoming exam.</p>
         </div>
       </div>
     </motion.div>
@@ -66,38 +75,37 @@ export function WorkstationNotes({ content, material, onRegenerate }) {
 }
 
 export function WorkstationSummary({ content, material }) {
-  if (!content) return <EmptyState icon={Sparkles} label="Distilling key insights..." />
+  if (!content) return <EmptyState icon={Sparkle} label="Distilling key insights..." />
 
   return (
     <motion.div 
       initial={{ opacity: 0, scale: 0.98 }} 
       animate={{ opacity: 1, scale: 1 }}
-      style={{ maxWidth: '800px', margin: '0 auto', padding: '40px' }}
+      style={{ maxWidth: '800px', margin: '0 auto', padding: '40px', fontFamily: "var(--font-varela)" }}
     >
       <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-        <div style={{ display: 'inline-flex', padding: '8px 16px', background: 'rgba(122, 18, 204, 0.08)', borderRadius: '100px', color: '#7a12cc', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', marginBottom: '16px' }}>
+        <div style={{ display: 'inline-flex', padding: '10px 20px', background: 'rgba(75, 0, 130, 0.08)', borderRadius: '100px', color: '#4B0082', fontWeight: 600, fontSize: '12px', marginBottom: '20px', border: '1px solid rgba(75, 0, 130, 0.1)', fontFamily: "var(--font-outfit)", letterSpacing: '0.03em' }}>
           ✨ Summary Brief
         </div>
-        <h2 style={{ fontSize: '32px', fontWeight: 800, color: '#1A102D' }}>{material?.title}</h2>
+        <h2 style={{ fontSize: '36px', fontWeight: 700, color: '#1A102D', fontFamily: "var(--font-outfit)", letterSpacing: '-0.03em' }}>{material?.title}</h2>
       </div>
 
-      <div style={{ background: 'linear-gradient(135deg, #7a12cc 0%, #4C1D95 100%)', padding: '2px', borderRadius: '32px', marginBottom: '40px' }}>
-        <div style={{ background: 'white', padding: '48px', borderRadius: '30px' }}>
-          <div className="markdown-body" style={{ fontSize: '18px', color: '#4A5568' }}>
+      <div style={{ background: 'linear-gradient(135deg, #4B0082 0%, #4C1D95 100%)', padding: '2px', borderRadius: '40px', marginBottom: '48px', boxShadow: '0 30px 60px -12px rgba(75, 0, 130, 0.2)' }}>
+        <div style={{ background: 'white', padding: '56px', borderRadius: '38px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: -20, right: -20, opacity: 0.03 }}><LuterLogo size={180} /></div>
+          <div className="markdown-body" style={{ fontSize: '19px', color: '#4A5568', lineHeight: 1.7, position: 'relative', zIndex: 1 }}>
             <ReactMarkdown>{content}</ReactMarkdown>
           </div>
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-        <SummaryTile title="Est. Read Time" value="2 Minutes" icon={RefreshCw} color="#7a12cc" />
-        <SummaryTile title="Complexity" value="Standard" icon={BookOpen} color="#F59E0B" />
+        <SummaryTile title="Est. Read Time" value="2 Minutes" icon={Clock} color="#4B0082" />
+        <SummaryTile title="Complexity" value="Standard" icon={Layout} color="#F59E0B" />
       </div>
     </motion.div>
   )
 }
-
-import confetti from 'canvas-confetti'
 
 export function WorkstationFlashcards({ items = [], material, user }) {
   const [idx, setIdx] = useState(0)
@@ -123,8 +131,8 @@ export function WorkstationFlashcards({ items = [], material, user }) {
       const timeLeft = animationEnd - Date.now()
       if (timeLeft <= 0) return clearInterval(interval)
       const particleCount = 50 * (timeLeft / duration)
-      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } })
-      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } })
+      canvasConfetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } })
+      canvasConfetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } })
     }, 250)
   }
 
@@ -177,39 +185,39 @@ export function WorkstationFlashcards({ items = [], material, user }) {
   if (isFinished) {
     return (
       <motion.div 
-        initial={{ opacity: 0, y: 20 }} 
-        animate={{ opacity: 1, y: 0 }}
-        style={{ maxWidth: '600px', margin: '60px auto', textAlign: 'center', background: 'white', padding: '60px', borderRadius: '40px', border: '1.5px solid #E2E8F0', boxShadow: '0 30px 60px rgba(0,0,0,0.08)' }}
+        initial={{ opacity: 0, scale: 0.9 }} 
+        animate={{ opacity: 1, scale: 1 }}
+        style={{ maxWidth: '640px', margin: '60px auto', textAlign: 'center', background: 'white', padding: '80px 48px', borderRadius: '48px', border: '1px solid #f1f5f9', boxShadow: '0 40px 100px -20px rgba(0,0,0,0.12)', fontFamily: "'Varela Round', sans-serif" }}
       >
-        <div style={{ width: '100px', height: '100px', background: '#F5F3FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px' }}>
-          <Zap size={48} color="#7a12cc" />
+        <div style={{ width: '120px', height: '120px', background: '#F5F3FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 40px', boxShadow: 'inset 0 4px 12px rgba(122, 18, 204, 0.1)' }}>
+          <Trophy weight="bold" size={64} color="#7a12cc" />
         </div>
-        <h2 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '16px', color: '#1A102D' }}>Mastery Achieved!</h2>
-        <p style={{ color: '#64748B', fontSize: '18px', marginBottom: '48px' }}>You've reviewed the entire deck. Your retention is looking strong!</p>
+        <h2 style={{ fontSize: '36px', fontWeight: 700, marginBottom: '16px', color: '#1A102D', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.02em' }}>Mastery achieved</h2>
+        <p style={{ color: '#64748B', fontSize: '18px', marginBottom: '48px', fontWeight: 400, lineHeight: 1.6 }}>You've reviewed the entire deck. Your retention is looking strong.</p>
         
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '48px' }}>
-          <div style={{ padding: '24px', background: '#F0FDF4', borderRadius: '24px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 800, color: '#16A34A', textTransform: 'uppercase', marginBottom: '8px' }}>Mastered</div>
-            <div style={{ fontSize: '24px', fontWeight: 800 }}>{mastered.size}</div>
+          <div style={{ padding: '32px 24px', background: '#ECFDF5', borderRadius: '32px', border: '1px solid #D1FAE5' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: '#059669', marginBottom: '8px', letterSpacing: '0.03em' }}>Mastered</div>
+            <div style={{ fontSize: '32px', fontWeight: 700, color: '#064E3B' }}>{mastered.size}</div>
           </div>
-          <div style={{ padding: '24px', background: '#F8FAFC', borderRadius: '24px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '8px' }}>Deck Size</div>
-            <div style={{ fontSize: '24px', fontWeight: 800 }}>{safeItems.length}</div>
+          <div style={{ padding: '32px 24px', background: '#F8FAFC', borderRadius: '32px', border: '1px solid #E2E8F0' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px', letterSpacing: '0.03em' }}>Deck size</div>
+            <div style={{ fontSize: '32px', fontWeight: 700, color: '#1E293B' }}>{safeItems.length}</div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '16px' }}>
+        <div style={{ display: 'flex', gap: '20px' }}>
           <button 
             onClick={() => { setIdx(0); setIsFinished(false); setMastered(new Set()); setIsFlipped(false); }}
-            style={{ flex: 1, padding: '18px', borderRadius: '20px', border: '2.5px solid #F1F5F9', background: 'white', fontWeight: 800, cursor: 'pointer', color: '#1A102D' }}
+            style={{ flex: 1, padding: '20px', borderRadius: '22px', border: '2px solid #F1F5F9', background: 'white', fontWeight: 700, cursor: 'pointer', color: '#1A102D', fontSize: '15px' }}
           >
             Reset Deck
           </button>
           <button 
             onClick={handleShare}
-            style={{ flex: 2, padding: '18px', borderRadius: '20px', background: '#7a12cc', color: 'white', fontWeight: 800, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+            style={{ flex: 2, padding: '20px', borderRadius: '22px', background: '#6D28D9', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '15px', boxShadow: '0 10px 20px -5px rgba(109, 40, 217, 0.25)' }}
           >
-            {isSharing ? 'Generating...' : <><Share2 size={20} /> Share Bundle</>}
+            {isSharing ? 'Generating...' : <><Share2 weight="bold" size={20} /> Share Bundle</>}
           </button>
         </div>
       </motion.div>
@@ -217,47 +225,53 @@ export function WorkstationFlashcards({ items = [], material, user }) {
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px' }}>
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px', fontFamily: "var(--font-varela)" }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
         <div>
-           <div style={{ fontSize: '12px', fontWeight: 900, color: '#7a12cc', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Active Session</div>
-           <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0, color: '#1A102D' }}>{material?.title || 'Recall Training'}</h2>
+           <div style={{ fontSize: '12px', fontWeight: 600, color: '#4B0082', letterSpacing: '0.04em', marginBottom: '4px', fontFamily: "var(--font-outfit)" }}>Active session</div>
+           <h2 style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: '#1A102D', fontFamily: "var(--font-outfit)", letterSpacing: '-0.02em' }}>{material?.title || 'Recall Training'}</h2>
         </div>
         <button 
           onClick={handleShare}
-          style={{ padding: '10px 20px', borderRadius: '12px', background: '#F5F3FF', color: '#7a12cc', border: '1px solid #E2E8F0', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+          style={{ padding: '12px 24px', borderRadius: '14px', background: 'white', color: '#4B0082', border: '1.5px solid #F1F5F9', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', fontFamily: 'var(--font-outfit)' }}
         >
-          {isSharing ? <RefreshCw className="animate-spin" size={16} /> : <Share2 size={16} />} Share Deck
+          {isSharing ? <RefreshCw className="animate-spin" size={16} /> : <Share2 size={16} />} Share deck
         </button>
       </div>
 
       {/* Progress Bar */}
-      <div style={{ marginBottom: '40px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          <span>Current Progress: {idx + 1}/{safeItems.length}</span>
-          <span>Mastery: {Math.round(progress)}%</span>
+      <div style={{ marginBottom: '48px', padding: '24px', background: '#F8FAFC', borderRadius: '24px', border: '1px solid #F1F5F9' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '13px', fontWeight: 600, color: '#64748B', letterSpacing: '0.03em', fontFamily: 'var(--font-outfit)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Layers weight="bold" size={16} color="#4B0082" />
+            <span>PROGRESS: {idx + 1} OF {safeItems.length}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Star weight="fill" size={16} color="#F59E0B" />
+            <span>Mastery: {Math.round(progress)}%</span>
+          </div>
         </div>
-        <div style={{ height: '8px', background: '#F1F5F9', borderRadius: '4px', overflow: 'hidden', display: 'flex' }}>
+        <div style={{ height: '10px', background: '#E2E8F0', borderRadius: '99px', overflow: 'hidden', position: 'relative' }}>
           <motion.div 
             animate={{ width: `${((idx + 1) / safeItems.length) * 100}%` }}
-            style={{ height: '100%', background: '#E2E8F0', transition: 'width 0.3s' }} 
+            style={{ height: '100%', background: '#CBD5E1', borderRadius: '99px', position: 'absolute', top: 0, left: 0 }} 
           />
           <motion.div 
             animate={{ width: `${progress}%` }}
-            style={{ height: '100%', background: '#10B981', position: 'absolute', left: 0, transition: 'width 0.3s' }} 
+            style={{ height: '100%', background: '#10B981', borderRadius: '99px', position: 'absolute', top: 0, left: 0, boxShadow: '0 0 12px rgba(16, 185, 129, 0.4)' }} 
           />
         </div>
       </div>
 
       {/* Card UI */}
-      <div style={{ perspective: '2000px', height: '400px', marginBottom: '48px', position: 'relative' }}>
+      <div style={{ perspective: '2000px', height: '420px', marginBottom: '56px', position: 'relative' }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={idx}
             initial={{ x: direction * 50, opacity: 0 }}
             animate={{ x: 0, opacity: 1, rotateY: isFlipped ? 180 : 0 }}
             exit={{ x: direction * -50, opacity: 0 }}
-            transition={{ duration: 0.4, type: 'spring', stiffness: 260, damping: 20 }}
+            transition={{ duration: 0.6, type: 'spring', stiffness: 260, damping: 25 }}
             onClick={() => setIsFlipped(!isFlipped)}
             style={{ 
               width: '100%', 
@@ -270,65 +284,69 @@ export function WorkstationFlashcards({ items = [], material, user }) {
             {/* Front Side */}
             <div style={{
               position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
-              background: 'white', borderRadius: '32px', border: '2px solid #F1F5F9',
+              background: 'white', borderRadius: '40px', border: '1.5px solid #F1F5F9',
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              padding: '60px', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.05)'
+              padding: '64px', boxShadow: '0 30px 60px -15px rgba(0,0,0,0.06)'
             }}>
-              <div style={{ position: 'absolute', top: '32px', padding: '6px 14px', background: '#F8FAFC', borderRadius: '99px', fontSize: '11px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase' }}>Question</div>
-              <p style={{ fontSize: '24px', fontWeight: 800, textAlign: 'center', color: '#1A102D', lineHeight: 1.4 }}>
+              <div style={{ position: 'absolute', top: '32px', left: '32px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#7a12cc' }} />
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.06em' }}>Recall challenge</span>
+              </div>
+              <p style={{ fontSize: '28px', fontWeight: 700, textAlign: 'center', color: '#1A102D', lineHeight: 1.4, fontFamily: "var(--font-outfit)", letterSpacing: '-0.02em' }}>
                 {card?.front || card?.question}
               </p>
-              <div style={{ position: 'absolute', bottom: '32px', display: 'flex', alignItems: 'center', gap: '8px', color: '#7a12cc' }}>
-                <Sparkles size={14} /> <span style={{ fontSize: '12px', fontWeight: 800, textTransform: 'uppercase' }}>Click to Reveal</span>
+              <div style={{ position: 'absolute', bottom: '40px', display: 'flex', alignItems: 'center', gap: '10px', color: '#4B0082', background: '#F5F3FF', padding: '10px 20px', borderRadius: '99px' }}>
+                <Eye size={16} /> <span style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-outfit)' }}>Click to reveal</span>
               </div>
             </div>
 
             {/* Back Side */}
             <div style={{
               position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
-              background: '#1A102D', borderRadius: '32px', border: '2px solid #1A102D',
+              background: '#1A102D', borderRadius: '40px', border: '2px solid #1A102D',
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              padding: '60px', transform: 'rotateY(180deg)', boxShadow: '0 30px 60px -15px rgba(0,0,0,0.3)'
+              padding: '64px', transform: 'rotateY(180deg)', boxShadow: '0 40px 80px -20px rgba(0,0,0,0.4)'
             }}>
-              <div style={{ position: 'absolute', top: '32px', padding: '6px 14px', background: 'rgba(255,255,255,0.1)', borderRadius: '99px', fontSize: '11px', fontWeight: 800, color: 'white', textTransform: 'uppercase', opacity: 0.6 }}>Answer</div>
-              <p style={{ fontSize: '20px', fontWeight: 600, textAlign: 'center', color: 'white', lineHeight: 1.6 }}>
+              <div style={{ position: 'absolute', top: '32px', padding: '8px 16px', background: 'rgba(255,255,255,0.1)', borderRadius: '99px', fontSize: '12px', fontWeight: 600, color: 'white', letterSpacing: '0.06em' }}>Insight revealed</div>
+              <p style={{ fontSize: '22px', fontWeight: 600, textAlign: 'center', color: 'white', lineHeight: 1.6 }}>
                 {card?.back || card?.answer}
               </p>
+              <div style={{ position: 'absolute', bottom: -20, right: -20, opacity: 0.05 }}><LuterLogo size={140} color="white" /></div>
             </div>
           </motion.div>
         </AnimatePresence>
       </div>
 
       {/* Control Buttons */}
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '32px' }}>
         <button 
           onClick={(e) => { e.stopPropagation(); setDirection(-1); setIdx(Math.max(0, idx - 1)); setIsFlipped(false); }}
           disabled={idx === 0}
-          style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'white', border: '1.5px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: idx === 0 ? '#CBD5E1' : '#1A102D', cursor: idx === 0 ? 'default' : 'pointer', transition: 'all 0.2s' }}
+          style={{ width: '72px', height: '72px', borderRadius: '24px', background: 'white', border: '2px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: idx === 0 ? '#CBD5E1' : '#1A102D', cursor: idx === 0 ? 'default' : 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
         >
-          <ChevronLeft size={28} />
+          <ChevronLeft weight="bold" size={32} />
         </button>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(140px, 1fr) minmax(140px, 1fr)', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px, 1fr) minmax(160px, 1fr)', gap: '20px' }}>
           <button 
             onClick={(e) => { e.stopPropagation(); handleNext(); }}
-            style={{ padding: '20px 32px', borderRadius: '22px', background: '#F8FAFC', color: '#64748B', border: '1.5px solid #E2E8F0', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px' }}
+            style={{ padding: '24px 32px', borderRadius: '24px', background: '#F8FAFC', color: '#64748B', border: '2px solid #E2E8F0', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', fontSize: '15px' }}
           >
             Skip
           </button>
           <button 
             onClick={(e) => { e.stopPropagation(); handleMastered(); }}
-            style={{ padding: '20px 32px', borderRadius: '22px', background: '#DCFCE7', color: '#16A34A', border: 'none', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px', boxShadow: '0 4px 12px rgba(22, 163, 74, 0.1)' }}
+            style={{ padding: '24px 32px', borderRadius: '24px', background: '#DCFCE7', color: '#16A34A', border: '2px solid #16A34A', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', fontSize: '15px', boxShadow: '0 10px 20px -5px rgba(22, 163, 74, 0.2)' }}
           >
-            <CheckCircle2 size={20} /> Mastered
+            <CheckCircle weight="bold" size={20} /> Mastered
           </button>
         </div>
 
         <button 
           onClick={(e) => { e.stopPropagation(); setDirection(1); handleNext(); }}
-          style={{ width: '64px', height: '64px', borderRadius: '20px', background: '#1A102D', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer', transition: 'all 0.2s' }}
+          style={{ width: '72px', height: '72px', borderRadius: '24px', background: '#1A102D', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 10px 30px rgba(26, 16, 45, 0.3)' }}
         >
-          <ChevronRight size={28} />
+          <ChevronRight weight="bold" size={32} />
         </button>
       </div>
     </div>
@@ -386,43 +404,43 @@ export function WorkstationQuiz({ items = [], material, onComplete }) {
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }} 
         animate={{ opacity: 1, scale: 1 }}
-        style={{ maxWidth: '600px', margin: '40px auto', background: 'white', padding: '48px', borderRadius: '32px', border: '1.5px solid #E2E8F0', boxShadow: '0 20px 40px rgba(0,0,0,0.05)', textAlign: 'center' }}
+        style={{ maxWidth: '640px', margin: '60px auto', background: 'white', padding: '64px 48px', borderRadius: '48px', border: '1px solid #f1f5f9', boxShadow: '0 40px 100px -20px rgba(0,0,0,0.12)', textAlign: 'center', fontFamily: "'Varela Round', sans-serif" }}
       >
-        <div style={{ width: '80px', height: '80px', background: '#F5F3FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-          <Trophy size={40} color="#7a12cc" />
+        <div style={{ width: '100px', height: '100px', background: '#F5F3FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px', boxShadow: 'inset 0 4px 12px rgba(122, 18, 204, 0.1)' }}>
+          <Trophy weight="bold" size={48} color="#7a12cc" />
         </div>
-        <h2 style={{ fontSize: '28px', fontWeight: 800, color: '#1A102D', marginBottom: '8px' }}>Session Complete!</h2>
-        <p style={{ color: '#64748B', fontSize: '16px', marginBottom: '32px' }}>Great focus! You've analyzed your understanding of {material?.title}.</p>
+        <h2 style={{ fontSize: '32px', fontWeight: 700, color: '#1A102D', marginBottom: '12px', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.02em' }}>Assessment complete</h2>
+        <p style={{ color: '#64748B', fontSize: '17px', marginBottom: '40px', fontWeight: 500, lineHeight: 1.6 }}>Great focus! You've analyzed your understanding of {material?.title}.</p>
         
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
-          <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '20px', border: '1.5px solid #E2E8F0' }}>
-            <div style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '4px' }}>Accuracy</div>
-            <div style={{ fontSize: '24px', fontWeight: 900, color: accuracy >= 50 ? '#10B981' : '#EF4444' }}>{accuracy}%</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }}>
+          <div style={{ padding: '24px', background: '#F8FAFC', borderRadius: '24px', border: '1.5px solid #E2E8F0' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px', letterSpacing: '0.03em' }}>Accuracy</div>
+            <div style={{ fontSize: '28px', fontWeight: 700, color: accuracy >= 50 ? '#059669' : '#EF4444' }}>{accuracy}%</div>
           </div>
-          <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '20px', border: '1.5px solid #E2E8F0' }}>
-            <div style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '4px' }}>Correct</div>
-            <div style={{ fontSize: '24px', fontWeight: 900, color: '#1A102D' }}>{score}/{safeQuestions.length}</div>
+          <div style={{ padding: '24px', background: '#F8FAFC', borderRadius: '24px', border: '1.5px solid #E2E8F0' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px', letterSpacing: '0.03em' }}>Score</div>
+            <div style={{ fontSize: '28px', fontWeight: 700, color: '#1A102D' }}>{score}/{safeQuestions.length}</div>
           </div>
         </div>
 
         <button 
           onClick={() => { setIdx(0); setIsFinished(false); setSelected({}); setTypeInAnswers({}); setShowExplanation(false); }}
-          style={{ width: '100%', padding: '16px', borderRadius: '16px', background: '#7a12cc', color: 'white', fontWeight: 800, border: 'none', cursor: 'pointer', fontSize: '15px', boxShadow: '0 10px 20px -5px rgba(122, 18, 204, 0.3)' }}
+          style={{ width: '100%', padding: '20px', borderRadius: '22px', background: '#6D28D9', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer', fontSize: '16px', boxShadow: '0 10px 20px -5px rgba(109, 40, 217, 0.25)', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em' }}
         >
-          Retake Assessment
+          Retake assessment
         </button>
       </motion.div>
     )
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
+    <div style={{ maxWidth: '840px', margin: '0 auto', padding: '20px', fontFamily: "'Varela Round', sans-serif" }}>
       {/* Quiz Progress Bar */}
-      <div style={{ height: '6px', background: '#E2E8F0', borderRadius: '99px', marginBottom: '40px', overflow: 'hidden' }}>
+      <div style={{ height: '10px', background: '#E2E8F0', borderRadius: '99px', marginBottom: '48px', overflow: 'hidden', border: '1px solid #f1f5f9' }}>
         <motion.div 
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
-          style={{ height: '100%', background: '#7a12cc', borderRadius: '99px' }}
+          style={{ height: '100%', background: 'linear-gradient(90deg, #7a12cc 0%, #A855F7 100%)', borderRadius: '99px', boxShadow: '0 0 12px rgba(122, 18, 204, 0.4)' }}
         />
       </div>
 
@@ -432,18 +450,22 @@ export function WorkstationQuiz({ items = [], material, onComplete }) {
         animate={{ opacity: 1, x: 0 }}
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
       >
-        <div style={{ alignSelf: 'flex-start', display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: '24px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase' }}>Question {idx + 1} / {safeQuestions.length}</span>
-          <span style={{ padding: '4px 12px', background: '#F0FDF4', color: '#166534', borderRadius: '99px', fontSize: '11px', fontWeight: 800 }}>Practice Mode</span>
+        <div style={{ alignSelf: 'flex-start', display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: '32px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <HelpCircle weight="bold" size={20} color="#7a12cc" />
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.03em' }}>Question {idx + 1} of {safeQuestions.length}</span>
+          </div>
+          <span style={{ padding: '6px 16px', background: '#ECFDF5', color: '#059669', borderRadius: '99px', fontSize: '12px', fontWeight: 600, border: '1px solid #D1FAE5' }}>Practice mode</span>
         </div>
 
         {/* Question Area */}
-        <div style={{ background: '#F5F3FF', borderRadius: '24px', padding: '32px', width: '100%', marginBottom: '32px', boxShadow: '0 4px 15px rgba(122, 18, 204, 0.05)', border: '1.5px solid #E0E7FF' }}>
-          <h3 style={{ fontSize: '20px', fontWeight: 600, color: '#1A102D', lineHeight: 1.5, margin: 0, textAlign: 'center' }}>{q.question}</h3>
+        <div style={{ background: 'white', borderRadius: '32px', padding: '48px', width: '100%', marginBottom: '40px', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.04)', border: '1.5px solid #F1F5F9', position: 'relative' }}>
+          <div style={{ position: 'absolute', top: -15, left: 40, background: '#1A102D', color: 'white', padding: '4px 16px', borderRadius: '8px', fontSize: '11px', fontWeight: 600 }}>Prompt</div>
+          <h3 style={{ fontSize: '24px', fontWeight: 700, color: '#1A102D', lineHeight: 1.5, margin: 0, textAlign: 'left', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.02em' }}>{q.question}</h3>
         </div>
 
         {/* Options Area */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', marginBottom: '40px' }}>
           {(q.type === 'multiple' || !q.type) && q.options?.map((opt, i) => {
             const isUserSelected = selected[idx] === i
             const correctAns = q.correct_answer ?? q.answer
@@ -453,28 +475,40 @@ export function WorkstationQuiz({ items = [], material, onComplete }) {
             return (
               <motion.button
                 key={i}
-                whileHover={{ y: isAnswered ? 0 : -2 }}
-                whileTap={{ scale: isAnswered ? 1 : 0.98 }}
+                whileHover={{ x: isAnswered ? 0 : 8 }}
+                whileTap={{ scale: isAnswered ? 1 : 0.99 }}
                 onClick={() => handleSelect(i)}
                 disabled={isAnswered}
                 style={{ 
-                  padding: '18px 24px', 
-                  borderRadius: '16px', 
-                  background: isCorrect ? '#DCFCE7' : isWrong ? '#FEF2F2' : (isUserSelected ? '#F5F3FF' : 'white'), 
-                  border: isCorrect ? '2px solid #22C55E' : isWrong ? '2px solid #EF4444' : (isUserSelected ? '2px solid #7a12cc' : '1.5px solid #E2E8F0'),
+                  padding: '24px 32px', 
+                  borderRadius: '24px', 
+                  background: isCorrect ? '#ECFDF5' : isWrong ? '#FEF2F2' : (isUserSelected ? '#F5F3FF' : 'white'), 
+                  border: isCorrect ? '2px solid #059669' : isWrong ? '2px solid #EF4444' : (isUserSelected ? '2px solid #7a12cc' : '1.5px solid #E2E8F0'),
                   textAlign: 'left',
                   cursor: isAnswered ? 'default' : 'pointer',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: isUserSelected ? '0 10px 20px -5px rgba(122, 18, 204, 0.1)' : 'none'
                 }}
               >
-                <span style={{ fontSize: '16px', fontWeight: 500, color: '#1A3A32' }}>
-                  {String.fromCharCode(65 + i)}. {typeof opt === 'object' ? (opt.text || opt.choice || JSON.stringify(opt)) : opt}
-                </span>
-                {isCorrect && <CheckCircle2 size={18} color="#22C55E" />}
-                {isWrong && <AlertCircle size={18} color="#EF4444" />}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                  <div style={{ 
+                    width: '32px', height: '32px', borderRadius: '10px', 
+                    background: isCorrect ? '#059669' : isWrong ? '#EF4444' : (isUserSelected ? '#7a12cc' : '#F1F5F9'), 
+                    color: (isCorrect || isWrong || isUserSelected) ? 'white' : '#94A3B8',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '14px', fontWeight: 700
+                  }}>
+                    {String.fromCharCode(65 + i)}
+                  </div>
+                  <span style={{ fontSize: '17px', fontWeight: 600, color: isUserSelected ? '#1A102D' : '#4A5568' }}>
+                    {typeof opt === 'object' ? (opt.text || opt.choice || JSON.stringify(opt)) : opt}
+                  </span>
+                </div>
+                {isCorrect && <CheckCircle weight="fill" size={24} color="#059669" />}
+                {isWrong && <XCircle weight="fill" size={24} color="#EF4444" />}
               </motion.button>
             )
           })}
@@ -496,7 +530,7 @@ export function WorkstationQuiz({ items = [], material, onComplete }) {
                   padding: '18px 24px', 
                   borderRadius: '16px', 
                   background: isCorrect ? '#DCFCE7' : isWrong ? '#FEF2F2' : (isUserSelected ? '#F5F3FF' : 'white'), 
-                  border: isCorrect ? '2px solid #22C55E' : isWrong ? '2px solid #EF4444' : (isUserSelected ? '2px solid #7a12cc' : '1.5px solid #E2E8F0'),
+                  border: isCorrect ? '2px solid #22C55E' : isWrong ? '2px solid #EF4444' : (isUserSelected ? '2px solid #4B0082' : '1.5px solid #E2E8F0'),
                   cursor: isAnswered ? 'default' : 'pointer',
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -504,8 +538,8 @@ export function WorkstationQuiz({ items = [], material, onComplete }) {
                 }}
               >
                 <span style={{ fontSize: '16px', fontWeight: 600, color: '#1A3A32' }}>{label}</span>
-                {isCorrect && <CheckCircle2 size={18} color="#22C55E" />}
-                {isWrong && <AlertCircle size={18} color="#EF4444" />}
+                {isCorrect && <CheckCircle weight="bold" size={18} color="#22C55E" />}
+                {isWrong && <AlertCircle weight="bold" size={18} color="#EF4444" />}
               </motion.button>
             )
           })}
@@ -539,8 +573,8 @@ export function WorkstationQuiz({ items = [], material, onComplete }) {
               animate={{ opacity: 1, height: 'auto' }}
               style={{ width: '100%', background: '#F8F9FF', borderRadius: '20px', padding: '24px', border: '1.5px solid #E0E7FF', marginBottom: '32px' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#4338CA', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', marginBottom: '8px' }}>
-                <Sparkles size={14} /> Explanation & Reasoning
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#4338CA', fontWeight: 600, fontSize: '11px', marginBottom: '8px' }}>
+                <Sparkle size={14} /> Explanation & Reasoning
               </div>
               <p style={{ margin: 0, color: '#374151', fontSize: '14px', lineHeight: 1.6 }}>{q.explanation}</p>
               {q.type === 'typein' && (
@@ -567,25 +601,35 @@ export function WorkstationQuiz({ items = [], material, onComplete }) {
 
 function EmptyState({ icon: Icon, label }) {
   return (
-    <div style={{ height: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ height: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
       <div style={{ position: 'relative', marginBottom: '32px' }}>
-         <Icon size={64} style={{ color: 'var(--luter-primary)' }} />
+         <div style={{ width: '100px', height: '100px', background: '#F5F3FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 4px 12px rgba(75, 0, 130, 0.1)' }}>
+            <Icon size={48} weight="bold" color="#4B0082" />
+         </div>
          <motion.div
-           animate={{ scale: [1, 1.4, 1], opacity: [0.2, 0.4, 0.2] }}
-           transition={{ repeat: Infinity, duration: 2.5 }}
-           style={{ position: 'absolute', inset: -15, border: '2px solid var(--luter-primary)', borderRadius: '50%' }}
+           animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0.3, 0.1] }}
+           transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+           style={{ position: 'absolute', inset: -20, border: '2.5px solid #4B0082', borderRadius: '50%' }}
          />
       </div>
-      <p style={{ fontSize: '18px', fontWeight: '800', color: 'var(--luter-primary-dark)', letterSpacing: '-0.01em' }}>{label}</p>
-      <div style={{ marginTop: '16px', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Luter is drafting...</div>
+      <p style={{ fontSize: '20px', fontWeight: 700, color: '#1A102D', letterSpacing: '-0.02em', fontFamily: 'var(--font-outfit)', marginBottom: '8px' }}>{label}</p>
+      <div style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', fontFamily: 'var(--font-outfit)' }}>Luter is curating your space...</div>
     </div>
   )
 }
 
 function ActionButton({ icon: Icon, label, onClick }) {
   return (
-    <button onClick={onClick} style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'white', border: '1.5px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', cursor: 'pointer', transition: 'all 0.2s' }}>
-      <Icon size={20} />
+    <button 
+      onClick={onClick} 
+      style={{ 
+        width: '44px', height: '44px', borderRadius: '12px', background: 'white', border: '1.5px solid #F1F5F9', 
+        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', cursor: 'pointer', 
+        transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' 
+      }}
+      title={label}
+    >
+      <Icon size={20} weight="bold" />
     </button>
   )
 }
@@ -597,8 +641,8 @@ function SummaryTile({ title, value, icon: Icon, color }) {
         <Icon size={24} />
       </div>
       <div>
-        <div style={{ fontSize: '12px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '4px' }}>{title}</div>
-        <div style={{ fontSize: '18px', fontWeight: 800, color: '#1A102D' }}>{value}</div>
+        <div style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '4px' }}>{title}</div>
+        <div style={{ fontSize: '18px', fontWeight: 700, color: '#1A102D' }}>{value}</div>
       </div>
     </div>
   )
@@ -627,22 +671,22 @@ export function WorkstationSummaryEnhanced({ content, material, pageSummaries = 
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ maxWidth: '900px', margin: '0 auto', padding: '40px' }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ maxWidth: '900px', margin: '0 auto', padding: '40px', fontFamily: 'var(--font-varela)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
         <div>
-          <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#1A102D', marginBottom: '8px' }}>Course Insights</h1>
+          <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#1A102D', marginBottom: '8px', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>Course insights</h1>
           <p style={{ color: '#64748B', fontSize: '14px', fontWeight: '500' }}>Distilled intelligence from your study material.</p>
         </div>
-        <div style={{ display: 'flex', background: '#F1F5F9', padding: '4px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+        <div style={{ display: 'flex', background: '#F1F5F9', padding: '4px', borderRadius: '12px', border: '1.5px solid #F1F5F9' }}>
           <button 
             onClick={() => setViewMode('full')}
-            style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: viewMode === 'full' ? 'white' : 'transparent', color: viewMode === 'full' ? '#1A102D' : '#64748B', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' }}
+            style={{ padding: '10px 20px', borderRadius: '10px', border: 'none', background: viewMode === 'full' ? 'white' : 'transparent', color: viewMode === 'full' ? '#4B0082' : '#64748B', fontWeight: 600, fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em', boxShadow: viewMode === 'full' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none' }}
           >
             Full Summary
           </button>
           <button 
             onClick={() => setViewMode('pages')}
-            style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: viewMode === 'pages' ? 'white' : 'transparent', color: viewMode === 'pages' ? '#1A102D' : '#64748B', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' }}
+            style={{ padding: '10px 20px', borderRadius: '10px', border: 'none', background: viewMode === 'pages' ? 'white' : 'transparent', color: viewMode === 'pages' ? '#4B0082' : '#64748B', fontWeight: 600, fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em', boxShadow: viewMode === 'pages' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none' }}
           >
             By Page
           </button>
@@ -660,7 +704,7 @@ export function WorkstationSummaryEnhanced({ content, material, pageSummaries = 
           {Object.keys(pageSummaries).length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px', background: 'white', borderRadius: '32px', border: '1px dashed #CBD5E1' }}>
               <div style={{ width: '64px', height: '64px', background: '#F5F3FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#7a12cc' }}>
-                 <Sparkles size={32} />
+                 <Sparkle size={32} />
               </div>
               <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1A102D', marginBottom: '8px' }}>Page-by-Page Insights</h3>
               <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '24px', maxWidth: '300px', margin: '0 auto 24px' }}>Deep dive into every single page of your material with granular summaries.</p>
@@ -677,7 +721,7 @@ export function WorkstationSummaryEnhanced({ content, material, pageSummaries = 
             Object.entries(pageSummaries).sort(([a],[b]) => parseInt(a)-parseInt(b)).map(([pg, sum]) => (
               <motion.div key={pg} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ background: 'white', padding: '32px', borderRadius: '24px', border: '1px solid #E2E8F0', display: 'flex', gap: '24px' }}>
                 <div style={{ padding: '12px 16px', background: '#F8FAFB', borderRadius: '12px', border: '1.5px solid #F1F5F9', height: 'fit-content', textAlign: 'center' }}>
-                  <div style={{ fontSize: '10px', fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase' }}>PAGE</div>
+                  <div style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8' }}>Page</div>
                   <div style={{ fontSize: '24px', fontWeight: '900', color: '#1A102D' }}>{pg}</div>
                 </div>
                 <div style={{ flex: 1 }}>
@@ -740,37 +784,37 @@ Return the assistance in markdown format. Be concise.`;
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '24px', background: 'white' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '24px', background: 'white', fontFamily: 'var(--font-varela)' }}>
       <header style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
-            <div style={{ color: 'var(--luter-primary)', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Edit3 size={12} /> Notepad
+            <div style={{ color: '#4B0082', fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'var(--font-outfit)' }}>
+              <PencilLine size={14} /> Notepad
             </div>
-            <h1 style={{ fontSize: '18px', fontWeight: '800', color: '#1A102D', margin: 0 }}>Study Jottings</h1>
+            <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#1A102D', margin: 0, fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>Study jottings</h1>
           </div>
           <button 
             onClick={handleManualSave}
             disabled={isSaving}
-            style={{ padding: '8px 16px', borderRadius: '8px', background: 'var(--luter-primary-dark)', border: 'none', color: 'white', fontWeight: '700', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+            style={{ padding: '10px 20px', borderRadius: '12px', background: '#4B0082', border: 'none', color: 'white', fontWeight: 600, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em', boxShadow: '0 4px 12px rgba(75, 0, 130, 0.2)' }}
           >
-            {isSaving ? <RefreshCw className="animate-spin" size={14} /> : <Save size={14} />}
+            {isSaving ? <CircleNotch className="animate-spin" size={16} /> : <Save size={16} />}
             {isSaving ? 'Saving' : 'Save'}
           </button>
         </div>
         
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
           <button 
             onClick={() => handleAiAssist('points')}
             disabled={isAssisting}
-            style={{ flex: 1, padding: '8px', borderRadius: '8px', background: '#F5F3FF', border: '1px solid #DDD6FE', color: '#7a12cc', fontWeight: '700', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+            style={{ flex: 1, padding: '10px', borderRadius: '12px', background: '#F5F3FF', border: '1.5px solid #DDD6FE', color: '#4B0082', fontWeight: 600, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em', transition: 'all 0.2s' }}
           >
-            <Sparkles size={14} /> AI Points
+            <Sparkle size={14} /> AI points
           </button>
           <button 
             onClick={() => handleAiAssist('formulas')}
             disabled={isAssisting}
-            style={{ flex: 1, padding: '8px', borderRadius: '8px', background: '#FFF7ED', border: '1px solid #FFEDD5', color: '#EA580C', fontWeight: '700', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+            style={{ flex: 1, padding: '10px', borderRadius: '12px', background: '#FFF7ED', border: '1.5px solid #FFEDD5', color: '#EA580C', fontWeight: 600, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em', transition: 'all 0.2s' }}
           >
             <Zap size={14} /> Formulas
           </button>
@@ -785,8 +829,8 @@ Return the assistance in markdown format. Be concise.`;
           style={{ width: '100%', height: '100%', border: 'none', resize: 'none', outline: 'none', fontSize: '15px', lineHeight: '1.6', color: '#334155', background: 'transparent', fontFamily: 'inherit' }}
         />
         {isAssisting && (
-          <div style={{ position: 'absolute', bottom: '16px', right: '16px', padding: '8px 16px', background: 'rgba(26, 16, 45, 0.9)', backdropFilter: 'blur(8px)', borderRadius: '100px', color: 'white', fontSize: '11px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sparkles size={12} className="animate-pulse" />
+          <div style={{ position: 'absolute', bottom: '16px', right: '16px', padding: '8px 16px', background: '#1A102D', borderRadius: '100px', color: 'white', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-outfit)', letterSpacing: '0.03em', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+            <CircleNotch size={14} className="animate-spin" />
             Luter is thinking...
           </div>
         )}

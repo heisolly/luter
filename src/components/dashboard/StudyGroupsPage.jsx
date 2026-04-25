@@ -1,20 +1,20 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Users, 
-  Plus, 
-  ChevronRight, 
-  Home, 
-  LogOut, 
-  Copy, 
-  Check, 
-  Link as LinkIcon,
-  X,
-  Palette,
-  Smile,
-  Loader2,
-  Trash2
-} from 'lucide-react'
+  RiTeamFill as Users, 
+  RiAddLine as Plus, 
+  RiArrowRightSLine as ChevronRight, 
+  RiHome5Fill as Home, 
+  RiLogoutBoxLine as LogOut, 
+  RiFileCopyLine as Copy, 
+  RiCheckLine as Check, 
+  RiLinkM as LinkIcon,
+  RiCloseLine as X,
+  RiPaletteFill as Palette,
+  RiUserSmileFill as Smile,
+  RiLoader4Line as Loader2,
+  RiDeleteBin6Fill as Trash2
+} from 'react-icons/ri'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import './study-groups.css'

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../supabaseClient'
-import { Loader2, Plus, RefreshCw } from 'lucide-react'
+import { RiLoader4Line as Loader2, RiAddLine as Plus, RiRefreshLine as RefreshCw } from 'react-icons/ri'
 import { useAdminPrefetch } from '../../context/AdminPrefetchContext'
 
 export default function AdminCourses() {

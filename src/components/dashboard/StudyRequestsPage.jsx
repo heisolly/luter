@@ -2,17 +2,17 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { 
-  Plus, 
-  Search, 
-  Filter, 
-  MessageSquare, 
-  Clock, 
-  CheckCircle2, 
-  Download,
-  AlertCircle,
-  ChevronRight,
-  BookOpen
-} from 'lucide-react';
+  RiAddLine as Plus, 
+  RiSearchLine as Search, 
+  RiFilterFill as Filter, 
+  RiChat3Fill as MessageSquare, 
+  RiTimeFill as Clock, 
+  RiCheckboxCircleFill as CheckCircle2, 
+  RiDownloadLine as Download,
+  RiAlertFill as AlertCircle,
+  RiArrowRightSLine as ChevronRight,
+  RiBookOpenFill as BookOpen
+} from 'react-icons/ri';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function StudyRequestsPage() {

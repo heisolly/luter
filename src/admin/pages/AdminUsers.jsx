@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
-import { Search, Loader2, Download } from 'lucide-react'
+import { RiSearchLine as Search, RiLoader4Line as Loader2, RiDownloadLine as Download } from 'react-icons/ri'
 import { useAdminPrefetch } from '../../context/AdminPrefetchContext'
 
 const PAGE = 25

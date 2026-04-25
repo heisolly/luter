@@ -1,22 +1,23 @@
 import { NavLink } from 'react-router-dom'
 import {
-  LayoutDashboard,
-  Users,
-  BookOpen,
-  Link2,
-  Sword,
-  Bell,
-  Activity,
-  Server,
-  Settings,
-  ExternalLink,
-  Shield,
-  GraduationCap,
-  UploadCloud,
-  Brain,
-  Calendar,
-  MessageSquare,
-} from 'lucide-react'
+  RiDashboardFill as LayoutDashboard,
+  RiUserFill as Users,
+  RiBookOpenFill as BookOpen,
+  RiLinkM as Link2,
+  RiSwordFill as Sword,
+  RiNotificationFill as Bell,
+  RiPulseFill as Activity,
+  RiServerFill as Server,
+  RiSettingsFill as Settings,
+  RiExternalLinkLine as ExternalLink,
+  RiShieldFill as Shield,
+  RiGraduationCapFill as GraduationCap,
+  RiUploadCloudFill as UploadCloud,
+  RiBrainFill as Brain,
+  RiCalendarFill as Calendar,
+  RiMessage2Fill as MessageSquare,
+  RiMagicFill as Sparkles,
+} from 'react-icons/ri'
 import LuterLogo from '../components/shared/LuterLogo'
 
 const NAV = [

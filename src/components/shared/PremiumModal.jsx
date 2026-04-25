@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Crown, Lock, Zap, Star, Check, ArrowRight } from 'lucide-react'
+import { RiCloseLine as X, RiVipCrownFill as Crown, RiLockFill as Lock, RiFlashlightFill as Zap, RiStarFill as Star, RiCheckLine as Check, RiArrowRightLine as ArrowRight } from 'react-icons/ri'
 
 export default function PremiumModal({ 
   isOpen, 

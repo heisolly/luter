@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  User, Bell, CreditCard, Shield, LogOut, 
-  Trash2, ChevronRight, Save, Loader2,
-  CheckCircle2, Sparkles, GraduationCap,
-  Briefcase, Monitor, Github, Mail,
-  X, Check, ExternalLink, ShieldAlert,
-  Ghost, Cat, Dog, Bird, Rabbit, Turtle, Smile
-} from 'lucide-react'
+  RiUserFill as User, RiNotification3Fill as Bell, RiBankCardFill as CreditCard, RiShieldFill as Shield, RiLogoutCircleRFill as LogOut, 
+  RiDeleteBin6Fill as Trash2, RiArrowRightSLine as ChevronRight, RiSaveFill as Save, RiLoader4Line as Loader2,
+  RiCheckboxCircleFill as CheckCircle2, RiMagicFill as Sparkles, RiGraduationCapFill as GraduationCap,
+  RiBriefcaseFill as Briefcase, RiComputerFill as Monitor, RiGithubFill as Github, RiMailFill as Mail,
+  RiCloseLine as X, RiCheckLine as Check, RiExternalLinkFill as ExternalLink, RiShieldFlashFill as ShieldAlert,
+  RiGhostFill as Ghost, RiBearSmileFill as Cat, RiRobotFill as Dog, RiSkullFill as Bird, RiAliensFill as Rabbit, RiMickeyFill as Turtle, RiEmotionFill as Smile
+} from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'

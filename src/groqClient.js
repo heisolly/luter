@@ -13,6 +13,8 @@ export const GROQ_MODELS = {
 }
 
 // System Prompt
+import { useLuterStore } from './store/useLuterStore';
+
 export const LUTER_SYSTEM_PROMPT = `You are Luter AI, a premium, high-energy Academic Tutor for Nigerian University students. Your goal is to simplify complex departmental materials into 'First Class' quality insights.
 
 Tone: Encouraging, sharp, and professional. Use Nigerian academic context where appropriate (e.g., referencing 'JAMB-style' or 'CBT-standard' questions).
@@ -234,9 +236,16 @@ export async function callGroqAPI(messages, model = GROQ_MODELS.PROFESSOR, optio
     profile = null,
     systemPromptOverride = null,
   } = options
-  const systemContent =
+  let systemContent =
     systemPromptOverride ??
     (profile ? buildLuterSystemPrompt(profile) : LUTER_SYSTEM_PROMPT)
+
+  try {
+    const lang = useLuterStore.getState().currentLanguage;
+    if (lang && lang !== 'en') {
+      systemContent += `\n\nUser Preference: ${lang.toUpperCase()}. CRITICAL INSTRUCTION: You are now a tutor helping the user. The user's preferred language is ${lang.toUpperCase()}. You MUST respond ONLY in this language (${lang.toUpperCase()}) unless explicitly asked otherwise. If you are generating structured data (like JSON), keep all JSON keys in English, but translate the string values to ${lang.toUpperCase()}!`;
+    }
+  } catch(e) {}
 
   const request = {
     messages: [

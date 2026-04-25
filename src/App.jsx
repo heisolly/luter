@@ -52,6 +52,7 @@ import StudyGroupDetailsPage from './components/dashboard/StudyGroupDetailsPage'
 import JoinGroupPage from './components/dashboard/JoinGroupPage'
 import LibraryPage from './components/dashboard/LibraryPage'
 import TrashPage from './components/dashboard/TrashPage'
+import VaultPage from './components/dashboard/VaultPage'
 
 
 const OFFLINE_BAR_PT = '2.75rem'
@@ -112,6 +113,7 @@ export default function App() {
             <Route path="courses/:courseId/learn" element={<CourseWorkstationRoute workstationMode={true} />} />
             <Route path="courses/:courseId" element={<CourseWorkstationRoute workstationMode={false} />} />
             <Route path="courses" element={<CoursesPage />} />
+            <Route path="vault" element={<VaultPage />} />
             <Route path="workstation" element={<WorkstationPage />} />
             <Route path="mock-exam" element={<MockExamPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
@@ -136,7 +138,7 @@ export default function App() {
           <Route path="/join/:inviteCode" element={<JoinGroupPage />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminOverview />} />
-            <Route path="notes-manager" element={<AdminNotesManager />} />
+                        <Route path="notes-manager" element={<AdminNotesManager />} />
             <Route path="requests" element={<NotesRequestsAdmin />} />
             <Route path="upload" element={<LuterAdminUploadPage />} />
             <Route path="users/:userId" element={<AdminUserDetail />} />

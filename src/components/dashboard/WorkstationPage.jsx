@@ -1,16 +1,33 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
+import {
+  House as HouseLight,
+  CaretLeft as CaretLeftLight,
+  CaretRight as CaretRightLight,
+  FileText as FileTextLight,
+  Sparkle as SparkleLight,
+  CardsThree,
+  Checks,
+  ShareNetwork as ShareNetworkLight,
+  DotsThree as DotsThreeLight,
+  Lightning as LightningLight,
+  NotePencil,
+  PencilSimple,
+  ArrowRight as ArrowRightLight,
+  BookmarkSimple
+} from '@phosphor-icons/react'
 import { 
-  BookOpen, Star, FileText, CheckCircle2, ChevronRight, ArrowLeft, ExternalLink, Layers, 
-  HelpCircle, Plus, Search, ChevronLeft, Briefcase, PlayCircle, Settings, User, LogOut, 
-  MoreVertical, Layout, Bookmark, Zap, Send, Loader2, AlertCircle, Menu, Share, 
-  GraduationCap, Share2, ClipboardList, Mic, Baby, Copy, Check, Minus, Sparkles, 
-  Lightbulb, MessageSquare, RotateCcw, ArrowRight, Home as HomeIcon, CheckSquare, MoreHorizontal, 
-  StickyNote, ArrowUp, Book, Library, Edit3
-} from 'lucide-react'
+  RiBookOpenFill as BookOpen, RiStarFill as Star, RiFileTextFill as FileText, RiCheckboxCircleFill as CheckCircle, RiArrowRightSLine as CaretRight, RiArrowLeftLine as ArrowLeft, RiExternalLinkLine as ArrowSquareOut, RiStackFill as Stack, 
+  RiQuestionFill as Question, RiAddLine as Plus, RiSearchLine as MagnifyingGlass, RiArrowLeftSLine as CaretLeft, RiBriefcaseFill as Briefcase, RiPlayCircleFill as PlayCircle, RiSettings4Fill as Settings, RiUserFill as User, RiLogoutBoxLine as SignOut, 
+  RiMore2Fill as DotsThreeVertical, RiLayoutMasonryFill as Layout, RiBookmarkFill as Bookmark, RiFlashlightFill as Zap, RiSendPlaneFill as PaperPlaneRight, RiLoader4Line as CircleNotch, RiErrorWarningFill as Warning, RiListCheck as List, RiShareFill as Share, 
+  RiGraduationCapFill as GraduationCap, RiShareForwardFill as ShareNetwork, RiClipboardFill as ClipboardText, RiMicFill as Microphone, RiUserSmileFill as Baby, RiFileCopyFill as Copy, RiCheckLine as Check, RiSubtractLine as Minus, RiMagicFill as Sparkles, 
+  RiLightbulbFill as Lightbulb, RiChat3Fill as ChatCircleText, RiRefreshLine as ArrowClockwise, RiArrowRightLine as ArrowRight, RiHome4Fill as House, RiCheckboxFill as CheckSquare, RiMoreFill as DotsThreeOutline, 
+  RiStickyNoteFill as Note, RiArrowUpLine as ArrowUp, RiBookFill as Book, RiStackFill as Library, RiPencilFill as PencilLine, RiLayoutColumnFill as Columns, RiFullscreenFill as CornersOut, RiZoomInLine as MagnifyingGlassPlus
+} from "react-icons/ri"
 
 import LuterLogo from '../shared/LuterLogo'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
@@ -35,6 +52,7 @@ const SUGGESTED_QUESTIONS = [
 ]
 
 function WorkstationContent() {
+  const { t } = useTranslation(['workspace'])
   const navigate = useNavigate()
   const { courseId } = useParams()
   const context = useOutletContext() || {}
@@ -175,11 +193,13 @@ function WorkstationContent() {
       fetchCourseInfo()
       fetchMaterials()
       checkAssignments()
+    } else if (materialIdParam) {
+      fetchStandaloneMaterial(materialIdParam)
     } else if (activeDeckItems.length > 0) {
       // Load materials from deck if no courseId is provided
       loadDeckMaterials()
     }
-  }, [courseId, activeDeckItems.length])
+  }, [courseId, materialIdParam, activeDeckItems.length])
 
   async function loadDeckMaterials() {
     setLoading(true)
@@ -202,6 +222,29 @@ function WorkstationContent() {
       }
     } catch (err) {
       console.error('Error loading deck materials:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function fetchStandaloneMaterial(materialId) {
+    setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('materials')
+        .select('*')
+        .eq('id', materialId)
+        .maybeSingle()
+
+      if (error) throw error
+
+      if (data) {
+        setCourseMaterials([data])
+        setSelectedMaterial(data)
+        setShowDashboard(false)
+      }
+    } catch (err) {
+      console.error('Error loading standalone material:', err)
     } finally {
       setLoading(false)
     }
@@ -533,103 +576,108 @@ function WorkstationContent() {
       
       {!isMobile && (
         <header className="ws-global-glass-header" style={{ 
-          background: 'rgba(255, 255, 255, 0.8)', 
-          backdropFilter: 'blur(10px)',
-          borderBottom: '1px solid rgba(0,0,0,0.05)', 
-          height: '64px', 
-          padding: '0 24px', 
+          background: 'rgba(255, 255, 255, 0.9)', 
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid #F1F5F9', 
+          height: '72px', 
+          padding: '0 32px', 
           display: 'flex', 
           alignItems: 'center',
           position: 'sticky',
           top: 0,
-          zIndex: 100
+          zIndex: 100,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
         }}>
-          <div className="ws-header-left" style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
+          <div className="ws-header-left" style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
             <button 
               className="ws-sidebar-toggle" 
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              style={{ background: '#f5f5f5', border: '1px solid #f1f1f1', borderRadius: '8px', padding: '6px', color: '#71717A', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              style={{ background: '#F8FAFC', border: '1.5px solid #F1F5F9', borderRadius: '12px', padding: '8px', color: '#4B0082', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
               title={sidebarCollapsed ? "Open sidebar" : "Hide sidebar"}
             >
-              {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+              {sidebarCollapsed ? <CaretRightLight size={18} weight="light" /> : <CaretLeftLight size={18} weight="light" />}
             </button>
-            <div className="ws-breadcrumb-minimal" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#71717A', fontSize: '13px' }}>
-              <HomeIcon size={14} onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }} />
-              <ChevronRight size={14} />
-              <span onClick={() => navigate(`/dashboard/courses/${courseId}`)} style={{ cursor: 'pointer' }}>{courseInfo?.code || 'Course'}</span>
-              <ChevronRight size={14} />
-              <span style={{ fontWeight: '500', color: '#18181B', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedMaterial?.title || 'Material'}</span>
+            <div className="ws-breadcrumb-minimal" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#64748B', fontSize: '13px', fontFamily: 'var(--font-outfit)', fontWeight: 500 }}>
+              <HouseLight size={18} weight="light" onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer', color: '#4B0082' }} />
+              <CaretRightLight size={14} weight="light" color="#CBD5E1" />
+              <span onClick={() => navigate(`/dashboard/courses/${courseId}`)} style={{ cursor: 'pointer', letterSpacing: '0.02em', fontWeight: 600 }}>{courseInfo?.code || 'Course'}</span>
+              <CaretRightLight size={14} weight="light" color="#CBD5E1" />
+              <span style={{ fontWeight: 600, color: '#1A102D', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedMaterial?.title || 'Material'}</span>
             </div>
           </div>
 
           <div className="ws-header-center" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
             <div className="ws-top-nav-capsule" style={{ 
               display: 'flex', 
-              background: '#f4f4f5', 
+              background: '#F1F5F9', 
               padding: '4px', 
-              borderRadius: '99px', 
-              border: '1px solid #e4e4e7',
+              borderRadius: '20px', 
+              border: '1.5px solid #E2E8F0',
               gap: '4px'
             }}>
               <button 
                 onClick={() => { setActiveTab('content'); setActiveSideTab('chat'); }}
                 className={`ws-capsule-btn ${activeTab === 'content' && activeSideTab === 'chat' ? 'active' : ''}`}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 16px', fontSize: '13px', fontWeight: '500', 
-                  borderRadius: '99px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                  background: activeTab === 'content' && activeSideTab === 'chat' ? 'var(--luter-primary-dark)' : 'transparent',
-                  color: activeTab === 'content' && activeSideTab === 'chat' ? 'white' : '#52525B',
+                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', fontSize: '13px', fontWeight: 600, 
+                  borderRadius: '16px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                  fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
+                  background: activeTab === 'content' && activeSideTab === 'chat' ? '#4B0082' : 'transparent',
+                  color: activeTab === 'content' && activeSideTab === 'chat' ? 'white' : '#64748B',
                 }}
               >
-                <FileText size={16} /> Source
+                <FileTextLight size={18} weight="light" /> Source
               </button>
               <button 
                 onClick={() => { setActiveTab('summary'); }}
                 className={`ws-capsule-btn ${activeTab === 'summary' ? 'active' : ''}`}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 16px', fontSize: '13px', fontWeight: '500', 
-                  borderRadius: '99px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                  background: activeTab === 'summary' ? 'var(--luter-primary-dark)' : 'transparent',
-                  color: activeTab === 'summary' ? 'white' : '#52525B',
+                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', fontSize: '13px', fontWeight: 600, 
+                  borderRadius: '16px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                  fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
+                  background: activeTab === 'summary' ? '#4B0082' : 'transparent',
+                  color: activeTab === 'summary' ? 'white' : '#64748B',
                 }}
               >
-                <Sparkles size={16} /> Summary
+                <SparkleLight size={18} weight="light" /> Summary
               </button>
               <button 
                 onClick={() => { setActiveTab('flashcards'); }}
                 className={`ws-capsule-btn ${activeTab === 'flashcards' ? 'active' : ''}`}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 16px', fontSize: '13px', fontWeight: '500', 
-                  borderRadius: '99px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                  background: activeTab === 'flashcards' ? 'var(--luter-primary-dark)' : 'transparent',
-                  color: activeTab === 'flashcards' ? 'white' : '#52525B',
+                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', fontSize: '13px', fontWeight: 600, 
+                  borderRadius: '16px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                  fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
+                  background: activeTab === 'flashcards' ? '#4B0082' : 'transparent',
+                  color: activeTab === 'flashcards' ? 'white' : '#64748B',
                 }}
               >
-                <Layers size={16} /> Flashcards
+                <CardsThree size={18} weight="light" /> Flashcards
               </button>
               <button 
                 onClick={() => { setActiveTab('quiz'); }}
                 className={`ws-capsule-btn ${activeTab === 'quiz' ? 'active' : ''}`}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 16px', fontSize: '13px', fontWeight: '500', 
-                  borderRadius: '99px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                  background: activeTab === 'quiz' ? 'var(--luter-primary-dark)' : 'transparent',
-                  color: activeTab === 'quiz' ? 'white' : '#52525B',
+                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', fontSize: '13px', fontWeight: 600, 
+                  borderRadius: '16px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                  fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
+                  background: activeTab === 'quiz' ? '#4B0082' : 'transparent',
+                  color: activeTab === 'quiz' ? 'white' : '#64748B',
                 }}
               >
-                <CheckSquare size={16} /> Quiz
+                <Checks size={18} weight="light" /> Quiz
               </button>
             </div>
           </div>
 
-          <div className="ws-header-right" style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '12px', alignItems: 'center' }}>
+          <div className="ws-header-right" style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '16px', alignItems: 'center' }}>
             <div className="ws-analysis-badge" style={{ 
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', 
-              background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: '100px',
-              fontSize: '11px', fontWeight: '800', color: '#0369A1', letterSpacing: '0.05em',
-              marginRight: '8px'
+              display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 18px', 
+              background: 'linear-gradient(135deg, #F0F9FF, #E0F2FE)', border: '1.5px solid #BAE6FD', borderRadius: '14px',
+              fontSize: '11px', fontWeight: 600, color: '#475569', letterSpacing: '0.04em',
+              fontFamily: 'var(--font-outfit)', boxShadow: '0 4px 10px rgba(14, 165, 233, 0.1)'
             }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0EA5E9', boxShadow: '0 0 8px rgba(14, 165, 233, 0.4)' }}></div>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0EA5E9', boxShadow: '0 0 10px rgba(14, 165, 233, 0.6)' }}></div>
               {(() => {
                   let progress = 0;
                   if (selectedMaterial?.extracted_text) progress += 25;
@@ -637,13 +685,13 @@ function WorkstationContent() {
                   if (currentAnalysis.flashcards && Array.isArray(currentAnalysis.flashcards) && currentAnalysis.flashcards.length > 0) progress += 25;
                   if (currentAnalysis.quiz && Array.isArray(currentAnalysis.quiz) && currentAnalysis.quiz.length > 0) progress += 25;
                   return progress;
-              })()}% ANALYZED
+              })()}% analyzed
             </div>
-            <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '12px', fontWeight: '600', borderRadius: '8px', border: '1px solid #e4e4e7', background: 'white', color: '#18181B', cursor: 'pointer' }}>
-              <Share2 size={14} /> Share
+            <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '12px', fontWeight: 600, borderRadius: '12px', border: '1.5px solid #F1F5F9', background: 'white', color: '#1A102D', cursor: 'pointer', fontFamily: 'var(--font-outfit)' }}>
+              <ShareNetworkLight size={16} weight="light" /> Share
             </button>
-            <button style={{ padding: '8px', borderRadius: '8px', border: '1px solid #e4e4e7', background: 'white', color: '#71717A', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MoreHorizontal size={14} />
+            <button style={{ padding: '10px', borderRadius: '12px', border: '1.5px solid #F1F5F9', background: 'white', color: '#64748B', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <DotsThreeLight size={18} weight="light" />
             </button>
           </div>
         </header>
@@ -653,8 +701,8 @@ function WorkstationContent() {
         <div style={{ padding: '12px 20px', background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(20px)', borderBottom: '1px solid #E2E8F0', flexShrink: 0, position: 'sticky', top: 0, zIndex: 50 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <div style={{ width: '36px', height: '36px', background: 'white', border: '1px solid var(--luter-border)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Zap size={20} color="var(--luter-primary)" strokeWidth={2.5} /></div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}><span style={{ fontSize: '15px', fontWeight: 900, color: 'var(--luter-primary-dark)' }}>{courseInfo?.code || 'Luter'}</span><span style={{ fontSize: '11px', color: '#475569', fontWeight: 700 }}>Week {selectedMaterial?.week_number || '1'}</span></div>
+              <div style={{ width: '36px', height: '36px', background: 'white', border: '1px solid var(--luter-border)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><LightningLight size={20} color="var(--luter-primary)" weight="light" /></div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}><span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--luter-primary-dark)' }}>{courseInfo?.code || 'Luter'}</span><span style={{ fontSize: '11px', color: '#475569', fontWeight: 500 }}>Week {selectedMaterial?.week_number || '1'}</span></div>
             </div>
             <button className="ws-tactile-btn" style={{ padding: '8px 16px', fontSize: '12px', background: 'white', color: '#EF4444', border: '1px solid #FEE2E2' }} onClick={() => navigate(`/dashboard/courses/${courseId}`)}><ArrowLeft size={16} /> Exit</button>
           </div>
@@ -672,35 +720,39 @@ function WorkstationContent() {
           {/* Subheader for Document/Notes toggle */}
           {(activeTab === 'content' || activeTab === 'notes') && (
             <div className="ws-canvas-tabs" style={{ 
-              padding: '12px 32px', 
+              padding: '16px 32px', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'space-between', 
-              borderBottom: '1px solid var(--luter-border)', 
+              borderBottom: '1.5px solid #F1F5F9', 
               background: 'white' 
             }}>
-              <div style={{ display: 'flex', background: '#f4f4f5', padding: '3px', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', background: '#F8FAFC', padding: '4px', borderRadius: '12px', border: '1px solid #F1F5F9' }}>
                 <button 
                   onClick={() => setActiveTab('content')}
                   style={{ 
-                    display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: '700', 
-                    borderRadius: '6px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                    display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '12px', fontWeight: 600, 
+                    borderRadius: '10px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                    fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
                     background: activeTab === 'content' ? 'white' : 'transparent',
-                    color: activeTab === 'content' ? 'var(--luter-primary-dark)' : '#64748B',
+                    color: activeTab === 'content' ? '#4B0082' : '#64748B',
+                    boxShadow: activeTab === 'content' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none'
                   }}
                 >
-                  <FileText size={14} strokeWidth={2.5} /> Source
+                  <FileTextLight size={16} weight="light" /> Source
                 </button>
                 <button 
                   onClick={() => setActiveTab('notes')}
                   style={{ 
-                    display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: '700', 
-                    borderRadius: '6px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                    display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '12px', fontWeight: 600, 
+                    borderRadius: '10px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                    fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
                     background: activeTab === 'notes' ? 'white' : 'transparent',
-                    color: activeTab === 'notes' ? 'var(--luter-primary-dark)' : '#64748B',
+                    color: activeTab === 'notes' ? '#4B0082' : '#64748B',
+                    boxShadow: activeTab === 'notes' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none'
                   }}
                 >
-                  <StickyNote size={14} strokeWidth={2.5} /> Notes
+                  <NotePencil size={16} weight="light" /> Notes
                 </button>
               </div>
             </div>
@@ -712,8 +764,11 @@ function WorkstationContent() {
                 <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '32px', color: '#111' }}>Extracted Text</h2>
                 <div style={{ fontSize: '16px', lineHeight: '1.8', color: '#3F3F46', whiteSpace: 'pre-wrap', fontStyle: 'normal' }}>
                   {selectedMaterial?.extracted_text || (
-                    <div style={{ textAlign: 'center', padding: '40px' }}>
-                      <p style={{ marginBottom: '24px', opacity: 0.7 }}>The text is still being extracted. Please wait...</p>
+                    <div style={{ textAlign: 'center', padding: '60px' }}>
+                      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
+                         <CircleNotch size={48} weight="bold" color="#4B0082" className="animate-spin" />
+                      </div>
+                      <p style={{ marginBottom: '32px', color: '#64748B', fontWeight: 400, fontFamily: 'var(--font-varela)', fontSize: '15px' }}>Luter is extracting the text for optimized analysis...</p>
                       <button 
                         onClick={async () => {
                           setIsExtractingText(true)
@@ -724,11 +779,11 @@ function WorkstationContent() {
                           setIsExtractingText(false)
                         }}
                         style={{
-                          padding: '12px 24px', background: 'var(--luter-primary-dark)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600',
-                          display: 'flex', alignItems: 'center', gap: '8px', margin: '0 auto'
+                          padding: '14px 28px', background: '#6D28D9', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 600,
+                          display: 'flex', alignItems: 'center', gap: '10px', margin: '0 auto', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em'
                         }}
                       >
-                        <Zap size={16} /> Extract Now
+                        <LightningLight size={18} weight="light" /> Extract now
                       </button>
                     </div>
                   )}
@@ -773,8 +828,6 @@ function WorkstationContent() {
               dragConstraints={constraintsRef}
               dragElastic={0.1}
               dragTransition={{ power: 0.2, timeConstant: 200 }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
               onClick={() => {
                 if (isSidePanelCollapsed) {
                   setSidePanelCollapsed(false)
@@ -793,23 +846,25 @@ function WorkstationContent() {
                 position: 'absolute',
                 bottom: '32px',
                 right: '32px',
-                width: '56px',
-                height: '56px',
+                width: '64px',
+                height: '64px',
                 borderRadius: '50%',
-                background: activeSideTab === 'write' ? 'var(--luter-primary)' : 'white',
-                color: activeSideTab === 'write' ? 'white' : 'var(--luter-primary-dark)',
+                background: activeSideTab === 'write' ? '#4B0082' : 'white',
+                color: activeSideTab === 'write' ? 'white' : '#4B0082',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                border: '1px solid var(--luter-border)',
+                boxShadow: '0 12px 32px rgba(75, 0, 130, 0.15)',
+                border: '1.5px solid #F1F5F9',
                 cursor: 'pointer',
-                transition: 'background 0.3s, color 0.3s, box-shadow 0.3s',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 zIndex: 40,
                 touchAction: 'none'
               }}
+              whileHover={{ scale: 1.1, y: -4 }}
+              whileTap={{ scale: 0.9 }}
             >
-              <Edit3 size={24} strokeWidth={2.5} />
+              <PencilSimple size={28} weight="light" />
             </motion.button>
           </div>
         </div>
@@ -823,40 +878,31 @@ function WorkstationContent() {
             flexDirection: 'column'
           }}>
             <div className="ws-chat-container" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <header className="ws-side-tabs-header" style={{ padding: '0 24px', height: '64px', display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--luter-border)' }}>
-                <div className="ws-text-tabs-bar" style={{ display: 'flex', gap: '20px' }}>
+              <header className="ws-side-tabs-header" style={{ padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center', borderBottom: '1.5px solid #F1F5F9' }}>
+                <div className="ws-text-tabs-bar" style={{ display: 'flex', gap: '24px' }}>
                   <button 
                     className="ws-text-tab" 
                     onClick={() => setActiveSideTab('chat')}
                     style={{ 
-                      background: 'none', border: 'none', padding: '20px 0', fontSize: '13px', fontWeight: '900', letterSpacing: '0.05em', cursor: 'pointer',
-                      color: activeSideTab === 'chat' ? 'var(--luter-primary-dark)' : '#71717A',
-                      borderBottom: activeSideTab === 'chat' ? '3px solid var(--luter-primary)' : '3px solid transparent',
-                      textTransform: 'uppercase'
+                      background: 'none', border: 'none', padding: '24px 0', fontSize: '13px', fontWeight: 600, letterSpacing: '0.01em', cursor: 'pointer',
+                      color: activeSideTab === 'chat' ? '#4B0082' : '#94A3B8',
+                      borderBottom: activeSideTab === 'chat' ? '3px solid #4B0082' : '3px solid transparent',
+                      fontFamily: 'var(--font-outfit)', transition: 'all 0.2s'
                     }}
                   >
-                    chat
+                    Chat
                   </button>
                   <button 
                     className="ws-text-tab" 
                     onClick={() => setActiveSideTab('write')}
                     style={{ 
-                      background: 'none', border: 'none', padding: '20px 0', fontSize: '13px', fontWeight: '900', letterSpacing: '0.05em', cursor: 'pointer',
-                      color: activeSideTab === 'write' ? 'var(--luter-primary-dark)' : '#71717A',
-                      borderBottom: activeSideTab === 'write' ? '3px solid var(--luter-primary)' : '3px solid transparent',
-                      textTransform: 'uppercase'
+                      background: 'none', border: 'none', padding: '24px 0', fontSize: '13px', fontWeight: 600, letterSpacing: '0.01em', cursor: 'pointer',
+                      color: activeSideTab === 'write' ? '#4B0082' : '#94A3B8',
+                      borderBottom: activeSideTab === 'write' ? '3px solid #4B0082' : '3px solid transparent',
+                      fontFamily: 'var(--font-outfit)', transition: 'all 0.2s'
                     }}
                   >
-                    write
-                  </button>
-                  <button 
-                    className="ws-text-tab" 
-                    style={{ 
-                      background: 'none', border: 'none', padding: '20px 0', fontSize: '12px', fontWeight: '800', letterSpacing: '0.05em', cursor: 'pointer',
-                      color: '#94A3B8', textTransform: 'uppercase'
-                    }}
-                  >
-                    source info
+                    Write
                   </button>
                 </div>
               </header>
@@ -873,13 +919,20 @@ function WorkstationContent() {
                   <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                     <div className="ws-chat-messages" style={{ flex: 1 }}>
                       {messages.length === 0 ? (
-                        <div className="ws-chat-empty-state" style={{ padding: '40px' }}>
-                          <div className="ws-suggested-header" style={{ marginBottom: '24px', fontSize: '11px', letterSpacing: '0.1em', fontWeight: '600', color: '#A1A1AA' }}>SUGGESTIONS</div>
+                        <div className="ws-chat-empty-state" style={{ padding: '48px 32px', textAlign: 'center' }}>
+                          <motion.img 
+                            src="/mascot.png" 
+                            alt="Luter" 
+                            style={{ height: '100px', marginBottom: '24px' }}
+                            animate={{ y: [0, -10, 0] }}
+                            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                          />
+                          <div className="ws-suggested-header" style={{ marginBottom: '24px', fontSize: '11px', letterSpacing: '0.08em', fontWeight: 600, color: '#94A3B8', fontFamily: 'var(--font-outfit)' }}>Choose a starting point</div>
                           <div className="ws-suggested-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             {SUGGESTED_QUESTIONS.map(q => (
-                              <button key={q.id} className="ws-suggested-item" onClick={() => handleSend(q.text)} style={{ background: '#F8FAFB', border: '1px solid var(--luter-border)', borderRadius: '12px', padding: '16px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s', cursor: 'pointer' }}>
-                                <span className="ws-suggested-text" style={{ fontSize: '13px', color: 'var(--luter-primary-dark)', fontWeight: '600' }}>{q.text}</span>
-                                <ArrowRight size={14} style={{ color: 'var(--luter-primary)' }} strokeWidth={2.5} />
+                              <button key={q.id} className="ws-suggested-item" onClick={() => handleSend(q.text)} style={{ background: '#F8FAFC', border: '1.5px solid #F1F5F9', borderRadius: '16px', padding: '16px 20px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s', cursor: 'pointer' }}>
+                                <span className="ws-suggested-text" style={{ fontSize: '13px', color: '#1A102D', fontWeight: 600, fontFamily: 'var(--font-outfit)' }}>{q.text}</span>
+                                <ArrowRightLight size={16} weight="light" color="#4B0082" />
                               </button>
                             ))}
                           </div>
@@ -899,12 +952,12 @@ function WorkstationContent() {
                               <div key={i} className={`ws-chat-bubble ws-chat-bubble--${msg.role === 'user' ? 'user' : 'ai'}`}>
                                 {msg.role === 'user' ? (
                                   <div style={{ marginBottom: '24px' }}>
-                                     <div style={{ fontSize: '11px', fontWeight: '800', color: '#A1A1AA', letterSpacing: '0.05em', marginBottom: '4px' }}>YOU</div>
+                                     <div style={{ fontSize: '11px', fontWeight: 600, color: '#A1A1AA', letterSpacing: '0.04em', marginBottom: '4px' }}>You</div>
                                      <p style={{ margin: 0, fontSize: '15px', color: '#111', fontWeight: '500' }}>{msg.content}</p>
                                   </div>
                                 ) : (
                                   <div style={{ marginBottom: '32px' }}>
-                                     <div style={{ fontSize: '11px', fontWeight: '800', color: '#A1A1AA', letterSpacing: '0.05em', marginBottom: '8px' }}>LUTER</div>
+                                     <div style={{ fontSize: '11px', fontWeight: 600, color: '#A1A1AA', letterSpacing: '0.04em', marginBottom: '8px' }}>Luter</div>
                                      <div className="ws-ai-message-content" style={{ fontSize: '15px', color: '#333' }}>
                                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
                                          a: ({ children, href, ...props }) => {
@@ -922,7 +975,7 @@ function WorkstationContent() {
                                                     window.dispatchEvent(new CustomEvent('luter-jump-to-page', { detail: { page: pageNum } }))
                                                     if (snippet) window.dispatchEvent(new CustomEvent('luter-highlight-text', { detail: { text: snippet } }))
                                                   }} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#f8f8f8', border: '1px solid #f1f1f1', borderRadius: '6px', padding: '2px 8px', fontSize: '11px', fontWeight: '600', color: '#71717A', margin: '0 4px', cursor: 'pointer' }}>
-                                                    <Bookmark size={10} /> {pageNum}
+                                                    <BookmarkSimple size={10} weight="light" /> {pageNum}
                                                   </button>
                                                 )
                                               } catch (e) { return <span>{children}</span> }
@@ -947,33 +1000,34 @@ function WorkstationContent() {
                               </div>
                             )
                           })}
-                          {isProcessingLoading && <div style={{ fontSize: '11px', color: '#A1A1AA', fontWeight: '800', letterSpacing: '0.05em' }}>LUTER IS THINKING...</div>}
+                          {isProcessingLoading && <div style={{ fontSize: '11px', color: '#A1A1AA', fontWeight: 600, letterSpacing: '0.04em' }}>Luter is thinking...</div>}
                           <div ref={messagesEndRef} />
                         </div>
                       )}
                     </div>
-                    <div className="ws-chat-input-area" style={{ padding: '20px', borderTop: '1px solid var(--luter-border)' }}>
-                      <div className="ws-input-wrapper" style={{ border: '1px solid var(--luter-border)', background: '#F8FAFB', borderRadius: '12px', padding: '6px 10px 6px 18px', display: 'flex', alignItems: 'center' }}>
+                    <div className="ws-chat-input-area" style={{ padding: '24px', borderTop: '1.5px solid #F1F5F9' }}>
+                      <div className="ws-input-wrapper" style={{ border: '1.5px solid #F1F5F9', background: '#F8FAFC', borderRadius: '16px', padding: '8px 8px 8px 20px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
                         <input 
                           className="ws-chat-input" 
-                          placeholder="Ask Luter anything..."
+                          placeholder={t('ai_placeholder')}
                           value={chatInput}
                           onChange={(e) => setChatInput(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                           disabled={isProcessingLoading}
-                          style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '14px', fontWeight: '500', color: 'var(--luter-primary-dark)' }}
+                          style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '14px', fontWeight: 600, color: '#1A102D', fontFamily: 'var(--font-varela)' }}
                         />
                         <button 
                           className="ws-send-btn" 
                           onClick={() => handleSend()} 
                           disabled={isProcessingLoading || !chatInput.trim()}
                           style={{ 
-                            background: chatInput.trim() ? 'var(--luter-primary)' : '#E2E8F0', 
-                            color: 'white', border: 'none', borderRadius: '8px', width: '36px', height: '36px', 
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', cursor: 'pointer' 
+                            background: chatInput.trim() ? '#4B0082' : '#E2E8F0', 
+                            color: 'white', border: 'none', borderRadius: '12px', width: '40px', height: '40px', 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', cursor: 'pointer',
+                            boxShadow: chatInput.trim() ? '0 4px 12px rgba(75, 0, 130, 0.2)' : 'none'
                           }}
                         >
-                          {isProcessingLoading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} strokeWidth={2.5} />}
+                          {isProcessingLoading ? <CircleNotch className="animate-spin" size={20} weight="bold" /> : <PaperPlaneRight size={20} weight="bold" />}
                         </button>
                       </div>
                     </div>

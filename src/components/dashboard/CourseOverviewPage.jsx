@@ -1,15 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
+import {
+  CaretDown as CaretDownLight,
+  UserPlus as UserPlusLight,
+  DotsThree as DotsThreeLight,
+  FolderOpen as FolderOpenLight,
+  Plus as PlusLight,
+  CaretRight as CaretRightLight
+} from '@phosphor-icons/react'
 import { 
-  Plus, MoreHorizontal, Share2, 
-  MessageSquare, Sparkles, Layout,
-  ChevronDown, UserPlus, Sprout,
-  HelpCircle, Search, Moon, ArrowLeftRight,
-  Pencil, EyeOff, Send, Download,
-  FileText, Trash2, BookOpen, FileCheck, FolderOpen,
-  Loader2, UploadCloud, Bell, Link as LinkIcon, Youtube, Music, Video, Image as ImageIcon, Database,
-  X, Check, GraduationCap, ArrowLeft, ChevronRight
-} from 'lucide-react'
+  RiAddLine as Plus, RiMoreFill as MoreHorizontal, RiShareFill as Share2, 
+  RiChat3Fill as MessageSquare, RiMagicFill as Sparkles, RiLayoutMasonryFill as Layout,
+  RiArrowDownSLine as ChevronDown, RiUserAddFill as UserPlus, RiSeedlingFill as Sprout,
+  RiQuestionFill as HelpCircle, RiSearchLine as Search, RiMoonFill as Moon, RiArrowLeftRightLine as ArrowLeftRight,
+  RiPencilFill as Pencil, RiEyeOffFill as EyeOff, RiSendPlaneFill as Send, RiDownloadFill as Download,
+  RiFileTextFill as FileText, RiDeleteBin6Fill as Trash2, RiBookOpenFill as BookOpen, RiFileCheckFill as FileCheck, RiFolderOpenFill as FolderOpen,
+  RiLoader4Line as Loader2, RiUploadCloudFill as UploadCloud, RiNotification3Fill as Bell, RiLinkM as LinkIcon, RiYoutubeFill as Youtube, RiMusicFill as Music, RiVideoFill as Video, RiImageFill as ImageIcon, RiDatabase2Fill as Database,
+  RiCloseLine as X, RiCheckLine as Check, RiGraduationCapFill as GraduationCap, RiArrowLeftLine as ArrowLeft, RiArrowRightSLine as ChevronRight
+} from 'react-icons/ri'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
@@ -325,7 +333,7 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
               </div>
             </div>
             <button onClick={() => setShowMenu(true)} style={{ padding: '8px', color: lightGrey }}>
-              <MoreHorizontal size={24} strokeWidth={2.5} />
+              <DotsThreeLight size={24} weight="light" />
             </button>
           </div>
         </div>
@@ -341,16 +349,16 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
                 color: 'white',
                 borderRadius: '32px 0 0 32px',
                 fontSize: '16px',
-                fontWeight: 800,
+                fontWeight: 700,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '10px',
-                textTransform: 'uppercase'
+                letterSpacing: '0.01em'
               }}
             >
-              <GraduationCap size={20} />
-              START STUDYING
+              <Sprout size={20} />
+              Start studying
             </button>
             <button style={{
               width: '64px',
@@ -364,7 +372,7 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
               color: 'white',
               cursor: 'pointer'
             }}>
-              <ChevronDown size={24} strokeWidth={3} />
+              <CaretDownLight size={22} weight="light" />
             </button>
           </div>
 
@@ -377,16 +385,16 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
               borderRadius: '32px',
               color: purpleColor,
               fontSize: '16px',
-              fontWeight: 800,
+              fontWeight: 700,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '10px',
-              textTransform: 'uppercase'
+              letterSpacing: '0.01em'
             }}
           >
-            <UserPlus size={20} strokeWidth={3} />
-            SHARE
+            <UserPlusLight size={20} weight="light" />
+            Share
           </button>
         </div>
 
@@ -416,8 +424,7 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
                 border: 'none',
                 padding: '0 8px 16px',
                 transition: 'all 0.2s',
-                letterSpacing: '0.02em',
-                textTransform: 'uppercase',
+                letterSpacing: '0.01em',
                 position: 'relative'
               }}
             >
@@ -448,7 +455,7 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
           ) : activeTab === 'tracker' ? (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <div style={{ background: '#F8FAFC', borderRadius: '32px', padding: '32px 24px', border: '1.5px solid #F1F5F9' }}>
-                <h3 style={{ marginTop: 0, textTransform: 'uppercase', fontSize: '15px', fontWeight: 900, marginBottom: '20px', color: '#000' }}>Recent Activity</h3>
+                <h3 style={{ marginTop: 0, fontSize: '15px', fontWeight: 700, marginBottom: '20px', color: '#000' }}>Recent activity</h3>
                 {studySession ? (
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <li style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px' }}>
@@ -462,7 +469,7 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
               </div>
               <div style={{ marginTop: '32px' }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <h3 style={{ fontSize: '15px', fontWeight: 900, margin: 0, textTransform: 'uppercase', color: '#000' }}>Quick Access</h3>
+                    <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: '#000' }}>Quick access</h3>
                  </div>
                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     {materials.slice(0, 2).map((m, idx) => (
@@ -497,15 +504,15 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
                   ))
                 ) : (
                   <div style={{ textAlign: 'center', padding: '60px 20px', color: lightGrey }}>
-                    <FolderOpen size={48} style={{ margin: '0 auto 16px', opacity: 0.2 }} />
-                    <p style={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '13px', letterSpacing: '0.05em' }}>
+                    <FolderOpenLight size={48} weight="light" style={{ margin: '0 auto 16px', opacity: 0.2 }} />
+                    <p style={{ fontWeight: 600, fontSize: '13px', letterSpacing: '0.03em' }}>
                       Vault is empty
                     </p>
                     <button 
                       onClick={() => navigate(`/dashboard/upload?course_id=${course.id}`)}
-                      style={{ marginTop: '12px', background: 'none', border: `1.5px solid ${purpleColor}`, color: purpleColor, padding: '10px 20px', borderRadius: '12px', fontWeight: 800, fontSize: '12px', cursor: 'pointer' }}
+                      style={{ marginTop: '12px', background: 'none', border: `1.5px solid ${purpleColor}`, color: purpleColor, padding: '10px 20px', borderRadius: '12px', fontWeight: 600, fontSize: '12px', cursor: 'pointer' }}
                     >
-                      ADD FIRST MATERIAL
+                      Add first material
                     </button>
                   </div>
                 )}
@@ -534,7 +541,7 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
               >
                 <div style={{ width: '40px', height: '4px', background: '#E2E8F0', borderRadius: '2px', margin: '0 auto 20px' }} />
                 <div style={{ padding: '0 24px 16px' }}>
-                  <h4 style={{ margin: 0, fontSize: '12px', fontWeight: 900, color: lightGrey, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Course Actions</h4>
+                  <h4 style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: lightGrey, letterSpacing: '0.03em' }}>Course actions</h4>
                 </div>
                 {menuItems.map((item, idx) => (
                    <button
@@ -546,8 +553,8 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
                       textAlign: 'left'
                     }}
                   >
-                    <item.icon size={20} strokeWidth={2.5} style={{ color: item.color || lightGrey }} />
-                    <span style={{ textTransform: 'uppercase', letterSpacing: '0.3px', fontSize: '12px', fontWeight: 800 }}>{item.label}</span>
+                    <item.icon size={20} strokeWidth={2} style={{ color: item.color || lightGrey }} />
+                    <span style={{ letterSpacing: '0.02em', fontSize: '12px', fontWeight: 600 }}>{item.label}</span>
                   </button>
                 ))}
               </motion.div>
@@ -652,8 +659,8 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
                             width: '100%', display: 'flex', alignItems: 'center', gap: '14px',
                             padding: '14px 24px', border: 'none', background: 'transparent',
                             cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s',
-                            color: item.color || '#4b5563', fontSize: '13px', fontWeight: 800,
-                            textTransform: 'uppercase', letterSpacing: '0.5px'
+                            color: item.color || '#4b5563', fontSize: '13px', fontWeight: 600,
+                            letterSpacing: '0.02em'
                           }}
                           onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -689,17 +696,17 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
               border: 'none', 
               borderRadius: '34px 0 0 34px', 
               fontSize: '18px', 
-              fontWeight: 800, 
+              fontWeight: 700, 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center', 
               gap: '12px',
               cursor: 'pointer',
-              textTransform: 'uppercase'
+              letterSpacing: '0.01em'
             }}
           >
             <Sprout size={22} />
-            START STUDYING
+            Start studying
           </button>
           <button style={{ 
             width: '68px', 
@@ -715,7 +722,7 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
             justifyContent: 'center',
             cursor: 'pointer'
           }}>
-            <ChevronDown size={28} strokeWidth={3} />
+            <CaretDownLight size={24} weight="light" />
           </button>
         </div>
 
@@ -727,17 +734,17 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
           border: `2px solid ${purpleColor}`,
           borderRadius: '34px', 
           fontSize: '18px', 
-          fontWeight: 800, 
+          fontWeight: 700, 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
           gap: '12px',
           cursor: 'pointer',
-          textTransform: 'uppercase'
+          letterSpacing: '0.01em'
         }}
         onClick={handleShare}>
-          <UserPlus size={22} strokeWidth={3} />
-          SHARE
+          <UserPlusLight size={22} weight="light" />
+          Share
         </button>
       </div>
 
@@ -762,8 +769,7 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
               color: activeTab === tab.id ? '#000' : '#475569',
               cursor: 'pointer', transition: 'all 0.2s', marginBottom: '-2px', position: 'relative',
               opacity: activeTab === tab.id ? 1 : 0.6,
-              letterSpacing: '0.01em',
-              textTransform: 'uppercase'
+              letterSpacing: '0.01em'
             }}
           >
             {tab.label}
@@ -788,7 +794,7 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
       ) : activeTab === 'tracker' ? (
         <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
           <div style={{ background: '#F8FAFC', borderRadius: '32px', padding: '48px', border: '1.5px solid #F1F5F9' }}>
-            <h3 style={{ marginTop: 0, textTransform: 'uppercase', fontSize: '20px', fontWeight: 900, marginBottom: '24px' }}>Recent Activity</h3>
+            <h3 style={{ marginTop: 0, fontSize: '20px', fontWeight: 700, marginBottom: '24px' }}>Recent activity</h3>
             {studySession ? (
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '16px' }}>
@@ -828,14 +834,14 @@ export default function CourseOverviewPage({ course, onStartStudying }) {
                 ))
               ) : (
                 <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '100px 20px', background: '#f8fafc', borderRadius: '32px', border: '2px dashed #e2e8f0' }}>
-                  <FolderOpen size={64} color={lightGrey} style={{ marginBottom: '20px', opacity: 0.3 }} />
-                  <h4 style={{ margin: 0, fontSize: '20px', fontWeight: 900, color: '#000' }}>Your Vault is Empty</h4>
+                  <FolderOpenLight size={64} weight="light" color={lightGrey} style={{ marginBottom: '20px', opacity: 0.3 }} />
+                  <h4 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#000' }}>Your vault is empty</h4>
                   <p style={{ color: lightGrey, marginTop: '8px', fontWeight: 600 }}>Start by adding your first study material.</p>
                   <button 
                     onClick={() => navigate(`/dashboard/upload?course_id=${course.id}`)}
-                    style={{ marginTop: '12px', background: purpleColor, color: 'white', padding: '12px 24px', borderRadius: '16px', fontWeight: 800, border: 'none', cursor: 'pointer' }}
+                    style={{ marginTop: '12px', background: purpleColor, color: 'white', padding: '12px 24px', borderRadius: '16px', fontWeight: 600, border: 'none', cursor: 'pointer' }}
                   >
-                    ADD MATERIAL
+                    Add material
                   </button>
                 </div>
               )}
@@ -886,11 +892,11 @@ function MaterialCard({ item, idx, user, purpleColor, lightGrey, onDelete }) {
         </button>
       </div>
       <div>
-        <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#111', textTransform: 'uppercase' }}>{item.title}</h4>
-        <p style={{ margin: '6px 0 0', fontSize: '12px', color: lightGrey, fontWeight: 800, textTransform: 'uppercase' }}>
+        <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#111' }}>{item.title}</h4>
+        <p style={{ margin: '6px 0 0', fontSize: '12px', color: lightGrey, fontWeight: 500 }}>
           {item.type} · {new Date(item.created_at).toLocaleDateString()}
         </p>
-        {item.type === 'official' && <span style={{ fontSize: '10px', fontWeight: 900, color: '#2563eb', textTransform: 'uppercase', marginTop: '8px', display: 'block' }}>Admin Uploaded</span>}
+        {item.type === 'official' && <span style={{ fontSize: '10px', fontWeight: 600, color: '#2563eb', marginTop: '8px', display: 'block' }}>Admin uploaded</span>}
       </div>
     </motion.div>
   )
@@ -980,7 +986,7 @@ function WeekDetailView({ week, onBack, materials, userNotes, assignments, cours
            <ArrowLeft size={20} />
         </button>
         <div>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Week {week}</h2>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, letterSpacing: '0.01em' }}>Week {week}</h2>
           <p style={{ margin: '2px 0 0', fontSize: '13px', color: lightGrey, fontWeight: 600 }}>everything for this academic week</p>
         </div>
       </div>
@@ -993,7 +999,7 @@ function WeekDetailView({ week, onBack, materials, userNotes, assignments, cours
             onClick={() => setActiveTab(tab)}
             style={{
               padding: '12px 4px', background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: '13px', fontWeight: 800, textTransform: 'uppercase',
+              fontSize: '13px', fontWeight: 600,
               color: activeTab === tab ? '#000' : lightGrey,
               borderBottom: activeTab === tab ? `3px solid ${purpleColor}` : '3px solid transparent',
               transition: 'all 0.2s',
@@ -1010,19 +1016,19 @@ function WeekDetailView({ week, onBack, materials, userNotes, assignments, cours
         {activeTab === 'resources' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Available Materials</span>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#94a3b8' }}>Available materials</span>
               <button 
                 onClick={() => onUploadTrigger(week)}
                 style={{
                   padding: '8px 16px', borderRadius: '12px', border: `1.5px solid ${purpleColor}20`,
-                  background: 'white', color: purpleColor, fontWeight: 800,
+                  background: 'white', color: purpleColor, fontWeight: 600,
                   display: 'flex', alignItems: 'center', gap: '8px',
                   cursor: 'pointer', transition: 'all 0.2s', fontSize: '12px',
                   boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                 }}
               >
-                <Plus size={16} strokeWidth={3} />
-                ADD MATERIAL
+                <PlusLight size={16} weight="light" />
+                Add material
               </button>
             </div>
 
@@ -1039,16 +1045,16 @@ function WeekDetailView({ week, onBack, materials, userNotes, assignments, cours
                         {m.is_admin ? <FileCheck size={22} /> : <FileText size={22} />}
                       </div>
                       <div>
-                        <span style={{ fontWeight: 800, fontSize: '16px', color: '#000', display: 'block' }}>{m.title}</span>
-                        {m.is_admin && <span style={{ fontSize: '11px', fontWeight: 900, color: '#16a34a', background: '#f0fdf4', padding: '2px 8px', borderRadius: '6px', textTransform: 'uppercase', marginTop: '4px', display: 'inline-block' }}>Official Notes</span>}
+                        <span style={{ fontWeight: 700, fontSize: '16px', color: '#000', display: 'block' }}>{m.title}</span>
+                        {m.is_admin && <span style={{ fontSize: '11px', fontWeight: 600, color: '#16a34a', background: '#f0fdf4', padding: '2px 8px', borderRadius: '6px', marginTop: '4px', display: 'inline-block' }}>Official notes</span>}
                       </div>
                     </div>
-                    <ChevronRight size={20} color={lightGrey} />
+                    <CaretRightLight size={20} weight="light" color={lightGrey} />
                   </div>
                 ))}
                 <div style={{ textAlign: 'center', marginTop: '12px' }}>
-                  <button onClick={() => handleRequest('note')} style={{ background: 'none', border: 'none', color: lightGrey, fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
-                    CAN'T FIND WHAT YOU NEED? <span style={{ color: purpleColor }}>REQUEST NOTES FROM ADMIN</span>
+                  <button onClick={() => handleRequest('note')} style={{ background: 'none', border: 'none', color: lightGrey, fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>
+                    Can't find what you need? <span style={{ color: purpleColor }}>Request notes from admin</span>
                   </button>
                 </div>
               </>
@@ -1067,17 +1073,17 @@ function WeekDetailView({ week, onBack, materials, userNotes, assignments, cours
         {activeTab === 'assignments' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Weekly Tasks</span>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#94a3b8' }}>Weekly tasks</span>
               <button 
                 onClick={() => handleRequest('assignment')}
                 style={{
                   padding: '8px 16px', borderRadius: '12px', border: `1.5px solid ${purpleColor}20`,
-                  background: 'white', color: purpleColor, fontWeight: 800,
+                  background: 'white', color: purpleColor, fontWeight: 600,
                   display: 'flex', alignItems: 'center', gap: '8px',
                   cursor: 'pointer', transition: 'all 0.2s', fontSize: '12px'
                 }}
               >
-                REQUEST ASSIGNMENT
+                Request assignment
               </button>
             </div>
 
@@ -1095,13 +1101,13 @@ function WeekDetailView({ week, onBack, materials, userNotes, assignments, cours
                      <div style={{ flex: 1 }}>
                        <p style={{ margin: 0, fontWeight: 700, color: '#000' }}>{a.title}</p>
                        {a.type === 'official' ? (
-                         <span style={{ fontSize: '10px', fontWeight: 900, color: '#2563eb', textTransform: 'uppercase' }}>Uploaded by Admin</span>
+                         <span style={{ fontSize: '10px', fontWeight: 600, color: '#2563eb' }}>Uploaded by admin</span>
                        ) : (
-                         <span style={{ fontSize: '10px', fontWeight: 800, color: lightGrey, textTransform: 'uppercase' }}>Personal Task</span>
+                         <span style={{ fontSize: '10px', fontWeight: 600, color: lightGrey }}>Personal task</span>
                        )}
                      </div>
                    </div>
-                   {a.material_id && <ChevronRight size={18} color={lightGrey} />}
+                   {a.material_id && <CaretRightLight size={18} weight="light" color={lightGrey} />}
                 </div>
                ))
              ) : (
@@ -1109,7 +1115,7 @@ function WeekDetailView({ week, onBack, materials, userNotes, assignments, cours
                   <div style={{ padding: '24px', display: 'inline-flex', borderRadius: '32px', background: '#f8fafc', marginBottom: '20px' }}>
                     <FileCheck size={40} style={{ opacity: 0.3 }} />
                   </div>
-                  <p style={{ fontWeight: 800, color: '#000', margin: 0, textTransform: 'lowercase' }}>no assignments for week {week}</p>
+                  <p style={{ fontWeight: 600, color: '#000', margin: 0 }}>No assignments for week {week}</p>
                   <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginTop: '16px' }}>
                     <button 
                       onClick={async () => {

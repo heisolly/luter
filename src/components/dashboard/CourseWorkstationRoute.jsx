@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useOutletContext, useParams } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
+import { RiLoader4Line as Loader2 } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import CourseWorkstation from './CourseWorkstation'

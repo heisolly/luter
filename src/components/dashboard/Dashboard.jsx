@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import DashboardSidebar from './DashboardSidebar'
-import FloatingDock from './FloatingDock'
-import { Loader2, Sword, X, ArrowRight } from 'lucide-react'
+import { RiLoader4Line as Loader2, RiSwordFill as Sword, RiCloseLine as X, RiArrowRightLine as ArrowRight } from 'react-icons/ri'
 import { motion, AnimatePresence } from 'framer-motion'
 import LuterLogo from '../shared/LuterLogo'
 import './dashboard.css'
 import { DashboardPrefetchProvider } from '../../context/DashboardPrefetchContext'
 import NotificationsOverlay from './NotificationsOverlay'
+import FloatingDock from './FloatingDock'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -29,8 +29,8 @@ export default function Dashboard() {
       if (session?.user) {
         setUser(session.user)
 
-        // Fetch profile to get the most up-to-date name
-        const { data: p } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).maybeSingle()
+        // Fetch profile to get the most up-to-date name and role type
+        const { data: p } = await supabase.from('profiles').select('full_name, is_university_user, role').eq('id', session.user.id).maybeSingle()
         if (p) setProfile(p)
 
         const updateHeartbeat = async () => {
@@ -174,10 +174,11 @@ export default function Dashboard() {
           paddingBottom: 0,
         }}
       >
-        <Outlet context={{ user, isMobile, sidebarCollapsed, setSidebarCollapsed }} />
+        <Outlet context={{ user, isMobile, sidebarCollapsed, setSidebarCollapsed, profile }} />
       </main>
 
-      <FloatingDock />
+      <FloatingDock user={user} isMobile={isMobile} />
+
       <NotificationsOverlay isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
     </div>
     </DashboardPrefetchProvider>

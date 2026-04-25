@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useReadingSpace } from '../ReadingSpaceContext'
 import { SharedCanvasOverlay, LuterSpark } from '../WorkstationOverlays'
 import ReactMarkdown from 'react-markdown'
-import { Loader2, Download, Sparkles, ChevronLeft, ChevronRight, Star } from 'lucide-react'
+import { RiLoader4Line as Loader2, RiDownloadLine as Download, RiMagicFill as Sparkles, RiArrowLeftSLine as ChevronLeft, RiArrowRightSLine as ChevronRight, RiStarFill as Star } from 'react-icons/ri'
 
 export default function NoteRenderer({ material, activeTab, analysisState, onRunAnalysis }) {
   const { setViewportData, updateSelection } = useReadingSpace()

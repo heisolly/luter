@@ -8,9 +8,25 @@ import { useReadingSpace } from '../ReadingSpaceContext'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
-  Loader2, AlertCircle, FileText, Eye, Sparkles, Image as ImageIcon, Music, Play, Globe, Layers, Download, Maximize2,
-  Search, Moon, Sun, Volume2, PanelLeft, RotateCcw, ChevronDown, Wand2, Lightbulb, GraduationCap, Bookmark
-} from 'lucide-react'
+  Sparkle as SparkleLight,
+  Lightbulb as LightbulbLight,
+  Stack as StackLight,
+  BookmarkSimple,
+  Columns as ColumnsLight,
+  MagnifyingGlass as MagnifyingGlassLight,
+  Moon as MoonLight,
+  SpeakerHigh as SpeakerHighLight,
+  CaretDown as CaretDownLight,
+  Eye as EyeLight,
+  GraduationCap as GraduationCapLight,
+  DownloadSimple,
+  ArrowsOutSimple
+} from '@phosphor-icons/react'
+import { 
+  RiLoader4Line as CircleNotch, RiErrorWarningFill as Warning, RiFileTextFill as FileText, RiEyeFill as Eye, RiMagicFill as Sparkle, RiImageFill as ImageIcon, RiMusicFill as Music, RiPlayFill as Play, RiGlobalFill as Globe, RiStackFill as Stack, RiDownloadLine as Download, RiFullscreenFill as CornersOut, 
+  RiSearchLine as MagnifyingGlass, RiMoonFill as Moon, RiSunFill as Sun, RiVolumeUpFill as SpeakerHigh, RiLayoutColumnFill as Columns, RiRefreshLine as ArrowClockwise, RiArrowDownSLine as CaretDown, RiMagicLine as MagicWand, RiLightbulbFill as Lightbulb, RiGraduationCapFill as GraduationCap, RiBookmarkFill as Bookmark,
+  RiYoutubeFill as YoutubeLogo, RiCheckboxCircleFill as CheckCircle, RiListCheck as List
+} from "react-icons/ri";
 
 // Professional Renderers
 import { Viewer, Worker, SpecialZoomLevel } from '@react-pdf-viewer/core'
@@ -165,15 +181,35 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
     return (
       <div 
         className="ws-pro-action-bubble" 
-        style={{ left: selection.x, top: selection.y - 60 }}
+        style={{ 
+          left: selection.x, 
+          top: selection.y - 60,
+          background: '#1A102D',
+          border: '1px solid rgba(255,255,255,0.1)',
+          padding: '8px',
+          borderRadius: '16px',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
+        }}
       >
-        <button className="ws-bubble-main-btn" onClick={() => askAI(selection.text)}>
-          <Sparkles size={16} />
-          <span>Analyze selection</span>
+        <button 
+          className="ws-bubble-main-btn" 
+          onClick={() => askAI(selection.text)}
+          style={{ 
+            background: '#6D28D9',
+            color: 'white',
+            borderRadius: '10px',
+            padding: '8px 16px',
+            fontWeight: 600,
+            fontSize: '12px',
+            letterSpacing: '0.02em'
+          }}
+        >
+          <SparkleLight size={16} weight="light" />
+          <span>Luter analyze</span>
         </button>
-        <div className="ws-bubble-divider" />
-        <button className="ws-bubble-icon-btn" title="Explain"><Lightbulb size={16} /></button>
-        <button className="ws-bubble-icon-btn" title="Summarize"><Layers size={16} /></button>
+        <div className="ws-bubble-divider" style={{ background: 'rgba(255,255,255,0.1)', height: '24px' }} />
+        <button className="ws-bubble-icon-btn" title="Explain"><LightbulbLight size={18} weight="light" color="#C7B9FF" /></button>
+        <button className="ws-bubble-icon-btn" title="Summarize"><StackLight size={18} weight="light" color="#C7B9FF" /></button>
         <button 
           className="ws-bubble-icon-btn" 
           onClick={() => {
@@ -182,7 +218,7 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
           }}
           title="Keep Highlight"
         >
-          <Bookmark size={16} />
+          <BookmarkSimple size={18} weight="light" color="#C7B9FF" />
         </button>
       </div>
     )
@@ -191,27 +227,32 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
   /** Floating Studio Navigation Bar */
   const { isSidePanelCollapsed, setSidePanelCollapsed } = useReadingSpace()
   const StudioNav = () => (
-    <div className="ws-studio-floating-bar">
+    <div className="ws-studio-floating-bar" style={{ 
+      background: 'rgba(255, 255, 255, 0.95)', 
+      border: '1.5px solid #F1F5F9',
+      borderRadius: '20px',
+      padding: '0 20px'
+    }}>
       <div className="ws-nav-section">
         <button 
           className="ws-nav-btn" 
           onClick={() => setSidePanelCollapsed(!isSidePanelCollapsed)}
           title="Toggle Sidebar"
         >
-          <PanelLeft size={18} />
+          <ColumnsLight size={20} weight="light" color="#4B0082" />
         </button>
         <button 
           className="ws-nav-btn" 
           onClick={() => searchPluginInstance.openSearchPopover()}
           title="Search Document"
         >
-          <Search size={18} />
+          <MagnifyingGlassLight size={20} weight="light" color="#4B0082" />
         </button>
-        <button className="ws-nav-btn"><Moon size={18} /></button>
-        <button className="ws-nav-btn"><Volume2 size={18} /></button>
+        <button className="ws-nav-btn"><MoonLight size={20} weight="light" color="#4B0082" /></button>
+        <button className="ws-nav-btn"><SpeakerHighLight size={20} weight="light" color="#4B0082" /></button>
       </div>
       
-      <div className="ws-nav-center-group">
+      <div className="ws-nav-center-group" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
         <div className="ws-nav-pg-wrap">
           <input 
             className="ws-nav-pg-input" 
@@ -220,13 +261,14 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
             onKeyDown={(e) => {
               if (e.key === 'Enter') handlePageJump(e.target.value)
             }}
+            style={{ fontFamily: 'var(--font-outfit)', fontWeight: 600, color: '#4B0082' }}
           />
-          <span className="ws-pg-total">/ {totalPages || '--'}</span>
+          <span className="ws-pg-total" style={{ fontFamily: 'var(--font-varela)', fontWeight: 600 }}>/ {totalPages || '--'}</span>
         </div>
         <div className="ws-nav-divider" />
-        <div className="ws-nav-dropdown">
+        <div className="ws-nav-dropdown" style={{ fontFamily: 'var(--font-varela)', fontSize: '13px', fontWeight: 600, color: '#4B0082' }}>
           <span>Page fit</span>
-          <ChevronDown size={14} />
+          <CaretDownLight size={14} weight="light" />
         </div>
       </div>
 
@@ -235,21 +277,25 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
           className="ws-nav-btn" 
           onClick={() => setViewMode(viewMode === 'visuals' ? 'ai' : 'visuals')}
           title={viewMode === 'visuals' ? 'Switch to AI View' : 'Switch to Visual View'}
+          style={{ 
+            background: viewMode === 'ai' ? '#F3E8FF' : 'transparent',
+            borderRadius: '10px'
+          }}
         >
-          {viewMode === 'visuals' ? <Sparkles size={18} color="var(--luter-primary)" /> : <Eye size={18} />}
+          {viewMode === 'visuals' ? <SparkleLight size={20} weight="light" color="#7a12cc" /> : <EyeLight size={20} weight="light" color="#4B0082" />}
         </button>
         <button className="ws-nav-btn" title="Summarize Material">
-          <Layers size={18} />
+          <StackLight size={20} weight="light" color="#4B0082" />
         </button>
         <button className="ws-nav-btn" title="View Contextual Analysis">
-          <GraduationCap size={18} />
+          <GraduationCapLight size={20} weight="light" color="#4B0082" />
         </button>
         <div className="ws-nav-divider" />
         <button className="ws-nav-btn" onClick={() => window.open(material.source_url, '_blank')} title="Download">
-          <Download size={18} />
+          <DownloadSimple size={20} weight="light" color="#4B0082" />
         </button>
         <button className="ws-nav-btn" onClick={() => fullScreenPluginInstance.enterFullScreen()} title="Fullscreen">
-          <Maximize2 size={18} />
+          <ArrowsOutSimple size={20} weight="light" color="#4B0082" />
         </button>
       </div>
     </div>
@@ -259,26 +305,39 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
   const PropertyGridHeader = () => {
     const isLandmark = material.title?.toLowerCase().includes('landmark') || material.description?.toLowerCase().includes('landmark')
     return (
-      <div className="ws-property-card">
-        {isLandmark && <div className="ws-inst-logo" style={{ marginBottom: 16 }}>LMU</div>}
-        <h1 className="ws-ntn-h1" style={{ fontSize: 32, fontWeight: 800 }}>{material.course_code || 'Landmark University'}</h1>
-        <p style={{ color: '#64748B', fontSize: 18, fontWeight: 500, margin: 0 }}>{material.title}</p>
-        <div className="ws-property-grid">
-           <div className="ws-prop-item">
-              <span className="ws-prop-label">Course</span>
-              <span className="ws-prop-value">{material.course_name || 'Biochemistry'}</span>
+      <div className="ws-property-card" style={{ marginBottom: '48px' }}>
+        {isLandmark && <div className="ws-inst-logo" style={{ marginBottom: 24, background: '#6D28D9', color: 'white', border: 'none' }}>LMU</div>}
+        <h1 className="ws-ntn-h1" style={{ fontSize: 42, fontWeight: 800, fontFamily: 'var(--font-outfit)', letterSpacing: '-0.04em', color: '#1A102D', marginBottom: '12px' }}>{material.course_code || 'STUDY MATERIAL'}</h1>
+        <p style={{ color: '#64748B', fontSize: 20, fontWeight: 500, margin: 0, fontFamily: 'var(--font-varela)', opacity: 0.8 }}>{material.title}</p>
+        
+        <div className="ws-property-grid" style={{ 
+          marginTop: '40px', 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
+          gap: '1px',
+          background: '#F1F5F9',
+          borderRadius: '16px',
+          overflow: 'hidden',
+          border: '1px solid #F1F5F9'
+        }}>
+           <div className="ws-prop-item" style={{ background: 'white', padding: '20px' }}>
+              <span className="ws-prop-label" style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', marginBottom: '8px', display: 'block' }}>Course</span>
+              <span className="ws-prop-value" style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B', fontFamily: 'var(--font-outfit)' }}>{material.course_name || 'Natural Sciences'}</span>
            </div>
-           <div className="ws-prop-item">
-              <span className="ws-prop-label">Level</span>
-              <span className="ws-prop-value">Level 400</span>
+           <div className="ws-prop-item" style={{ background: 'white', padding: '20px' }}>
+              <span className="ws-prop-label" style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', marginBottom: '8px', display: 'block' }}>Type</span>
+              <span className="ws-prop-value" style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B', fontFamily: 'var(--font-outfit)' }}>{material.type || 'Document'}</span>
            </div>
-           <div className="ws-prop-item">
-              <span className="ws-prop-label">Credit Units</span>
-              <span className="ws-prop-value">3 Units</span>
+           <div className="ws-prop-item" style={{ background: 'white', padding: '20px' }}>
+              <span className="ws-prop-label" style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', marginBottom: '8px', display: 'block' }}>Status</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }} />
+                <span className="ws-prop-value" style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B', fontFamily: 'var(--font-outfit)' }}>Ready</span>
+              </div>
            </div>
-           <div className="ws-prop-item">
-              <span className="ws-prop-label">Academic Subject</span>
-              <span className="ws-prop-value">Natural Sciences</span>
+           <div className="ws-prop-item" style={{ background: 'white', padding: '20px' }}>
+              <span className="ws-prop-label" style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', marginBottom: '8px', display: 'block' }}>Source</span>
+              <span className="ws-prop-value" style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B', fontFamily: 'var(--font-outfit)' }}>Luter cloud</span>
            </div>
         </div>
       </div>
@@ -335,21 +394,23 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
 
           {/* AI VIEW: STRUCTURED DATA MODE */}
           {viewMode === 'ai' && (
-            <div className="ws-native-canvas">
-              <div className="ws-notion-layout">
+            <div className="ws-native-canvas" style={{ background: 'white' }}>
+              <div className="ws-notion-layout" style={{ maxWidth: '850px' }}>
                 <PropertyGridHeader />
                 <div className="ws-notion-card" ref={aiReaderRef}>
                   <div className="ws-notion-body">
                     <ReactMarkdown 
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        h1: ({ children }) => <h1 className="ws-ntn-h1">{children}</h1>,
-                        h2: ({ children }) => <h2 className="ws-ntn-h2">{children}</h2>,
-                        p: ({ children }) => <p className="ws-ntn-p" style={{ fontSize: fontSize }}>{children}</p>,
+                        h1: ({ children }) => <h1 className="ws-ntn-h1" style={{ fontFamily: 'var(--font-outfit)', fontSize: '32px', fontWeight: 800, marginTop: '48px', marginBottom: '20px' }}>{children}</h1>,
+                        h2: ({ children }) => <h2 className="ws-ntn-h2" style={{ fontFamily: 'var(--font-outfit)', fontSize: '24px', fontWeight: 700, marginTop: '36px', marginBottom: '16px', borderBottom: '1.5px solid #F1F5F9', paddingBottom: '8px' }}>{children}</h2>,
+                        h3: ({ children }) => <h3 style={{ fontFamily: 'var(--font-outfit)', fontSize: '20px', fontWeight: 700, marginTop: '28px', marginBottom: '12px' }}>{children}</h3>,
+                        p: ({ children }) => <p className="ws-ntn-p" style={{ fontSize: `${fontSize}px`, fontFamily: 'var(--font-varela)', lineHeight: '1.8', color: '#334155', marginBottom: '24px' }}>{children}</p>,
+                        li: ({ children }) => <li style={{ fontFamily: 'var(--font-varela)', fontSize: `${fontSize - 1}px`, marginBottom: '12px', color: '#334155' }}>{children}</li>,
                         em: ({ children, node, ...props }) => {
                           const text = node?.children?.[0]?.value || ""
                           if (highlightText && typeof text === 'string' && text.toLowerCase().includes(highlightText.toLowerCase())) {
-                            return <mark className="luter-highlight-active">{children}</mark>
+                            return <mark className="luter-highlight-active" style={{ background: '#F3E8FF', color: '#7a12cc', padding: '2px 4px', borderRadius: '4px', fontWeight: 700, borderBottom: '2px solid #7a12cc' }}>{children}</mark>
                           }
                           return <em {...props}>{children}</em>
                         }
@@ -409,7 +470,7 @@ function OfficeViewer({ fileUrl }) {
     <div style={{ width: '100%', height: 'calc(100vh - 56px)', position: 'relative', overflow: 'hidden', background: 'white' }}>
       {loading && (
         <div style={{ position: 'absolute', inset: 0, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
-           <Loader2 className="animate-spin" color="var(--luter-primary)" size={32} />
+           <CircleNotch className="animate-spin" color="#4B0082" size={32} weight="bold" />
         </div>
       )}
       <iframe
@@ -470,9 +531,19 @@ function HighFidelityImage({ fileUrl }) {
 
 function HighFidelityAudio({ material }) {
   return (
-    <div style={{ height: 'calc(100vh - 56px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 32 }}>
-       <Music size={48} color="var(--luter-primary)" />
-       <audio controls src={material.source_url} />
+    <div style={{ height: 'calc(100vh - 56px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 32, background: '#F8FAFC' }}>
+       <div style={{ 
+         width: '120px', height: '120px', borderRadius: '40px', 
+         background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+         boxShadow: '0 20px 40px rgba(0,0,0,0.05)', border: '1.5px solid #F1F5F9'
+       }}>
+         <Music size={64} color="#4B0082" weight="bold" />
+       </div>
+       <div style={{ textAlign: 'center' }}>
+         <h3 style={{ fontFamily: 'var(--font-outfit)', fontWeight: 800, fontSize: '20px', color: '#1A102D', marginBottom: '8px' }}>AUDIO LECTURE</h3>
+         <p style={{ fontFamily: 'var(--font-varela)', color: '#64748B', fontSize: '14px' }}>{material.title}</p>
+       </div>
+       <audio controls src={material.source_url} style={{ width: '400px' }} />
     </div>
   )
 }
@@ -487,9 +558,17 @@ function HighFidelityAnki({ material }) {
 
 function PendingState({ material }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - 56px)', gap: 24 }}>
-      <Loader2 size={32} color="var(--luter-primary)" className="animate-spin" />
-      <p style={{ color: 'var(--luter-primary-dark)', fontWeight: '600' }}>Luter is optimizing <strong>{material?.title}</strong>...</p>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - 56px)', gap: 24, background: '#F8FAFC' }}>
+      <div style={{ position: 'relative' }}>
+        <CircleNotch size={48} color="#4B0082" weight="bold" className="animate-spin" />
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Sparkle size={20} weight="bold" color="#7a12cc" />
+        </div>
+      </div>
+      <div style={{ textAlign: 'center' }}>
+        <p style={{ color: '#1A102D', fontWeight: 800, fontSize: '18px', fontFamily: 'var(--font-outfit)', marginBottom: '4px' }}>OPTIMIZING FOR STUDY</p>
+        <p style={{ color: '#64748B', fontWeight: 500, fontSize: '14px', fontFamily: 'var(--font-varela)' }}>{material?.title || 'Preparing your material'}...</p>
+      </div>
     </div>
   )
 }

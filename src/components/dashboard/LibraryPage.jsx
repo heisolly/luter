@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, ChevronDown, BookOpen, Layers, Folder, ClipboardCheck, CheckCircle, MoreVertical, Star, Clock, Trophy, ArrowRight, Loader2 } from 'lucide-react'
+import { RiSearchLine as Search, RiArrowDownSLine as ChevronDown, RiBookOpenFill as BookOpen, RiStackFill as Layers, RiFolderFill as Folder, RiClipboardFill as ClipboardCheck, RiCheckboxCircleFill as CheckCircle, RiMore2Fill as MoreVertical, RiStarFill as Star, RiTimeFill as Clock, RiTrophyFill as Trophy, RiArrowRightLine as ArrowRight, RiLoader4Line as Loader2 } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'

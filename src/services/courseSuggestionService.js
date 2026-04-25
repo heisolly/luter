@@ -11,6 +11,7 @@ import {
   buildCurriculumKeyContext
 } from './curriculumService'
 import { normalizeCourseRow, departmentSlugFromLabel, universitySlugFromName } from '../lib/curriculumSlugs'
+import universalCourseService from './universalCourseService'
 
 /**
  * Comprehensive Course Suggestion Service
@@ -446,9 +447,83 @@ async function getEnhancedCourseSearch(query, university, department, level, sem
 }
 
 /**
- * Get course suggestions for onboarding with categories
+ * Get course suggestions for onboarding with categories (Enhanced)
  */
 export async function getOnboardingCourseSuggestions(university, department, level, semester, country = 'Nigeria') {
+  // Build context
+  const context = {
+    country,
+    university,
+    universitySlug: universitySlugFromName(university),
+    department,
+    departmentSlug: departmentSlugFromLabel(department),
+    educationLevel: level.includes('Grade') ? (level.includes('1') || level.includes('2') || level.includes('3') ? 'Primary' : 'Secondary') : 'Tertiary',
+    level,
+    semester
+  }
+  
+  try {
+    // Try to get enhanced suggestions from universal system first
+    // For onboarding, we don't have a userId yet, so we'll use a temporary approach
+    const { data: contextMatrix } = await universalCourseService.getOrCreateContextMatrix(context)
+    
+    if (contextMatrix) {
+      // Generate AI courses if needed
+      const { data: aiCourses } = await universalCourseService.generateCoursesWithAI(context, 15)
+      
+      // Get hybrid suggestions as fallback
+      const hybridSuggestions = await getHybridCourseSuggestions(university, department, level, semester, country)
+      
+      // Combine AI courses with hybrid suggestions
+      const allSuggestions = [
+        ...aiCourses.map(course => ({
+          code: course.code,
+          name: course.name,
+          source: 'ai_generated',
+          confidence: course.confidence || 0.85,
+          combinedScore: course.confidence || 0.85,
+          isTrending: false,
+          peerCount: 0
+        })),
+        ...hybridSuggestions
+      ]
+      
+      // Remove duplicates and sort
+      const uniqueSuggestions = Array.from(
+        new Map(allSuggestions.map(s => [s.code, s])).values()
+      ).sort((a, b) => b.combinedScore - a.combinedScore)
+      
+      // Categorize suggestions
+      const categorized = {
+        highlyRecommended: uniqueSuggestions.filter(s => s.combinedScore >= 0.8).slice(0, 8),
+        popular: uniqueSuggestions.filter(s => s.peerCount >= 3).slice(0, 6),
+        trending: uniqueSuggestions.filter(s => s.isTrending).slice(0, 4),
+        core: uniqueSuggestions.filter(s => s.sourceData?.type === 'core' || s.code.match(/^(CSC|MTH|GST|ENG|PHY|CHM)/)).slice(0, 10),
+        electives: uniqueSuggestions.filter(s => s.sourceData?.type === 'elective' || s.code.match(/^(ELE|OPT)/)).slice(0, 6),
+        aiGenerated: uniqueSuggestions.filter(s => s.source === 'ai_generated').slice(0, 8)
+      }
+
+      return {
+        all: uniqueSuggestions.slice(0, 20),
+        categories: categorized,
+        context: {
+          university,
+          department,
+          level,
+          semester,
+          totalSuggestions: uniqueSuggestions.length,
+          hasPeerData: uniqueSuggestions.some(s => s.peerCount > 0),
+          hasAiData: uniqueSuggestions.some(s => s.source?.includes('ai') || s.source === 'ai_generated'),
+          hasUniversalData: true,
+          contextMatrixId: contextMatrix
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Universal suggestions failed, using hybrid fallback:', err)
+  }
+  
+  // Fallback to original hybrid suggestions
   const suggestions = await getHybridCourseSuggestions(university, department, level, semester, country)
   
   // Categorize suggestions
@@ -470,7 +545,8 @@ export async function getOnboardingCourseSuggestions(university, department, lev
       semester,
       totalSuggestions: suggestions.length,
       hasPeerData: suggestions.some(s => s.peerCount > 0),
-      hasAiData: suggestions.some(s => s.source?.includes('ai'))
+      hasAiData: suggestions.some(s => s.source?.includes('ai')),
+      hasUniversalData: false
     }
   }
 }

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Search, 
-  X, 
-  Loader2,
-  Sparkles,
-  CheckCircle2,
-  Plus
-} from 'lucide-react'
+  RiSearchLine as Search, 
+  RiCloseLine as X, 
+  RiLoader4Line as Loader2,
+  RiMagicFill as Sparkles,
+  RiCheckboxCircleFill as CheckCircle2,
+  RiAddLine as Plus
+} from 'react-icons/ri'
 import { getOnboardingCourseSuggestions, getEnhancedCourseSearch } from '../services/courseSuggestionService'
 
 /**

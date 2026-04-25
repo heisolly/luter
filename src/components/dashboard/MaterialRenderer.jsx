@@ -5,7 +5,7 @@
  */
 
 import React, { Suspense, lazy } from 'react'
-import { Loader2 } from 'lucide-react'
+import { RiLoader4Line as Loader2 } from 'react-icons/ri'
 
 // The single unified viewer
 const DocumentViewer = lazy(() => import('./renderers/DocumentViewer'))

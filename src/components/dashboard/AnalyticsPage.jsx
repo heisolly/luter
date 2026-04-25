@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { BarChart3, TrendingUp, TrendingDown, Target, Zap, Clock, BookOpen, Loader2, Award, History, ChevronRight, FlaskConical, AlertTriangle } from 'lucide-react'
+import { RiBarChartFill as BarChart3, RiLineChartFill as TrendingUp, RiArrowDownFill as TrendingDown, RiFocusFill as Target, RiFlashlightFill as Zap, RiTimeFill as Clock, RiBookOpenFill as BookOpen, RiLoader4Line as Loader2, RiAwardFill as Award, RiHistoryFill as History, RiArrowRightSLine as ChevronRight, RiFlaskFill as FlaskConical, RiAlertFill as AlertTriangle } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { motion } from 'framer-motion'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
@@ -354,4 +354,3 @@ function StatCard({ title, value, subtitle, icon: Icon, color, delay, isMobile }
     </motion.div>
   )
 }
-

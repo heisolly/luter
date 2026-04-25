@@ -1,6 +1,6 @@
 import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Trophy, Sword, Sparkles } from 'lucide-react'
+import { RiTrophyFill as Trophy, RiSwordFill as Sword, RiMagicFill as Sparkles } from 'react-icons/ri'
 
 export default function CompetePage() {
   const { isMobile } = useOutletContext()

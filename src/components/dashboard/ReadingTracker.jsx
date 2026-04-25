@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { BookOpen, Clock, Eye, Target, TrendingUp, Calendar, Award, BarChart3, Activity, Zap, Coffee } from 'lucide-react'
+import { RiBookOpenFill as BookOpen, RiTimeFill as Clock, RiEyeFill as Eye, RiFocusFill as Target, RiLineChartFill as TrendingUp, RiCalendarFill as Calendar, RiAwardFill as Award, RiBarChartFill as BarChart3, RiPulseFill as Activity, RiFlashlightFill as Zap, RiCupFill as Coffee } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 
 export default function ReadingTracker({ material, activeTab, onProgressUpdate }) {

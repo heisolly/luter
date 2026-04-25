@@ -1,0 +1,68 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "continue": "CONTINUAR"
+  },
+  "onboarding": {
+    "welcome": "Bienvenido a Luter",
+    "select_path": "Elige tu camino",
+    "student": "Estudiante Universitario",
+    "studentSub": "Quiero seguir cursos y estudiar para exámenes.",
+    "solo": "Aprendiz Independiente",
+    "soloSub": "Estoy aprendiendo de forma independiente a mi propio ritmo.",
+    "pathTitle": "Elige tu camino",
+    "pathSub": "¿Cómo planeas usar Luter?",
+    "idTitle": "Cuéntanos sobre ti",
+    "idSub": "Ayúdanos a personalizar tu viaje de aprendizaje.",
+    "fullName": "Nombre completo",
+    "username": "Nombre de usuario",
+    "uniTitle": "¿Dónde estudias?",
+    "uniSub": "Esto te conecta con tu comunidad universitaria.",
+    "intTitle": "¿Cuáles son tus intereses?",
+    "intSub": "Selecciona tus áreas de enfoque.",
+    "courseTitle": "¿Qué cursos estás tomando?",
+    "courseSub": "Agrega tus cursos actuales para construir tu espacio de trabajo.",
+    "routineTitle": "Establece tu rutina de estudio",
+    "routineSub": "¿Cuándo te concentras mejor?",
+    "focusTitle": "Enfoque.",
+    "focusSub": "¿Cuál es tu principal prioridad ahora mismo?",
+    "invitesTitle": "Invitaciones.",
+    "invitesSub": "Ingresa un código de referido para desbloquear recompensas.",
+    "successTitle": "¡Éxito!",
+    "successSub": "Tu ID de Luter se está generando.",
+    "generating": "GENERANDO...",
+    "enterDashboard": "ENTRAR AL TABLERO"
+  },
+  "dock": {
+    "start": "Empezar a estudiar",
+    "add": "Agregar al mazo",
+    "activeContext": "Contexto Activo",
+    "dropMaterials": "Suelta materiales aquí para estudiar",
+    "quickUpload": "Subida Rápida",
+    "emptyVault": "Bóveda Vacía",
+    "aiTutor": "Tutor de IA"
+  },
+  "workspace": {
+    "ai_placeholder": "Pregúntale cualquier cosa a tu tutor..."
+  },
+  "sidebar": {
+    "home": "Inicio",
+    "library": "Tu biblioteca",
+    "studyGroups": "Grupos de estudio",
+    "notifications": "Notificaciones",
+    "playground": "Patio de recreo",
+    "trash": "Basura",
+    "mockExam": "Examen de prueba",
+    "myVault": "MI BÓVEDA",
+    "backpack": "MOCHILA",
+    "addToVault": "Añadir a la bóveda",
+    "enrollMore": "Inscribir más",
+    "setupVault": "Configura tu bóveda",
+    "addFirstCourse": "Añade tu primer curso",
+    "personal": "Personal",
+    "myProgress": "Mi progreso",
+    "settings": "Configuración",
+    "upgradePro": "Actualizar a Pro"
+  }
+}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { Sparkles, Loader2, Download, Share2, FileText } from 'lucide-react'
+import { RiMagicFill as Sparkles, RiLoader4Line as Loader2, RiDownloadFill as Download, RiShareFill as Share2, RiFileTextFill as FileText } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS } from '../../groqClient'
 import ReactMarkdown from 'react-markdown'

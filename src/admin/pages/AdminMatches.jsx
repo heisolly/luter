@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
-import { Loader2, RefreshCw } from 'lucide-react'
+import { RiLoader4Line as Loader2, RiRefreshLine as RefreshCw } from 'react-icons/ri'
 import { useAdminPrefetch } from '../../context/AdminPrefetchContext'
 
 function formatTs(s) {

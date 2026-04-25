@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Loader2, CheckCircle2, BookOpen, GraduationCap } from 'lucide-react';
+import { RiArrowRightSLine as CaretRight, RiLoader4Line as CircleNotch, RiCheckboxCircleFill as CheckCircle, RiUserFill as User, RiMailFill as Envelope, RiLockFill as Lock, RiBookOpenFill as BookOpen, RiGraduationCapFill as GraduationCap } from 'react-icons/ri';
 import { supabase } from '../supabaseClient';
-import { SharedNavbar } from './PageShared';
+
 import GoogleLoginButton from './auth/GoogleLoginButton';
-import GridMotionBackground from './shared/GridMotionBackground';
+import { AuthNavbar } from './PageShared';
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -39,124 +39,147 @@ export default function SignUp() {
   };
 
   return (
-    <div className="hero-section" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: 0, background: 'transparent', position: 'relative', overflow: 'hidden' }}>
-      
-      {/* Navbar */}
-      <SharedNavbar />
+    <div style={{ 
+      minHeight: '100vh', 
+      background: '#FFFFFF', 
+      display: 'flex', 
+      flexDirection: 'column',
+      position: 'relative', 
+      overflow: 'hidden', 
+      fontFamily: 'var(--font-varela)' 
+    }}>
+      <style>{`
+        @keyframes moveGrid {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(100px); }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(5deg); }
+        }
+        @keyframes pulseGlow {
+          0%, 100% { opacity: 0.5; transform: scale(1); }
+          50% { opacity: 0.8; transform: scale(1.1); }
+        }
+      `}</style>
 
-      {/* Hero Background */}
-      <GridMotionBackground />
+      {/* Premium Nebula Background */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+        {/* Ambient Glows */}
+        <div style={{ 
+          position: 'absolute', bottom: '10%', left: '5%', width: '40%', height: '40%', 
+          background: 'radial-gradient(circle, rgba(75, 0, 130, 0.08) 0%, transparent 70%)', 
+          filter: 'blur(80px)', animation: 'pulseGlow 8s infinite ease-in-out' 
+        }} />
+        <div style={{ 
+          position: 'absolute', top: '10%', right: '5%', width: '40%', height: '40%', 
+          background: 'radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, transparent 70%)', 
+          filter: 'blur(80px)', animation: 'pulseGlow 10s infinite ease-in-out' 
+        }} />
 
-      <div className="hero-bg" style={{ pointerEvents: 'none' }}>
-        <div style={{ position: 'absolute', top: '12%', right: '5%', animation: 'float-up-down 7s ease-in-out infinite', opacity: 0.3 }}>
-          <div style={{ width: 60, height: 60, background: 'rgba(151,24,251,0.05)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'rotate(12deg)', border: '1px solid rgba(151,24,251,0.1)' }}>
-            <BookOpen size={28} color="var(--primary)" />
+        {/* Moving Grid */}
+        <div style={{ 
+          position: 'absolute', inset: '-100px 0', 
+          backgroundImage: `
+            linear-gradient(rgba(75, 0, 130, 0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(75, 0, 130, 0.04) 1px, transparent 1px)
+          `,
+          backgroundSize: '100px 100px',
+          animation: 'moveGrid 20s linear infinite',
+          opacity: 0.6
+        }} />
+
+        {/* Floating Icons Background */}
+        <div style={{ position: 'absolute', top: '15%', right: '8%', opacity: 0.1, animation: 'float 6s infinite ease-in-out' }}>
+          <div style={{ padding: '20px', borderRadius: '24px', background: 'white', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
+            <BookOpen size={40} color="#4B0082" weight="bold" />
           </div>
         </div>
-        <div style={{ position: 'absolute', bottom: '15%', left: '5%', animation: 'float-up-down 5s ease-in-out infinite reverse', opacity: 0.3 }}>
-          <div style={{ width: 50, height: 50, background: 'rgba(2,132,199,0.05)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(2,132,199,0.1)' }}>
-            <GraduationCap size={24} color="#0284c7" />
+        <div style={{ position: 'absolute', bottom: '15%', left: '8%', opacity: 0.1, animation: 'float 7s infinite ease-in-out-reverse' }}>
+          <div style={{ padding: '20px', borderRadius: '24px', background: 'white', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
+            <GraduationCap size={40} color="#4B0082" weight="bold" />
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="auth-content-mobile" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 1, width: '100%', padding: '20px' }}>
-        
+      {/* Navigation Bar */}
+      <AuthNavbar type="signup" />
+
+      <div style={{ 
+        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', 
+        padding: '60px 20px', position: 'relative', zIndex: 1 
+      }}>
         {success ? (
-          <div style={{ width: '100%', maxWidth: 440, textAlign: 'center', paddingTop: '100px' }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(151,24,251,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-              <CheckCircle2 style={{ width: 32, height: 32, color: 'var(--primary)' }} />
+          <div style={cardStyle}>
+            <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px' }}>
+              <CheckCircle size={40} weight="bold" color="#22c55e" />
             </div>
-            <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.2rem)', fontWeight: 800, fontFamily: 'var(--font-varela)', color: '#111', marginBottom: 12 }}>Check your inbox</h2>
-            <p style={{ fontSize: 16, color: '#666', lineHeight: 1.7, marginBottom: 32 }}>
-              We sent a confirmation link to<br />
-              <strong style={{ color: '#111' }}>{successEmail}</strong>
+            <h2 style={{ fontSize: 32, fontWeight: 800, color: '#111', marginBottom: 16, fontFamily: 'var(--font-outfit)' }}>Verify your email</h2>
+            <p style={{ fontSize: 16, color: '#64748B', lineHeight: 1.6, marginBottom: 40 }}>
+              We've sent a magic link to <br /><strong style={{ color: '#111' }}>{successEmail}</strong>
             </p>
-            <Link to="/signin" className="btn-primary" style={{ padding: '14px 28px', fontSize: 15, textDecoration: 'none', display: 'inline-flex', borderRadius: 16 }}>
-              Go to Sign In
+            <Link to="/signin" style={primaryButtonStyle}>
+              Go to Sign In <CaretRight size={20} weight="bold" />
             </Link>
           </div>
         ) : (
-          <div style={{ width: '100%', maxWidth: 440, paddingTop: '140px', paddingBottom: '60px' }}>
-            
-            <div style={{ textAlign: 'center', marginBottom: 40 }}>
-              <h2 style={{ fontSize: 'clamp(2.2rem, 5vw, 2.8rem)', fontWeight: 800, fontFamily: 'var(--font-varela)', color: '#111', marginBottom: 12, lineHeight: 1.2, letterSpacing: '-0.02em' }}>
+          <div style={{ width: '100%', maxWidth: 440, textAlign: 'center' }}>
+            <div style={{ marginBottom: 48 }}>
+              <h1 style={{ fontSize: 48, fontWeight: 800, color: '#111', marginBottom: 16, letterSpacing: '-0.03em', fontFamily: 'var(--font-outfit)' }}>
                 Start your journey.
-              </h2>
-              <p style={{ fontSize: 16, color: '#666', fontWeight: 500 }}>Create your account to access Luter.</p>
+              </h1>
+              <p style={{ fontSize: 16, color: '#64748B', fontWeight: 500 }}>Create your account to access Luter.</p>
             </div>
 
             {error && (
-              <div style={{ background: '#fef2f2', color: '#dc2626', padding: '14px 18px', borderRadius: 12, fontSize: 14, fontWeight: 600, marginBottom: 24, border: '1px solid #fecaca' }}>
+              <div style={{ background: '#fef2f2', color: '#ef4444', padding: '16px', borderRadius: 24, fontSize: 14, fontWeight: 700, marginBottom: 32, border: '1px solid #fee2e2' }}>
                 {error}
               </div>
             )}
 
-            <GoogleLoginButton />
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, margin: '24px 0', opacity: 0.15 }}>
-              <div style={{ flex: 1, height: 1, background: '#000' }} />
-              <span style={{ fontSize: 11, fontWeight: 800, color: '#666' }}>OR</span>
-              <div style={{ flex: 1, height: 1, background: '#000' }} />
+            <div style={{ marginBottom: 32 }}>
+              <GoogleLoginButton />
             </div>
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, margin: '32px 0' }}>
+              <div style={{ flex: 1, height: 1, background: '#F1F5F9' }} />
+              <span style={{ fontSize: 11, fontWeight: 800, color: '#CBD5E1', letterSpacing: '0.1em' }}>OR</span>
+              <div style={{ flex: 1, height: 1, background: '#F1F5F9' }} />
+            </div>
 
-              <div>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ position: 'relative' }}>
                 <input 
-                  type="text" 
-                  required 
-                  value={fullName} 
-                  onChange={e => setFullName(e.target.value)} 
-                  style={inputStyle} 
-                  placeholder="Full Name" 
-                  onFocus={handleFocus}
-                  onBlur={handleBlur}
+                  type="text" required value={fullName} onChange={e => setFullName(e.target.value)} 
+                  style={inputStyle} placeholder="FULL NAME" 
+                />
+              </div>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="email" required value={email} onChange={e => setEmail(e.target.value)} 
+                  style={inputStyle} placeholder="EMAIL ADDRESS" 
+                />
+              </div>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} 
+                  style={inputStyle} placeholder="CREATE PASSWORD" 
                 />
               </div>
 
-              <div>
-                <input 
-                  type="email" 
-                  required 
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)} 
-                  style={inputStyle} 
-                  placeholder="Email Address" 
-                  onFocus={handleFocus}
-                  onBlur={handleBlur}
-                />
-              </div>
-
-              <div>
-                <input 
-                  type="password" 
-                  required 
-                  minLength={6}
-                  value={password} 
-                  onChange={e => setPassword(e.target.value)} 
-                  style={inputStyle} 
-                  placeholder="Create Password" 
-                  onFocus={handleFocus}
-                  onBlur={handleBlur}
-                />
-              </div>
-
-              <button type="submit" disabled={loading} className="btn-primary" style={{ padding: '16px', fontSize: 16, width: '100%', marginTop: 8, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, borderRadius: 16, boxShadow: '0 8px 24px rgba(151,24,251,0.25)' }}>
-                {loading ? <Loader2 className="animate-spin" size={20} /> : <>Create Free Account <ArrowRight size={18} /></>}
+              <button type="submit" disabled={loading} style={primaryButtonStyle}>
+                {loading ? <CircleNotch className="animate-spin" size={20} weight="bold" /> : <>CREATE FREE ACCOUNT <CaretRight size={20} weight="bold" /></>}
               </button>
             </form>
 
-            <div style={{ textAlign: 'center', marginTop: 40, fontSize: 15, color: '#666', fontWeight: 500 }}>
-              Already have an account? <Link to="/signin" style={{ color: 'var(--primary)', fontWeight: 800, textDecoration: 'none' }}>Sign in here</Link>
+            <div style={{ textAlign: 'center', marginTop: 32, fontSize: 14, color: '#64748B', fontWeight: 600 }}>
+              Already have an account? <Link to="/signin" style={{ color: '#4B0082', fontWeight: 800, textDecoration: 'none' }}>Sign in here</Link>
             </div>
 
-            <p style={{ textAlign: 'center', marginTop: 32, fontSize: 12, color: '#999', lineHeight: 1.5 }}>
+            <div style={{ marginTop: 40, fontSize: 12, color: '#94A3B8', fontWeight: 500, lineHeight: 1.6 }}>
               By signing up, you agree to our <br />
-              <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>Terms of Service</span> and <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>Privacy Policy</span>.
-            </p>
-            
+              <Link to="#" style={{ color: '#64748B', textDecoration: 'underline' }}>Terms of Service</Link> and <Link to="#" style={{ color: '#64748B', textDecoration: 'underline' }}>Privacy Policy</Link>.
+            </div>
           </div>
         )}
       </div>
@@ -164,27 +187,51 @@ export default function SignUp() {
   );
 }
 
+const cardStyle = {
+  width: '100%', 
+  maxWidth: 480, 
+  background: 'rgba(255, 255, 255, 0.7)', 
+  backdropFilter: 'blur(20px)',
+  padding: '48px', 
+  borderRadius: '32px', 
+  border: '1px solid rgba(255, 255, 255, 0.8)', 
+  boxShadow: '0 20px 40px rgba(0,0,0,0.02)',
+  fontFamily: 'var(--font-varela)',
+  textAlign: 'center'
+};
+
 const inputStyle = { 
   width: '100%', 
-  padding: '16px 20px', 
-  borderRadius: 16, 
-  border: '2px solid rgba(151,24,251,0.1)', 
-  fontSize: 16, 
+  padding: '18px 28px', 
+  borderRadius: '9999px', 
+  border: '1.5px solid #F1F5F9', 
+  fontSize: '16px', 
+  fontWeight: '500', 
   outline: 'none', 
-  transition: 'all 0.2s', 
-  background: 'rgba(255,255,255,0.8)', 
-  backdropFilter: 'blur(10px)', 
-  fontFamily: 'var(--font-inter)', 
-  color: '#111', 
-  boxShadow: '0 4px 12px rgba(0,0,0,0.02)' 
+  background: '#FFFFFF',
+  transition: 'all 0.2s ease',
+  color: '#111',
+  fontFamily: 'var(--font-varela)'
 };
 
-const handleFocus = (e) => { 
-  e.target.style.borderColor = 'var(--primary)'; 
-  e.target.style.background = 'white'; 
-};
-
-const handleBlur = (e) => { 
-  e.target.style.borderColor = 'rgba(151,24,251,0.1)'; 
-  e.target.style.background = 'rgba(255,255,255,0.8)'; 
+const primaryButtonStyle = { 
+  padding: '18px', 
+  fontSize: '14px', 
+  fontWeight: '800', 
+  width: '100%', 
+  marginTop: '12px', 
+  display: 'flex', 
+  justifyContent: 'center', 
+  alignItems: 'center', 
+  gap: '10px', 
+  borderRadius: '9999px', 
+  background: 'linear-gradient(135deg, #A855F7 0%, #C7B9FF 100%)', 
+  color: 'white', 
+  border: 'none', 
+  cursor: 'pointer',
+  boxShadow: '0 10px 25px rgba(168, 85, 247, 0.25)',
+  transition: 'all 0.2s ease',
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  fontFamily: 'var(--font-outfit)'
 };

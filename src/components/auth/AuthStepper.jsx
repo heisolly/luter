@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight, Loader2 } from 'lucide-react';
+import { RiCheckboxCircleFill as CheckCircle2, RiArrowRightSLine as ChevronRight, RiLoader4Line as Loader2 } from 'react-icons/ri';
 
 /* ─────────────────────────────────────────────────────────────────────────
    PerimeterInput

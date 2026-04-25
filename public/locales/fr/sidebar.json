@@ -1,0 +1,19 @@
+{
+  "home": "Accueil",
+  "library": "Votre bibliothèque",
+  "studyGroups": "Groupes d'étude",
+  "notifications": "Notifications",
+  "playground": "Terrain de jeux",
+  "trash": "Corbeille",
+  "mockExam": "Examen blanc",
+  "myVault": "MON COFFRE",
+  "backpack": "SAC À DOS",
+  "addToVault": "Ajouter au coffre",
+  "enrollMore": "Inscrire plus",
+  "setupVault": "Configurez votre coffre",
+  "addFirstCourse": "Ajoutez votre premier cours",
+  "personal": "Personnel",
+  "myProgress": "Mes progrès",
+  "settings": "Paramètres",
+  "upgradePro": "Passer à la version Pro"
+}

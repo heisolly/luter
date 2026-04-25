@@ -3,10 +3,10 @@ import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  CheckCircle2, XCircle, Clock, BarChart3, Star, Award, Zap, 
-  ArrowLeft, Loader2, BookOpen, Share2, Trophy, ArrowRight,
-  ShieldCheck, Sparkles, GraduationCap
-} from 'lucide-react'
+  RiCheckboxCircleFill as CheckCircle2, RiCloseCircleFill as XCircle, RiTimeFill as Clock, RiBarChartFill as BarChart3, RiStarFill as Star, RiAwardFill as Award, RiFlashlightFill as Zap, 
+  RiArrowLeftLine as ArrowLeft, RiLoader4Line as Loader2, RiBookOpenFill as BookOpen, RiShareFill as Share2, RiTrophyFill as Trophy, RiArrowRightLine as ArrowRight,
+  RiShieldCheckFill as ShieldCheck, RiMagicFill as Sparkles, RiGraduationCapFill as GraduationCap
+} from 'react-icons/ri'
 import LuterLogo from './shared/LuterLogo'
 import confetti from 'canvas-confetti'
 import { toPng } from 'html-to-image'

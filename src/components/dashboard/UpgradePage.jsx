@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Check, Sparkles } from 'lucide-react'
+import { RiCheckLine as Check, RiMagicFill as Sparkles } from 'react-icons/ri'
 
 const plans = [
   {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
-import { Loader2, ArrowLeft, Save } from 'lucide-react'
+import { RiLoader4Line as Loader2, RiArrowLeftLine as ArrowLeft, RiSaveFill as Save } from 'react-icons/ri'
 import { useAdminPrefetch } from '../../context/AdminPrefetchContext'
 
 export default function AdminUserDetail() {

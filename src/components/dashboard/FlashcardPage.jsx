@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { Layers, Loader2, Zap, RotateCcw, ChevronRight, ChevronLeft } from 'lucide-react'
+import { RiStackFill as Layers, RiLoader4Line as Loader2, RiFlashlightFill as Zap, RiRefreshLine as RotateCcw, RiArrowRightSLine as ChevronRight, RiArrowLeftSLine as ChevronLeft } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
 import LuterLogo from '../shared/LuterLogo'

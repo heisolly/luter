@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import { Loader2, Menu, X, ShieldAlert } from 'lucide-react'
+import { RiLoader4Line as Loader2, RiMenuLine as Menu, RiCloseLine as X, RiShieldFlashFill as ShieldAlert } from 'react-icons/ri'
 import { isAdminUser } from './adminAuth'
 import AdminSidebar from './AdminSidebar'
 import { AdminPrefetchProvider } from '../context/AdminPrefetchContext'

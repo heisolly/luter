@@ -1,4 +1,4 @@
-import { AlertCircle, Wifi, WifiOff } from 'lucide-react'
+import { RiAlertFill as AlertCircle, RiWifiLine as Wifi, RiWifiOffLine as WifiOff } from 'react-icons/ri'
 
 export const ConnectionErrorFallback = ({ onRetry }) => {
   return (

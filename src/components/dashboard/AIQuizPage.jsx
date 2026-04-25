@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { HelpCircle, Loader2, Zap, CheckCircle2, XCircle } from 'lucide-react'
+import { RiQuestionFill as HelpCircle, RiLoader4Line as Loader2, RiFlashlightFill as Zap, RiCheckboxCircleFill as CheckCircle2, RiCloseCircleFill as XCircle } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
 import LuterLogo from '../shared/LuterLogo'

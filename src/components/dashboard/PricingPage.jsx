@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Check, Sparkles, Star, Zap } from 'lucide-react';
+import { RiCheckLine as Check, RiMagicFill as Sparkles, RiStarFill as Star, RiFlashlightFill as Zap } from 'react-icons/ri';
 import { supabase } from '../../supabaseClient';
 import PremiumModal from '../shared/PremiumModal';
 

@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { 
-  BookOpen, Calendar, Upload, Users, MessageSquare, 
-  TrendingUp, Clock, CheckCircle, AlertCircle, 
-  Plus, Search, Filter, Download, RefreshCw,
-  Brain, Zap, Target, Award, BarChart3,
-  FileText, Video, Headphones, Image, File,
-  ChevronRight, ChevronDown, Eye, Edit, Trash2,
-  Send, Bell, Settings, Layers, Grid3x3,
-  Loader2, MoreHorizontal, X
-} from 'lucide-react'
+  RiBookOpenFill as BookOpen, RiCalendarFill as Calendar, RiUploadCloudFill as Upload, RiUserFill as Users, RiMessage2Fill as MessageSquare, 
+  RiLineChartFill as TrendingUp, RiTimeFill as Clock, RiCheckboxCircleFill as CheckCircle, RiErrorWarningFill as AlertCircle, 
+  RiAddLine as Plus, RiSearchLine as Search, RiFilterFill as Filter, RiDownloadLine as Download, RiRefreshLine as RefreshCw,
+  RiBrainFill as Brain, RiFlashlightFill as Zap, RiFocusFill as Target, RiAwardFill as Award, RiBarChartFill as BarChart3,
+  RiFileTextFill as FileText, RiVideoFill as Video, RiHeadphoneFill as Headphones, RiImageFill as Image, RiFileFill as File,
+  RiArrowRightSLine as ChevronRight, RiArrowDownSLine as ChevronDown, RiEyeFill as Eye, RiEditFill as Edit, RiDeleteBin7Fill as Trash2,
+  RiSendPlaneFill as Send, RiNotificationFill as Bell, RiSettingsFill as Settings, RiStackFill as Layers, RiGridFill as Grid3x3,
+  RiLoader4Line as Loader2, RiMoreFill as MoreHorizontal, RiCloseLine as X
+} from 'react-icons/ri'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // Luter purple theme palette

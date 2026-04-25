@@ -2,10 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { 
-  Zap, Trophy, Clock, BarChart3, Star, Flame, Loader2, 
-  ChevronLeft, BookOpen, Share2, RotateCcw, CheckCircle2, XCircle,
-  Award, MessageCircle, Gift, Search, MoreHorizontal, Trash2, Users, X
-} from 'lucide-react'
+  RiFlashlightFill as Zap, RiTrophyFill as Trophy, RiTimeFill as Clock, RiBarChartFill as BarChart3, RiStarFill as Star, RiFireFill as Flame, RiLoader4Line as Loader2, 
+  RiArrowLeftSLine as ChevronLeft, RiBookOpenFill as BookOpen, RiShareFill as Share2, RiRefreshLine as RotateCcw, RiCheckboxCircleFill as CheckCircle2, RiCloseCircleFill as XCircle,
+  RiAwardFill as Award, RiChat3Fill as MessageCircle, RiGiftFill as Gift, RiSearchLine as Search, RiMoreFill as MoreHorizontal, RiDeleteBin6Fill as Trash2, RiTeamFill as Users, RiCloseLine as X
+} from 'react-icons/ri'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useOutletContext } from 'react-router-dom'
 import confetti from 'canvas-confetti'

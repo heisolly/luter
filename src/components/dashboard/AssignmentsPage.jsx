@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ClipboardList, CheckCircle, Plus, Loader2, Calendar, BookOpen, ExternalLink } from 'lucide-react'
+import { RiClipboardFill as ClipboardList, RiCheckboxCircleFill as CheckCircle, RiAddLine as Plus, RiLoader4Line as Loader2, RiCalendarFill as Calendar, RiBookOpenFill as BookOpen, RiExternalLinkFill as ExternalLink } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { useDeckStore } from '../../store/useDeckStore'
 import LuterLogo from '../shared/LuterLogo'

@@ -1,171 +1,166 @@
-import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  FileUp, 
-  FolderPlus, 
-  Sparkles, 
-  X, 
-  Trash2, 
-  BookOpen,
-  Zap,
-  LayoutGrid,
-  MousePointer2,
-  Plus
-} from 'lucide-react'
-import { useDeckStore } from '../../store/useDeckStore'
-import { useNavigate, useLocation } from 'react-router-dom'
+  RiAddLine as Plus, RiUploadCloudFill as Upload, RiMagicFill as Sparkles, RiBookOpenFill as BookOpen, 
+  RiDeleteBin6Fill as Trash2, RiPlayFill as Play, RiCloseLine as X, RiArrowUpSLine as ChevronUp, RiStackFill as Layers,
+  RiFileTextFill as FileText, RiMusicFill as Music, RiVideoFill as Video, RiImageFill as ImageIcon
+} from 'react-icons/ri';
+import { supabase } from '../../supabaseClient';
+import { useDeckStore } from '../../store/useDeckStore';
+import { useTranslation } from 'react-i18next';
+import './FloatingDock.css';
 
-const FloatingDock = () => {
-  const { 
-    activeDeckItems, 
-    removeFromDeck, 
-    clearDeck, 
-    isDockExpanded, 
-    setDockExpanded 
-  } = useDeckStore()
-  
-  const navigate = useNavigate()
-  const location = useLocation()
+const FloatingDock = ({ user, isMobile }) => {
+  const { t } = useTranslation(['dock']);
+  const [isOpen, setIsOpen] = useState(false);
+  const { activeDeckItems, addToDeck, removeFromDeck } = useDeckStore();
+  const [isUploading, setIsUploading] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(null);
 
-  const isEmpty = activeDeckItems.length === 0
-  
-  const navTo = (path) => {
-    navigate(path)
-    setDockExpanded(false)
-  }
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
 
-  const isActive = (path) => location.pathname === path
+    setIsUploading(true);
+    // Mock upload / addition to deck
+    files.forEach(file => {
+      addToDeck({
+        content_id: Math.random().toString(36).substr(2, 9),
+        name: file.name,
+        content_type: file.type,
+        size: file.size
+      });
+    });
+
+    setIsUploading(false);
+    setIsOpen(true);
+  };
+
+  const getFileIcon = (type) => {
+    if (type.includes('pdf')) return <FileText size={18} />;
+    if (type.includes('image')) return <ImageIcon size={18} />;
+    if (type.includes('video')) return <Video size={18} />;
+    if (type.includes('audio')) return <Music size={18} />;
+    return <BookOpen size={18} />;
+  };
+
+  const removeItem = (id) => {
+    removeFromDeck(id);
+  };
+
+  const startStudying = () => {
+    if (activeDeckItems.length === 0) return;
+    // Navigate to workstation
+    window.location.href = '/dashboard/workstation';
+  };
 
   return (
-    <div className="fixed bottom-8 right-8 z-[1000] flex flex-col items-end gap-3">
-      
-      {/* ── SESSION DECK OVERLAY (REFINED) ── */}
+    <div className={`floating-dock-container ${isMobile ? 'mobile' : ''}`}>
       <AnimatePresence>
-        {isDockExpanded && (
+        {isOpen && (
           <motion.div 
-            initial={{ opacity: 0, y: 15, x: 10, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 15, x: 10, scale: 0.98 }}
-            className="w-[360px] bg-white rounded-[28px] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.12)] border border-[#F0F0F5] overflow-hidden mb-2"
+            initial={{ y: 20, opacity: 0, scale: 0.95 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 20, opacity: 0, scale: 0.95 }}
+            className="dock-expanded-panel"
           >
-            <div className="px-6 py-5 border-b border-[#F0F0F5] flex justify-between items-center bg-slate-50/50">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[#4B00D1] animate-pulse" />
-                <h3 className="font-black text-[11px] tracking-[0.2em] text-slate-500 uppercase">
-                  Session Curation
-                </h3>
+            <div className="dock-panel-header">
+              <div className="dock-panel-title">
+                <Layers size={14} />
+                <span>{t('activeContext')} ({activeDeckItems.length}/5)</span>
               </div>
-              <button 
-                onClick={() => setDockExpanded(false)} 
-                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-900 transition-all"
-              >
-                <X size={16} />
+              <button onClick={() => setIsOpen(false)} className="dock-close-btn">
+                <X size={14} />
               </button>
             </div>
-            
-            <div className="max-h-[320px] overflow-y-auto px-2 py-3">
-              {isEmpty ? (
-                <div className="py-12 text-center px-6">
-                  <div className="w-14 h-14 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center text-slate-300 mx-auto mb-5">
-                    <LayoutGrid size={24} strokeWidth={1} />
-                  </div>
-                  <p className="text-[13px] font-bold text-slate-400 leading-relaxed">
-                    Stack your study deck<br/>to begin.
-                  </p>
+
+            <div className="dock-items-list">
+              {activeDeckItems.length === 0 ? (
+                <div className="dock-empty-state">
+                  <Upload size={24} opacity={0.3} />
+                  <p>{t('dropMaterials')}</p>
                 </div>
               ) : (
-                <div className="space-y-1">
-                  {activeDeckItems.map((item) => (
-                    <div key={item.content_id} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-2xl group transition-all">
-                      <div className="w-10 h-10 bg-purple-50 border border-purple-100 rounded-xl flex items-center justify-center text-purple-600 flex-shrink-0">
-                        <BookOpen size={18} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[14px] font-bold text-slate-900 truncate">
-                          {item.metadata?.title || 'Untitled'}
-                        </div>
-                        <div className="text-[10px] font-black text-purple-500 uppercase tracking-widest mt-0.5">
-                          {item.metadata?.course_code || 'Doc'}
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => removeFromDeck(item.content_id)}
-                        className="p-2 text-slate-300 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                activeDeckItems.map((item) => (
+                  <motion.div 
+                    layout
+                    key={item.content_id} 
+                    className="dock-item-row"
+                  >
+                    <div className="dock-item-icon">{getFileIcon(item.content_type || '')}</div>
+                    <div className="dock-item-info">
+                      <span className="dock-item-name">{item.name}</span>
                     </div>
-                  ))}
-                </div>
+                    <button onClick={() => removeItem(item.content_id)} className="dock-item-remove">
+                      <Trash2 size={14} />
+                    </button>
+                  </motion.div>
+                ))
               )}
             </div>
 
-            {!isEmpty && (
-              <div className="p-4 border-t border-[#F0F0F5] bg-white">
-                 <button 
-                  onClick={() => navTo('/dashboard/workstation')}
-                  className="w-full h-14 bg-[#4B00D1] text-white rounded-2xl font-black text-[13px] uppercase tracking-widest shadow-lg shadow-purple-200 hover:bg-[#3A00A6] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                >
-                  <Zap size={16} fill="white" />
-                  Launch Session
-                </button>
-              </div>
+            {activeDeckItems.length > 0 && (
+              <button onClick={startStudying} className="dock-action-btn primary">
+                <Play size={16} fill="white" />
+                <span>{t('start')}</span>
+              </button>
             )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── THE PREMIUM DOCK (BOTTOM-RIGHT) ── */}
-      <div className="flex items-center gap-2.5 p-2 rounded-full bg-white/90 backdrop-blur-2xl border border-[#F0F0F5] shadow-[0_20px_48px_-12px_rgba(0,0,0,0.12)]">
-        
-        {/* 1. UPLOAD DOCUMENT - PREMIUM LAVENDER */}
-        <button 
-          onClick={() => navTo('/dashboard/upload')}
-          className={`h-12 px-5 rounded-full flex items-center gap-3 transition-all duration-300 border
-            ${isActive('/dashboard/upload') 
-              ? 'bg-[#E2D6FF] border-[#D1BBFF] text-[#4B00D1] scale-95' 
-              : 'bg-[#E2D6FF] border-[#E2D6FF] hover:border-[#D1BBFF] text-[#4B00D1]'}`}
-        >
-          <FileUp size={18} strokeWidth={2.5} />
-          <span className="text-[14px] font-extrabold tracking-tight hidden sm:block">Upload Document</span>
-        </button>
+      <div className="dock-main-bar">
+        <label className="dock-main-action upload">
+          <Upload size={20} />
+          <input type="file" multiple onChange={handleFileUpload} hidden />
+          <div className="dock-tooltip">{t('quickUpload')}</div>
+        </label>
 
-        {/* 2. DECKS - CLEAN WHITE */}
-        <button 
-          onClick={() => setDockExpanded(!isDockExpanded)}
-          className={`h-12 px-5 rounded-full border flex items-center gap-3 transition-all duration-300 relative
-            ${isDockExpanded 
-              ? 'bg-slate-50 border-[#E5E7EB] text-[#111]' 
-              : 'bg-white border-[#F2F2F2] hover:border-[#E5E7EB] text-[#111]'}`}
-        >
-          <FolderPlus size={18} strokeWidth={2.2} />
-          <span className="text-[14px] font-extrabold tracking-tight hidden sm:block">Decks</span>
-          
-          {!isEmpty && (
-            <span className="absolute -top-1 -right-1 w-5.5 h-5.5 bg-[#4B00D1] text-white text-[10px] font-black rounded-full border-2 border-white flex items-center justify-center">
-              {activeDeckItems.length}
-            </span>
+        <div className="dock-divider" />
+
+        <div className="dock-active-area" onClick={() => setIsOpen(!isOpen)}>
+          {activeDeckItems.length > 0 ? (
+            <div className="dock-stacks">
+              {activeDeckItems.slice(0, 3).map((item, i) => (
+                <div 
+                  key={item.content_id} 
+                  className="dock-stack-item" 
+                  style={{ 
+                    position: 'absolute',
+                    left: 0,
+                    transform: `translateX(${i * 8}px) scale(${1 - i * 0.05})`,
+                    zIndex: 10 - i,
+                    opacity: 1 - i * 0.2
+                  }}
+                >
+                  {getFileIcon(item.content_type || '')}
+                </div>
+              ))}
+              <div className="dock-stack-count" style={{ marginLeft: activeDeckItems.length > 1 ? (activeDeckItems.slice(0,3).length * 8 + 24) : 40 }}>
+                {activeDeckItems.length}
+              </div>
+            </div>
+          ) : (
+            <div className="dock-empty-hint">
+              <Sparkles size={16} color="var(--primary)" />
+              <span>{t('emptyVault')}</span>
+            </div>
           )}
-        </button>
+        </div>
 
-        {/* 3. AI CHAT - CLEAN WHITE */}
+        <div className="dock-divider" />
+
         <button 
-          onClick={() => navTo('/dashboard/compete')}
-          className={`h-12 px-5 rounded-full border flex items-center gap-3 transition-all duration-300
-            ${isActive('/dashboard/compete') 
-              ? 'bg-slate-50 border-[#E5E7EB] text-[#111]' 
-              : 'bg-white border-[#F2F2F2] hover:border-[#E5E7EB] text-[#111]'}`}
+          className={`dock-main-action study ${activeDeckItems.length === 0 ? 'disabled' : ''}`}
+          onClick={startStudying}
+          disabled={activeDeckItems.length === 0}
         >
-          <div className="border-[1.8px] border-current rounded-[4px] w-4.5 h-4.5 flex items-center justify-center p-[2px]">
-            <MousePointer2 size={10} fill="currentColor" strokeWidth={0} className="translate-x-[1px] translate-y-[1px]" />
-          </div>
-          <span className="text-[14px] font-extrabold tracking-tight hidden sm:block">Ai Chat</span>
+          <Sparkles size={20} />
+          <div className="dock-tooltip">{t('aiTutor')}</div>
         </button>
-
       </div>
-
     </div>
-  )
-}
+  );
+};
 
-export default FloatingDock
+export default FloatingDock;

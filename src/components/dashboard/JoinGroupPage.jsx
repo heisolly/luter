@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
-import { Loader2, Users, AlertCircle } from 'lucide-react'
+import { RiLoader4Line as Loader2, RiTeamFill as Users, RiAlertFill as AlertCircle } from 'react-icons/ri'
 
 export default function JoinGroupPage() {
   const { inviteCode } = useParams()

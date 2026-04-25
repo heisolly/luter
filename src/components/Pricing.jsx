@@ -1,23 +1,14 @@
 import React, { useState } from 'react';
-import { Check, Plus, Star, ArrowRight, Zap, Sparkles } from 'lucide-react';
-import { PageBackground, HighlightedText, RevealDiv, SharedNavbar } from './PageShared';
+import { RiCheckLine as Check, RiArrowRightSLine as CaretRight, RiMagicFill as Sparkle } from 'react-icons/ri';
+import { PageBackground, HighlightedText, RevealDiv, SharedNavbar, SharedFAQ, SharedFooter } from './PageShared';
 
-const FAQItem = ({ q, a }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <div onClick={() => setOpen(o => !o)} style={{ background: 'white', border: `1px solid ${open ? 'rgba(151,24,251,0.25)' : '#f0eaff'}`, borderRadius: 16, marginBottom: 12, overflow: 'hidden', cursor: 'pointer', boxShadow: open ? '0 4px 20px rgba(151,24,251,0.06)' : '0 2px 8px rgba(0,0,0,0.02)', transition: 'all 0.2s' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px' }}>
-        <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#111' }}>{q}</h4>
-        <div style={{ width: 28, height: 28, borderRadius: '50%', background: open ? 'var(--primary)' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.25s', transform: open ? 'rotate(45deg)' : 'none' }}>
-          <Plus size={14} color={open ? 'white' : '#999'} />
-        </div>
-      </div>
-      <div style={{ maxHeight: open ? 200 : 0, overflow: 'hidden', transition: 'max-height 0.4s ease' }}>
-        <p style={{ fontSize: 14, color: '#666', lineHeight: 1.75, padding: '0 24px 20px', fontWeight: 500, margin: 0 }}>{a}</p>
-      </div>
-    </div>
-  );
-};
+const pricingFaqs = [
+  { q: 'What files does Luter accept?', a: 'PDFs, Word documents, PowerPoints, YouTube links, and direct audio/video file uploads.' },
+  { q: 'Can I use Luter for free?', a: 'Yes! Our Basic plan gives you 5 uploads per month so you can try out the core features.' },
+  { q: 'Is my data safe?', a: 'Yes. All files are encrypted in transit and at rest. We never use your content to train our models.' },
+  { q: 'Can I cancel anytime?', a: 'Absolutely. Cancel from your account settings — no hoops, no phone calls.' },
+  { q: 'How does the Semester plan work?', a: 'The Semester plan is billed once every 4 months, which perfectly aligns with a typical university semester. It saves you money compared to the monthly option.' },
+];
 
 const plans = [
   {
@@ -25,7 +16,6 @@ const plans = [
     priceMonthly: 0, priceSemester: 0,
     isPopular: false,
     bg: 'white', color: '#111', border: '#e5e7eb',
-    buttonStyle: { background: 'white', color: '#111', border: '1px solid #e5e7eb' },
     buttonText: 'Start for Free',
     features: ['5 uploads per month', 'Smart Notes (Basic)', 'Summary', 'Flashcard generation', 'Community support']
   },
@@ -33,8 +23,7 @@ const plans = [
     name: 'University Pro', trial: 'Most popular for students',
     priceMonthly: 4000, priceSemester: 9000,
     isPopular: true,
-    bg: 'linear-gradient(160deg, #6d28d9, #9718fb 60%, #7180FE)', color: 'white', border: 'transparent',
-    buttonStyle: { background: 'white', color: 'var(--primary)', border: 'none' },
+    bg: 'linear-gradient(135deg, #4B0082, #A855F7)', color: 'white', border: 'transparent',
     buttonText: 'Get Started',
     features: ['Unlimited uploads', 'Advanced Smart Notes', 'Summary + Quizzes', 'Spaced-rep Flashcards', 'Math Expert', 'Live Lecture Recording', 'Priority support']
   },
@@ -43,7 +32,6 @@ const plans = [
     priceMonthly: 7000, priceSemester: 16000,
     isPopular: false,
     bg: 'white', color: '#111', border: '#e5e7eb',
-    buttonStyle: { background: 'linear-gradient(135deg, var(--primary), #7180fe)', color: 'white', border: 'none' },
     buttonText: 'Get Started',
     features: ['Everything in University Pro', 'Analyze Images', 'Multi-file Sessions', 'Team collaboration', 'Dedicated support', 'Early feature access']
   }
@@ -64,126 +52,150 @@ export default function Pricing() {
   const [isSemester, setIsSemester] = useState(true);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fafafa', color: '#111', position: 'relative' }}>
+    <div style={{ minHeight: '100vh', background: '#ffffff', color: '#111', position: 'relative', fontFamily: 'var(--font-varela)' }}>
       <PageBackground />
       <SharedNavbar />
 
-      <div style={{ position: 'relative', zIndex: 1, paddingTop: 120, paddingBottom: 120 }}>
+      <div style={{ position: 'relative', zIndex: 1, paddingTop: 160, paddingBottom: 120 }}>
 
         {/* Header */}
-        <div className="container-custom" style={{ textAlign: 'center', marginBottom: 60 }}>
+        <div className="container-custom" style={{ textAlign: 'center', marginBottom: 80 }}>
           <RevealDiv>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, color: 'var(--primary)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 20, background: 'rgba(151,24,251,0.07)', padding: '6px 16px', borderRadius: 99, border: '1px solid rgba(151,24,251,0.12)' }}>
-              <Sparkles size={13} /> Upgrade anytime
+            <div style={{ 
+              display: 'inline-flex', alignItems: 'center', gap: 10, 
+              background: 'rgba(75, 0, 130, 0.06)', border: '1px solid rgba(75, 0, 130, 0.12)', 
+              borderRadius: 9999, padding: '10px 24px', fontSize: 13, fontWeight: 800, 
+              color: '#4B0082', marginBottom: 32, textTransform: 'uppercase', letterSpacing: '0.05em'
+            }}>
+              <Sparkle size={18} weight="bold" /> Upgrade anytime
             </div>
           </RevealDiv>
           <RevealDiv delay={0.1}>
-            <h1 style={{ fontSize: 'clamp(2.2rem, 5vw, 4rem)', fontWeight: 800, fontFamily: 'var(--font-besley)', color: '#111', marginBottom: 20, lineHeight: 1.1 }}>
+            <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', fontWeight: 800, fontFamily: 'var(--font-outfit)', color: '#111', marginBottom: 24, lineHeight: 1.1, letterSpacing: '-0.04em' }}>
               Simple pricing for{' '}
               <HighlightedText texts={['students']} />
             </h1>
           </RevealDiv>
           <RevealDiv delay={0.15}>
-            <p style={{ fontSize: 18, color: '#555', maxWidth: 560, margin: '0 auto 36px', fontWeight: 500, lineHeight: 1.7 }}>
+            <p style={{ fontSize: 20, color: '#64748B', maxWidth: 600, margin: '0 auto 48px', fontWeight: 500, lineHeight: 1.6 }}>
               Start free. Upgrade when you're ready. No tricks, no hidden fees.
             </p>
           </RevealDiv>
           <RevealDiv delay={0.2}>
-            <div style={{ display: 'inline-flex', background: 'white', border: '1px solid #e5e7eb', borderRadius: 99, padding: 4, gap: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-              <button onClick={() => setIsSemester(false)} style={{ padding: '9px 28px', borderRadius: 99, background: !isSemester ? 'var(--primary)' : 'transparent', color: !isSemester ? 'white' : '#555', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', transition: 'all 0.25s' }}>Monthly</button>
-              <button onClick={() => setIsSemester(true)} style={{ padding: '9px 28px', borderRadius: 99, background: isSemester ? 'var(--primary)' : 'transparent', color: isSemester ? 'white' : '#555', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', transition: 'all 0.25s', display: 'flex', alignItems: 'center', gap: 8 }}>
-                Per Semester <span style={{ fontSize: 10, background: '#d1fae5', color: '#059669', padding: '2px 8px', borderRadius: 99, fontWeight: 800 }}>Best Value</span>
+            <div style={{ display: 'inline-flex', background: '#F1F5F9', borderRadius: 9999, padding: 6, gap: 4, border: '1.5px solid #E2E8F0' }}>
+              <button 
+                onClick={() => setIsSemester(false)} 
+                style={{ 
+                  padding: '12px 32px', borderRadius: 9999, 
+                  background: !isSemester ? '#4B0082' : 'transparent', 
+                  color: !isSemester ? 'white' : '#64748B', 
+                  fontWeight: 800, fontSize: 14, border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                  fontFamily: 'var(--font-outfit)', textTransform: 'uppercase', letterSpacing: '0.05em'
+                }}
+              >Monthly</button>
+              <button 
+                onClick={() => setIsSemester(true)} 
+                style={{ 
+                  padding: '12px 32px', borderRadius: 9999, 
+                  background: isSemester ? '#4B0082' : 'transparent', 
+                  color: isSemester ? 'white' : '#64748B', 
+                  fontWeight: 800, fontSize: 14, border: 'none', cursor: 'pointer', transition: 'all 0.2s', 
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  fontFamily: 'var(--font-outfit)', textTransform: 'uppercase', letterSpacing: '0.05em'
+                }}
+              >
+                Per Semester <span style={{ fontSize: 11, background: '#D1FAE5', color: '#059669', padding: '4px 12px', borderRadius: 9999, fontWeight: 900 }}>Save 40%</span>
               </button>
             </div>
           </RevealDiv>
         </div>
 
         {/* Plans */}
-        <div className="container-full" style={{ marginBottom: 80 }}>
+        <div className="container-full" style={{ marginBottom: 120 }}>
           <RevealDiv>
             <div style={{ 
               display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-              gap: 24, 
-              maxWidth: 1000, 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
+              gap: 32, 
+              maxWidth: 1100, 
               margin: '0 auto'
             }}>
               {plans.map((plan) => (
                 <div key={plan.name} style={{
-                  background: plan.isPopular ? 'var(--primary)' : 'white',
-                  color: plan.color,
-                  borderRadius: 16,
-                  padding: '32px 24px',
-                  border: plan.isPopular ? 'none' : '1px solid #e5e7eb',
-                  boxShadow: plan.isPopular ? '0 10px 30px rgba(122, 18, 204, 0.2)' : '0 4px 12px rgba(0,0,0,0.08)',
+                  background: plan.isPopular ? 'linear-gradient(160deg, #4B0082, #A855F7)' : 'white',
+                  color: plan.isPopular ? 'white' : '#111',
+                  borderRadius: 40,
+                  padding: '48px 40px',
+                  border: '1.5px solid #F1F5F9',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.02)',
                   position: 'relative',
                   display: 'flex',
                   flexDirection: 'column',
-                  transition: 'transform 0.2s, box-shadow 0.2s'
+                  transition: 'all 0.3s ease'
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.transform = 'translateY(-8px)';
+                  if (!plan.isPopular) e.currentTarget.style.borderColor = '#4B0082';
                   e.currentTarget.style.boxShadow = plan.isPopular 
-                    ? '0 15px 40px rgba(122, 18, 204, 0.25)' 
-                    : '0 8px 20px rgba(0,0,0,0.12)';
+                    ? '0 20px 40px rgba(75, 0, 130, 0.15)' 
+                    : '0 20px 40px rgba(0,0,0,0.05)';
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.transform = 'none';
-                  e.currentTarget.style.boxShadow = plan.isPopular 
-                    ? '0 10px 30px rgba(122, 18, 204, 0.2)' 
-                    : '0 4px 12px rgba(0,0,0,0.08)';
+                  if (!plan.isPopular) e.currentTarget.style.borderColor = '#F1F5F9';
+                  e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.02)';
                 }}>
                   {plan.isPopular && (
                     <div style={{ 
                       position: 'absolute',
-                      top: -12,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      background: 'white',
-                      color: 'var(--primary)',
-                      padding: '4px 12px',
-                      borderRadius: 12,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      fontFamily: 'Outfit'
+                      top: 24,
+                      right: 24,
+                      background: 'rgba(255,255,255,0.2)',
+                      backdropFilter: 'blur(10px)',
+                      color: 'white',
+                      padding: '8px 16px',
+                      borderRadius: 9999,
+                      fontSize: 12,
+                      fontWeight: 900,
+                      fontFamily: 'var(--font-outfit)',
+                      letterSpacing: '0.05em'
                     }}>
-                      MOST POPULAR
+                      POPULAR
                     </div>
                   )}
 
-                  <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                  <div style={{ marginBottom: 40 }}>
                     <h3 style={{ 
-                      fontSize: 24, 
-                      fontWeight: 700, 
-                      margin: '0 0 8px 0',
-                      fontFamily: 'Outfit',
-                      color: plan.isPopular ? 'white' : '#111'
+                      fontSize: 28, 
+                      fontWeight: 800, 
+                      margin: '0 0 12px 0',
+                      fontFamily: 'var(--font-outfit)'
                     }}>{plan.name}</h3>
                     <p style={{ 
-                      fontSize: 13, 
-                      fontWeight: 500, 
+                      fontSize: 15, 
+                      fontWeight: 600, 
                       margin: 0,
-                      color: plan.isPopular ? 'rgba(255,255,255,0.8)' : '#666',
-                      fontFamily: 'Outfit'
+                      opacity: 0.8,
+                      fontFamily: 'var(--font-varela)'
                     }}>{plan.trial}</p>
                   </div>
 
-                  <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                  <div style={{ marginBottom: 40 }}>
                     <div style={{ 
-                      fontSize: 48, 
-                      fontWeight: 800, 
+                      fontSize: 56, 
+                      fontWeight: 900, 
                       lineHeight: 1,
-                      fontFamily: 'Outfit',
-                      color: plan.isPopular ? 'white' : '#111'
+                      fontFamily: 'var(--font-outfit)',
+                      marginBottom: 8
                     }}>
                       {plan.priceMonthly === 0 ? '₦0' : `₦${isSemester ? plan.priceSemester.toLocaleString() : plan.priceMonthly.toLocaleString()}`}
                     </div>
                     {plan.priceMonthly > 0 && (
                       <div style={{ 
-                        fontSize: 14, 
-                        fontWeight: 500, 
-                        color: plan.isPopular ? 'rgba(255,255,255,0.7)' : '#666',
-                        fontFamily: 'Outfit'
+                        fontSize: 16, 
+                        fontWeight: 600, 
+                        opacity: 0.7,
+                        fontFamily: 'var(--font-varela)'
                       }}>
                         per {isSemester ? 'semester' : 'month'}
                       </div>
@@ -192,17 +204,20 @@ export default function Pricing() {
                   
                   <button style={{ 
                     width: '100%', 
-                    padding: '16px', 
-                    borderRadius: 12, 
-                    fontSize: 15, 
-                    fontWeight: 600, 
+                    padding: '20px', 
+                    borderRadius: 9999, 
+                    fontSize: 16, 
+                    fontWeight: 800, 
                     cursor: 'pointer', 
-                    marginBottom: 24, 
-                    fontFamily: 'Outfit',
-                    background: plan.isPopular ? 'white' : 'var(--primary)',
-                    color: plan.isPopular ? 'var(--primary)' : 'white',
+                    marginBottom: 40, 
+                    fontFamily: 'var(--font-outfit)',
+                    background: plan.isPopular ? 'white' : 'linear-gradient(to right, #A855F7, #4B0082)',
+                    color: plan.isPopular ? '#4B0082' : 'white',
                     border: 'none',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    boxShadow: plan.isPopular ? 'none' : '0 10px 20px rgba(75, 0, 130, 0.2)'
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.transform = 'scale(1.02)';
@@ -213,31 +228,30 @@ export default function Pricing() {
                     {plan.buttonText}
                   </button>
                   
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
                     {plan.features.map((f) => (
                       <div key={f} style={{ 
                         display: 'flex', 
-                        gap: 12, 
+                        gap: 16, 
                         alignItems: 'center'
                       }}>
                         <div style={{ 
-                          width: 20, 
-                          height: 20, 
+                          width: 24, 
+                          height: 24, 
                           borderRadius: '50%', 
-                          background: plan.isPopular ? 'rgba(255,255,255,0.2)' : 'rgba(122, 18, 204, 0.1)', 
+                          background: plan.isPopular ? 'rgba(255,255,255,0.2)' : 'rgba(75, 0, 130, 0.08)', 
                           display: 'flex', 
                           alignItems: 'center', 
                           justifyContent: 'center', 
                           flexShrink: 0
                         }}>
-                          <Check size={12} color={plan.isPopular ? 'white' : 'var(--primary)'} strokeWidth={3} />
+                          <Check size={14} weight="bold" color={plan.isPopular ? 'white' : '#4B0082'} />
                         </div>
                         <span style={{ 
-                          fontSize: 14, 
+                          fontSize: 16, 
                           fontWeight: 500, 
                           lineHeight: 1.4, 
-                          color: plan.isPopular ? 'rgba(255,255,255,0.9)' : '#333',
-                          fontFamily: 'Outfit'
+                          fontFamily: 'var(--font-varela)'
                         }}>{f}</span>
                       </div>
                     ))}
@@ -250,326 +264,113 @@ export default function Pricing() {
 
         {/* University Trust */}
         <RevealDiv>
-          <div style={{ textAlign: 'center', marginBottom: 80 }}>
-            <p style={{ fontSize: 12, fontWeight: 800, color: '#bbb', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 20 }}>Trusted by students at</p>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 48, flexWrap: 'wrap', opacity: 0.45 }}>
-              {['Stanford', 'PRINCETON', 'MIT', 'Harvard', 'Oxford', 'UNILAG'].map(u => <span key={u} style={{ fontSize: 17, fontWeight: 900, fontFamily: 'var(--font-besley)', color: '#555' }}>{u}</span>)}
+          <div style={{ textAlign: 'center', marginBottom: 120 }}>
+            <p style={{ fontSize: 13, fontWeight: 800, color: '#94A3B8', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 40, fontFamily: 'var(--font-outfit)' }}>Trusted by students at</p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 64, flexWrap: 'wrap', opacity: 0.5 }}>
+              {['Stanford', 'PRINCETON', 'MIT', 'Harvard', 'Oxford', 'UNILAG'].map(u => <span key={u} style={{ fontSize: 20, fontWeight: 900, fontFamily: 'var(--font-outfit)', color: '#64748B' }}>{u}</span>)}
             </div>
           </div>
         </RevealDiv>
 
         {/* Testimonials */}
-        <div style={{ padding: '60px 0', position: 'relative', overflow: 'hidden' }}>
-          {/* Header with gradient badge */}
-          <div style={{ textAlign: 'center', marginBottom: 70 }}>
-            <div style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              marginBottom: 24 
-            }}>
-              <div style={{
-                background: 'white',
-                border: '1px solid rgb(245, 242, 255)',
-                borderRadius: '30px',
-                padding: '12px 32px',
-                boxShadow: 'rgba(42, 40, 46, 0.29) 0px 0.6px 0.6px -0.9px, rgba(42, 40, 46, 0.28) 0px 1.8px 1.8px -1.9px, rgba(42, 40, 46, 0.24) 0px 4.8px 4.8px -2.8px, rgba(42, 40, 46, 0.1) 0px 15px 15px -3.8px',
-                position: 'relative'
+        <div style={{ padding: '80px 0', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ textAlign: 'center', marginBottom: 80 }}>
+            <RevealDiv>
+              <div style={{ 
+                display: 'inline-flex', alignItems: 'center', gap: 10, 
+                background: 'rgba(75, 0, 130, 0.06)', border: '1px solid rgba(75, 0, 130, 0.12)', 
+                borderRadius: 9999, padding: '10px 24px', fontSize: 13, fontWeight: 800, 
+                color: '#4B0082', marginBottom: 32, textTransform: 'uppercase', letterSpacing: '0.05em'
               }}>
-                <div style={{
-                  background: 'linear-gradient(316deg, rgb(165, 143, 255) 0%, rgb(51, 0, 255) 55.7%, rgb(165, 143, 255) 100%)',
-                  borderRadius: '20px',
-                  padding: '8px 24px',
-                  position: 'relative'
-                }}>
-                  <div style={{ 
-                    color: 'white', 
-                    fontSize: 14, 
-                    fontWeight: 700, 
-                    fontFamily: 'Outfit, sans-serif',
-                    letterSpacing: '0.5px'
-                  }}>
-                    Testimonials
-                  </div>
-                </div>
+                <Sparkle size={18} weight="bold" /> Real Success Stories
               </div>
-            </div>
-            <h2 style={{ 
-              fontSize: 'clamp(2rem, 4vw, 3rem)', 
-              fontWeight: 800, 
-              fontFamily: 'Outfit, sans-serif', 
-              color: '#111', 
-              textAlign: 'center',
-              marginBottom: 0
-            }}>
-              Why 1,000,000+ learners choose Luter
-            </h2>
+            </RevealDiv>
+            <RevealDiv delay={0.1}>
+              <h2 style={{ fontSize: 'clamp(2.2rem, 5vw, 3.5rem)', fontWeight: 800, fontFamily: 'var(--font-outfit)', color: '#111', marginBottom: 0, letterSpacing: '-0.03em' }}>
+                Join 1,000,000+ smart learners
+              </h2>
+            </RevealDiv>
           </div>
 
           {/* Animated Testimonial Cards */}
           <div style={{ 
             display: 'flex', 
             width: '100%', 
-            height: '400px',
+            height: '450px',
             maxWidth: '1200px',
             margin: '0 auto',
-            gap: '20px',
+            gap: '24px',
             justifyContent: 'center'
           }}>
-            {/* Left Column - Moving Up */}
-            <div style={{ 
-              display: 'flex', 
-              width: '100%', 
-              height: '100%', 
-              placeItems: 'center', 
-              margin: 0, 
-              padding: 0, 
-              listStyleType: 'none', 
-              opacity: 1, 
-              maskImage: 'linear-gradient(rgba(0, 0, 0, 0) 0%, rgb(0, 0, 0) 25%, rgb(0, 0, 0) 75%, rgba(0, 0, 0, 0) 100%)', 
-              overflow: 'hidden'
-            }}>
-              <div style={{ 
+            {/* Scroll Columns */}
+            {[0, 1, 2].map((colIndex) => (
+              <div key={colIndex} style={{ 
                 display: 'flex', 
-                flexDirection: 'column', 
-                gap: '20px',
-                animation: 'scrollUp 30s linear infinite'
+                width: '100%', 
+                height: '100%', 
+                maskImage: 'linear-gradient(rgba(0, 0, 0, 0) 0%, rgb(0, 0, 0) 15%, rgb(0, 0, 0) 85%, rgba(0, 0, 0, 0) 100%)', 
+                overflow: 'hidden'
               }}>
-                {[...testimonials, ...testimonials].map((testimonial, index) => (
-                  <div key={`left-${index}`} style={{
-                    background: index % 2 === 0 
-                      ? 'linear-gradient(rgba(118, 84, 255, 0.3) 0%, rgb(251, 250, 255) 100%)'
-                      : 'rgba(236, 227, 255, 0.06)',
-                    border: index % 2 === 0 
-                      ? '1px solid rgb(255, 255, 255)'
-                      : '1px solid rgb(236, 227, 255)',
-                    borderRadius: '10px',
-                    padding: '20px',
-                    width: '280px',
-                    minHeight: '120px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px',
-                    flexShrink: 0
-                  }}>
-                    <p style={{ 
-                      fontSize: 14, 
-                      color: '#000', 
-                      fontWeight: 500, 
-                      margin: 0,
-                      fontFamily: 'Outfit, sans-serif',
-                      lineHeight: 1.5,
-                      textAlign: 'left'
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '24px',
+                  animation: colIndex === 1 ? 'scrollDown 40s linear infinite' : 'scrollUp 40s linear infinite'
+                }}>
+                  {[...testimonials, ...testimonials].map((testimonial, index) => (
+                    <div key={`${colIndex}-${index}`} style={{
+                      background: 'white',
+                      border: '1.5px solid #F1F5F9',
+                      borderRadius: '24px',
+                      padding: '24px',
+                      width: '320px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '16px',
+                      flexShrink: 0
                     }}>
-                      "{testimonial.text}"
-                    </p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ 
-                        width: '40px', 
-                        height: '40px', 
-                        borderRadius: '50%',
-                        backgroundColor: 'rgb(201, 179, 255)',
-                        overflow: 'hidden',
-                        flexShrink: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                      <p style={{ 
+                        fontSize: 15, 
+                        color: '#475569', 
+                        fontWeight: 500, 
+                        margin: 0,
+                        fontFamily: 'var(--font-varela)',
+                        lineHeight: 1.6
                       }}>
-                        <img 
-                          src={testimonial.avatar} 
-                          alt={testimonial.name}
-                          style={{ 
-                            width: '100%', 
-                            height: '100%', 
-                            objectFit: 'cover',
-                            borderRadius: '50%'
-                          }}
-                        />
-                      </div>
-                      <div style={{ 
-                        fontSize: 14, 
-                        fontWeight: 600, 
-                        color: '#000',
-                        fontFamily: 'Outfit, sans-serif'
-                      }}>
-                        {testimonial.name}
+                        "{testimonial.text}"
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ 
+                          width: '44px', 
+                          height: '44px', 
+                          borderRadius: '50%',
+                          backgroundColor: '#F1F5F9',
+                          overflow: 'hidden',
+                          flexShrink: 0
+                        }}>
+                          <img 
+                            src={testimonial.avatar} 
+                            alt={testimonial.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        </div>
+                        <div style={{ 
+                          fontSize: 15, 
+                          fontWeight: 800, 
+                          color: '#111',
+                          fontFamily: 'var(--font-outfit)'
+                        }}>
+                          {testimonial.name}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-
-            {/* Middle Column - Moving Down */}
-            <div style={{ 
-              display: 'flex', 
-              width: '100%', 
-              height: '100%', 
-              placeItems: 'center', 
-              margin: 0, 
-              padding: 0, 
-              listStyleType: 'none', 
-              opacity: 1, 
-              maskImage: 'linear-gradient(rgba(0, 0, 0, 0) 0%, rgb(0, 0, 0) 25%, rgb(0, 0, 0) 75%, rgba(0, 0, 0, 0) 100%)', 
-              overflow: 'hidden'
-            }}>
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: '20px',
-                animation: 'scrollDown 30s linear infinite'
-              }}>
-                {[...testimonials, ...testimonials].map((testimonial, index) => (
-                  <div key={`middle-${index}`} style={{
-                    background: index % 2 === 0 
-                      ? 'rgba(236, 227, 255, 0.06)'
-                      : 'linear-gradient(rgba(118, 84, 255, 0.3) 0%, rgb(251, 250, 255) 100%)',
-                    border: index % 2 === 0 
-                      ? '1px solid rgb(236, 227, 255)'
-                      : '1px solid rgb(255, 255, 255)',
-                    borderRadius: '10px',
-                    padding: '20px',
-                    width: '280px',
-                    minHeight: '120px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px',
-                    flexShrink: 0
-                  }}>
-                    <p style={{ 
-                      fontSize: 14, 
-                      color: '#000', 
-                      fontWeight: 500, 
-                      margin: 0,
-                      fontFamily: 'Outfit, sans-serif',
-                      lineHeight: 1.5,
-                      textAlign: 'left'
-                    }}>
-                      "{testimonial.text}"
-                    </p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ 
-                        width: '40px', 
-                        height: '40px', 
-                        borderRadius: '50%',
-                        backgroundColor: 'rgb(201, 179, 255)',
-                        overflow: 'hidden',
-                        flexShrink: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <img 
-                          src={testimonial.avatar} 
-                          alt={testimonial.name}
-                          style={{ 
-                            width: '100%', 
-                            height: '100%', 
-                            objectFit: 'cover',
-                            borderRadius: '50%'
-                          }}
-                        />
-                      </div>
-                      <div style={{ 
-                        fontSize: 14, 
-                        fontWeight: 600, 
-                        color: '#000',
-                        fontFamily: 'Outfit, sans-serif'
-                      }}>
-                        {testimonial.name}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right Column - Moving Up */}
-            <div style={{ 
-              display: 'flex', 
-              width: '100%', 
-              height: '100%', 
-              placeItems: 'center', 
-              margin: 0, 
-              padding: 0, 
-              listStyleType: 'none', 
-              opacity: 1, 
-              maskImage: 'linear-gradient(rgba(0, 0, 0, 0) 0%, rgb(0, 0, 0) 25%, rgb(0, 0, 0) 75%, rgba(0, 0, 0, 0) 100%)', 
-              overflow: 'hidden'
-            }}>
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: '20px',
-                animation: 'scrollUp 30s linear infinite'
-              }}>
-                {[...testimonials, ...testimonials].map((testimonial, index) => (
-                  <div key={`right-${index}`} style={{
-                    background: index % 2 === 0 
-                      ? 'linear-gradient(rgba(118, 84, 255, 0.3) 0%, rgb(251, 250, 255) 100%)'
-                      : 'rgba(236, 227, 255, 0.06)',
-                    border: index % 2 === 0 
-                      ? '1px solid rgb(255, 255, 255)'
-                      : '1px solid rgb(236, 227, 255)',
-                    borderRadius: '10px',
-                    padding: '20px',
-                    width: '280px',
-                    minHeight: '120px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px',
-                    flexShrink: 0
-                  }}>
-                    <p style={{ 
-                      fontSize: 14, 
-                      color: '#000', 
-                      fontWeight: 500, 
-                      margin: 0,
-                      fontFamily: 'Outfit, sans-serif',
-                      lineHeight: 1.5,
-                      textAlign: 'left'
-                    }}>
-                      "{testimonial.text}"
-                    </p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ 
-                        width: '40px', 
-                        height: '40px', 
-                        borderRadius: '50%',
-                        backgroundColor: 'rgb(201, 179, 255)',
-                        overflow: 'hidden',
-                        flexShrink: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <img 
-                          src={testimonial.avatar} 
-                          alt={testimonial.name}
-                          style={{ 
-                            width: '100%', 
-                            height: '100%', 
-                            objectFit: 'cover',
-                            borderRadius: '50%'
-                          }}
-                        />
-                      </div>
-                      <div style={{ 
-                        fontSize: 14, 
-                        fontWeight: 600, 
-                        color: '#000',
-                        fontFamily: 'Outfit, sans-serif'
-                      }}>
-                        {testimonial.name}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
 
-          {/* CSS Animations */}
           <style dangerouslySetInnerHTML={{
             __html: `
               @keyframes scrollUp {
@@ -584,23 +385,9 @@ export default function Pricing() {
           }} />
         </div>
 
-        {/* FAQ */}
-        <div className="container-custom" style={{ maxWidth: 720 }}>
-          <RevealDiv>
-            <div style={{ textAlign: 'center', marginBottom: 48 }}>
-              <h2 style={{ fontSize: 'clamp(1.8rem, 3vw, 2.5rem)', fontWeight: 800, fontFamily: 'var(--font-besley)', color: '#111', marginBottom: 12 }}>Frequently Asked Questions</h2>
-              <p style={{ fontSize: 15, color: '#666', fontWeight: 500 }}>Can't find your answer? Email us at <span style={{ color: 'var(--primary)', fontWeight: 700 }}>support@luter.ai</span></p>
-            </div>
-            {[
-              { q: 'What files does Luter accept?', a: 'PDFs, Word documents, PowerPoints, YouTube links, and direct audio/video file uploads.' },
-              { q: 'Can I use Luter for free?', a: 'Yes! Our Basic plan gives you 5 uploads per month so you can try out the core features.' },
-              { q: 'Is my data safe?', a: 'Yes. All files are encrypted in transit and at rest. We never use your content to train our models.' },
-              { q: 'Can I cancel anytime?', a: 'Absolutely. Cancel from your account settings — no hoops, no phone calls.' },
-              { q: 'How does the Semester plan work?', a: 'The Semester plan is billed once every 4 months, which perfectly aligns with a typical university semester. It saves you money compared to the monthly option.' },
-            ].map(faq => <FAQItem key={faq.q} q={faq.q} a={faq.a} />)}
-          </RevealDiv>
-        </div>
+        <SharedFAQ items={pricingFaqs} />
       </div>
+      <SharedFooter />
     </div>
   );
 }

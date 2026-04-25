@@ -1,6 +1,6 @@
 import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Sparkles, Zap, BrainCircuit, Rocket } from 'lucide-react'
+import { RiMagicFill as Sparkles, RiFlashlightFill as Zap, RiBrainFill as BrainCircuit, RiRocketFill as Rocket } from 'react-icons/ri'
 
 export default function CompetePage() {
   const { isMobile } = useOutletContext()

@@ -1,7 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useOutletContext, useLocation, useNavigate } from 'react-router-dom'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
-import { FlaskConical, Clock, CheckCircle2, XCircle, Search, Loader2, Zap, ArrowRight, ArrowLeft, Dices, Share2, Award, Trophy, RotateCcw, BarChart3, Flame, Star, Users, ThumbsUp, ThumbsDown, MessageCircle, MessageSquare, Gift, Trash2, MoreHorizontal, X, BookOpen } from 'lucide-react'
+import { 
+  RiFlaskFill as FlaskConical, RiTimeFill as Clock, RiCheckboxCircleFill as CheckCircle2, RiCloseCircleFill as XCircle, RiSearchLine as Search, RiLoader4Line as Loader2, RiFlashlightFill as Zap, 
+  RiArrowRightLine as ArrowRight, RiArrowLeftLine as ArrowLeft, RiShuffleLine as Dices, RiShareFill as Share2, RiAwardFill as Award, RiTrophyFill as Trophy, 
+  RiRefreshLine as RotateCcw, RiBarChartFill as BarChart3, RiFireFill as Flame, RiStarFill as Star, RiTeamFill as Users, RiThumbUpFill as ThumbsUp, 
+  RiThumbDownFill as ThumbsDown, RiChat3Fill as MessageCircle, RiChat4Fill as MessageSquare, RiGiftFill as Gift, RiDeleteBin6Fill as Trash2, 
+  RiMoreFill as MoreHorizontal, RiCloseLine as X, RiBookOpenFill as BookOpen 
+} from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toPng } from 'html-to-image'

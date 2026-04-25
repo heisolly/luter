@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle, 
-  ExternalLink, 
-  Filter, 
-  Search,
-  MessageSquare,
-  FileUp
-} from 'lucide-react';
+  RiCheckboxCircleFill as CheckCircle2, 
+  RiTimeFill as Clock, 
+  RiAlertFill as AlertCircle, 
+  RiExternalLinkFill as ExternalLink, 
+  RiFilterFill as Filter, 
+  RiSearchLine as Search,
+  RiChat3Fill as MessageSquare,
+  RiFileUploadFill as FileUp
+} from 'react-icons/ri';
 
 export default function NotesRequestsAdmin() {
   const [requests, setRequests] = useState([]);

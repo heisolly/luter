@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../supabaseClient'
 import {
-  Loader2,
-  Table2,
-  Wand2,
-  Upload,
-  Download,
-  Sparkles,
-  Save,
-  Rocket,
-  Pencil,
-  Trash2,
-  RefreshCw,
-  Globe,
-  FileSpreadsheet,
-} from 'lucide-react'
+  RiLoader4Line as Loader2,
+  RiTableLine as Table2,
+  RiMagicLine as Wand2,
+  RiUploadCloudFill as Upload,
+  RiDownloadLine as Download,
+  RiMagicFill as Sparkles,
+  RiSaveFill as Save,
+  RiRocketFill as Rocket,
+  RiEditFill as Pencil,
+  RiDeleteBin7Fill as Trash2,
+  RiRefreshLine as RefreshCw,
+  RiGlobalFill as Globe,
+  RiFileExcelLine as FileSpreadsheet,
+} from 'react-icons/ri'
 import {
   buildSyllabusId,
   departmentSlugFromLabel,

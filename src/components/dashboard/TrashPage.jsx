@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Trash2, RotateCcw, FileText, Youtube, PenTool, Hash, Loader2, Search, MoreVertical, AlertCircle } from 'lucide-react'
+import { RiDeleteBin6Fill as Trash2, RiRestartLine as RotateCcw, RiFileTextFill as FileText, RiYoutubeFill as Youtube, RiPenNibFill as PenTool, RiHashtag as Hash, RiLoader4Line as Loader2, RiSearchLine as Search, RiMore2Fill as MoreVertical, RiAlertFill as AlertCircle } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { useOutletContext } from 'react-router-dom'
 

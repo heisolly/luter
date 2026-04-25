@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import { uploadAdminMaterial } from '../../services/semesterNotesService'
 import { supabase } from '../../supabaseClient'
-import { UploadCloud, FileText, CheckCircle2, AlertCircle, Loader2, ChevronLeft } from 'lucide-react'
+import { RiUploadCloudFill as UploadCloud, RiFileTextFill as FileText, RiCheckboxCircleFill as CheckCircle2, RiErrorWarningFill as AlertCircle, RiLoader4Line as Loader2, RiArrowLeftSLine as ChevronLeft } from 'react-icons/ri'
 
 export default function LuterAdminUploadPage() {
   const { user } = useOutletContext()

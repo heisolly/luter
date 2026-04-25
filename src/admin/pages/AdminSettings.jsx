@@ -1,6 +1,6 @@
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
-import { LogOut, LayoutDashboard } from 'lucide-react'
+import { RiLogoutCircleRFill as LogOut, RiDashboardFill as LayoutDashboard } from 'react-icons/ri'
 
 export default function AdminSettings() {
   const { email, profile } = useOutletContext()

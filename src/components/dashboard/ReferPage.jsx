@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Users, Copy, Share2, Award, Zap, Star, MessageCircle, GraduationCap, ArrowRight, CheckCircle2, Camera } from 'lucide-react'
+import { RiTeamFill as Users, RiFileCopyFill as Copy, RiShareFill as Share2, RiAwardFill as Award, RiFlashlightFill as Zap, RiStarFill as Star, RiChat3Fill as MessageCircle, RiGraduationCapFill as GraduationCap, RiArrowRightLine as ArrowRight, RiCheckboxCircleFill as CheckCircle2, RiCameraFill as Camera } from 'react-icons/ri'
 
 // Custom Instagram SVG for premium look
 const InstagramIcon = ({ size }) => (

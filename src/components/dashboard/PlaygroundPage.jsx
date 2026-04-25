@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { 
-  Send, Sparkles, Brain, BookOpen, 
-  Layers, MessageSquare, History, 
-  Plus, Zap, Trash2, ChevronRight,
-  Maximize2, Minimize2, Settings,
-  Hash, Search, FileText
-} from 'lucide-react'
+  RiSendPlaneFill as Send, RiMagicFill as Sparkles, RiBrainFill as Brain, RiBookOpenFill as BookOpen, 
+  RiStackFill as Layers, RiChat3Fill as MessageSquare, RiHistoryFill as History, 
+  RiAddLine as Plus, RiFlashlightFill as Zap, RiDeleteBin6Fill as Trash2, RiArrowRightSLine as ChevronRight,
+  RiFullscreenLine as Maximize2, RiFullscreenExitLine as Minimize2, RiSettings4Fill as Settings,
+  RiHashtag as Hash, RiSearchLine as Search, RiFileTextFill as FileText
+} from 'react-icons/ri'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDeckStore } from '../../store/useDeckStore'
 

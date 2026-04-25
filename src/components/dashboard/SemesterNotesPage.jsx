@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useOutletContext, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { 
-  BookOpen, Calendar, Download, MessageSquare, 
-  Clock, TrendingUp, Award, Zap,
-  FileText, Video, Headphones, Image, File,
-  ChevronLeft, ChevronRight, Plus, Search,
-  Filter, Bell, Send, Star, Users, Target,
-  Layers, Grid3x3, List, ArrowUpRight,
-  AlertCircle, CheckCircle, Loader2, Youtube, Lock
-} from 'lucide-react'
+  RiBookOpenFill as BookOpen, RiCalendarFill as Calendar, RiDownloadFill as Download, RiChat3Fill as MessageSquare, 
+  RiTimeFill as Clock, RiLineChartFill as TrendingUp, RiAwardFill as Award, RiFlashlightFill as Zap,
+  RiFileTextFill as FileText, RiVideoFill as Video, RiHeadphoneFill as Headphones, RiImageFill as Image, RiFileFill as File,
+  RiArrowLeftSLine as ChevronLeft, RiArrowRightSLine as ChevronRight, RiAddLine as Plus, RiSearchLine as Search,
+  RiFilterFill as Filter, RiNotification3Fill as Bell, RiSendPlaneFill as Send, RiStarFill as Star, RiTeamFill as Users, RiFocusFill as Target,
+  RiStackFill as Layers, RiGridFill as Grid3x3, RiListCheck as List, RiArrowRightUpLine as ArrowUpRight,
+  RiAlertFill as AlertCircle, RiCheckboxCircleFill as CheckCircle, RiLoader4Line as Loader2, RiYoutubeFill as Youtube, RiLockFill as Lock
+} from 'react-icons/ri'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDeckStore } from '../../store/useDeckStore'
 

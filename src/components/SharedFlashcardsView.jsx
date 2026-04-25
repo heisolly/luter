@@ -2,18 +2,18 @@ import React, { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  ChevronLeft, 
-  ChevronRight, 
-  RefreshCw, 
-  CheckCircle2, 
-  Share2, 
-  Zap,
-  ArrowLeft,
-  Layers,
-  Sparkles,
-  Award,
-  BookOpen
-} from 'lucide-react'
+  RiArrowLeftSLine as ChevronLeft, 
+  RiArrowRightSLine as ChevronRight, 
+  RiRefreshLine as RefreshCw, 
+  RiCheckboxCircleFill as CheckCircle2, 
+  RiShareFill as Share2, 
+  RiFlashlightFill as Zap,
+  RiArrowLeftLine as ArrowLeft,
+  RiStackFill as Layers,
+  RiMagicFill as Sparkles,
+  RiAwardFill as Award,
+  RiBookOpenFill as BookOpen
+} from 'react-icons/ri'
 import { supabase } from '../supabaseClient'
 import confetti from 'canvas-confetti'
 import LuterLogo from './shared/LuterLogo'

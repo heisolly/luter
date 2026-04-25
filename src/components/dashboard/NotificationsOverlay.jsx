@@ -1,17 +1,17 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Check, 
-  Settings, 
-  X,
-  Sparkles,
-  Flame,
-  Bell,
-  BookOpen,
-  Trophy,
-  Users,
-  Archive
-} from 'lucide-react'
+  RiCheckLine as Check, 
+  RiSettings4Fill as Settings, 
+  RiCloseLine as X,
+  RiMagicFill as Sparkles,
+  RiFireFill as Flame,
+  RiNotification3Fill as Bell,
+  RiBookOpenFill as BookOpen,
+  RiTrophyFill as Trophy,
+  RiTeamFill as Users,
+  RiArchiveFill as Archive
+} from 'react-icons/ri'
 
 const PRIMARY_COLOR = '#9718fb'
 const PRIMARY_BG = '#F3E8FF'
@@ -292,4 +292,3 @@ const NotificationsOverlay = ({ isOpen, onClose }) => {
 }
 
 export default NotificationsOverlay
-

@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  X, Search, Plus, BookOpen, Loader2, ChevronDown, 
-  University, GraduationCap, Star, CheckCircle
-} from 'lucide-react'
+  RiCloseLine as X, RiSearchLine as Search, RiAddLine as Plus, RiBookOpenFill as BookOpen, RiLoader4Line as Loader2, RiArrowDownSLine as ChevronDown, 
+  RiBankFill as University, RiGraduationCapFill as GraduationCap, RiStarFill as Star, RiCheckboxCircleFill as CheckCircle
+} from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { 
   aggregateSyllabusSources

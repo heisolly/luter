@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
-import { Bell, TrendingUp, Loader2 } from 'lucide-react'
+import { RiNotificationFill as Bell, RiLineChartFill as TrendingUp, RiLoader4Line as Loader2 } from 'react-icons/ri'
 import { useAdminPrefetch } from '../../context/AdminPrefetchContext'
 
 function formatNum(n) {

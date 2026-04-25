@@ -3,26 +3,39 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import { 
-  Home, Book, Briefcase, User, Gamepad2, Layers, 
-  Folder, ClipboardList, PenTool, CheckCircle, 
-  Settings, Crown, BarChart, ChevronDown, ChevronRight,
-  Monitor, Star, ShieldCheck, X, ChevronLeft,
-  Users, Bell, Trash2, FlaskConical, Hash, Plus
-} from 'lucide-react'
+  House,
+  Books,
+  UsersThree,
+  Bell,
+  GameController,
+  Trash,
+  Flask,
+  CaretDown,
+  CaretRight,
+  X,
+  CaretLeft,
+  ChartBar,
+  GearSix,
+  CrownSimple,
+  HashStraight,
+  Plus,
+  BookOpenText
+} from '@phosphor-icons/react'
 import { isAdminUser } from '../../admin/adminAuth'
 import LuterLogo from '../shared/LuterLogo'
+import { useTranslation } from 'react-i18next'
 
 const TOP_NAV = [
-  { id: 'home', label: 'Home', icon: Home, path: '/dashboard' },
-  { id: 'library', label: 'Your library', icon: Book, path: '/dashboard/library' },
-  { id: 'study-groups', label: 'Study groups', icon: Users, path: '/dashboard/study-groups', badge: 'New' },
-  { id: 'notifications', label: 'Notifications', icon: Bell, path: '/dashboard/notifications', count: 3 },
+  { id: 'home', labelKey: 'home', icon: House, path: '/dashboard' },
+  { id: 'library', labelKey: 'library', icon: Books, path: '/dashboard/library' },
+  { id: 'study-groups', labelKey: 'studyGroups', icon: UsersThree, path: '/dashboard/study-groups', badge: 'New' },
+  { id: 'notifications', labelKey: 'notifications', icon: Bell, path: '/dashboard/notifications', count: 3 },
 ]
 
 const BOTTOM_NAV = [
-  { id: 'playground', label: 'Playground', icon: Gamepad2, path: '/dashboard/compete', highlight: true },
-  { id: 'trash', label: 'Trash', icon: Trash2, path: '/dashboard/trash' },
-  { id: 'mock-exam', label: 'Mock Exam', icon: FlaskConical, labelAlt: 'Mock Exam', path: '/dashboard/mock-exam' },
+  { id: 'playground', labelKey: 'playground', icon: GameController, path: '/dashboard/compete', highlight: true },
+  { id: 'trash', labelKey: 'trash', icon: Trash, path: '/dashboard/trash' },
+  { id: 'mock-exam', labelKey: 'mockExam', icon: Flask, path: '/dashboard/mock-exam' },
 ]
 
 function isNavActiveFixed(pathname, navPath) {
@@ -32,6 +45,7 @@ function isNavActiveFixed(pathname, navPath) {
 }
 
 export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobile, onClose, onNavigate, onNotificationsClick }) {
+  const { t } = useTranslation(['sidebar'])
   const [streak, setStreak] = useState(0)
   const [expandedItems, setExpandedItems] = useState(['library', 'backpack'])
   const { ready, bundle } = useDashboardPrefetch()
@@ -53,6 +67,8 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
   }, [user, ready, bundle])
 
   const profile = bundle?.profile?.data || bundle?.profile
+  const isSoloLearner = profile?.is_university_user === false || profile?.role === 'solo_learner'
+  const standaloneMaterials = (bundle?.materials?.data || []).filter((item) => !item.course_id)
   const displayUsername = profile?.username ? `@${profile.username}` : (profile?.full_name?.split(' ')[0] || 'Scholar')
   const initials = (profile?.username?.slice(0, 2) || profile?.full_name?.slice(0, 2) || 'SC').toUpperCase()
 
@@ -62,7 +78,8 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
   }
 
   const NavButton = ({ item }) => {
-    const { id, path, icon: Icon, label, children, highlight, badge, count } = item
+    const { id, path, icon: Icon, labelKey, children, highlight, badge, count } = item
+    const label = t(labelKey)
     const isActive = isNavActiveFixed(pathname, path)
     const isExpanded = expandedItems.includes(id)
 
@@ -89,7 +106,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
           title={collapsed ? label : ''}
         >
           <div className="dsb-nav-icon-wrap">
-            <Icon size={18} />
+            <Icon size={18} weight="light" />
             {count > 0 && collapsed && <div className="dsb-nav-badge dsb-nav-badge--count">{count}</div>}
           </div>
           {!collapsed && (
@@ -99,7 +116,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
               {count > 0 && <span className="dsb-nav-badge-count">{count}</span>}
               {children && (
                 <div className="dsb-nav-arrow" style={{ marginLeft: 'auto' }}>
-                  {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  {isExpanded ? <CaretDown size={14} weight="light" /> : <CaretRight size={14} weight="light" />}
                 </div>
               )}
             </>
@@ -117,7 +134,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
                    className={`dsb-nav-child-item ${isChildActive ? 'dsb-nav-child--active' : ''}`}
                    onClick={() => go(child.path)}
                 >
-                  {ChildIcon && <ChildIcon size={14} strokeWidth={3.5} style={{ marginRight: 8 }} />}
+                  {ChildIcon && <ChildIcon size={14} weight="light" style={{ marginRight: 8 }} />}
                   <span>{child.label}</span>
                 </button>
               )
@@ -137,7 +154,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
 
         {isMobile ? (
           <button className="dsb-close-btn" onClick={onClose}>
-            <X size={20} strokeWidth={3.8} />
+            <X size={18} weight="light" />
           </button>
         ) : (
           <button
@@ -145,7 +162,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
             onClick={() => setCollapsed(!collapsed)}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+            {collapsed ? <CaretRight size={14} weight="light" /> : <CaretLeft size={14} weight="light" />}
           </button>
         )}
       </div>
@@ -168,7 +185,9 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} onClick={() => go('/dashboard/courses')}>
               <div style={{ width: 4, height: 16, background: '#7a12cc', borderRadius: 2 }} />
-              <span style={{ fontWeight: 800, fontSize: 11, letterSpacing: '0.05em', color: '#111' }}>BACKPACK</span>
+              <span style={{ fontWeight: 800, fontSize: 11, letterSpacing: '0.05em', color: '#111' }}>
+                {isSoloLearner ? t('myVault') : t('backpack')}
+              </span>
             </div>
             <button 
               onClick={(e) => {
@@ -177,9 +196,9 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
               }}
               style={{ display: 'flex', alignItems: 'center', padding: '4px', color: '#94a3b8' }}
             >
-              <ChevronDown 
+              <CaretDown 
+                weight="light"
                 size={14} 
-                strokeWidth={3} 
                 style={{ 
                   transform: expandedItems.includes('backpack') ? 'rotate(0deg)' : 'rotate(-90deg)',
                   transition: 'transform 0.2s'
@@ -191,7 +210,65 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
 
         {expandedItems.includes('backpack') && (
           <div className="dsb-nav-section dsb-backpack-section" style={{ maxHeight: '380px', overflowY: 'auto', paddingRight: '4px', marginBottom: '8px', marginTop: '8px' }}>
-            {bundle?.uc?.data?.length > 0 ? (
+            {isSoloLearner ? (
+              standaloneMaterials.length > 0 ? (
+                <>
+                  {standaloneMaterials.map((material, idx) => {
+                    const isActive = pathname === '/dashboard/workstation' && location.search.includes(material.id)
+                    return (
+                      <button
+                        key={material.id || `material-${idx}`}
+                        className={`dsb-nav-item dsb-course-item ${isActive ? 'dsb-nav-item--active' : ''} ${collapsed ? 'dsb-nav-item--center' : ''}`}
+                        onClick={() => go(`/dashboard/workstation?materialId=${material.id}`)}
+                        style={{
+                          padding: '10px 16px',
+                          marginBottom: '2px',
+                          background: isActive ? 'rgba(122, 18, 204, 0.05)' : 'transparent',
+                          border: 'none'
+                        }}
+                        title={material.title}
+                      >
+                        <div className="dsb-nav-icon-wrap" style={{ color: isActive ? '#7a12cc' : '#94a3b8' }}>
+                          <BookOpenText size={16} weight="light" />
+                        </div>
+                        {!collapsed && (
+                          <span className="dsb-nav-label-text" style={{
+                            fontSize: '13px',
+                            fontWeight: isActive ? 700 : 500,
+                            color: isActive ? '#111' : '#64748b',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}>
+                            {material.title || 'Untitled material'}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                  <button
+                    className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`}
+                    onClick={() => go('/dashboard/upload')}
+                    style={{ marginTop: '4px', border: '1px dashed #e2e8f0', borderRadius: '12px', margin: '8px 12px', padding: '8px' }}
+                  >
+                    <div className="dsb-nav-icon-wrap" style={{ color: '#7a12cc' }}><Plus size={16} weight="light" /></div>
+                    {!collapsed && <span className="dsb-nav-label-text" style={{ color: '#7a12cc', fontWeight: 700, fontSize: '12px' }}>
+                      {t('addToVault')}
+                    </span>}
+                  </button>
+                </>
+              ) : (
+                <button
+                  className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`}
+                  onClick={() => go('/dashboard/upload')}
+                  style={{ margin: '8px 12px', background: 'rgba(122, 18, 204, 0.05)', borderRadius: '12px', padding: '12px' }}
+                >
+                  <div className="dsb-nav-icon-wrap" style={{ color: '#7a12cc' }}><Plus size={18} weight="light" /></div>
+                  {!collapsed && <span className="dsb-nav-label-text" style={{ color: '#7a12cc', fontWeight: 800 }}>
+                    {t('setupVault')}
+                  </span>}
+                </button>
+              )
+            ) : bundle?.uc?.data?.length > 0 ? (
               <>
                 {bundle.uc.data
                   .filter(row => row && (row.courses || row.course))
@@ -212,7 +289,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
                         title={c?.name}
                       >
                         <div className="dsb-nav-icon-wrap" style={{ color: isActive ? '#7a12cc' : '#94a3b8' }}>
-                          <Hash size={16} strokeWidth={isActive ? 3 : 2} />
+                          <HashStraight size={16} weight="light" />
                         </div>
                         {!collapsed && (
                           <span className="dsb-nav-label-text" style={{ 
@@ -230,21 +307,25 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
                   })}
                 <button
                   className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`}
-                  onClick={() => go('/dashboard/courses')}
+                  onClick={() => go(isSoloLearner ? '/dashboard/upload' : '/dashboard/courses')}
                   style={{ marginTop: '4px', border: '1px dashed #e2e8f0', borderRadius: '12px', margin: '8px 12px', padding: '8px' }}
                 >
-                  <div className="dsb-nav-icon-wrap" style={{ color: '#7a12cc' }}><Plus size={16} strokeWidth={3} /></div>
-                  {!collapsed && <span className="dsb-nav-label-text" style={{ color: '#7a12cc', fontWeight: 700, fontSize: '12px' }}>Enroll More</span>}
+                  <div className="dsb-nav-icon-wrap" style={{ color: '#7a12cc' }}><Plus size={16} weight="light" /></div>
+                  {!collapsed && <span className="dsb-nav-label-text" style={{ color: '#7a12cc', fontWeight: 700, fontSize: '12px' }}>
+                    {isSoloLearner ? t('addToVault') : t('enrollMore')}
+                  </span>}
                 </button>
               </>
             ) : (
               <button
                   className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`}
-                  onClick={() => go('/dashboard/courses')}
+                  onClick={() => go(isSoloLearner ? '/dashboard/upload' : '/dashboard/courses')}
                   style={{ margin: '8px 12px', background: 'rgba(122, 18, 204, 0.05)', borderRadius: '12px', padding: '12px' }}
                 >
-                  <div className="dsb-nav-icon-wrap" style={{ color: '#7a12cc' }}><Plus size={20} strokeWidth={3} /></div>
-                  {!collapsed && <span className="dsb-nav-label-text" style={{ color: '#7a12cc', fontWeight: 800 }}>Add Your First Course</span>}
+                  <div className="dsb-nav-icon-wrap" style={{ color: '#7a12cc' }}><Plus size={18} weight="light" /></div>
+                  {!collapsed && <span className="dsb-nav-label-text" style={{ color: '#7a12cc', fontWeight: 800 }}>
+                    {isSoloLearner ? t('setupVault') : t('addFirstCourse')}
+                  </span>}
                 </button>
             )}
           </div>
@@ -259,22 +340,22 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
       </nav>
 
       <div className="dsb-bottom">
-        {!collapsed && <div className="dsb-section-label" style={{ marginTop: '20px' }}>Personal</div>}
+        {!collapsed && <div className="dsb-section-label" style={{ marginTop: '20px' }}>{t('personal')}</div>}
         
         <div className="dsb-personal-group">
           <button className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/dashboard/analytics')}>
-            <div className="dsb-nav-icon-wrap"><BarChart size={18} /></div>
-            {!collapsed && <span className="dsb-nav-label-text">My Progress</span>}
+            <div className="dsb-nav-icon-wrap"><ChartBar size={18} weight="light" /></div>
+            {!collapsed && <span className="dsb-nav-label-text">{t('myProgress')}</span>}
           </button>
           
           <button className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/dashboard/settings')}>
-            <div className="dsb-nav-icon-wrap"><Settings size={18} /></div>
-            {!collapsed && <span className="dsb-nav-label-text">Settings</span>}
+            <div className="dsb-nav-icon-wrap"><GearSix size={18} weight="light" /></div>
+            {!collapsed && <span className="dsb-nav-label-text">{t('settings')}</span>}
           </button>
 
           <button className={`dsb-nav-item dsb-nav-item--pro ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/dashboard/pricing')}>
-            <div className="dsb-nav-icon-wrap"><Crown size={18} /></div>
-            {!collapsed && <span className="dsb-nav-label-text">Upgrade to Pro</span>}
+            <div className="dsb-nav-icon-wrap"><CrownSimple size={18} weight="light" /></div>
+            {!collapsed && <span className="dsb-nav-label-text">{t('upgradePro')}</span>}
           </button>
         </div>
 

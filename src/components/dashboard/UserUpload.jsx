@@ -3,11 +3,11 @@ import { useNavigate, useOutletContext, useLocation } from 'react-router-dom'
 import { uploadMaterial, addYoutubeMaterial } from '../../services/materialsService'
 import { supabase } from '../../supabaseClient'
 import { 
-  FileText, Presentation, FileArchive, SearchCode,
-  Music, Video, Image as ImageIcon, Link2, Youtube,
-  FileBox, Loader2, CheckCircle2, AlertCircle, Trash2, Plus, PenTool, UploadCloud,
-  ChevronLeft
-} from 'lucide-react'
+  RiFileTextFill as FileText, RiPresentationFill as Presentation, RiArchiveFill as FileArchive, RiCommandLine as SearchCode,
+  RiMusicFill as Music, RiVideoFill as Video, RiImageFill as ImageIcon, RiLink as Link2, RiYoutubeFill as Youtube,
+  RiArchiveDrawerFill as FileBox, RiLoader4Line as Loader2, RiCheckboxCircleFill as CheckCircle2, RiAlertFill as AlertCircle, RiDeleteBin6Fill as Trash2, RiAddLine as Plus, RiPenNibFill as PenTool, RiUploadCloudFill as UploadCloud,
+  RiArrowLeftSLine as ChevronLeft
+} from 'react-icons/ri'
 
 export default function UserUpload() {
   const { user } = useOutletContext()

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
 
-const CACHE_VER = 'v3' // Incremented for schema changes
+const CACHE_VER = 'v4' // Incremented for schema changes
 const storageKey = (userId) => `luter:dashboard_prefetch:${CACHE_VER}:${userId}`
 
 function readCachedBundle(userId) {
@@ -34,7 +34,7 @@ export function useDashboardPrefetch() {
  * Fetches the dashboard data individually to avoid cascading failures.
  */
 async function fetchDashboardBundle(userId) {
-  const [uc, stats, leaderboard, profile] = await Promise.all([
+  const [uc, stats, leaderboard, profile, materials] = await Promise.all([
     supabase
       .from('user_courses')
       .select('id, progress, last_studied_at, target_score, custom_name, is_archived, semester, created_at, courses(id, code, name, faculty)')
@@ -52,9 +52,17 @@ async function fetchDashboardBundle(userId) {
       .then(res => res),
       
     supabase.from('profiles').select('*').eq('id', userId).maybeSingle().then(res => res),
+
+    supabase
+      .from('materials')
+      .select('id, title, type, source_url, processing_status, created_at, updated_at, course_id')
+      .eq('user_id', userId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .then(res => res),
   ])
 
-  return { uc, stats, leaderboard, profile }
+  return { uc, stats, leaderboard, profile, materials }
 }
 
 export function DashboardPrefetchProvider({ userId, children }) {

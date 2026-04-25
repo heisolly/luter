@@ -2,23 +2,23 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Users, 
-  ChevronLeft, 
-  Share2, 
-  Link as LinkIcon, 
-  Plus, 
-  MoreHorizontal,
-  LogOut,
-  Folder,
-  FileText,
-  Brain,
-  MessageSquare,
-  Shield,
-  Loader2,
-  Check,
-  Layout,
-  PlusCircle
-} from 'lucide-react'
+  RiTeamFill as Users, 
+  RiArrowLeftSLine as ChevronLeft, 
+  RiShareFill as Share2, 
+  RiLinkM as LinkIcon, 
+  RiAddLine as Plus, 
+  RiMoreFill as MoreHorizontal,
+  RiLogoutBoxLine as LogOut,
+  RiFolderFill as Folder,
+  RiFileTextFill as FileText,
+  RiBrainFill as Brain,
+  RiChat3Fill as MessageSquare,
+  RiShieldFill as Shield,
+  RiLoader4Line as Loader2,
+  RiCheckLine as Check,
+  RiLayoutMasonryFill as Layout,
+  RiAddCircleFill as PlusCircle
+} from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import './study-groups.css'
 

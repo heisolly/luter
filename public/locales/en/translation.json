@@ -1,0 +1,68 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "continue": "CONTINUE"
+  },
+  "onboarding": {
+    "welcome": "Welcome to Luter",
+    "select_path": "Choose your path",
+    "student": "University Scholar",
+    "studentSub": "I want to track courses and study for exams.",
+    "solo": "Solo Learner",
+    "soloSub": "I am learning independently at my own pace.",
+    "pathTitle": "Choose your path",
+    "pathSub": "How do you plan to use Luter?",
+    "idTitle": "Tell us about yourself",
+    "idSub": "Help us personalize your learning journey.",
+    "fullName": "Full Name",
+    "username": "Username",
+    "uniTitle": "Where are you studying?",
+    "uniSub": "This connects you with your campus community.",
+    "intTitle": "What are your interests?",
+    "intSub": "Select your areas of focus.",
+    "courseTitle": "What courses are you taking?",
+    "courseSub": "Add your current courses to build your workspace.",
+    "routineTitle": "Set your study routine",
+    "routineSub": "When do you usually focus best?",
+    "focusTitle": "Focus.",
+    "focusSub": "What is your top priority right now?",
+    "invitesTitle": "Invites.",
+    "invitesSub": "Enter a referral code to unlock rewards.",
+    "successTitle": "Success!",
+    "successSub": "Your Luter ID is being generated.",
+    "generating": "GENERATING...",
+    "enterDashboard": "ENTER DASHBOARD"
+  },
+  "dock": {
+    "start": "Start Studying",
+    "add": "Add to Deck",
+    "activeContext": "Active Context",
+    "dropMaterials": "Drop materials here to start studying",
+    "quickUpload": "Quick Upload",
+    "emptyVault": "Empty Vault",
+    "aiTutor": "AI Tutor"
+  },
+  "workspace": {
+    "ai_placeholder": "Ask your tutor anything..."
+  },
+  "sidebar": {
+    "home": "Home",
+    "library": "Your library",
+    "studyGroups": "Study groups",
+    "notifications": "Notifications",
+    "playground": "Playground",
+    "trash": "Trash",
+    "mockExam": "Mock Exam",
+    "myVault": "MY VAULT",
+    "backpack": "BACKPACK",
+    "addToVault": "Add To Vault",
+    "enrollMore": "Enroll More",
+    "setupVault": "Setup Your Vault",
+    "addFirstCourse": "Add Your First Course",
+    "personal": "Personal",
+    "myProgress": "My Progress",
+    "settings": "Settings",
+    "upgradePro": "Upgrade to Pro"
+  }
+}

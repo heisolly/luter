@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useOutletContext, useNavigate } from 'react-router-dom'
-import { BookOpen, FileText, Video, UploadCloud, ChevronRight, Folder, Clock } from 'lucide-react'
+import { RiBookOpenFill as BookOpen, RiFileTextFill as FileText, RiVideoFill as Video, RiUploadCloudFill as UploadCloud, RiArrowRightSLine as ChevronRight, RiFolderFill as Folder, RiTimeFill as Clock, RiLoader4Line as Loader2 } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { fetchCourseMaterials } from '../../services/materialsService'
 import LuterLogo from '../shared/LuterLogo'

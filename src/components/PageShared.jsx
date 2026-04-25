@@ -1,8 +1,98 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowRight, BookOpen, ChevronRight, Layers, TrendingUp, Users, Zap } from 'lucide-react';
+import {
+  ArrowRight,
+  BookOpen,
+  CaretRight as ChevronRight,
+  Stack,
+  TrendUp as TrendingUp,
+  UsersThree as Users,
+  Lightning,
+  XLogo as Twitter,
+  InstagramLogo as Instagram,
+  LinkedinLogo as Linkedin,
+  Plus,
+  Minus,
+  FacebookLogo as Facebook,
+  TiktokLogo as Music,
+  List as Menu
+} from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LuterLogo from './shared/LuterLogo';
+
+export const PremiumButton = ({ children, to, onClick, style = {}, variant = 'primary', disabled = false }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
+  
+  const isPrimary = variant === 'primary';
+  
+  const baseStyle = {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    height: '52px', padding: '0 32px', borderRadius: '9999px',
+    background: isPrimary ? 'linear-gradient(135deg, #A855F7 0%, #C7B9FF 100%)' : 'white',
+    color: isPrimary ? 'white' : '#4B0082',
+    border: isPrimary ? 'none' : '2px solid #C7B9FF',
+    fontSize: '14px', 
+    fontWeight: 700, 
+    fontFamily: 'var(--font-outfit)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    textDecoration: 'none', 
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+    boxSizing: 'border-box', gap: '10px',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.6 : 1,
+    transform: isPressed ? 'scale(0.98)' : (isHovered ? 'translateY(-2px)' : 'translateY(0px)'),
+    boxShadow: isPrimary && isHovered && !disabled ? '0 8px 24px rgba(168, 85, 247, 0.25)' : 'none',
+    ...style
+  };
+
+  const Component = to ? Link : 'button';
+  const componentProps = to ? { to } : { onClick, disabled };
+  
+  return (
+    <Component 
+      {...componentProps}
+      style={baseStyle}
+      onMouseEnter={() => !disabled && setIsHovered(true)}
+      onMouseLeave={() => { setIsHovered(false); setIsPressed(false); }}
+      onMouseDown={() => !disabled && setIsPressed(true)}
+      onMouseUp={() => setIsPressed(false)}
+    >
+      {children}
+    </Component>
+  );
+};
+
+export const AuthNavbar = ({ type = 'signin' }) => {
+  const isSignIn = type === 'signin';
+  
+  return (
+    <div style={{ 
+      position: 'relative', zIndex: 100, padding: '24px 80px', 
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      width: '100%', boxSizing: 'border-box'
+    }}>
+      <Link to="/" style={{ textDecoration: 'none' }}>
+        <LuterLogo size={36} fontSize={28} />
+      </Link>
+      
+      <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+        <span style={{ fontSize: 14, fontWeight: 500, color: '#64748B', fontFamily: 'var(--font-outfit)' }}>
+          {isSignIn ? "Don't have an account?" : "Already have an account?"}
+        </span>
+        <PremiumButton 
+          to={isSignIn ? "/signup" : "/signin"} 
+          variant={isSignIn ? "primary" : "secondary"}
+          style={{ height: '38px', padding: '0 20px', fontSize: '13px' }}
+        >
+          {isSignIn ? "Sign up" : "Sign in"}
+          {isSignIn && <ArrowRight size={14} weight="bold" />}
+        </PremiumButton>
+      </div>
+    </div>
+  );
+};
 
 /* Shared Animated Blob Background */
 export function PageBackground() {
@@ -60,15 +150,130 @@ export function RevealDiv({ children, style = {}, delay = 0 }) {
   );
 }
 
+export function SharedFAQ({ items = [], title = "Frequently Asked Questions", subtitle = "We're on the hot seat." }) {
+  const [activeIndex, setActiveIndex] = useState(null);
+
+  return (
+    <div className="container-full" style={{ padding: '100px 20px', background: 'white' }}>
+      <div style={{ textAlign: 'center', marginBottom: 60 }}>
+        <RevealDiv>
+          <h2 style={{ 
+            fontSize: 'clamp(2.5rem, 5vw, 3rem)', 
+            fontWeight: 800, 
+            color: '#111', 
+            marginBottom: 16, 
+            letterSpacing: '-0.02em',
+            fontFamily: 'var(--font-outfit)'
+          }}>
+            {title}
+          </h2>
+          <p style={{ 
+            fontSize: 20, 
+            color: '#475569', 
+            fontWeight: 500,
+            fontFamily: 'var(--font-outfit)'
+          }}>
+            {subtitle}
+          </p>
+        </RevealDiv>
+      </div>
+
+      <div style={{ 
+        maxWidth: 800, 
+        margin: '0 auto',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12
+      }}>
+        {items.map((item, idx) => (
+          <RevealDiv key={idx} delay={idx * 0.05}>
+            <div 
+              onClick={() => setActiveIndex(activeIndex === idx ? null : idx)}
+              style={{
+                background: '#f8f9fb',
+                borderRadius: 40,
+                padding: activeIndex === idx ? '32px 40px' : '20px 40px',
+                cursor: 'pointer',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                border: '1px solid transparent',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#f1f5f9';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = '#f8f9fb';
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                <div style={{ 
+                  color: '#111',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 24,
+                  height: 24
+                }}>
+                  <motion.div
+                    animate={{ rotate: activeIndex === idx ? 0 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {activeIndex === idx ? <Minus size={20} weight="bold" /> : <Plus size={20} weight="bold" />}
+                  </motion.div>
+                </div>
+                <h3 style={{ 
+                  fontSize: 18, 
+                  fontWeight: 800, 
+                  color: '#111', 
+                  margin: 0,
+                  fontFamily: 'var(--font-outfit)',
+                  lineHeight: 1.4,
+                  letterSpacing: '-0.01em'
+                }}>
+                  {item.q}
+                </h3>
+              </div>
+              
+              <AnimatePresence>
+                {activeIndex === idx && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                    animate={{ height: 'auto', opacity: 1, marginTop: 20 }}
+                    exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <p style={{ 
+                      fontSize: 16, 
+                      color: '#475569', 
+                      lineHeight: 1.7, 
+                      fontWeight: 400, 
+                      margin: '0 0 0 44px',
+                      fontFamily: 'var(--font-varela)'
+                    }}>
+                      {item.a}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </RevealDiv>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function SharedNavbar() {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <>
-    <nav className="navbar" style={{ 
+      <nav className="navbar" style={{ 
         padding: '0 24px', 
         background: 'transparent', 
+        paddingTop: 12,
         fontFamily: 'var(--font-varela)',
         zIndex: 200,
         position: 'absolute',
@@ -81,39 +286,69 @@ export function SharedNavbar() {
         backdropFilter: 'none',
         WebkitBackdropFilter: 'none'
       }}>
-        {/* Desktop Navbar */}
+        {/* Desktop Navbar - Locked to md+ screens */}
         <div className="hidden md:flex" style={{ 
           alignItems: 'center', 
           justifyContent: 'space-between', 
-          width: '100%'
+          width: '100%',
+          fontFamily: 'var(--font-varela)'
         }}>
           <Link to="/" style={{ textDecoration: 'none' }}>
             <LuterLogo size={36} fontSize={28} />
           </Link>
 
-          <div style={{ display: 'flex', gap: 32, fontSize: 14, fontWeight: 600 }}>
-            {[['Features','/features'],['How it works','/how-it-works'],['Pricing','/pricing'],['About','/about']].map(([l,p]) => (
-              <Link key={l} to={p} style={{ 
-                textDecoration: 'none', 
-                color: location.pathname === p ? 'var(--primary)' : '#555', 
+          <div style={{ display: 'flex', gap: 32, fontSize: 15, fontWeight: 500, color: '#475569' }}>
+            {[['Features','/features'],['How it works','/how-it-works'],['Pricing','/pricing'],['About','/about']].map(([l,h]) => (
+              <Link key={l} to={h} style={{ 
                 transition: 'color 0.2s', 
-                borderBottom: location.pathname === p ? '2px solid var(--primary)' : '2px solid transparent', 
-                paddingBottom: 2 
-              }}>{l}</Link>
+                color: location.pathname === h ? '#2E1065' : '#475569', 
+                textDecoration: 'none', 
+                fontFamily: 'var(--font-outfit)',
+                fontWeight: location.pathname === h ? 700 : 500
+              }}
+                onMouseEnter={e => e.target.style.color='#2E1065'}
+                onMouseLeave={e => e.target.style.color = location.pathname === h ? '#2E1065' : '#475569'}>{l}</Link>
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-            <Link to="/signin" style={{ fontSize: 14, fontWeight: 600, color: '#555', textDecoration: 'none', transition: 'color 0.2s' }}>
-              Sign In
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <Link 
+              to="/signin" 
+              style={{ 
+                fontSize: 14, 
+                fontWeight: 700, 
+                color: '#475569', 
+                textDecoration: 'none',
+                fontFamily: 'var(--font-outfit)',
+                height: '38px',
+                padding: '0 16px',
+                borderRadius: '9999px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease',
+                cursor: 'pointer',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.color = '#4B0082';
+                e.currentTarget.style.background = 'rgba(75, 0, 130, 0.05)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.color = '#475569';
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              Sign in
             </Link>
-            <Link to="/signup" className="btn-primary" style={{ padding: '10px 24px', fontSize: 14, textDecoration: 'none' }}>
-              Get Started <ArrowRight style={{ width: 15, height: 15 }} />
-            </Link>
+            <PremiumButton to="/signup" style={{ height: '38px', padding: '0 20px' }}>
+              Sign up <ArrowRight size={14} weight="bold" />
+            </PremiumButton>
           </div>
         </div>
 
-        {/* Mobile Navbar */}
+        {/* Mobile Navbar - Only on mobile screens */}
         <div className="flex md:hidden" style={{ 
           alignItems: 'center', 
           justifyContent: 'space-between', 
@@ -123,34 +358,25 @@ export function SharedNavbar() {
             <LuterLogo size={28} fontSize={22} />
           </Link>
 
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <Link to="/signup" className="btn-primary" style={{ 
-              padding: '8px 18px', 
-              fontSize: 13, 
-              textDecoration: 'none', 
-              fontFamily: 'var(--font-varela)',
-              borderRadius: 10,
-              boxShadow: '0 4px 15px rgba(151, 24, 251, 0.3)',
-              fontWeight: 800
-            }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <PremiumButton to="/signup" style={{ height: '36px', padding: '0 18px', fontSize: '13px' }}>
               Get Started
-            </Link>
-            
+            </PremiumButton>
             <button 
-              onClick={() => setIsOpen(!isOpen)} 
+              onClick={() => setIsOpen(!isOpen)}
               style={{ 
-                zIndex: 300, 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: 5, 
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 padding: '8px',
+                zIndex: 300,
                 background: 'transparent',
-                border: 'none'
+                border: 'none',
+                cursor: 'pointer'
               }}
+              aria-label={isOpen ? 'Close menu' : 'Open menu'}
             >
-              <div style={{ width: 22, height: 2, background: '#111', borderRadius: 2 }} />
-              <div style={{ width: 22, height: 2, background: '#111', borderRadius: 2 }} />
-              <div style={{ width: 22, height: 2, background: '#111', borderRadius: 2 }} />
+              <Menu size={24} weight="bold" color="#111" />
             </button>
           </div>
         </div>
@@ -180,13 +406,13 @@ export function SharedNavbar() {
             <div style={{ position: 'absolute', top: 90, left: 24, right: 24, height: 1, background: 'rgba(0,0,0,0.05)' }} />
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {[
-                { l: 'Features', p: '/features', i: <Layers size={22} /> },
-                { l: 'How it works', p: '/how-it-works', i: <BookOpen size={22} /> },
-                { l: 'Pricing', p: '/pricing', i: <Zap size={22} /> },
-                { l: 'About', p: '/about', i: <Users size={22} /> },
-                { l: 'Sign In', p: '/signin', i: <TrendingUp size={22} /> }
-              ].map((item, idx) => (
+                { [
+                  { l: 'Features', p: '/features', i: <Stack size={22} weight="bold" /> },
+                  { l: 'How it works', p: '/how-it-works', i: <BookOpen size={22} weight="bold" /> },
+                  { l: 'Pricing', p: '/pricing', i: <Lightning size={22} weight="bold" /> },
+                  { l: 'About', p: '/about', i: <Users size={22} weight="bold" /> },
+                  { l: 'Sign In', p: '/signin', i: <TrendingUp size={22} weight="bold" /> }
+                ].map((item, idx) => (
                 <motion.div
                   key={item.l}
                   initial={{ opacity: 0, x: -20 }}
@@ -201,24 +427,25 @@ export function SharedNavbar() {
                       alignItems: 'center',
                       gap: 16,
                       fontSize: 18, 
-                      fontWeight: 700, 
+                      fontWeight: 800, 
                       color: '#111',
                       textDecoration: 'none',
                       padding: '16px 20px',
-                      borderRadius: 16,
+                      borderRadius: 24,
                       background: 'rgba(0,0,0,0.02)',
-                      border: '1px solid rgba(0,0,0,0.03)'
+                      border: '1px solid rgba(0,0,0,0.03)',
+                      fontFamily: 'var(--font-outfit)'
                     }}
                   >
                     <div style={{ 
                       width: 40, height: 40, borderRadius: 12, background: 'white', 
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.05)', color: 'var(--primary)'
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.05)', color: '#111'
                     }}>
                       {item.i}
                     </div>
                     {item.l}
-                    <ChevronRight size={18} style={{ marginLeft: 'auto', opacity: 0.3 }} />
+                    <ChevronRight size={18} weight="bold" style={{ marginLeft: 'auto', opacity: 0.3 }} />
                   </Link>
                 </motion.div>
               ))}
@@ -231,21 +458,16 @@ export function SharedNavbar() {
               style={{ marginTop: 'auto', padding: '0 4px' }}
             >
               <div style={{ 
-                background: 'var(--primary-bg)', 
+                background: 'rgba(75, 0, 130, 0.05)', 
                 padding: 20, borderRadius: 24, marginBottom: 20,
-                border: '1px solid rgba(151,24,251,0.1)'
+                border: '1px solid rgba(75, 0, 130, 0.1)'
               }}>
-                <h4 style={{ fontSize: 16, fontWeight: 800, color: 'var(--primary)', marginBottom: 4 }}>Level Up Your Grades</h4>
-                <p style={{ fontSize: 13, color: 'var(--primary)', opacity: 0.7, fontWeight: 500 }}>Join 5M+ students using AI to master their curriculum.</p>
+                <h4 style={{ fontSize: 16, fontWeight: 800, color: '#111', marginBottom: 4, fontFamily: 'var(--font-outfit)' }}>Level Up Your Grades</h4>
+                <p style={{ fontSize: 13, color: '#111', opacity: 0.7, fontWeight: 500, fontFamily: 'var(--font-varela)' }}>Join 5M+ students using AI to master their curriculum.</p>
               </div>
-              <Link 
-                to="/signup" 
-                onClick={() => setIsOpen(false)}
-                className="btn-primary" 
-                style={{ width: '100%', justifyContent: 'center', padding: '18px', fontSize: 16, borderRadius: 16, fontFamily: 'var(--font-varela)', boxShadow: '0 10px 30px rgba(151,24,251,0.3)' }}
-              >
-                Start Free Today <ArrowRight size={18} style={{ marginLeft: 8 }} />
-              </Link>
+              <PremiumButton to="/signup" onClick={() => setIsOpen(false)} style={{ width: '100%', height: '52px', fontSize: '16px' }}>
+                Start Free Today <ArrowRight size={18} weight="bold" style={{ marginLeft: 8 }} />
+              </PremiumButton>
             </motion.div>
           </motion.div>
         )}
@@ -255,466 +477,125 @@ export function SharedNavbar() {
 }
 
 export function SharedFooter() {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <footer style={{ 
-      position: 'relative',
-      background: 'transparent',
-      color: '#000000',
-      padding: '60px 0 30px',
-      marginTop: '0px',
-      paddingTop: '120px'
+      background: '#fff',
+      padding: '80px 0 40px',
+      borderTop: '1px solid #f1f5f9',
+      fontFamily: 'var(--font-outfit)'
     }}>
-      {/* Overlapping Image with better positioning */}
-      <div style={{
-        position: 'absolute',
-        bottom: '0px',
-        right: '8%',
-        width: '650px',
-        height: '550px',
-        zIndex: 10,
-        pointerEvents: 'none'
-      }}>
-        <img 
-          src="/footer-img.png" 
-          alt="Luter Study Platform" 
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'contain',
-            borderRadius: 0,
-            boxShadow: 'none',
-            filter: 'none',
-            background: 'transparent'
-          }}
-        />
-      </div>
-      
-      <div className="container-full" style={{ position: 'relative', zIndex: 5 }}>
-        {/* Brand Signature */}
+      <div className="container-full">
+        {/* Top Section */}
         <div style={{ 
-          marginBottom: '40px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: 40,
+          marginBottom: 60
         }}>
-          <img 
-            src="/logo.png" 
-            alt="Luter Logo" 
-            style={{
-              width: '40px',
-              height: '40px',
-              objectFit: 'contain'
-            }}
-          />
-          <div style={{ 
-            fontSize: '24px', 
-            fontWeight: '800', 
-            color: '#2d1b69', // Purple-black for brand integration
-            fontFamily: 'Outfit, sans-serif',
-            letterSpacing: '-0.02em'
-          }}>
-            Luter
+          {/* Left: Brand & Contact */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+              <LuterLogo size={32} fontSize={24} />
+            </div>
+            <div style={{ display: 'flex', gap: 40, marginBottom: 32 }}>
+              <div>
+                <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, fontFamily: 'var(--font-outfit)' }}>Email</div>
+                <a href="mailto:hello@luter.ai" style={{ fontSize: 16, color: '#111', fontWeight: 400, textDecoration: 'none', fontFamily: 'var(--font-varela)' }}>hello@luter.ai</a>
+              </div>
+              <div>
+                <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, fontFamily: 'var(--font-outfit)' }}>Community</div>
+                <a href="#" style={{ fontSize: 16, color: '#111', fontWeight: 400, textDecoration: 'none', fontFamily: 'var(--font-varela)' }}>discord.gg/luter</a>
+              </div>
+            </div>
+
+            {/* Social Links */}
+            <div style={{ display: 'flex', gap: 12 }}>
+              {[
+                { icon: <Music size={18} weight="bold" />, label: 'TikTok' },
+                { icon: <Instagram size={18} weight="bold" />, label: 'Instagram' },
+                { icon: <Facebook size={18} weight="bold" />, label: 'Facebook' },
+                { icon: <Twitter size={18} weight="bold" />, label: 'Twitter' },
+                { icon: <Linkedin size={18} weight="bold" />, label: 'LinkedIn' }
+              ].map((s, i) => (
+                <a 
+                  key={i}
+                  href="#" 
+                  aria-label={s.label}
+                  style={{ 
+                    width: 44, 
+                    height: 44, 
+                    borderRadius: '50%', 
+                    background: 'white', 
+                    border: '1px solid #f1f5f9',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: '#111',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-3px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+                    e.currentTarget.style.borderColor = '#f1f5f9';
+                  }}
+                >
+                  {s.icon}
+                </a>
+              ))}
+            </div>
           </div>
-        </div>
-        
-        {/* Main Content - Links Layout with better alignment */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns:'1fr', 
-          gap: 80, 
-          alignItems: 'start',
-          maxWidth: '900px'
-        }}>
-          {/* Left Side - All Links */}
-          <div style={{ paddingTop: '20px' }}> {/* Align with mascot head top */}
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns:'1fr 1fr 1fr', 
-              gap: 80, // More spacing between columns
-              paddingRight: '120px' // Give mascot more buffer space
-            }}>
-              {/* Product Links */}
-              <div>
-                <div style={{ 
-                  fontSize: 22, // Increased from 18 for better visual weight
-                  fontWeight: 800, // Increased from 700
-                  color: '#2d1b69', // Purple-black instead of pure black
-                  marginBottom: 32, // Increased from 24
-                  fontFamily: 'Outfit, sans-serif',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.12em' // Slightly increased
-                }}>
-                  Product
-                </div>
-                <div style={{ display:'flex', flexDirection:'column', gap: 20 }}> {/* Increased from 16 */}
-                  <Link 
-                    to="/features"
-                    style={{ 
-                      fontSize: 17, // Increased from 16
-                      color: '#1a1a1a', 
-                      fontWeight: 600, // Increased from 500
-                      transition: 'all 0.2s ease',
-                      textDecoration: 'none',
-                      fontFamily: 'Outfit, sans-serif',
-                      padding: '12px 0', // Increased from 8px
-                      opacity: 0.85,
-                      lineHeight: 1.4
-                    }}
-                    onMouseEnter={e => {
-                      e.target.style.opacity = '1';
-                      e.target.style.color = '#9718fb';
-                      e.target.style.transform = 'translateX(6px)'; // Increased from 4px
-                    }}
-                    onMouseLeave={e => {
-                      e.target.style.opacity = '0.85';
-                      e.target.style.color = '#1a1a1a';
-                      e.target.style.transform = 'translateX(0)';
-                    }}
-                  >
-                    Features
-                  </Link>
-                  <Link 
-                    to="/pricing"
-                    style={{ 
-                      fontSize: 17, 
-                      color: '#1a1a1a', 
-                      fontWeight: 600, 
-                      transition: 'all 0.2s ease',
-                      textDecoration: 'none',
-                      fontFamily: 'Outfit, sans-serif',
-                      padding: '12px 0',
-                      opacity: 0.85,
-                      lineHeight: 1.4
-                    }}
-                    onMouseEnter={e => {
-                      e.target.style.opacity = '1';
-                      e.target.style.color = '#9718fb';
-                      e.target.style.transform = 'translateX(6px)';
-                    }}
-                    onMouseLeave={e => {
-                      e.target.style.opacity = '0.85';
-                      e.target.style.color = '#1a1a1a';
-                      e.target.style.transform = 'translateX(0)';
-                    }}
-                  >
-                    Pricing
-                  </Link>
-                  <Link 
-                    to="/how-it-works"
-                    style={{ 
-                      fontSize: 17, 
-                      color: '#1a1a1a', 
-                      fontWeight: 600, 
-                      transition: 'all 0.2s ease',
-                      textDecoration: 'none',
-                      fontFamily: 'Outfit, sans-serif',
-                      padding: '12px 0',
-                      opacity: 0.85,
-                      lineHeight: 1.4
-                    }}
-                    onMouseEnter={e => {
-                      e.target.style.opacity = '1';
-                      e.target.style.color = '#9718fb';
-                      e.target.style.transform = 'translateX(6px)';
-                    }}
-                    onMouseLeave={e => {
-                      e.target.style.opacity = '0.85';
-                      e.target.style.color = '#1a1a1a';
-                      e.target.style.transform = 'translateX(0)';
-                    }}
-                  >
-                    How it works
-                  </Link>
-                  <Link 
-                    to="/changelog"
-                    style={{ 
-                      fontSize: 17, 
-                      color: '#1a1a1a', 
-                      fontWeight: 600, 
-                      transition: 'all 0.2s ease',
-                      textDecoration: 'none',
-                      fontFamily: 'Outfit, sans-serif',
-                      padding: '12px 0',
-                      opacity: 0.85,
-                      lineHeight: 1.4
-                    }}
-                    onMouseEnter={e => {
-                      e.target.style.opacity = '1';
-                      e.target.style.color = '#9718fb';
-                      e.target.style.transform = 'translateX(6px)';
-                    }}
-                    onMouseLeave={e => {
-                      e.target.style.opacity = '0.85';
-                      e.target.style.color = '#1a1a1a';
-                      e.target.style.transform = 'translateX(0)';
-                    }}
-                  >
-                    Changelog
-                  </Link>
-                </div>
-              </div>
-              
-              {/* Company Links */}
-              <div>
-                <div style={{ 
-                  fontSize: 22, 
-                  fontWeight: 800, 
-                  color: '#2d1b69', 
-                  marginBottom: 32,
-                  fontFamily: 'Outfit, sans-serif',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.12em'
-                }}>
-                  Company
-                </div>
-                <div style={{ display:'flex', flexDirection:'column', gap: 20 }}>
-                  <Link 
-                    to="/about"
-                    style={{ 
-                      fontSize: 17, 
-                      color: '#1a1a1a', 
-                      fontWeight: 600, 
-                      transition: 'all 0.2s ease',
-                      textDecoration: 'none',
-                      fontFamily: 'Outfit, sans-serif',
-                      padding: '12px 0',
-                      opacity: 0.85,
-                      lineHeight: 1.4
-                    }}
-                    onMouseEnter={e => {
-                      e.target.style.opacity = '1';
-                      e.target.style.color = '#9718fb';
-                      e.target.style.transform = 'translateX(6px)';
-                    }}
-                    onMouseLeave={e => {
-                      e.target.style.opacity = '0.85';
-                      e.target.style.color = '#1a1a1a';
-                      e.target.style.transform = 'translateX(0)';
-                    }}
-                  >
-                    About
-                  </Link>
-                  <Link 
-                    to="/blog"
-                    style={{ 
-                      fontSize: 17, 
-                      color: '#1a1a1a', 
-                      fontWeight: 600, 
-                      transition: 'all 0.2s ease',
-                      textDecoration: 'none',
-                      fontFamily: 'Outfit, sans-serif',
-                      padding: '12px 0',
-                      opacity: 0.85,
-                      lineHeight: 1.4
-                    }}
-                    onMouseEnter={e => {
-                      e.target.style.opacity = '1';
-                      e.target.style.color = '#9718fb';
-                      e.target.style.transform = 'translateX(6px)';
-                    }}
-                    onMouseLeave={e => {
-                      e.target.style.opacity = '0.85';
-                      e.target.style.color = '#1a1a1a';
-                      e.target.style.transform = 'translateX(0)';
-                    }}
-                  >
-                    Blog
-                  </Link>
-                  <Link 
-                    to="/careers"
-                    style={{ 
-                      fontSize: 17, 
-                      color: '#1a1a1a', 
-                      fontWeight: 600, 
-                      transition: 'all 0.2s ease',
-                      textDecoration: 'none',
-                      fontFamily: 'Outfit, sans-serif',
-                      padding: '12px 0',
-                      opacity: 0.85,
-                      lineHeight: 1.4
-                    }}
-                    onMouseEnter={e => {
-                      e.target.style.opacity = '1';
-                      e.target.style.color = '#9718fb';
-                      e.target.style.transform = 'translateX(6px)';
-                    }}
-                    onMouseLeave={e => {
-                      e.target.style.opacity = '0.85';
-                      e.target.style.color = '#1a1a1a';
-                      e.target.style.transform = 'translateX(0)';
-                    }}
-                  >
-                    Careers
-                  </Link>
-                  <Link 
-                    to="/press"
-                    style={{ 
-                      fontSize: 17, 
-                      color: '#1a1a1a', 
-                      fontWeight: 600, 
-                      transition: 'all 0.2s ease',
-                      textDecoration: 'none',
-                      fontFamily: 'Outfit, sans-serif',
-                      padding: '12px 0',
-                      opacity: 0.85,
-                      lineHeight: 1.4
-                    }}
-                    onMouseEnter={e => {
-                      e.target.style.opacity = '1';
-                      e.target.style.color = '#9718fb';
-                      e.target.style.transform = 'translateX(6px)';
-                    }}
-                    onMouseLeave={e => {
-                      e.target.style.opacity = '0.85';
-                      e.target.style.color = '#1a1a1a';
-                      e.target.style.transform = 'translateX(0)';
-                    }}
-                  >
-                    Press
-                  </Link>
-                </div>
-              </div>
-              
-              {/* Legal Links */}
-              <div>
-                <div style={{ 
-                  fontSize: 22, 
-                  fontWeight: 800, 
-                  color: '#2d1b69', 
-                  marginBottom: 32,
-                  fontFamily: 'Outfit, sans-serif',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.12em'
-                }}>
-                  Legal
-                </div>
-                <div style={{ display:'flex', flexDirection:'column', gap: 20 }}>
-                  <Link 
-                    to="/privacy"
-                    style={{ 
-                      fontSize: 17, 
-                      color: '#1a1a1a', 
-                      fontWeight: 600, 
-                      transition: 'all 0.2s ease',
-                      textDecoration: 'none',
-                      fontFamily: 'Outfit, sans-serif',
-                      padding: '12px 0',
-                      opacity: 0.85,
-                      lineHeight: 1.4
-                    }}
-                    onMouseEnter={e => {
-                      e.target.style.opacity = '1';
-                      e.target.style.color = '#9718fb';
-                      e.target.style.transform = 'translateX(6px)';
-                    }}
-                    onMouseLeave={e => {
-                      e.target.style.opacity = '0.85';
-                      e.target.style.color = '#1a1a1a';
-                      e.target.style.transform = 'translateX(0)';
-                    }}
-                  >
-                    Privacy
-                  </Link>
-                  <Link 
-                    to="/terms"
-                    style={{ 
-                      fontSize: 17, 
-                      color: '#1a1a1a', 
-                      fontWeight: 600, 
-                      transition: 'all 0.2s ease',
-                      textDecoration: 'none',
-                      fontFamily: 'Outfit, sans-serif',
-                      padding: '12px 0',
-                      opacity: 0.85,
-                      lineHeight: 1.4
-                    }}
-                    onMouseEnter={e => {
-                      e.target.style.opacity = '1';
-                      e.target.style.color = '#9718fb';
-                      e.target.style.transform = 'translateX(6px)';
-                    }}
-                    onMouseLeave={e => {
-                      e.target.style.opacity = '0.85';
-                      e.target.style.color = '#1a1a1a';
-                      e.target.style.transform = 'translateX(0)';
-                    }}
-                  >
-                    Terms
-                  </Link>
-                  <Link 
-                    to="/cookie-policy"
-                    style={{ 
-                      fontSize: 17, 
-                      color: '#1a1a1a', 
-                      fontWeight: 600, 
-                      transition: 'all 0.2s ease',
-                      textDecoration: 'none',
-                      fontFamily: 'Outfit, sans-serif',
-                      padding: '12px 0',
-                      opacity: 0.85,
-                      lineHeight: 1.4
-                    }}
-                    onMouseEnter={e => {
-                      e.target.style.opacity = '1';
-                      e.target.style.color = '#9718fb';
-                      e.target.style.transform = 'translateX(6px)';
-                    }}
-                    onMouseLeave={e => {
-                      e.target.style.opacity = '0.85';
-                      e.target.style.color = '#1a1a1a';
-                      e.target.style.transform = 'translateX(0)';
-                    }}
-                  >
-                    Cookie Policy
-                  </Link>
-                  <Link 
-                    to="/security"
-                    style={{ 
-                      fontSize: 17, 
-                      color: '#1a1a1a', 
-                      fontWeight: 600, 
-                      transition: 'all 0.2s ease',
-                      textDecoration: 'none',
-                      fontFamily: 'Outfit, sans-serif',
-                      padding: '12px 0',
-                      opacity: 0.85,
-                      lineHeight: 1.4
-                    }}
-                    onMouseEnter={e => {
-                      e.target.style.opacity = '1';
-                      e.target.style.color = '#9718fb';
-                      e.target.style.transform = 'translateX(6px)';
-                    }}
-                    onMouseLeave={e => {
-                      e.target.style.opacity = '0.85';
-                      e.target.style.color = '#1a1a1a';
-                      e.target.style.transform = 'translateX(0)';
-                    }}
-                  >
-                    Security
-                  </Link>
-                </div>
-              </div>
+
+          {/* Right: CTA & Buttons */}
+          <div style={{ textAlign: 'right', maxWidth: 450 }}>
+            <h3 style={{ fontSize: 28, fontWeight: 800, color: '#111', marginBottom: 24, lineHeight: 1.2, letterSpacing: '-0.02em' }}>
+              Get started with your personal AI tutor now
+            </h3>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <PremiumButton to="/signup" style={{ height: '48px', padding: '0 24px' }}>
+                Try Luter
+              </PremiumButton>
+              <Link to="/demo" style={{
+                height: 48, padding: '0 24px', background: '#fff', color: '#111',
+                borderRadius: '9999px', fontSize: 15, fontWeight: 700, display: 'flex', 
+                alignItems: 'center', gap: 8, textDecoration: 'none', border: '2px solid #F1F5F9',
+                transition: 'all 0.2s ease', fontFamily: 'var(--font-outfit)', textTransform: 'uppercase', letterSpacing: '0.05em'
+              }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#F9FAFB';
+                  e.currentTarget.style.borderColor = '#C7B9FF';
+                  e.currentTarget.style.color = '#4B0082';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = '#fff';
+                  e.currentTarget.style.borderColor = '#F1F5F9';
+                  e.currentTarget.style.color = '#111';
+                }}
+              >
+                Watch Demo
+              </Link>
             </div>
           </div>
         </div>
-        
-        {/* Copyright Row */}
-        <div style={{
-          marginTop: '50px',
-          paddingTop: '25px',
-          borderTop: '1px solid rgba(0, 0, 0, 0.1)',
-          textAlign: 'left'
-        }}>
-          <div style={{ 
-            fontSize: '13px', 
-            color: '#888888', 
-            fontWeight: '500',
-            fontFamily: 'Outfit, sans-serif',
-            letterSpacing: '0.02em'
-          }}>
-            © 2026 Luter. All rights reserved.
-          </div>
+
+        {/* Divider line */}
+        <div style={{ height: 1, background: '#f1f5f9', width: '100%', marginBottom: 32 }} />
+
+
+        {/* Legal Minimal */}
+        <div style={{ marginTop: 40, display: 'flex', gap: 24, fontSize: 13, color: '#94a3b8', fontWeight: 500 }}>
+          <span>© 2026 Luter Learning</span>
+          <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>Privacy</Link>
+          <Link to="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>Terms</Link>
         </div>
       </div>
     </footer>

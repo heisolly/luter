@@ -1,28 +1,66 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { 
-  Plus, Book, Layers, Archive, Search, Filter, 
-  MoreVertical, BookOpen, Clock, Target, ChevronRight, 
-  Hash, Star, Briefcase, Sparkles, Trash2, 
-  Settings, Info, GraduationCap, Zap, CheckCircle2,
-  X, Loader2, ArrowRight
-} from 'lucide-react'
+  RiAddLine as Plus, RiBookFill as Book, RiStackFill as Layers, RiArchiveFill as Archive, RiSearchLine as Search, RiFilterFill as Filter, 
+  RiMore2Fill as MoreVertical, RiBookOpenFill as BookOpen, RiTimeFill as Clock, RiFocusFill as Target, RiArrowRightSLine as ChevronRight, 
+  RiHashtag as Hash, RiStarFill as Star, RiBriefcaseFill as Briefcase, RiMagicFill as Sparkles, RiDeleteBin6Fill as Trash2, 
+  RiSettings4Fill as Settings, RiInformationFill as Info, RiGraduationCapFill as GraduationCap, RiFlashlightFill as Zap, RiCheckboxCircleFill as CheckCircle2,
+  RiCloseLine as X, RiLoader4Line as Loader2, RiArrowRightLine as ArrowRight, RiBriefcaseFill as Backpack, RiFolderAddFill as FolderPlus,
+  RiTeamFill as Users, RiCalendarFill as Calendar, RiFileTextFill as FileText, RiTeamFill as Users2, RiUserAddFill as UserPlus,
+  RiUploadFill as Upload
+} from 'react-icons/ri'
 import { motion, AnimatePresence } from 'framer-motion'
+import { MagnifyingGlass, Plus as PlusLight, Sparkle as SparkleLight, UploadSimple, FileText as FileTextLight } from '@phosphor-icons/react'
 import { supabase } from '../../supabaseClient'
 import { courseService } from '../../services/courseService'
 import { getOnboardingCourseSuggestions, getEnhancedCourseSearch } from '../../services/courseSuggestionService'
+import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceStore'
+import { useDeckStore } from '../../store/useDeckStore'
+import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import PremiumModal from '../shared/PremiumModal'
 
 export default function CoursesPage() {
   const { user, isMobile } = useOutletContext()
   const navigate = useNavigate()
+  const { bundle } = useDashboardPrefetch()
   
-  const [activeTab, setActiveTab] = useState('backpack') // 'backpack', 'discover', 'vault'
+  // Universal workspace store
+  const {
+    educationLevel,
+    userRole,
+    workspaces,
+    activeWorkspace,
+    setActiveWorkspace,
+    decks,
+    loadDecks,
+    addContentToWorkspace,
+    activeBackpackTab,
+    setActiveBackpackTab,
+    joinClassroom,
+    createClassroom
+  } = useUniversalWorkspaceStore()
+  
+  // Deck store
+  const { addToDeck } = useDeckStore()
+  const profile = bundle?.profile?.data || bundle?.profile
+  const isSoloLearner = profile?.is_university_user === false || profile?.role === 'solo_learner'
+  const standaloneMaterials = useMemo(() => {
+    const rows = bundle?.materials?.data || []
+    return rows.filter((item) => !item.course_id)
+  }, [bundle])
+  
+  const [activeTab, setActiveTab] = useState(activeBackpackTab || 'workspaces') // 'workspaces' | 'decks' | 'discover'
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [showPremiumModal, setShowPremiumModal] = useState(false)
   const [enrollingId, setEnrollingId] = useState(null)
+  const [classCodeInput, setClassCodeInput] = useState('')
+  
+  // Sync tab state with universal store
+  useEffect(() => {
+    setActiveBackpackTab(activeTab)
+  }, [activeTab, setActiveBackpackTab])
   
   // Discovery State
   const [suggestions, setSuggestions] = useState(null)
@@ -119,6 +157,36 @@ export default function CoursesPage() {
     c.courses?.code?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  if (isSoloLearner) {
+    const filteredMaterials = standaloneMaterials.filter((material) =>
+      (material.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (material.type || '').toLowerCase().includes(searchQuery.toLowerCase())
+    )
+
+    return (
+      <SoloLearnerBackpack
+        isMobile={isMobile}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        materials={filteredMaterials}
+        totalMaterials={standaloneMaterials.length}
+        onUpload={() => navigate('/dashboard/upload')}
+        onOpenMaterial={(material) => navigate(`/dashboard/workstation?materialId=${material.id}`)}
+        onAddToDeck={(material) => {
+          addToDeck({
+            content_id: material.id,
+            content_type: material.type || 'material',
+            name: material.title,
+            metadata: {
+              source_url: material.source_url,
+              processing_status: material.processing_status
+            }
+          })
+        }}
+      />
+    )
+  }
+
   return (
     <div className="backpack-system" style={{ 
       padding: isMobile ? '20px 16px' : '40px', 
@@ -138,43 +206,73 @@ export default function CoursesPage() {
               animate={{ opacity: 1, x: 0 }}
               style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}
             >
-              <div style={{ padding: '6px 12px', background: 'rgba(122, 18, 204, 0.08)', borderRadius: 10, color: '#7a12cc', fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                ACADEMIC INVENTORY
+              <div style={{ padding: '6px 12px', background: 'rgba(122, 18, 204, 0.07)', borderRadius: 10, color: '#7a12cc', fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                UNIVERSAL BACKPACK
               </div>
+              {educationLevel && (
+                <div style={{ padding: '4px 8px', background: '#f0f9ff', borderRadius: 8, color: '#0369a1', fontSize: 10, fontWeight: 700 }}>
+                  {educationLevel}
+                </div>
+              )}
+              {userRole && (
+                <div style={{ padding: '4px 8px', background: '#f0fdf4', borderRadius: 8, color: '#16a34a', fontSize: 10, fontWeight: 700 }}>
+                  {userRole}
+                </div>
+              )}
             </motion.div>
-            <h1 style={{ fontSize: isMobile ? 32 : 48, fontWeight: 900, color: '#111', letterSpacing: '-0.04em', margin: 0, lineHeight: 1 }}>
-              Your <span style={{ color: '#7a12cc' }}>Backpack</span>
+            <h1 style={{ fontSize: isMobile ? 32 : 44, fontWeight: 800, color: '#111', letterSpacing: '-0.035em', margin: 0, lineHeight: 1 }}>
+              My <span style={{ color: '#7a12cc' }}>Backpack</span>
             </h1>
             <p style={{ color: '#64748b', marginTop: 12, fontSize: 16, fontWeight: 500 }}>
-              Manage your courses, track mastery, and discover new learning paths.
+              Organize your workspaces and study sets across all education levels.
             </p>
           </div>
 
           <div style={{ display: 'flex', gap: 12 }}>
-            <button 
-              onClick={() => setActiveTab(activeTab === 'discover' ? 'backpack' : 'discover')}
-              style={{ 
-                padding: '12px 24px', borderRadius: 16, 
-                background: activeTab === 'discover' ? '#111' : 'white', 
-                color: activeTab === 'discover' ? 'white' : '#111',
-                fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10,
-                border: '1.5px solid #eee', transition: 'all 0.2s',
-                boxShadow: activeTab === 'discover' ? '0 10px 20px rgba(0,0,0,0.1)' : 'none'
-              }}
-            >
-              {activeTab === 'discover' ? <BackpackIcon size={18} /> : <Search size={18} />}
-              {activeTab === 'discover' ? 'View Backpack' : 'Discover'}
-            </button>
+            {/* ── UNIVERSAL SEGMENTED CONTROL ── */}
+            <div style={{ display: 'flex', background: '#f8fafc', borderRadius: 16, padding: 4, gap: 4, border: '1px solid #eef2f7' }}>
+              {['workspaces', 'decks', 'discover'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  style={{
+                    flex: 1,
+                    padding: '10px 16px',
+                    borderRadius: 12,
+                    border: 'none',
+                    background: activeTab === tab ? 'white' : 'transparent',
+                    color: activeTab === tab ? '#111' : '#64748b',
+                    fontSize: 13,
+                    fontWeight: activeTab === tab ? 600 : 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: activeTab === tab ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6
+                  }}
+                >
+                  {tab === 'workspaces' && <Layers size={14} />}
+                  {tab === 'decks' && <FolderPlus size={14} />}
+                  {tab === 'discover' && <Search size={14} />}
+                  {tab === 'workspaces' && 'Workspaces'}
+                  {tab === 'decks' && 'Decks'}
+                  {tab === 'discover' && 'Discover'}
+                </button>
+              ))}
+            </div>
+
             <button 
               onClick={() => setShowPremiumModal(true)}
               style={{ 
-                padding: '12px 24px', borderRadius: 16, background: '#7a12cc', color: 'white',
-                fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10,
-                boxShadow: '0 8px 20px -6px rgba(122, 18, 204, 0.4)', transition: 'all 0.2s',
+                padding: '12px 22px', borderRadius: 16, background: '#7a12cc', color: 'white',
+                fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10,
+                boxShadow: '0 8px 20px -10px rgba(122, 18, 204, 0.35)', transition: 'all 0.2s',
                 border: 'none'
               }}
             >
-              <Plus size={18} strokeWidth={3} /> Add New
+              <PlusLight size={18} weight="light" /> Add New
             </button>
           </div>
         </div>
@@ -190,7 +288,7 @@ export default function CoursesPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               style={{ 
-                fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em',
+                fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
                 color: activeTab === tab.id ? '#7a12cc' : '#94a3b8',
                 background: 'none', border: 'none', padding: '16px 4px', cursor: 'pointer',
                 position: 'relative', transition: 'all 0.2s',
@@ -220,62 +318,221 @@ export default function CoursesPage() {
       </header>
 
       <AnimatePresence mode="wait">
-        {activeTab === 'backpack' && (
+        {/* WORKSPACES TAB */}
+        {activeTab === 'workspaces' && (
           <motion.div 
-            key="backpack" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+            key="workspaces" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
             style={{ display: 'flex', flexDirection: 'column', gap: 24 }}
           >
-            {/* Search Bar for Backpack */}
-            {courses.length > 0 && (
-              <div style={{ position: 'relative', maxWidth: 400 }}>
-                <Search size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input 
-                  type="text" placeholder="Search your backpack..." 
-                  value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{ 
-                    padding: '14px 16px 14px 44px', borderRadius: 16, border: '1.5px solid #eee',
-                    fontSize: 14, fontWeight: 500, width: '100%', background: 'white',
-                    outline: 'none', transition: 'all 0.2s'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#7a12cc'}
-                  onBlur={(e) => e.target.style.borderColor = '#eee'}
-                />
-              </div>
-            )}
-
-            {loading ? (
-              <div style={{ padding: 100, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-                <Loader2 size={40} className="animate-spin" color="#7a12cc" />
-                <p style={{ color: '#64748b', fontWeight: 600 }}>Scanning inventory...</p>
-              </div>
-            ) : filteredBackpack.length === 0 ? (
-              <div style={{ padding: '80px 40px', textAlign: 'center', background: '#f8fafc', borderRadius: 32, border: '2px dashed #e2e8f0' }}>
-                <div style={{ width: 80, height: 80, background: 'white', borderRadius: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
-                  <Archive size={40} color="#cbd5e1" />
-                </div>
-                <h3 style={{ fontSize: 20, fontWeight: 900, color: '#111', marginBottom: 8 }}>Your backpack is empty</h3>
-                <p style={{ fontSize: 15, color: '#64748b', maxWidth: 360, margin: '0 auto 24px' }}>
-                  You haven't added any courses yet. Start your academic journey by discovering new courses.
-                </p>
+            {/* Quick Actions */}
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              {userRole !== 'teacher' && (
                 <button 
-                  onClick={() => setActiveTab('discover')}
-                  style={{ padding: '14px 32px', borderRadius: 16, background: '#111', color: 'white', fontWeight: 800, fontSize: 14 }}
+                  onClick={() => {
+                    const input = document.createElement('input')
+                    input.type = 'file'
+                    input.multiple = true
+                    input.onchange = (e) => {
+                      // Handle file upload to personal workspace
+                      console.log('Upload to personal workspace')
+                    }
+                    input.click()
+                  }}
+                  style={{ 
+                    padding: '10px 20px', borderRadius: 12, background: 'white', 
+                    border: '1.5px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 8,
+                    fontSize: 14, fontWeight: 600, color: '#374151', cursor: 'pointer'
+                  }}
                 >
-                  Go to Discovery
+                  <Upload size={16} /> Upload to Personal Vault
                 </button>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
-                {filteredBackpack.map((uc) => (
-                  <CourseCard 
-                    key={uc.id} 
-                    uc={uc} 
-                    onNavigate={() => navigate(`/dashboard/courses/${uc.course_id}`)}
-                    onRemove={() => handleUnenroll(uc.course_id)}
-                  />
-                ))}
-              </div>
-            )}
+              )}
+              
+              {userRole === 'teacher' && (
+                <button 
+                  onClick={() => setShowPremiumModal(true)}
+                  style={{ 
+                    padding: '10px 20px', borderRadius: 12, background: '#dcfce7', 
+                    border: '1.5px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: 8,
+                    fontSize: 14, fontWeight: 600, color: '#166534', cursor: 'pointer'
+                  }}
+                >
+                  <Users size={16} /> Upload for Students
+                </button>
+              )}
+              
+              <button 
+                onClick={() => {
+                  const code = prompt('Enter class code:')
+                  if (code) {
+                    joinClassroom(code)
+                  }
+                }}
+                style={{ 
+                  padding: '10px 20px', borderRadius: 12, background: '#fef3c7', 
+                  border: '1.5px solid #fde68a', display: 'flex', alignItems: 'center', gap: 8,
+                  fontSize: 14, fontWeight: 600, color: '#92400e', cursor: 'pointer'
+                }}
+              >
+                <UserPlus size={16} /> Join Class
+              </button>
+            </div>
+
+            {/* Adaptive Workspace Structure */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+              {workspaces.map((workspace) => (
+                <motion.div
+                  key={workspace.id}
+                  whileHover={{ y: -4 }}
+                  onClick={() => setActiveWorkspace(workspace)}
+                  style={{
+                    background: 'white',
+                    borderRadius: 20,
+                    padding: 24,
+                    border: '2px solid',
+                    borderColor: activeWorkspace?.id === workspace.id ? '#7a12cc' : '#f1f5f9',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                    <div style={{
+                      width: 48, height: 48, borderRadius: 12,
+                      background: workspace.id === 'personal' ? '#f0f9ff' : '#fef3c7',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 24
+                    }}>
+                      {workspace.id === 'personal' ? '🎒' : '📚'}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111', margin: 0 }}>
+                        {workspace.title}
+                      </h3>
+                      <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0' }}>
+                        {workspace.type} • {workspace.educationLevel}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Adaptive Structure Display */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {workspace.structure?.slice(0, 4).map((item, index) => (
+                      <div key={index} style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '8px 12px', background: '#f8fafc', borderRadius: 8
+                      }}>
+                        <span style={{ fontSize: 16 }}>{item.icon}</span>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>
+                          {item.name}
+                        </span>
+                      </div>
+                    ))}
+                    {workspace.structure?.length > 4 && (
+                      <p style={{ fontSize: 12, color: '#64748b', textAlign: 'center', paddingTop: 4 }}>
+                        +{workspace.structure.length - 4} more
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Add to Deck Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      // Add workspace content to deck
+                      addToDeck({
+                        content_id: `workspace-${workspace.id}`,
+                        content_type: 'workspace',
+                        metadata: {
+                          title: workspace.title,
+                          type: workspace.type,
+                          education_level: workspace.educationLevel
+                        }
+                      })
+                    }}
+                    style={{
+                      marginTop: 16, width: '100%', padding: '8px 16px',
+                      borderRadius: 8, background: '#7a12cc', color: 'white',
+                      border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer'
+                    }}
+                  >
+                    + Add to Deck
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* DECKS TAB */}
+        {activeTab === 'decks' && (
+          <motion.div 
+            key="decks" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 24 }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111', margin: 0 }}>
+                My Study Sets
+              </h2>
+              <button
+                onClick={() => setShowPremiumModal(true)}
+                style={{
+                  padding: '10px 20px', borderRadius: 12, background: '#7a12cc', color: 'white',
+                  border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer'
+                }}
+              >
+                Create New Deck
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+              {decks.map((deck) => (
+                <motion.div
+                  key={deck.id}
+                  whileHover={{ y: -4 }}
+                  style={{
+                    background: 'white',
+                    borderRadius: 20,
+                    padding: 24,
+                    border: '2px solid #f1f5f9',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                    <div style={{
+                      width: 48, height: 48, borderRadius: 12,
+                      background: deck.deck_type === 'smart_start' ? '#dcfce7' : '#f0f9ff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 24
+                    }}>
+                      {deck.deck_type === 'smart_start' ? '✨' : '📚'}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111', margin: 0 }}>
+                        {deck.title}
+                      </h3>
+                      <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0' }}>
+                        {deck.deck_type === 'smart_start' ? 'Smart Start' : 'Custom Deck'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.5, marginBottom: 16 }}>
+                    {deck.description}
+                  </p>
+                  
+                  <button
+                    style={{
+                      width: '100%', padding: '10px 16px',
+                      borderRadius: 8, background: '#f0f9ff', color: '#0369a1',
+                      border: '1px solid #bae6fd', fontSize: 14, fontWeight: 600, cursor: 'pointer'
+                    }}
+                  >
+                    Open Deck
+                  </button>
+                </motion.div>
+              ))}
+            </div>
           </motion.div>
         )}
 
@@ -404,6 +661,196 @@ export default function CoursesPage() {
       </AnimatePresence>
 
       <PremiumModal isOpen={showPremiumModal} onClose={() => setShowPremiumModal(false)} />
+    </div>
+  )
+}
+
+function SoloLearnerBackpack({
+  isMobile,
+  searchQuery,
+  setSearchQuery,
+  materials,
+  totalMaterials,
+  onUpload,
+  onOpenMaterial,
+  onAddToDeck
+}) {
+  return (
+    <div
+      className="backpack-system"
+      style={{
+        padding: isMobile ? '20px 16px' : '40px',
+        maxWidth: 1400,
+        margin: '0 auto',
+        minHeight: '100vh',
+        fontFamily: "'Outfit', sans-serif",
+        color: '#111'
+      }}
+    >
+      <header style={{ marginBottom: 40 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: '#F5F3FF', color: '#6D28D9', borderRadius: 12, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>
+              Solo Backpack
+            </div>
+            <h1 style={{ fontSize: isMobile ? 30 : 42, fontWeight: 800, color: '#111', letterSpacing: '-0.035em', margin: 0 }}>
+              Your Study Materials
+            </h1>
+            <p style={{ color: '#64748b', marginTop: 12, fontSize: 16, fontWeight: 500, maxWidth: 620 }}>
+              Every document, audio file, and study link you upload lives here and feeds your personal dashboard flow.
+            </p>
+          </div>
+
+          <button
+            onClick={onUpload}
+            style={{
+              padding: '12px 22px',
+              borderRadius: 16,
+              background: '#111',
+              color: 'white',
+              fontSize: 14,
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            <UploadSimple size={18} weight="light" />
+            Upload Document
+          </button>
+        </div>
+
+        <div style={{ marginTop: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ padding: '6px 10px', background: '#F8FAFC', borderRadius: 10, color: '#475569', fontSize: 12, fontWeight: 700 }}>
+              {totalMaterials} {totalMaterials === 1 ? 'material' : 'materials'}
+            </div>
+          </div>
+
+          <div style={{ position: 'relative', minWidth: isMobile ? '100%' : 320 }}>
+            <MagnifyingGlass size={18} weight="light" style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search your uploads..."
+              style={{
+                width: '100%',
+                padding: '14px 16px 14px 46px',
+                borderRadius: 14,
+                border: '1.5px solid #E2E8F0',
+                background: 'white',
+                fontSize: 14,
+                fontWeight: 600,
+                outline: 'none'
+              }}
+            />
+          </div>
+        </div>
+      </header>
+
+      {materials.length === 0 ? (
+        <div style={{ background: 'white', borderRadius: 28, border: '1.5px solid #EEF2F7', padding: isMobile ? 32 : 56, textAlign: 'center' }}>
+          <div style={{ width: 76, height: 76, borderRadius: 24, background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: '#6D28D9' }}>
+            <FileTextLight size={34} weight="light" />
+          </div>
+          <h2 style={{ fontSize: 26, fontWeight: 700, color: '#111', marginBottom: 10 }}>Upload your first study material</h2>
+          <p style={{ fontSize: 15, color: '#64748b', fontWeight: 500, maxWidth: 460, margin: '0 auto 28px', lineHeight: 1.7 }}>
+            Your dashboard is ready. Bring in a document, audio, or link and Luter will turn it into a personal study workspace.
+          </p>
+          <button
+            onClick={onUpload}
+            style={{
+              padding: '14px 22px',
+              borderRadius: 16,
+              background: '#A855F7',
+              color: 'white',
+              border: 'none',
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            Upload a document
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(290px, 1fr))', gap: 20 }}>
+          {materials.map((material, index) => (
+            <motion.div
+              key={material.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.04 }}
+              whileHover={{ y: -4 }}
+              style={{
+                background: 'white',
+                borderRadius: 22,
+                border: '1.5px solid #EEF2F7',
+                padding: 22,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 18,
+                boxShadow: '0 8px 24px rgba(15, 23, 42, 0.04)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ width: 52, height: 52, borderRadius: 16, background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#111' }}>
+                  {renderMaterialIcon(material.type)}
+                </div>
+                <div style={{ padding: '6px 10px', borderRadius: 999, background: material.processing_status === 'pending' ? '#FEF3C7' : '#ECFDF5', color: material.processing_status === 'pending' ? '#B45309' : '#047857', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  {material.processing_status === 'pending' ? 'Processing' : 'Ready'}
+                </div>
+              </div>
+
+              <div>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: 18, fontWeight: 700, color: '#111', lineHeight: 1.35 }}>
+                  {material.title || 'Untitled material'}
+                </h3>
+                <p style={{ margin: 0, fontSize: 13, color: '#64748b', fontWeight: 600, textTransform: 'capitalize' }}>
+                  {formatMaterialType(material.type)} {material.created_at ? `• ${new Date(material.created_at).toLocaleDateString()}` : ''}
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 'auto' }}>
+                <button
+                  onClick={() => onOpenMaterial(material)}
+                  style={{
+                    flex: 1,
+                    height: 46,
+                    borderRadius: 14,
+                    border: 'none',
+                    background: '#111',
+                    color: 'white',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Open
+                </button>
+                <button
+                  onClick={() => onAddToDeck(material)}
+                  style={{
+                    height: 46,
+                    padding: '0 16px',
+                    borderRadius: 14,
+                    border: '1.5px solid #E2E8F0',
+                    background: 'white',
+                    color: '#111',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Add to deck
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -543,6 +990,26 @@ function DiscoverySection({ title, icon, children }) {
       {children}
     </div>
   )
+}
+
+function renderMaterialIcon(type) {
+  switch (type) {
+    case 'audio':
+      return <BookOpen size={22} />
+    case 'youtube':
+    case 'video':
+      return <SparkleLight size={22} weight="light" />
+    default:
+      return <FileTextLight size={22} weight="light" />
+  }
+}
+
+function formatMaterialType(type) {
+  if (!type) return 'Document'
+  if (type === 'youtube') return 'YouTube lesson'
+  if (type === 'pptx') return 'Presentation'
+  if (type === 'docx') return 'Document'
+  return type
 }
 
 function BackpackIcon({ size }) {

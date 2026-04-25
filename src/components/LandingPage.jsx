@@ -2,18 +2,38 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import LuterLogo from './shared/LuterLogo';
 import MagicRings from './MagicRings';
-import { SharedFooter } from './PageShared';
+import { SharedFooter, SharedFAQ, SharedNavbar, PremiumButton } from './PageShared';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import {
-  Plus, ArrowRight, BookOpen, Zap, FileText, GraduationCap,
-  ChevronRight, Clock, Star, Check, Layers, MessageSquare, Upload, Play,
-  Shield, Globe, Users, TrendingUp, Award,
-  Headphones, Folder, RefreshCw, MessageCircleQuestion
-} from 'lucide-react';
+  Plus,
+  ArrowRight,
+  BookOpen,
+  Lightning,
+  FileText,
+  GraduationCap,
+  Clock,
+  Star,
+  Check,
+  Stack,
+  ChatsCircle as MessageSquare,
+  Upload,
+  Play,
+  Shield,
+  GlobeHemisphereWest as Globe,
+  UsersThree as Users,
+  TrendUp as TrendingUp,
+  Trophy,
+  Headphones,
+  Folder,
+  ArrowsClockwise as RefreshCw,
+  Question as MessageCircleQuestion
+} from '@phosphor-icons/react';
 
 gsap.registerPlugin(ScrollTrigger);
+
+// PremiumButton is now imported from PageShared
 
 // Small helpers
 const AvatarGroup = () => {
@@ -33,7 +53,7 @@ const AvatarGroup = () => {
 const Stars = ({ n = 5 }) => (
   <div style={{ display: 'flex', gap: 2 }}>
     {Array.from({ length: n }).map((_, i) => (
-      <Star key={i} style={{ width: 12, height: 12, fill: '#f59e0b', color: '#f59e0b' }} />
+      <Star key={i} weight="fill" style={{ width: 12, height: 12, color: '#f59e0b' }} />
     ))}
   </div>
 );
@@ -111,21 +131,7 @@ const FloatingImage = ({ src, alt, style, delay, opacity, rotate }) => {
   );
 };
 
-/* ── FAQ item with toggle ── */
-const FAQItem = ({ q, a }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className={`faq-item${open ? ' open' : ''}`}>
-      <div className="faq-question" onClick={() => setOpen(o => !o)}>
-        <h4>{q}</h4>
-        <div className="faq-toggle-icon">
-          <Plus style={{ width: 16, height: 16 }} />
-        </div>
-      </div>
-      <div className="faq-answer">{a}</div>
-    </div>
-  );
-};
+/* ── universities for scrolling strip ── */
 
 /* ── universities for scrolling strip ── */
 const UNIS = [
@@ -139,33 +145,70 @@ const UNIS = [
 
 const plans = [
   {
-    name: 'Basic', trial: 'Basic plan',
-    priceMonthly: 0, priceSemester: 0,
+    name: 'BASIC', 
+    trial: 'BASIC PLAN',
+    priceMonthly: 0, 
+    priceSemester: 0,
     isPopular: false,
-    bg: 'white', color: '#111', border: '#e5e7eb',
-    buttonStyle: { background: 'white', color: '#111', border: '1px solid #e5e7eb' },
-    buttonText: 'Start for Free',
-    features: ['5 uploads per month', 'Smart Notes (Basic)', 'Summary', 'Flashcard generation', 'Community support']
+    bg: 'white', 
+    color: '#111', 
+    border: '#e5e7eb',
+    buttonText: 'START FOR FREE',
+    features: ['5 UPLOADS PER MONTH', 'SMART NOTES (BASIC)', 'SUMMARY', 'FLASHCARD GENERATION', 'COMMUNITY SUPPORT']
   },
   {
-    name: 'University Pro', trial: 'Most popular for students',
-    priceMonthly: 4000, priceSemester: 9000,
+    name: 'UNIVERSITY PRO', 
+    trial: 'MOST POPULAR FOR STUDENTS',
+    priceMonthly: 4000, 
+    priceSemester: 9000,
     isPopular: true,
-    bg: 'linear-gradient(160deg, #6d28d9, #9718fb 60%, #7180FE)', color: 'white', border: 'transparent',
-    buttonStyle: { background: 'white', color: 'var(--primary)', border: 'none' },
-    buttonText: 'Get Started',
-    features: ['Unlimited uploads', 'Advanced Smart Notes', 'Summary + Quizzes', 'Spaced-rep Flashcards', 'Math Expert', 'Live Lecture Recording', 'Priority support']
+    bg: 'linear-gradient(135deg, #4B0082 0%, #A855F7 100%)', 
+    color: 'white', 
+    border: 'transparent',
+    buttonText: 'GET STARTED',
+    features: ['UNLIMITED UPLOADS', 'ADVANCED SMART NOTES', 'SUMMARY + QUIZZES', 'SPACED-REP FLASHCARDS', 'MATH EXPERT', 'LIVE LECTURE RECORDING', 'PRIORITY SUPPORT']
   },
   {
-    name: 'Premium', trial: 'For power users',
-    priceMonthly: 7000, priceSemester: 16000,
+    name: 'PREMIUM', 
+    trial: 'FOR POWER USERS',
+    priceMonthly: 7000, 
+    priceSemester: 16000,
     isPopular: false,
-    bg: 'white', color: '#111', border: '#e5e7eb',
-    buttonStyle: { background: 'linear-gradient(135deg, var(--primary), #7180fe)', color: 'white', border: 'none' },
-    buttonText: 'Get Started',
-    features: ['Everything in University Pro', 'Analyze Images', 'Multi-file Sessions', 'Team collaboration', 'Dedicated support', 'Early feature access']
+    bg: 'white', 
+    color: '#111', 
+    border: '#e5e7eb',
+    buttonText: 'GET STARTED',
+    features: ['EVERYTHING IN UNIVERSITY PRO', 'ANALYZE IMAGES', 'MULTI-FILE SESSIONS', 'TEAM COLLABORATION', 'DEDICATED SUPPORT', 'EARLY FEATURE ACCESS']
   }
 ];
+
+// Global Styles for interactive elements
+const GlobalStyles = () => (
+  <style>{`
+    .doodle-item {
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    }
+    .doodle-item:hover {
+      border-color: #4B0082 !important;
+      border-style: solid !important;
+      transform: translateY(-4px) scale(1.05) !important;
+      box-shadow: 0 10px 20px rgba(75, 0, 130, 0.1) !important;
+    }
+    .floating-image {
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+      border: 1px solid rgba(255,255,255,0.4);
+      background: white;
+    }
+    input {
+      text-transform: uppercase;
+    }
+    input::placeholder {
+      text-transform: none;
+    }
+  `}</style>
+);
 
 // Draggable Doodle Component
 const DraggableDoodle = ({ children, initialX, initialY, delay = 0 }) => {
@@ -222,13 +265,53 @@ const DraggableDoodle = ({ children, initialX, initialY, delay = 0 }) => {
       initial={{ opacity: 0, scale: 0 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5, delay: delay }}
-      whileHover={{ scale: 1.1, rotate: 5 }}
+      whileHover={{ 
+        scale: 1.1, 
+        rotate: 5,
+        filter: 'brightness(1.05)'
+      }}
       onMouseDown={handleMouseDown}
     >
-      {children}
+      <div style={{ transition: 'all 0.3s ease' }}>
+        {children}
+      </div>
     </motion.div>
   );
 };
+
+const InteractiveFeatureCard = ({ children, style = {} }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  
+  return (
+    <article 
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{ 
+        display:'flex', flexDirection:'row', alignItems:'center', justifyContent:'space-between', 
+        background:'white', borderRadius:32, padding:'32px 40px', margin:'16px 0', 
+        gap:40, flexWrap:'wrap',
+        border: '1px solid #F1F5F9',
+        transform: isHovered ? 'translateY(-4px)' : 'translateY(0px)',
+        boxShadow: isHovered ? '0 20px 40px rgba(75, 0, 130, 0.08)' : '0 4px 12px rgba(0,0,0,0.02)',
+        transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        cursor: 'default',
+        position: 'relative',
+        overflow: 'hidden',
+        ...style
+      }}
+    >
+      {children}
+    </article>
+  );
+};
+
+const homeFaqs = [
+  { q: 'Is Luter free for students?', a: 'Yes! Luter has a generous free tier — 5 study sessions per month with AI notes and summaries included. Pro unlocks unlimited sessions, CBT exams, and the 24/7 AI Tutor.' },
+  { q: 'Does it work offline?', a: 'Your generated notes and flashcards are cached on mobile so you can study on the go without internet. AI Tutor and new generations require an active connection.' },
+  { q: 'How accurate is the mock exam feature?', a: 'Our AI is trained on actual university past questions across hundreds of institutions, delivering over 99% topical relevance to your specific curriculum.' },
+  { q: 'What file formats does Luter support?', a: 'Luter processes PDFs, PowerPoint files, Word docs, YouTube links, web article URLs, audio recordings (MP3/M4A), and even photos of handwritten notes.' },
+  { q: 'Is my data private?', a: 'Absolutely. All uploaded content is encrypted in transit and at rest. We never sell your data or use it to train our models without explicit consent.' },
+];
 
 export default function LandingPage() {
   const containerRef = useRef(null);
@@ -298,188 +381,10 @@ export default function LandingPage() {
 
   return (
     <div ref={containerRef} style={{ background: '#fff', minHeight: '100vh' }}>
+      <GlobalStyles />
 
       {/* ═══════════════ NAVBAR ═══════════════ */}
-      <nav className="navbar" style={{ 
-        padding: '0 24px', 
-        background: 'transparent', 
-        paddingTop: 12,
-        fontFamily: 'var(--font-varela)',
-        zIndex: 200,
-        position: 'absolute',
-        top: 0, left: 0, right: 0,
-        height: 80,
-        display: 'flex',
-        alignItems: 'center',
-        border: 'none',
-        boxShadow: 'none',
-        backdropFilter: 'none',
-        WebkitBackdropFilter: 'none'
-      }}>
-        {/* Desktop Navbar - Locked to md+ screens */}
-        <div className="hidden md:flex" style={{ 
-          alignItems: 'center', 
-          justifyContent: 'space-between', 
-          width: '100%',
-          fontFamily: 'var(--font-varela)'
-        }}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <LuterLogo size={36} fontSize={28} />
-          </Link>
-
-          <div style={{ display: 'flex', gap: 32, fontSize: 14, fontWeight: 600, color: '#555' }}>
-            {[['Features','/features'],['How it works','/how-it-works'],['Pricing','/pricing'],['About','/about']].map(([l,h]) => (
-              <Link key={l} to={h} style={{ transition: 'color 0.2s', color: 'inherit', textDecoration: 'none' }}
-                onMouseEnter={e => e.target.style.color='#000'}
-                onMouseLeave={e => e.target.style.color='#555'}>{l}</Link>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <Link to="/signin" style={{ fontSize: 14, fontWeight: 600, color: '#444', textDecoration: 'none' }}>Log in</Link>
-            <Link to="/signup" className="btn-primary" style={{ padding: '10px 24px', fontSize: 14, textDecoration: 'none' }}>
-              Get Started <ArrowRight style={{ width: 15, height: 15 }} />
-            </Link>
-          </div>
-        </div>
-
-        {/* Mobile Navbar - Only on mobile screens */}
-        <div className="flex md:hidden" style={{ 
-          alignItems: 'center', 
-          justifyContent: 'space-between', 
-          width: '100%'
-        }}>
-          <Link to="/" style={{ textDecoration: 'none' }} onClick={() => setMobileOpen(false)}>
-            <LuterLogo size={28} fontSize={22} />
-          </Link>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Link to="/signup" className="btn-primary" style={{ 
-              padding: '8px 18px', 
-              fontSize: 13, 
-              textDecoration: 'none', 
-              fontFamily: 'var(--font-varela)',
-              borderRadius: 10,
-              boxShadow: '0 4px 15px rgba(151, 24, 251, 0.3)',
-              fontWeight: 800
-            }}>
-              Get Started
-            </Link>
-            <button 
-              onClick={() => setMobileOpen(!mobileOpen)}
-              style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: 5, 
-                padding: '8px',
-                zIndex: 300,
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <div style={{ width: 22, height: 2, background: '#111', borderRadius: 2 }} />
-              <div style={{ width: 22, height: 2, background: '#111', borderRadius: 2 }} />
-              <div style={{ width: 22, height: 2, background: '#111', borderRadius: 2 }} />
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(255,255,255,0.98)',
-              backdropFilter: 'blur(15px)',
-              zIndex: 150,
-              display: 'flex',
-              flexDirection: 'column',
-              padding: '110px 24px 40px',
-              fontFamily: 'var(--font-varela)'
-            }}
-          >
-            {/* Top divider line */}
-            <div style={{ position: 'absolute', top: 90, left: 24, right: 24, height: 1, background: 'rgba(0,0,0,0.05)' }} />
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {[
-                { l: 'Features', p: '/features', i: <Layers size={22} /> },
-                { l: 'How it works', p: '/how-it-works', i: <BookOpen size={22} /> },
-                { l: 'Pricing', p: '/pricing', i: <Zap size={22} /> },
-                { l: 'About', p: '/about', i: <Users size={22} /> },
-                { l: 'Sign In', p: '/signin', i: <TrendingUp size={22} /> }
-              ].map((item, idx) => (
-                <motion.div
-                  key={item.l}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 + idx * 0.05 }}
-                >
-                  <Link 
-                    to={item.p} 
-                    onClick={() => setMobileOpen(false)}
-                    style={{ 
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 16,
-                      fontSize: 18, 
-                      fontWeight: 700, 
-                      color: '#111',
-                      textDecoration: 'none',
-                      padding: '16px 20px',
-                      borderRadius: 16,
-                      background: 'rgba(0,0,0,0.02)',
-                      border: '1px solid rgba(0,0,0,0.03)'
-                    }}
-                  >
-                    <div style={{ 
-                      width: 40, height: 40, borderRadius: 12, background: 'white', 
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.05)', color: 'var(--primary)'
-                    }}>
-                      {item.i}
-                    </div>
-                    {item.l}
-                    <ChevronRight size={18} style={{ marginLeft: 'auto', opacity: 0.3 }} />
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              style={{ marginTop: 'auto', padding: '0 4px' }}
-            >
-              <div style={{ 
-                background: 'var(--primary-bg)', 
-                padding: 20, borderRadius: 24, marginBottom: 20,
-                border: '1px solid rgba(151,24,251,0.1)'
-              }}>
-                <h4 style={{ fontSize: 16, fontWeight: 800, color: 'var(--primary)', marginBottom: 4 }}>Level Up Your Grades</h4>
-                <p style={{ fontSize: 13, color: 'var(--primary)', opacity: 0.7, fontWeight: 500 }}>Join 5M+ students mastering their curriculum.</p>
-              </div>
-              <Link 
-                to="/signup" 
-                onClick={() => setMobileOpen(false)}
-                className="btn-primary" 
-                style={{ width: '100%', justifyContent: 'center', padding: '18px', fontSize: 16, borderRadius: 16, fontFamily: 'var(--font-varela)', boxShadow: '0 10px 30px rgba(151,24,251,0.3)' }}
-              >
-                Start Free Today <ArrowRight size={18} style={{ marginLeft: 8 }} />
-              </Link>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <SharedNavbar />
 
       {/* ═══════════════ HERO ═══════════════ */}
       <section style={{ 
@@ -502,8 +407,8 @@ export default function LandingPage() {
           background: 'transparent' 
         }}>
           <MagicRings
-            color="#8b5cf6"
-            colorTwo="#a78bfa"
+            color="#4B0082"
+            colorTwo="#A855F7"
             ringCount={8}
             speed={0.6}
             attenuation={15}
@@ -544,7 +449,7 @@ export default function LandingPage() {
                 width: Math.random() * 4 + 2,
                 height: Math.random() * 4 + 2,
                 borderRadius: '50%',
-                background: `rgba(139, 92, 246, ${Math.random() * 0.1 + 0.05})`,
+                background: `rgba(75, 0, 130, ${Math.random() * 0.1 + 0.05})`,
                 top: `${Math.random() * 100}%`,
                 left: `${Math.random() * 100}%`,
               }}
@@ -581,24 +486,26 @@ export default function LandingPage() {
               alignItems: 'center',
               gap: '8px',
               padding: '8px 16px',
-              backgroundColor: 'rgba(139, 92, 246, 0.08)',
-              border: '1px solid rgba(139, 92, 246, 0.16)',
+              backgroundColor: 'rgba(75, 0, 130, 0.08)',
+              border: '1px solid rgba(75, 0, 130, 0.16)',
               borderRadius: '100px',
               marginBottom: '32px',
-              fontFamily: 'Outfit, sans-serif',
+              fontFamily: 'var(--font-outfit)',
               fontSize: '14px',
-              fontWeight: '500',
-              color: '#8b5cf6'
+              fontWeight: '800',
+              color: '#4B0082',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
             }}
           >
             <div style={{ 
               width: '6px', 
               height: '6px', 
               borderRadius: '50%', 
-              backgroundColor: '#8b5cf6',
+              backgroundColor: '#4B0082',
               animation: 'pulse 2s infinite'
             }} />
-            AI-Powered Reading Assistant
+            AI-Powered Study Assistant
           </motion.div>
 
           {/* Headline */}
@@ -607,20 +514,20 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
             style={{
-              fontFamily: 'Outfit, sans-serif',
-              fontSize: 'clamp(2.5rem, 8vw, 4rem)',
-              fontWeight: '700',
+              fontFamily: 'var(--font-outfit)',
+              fontSize: 'clamp(2.5rem, 8vw, 4.5rem)',
+              fontWeight: '800',
               lineHeight: '1.1',
-              letterSpacing: '-0.02em',
-              color: '#1f2937',
+              letterSpacing: '-0.03em',
+              color: '#111',
               marginBottom: '24px'
             }}
           >
             Read Smarter.
             <br />
             <span style={{ 
-              color: '#8b5cf6',
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
+              color: '#4B0082',
+              background: 'linear-gradient(135deg, #4B0082 0%, #A855F7 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text'
@@ -637,16 +544,16 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.5 }}
             style={{
-              fontFamily: 'Outfit, sans-serif',
+              fontFamily: 'var(--font-varela)',
               fontSize: 'clamp(1rem, 2.5vw, 1.25rem)',
               lineHeight: '1.6',
-              color: '#6b7280',
+              color: '#475569',
               maxWidth: '600px',
               margin: '0 auto 48px',
               fontWeight: '400'
             }}
           >
-            Transform your reading experience with AI-powered tools that help you understand faster and remember longer. The intelligent way to study.
+            Transform your academic journey with AI-powered tools that help you master your curriculum faster and remember longer. The intelligent way to excel.
           </motion.p>
 
           {/* CTA Button */}
@@ -654,19 +561,11 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.7 }}
+            style={{ display: 'flex', justifyContent: 'center' }}
           >
-            <Link
-              to="/signup"
-              className="btn-primary"
-              style={{
-                fontSize: '16px',
-                padding: '14px 28px',
-                fontFamily: 'var(--font-inter)',
-                textDecoration: 'none'
-              }}
-            >
-              Get Started <ArrowRight style={{ width: 15, height: 15 }} />
-            </Link>
+            <PremiumButton to="/signup" style={{ height: '56px', padding: '0 48px', fontSize: '16px' }}>
+              START LEARNING NOW <ArrowRight size={20} weight="bold" />
+            </PremiumButton>
           </motion.div>
         </div>
 
@@ -677,110 +576,128 @@ export default function LandingPage() {
           <div className="hidden md:block">
             {/* Top Left Corner */}
             <DraggableDoodle initialX={50} initialY={50} delay={1.0}>
-              <div style={{
-                width: 60,
-                height: 60,
-                backgroundColor: '#fef3c7',
-                border: '2px dashed #f59e0b',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '24px',
-                pointerEvents: 'auto'
-              }}>
+              <div 
+                className="doodle-item"
+                style={{
+                  width: 60,
+                  height: 60,
+                  backgroundColor: '#fef3c7',
+                  border: '2px dashed #f59e0b',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '24px',
+                  pointerEvents: 'auto'
+                }}
+              >
                 💡
               </div>
             </DraggableDoodle>
 
             {/* Top Right Corner */}
             <DraggableDoodle initialX={window.innerWidth - 150} initialY={80} delay={1.2}>
-              <div style={{
-                width: 80,
-                height: 80,
-                backgroundColor: '#dbeafe',
-                border: '2px solid #3b82f6',
-                borderRadius: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '32px',
-                transform: 'rotate(15deg)',
-                pointerEvents: 'auto'
-              }}>
+              <div 
+                className="doodle-item"
+                style={{
+                  width: 80,
+                  height: 80,
+                  backgroundColor: '#dbeafe',
+                  border: '2px solid #3b82f6',
+                  borderRadius: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '32px',
+                  transform: 'rotate(15deg)',
+                  pointerEvents: 'auto'
+                }}
+              >
                 📚
               </div>
             </DraggableDoodle>
 
             {/* Left Side */}
             <DraggableDoodle initialX={30} initialY={300} delay={1.4}>
-              <div style={{
-                padding: '12px 16px',
-                backgroundColor: '#f3e8ff',
-                border: '2px solid #8b5cf6',
-                borderRadius: '12px',
-                fontFamily: 'Outfit, sans-serif',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#6b21a8',
-                transform: 'rotate(-5deg)',
-                pointerEvents: 'auto'
-              }}>
+              <div 
+                className="doodle-item"
+                style={{
+                  padding: '12px 16px',
+                  backgroundColor: '#f3e8ff',
+                  border: '2px solid #8b5cf6',
+                  borderRadius: '12px',
+                  fontFamily: 'var(--font-outfit)',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#6b21a8',
+                  transform: 'rotate(-5deg)',
+                  pointerEvents: 'auto'
+                }}
+              >
                 Study Smarter! 🎯
               </div>
             </DraggableDoodle>
 
             {/* Right Side */}
             <DraggableDoodle initialX={window.innerWidth - 200} initialY={250} delay={1.6}>
-              <div style={{
-                width: 70,
-                height: 70,
-                backgroundColor: '#dcfce7',
-                border: '3px solid #22c55e',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '28px',
-                pointerEvents: 'auto'
-              }}>
+              <div 
+                className="doodle-item"
+                style={{
+                  width: 70,
+                  height: 70,
+                  backgroundColor: '#dcfce7',
+                  border: '3px solid #22c55e',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '28px',
+                  pointerEvents: 'auto'
+                }}
+              >
                 ✨
               </div>
             </DraggableDoodle>
 
             {/* Bottom Left */}
             <DraggableDoodle initialX={80} initialY={window.innerHeight - 200} delay={1.8}>
-              <div style={{
-                padding: '16px 20px',
-                backgroundColor: '#fff7ed',
-                border: '2px dashed #ea580c',
-                borderRadius: '20px',
-                fontFamily: 'Outfit, sans-serif',
-                fontSize: '16px',
-                fontWeight: '700',
-                color: '#c2410c',
-                transform: 'rotate(8deg)',
-                pointerEvents: 'auto'
-              }}>
+              <div 
+                className="doodle-item"
+                style={{
+                  padding: '16px 20px',
+                  backgroundColor: '#fff7ed',
+                  border: '2px dashed #ea580c',
+                  borderRadius: '20px',
+                  fontFamily: 'var(--font-outfit)',
+                  fontSize: '16px',
+                  fontWeight: '700',
+                  color: '#c2410c',
+                  transform: 'rotate(8deg)',
+                  pointerEvents: 'auto'
+                }}
+              >
                 AI-Powered 🤖
               </div>
             </DraggableDoodle>
 
             {/* Bottom Right */}
             <DraggableDoodle initialX={window.innerWidth - 180} initialY={window.innerHeight - 150} delay={2.0}>
-              <div style={{
-                width: 90,
-                height: 90,
-                backgroundColor: '#fce7f3',
-                border: '2px solid #ec4899',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '36px',
-                transform: 'rotate(-10deg)',
-                pointerEvents: 'auto'
-              }}>
+              <div 
+                className="doodle-item"
+                style={{
+                  width: 90,
+                  height: 90,
+                  backgroundColor: '#fce7f3',
+                  border: '2px solid #ec4899',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '36px',
+                  transform: 'rotate(-10deg)',
+                  pointerEvents: 'auto'
+                }}
+              >
                 🚀
               </div>
             </DraggableDoodle>
@@ -928,44 +845,46 @@ export default function LandingPage() {
         <div className="container-custom">
           {/* Header */}
           <div style={{ textAlign:'center', marginBottom:48 }}>
-            <p className="reveal-child" style={{ fontSize:15, fontWeight:500, color:'#666', fontFamily:'var(--font-inter)', marginBottom:12 }}>
+            <p className="reveal-child" style={{ fontSize:15, fontWeight:600, color:'#6B7280', fontFamily:'var(--font-varela)', marginBottom:12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
               Sound familiar?
             </p>
-            <h2 className="reveal-child" style={{ fontSize:'clamp(1.8rem, 3.5vw, 2.5rem)', maxWidth:640, margin:'0 auto', color:'#333', fontFamily:'var(--font-besley)', fontWeight:600, lineHeight:'130%' }}>
-              Studying feels <span style={{ color:'var(--primary)', fontStyle:'italic' }}>harder than it should</span>
+            <h2 className="reveal-child" style={{ fontSize:'clamp(1.8rem, 3.5vw, 2.5rem)', maxWidth:640, margin:'0 auto', color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'130%', letterSpacing: '-0.02em' }}>
+              Studying feels <span style={{ color:'#4B0082', fontStyle:'italic' }}>harder than it should</span>
             </h2>
           </div>
 
           {/* 4 Cards */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))', gap:20, marginBottom:24 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))', gap:24, marginBottom:32 }}>
             {[
-              { icon:<Headphones style={{ width:40, height:40 }} />, title:'Lost in long lectures', desc:'"I zoned out 20 minutes in… now I\'m completely lost"' },
-              { icon:<Folder style={{ width:40, height:40 }} />, title:'Scattered notes', desc:'"Scattered across Google Docs, Notion, and random papers"' },
-              { icon:<RefreshCw style={{ width:40, height:40 }} />, title:'Read it. Forgot it', desc:'"I read this chapter 3 times and still can\'t remember it"' },
-              { icon:<MessageCircleQuestion style={{ width:40, height:40 }} />, title:'Stuck with no help', desc:'"It\'s midnight, I\'m confused, and there\'s no one to explain this to me"' },
+              { icon:<Headphones style={{ width:40, height:40 }} weight="bold" />, title:'Lost in long lectures', desc:'"I zoned out 20 minutes in… now I\'m completely lost"' },
+              { icon:<Folder style={{ width:40, height:40 }} weight="bold" />, title:'Scattered notes', desc:'"Scattered across Google Docs, Notion, and random papers"' },
+              { icon:<RefreshCw style={{ width:40, height:40 }} weight="bold" />, title:'Read it. Forgot it', desc:'"I read this chapter 3 times and still can\'t remember it"' },
+              { icon:<MessageCircleQuestion style={{ width:40, height:40 }} weight="bold" />, title:'Stuck with no help', desc:'"It\'s midnight, I\'m confused, and there\'s no one to explain this to me"' },
             ].map(({ icon, title, desc }) => (
-              <div key={title} className="reveal-child" style={{ background:'white', borderRadius:16, padding:'32px 24px', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', border:'1px solid #e8e8ec', boxShadow:'0 4px 24px rgba(0,0,0,0.04)' }}>
-                <div style={{ color:'#c4b5f7', marginBottom:20, display:'flex', alignItems:'center', justifyContent:'center', fill:'rgba(196, 181, 247, 0.2)' }}>
+              <InteractiveFeatureCard key={title} style={{ padding:'32px 24px', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
+                <div style={{ color:'#111', marginBottom:20, display:'flex', alignItems:'center', justifyContent:'center' }}>
                   {icon}
                 </div>
-                <h3 style={{ fontSize:16, fontWeight:700, fontFamily:'var(--font-inter)', color:'#333', marginBottom:12, lineHeight:'140%' }}>
+                <h3 style={{ fontSize:17, fontWeight:700, fontFamily:'var(--font-outfit)', color:'#111', marginBottom:12, lineHeight:'140%' }}>
                   {title}
                 </h3>
-                <p style={{ fontSize:14, color:'#888', fontStyle:'italic', lineHeight:'160%', fontFamily:'var(--font-inter)', margin:0 }}>
+                <p style={{ fontSize:15, color:'#64748B', fontStyle:'italic', lineHeight:'160%', fontFamily:'var(--font-outfit)', margin:0, fontWeight:500 }}>
                   {desc}
                 </p>
-              </div>
+              </InteractiveFeatureCard>
             ))}
           </div>
 
           {/* Bottom Banner */}
-          <div className="reveal-child" style={{ background:'white', borderRadius:16, padding:'28px 40px', display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:24, border:'1px solid #e8e8ec', boxShadow:'0 4px 24px rgba(0,0,0,0.04)' }}>
-            <p style={{ fontSize:17, fontWeight:500, color:'#666', maxWidth:540, fontFamily:'var(--font-inter)', lineHeight:'160%', margin:0 }}>
-              <strong style={{ color:'#333', fontWeight:700 }}>There's a better way.</strong> Luter turns this chaos into a structured learning system automatically. Studying feels easier.
-            </p>
-            <button className="btn-primary" style={{ flexShrink:0, padding:'14px 24px', fontSize:14 }}>
-              Start a Free Study Session <ArrowRight style={{ width:16, height:16 }} />
-            </button>
+          <div className="reveal-child">
+            <InteractiveFeatureCard style={{ padding:'28px 40px', display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:24 }}>
+              <p style={{ fontSize:18, fontWeight:500, color:'#475569', maxWidth:540, fontFamily:'var(--font-varela)', lineHeight:'160%', margin:0 }}>
+                <strong style={{ color:'#111', fontWeight:700, fontFamily: 'var(--font-outfit)' }}>There's a better way.</strong> Luter turns this chaos into a structured learning system automatically. Studying feels easier.
+              </p>
+              <PremiumButton style={{ height:'52px', padding:'0 32px' }}>
+                Start a Free Study Session <ArrowRight size={20} weight="bold" style={{ marginLeft: 8 }} />
+              </PremiumButton>
+            </InteractiveFeatureCard>
           </div>
         </div>
       </section>
@@ -975,13 +894,13 @@ export default function LandingPage() {
         <div className="container-full" style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
 
           {/* Section Header */}
-          <p className="reveal-child" style={{ color:'var(--primary)', fontFamily:'var(--font-inter)', fontWeight:500, fontSize:18, lineHeight:'140%' }}>
+          <p className="reveal-child" style={{ color:'#4B0082', fontFamily:'var(--font-outfit)', fontWeight:800, fontSize:18, lineHeight:'140%', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
             Introducing Luter...
           </p>
-          <h2 id="features-heading" className="reveal-child" style={{ fontSize:'clamp(1.8rem, 3.5vw, 2.5rem)', textAlign:'center', maxWidth:586, margin:'24px auto 16px', color:'#333333', fontFamily:'var(--font-besley)', fontWeight:600, lineHeight:'140%' }}>
-            We turn your material into a&nbsp;<span style={{ color:'var(--primary)', fontStyle:'italic' }}>complete study system</span>
+          <h2 id="features-heading" className="reveal-child" style={{ fontSize:'clamp(1.8rem, 3.5vw, 3rem)', textAlign:'center', maxWidth:650, margin:'24px auto 16px', color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'120%', letterSpacing: '-0.02em' }}>
+            We turn your material into a <span style={{ color:'#4B0082', fontStyle:'italic' }}>complete study system</span>
           </h2>
-          <p className="reveal-child" style={{ fontSize:18, color:'#666', fontFamily:'var(--font-inter)', fontWeight:500, lineHeight:'180%', textAlign:'center', maxWidth:580, marginBottom:40 }}>
+          <p className="reveal-child" style={{ fontSize:18, color:'#475569', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', textAlign:'center', maxWidth:580, marginBottom:40 }}>
             Luter takes your material and builds your entire study session — notes, flashcards, quizzes, summary, and tutor included.
           </p>
 
@@ -989,26 +908,26 @@ export default function LandingPage() {
           <ul style={{ width:'100%', listStyle:'none', padding:0, margin:0, display:'flex', flexDirection:'column', alignItems:'center', gap:0 }}>
 
             {/* 1. AI Notes */}
-            <li style={{ width:'100%' }} className="reveal-child">
-              <article style={{ display:'flex', flexDirection:'row', alignItems:'center', justifyContent:'space-between', background:'white', borderRadius:16, padding:'32px 40px', margin:'16px 0', backgroundImage:'linear-gradient(to right, #FFF, #FFF3E3)', gap:40, flexWrap:'wrap' }}>
+            <li style={{ width:'100%', maxWidth: 1000 }} className="reveal-child">
+              <InteractiveFeatureCard style={{ backgroundImage:'linear-gradient(to right, #FFF, #FFF3E3)' }}>
                 <div style={{ flex:'1 1 400px', minWidth:0 }}>
                   <div style={{ display:'flex', flexDirection:'row', alignItems:'center', gap:28, marginBottom:28 }}>
-                    <div style={{ width:88, height:88, background:'linear-gradient(135deg,#ede9fe,#ddd6fe)', borderRadius:20, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                      <BookOpen style={{ width:40, height:40, color:'var(--primary)' }} />
+                    <div style={{ width:88, height:88, background:'linear-gradient(135deg,#F8FAFC,#E2E8F0)', borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)' }}>
+                      <BookOpen style={{ width:40, height:40, color:'#111' }} weight="bold" />
                     </div>
                     <div>
-                      <h3 style={{ color:'#333333', fontFamily:'var(--font-inter)', fontWeight:600, lineHeight:'140%', fontSize:24, marginBottom:6 }}>AI Notes</h3>
-                      <p style={{ color:'#82837C', fontFamily:'var(--font-inter)', fontWeight:500, lineHeight:'180%', fontSize:18 }}>Notes that write themselves</p>
+                      <h3 style={{ color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:28, marginBottom:4, letterSpacing: '-0.01em' }}>AI Notes</h3>
+                      <p style={{ color:'#4B0082', fontFamily:'var(--font-varela)', fontWeight:700, lineHeight:'140%', fontSize:16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Notes that write themselves</p>
                     </div>
                   </div>
-                  <p style={{ fontSize:17, color:'#666', fontFamily:'var(--font-inter)', fontWeight:500, lineHeight:'180%', maxWidth:443 }}>
+                  <p style={{ fontSize:17, color:'#475569', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', maxWidth:443 }}>
                     Get structured notes in seconds — so you can focus on understanding, not typing. Less cognitive overload, more actual learning.
                   </p>
                 </div>
                 {/* Mockup */}
                 <div style={{ width:320, flexShrink:0, background:'white', borderRadius:12, border:'1px solid #e8e8ec', padding:20, boxShadow:'0 4px 24px rgba(0,0,0,0.06)' }}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, paddingBottom:12, borderBottom:'1px solid #f3f4f6' }}>
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--primary)' }}>AI Notes</span>
+                    <span style={{ fontSize:11, fontWeight:800, color:'#4B0082', textTransform: 'uppercase' }}>AI Notes</span>
                     <div style={{ display:'flex', gap:6 }}>
                       {['A','A+','◫'].map(c => <span key={c} style={{ fontSize:11, fontWeight:700, color:'#ccc' }}>{c}</span>)}
                     </div>
@@ -1018,34 +937,34 @@ export default function LandingPage() {
                     { heading:'Historical Context', lines:[90, 75, 55] },
                   ].map(({ heading, lines }) => (
                     <div key={heading} style={{ marginBottom:16 }}>
-                      <div style={{ fontSize:12, fontWeight:700, color:'#333', marginBottom:8 }}>{heading}</div>
+                      <div style={{ fontSize:12, fontWeight:800, color:'#111', marginBottom:8, fontFamily: 'var(--font-outfit)' }}>{heading}</div>
                       {lines.map((w, i) => (
-                        <div key={i} style={{ height:7, background: i===0 ? 'rgba(151,24,251,0.15)' : '#f3f4f6', borderRadius:99, marginBottom:5, width:`${w}%` }} />
+                        <div key={i} style={{ height:7, background: i===0 ? 'rgba(75, 0, 130, 0.15)' : '#f3f4f6', borderRadius:99, marginBottom:5, width:`${w}%` }} />
                       ))}
                       <div style={{ display:'flex', justifyContent:'space-between', marginTop:8 }}>
-                        <span style={{ fontSize:10, color:'var(--primary)', fontWeight:600 }}>✦ Explore more</span>
+                        <span style={{ fontSize:10, color:'#4B0082', fontWeight:700, fontFamily: 'var(--font-varela)' }}>✦ Explore more</span>
                         <span style={{ fontSize:10, color:'#ccc' }}>Page 1</span>
                       </div>
                     </div>
                   ))}
                 </div>
-              </article>
+              </InteractiveFeatureCard>
             </li>
 
             {/* 2. AI Summary */}
-            <li style={{ width:'100%' }} className="reveal-child">
-              <article style={{ display:'flex', flexDirection:'row', alignItems:'center', justifyContent:'space-between', background:'white', borderRadius:16, padding:'32px 40px', margin:'16px 0', backgroundImage:'linear-gradient(to right, #FFF, #E8FFF6)', gap:40, flexWrap:'wrap' }}>
+            <li style={{ width:'100%', maxWidth: 1000 }} className="reveal-child">
+              <InteractiveFeatureCard style={{ backgroundImage:'linear-gradient(to right, #FFF, #E8FFF6)' }}>
                 <div style={{ flex:'1 1 400px', minWidth:0 }}>
                   <div style={{ display:'flex', flexDirection:'row', alignItems:'center', gap:28, marginBottom:28 }}>
-                    <div style={{ width:88, height:88, background:'linear-gradient(135deg,#d1fae5,#a7f3d0)', borderRadius:20, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                      <FileText style={{ width:40, height:40, color:'#059669' }} />
+                    <div style={{ width:88, height:88, background:'linear-gradient(135deg,#D1FAE5,#10B981)', borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow: '0 8px 24px rgba(16, 185, 129, 0.15)' }}>
+                      <FileText style={{ width:40, height:40, color:'white' }} weight="bold" />
                     </div>
                     <div>
-                      <h3 style={{ color:'#333333', fontFamily:'var(--font-inter)', fontWeight:600, lineHeight:'140%', fontSize:24, marginBottom:6 }}>AI Summary</h3>
-                      <p style={{ color:'#82837C', fontFamily:'var(--font-inter)', fontWeight:500, lineHeight:'180%', fontSize:18 }}>Review faster, anytime</p>
+                      <h3 style={{ color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:28, marginBottom:4, letterSpacing: '-0.01em' }}>AI Summary</h3>
+                      <p style={{ color:'#059669', fontFamily:'var(--font-varela)', fontWeight:700, lineHeight:'140%', fontSize:16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Review faster, anytime</p>
                     </div>
                   </div>
-                  <p style={{ fontSize:17, color:'#666', fontFamily:'var(--font-inter)', fontWeight:500, lineHeight:'180%', maxWidth:443 }}>
+                  <p style={{ fontSize:17, color:'#475569', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', maxWidth:443 }}>
                     Turn lengthy lectures, articles, or textbooks into quick, scannable summaries so you understand the topic fast. Perfect before tests or quick revision.
                   </p>
                 </div>
@@ -1064,27 +983,27 @@ export default function LandingPage() {
                   <div style={{ fontSize:11, fontWeight:700, color:'#333', marginBottom:8 }}>⚡ Quick Overview</div>
                   {[100,85,65].map((w,i) => <div key={i} style={{ height:7, background:'#f3f4f6', borderRadius:99, marginBottom:5, width:`${w}%` }} />)}
                 </div>
-              </article>
+              </InteractiveFeatureCard>
             </li>
 
             {/* 3. AI Flashcards */}
-            <li style={{ width:'100%' }} className="reveal-child">
-              <article style={{ display:'flex', flexDirection:'row', alignItems:'center', justifyContent:'space-between', background:'white', borderRadius:16, padding:'32px 40px', margin:'16px 0', backgroundImage:'linear-gradient(to right, #FFF, #FEE)', gap:40, flexWrap:'wrap' }}>
+            <li style={{ width:'100%', maxWidth: 1000 }} className="reveal-child">
+              <InteractiveFeatureCard style={{ backgroundImage:'linear-gradient(to right, #FFF, #FEE)' }}>
                 <div style={{ flex:'1 1 400px', minWidth:0 }}>
                   <div style={{ display:'flex', flexDirection:'row', alignItems:'center', gap:28, marginBottom:28 }}>
-                    <div style={{ width:88, height:88, background:'linear-gradient(135deg,#fee2e2,#fecaca)', borderRadius:20, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                      <Layers style={{ width:40, height:40, color:'#dc2626' }} />
+                    <div style={{ width:88, height:88, background:'linear-gradient(135deg,#FEE2E2,#EF4444)', borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow: '0 8px 24px rgba(239, 68, 68, 0.15)' }}>
+                      <Stack style={{ width:40, height:40, color:'white' }} weight="bold" />
                     </div>
                     <div>
-                      <h3 style={{ color:'#333333', fontFamily:'var(--font-inter)', fontWeight:600, lineHeight:'140%', fontSize:24, marginBottom:6 }}>AI Flashcards</h3>
-                      <p style={{ color:'#82837C', fontFamily:'var(--font-inter)', fontWeight:500, lineHeight:'180%', fontSize:18 }}>Make It Impossible to Forget</p>
+                      <h3 style={{ color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:28, marginBottom:4, letterSpacing: '-0.01em' }}>AI Flashcards</h3>
+                      <p style={{ color:'#DC2626', fontFamily:'var(--font-varela)', fontWeight:700, lineHeight:'140%', fontSize:16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Make It Impossible to Forget</p>
                     </div>
                   </div>
-                  <p style={{ fontSize:17, color:'#666', fontFamily:'var(--font-inter)', fontWeight:500, lineHeight:'180%', maxWidth:443 }}>
+                  <p style={{ fontSize:17, color:'#475569', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', maxWidth:443 }}>
                     Auto-generate flashcards from your material and practice active recall — the science-backed method that makes information stick.
                   </p>
                 </div>
-                {/* Mockup — flashcard flip ui */}
+                {/* Mockup */}
                 <div style={{ width:320, flexShrink:0 }}>
                   <div style={{ background:'white', borderRadius:16, border:'1px solid #fecaca', padding:24, boxShadow:'0 4px 24px rgba(0,0,0,0.06)', marginBottom:10, minHeight:120, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8 }}>
                     <span style={{ fontSize:10, fontWeight:800, color:'#dc2626', letterSpacing:'0.08em', textTransform:'uppercase' }}>Question</span>
@@ -1098,27 +1017,27 @@ export default function LandingPage() {
                     ))}
                   </div>
                 </div>
-              </article>
+              </InteractiveFeatureCard>
             </li>
 
             {/* 4. AI Quizzes */}
-            <li style={{ width:'100%' }} className="reveal-child">
-              <article style={{ display:'flex', flexDirection:'row', alignItems:'center', justifyContent:'space-between', background:'white', borderRadius:16, padding:'32px 40px', margin:'16px 0', backgroundImage:'linear-gradient(to right, #FFF, #ECE7FF)', gap:40, flexWrap:'wrap' }}>
+            <li style={{ width:'100%', maxWidth: 1000 }} className="reveal-child">
+              <InteractiveFeatureCard style={{ backgroundImage:'linear-gradient(to right, #FFF, #ECE7FF)' }}>
                 <div style={{ flex:'1 1 400px', minWidth:0 }}>
                   <div style={{ display:'flex', flexDirection:'row', alignItems:'center', gap:28, marginBottom:28 }}>
-                    <div style={{ width:88, height:88, background:'linear-gradient(135deg,#ede9fe,#ddd6fe)', borderRadius:20, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                      <GraduationCap style={{ width:40, height:40, color:'var(--primary)' }} />
+                    <div style={{ width:88, height:88, background:'linear-gradient(135deg,#F8FAFC,#E2E8F0)', borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)' }}>
+                      <GraduationCap style={{ width:40, height:40, color:'#111' }} weight="bold" />
                     </div>
                     <div>
-                      <h3 style={{ color:'#333333', fontFamily:'var(--font-inter)', fontWeight:600, lineHeight:'140%', fontSize:24, marginBottom:6 }}>AI Quizzes</h3>
-                      <p style={{ color:'#82837C', fontFamily:'var(--font-inter)', fontWeight:500, lineHeight:'180%', fontSize:18 }}>Test yourself before exams do</p>
+                      <h3 style={{ color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:28, marginBottom:4, letterSpacing: '-0.01em' }}>AI Quizzes</h3>
+                      <p style={{ color:'#4B0082', fontFamily:'var(--font-varela)', fontWeight:700, lineHeight:'140%', fontSize:16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Test yourself before exams do</p>
                     </div>
                   </div>
-                  <p style={{ fontSize:17, color:'#666', fontFamily:'var(--font-inter)', fontWeight:500, lineHeight:'180%', maxWidth:443 }}>
+                  <p style={{ fontSize:17, color:'#475569', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', maxWidth:443 }}>
                     Auto-generate quizzes directly from your material. Check your understanding, spot gaps early, and find weak spots before the exam does.
                   </p>
                 </div>
-                {/* Mockup — MCQ card */}
+                {/* Mockup */}
                 <div style={{ width:320, flexShrink:0, background:'white', borderRadius:12, border:'1px solid #e8e8ec', padding:20, boxShadow:'0 4px 24px rgba(0,0,0,0.06)' }}>
                   <div style={{ fontSize:11, fontWeight:800, color:'#888', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:12 }}>Question 3 of 12</div>
                   <p style={{ fontSize:13, fontWeight:600, color:'#333', lineHeight:1.6, marginBottom:14 }}>Which organelle is responsible for producing ATP?</p>
@@ -1128,30 +1047,30 @@ export default function LandingPage() {
                     { letter:'C', text:'Ribosome', correct:false },
                     { letter:'D', text:'Golgi apparatus', correct:false },
                   ].map(({ letter, text, correct }) => (
-                    <div key={letter} style={{ display:'flex', gap:10, alignItems:'center', padding:'8px 12px', borderRadius:8, marginBottom:6, border:`1px solid ${correct ? 'rgba(151,24,251,0.5)' : '#f3f4f6'}`, background: correct ? 'rgba(151,24,251,0.06)' : '#fafafa' }}>
-                      <div style={{ width:22, height:22, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, flexShrink:0, background: correct ? 'var(--primary)' : '#e5e7eb', color: correct ? 'white' : '#aaa' }}>{letter}</div>
-                      <span style={{ fontSize:12, fontWeight: correct ? 700 : 400, color: correct ? 'var(--primary)' : '#666' }}>{text}</span>
-                      {correct && <Check style={{ width:12, height:12, color:'var(--primary)', marginLeft:'auto' }} />}
+                    <div key={letter} style={{ display:'flex', gap:10, alignItems:'center', padding:'8px 12px', borderRadius:8, marginBottom:6, border:`1px solid ${correct ? 'rgba(75, 0, 130, 0.5)' : '#f3f4f6'}`, background: correct ? 'rgba(75, 0, 130, 0.06)' : '#fafafa' }}>
+                      <div style={{ width:22, height:22, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, flexShrink:0, background: correct ? '#4B0082' : '#e5e7eb', color: correct ? 'white' : '#aaa' }}>{letter}</div>
+                      <span style={{ fontSize:12, fontWeight: correct ? 700 : 400, color: correct ? '#4B0082' : '#666' }}>{text}</span>
+                      {correct && <Check style={{ width:12, height:12, color:'#111', marginLeft:'auto' }} weight="bold" />}
                     </div>
                   ))}
                 </div>
-              </article>
+              </InteractiveFeatureCard>
             </li>
 
             {/* 5. AI Tutor */}
-            <li style={{ width:'100%' }} className="reveal-child">
-              <article style={{ display:'flex', flexDirection:'row', alignItems:'center', justifyContent:'space-between', background:'white', borderRadius:16, padding:'32px 40px', margin:'16px 0', backgroundImage:'linear-gradient(to right, #FFF, #E4FAFF)', gap:40, flexWrap:'wrap' }}>
+            <li style={{ width:'100%', maxWidth: 1000 }} className="reveal-child">
+              <InteractiveFeatureCard style={{ backgroundImage:'linear-gradient(to right, #FFF, #E4FAFF)' }}>
                 <div style={{ flex:'1 1 400px', minWidth:0 }}>
                   <div style={{ display:'flex', flexDirection:'row', alignItems:'center', gap:28, marginBottom:28 }}>
-                    <div style={{ width:88, height:88, background:'linear-gradient(135deg,#e0f2fe,#bae6fd)', borderRadius:20, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                      <MessageSquare style={{ width:40, height:40, color:'#0284c7' }} />
+                    <div style={{ width:88, height:88, background:'linear-gradient(135deg,#E0F2FE,#0284C7)', borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow: '0 8px 24px rgba(2, 132, 199, 0.15)' }}>
+                      <MessageSquare style={{ width:40, height:40, color:'white' }} weight="bold" />
                     </div>
                     <div>
-                      <h3 style={{ color:'#333333', fontFamily:'var(--font-inter)', fontWeight:600, lineHeight:'140%', fontSize:24, marginBottom:6 }}>AI Tutor</h3>
-                      <p style={{ color:'#82837C', fontFamily:'var(--font-inter)', fontWeight:500, lineHeight:'180%', fontSize:18 }}>Ask questions. Get clarity 24/7</p>
+                      <h3 style={{ color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:28, marginBottom:4, letterSpacing: '-0.01em' }}>AI Tutor</h3>
+                      <p style={{ color:'#0284C7', fontFamily:'var(--font-varela)', fontWeight:700, lineHeight:'140%', fontSize:16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ask questions. Get clarity 24/7</p>
                     </div>
                   </div>
-                  <p style={{ fontSize:17, color:'#666', fontFamily:'var(--font-inter)', fontWeight:500, lineHeight:'180%', maxWidth:443 }}>
+                  <p style={{ fontSize:17, color:'#475569', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', maxWidth:443 }}>
                     Chat with the AI Tutor, available 24/7, to explain concepts, clear confusion, and help you learn at your own pace. No more waiting for office hours.
                   </p>
                 </div>
@@ -1165,20 +1084,9 @@ export default function LandingPage() {
                       <div style={{ fontWeight:700, color:'#0284c7', marginBottom:6, fontSize:11 }}>⚡ LUTER AI</div>
                       <p style={{ lineHeight:1.7, fontWeight:400 }}>Osmosis is the movement of water molecules through a membrane from low to high concentration — like water trying to "balance itself out" across a barrier.</p>
                     </div>
-                    <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-                      {['Give an example', 'Quiz me on this', 'Explain deeper'].map(chip => (
-                        <button key={chip} style={{ fontSize:10, fontWeight:600, background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:99, padding:'4px 10px', cursor:'pointer', color:'#0284c7' }}>{chip}</button>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ marginTop:12, position:'relative' }}>
-                    <input placeholder="Ask anything..." style={{ width:'100%', background:'#f8fafc', fontSize:11, padding:'9px 36px 9px 12px', borderRadius:8, border:'1px solid #e2e8f0', outline:'none', fontFamily:'var(--font-inter)' }} />
-                    <div style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', width:20, height:20, background:'#0284c7', borderRadius:5, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                      <ArrowRight style={{ width:10, height:10, color:'white' }} />
-                    </div>
                   </div>
                 </div>
-              </article>
+              </InteractiveFeatureCard>
             </li>
 
           </ul>
@@ -1190,10 +1098,10 @@ export default function LandingPage() {
         <div className="container-full" style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
 
           {/* Header */}
-          <h2 id="supported-formats-heading" className="reveal-child" style={{ fontSize:'clamp(1.8rem, 3.5vw, 2.5rem)', textAlign:'center', maxWidth:586, margin:'0 auto 16px', color:'#333333', fontFamily:'var(--font-besley)', fontWeight:600, lineHeight:'140%' }}>
-            Upload anything.&nbsp;<span style={{ color:'var(--primary)', fontStyle:'italic' }}>Learn everything</span>
+          <h2 id="supported-formats-heading" className="reveal-child" style={{ fontSize:'clamp(1.8rem, 3.5vw, 3rem)', textAlign:'center', maxWidth:650, margin:'0 auto 16px', color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'120%', letterSpacing: '-0.02em' }}>
+            Upload anything. <span style={{ color:'#4B0082', fontStyle:'italic' }}>Learn everything</span>
           </h2>
-          <p className="reveal-child" style={{ fontSize:18, color:'#666', fontFamily:'var(--font-inter)', fontWeight:500, lineHeight:'180%', textAlign:'center', maxWidth:640, marginBottom:56 }}>
+          <p className="reveal-child" style={{ fontSize:18, color:'#475569', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', textAlign:'center', maxWidth:640, marginBottom:56 }}>
             Record live lectures or upload any file. Luter instantly turns them into notes, summaries, flashcards, quizzes, and a 24/7 AI tutor.
           </p>
 
@@ -1237,18 +1145,18 @@ export default function LandingPage() {
             {/* Center card */}
             <article style={{ display:'flex', flexDirection:'column', alignItems:'center', background:'white', borderRadius:20, padding:'32px 24px', border:'1px solid #e8e8ec', maxWidth:240, width:'100%', boxShadow:'0 8px 32px rgba(0,0,0,0.08)' }}>
               {/* Logo icon */}
-              <div style={{ width:80, height:80, background:'linear-gradient(135deg,#ede9fe,#c4b5f7)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20, boxShadow:'0 4px 20px rgba(151,24,251,0.2)' }}>
-                <BookOpen style={{ width:38, height:38, color:'var(--primary)' }} />
+              <div style={{ width:80, height:80, background:'linear-gradient(135deg,#F8FAFC,#E2E8F0)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20, boxShadow:'0 8px 24px rgba(15,23,42,0.08)' }}>
+                <BookOpen style={{ width:38, height:38, color:'#111' }} weight="bold" />
               </div>
-              <h4 style={{ color:'#333', textAlign:'center', fontFamily:'var(--font-inter)', fontWeight:700, lineHeight:'140%', fontSize:17, padding:'0 8px', marginBottom:10 }}>
+              <h4 style={{ color:'#111', textAlign:'center', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:18, padding:'0 8px', marginBottom:10 }}>
                 Any file. Any format. Any subject.
               </h4>
-              <p style={{ color:'#888', textAlign:'center', fontFamily:'var(--font-inter)', fontWeight:500, lineHeight:'180%', fontSize:13, padding:'0 8px', marginBottom:20 }}>
+              <p style={{ color:'#475569', textAlign:'center', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', fontSize:14, padding:'0 8px', marginBottom:20 }}>
                 PDFs, slides, YouTube videos, audio, web links, and more
               </p>
-              <button className="btn-primary" style={{ width:'100%', justifyContent:'center', padding:'12px 16px', fontSize:13 }}>
-                Start a Free Study Session <ArrowRight style={{ width:15, height:15 }} />
-              </button>
+              <PremiumButton style={{ width: '100%', height: '48px', fontSize: '13px' }}>
+                Start Now <ArrowRight size={16} weight="bold" style={{ marginLeft: 6 }} />
+              </PremiumButton>
             </article>
 
             {/* Right icon grid */}
@@ -1295,27 +1203,27 @@ export default function LandingPage() {
       {/* ═══════════════ COMPARISON ═══════════════ */}
       <section style={{ padding: '80px 0', background: '#fafafa' }}>
         <div className="container-custom">
-          <h2 className="reveal-child" style={{ textAlign:'center', fontSize:'clamp(1.8rem,3.5vw,2.6rem)', marginBottom:48 }}>
+          <h2 className="reveal-child" style={{ textAlign:'center', fontSize:'clamp(1.8rem,3.5vw,3rem)', marginBottom:48, fontFamily: 'var(--font-outfit)', fontWeight: 800, color: '#111', letterSpacing: '-0.02em' }}>
             The smarter way to study.
           </h2>
           <div className="reveal-child" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', border:'1px solid var(--border)', borderRadius:28, overflow:'hidden', boxShadow:'var(--card-shadow)' }}>
             {/* Old way */}
             <div style={{ padding:'48px 40px', background:'white' }}>
-              <h4 style={{ fontSize:12, fontWeight:800, letterSpacing:'0.1em', textTransform:'uppercase', color:'#ddd', marginBottom:32 }}>The Old Way</h4>
+              <h4 style={{ fontSize:13, fontWeight:800, letterSpacing:'0.1em', textTransform:'uppercase', color:'#94A3B8', marginBottom:32, fontFamily: 'var(--font-outfit)' }}>The Old Way</h4>
               {['Scanning 50 slides one by one','Zero practice questions','Notes scattered everywhere','Zoning out during lectures','Cramming the night before'].map((item) => (
-                <div key={item} className="comparison-item-old">
+                <div key={item} className="comparison-item-old" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, color: '#64748B', fontFamily: 'var(--font-varela)', fontWeight: 500 }}>
                   <div style={{ width:18, height:18, borderRadius:'50%', background:'#f3f4f6', border:'1px solid #e5e7eb', flexShrink:0 }} />
                   {item}
                 </div>
               ))}
             </div>
             {/* Luter way */}
-            <div style={{ padding:'48px 40px', background:'var(--primary)' }}>
-              <h4 style={{ fontSize:12, fontWeight:800, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:32 }}>The Luter Way</h4>
+            <div style={{ padding:'48px 40px', background:'#4B0082' }}>
+              <h4 style={{ fontSize:13, fontWeight:800, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:32, fontFamily: 'var(--font-outfit)' }}>The Luter Way</h4>
               {['Instant AI-powered summaries','Auto-generated CBT exams','One unified study workspace','Focused, active learning sessions','Science-based retention system'].map((item) => (
-                <div key={item} className="comparison-item-new">
+                <div key={item} className="comparison-item-new" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, color: 'white', fontFamily: 'var(--font-varela)', fontWeight: 600 }}>
                   <div style={{ width:20, height:20, borderRadius:'50%', background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <Check style={{ width:12, height:12, color:'white' }} strokeWidth={3} />
+                    <Check style={{ width:12, height:12, color:'white' }} weight="bold" />
                   </div>
                   {item}
                 </div>
@@ -1331,26 +1239,26 @@ export default function LandingPage() {
         <div style={{ position: 'relative', zIndex: 1, paddingBottom: 60 }}>
           <div className="container-custom" style={{ textAlign: 'center', marginBottom: 60 }}>
             <RevealDiv>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, color: 'var(--primary)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 20, background: 'rgba(151,24,251,0.07)', padding: '6px 16px', borderRadius: 99, border: '1px solid rgba(151,24,251,0.12)' }}>
-                <Zap size={13} /> Upgrade anytime
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800, color: '#4B0082', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 20, background: 'rgba(75, 0, 130, 0.07)', padding: '8px 20px', borderRadius: 99, border: '1px solid rgba(75, 0, 130, 0.12)', fontFamily: 'var(--font-outfit)' }}>
+                <Lightning size={14} weight="bold" color="#111" /> Upgrade anytime
               </div>
             </RevealDiv>
             <RevealDiv delay={0.1}>
-              <h2 style={{ fontSize: 'clamp(2.2rem, 5vw, 4rem)', fontWeight: 800, fontFamily: 'var(--font-besley)', color: '#111', marginBottom: 20, lineHeight: 1.1 }}>
+              <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 4.5rem)', fontWeight: 800, fontFamily: 'var(--font-outfit)', color: '#111', marginBottom: 20, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
                 Simple pricing for{' '}
-                <span style={{ color:'var(--primary)', fontStyle:'italic' }}>students</span>
+                <span style={{ color:'#4B0082', fontStyle:'italic' }}>students</span>
               </h2>
             </RevealDiv>
             <RevealDiv delay={0.15}>
-              <p style={{ fontSize: 18, color: '#555', maxWidth: 560, margin: '0 auto 36px', fontWeight: 500, lineHeight: 1.7 }}>
+              <p style={{ fontSize: 18, color: '#475569', maxWidth: 560, margin: '0 auto 36px', fontWeight: 400, lineHeight: 1.7, fontFamily: 'var(--font-varela)' }}>
                 Start free. Upgrade when you're ready. No tricks, no hidden fees.
               </p>
             </RevealDiv>
             <RevealDiv delay={0.2}>
-              <div style={{ display: 'inline-flex', background: 'white', border: '1px solid #e5e7eb', borderRadius: 99, padding: 4, gap: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <button onClick={() => setIsSemester(false)} style={{ padding: '9px 28px', borderRadius: 99, background: !isSemester ? 'var(--primary)' : 'transparent', color: !isSemester ? 'white' : '#555', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', transition: 'all 0.25s' }}>Monthly</button>
-                <button onClick={() => setIsSemester(true)} style={{ padding: '9px 28px', borderRadius: 99, background: isSemester ? 'var(--primary)' : 'transparent', color: isSemester ? 'white' : '#555', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', transition: 'all 0.25s', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  Per Semester <span style={{ fontSize: 10, background: '#d1fae5', color: '#059669', padding: '2px 8px', borderRadius: 99, fontWeight: 800 }}>Best Value</span>
+              <div style={{ display: 'inline-flex', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 99, padding: 6, gap: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                <button onClick={() => setIsSemester(false)} style={{ padding: '10px 32px', borderRadius: 99, background: !isSemester ? '#4B0082' : 'transparent', color: !isSemester ? 'white' : '#64748B', fontWeight: 800, fontSize: 14, border: 'none', cursor: 'pointer', transition: 'all 0.25s', fontFamily: 'var(--font-outfit)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Monthly</button>
+                <button onClick={() => setIsSemester(true)} style={{ padding: '10px 32px', borderRadius: 99, background: isSemester ? '#4B0082' : 'transparent', color: isSemester ? 'white' : '#64748B', fontWeight: 800, fontSize: 14, border: 'none', cursor: 'pointer', transition: 'all 0.25s', display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-outfit)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Per Semester <span style={{ fontSize: 10, background: '#D1FAE5', color: '#059669', padding: '2px 8px', borderRadius: 99, fontWeight: 800 }}>Best Value</span>
                 </button>
               </div>
             </RevealDiv>
@@ -1372,8 +1280,8 @@ export default function LandingPage() {
                     margin: plan.isPopular ? '-8px 0' : '8px 0'
                   }}>
                     {plan.isPopular && (
-                      <div style={{ display: 'inline-flex', alignSelf: 'center', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.2)', color: 'white', padding: '5px 14px', borderRadius: 99, fontSize: 10, fontWeight: 800, marginBottom: 20, border: '1px solid rgba(255,255,255,0.3)' }}>
-                        <Zap size={11} /> MOST POPULAR
+                      <div style={{ display: 'inline-flex', alignSelf: 'center', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.2)', color: 'white', padding: '6px 16px', borderRadius: 99, fontSize: 11, fontWeight: 800, marginBottom: 20, border: '1px solid rgba(255,255,255,0.3)', fontFamily: 'var(--font-outfit)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <Lightning size={12} weight="bold" color="white" /> MOST POPULAR
                       </div>
                     )}
                     <div style={{ marginBottom: 24 }}>
@@ -1384,14 +1292,22 @@ export default function LandingPage() {
                       <span style={{ fontSize: 48, fontWeight: 900, lineHeight: 1 }}>{plan.priceMonthly === 0 ? '₦0' : `₦${isSemester ? plan.priceSemester.toLocaleString() : plan.priceMonthly.toLocaleString()}`}</span>
                       {plan.priceMonthly > 0 && <span style={{ fontSize: 14, fontWeight: 600, color: plan.isPopular ? 'rgba(255,255,255,0.7)' : '#aaa', marginBottom: 8 }}>/{isSemester ? 'semester' : 'mo'}</span>}
                     </div>
-                    <Link to="/signup" style={{ width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 32, ...plan.buttonStyle, transition: 'all 0.2s', textAlign: 'center', textDecoration: 'none', display: 'inline-block' }}>{plan.buttonText}</Link>
+                    <PremiumButton 
+                      to="/signup" 
+                      style={{ 
+                        width: '100%', marginBottom: 32, ...plan.buttonStyle,
+                        fontSize: 14, fontWeight: 700
+                      }}
+                    >
+                      {plan.buttonText}
+                    </PremiumButton>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
                       {plan.features.map(f => (
                         <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                          <div style={{ width: 16, height: 16, borderRadius: '50%', background: plan.isPopular ? 'rgba(255,255,255,0.25)' : 'rgba(151,24,251,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                            <Check size={9} color={plan.isPopular ? 'white' : 'var(--primary)'} strokeWidth={3.5} />
+                          <div style={{ width: 18, height: 18, borderRadius: '50%', background: plan.isPopular ? 'rgba(255,255,255,0.2)' : 'rgba(75, 0, 130, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                            <Check size={10} color={plan.isPopular ? 'white' : '#111'} weight="bold" />
                           </div>
-                          <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: plan.isPopular ? 'rgba(255,255,255,0.92)' : '#444' }}>{f}</span>
+                          <span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.5, color: plan.isPopular ? 'white' : '#475569', fontFamily: 'var(--font-varela)' }}>{f}</span>
                         </div>
                       ))}
                     </div>
@@ -1403,21 +1319,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══════════════ FAQ ═══════════════ */}
-      <section style={{ padding:'80px 0', background:'#fafafa' }}>
-        <div className="container-custom" style={{ maxWidth:680 }}>
-          <h2 className="reveal-child" style={{ textAlign:'center', fontSize:'clamp(1.8rem,3.5vw,2.4rem)', marginBottom:48 }}>Frequently Asked Questions</h2>
-          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-            {[
-              { q:'Is Luter free for students?', a:'Yes! Luter has a generous free tier — 5 study sessions per month with AI notes and summaries included. Pro unlocks unlimited sessions, CBT exams, and the 24/7 AI Tutor.' },
-              { q:'Does it work offline?', a:'Your generated notes and flashcards are cached on mobile so you can study on the go without internet. AI Tutor and new generations require an active connection.' },
-              { q:'How accurate is the mock exam feature?', a:'Our AI is trained on actual university past questions across hundreds of institutions, delivering over 99% topical relevance to your specific curriculum.' },
-              { q:'What file formats does Luter support?', a:'Luter processes PDFs, PowerPoint files, Word docs, YouTube links, web article URLs, audio recordings (MP3/M4A), and even photos of handwritten notes.' },
-              { q:'Is my data private?', a:'Absolutely. All uploaded content is encrypted in transit and at rest. We never sell your data or use it to train our models without explicit consent.' },
-            ].map(item => <FAQItem key={item.q} {...item} />)}
-          </div>
-        </div>
-      </section>
+      <SharedFAQ items={homeFaqs} />
 
       
       <SharedFooter />
