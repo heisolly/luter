@@ -143,7 +143,46 @@ export default function AdminSyllabusManager() {
   }, [])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setUserId(session?.user?.id ?? null))
+    const checkAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        console.log('Auth session check:', { session, error })
+        
+        if (error) {
+          console.error('Auth session error:', error)
+          setError(`Authentication error: ${error.message}`)
+          return
+        }
+        
+        if (!session?.user?.id) {
+          console.warn('No active user session found')
+          setError('No active session. Please log in again.')
+          return
+        }
+        
+        setUserId(session.user.id)
+        console.log('User authenticated with ID:', session.user.id)
+      } catch (err) {
+        console.error('Unexpected auth error:', err)
+        setError(`Authentication check failed: ${err.message}`)
+      }
+    }
+    
+    checkAuth()
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id)
+      if (event === 'SIGNED_IN' && session?.user?.id) {
+        setUserId(session.user.id)
+        setError(null)
+      } else if (event === 'SIGNED_OUT') {
+        setUserId(null)
+        setError('User signed out. Please log in again.')
+      }
+    })
+    
+    return () => subscription.unsubscribe()
   }, [])
 
   useEffect(() => {
@@ -205,66 +244,113 @@ export default function AdminSyllabusManager() {
   const runPasteParser = async () => {
     setBusy(true)
     setError(null)
-    const list = await parseSyllabusPasteWithGroq(paste)
-    if (!list.length) {
-      setError('Parser returned no courses. Check Groq API key or paste content.')
+    
+    // Check if API key is available
+    if (!import.meta.env.VITE_GROQ_API_KEY) {
+      setError('VITE_GROQ_API_KEY is not set. Please check your environment variables.')
       setBusy(false)
       return
     }
     
-    const duplicates = await checkForDuplicatesInList(list)
+    if (!paste?.trim()) {
+      setError('Please paste some syllabus content to parse.')
+      setBusy(false)
+      return
+    }
     
-    if (duplicates.length > 0) {
-      const duplicateMessages = duplicates.map(d => 
-        `${d.course.code}: "${d.course.title}" (conflicts with: "${d.existing.title}")`
-      ).join('\n')
+    console.log('Running paste parser with content length:', paste.length)
+    console.log('API Key available:', !!import.meta.env.VITE_GROQ_API_KEY)
+    
+    try {
+      const list = await parseSyllabusPasteWithGroq(paste)
+      console.log('Parser returned list:', list)
       
-      const proceed = window.confirm(
-        `Found ${duplicates.length} duplicate course(s):\n\n${duplicateMessages}\n\n` +
-        `Do you want to continue anyway? Duplicates will be added to preview.`
-      )
-      
-      if (!proceed) {
+      if (!list.length) {
+        setError('Parser found no courses in the pasted content. Try pasting a clearer course list with codes and titles.')
         setBusy(false)
         return
       }
+      
+      // Check for duplicates
+      const duplicates = await checkForDuplicatesInList(list)
+      if (duplicates.length > 0) {
+        const duplicateMessages = duplicates.map(d => 
+          `${d.course.code}: "${d.course.title}" (conflicts with: "${d.existing.title}")`
+        ).join('\n')
+        
+        const proceed = window.confirm(
+          `Found ${duplicates.length} duplicate course(s):\n\n${duplicateMessages}\n\n` +
+          `Do you want to continue anyway? Duplicates will be added to preview.`
+        )
+        
+        if (!proceed) {
+          setBusy(false)
+          return
+        }
+      }
+      
+      setPreview(list.map((c) => ({ code: c.code, title: c.title, is_elective: c.is_elective })))
+      setError(null)
+      console.log('Successfully parsed and added', list.length, 'courses to preview')
+    } catch (error) {
+      console.error('Paste parser error:', error)
+      setError(`Parse Error: ${error.message || 'Unknown error occurred'}`)
+    } finally {
+      setBusy(false)
     }
-    
-    setPreview(list.map((c) => ({ code: c.code, title: c.title, is_elective: c.is_elective })))
-    setBusy(false)
   }
 
   const runAiAssist = async () => {
     setBusy(true)
     setError(null)
-    const list = await suggestSyllabusFromAiQuery(aiQuery)
-    if (!list.length) {
-      setError('Assistant returned no rows. Try a clearer query and ensure VITE_GROQ_API_KEY is set.')
+    
+    // Check if API key is available
+    if (!import.meta.env.VITE_GROQ_API_KEY) {
+      setError('VITE_GROQ_API_KEY is not set. Please check your environment variables.')
       setBusy(false)
       return
     }
     
-    const duplicates = await checkForDuplicatesInList(list)
+    console.log('Running AI assist with query:', aiQuery)
+    console.log('API Key available:', !!import.meta.env.VITE_GROQ_API_KEY)
     
-    if (duplicates.length > 0) {
-      const duplicateMessages = duplicates.map(d => 
-        `${d.course.code}: "${d.course.title}" (conflicts with: "${d.existing.title}")`
-      ).join('\n')
+    try {
+      const list = await suggestSyllabusFromAiQuery(aiQuery)
+      console.log('AI returned list:', list)
       
-      const proceed = window.confirm(
-        `Found ${duplicates.length} duplicate course(s):\n\n${duplicateMessages}\n\n` +
-        `Do you want to continue anyway? Duplicates will be added to preview.`
-      )
-      
-      if (!proceed) {
+      if (!list.length) {
+        setError('Assistant returned no courses. Try a more specific query with university, department, level, and semester.')
         setBusy(false)
         return
       }
+      
+      // Check for duplicates
+      const duplicates = checkDuplicates(list)
+      if (duplicates.length > 0) {
+        const duplicateMessages = duplicates.map(d => 
+          `${d.course.code}: "${d.course.title}" (conflicts with: "${d.existing.title}")`
+        ).join('\n')
+        
+        const proceed = window.confirm(
+          `Found ${duplicates.length} duplicate course(s):\n\n${duplicateMessages}\n\n` +
+          `Do you want to continue anyway? Duplicates will be added to preview.`
+        )
+        
+        if (!proceed) {
+          setBusy(false)
+          return
+        }
+      }
+      
+      setPreview(list.map((c) => ({ code: c.code, title: c.title, is_elective: c.is_elective })))
+      setError(null)
+      console.log('Successfully added', list.length, 'courses to preview')
+    } catch (error) {
+      console.error('AI Assist Error:', error)
+      setError(`AI Assistant Error: ${error.message || 'Unknown error occurred'}`)
+    } finally {
+      setBusy(false)
     }
-    
-    setPreview(list.map((c) => ({ code: c.code, title: c.title, is_elective: c.is_elective })))
-    setError(null)
-    setBusy(false)
   }
 
   const savePayload = async (status) => {
@@ -272,14 +358,35 @@ export default function AdminSyllabusManager() {
       setError('Add at least one course.')
       return
     }
+    
+    if (!userId) {
+      // Try to refresh auth first
+      const authRefreshed = await refreshAuth()
+      if (!authRefreshed) {
+        setError('User not authenticated. Please log in again.')
+        return
+      }
+    }
+    
     const university_slug = universitySlugFromName(univ)
     const department_slug = departmentSlugFromLabel(dept)
     const syllabus_id = buildSyllabusId(university_slug, department_slug, level, semester)
+    
+    console.log('Saving syllabus with data:', {
+      university_slug,
+      department_slug,
+      level,
+      semester,
+      syllabus_id,
+      course_count: preview.length
+    })
+    
     const courses = preview.map((p) => ({
       code: p.code,
       name: p.title,
       is_elective: !!p.is_elective,
     }))
+    
     const now = new Date().toISOString()
     const base = {
       syllabus_id,
@@ -297,35 +404,112 @@ export default function AdminSyllabusManager() {
       reviewed_by: status === 'live' ? userId : null,
       reviewed_at: status === 'live' ? now : null,
     }
+    
     setBusy(true)
     setError(null)
-    const { error: e } = await supabase.from('curriculum_offers').upsert(base, {
-      onConflict: 'university_slug,department_slug,level,semester',
-    })
-    if (e) setError(e.message)
-    else {
-      resetWizard()
-      setView('table')
-      await reload()
+    
+    try {
+      console.log('Attempting to upsert syllabus:', base)
+      
+      const { data, error: e } = await supabase
+        .from('curriculum_offers')
+        .upsert(base, {
+          onConflict: 'university_slug,department_slug,level,semester',
+        })
+        .select()
+        
+      console.log('Upsert response:', { data, error: e })
+      
+      if (e) {
+        console.error('Save error:', e)
+        setError(`Save failed: ${e.message}`)
+      } else {
+        console.log('Successfully saved syllabus:', data)
+        resetWizard()
+        setView('table')
+        await reload()
+        // Show success message
+        setError(null)
+        alert(`Syllabus ${status === 'live' ? 'published' : 'saved as draft'} successfully!`)
+      }
+    } catch (error) {
+      console.error('Unexpected save error:', error)
+      setError(`Unexpected error: ${error.message}`)
+    } finally {
+      setBusy(false)
     }
-    setBusy(false)
   }
 
-  const publishRow = async (id) => {
-    if (!userId) return
+  const refreshAuth = async () => {
+  try {
+    console.log('Refreshing authentication session...')
+    const { data: { session }, error } = await supabase.auth.refreshSession()
+    
+    if (error) {
+      console.error('Auth refresh error:', error)
+      setError(`Failed to refresh authentication: ${error.message}`)
+      return false
+    }
+    
+    if (session?.user?.id) {
+      setUserId(session.user.id)
+      setError(null)
+      console.log('Authentication refreshed successfully')
+      return true
+    } else {
+      setError('No valid session after refresh. Please log in again.')
+      return false
+    }
+  } catch (err) {
+    console.error('Unexpected auth refresh error:', err)
+    setError(`Auth refresh failed: ${err.message}`)
+    return false
+  }
+}
+
+const publishRow = async (id) => {
+    if (!userId) {
+      // Try to refresh auth first
+      const authRefreshed = await refreshAuth()
+      if (!authRefreshed) {
+        setError('User not authenticated. Please log in again.')
+        return
+      }
+    }
+    
     setBusy(true)
-    const { error: e } = await supabase
-      .from('curriculum_offers')
-      .update({
-        status: 'live',
-        reviewed_by: userId,
-        reviewed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-    if (e) setError(e.message)
-    else await reload()
-    setBusy(false)
+    setError(null)
+    
+    try {
+      console.log('Publishing syllabus with ID:', id)
+      
+      const { data, error: e } = await supabase
+        .from('curriculum_offers')
+        .update({
+          status: 'live',
+          reviewed_by: userId,
+          reviewed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        
+      console.log('Publish response:', { data, error: e })
+      
+      if (e) {
+        console.error('Publish error:', e)
+        setError(`Publish failed: ${e.message}`)
+      } else {
+        console.log('Successfully published syllabus:', data)
+        await reload()
+        alert('Syllabus published successfully!')
+      }
+    } catch (error) {
+      console.error('Unexpected publish error:', error)
+      setError(`Unexpected error: ${error.message}`)
+    } finally {
+      setBusy(false)
+    }
   }
 
   const deleteRow = async (id, st) => {
@@ -676,11 +860,29 @@ export default function AdminSyllabusManager() {
 
   return (
     <>
-      <h1 className="adm-page-title">Syllabus Manager</h1>
-      <p className="adm-page-desc">
-        Curate <strong>curriculum_offers</strong>: Draft → review → Live. Students only consume{' '}
-        <span className="adm-mono">status = live</span> during onboarding.
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+        <div>
+          <h1 className="adm-page-title">Syllabus Manager</h1>
+          <p className="adm-page-desc">
+            Curate <strong>curriculum_offers</strong>: Draft → review → Live. Students only consume{' '}
+            <span className="adm-mono">status = live</span> during onboarding.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 12, color: userId ? '#059669' : '#dc2626' }}>
+            {userId ? `✓ Authenticated` : '✗ Not Authenticated'}
+          </span>
+          <button 
+            onClick={refreshAuth}
+            disabled={busy}
+            className="adm-btn adm-btn--ghost"
+            style={{ fontSize: 12, padding: '4px 8px' }}
+          >
+            <ArrowsClockwise size={12} />
+            Refresh Auth
+          </button>
+        </div>
+      </div>
 
       {error && (
         <div className="adm-error-banner" style={{ marginBottom: 16 }}>
