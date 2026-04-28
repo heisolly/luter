@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../supabaseClient'
 import { CircleNotch, Plus, ArrowsClockwise } from '@phosphor-icons/react'
-import { useAdminPrefetch } from '../../context/AdminPrefetchContext'
 
 export default function AdminCourses() {
-  const { ready, bundle, refresh } = useAdminPrefetch()
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -21,14 +19,8 @@ export default function AdminCourses() {
   }
 
   useEffect(() => {
-    if (!ready) return
-    if (Array.isArray(bundle?.coursesList) && !bundle.coursesError) {
-      setRows(bundle.coursesList)
-      setLoading(false)
-      return
-    }
     load()
-  }, [ready, bundle])
+  }, [])
 
   const addCourse = async (e) => {
     e.preventDefault()
@@ -90,7 +82,7 @@ export default function AdminCourses() {
           </button>
         </div>
         <div className="adm-table-wrap">
-          {!ready || loading ? (
+          {loading ? (
             <div style={{ padding: 48, display: 'flex', justifyContent: 'center' }}>
               <CircleNotch className="animate-spin" color="#7a12cc" />
             </div>

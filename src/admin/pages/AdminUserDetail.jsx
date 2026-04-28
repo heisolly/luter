@@ -2,12 +2,10 @@ import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { CircleNotch, ArrowLeft, FloppyDisk } from '@phosphor-icons/react'
-import { useAdminPrefetch } from '../../context/AdminPrefetchContext'
 
 export default function AdminUserDetail() {
   const { userId } = useParams()
   const navigate = useNavigate()
-  const { refresh } = useAdminPrefetch()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -74,7 +72,6 @@ export default function AdminUserDetail() {
       .eq('id', userId)
 
     if (e) setError(e.message)
-    else await refresh()
     setSaving(false)
   }
 
@@ -97,7 +94,6 @@ export default function AdminUserDetail() {
     else {
       const { data } = await supabase.from('user_stats').select('*').eq('user_id', userId).maybeSingle()
       if (data) setStats(data)
-      await refresh()
     }
     setSaving(false)
   }

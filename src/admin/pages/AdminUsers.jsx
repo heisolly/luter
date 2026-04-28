@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { MagnifyingGlass, CircleNotch, DownloadSimple } from '@phosphor-icons/react'
-import { useAdminPrefetch } from '../../context/AdminPrefetchContext'
 
 const PAGE = 25
 
@@ -22,8 +21,6 @@ export default function AdminUsers() {
   const [q, setQ] = useState('')
   const [page, setPage] = useState(0)
   const [total, setTotal] = useState(0)
-  
-  const { bundle, ready } = useAdminPrefetch()
 
   const fetchPage = async (pageIndex) => {
     setLoading(true)
@@ -49,15 +46,8 @@ export default function AdminUsers() {
   }
 
   useEffect(() => {
-    if (!ready) return
-    if (page === 0 && Array.isArray(bundle?.usersPage) && !bundle.usersError) {
-      setRows(bundle.usersPage)
-      setTotal(bundle.usersTotal ?? 0)
-      setLoading(false)
-      return
-    }
-    fetchPage(page)
-  }, [page, ready, bundle])
+        fetchPage(page)
+  }, [page])
 
   const filtered = useMemo(() => {
     if (!q.trim()) return rows
@@ -113,7 +103,7 @@ export default function AdminUsers() {
         </div>
 
         <div className="adm-table-wrap">
-          {!ready || loading ? (
+          {loading ? (
             <div style={{ padding: 48, display: 'flex', justifyContent: 'center' }}>
               <CircleNotch className="animate-spin" color="#7a12cc" />
             </div>

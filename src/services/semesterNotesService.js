@@ -50,10 +50,47 @@ export async function uploadAdminMaterial({ file, courseId, weekNumber, title, t
   const ext = file.name.split('.').pop()
   const path = `admin/${courseId}/week-${weekNumber}/${Date.now()}.${ext}`
 
-  // Upload to storage
+  // Determine content type based on file extension
+  const getContentType = (extension) => {
+    const ext = extension.toLowerCase()
+    const mimeTypes = {
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'ppt': 'application/vnd.ms-powerpoint',
+      'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'txt': 'text/plain',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'mp4': 'video/mp4',
+      'mp3': 'audio/mpeg',
+      'zip': 'application/zip',
+      'rar': 'application/x-rar-compressed'
+    }
+    return mimeTypes[ext] || 'application/octet-stream'
+  }
+
+  const contentType = getContentType(ext)
+
+  console.log('Original file type:', file.type)
+  console.log('Detected content type:', contentType)
+  console.log('File extension:', ext)
+
+  // Create a new File object with the correct content type
+  const fileWithCorrectType = new File([file], file.name, { type: contentType })
+  
+  console.log('New file type:', fileWithCorrectType.type)
+
+  // Upload to storage with correct content type
   const { error: storageErr } = await supabase.storage
     .from('materials')
-    .upload(path, file, { upsert: false })
+    .upload(path, fileWithCorrectType, { 
+      upsert: false
+    })
   
   if (storageErr) throw storageErr
 

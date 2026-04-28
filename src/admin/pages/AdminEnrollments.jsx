@@ -2,10 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { CircleNotch, ArrowsClockwise } from '@phosphor-icons/react'
-import { useAdminPrefetch } from '../../context/AdminPrefetchContext'
 
 export default function AdminEnrollments() {
-  const { ready, bundle, refresh } = useAdminPrefetch()
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -50,12 +48,12 @@ export default function AdminEnrollments() {
           <span className="adm-muted" style={{ fontWeight: 600 }}>
             {rows.length} rows
           </span>
-          <button type="button" className="adm-btn adm-btn--ghost" onClick={() => { refresh(); load() }}>
+          <button type="button" className="adm-btn adm-btn--ghost" onClick={() => load()}>
             <ArrowsClockwise size={16} /> Refresh
           </button>
         </div>
         <div className="adm-table-wrap">
-          {!ready || loading ? (
+          {loading ? (
             <div style={{ padding: 48, display: 'flex', justifyContent: 'center' }}>
               <CircleNotch className="animate-spin" color="#7a12cc" />
             </div>

@@ -27,11 +27,7 @@ export default function NotesRequestsAdmin() {
       setLoading(true);
       const { data, error } = await supabase
         .from('notes_requests')
-        .select(`
-          *,
-          user:user_id (email),
-          course:course_id (name, code)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

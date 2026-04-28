@@ -11,54 +11,25 @@ export default function AdminLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [loading, setLoading] = useState(true)
-  const [adminUser, setAdminUser] = useState(null)
-  const [allowed, setAllowed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [username, setUsername] = useState('')
-  const [credential, setCredential] = useState('')
+  const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  const handleLogout = async () => {
-    if (adminUser) {
-      // Log admin logout
-      await supabase.rpc('log_standalone_admin_activity', {
-        admin_user_id: adminUser.admin_id,
-        action_param: 'logout',
-        resource_type_param: 'admin_session',
-        resource_id_param: null,
-        old_values_param: null,
-        new_values_param: null,
-        metadata_param: null,
-        ip_address_param: null,
-        user_agent_param: navigator.userAgent,
-        session_id_param: null
-      })
-    }
-    
+  const handleLogout = () => {
     // Clear session and state
-    sessionStorage.removeItem('standalone_admin_auth')
-    setAdminUser(null)
+    sessionStorage.removeItem('admin_authenticated')
     setIsAuthenticated(false)
-    setAllowed(false)
-    setUsername('')
-    setCredential('')
+    setPassword('')
   }
 
   useEffect(() => {
     // Check if admin is already authenticated in this session
-    const sessionAuth = sessionStorage.getItem('standalone_admin_auth')
-    if (sessionAuth) {
-      try {
-        const authData = JSON.parse(sessionAuth)
-        setAdminUser(authData)
-        setIsAuthenticated(true)
-        setAllowed(true)
-        setLoading(false)
-        return
-      } catch (error) {
-        sessionStorage.removeItem('standalone_admin_auth')
-      }
+    const sessionAuth = sessionStorage.getItem('admin_authenticated')
+    if (sessionAuth === 'true') {
+      setIsAuthenticated(true)
+      setLoading(false)
+      return
     }
     setLoading(false)
   }, [])
@@ -85,55 +56,15 @@ export default function AdminLayout() {
 
   // Admin authentication gate
   if (!isAuthenticated) {
-    const handleLogin = async (e) => {
+    const handleLogin = (e) => {
       e.preventDefault()
       setAuthError(false)
       
-      try {
-        // Verify standalone admin credentials
-        const { data, error } = await supabase.rpc('verify_standalone_admin_credential', {
-          username_param: username,
-          credential_param: credential
-        })
-        
-        if (error) {
-          console.error('Error verifying admin credentials:', error)
-          setAuthError(true)
-          return
-        }
-        
-        if (data && data.length > 0 && data[0].is_valid) {
-          const adminData = data[0]
-          setAdminUser(adminData)
-          setIsAuthenticated(true)
-          setAllowed(true)
-          
-          // Store in session
-          sessionStorage.setItem('standalone_admin_auth', JSON.stringify(adminData))
-          
-          // Update last login time
-          await supabase.from('admin_users').update({
-            last_login: new Date().toISOString()
-          }).eq('id', adminData.admin_id)
-          
-          // Log admin login
-          await supabase.rpc('log_standalone_admin_activity', {
-            admin_user_id: adminData.admin_id,
-            action_param: 'login',
-            resource_type_param: 'admin_session',
-            resource_id_param: null,
-            old_values_param: null,
-            new_values_param: null,
-            metadata_param: null,
-            ip_address_param: null,
-            user_agent_param: navigator.userAgent,
-            session_id_param: null
-          })
-        } else {
-          setAuthError(true)
-        }
-      } catch (error) {
-        console.error('Error during admin authentication:', error)
+      // Simple password check
+      if (password === '242424') {
+        setIsAuthenticated(true)
+        sessionStorage.setItem('admin_authenticated', 'true')
+      } else {
         setAuthError(true)
       }
     }
@@ -147,35 +78,15 @@ export default function AdminLayout() {
             </div>
           </div>
           <h2 style={{ fontSize: 20, fontWeight: 800, textAlign: 'center', marginBottom: 8, color: '#18181b' }}>Admin Access</h2>
-          <p style={{ fontSize: 14, color: '#71717a', textAlign: 'center', marginBottom: 24 }}>Enter your admin credentials to continue</p>
-          
-          <input
-            type="text"
-            autoFocus
-            placeholder="Username"
-            value={username}
-            onChange={(e) => {
-              setUsername(e.target.value)
-              setAuthError(false)
-            }}
-            style={{ 
-              width: '100%', 
-              padding: '12px 16px', 
-              borderRadius: 8, 
-              border: `2px solid ${authError ? '#dc2626' : '#e4e4e7'}`,
-              fontSize: 16,
-              marginBottom: 12,
-              outline: 'none',
-              transition: 'all 0.2s'
-            }}
-          />
+          <p style={{ fontSize: 14, color: '#71717a', textAlign: 'center', marginBottom: 24 }}>Enter admin password to continue</p>
           
           <input
             type="password"
-            placeholder="Credential"
-            value={credential}
+            autoFocus
+            placeholder="Enter password"
+            value={password}
             onChange={(e) => {
-              setCredential(e.target.value)
+              setPassword(e.target.value)
               setAuthError(false)
             }}
             style={{ 
@@ -191,7 +102,7 @@ export default function AdminLayout() {
           />
 
           {authError && (
-            <p style={{ color: '#dc2626', fontSize: 13, textAlign: 'center', marginBottom: 16, fontWeight: 600 }}>Invalid username or credential. Please try again.</p>
+            <p style={{ color: '#dc2626', fontSize: 13, textAlign: 'center', marginBottom: 16, fontWeight: 600 }}>Invalid password. Please try again.</p>
           )}
 
           <button
@@ -248,7 +159,7 @@ export default function AdminLayout() {
 
       <main className="adm-main">
         <div className="adm-main-inner">
-          <Outlet context={{ adminUser, isAuthenticated }} />
+          <Outlet context={{ isAuthenticated }} />
         </div>
       </main>
     </div>

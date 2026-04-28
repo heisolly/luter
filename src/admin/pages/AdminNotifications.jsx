@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { CircleNotch, ArrowsClockwise, PaperPlaneTilt } from '@phosphor-icons/react'
-import { useAdminPrefetch } from '../../context/AdminPrefetchContext'
 
 function formatTs(s) {
   if (!s) return '—'
@@ -14,7 +13,6 @@ function formatTs(s) {
 }
 
 export default function AdminNotifications() {
-  const { ready, bundle, refresh } = useAdminPrefetch()
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -36,14 +34,8 @@ export default function AdminNotifications() {
   }
 
   useEffect(() => {
-    if (!ready) return
-    if (Array.isArray(bundle?.notificationsList) && !bundle.notificationsError) {
-      setRows(bundle.notificationsList)
-      setLoading(false)
-      return
-    }
     load()
-  }, [ready, bundle])
+  }, [])
 
   const send = async (e) => {
     e.preventDefault()
@@ -59,7 +51,6 @@ export default function AdminNotifications() {
     if (err) setError(err.message)
     else {
       setForm((f) => ({ ...f, title: '', body: '' }))
-      await refresh()
       await load()
     }
     setSending(false)
@@ -129,12 +120,12 @@ export default function AdminNotifications() {
           <span className="adm-muted" style={{ fontWeight: 600 }}>
             Recent notifications
           </span>
-          <button type="button" className="adm-btn adm-btn--ghost" onClick={() => { refresh(); load() }}>
+          <button type="button" className="adm-btn adm-btn--ghost" onClick={() => load()}>
             <ArrowsClockwise size={16} /> Refresh
           </button>
         </div>
         <div className="adm-table-wrap">
-          {!ready || loading ? (
+          {loading ? (
             <div style={{ padding: 48, display: 'flex', justifyContent: 'center' }}>
               <CircleNotch className="animate-spin" color="#7a12cc" />
             </div>

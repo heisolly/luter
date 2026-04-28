@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { Bell, ChartLineUp, CircleNotch } from '@phosphor-icons/react'
-import { useAdminPrefetch } from '../../context/AdminPrefetchContext'
 
 function formatNum(n) {
   if (n == null) return '—'
@@ -10,7 +9,6 @@ function formatNum(n) {
 }
 
 export default function AdminOverview() {
-  const { ready, bundle } = useAdminPrefetch()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [stats, setStats] = useState({
@@ -23,21 +21,6 @@ export default function AdminOverview() {
   })
 
   useEffect(() => {
-    if (!ready) return
-
-    if (bundle?.counts && bundle.counts.profiles != null) {
-      setStats({
-        users: bundle.counts.profiles,
-        courses: bundle.counts.courses,
-        enrollments: bundle.counts.enrollments,
-        matches: bundle.counts.matches,
-        notifications: bundle.counts.notifications,
-        activeNow: bundle.counts.activeNow,
-      })
-      setLoading(false)
-      return
-    }
-
     const load = async () => {
       setError(null)
       try {
@@ -78,9 +61,9 @@ export default function AdminOverview() {
       }
     }
     load()
-  }, [ready, bundle])
+  }, [])
 
-  if (!ready || loading) {
+  if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
         <CircleNotch className="animate-spin" size={28} color="#7a12cc" />
