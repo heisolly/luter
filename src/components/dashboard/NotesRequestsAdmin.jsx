@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { 
-  RiCheckboxCircleFill as CheckCircle2, 
-  RiTimeFill as Clock, 
-  RiAlertFill as AlertCircle, 
-  RiExternalLinkFill as ExternalLink, 
-  RiFilterFill as Filter, 
-  RiSearchLine as Search,
-  RiChat3Fill as MessageSquare,
-  RiFileUploadFill as FileUp
-} from 'react-icons/ri';
+  CheckCircle, 
+  Clock, 
+  Warning, 
+  ArrowSquareOut, 
+  Funnel, 
+  MagnifyingGlass,
+  ChatCircle,
+  FileArrowUp,
+  User,
+  Calendar,
+  BookOpen,
+  Flag,
+  ArrowClockwise
+} from '@phosphor-icons/react';
 
 export default function NotesRequestsAdmin() {
   const [requests, setRequests] = useState([]);
@@ -72,146 +77,273 @@ export default function NotesRequestsAdmin() {
     return matchesFilter && matchesSearch;
   });
 
-  if (loading) return <div className="p-8 text-center">Loading requests...</div>;
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
+        <ArrowClockwise className="animate-spin" size={28} color="#7a12cc" />
+      </div>
+    )
+  }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Notes Requests</h1>
-          <p className="text-slate-500">Manage and fulfill student study note requests</p>
+    <>
+      <h1 className="adm-page-title">Study Requests</h1>
+      <p className="adm-page-desc">
+        Manage and fulfill student study note requests. Review, claim, and complete requests from students.
+      </p>
+
+      {/* Stats Cards */}
+      <div className="adm-kpi-grid">
+        <div className="adm-kpi-card">
+          <div className="adm-kpi-label">Total Requests</div>
+          <div className="adm-kpi-value">{requests.length || 0}</div>
         </div>
-        
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
+        <div className="adm-kpi-card">
+          <div className="adm-kpi-label">Pending</div>
+          <div className="adm-kpi-value">{requests.filter(r => r.status === 'pending').length}</div>
+        </div>
+        <div className="adm-kpi-card">
+          <div className="adm-kpi-label">In Progress</div>
+          <div className="adm-kpi-value">{requests.filter(r => r.status === 'claimed').length}</div>
+        </div>
+        <div className="adm-kpi-card">
+          <div className="adm-kpi-label">Completed</div>
+          <div className="adm-kpi-value">{requests.filter(r => r.status === 'completed').length}</div>
+        </div>
+      </div>
+
+      {/* Search and Filter */}
+      <div className="adm-card" style={{ padding: 20, marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 300 }}>
+            <MagnifyingGlass 
+              size={20} 
+              style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }}
+            />
+            <input
               type="text"
               placeholder="Search requests..."
-              className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none w-64"
+              className="adm-input"
+              style={{ paddingLeft: 40 }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           
-          <div className="flex border border-slate-200 rounded-lg overflow-hidden bg-white">
+          <div style={{ display: 'flex', border: '1px solid #e5e7eb', borderRadius: 6, overflow: 'hidden' }}>
             {['all', 'pending', 'claimed', 'completed'].map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-4 py-2 text-sm font-medium capitalize transition-colors ${
-                  filter === f ? 'bg-purple-600 text-white' : 'hover:bg-slate-50 text-slate-600 border-l'
-                }`}
+                className={`adm-btn ${filter === f ? 'adm-btn--primary' : 'adm-btn--ghost'}`}
+                style={{ 
+                  borderRadius: 0, 
+                  borderRight: f !== 'completed' ? '1px solid #e5e7eb' : 'none',
+                  textTransform: 'capitalize'
+                }}
               >
                 {f}
               </button>
             ))}
           </div>
+
+          <button 
+            onClick={fetchRequests}
+            className="adm-btn adm-btn--ghost"
+            disabled={loading}
+          >
+            <ArrowClockwise size={16} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
         </div>
       </div>
 
-      <div className="grid gap-6">
-        {filteredRequests.map((req) => (
-          <div key={req.id} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${
-                    req.urgency === 'urgent' ? 'bg-red-100 text-red-700' :
-                    req.urgency === 'high' ? 'bg-orange-100 text-orange-700' :
-                    'bg-blue-100 text-blue-700'
-                  }`}>
-                    {req.urgency}
-                  </span>
-                  <span className="text-slate-400 text-sm">
-                    {new Date(req.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                
-                <h2 className="text-xl font-bold text-slate-900 mb-1">
-                  {req.subject} <span className="text-slate-500 font-normal">({req.topic})</span>
-                </h2>
-                <div className="flex items-center gap-2 text-purple-600 font-medium mb-3">
-                  <span className="bg-purple-50 px-2 py-0.5 rounded">{req.course?.code}</span>
-                  <span>{req.course?.name} - Week {req.week_number}</span>
-                </div>
-                
-                <p className="text-slate-600 mb-4 whitespace-pre-wrap">{req.description}</p>
-                
-                <div className="flex items-center gap-4 text-sm text-slate-500 bg-slate-50 p-3 rounded-lg">
-                  <div className="flex items-center gap-1">
-                    <CheckCircle2 size={16} className="text-slate-400" />
-                    Requested by: <span className="font-semibold text-slate-700">{req.user?.email}</span>
+      {/* Requests List */}
+      <div className="adm-card" style={{ padding: 0 }}>
+        {filteredRequests.length > 0 ? (
+          <div style={{ borderBottom: '1px solid #e5e7eb' }}>
+            {filteredRequests.map((req, index) => (
+              <div 
+                key={req.id}
+                style={{ 
+                  padding: 16, 
+                  borderBottom: index < filteredRequests.length - 1 ? '1px solid #f3f4f6' : 'none',
+                  background: index % 2 === 0 ? '#fafafa' : 'white'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+                  {/* Request Info */}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <StatusIndicator status={req.status} />
+                      <span style={{ 
+                        fontSize: 12, 
+                        fontWeight: 600, 
+                        textTransform: 'uppercase',
+                        color: req.status === 'completed' ? '#059669' : 
+                               req.status === 'claimed' ? '#2563eb' : '#d97706'
+                      }}>
+                        {req.status}
+                      </span>
+                      
+                      {req.urgency !== 'normal' && (
+                        <span style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          backgroundColor: req.urgency === 'urgent' ? '#fef2f2' : '#fff7ed',
+                          color: req.urgency === 'urgent' ? '#dc2626' : '#ea580c',
+                          textTransform: 'uppercase'
+                        }}>
+                          <Flag size={10} style={{ display: 'inline', marginRight: 2 }} />
+                          {req.urgency}
+                        </span>
+                      )}
+                      
+                      <span style={{ fontSize: 12, color: '#6b7280' }}>
+                        {new Date(req.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    
+                    <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 600 }}>
+                      {req.subject}
+                    </h3>
+                    {req.topic && (
+                      <p style={{ margin: '0 0 8px', fontSize: 13, color: '#6b7280' }}>
+                        Topic: {req.topic}
+                      </p>
+                    )}
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <span style={{ 
+                        background: '#f3f4f6', 
+                        padding: '2px 6px', 
+                        borderRadius: 4, 
+                        fontSize: 11, 
+                        fontWeight: 600 
+                      }}>
+                        {req.course?.code}
+                      </span>
+                      <span style={{ fontSize: 12, color: '#6b7280' }}>
+                        {req.course?.name} • Week {req.week_number}
+                      </span>
+                    </div>
+                    
+                    {req.description && (
+                      <p style={{ 
+                        margin: '8px 0 0', 
+                        fontSize: 13, 
+                        color: '#6b7280',
+                        lineHeight: 1.4
+                      }}>
+                        {req.description}
+                      </p>
+                    )}
+                    
+                    <div style={{ marginTop: 8, fontSize: 12, color: '#9ca3af' }}>
+                      <User size={12} style={{ display: 'inline', marginRight: 4 }} />
+                      {req.user?.email || 'Unknown student'}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 140 }}>
+                    {req.status === 'pending' && (
+                      <button 
+                        onClick={() => updateStatus(req.id, 'claimed')}
+                        disabled={updatingId === req.id}
+                        className="adm-btn adm-btn--primary"
+                        style={{ fontSize: 12, padding: '6px 12px' }}
+                      >
+                        {updatingId === req.id ? (
+                          <ArrowClockwise size={12} className="animate-spin" />
+                        ) : (
+                          'Claim'
+                        )}
+                      </button>
+                    )}
+
+                    {req.status === 'claimed' && (
+                      <>
+                        <button 
+                          onClick={() => {
+                            const url = prompt('Enter PDF Result URL:');
+                            if (url) updateStatus(req.id, 'completed', url);
+                          }}
+                          disabled={updatingId === req.id}
+                          className="adm-btn adm-btn--primary"
+                          style={{ fontSize: 12, padding: '6px 12px' }}
+                        >
+                          {updatingId === req.id ? (
+                            <ArrowClockwise size={12} className="animate-spin" />
+                          ) : (
+                            <>
+                              <FileArrowUp size={12} style={{ marginRight: 4 }} />
+                              Complete
+                            </>
+                          )}
+                        </button>
+                        <button 
+                          onClick={() => updateStatus(req.id, 'pending')}
+                          disabled={updatingId === req.id}
+                          className="adm-btn adm-btn--ghost"
+                          style={{ fontSize: 11, padding: '4px 8px' }}
+                        >
+                          Unclaim
+                        </button>
+                      </>
+                    )}
+
+                    {req.status === 'completed' && req.result_url && (
+                      <a 
+                        href={req.result_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="adm-btn adm-btn--ghost"
+                        style={{ fontSize: 12, padding: '6px 12px', textDecoration: 'none', display: 'inline-block' }}
+                      >
+                        <ArrowSquareOut size={12} style={{ marginRight: 4 }} />
+                        View Result
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
-
-              <div className="lg:w-64 flex flex-col gap-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <StatusIndicator status={req.status} />
-                  <span className="text-sm font-semibold uppercase">{req.status}</span>
-                </div>
-
-                {req.status === 'pending' && (
-                  <button 
-                    onClick={() => updateStatus(req.id, 'claimed')}
-                    className="w-full bg-slate-900 text-white py-2 rounded-lg font-bold hover:bg-slate-800 transition-colors"
-                  >
-                    Claim Request
-                  </button>
-                )}
-
-                {req.status === 'claimed' && (
-                  <>
-                    <button 
-                      onClick={() => {
-                        const url = prompt('Enter PDF Result URL:');
-                        if (url) updateStatus(req.id, 'completed', url);
-                      }}
-                      className="w-full bg-green-600 text-white py-2 rounded-lg font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <FileUp size={18} />
-                      Mark Completed
-                    </button>
-                    <button 
-                      onClick={() => updateStatus(req.id, 'pending')}
-                      className="w-full text-slate-600 py-1 text-sm hover:underline"
-                    >
-                      Unclaim
-                    </button>
-                  </>
-                )}
-
-                {req.status === 'completed' && req.result_url && (
-                  <a 
-                    href={req.result_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full flex items-center justify-center gap-2 bg-purple-50 text-purple-700 py-2 rounded-lg font-bold hover:bg-purple-100 transition-colors"
-                  >
-                    <ExternalLink size={18} />
-                    View Result
-                  </a>
-                )}
-              </div>
-            </div>
+            ))}
           </div>
-        ))}
-        
-        {filteredRequests.length === 0 && (
-          <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
-            <MessageSquare size={48} className="mx-auto text-slate-300 mb-4" />
-            <h3 className="text-lg font-bold text-slate-900">No requests found</h3>
-            <p className="text-slate-500 text-sm">Wait for students to submit some study requests.</p>
+        ) : (
+          <div style={{ 
+            padding: 48, 
+            textAlign: 'center', 
+            color: '#9ca3af',
+            fontSize: 14
+          }}>
+            <ChatCircle size={48} style={{ display: 'block', margin: '0 auto 16px', opacity: 0.3 }} />
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+              No requests found
+            </div>
+            <div>
+              {search || filter !== 'all' 
+                ? 'Try adjusting your search or filter criteria.' 
+                : 'Wait for students to submit some study requests.'}
+            </div>
           </div>
         )}
       </div>
-    </div>
+
+      {/* Footer */}
+      {filteredRequests.length > 0 && (
+        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 12, color: '#9ca3af' }}>
+          Showing {filteredRequests.length} of {requests.length} requests
+        </div>
+      )}
+    </>
   );
 }
 
 function StatusIndicator({ status }) {
-  if (status === 'completed') return <CheckCircle2 className="text-green-500" size={20} />;
-  if (status === 'claimed') return <Clock className="text-blue-500" size={20} />;
-  return <AlertCircle className="text-amber-500" size={20} />;
+  if (status === 'completed') return <CheckCircle color="#059669" size={16} />;
+  if (status === 'claimed') return <Clock color="#2563eb" size={16} />;
+  return <Warning color="#d97706" size={16} />;
 }
