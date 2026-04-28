@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../supabaseClient'
 import {
-  RiLoader4Line as Loader2,
-  RiTableLine as Table2,
-  RiMagicLine as Wand2,
-  RiUploadCloudFill as Upload,
-  RiDownloadLine as Download,
-  RiMagicFill as Sparkles,
-  RiSaveFill as Save,
-  RiRocketFill as Rocket,
-  RiEditFill as Pencil,
-  RiDeleteBin7Fill as Trash2,
-  RiRefreshLine as RefreshCw,
-  RiGlobalFill as Globe,
-  RiFileExcelLine as FileSpreadsheet,
-} from 'react-icons/ri'
+  CircleNotch,
+  Table,
+  MagicWand,
+  CloudArrowUp,
+  DownloadSimple,
+  Sparkle,
+  FloppyDisk,
+  RocketLaunch,
+  PencilSimple,
+  Trash,
+  ArrowsClockwise,
+  Globe,
+  FileCsv,
+} from '@phosphor-icons/react'
 import {
   buildSyllabusId,
   departmentSlugFromLabel,
@@ -341,9 +341,9 @@ export default function AdminSyllabusManager() {
 
       <div className="adm-card" style={{ padding: 12, marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {[
-          { id: 'table', label: 'Data table', icon: Table2 },
-          { id: 'wizard', label: 'Creation wizard', icon: Wand2 },
-          { id: 'bulk', label: 'Bulk CSV', icon: FileSpreadsheet },
+          { id: 'table', label: 'Data table', icon: Table },
+          { id: 'wizard', label: 'Creation wizard', icon: MagicWand },
+          { id: 'bulk', label: 'Bulk CSV', icon: FileCsv },
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -359,7 +359,7 @@ export default function AdminSyllabusManager() {
           </button>
         ))}
         <button type="button" className="adm-btn" onClick={() => reload()} disabled={loading || busy}>
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh
+          <ArrowsClockwise size={16} className={loading ? 'animate-spin' : ''} /> Refresh
         </button>
       </div>
 
@@ -367,7 +367,7 @@ export default function AdminSyllabusManager() {
         <div className="adm-card" style={{ padding: 0, overflow: 'auto' }}>
           {loading ? (
             <div style={{ padding: 48, textAlign: 'center' }}>
-              <Loader2 className="animate-spin" style={{ display: 'inline-block' }} />
+              <CircleNotch className="animate-spin" style={{ display: 'inline-block' }} />
             </div>
           ) : (
             <table className="adm-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -418,7 +418,7 @@ export default function AdminSyllabusManager() {
                             disabled={busy}
                             onClick={() => publishRow(r.id)}
                           >
-                            <Rocket size={14} /> Publish
+                            <RocketLaunch size={14} /> Publish
                           </button>
                         )}
                         <button
@@ -428,7 +428,7 @@ export default function AdminSyllabusManager() {
                           disabled={busy}
                           onClick={() => loadRowIntoWizard(r)}
                         >
-                          <Pencil size={14} /> Edit
+                          <PencilSimple size={14} /> Edit
                         </button>
                         <button
                           type="button"
@@ -437,7 +437,7 @@ export default function AdminSyllabusManager() {
                           disabled={busy}
                           onClick={() => deleteRow(r.id, r.status)}
                         >
-                          <Trash2 size={14} /> Delete
+                          <Trash size={14} /> Delete
                         </button>
                       </div>
                     </td>
@@ -515,7 +515,7 @@ export default function AdminSyllabusManager() {
                 onChange={(e) => setAiQuery(e.target.value)}
               />
               <button type="button" className="adm-btn adm-btn--primary" style={{ marginTop: 8 }} disabled={busy} onClick={runAiAssist}>
-                {busy ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
+                {busy ? <CircleNotch className="animate-spin" size={16} /> : <Sparkle size={16} />}
                 Suggest courses
               </button>
             </div>
@@ -531,7 +531,7 @@ export default function AdminSyllabusManager() {
                 onChange={(e) => setPaste(e.target.value)}
               />
               <button type="button" className="adm-btn" style={{ marginTop: 8 }} disabled={busy} onClick={runPasteParser}>
-                {busy ? <Loader2 className="animate-spin" size={16} /> : <Wand2 size={16} />}
+                {busy ? <CircleNotch className="animate-spin" size={16} /> : <MagicWand size={16} />}
                 Process with AI
               </button>
             </div>
@@ -573,10 +573,10 @@ export default function AdminSyllabusManager() {
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             <button type="button" className="adm-btn" disabled={busy} onClick={() => savePayload('draft')}>
-              <Save size={16} /> Save as Draft
+              <FloppyDisk size={16} /> Save as Draft
             </button>
             <button type="button" className="adm-btn adm-btn--primary" disabled={busy} onClick={() => savePayload('live')}>
-              <Rocket size={16} /> Save &amp; Publish Live
+              <RocketLaunch size={16} /> Save &amp; Publish Live
             </button>
             <button type="button" className="adm-btn" onClick={resetWizard}>
               Clear form
@@ -593,7 +593,7 @@ export default function AdminSyllabusManager() {
             <code className="adm-mono">;</code> inside cells to separate multiple codes/titles.
           </p>
           <a className="adm-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 16, textDecoration: 'none', width: 'fit-content' }} href="/syllabus_bulk_template.csv" download>
-            <Download size={16} /> Download template
+            <DownloadSimple size={16} /> Download template
           </a>
           <textarea
             className="adm-input"
@@ -604,7 +604,7 @@ export default function AdminSyllabusManager() {
           />
           <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <label className="adm-btn" style={{ cursor: 'pointer' }}>
-              <Upload size={16} />
+              <CloudArrowUp size={16} />
               Load file
               <input
                 type="file"
@@ -618,7 +618,7 @@ export default function AdminSyllabusManager() {
               />
             </label>
             <button type="button" className="adm-btn adm-btn--primary" disabled={busy || !bulkText.trim()} onClick={processBulkCsv}>
-              {busy ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
+              {busy ? <CircleNotch className="animate-spin" size={16} /> : <CloudArrowUp size={16} />}
               Import as Draft rows
             </button>
           </div>

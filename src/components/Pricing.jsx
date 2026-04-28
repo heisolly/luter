@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { RiCheckLine as Check, RiArrowRightSLine as CaretRight, RiMagicFill as Sparkle } from 'react-icons/ri';
-import { PageBackground, HighlightedText, RevealDiv, SharedNavbar, SharedFAQ, SharedFooter } from './PageShared';
+import { PageBackground, HighlightedText, RevealDiv, SharedNavbar, SharedFAQ, SharedFooter, PremiumButton } from './PageShared';
 
 const pricingFaqs = [
   { q: 'What files does Luter accept?', a: 'PDFs, Word documents, PowerPoints, YouTube links, and direct audio/video file uploads.' },
@@ -202,31 +202,13 @@ export default function Pricing() {
                     )}
                   </div>
                   
-                  <button style={{ 
-                    width: '100%', 
-                    padding: '20px', 
-                    borderRadius: 9999, 
-                    fontSize: 16, 
-                    fontWeight: 800, 
-                    cursor: 'pointer', 
-                    marginBottom: 40, 
-                    fontFamily: 'var(--font-outfit)',
-                    background: plan.isPopular ? 'white' : 'linear-gradient(to right, #A855F7, #4B0082)',
-                    color: plan.isPopular ? '#4B0082' : 'white',
-                    border: 'none',
-                    transition: 'all 0.2s',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    boxShadow: plan.isPopular ? 'none' : '0 10px 20px rgba(75, 0, 130, 0.2)'
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.transform = 'scale(1.02)';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }}>
+                  <PremiumButton 
+                    size="lg" 
+                    style={{ width: '100%', marginBottom: 40 }}
+                    variant={plan.isPopular ? 'primary' : 'outline'}
+                  >
                     {plan.buttonText}
-                  </button>
+                  </PremiumButton>
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
                     {plan.features.map((f) => (

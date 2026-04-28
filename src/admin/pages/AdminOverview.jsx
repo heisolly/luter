@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
-import { RiNotificationFill as Bell, RiLineChartFill as TrendingUp, RiLoader4Line as Loader2 } from 'react-icons/ri'
+import { Bell, ChartLineUp, CircleNotch } from '@phosphor-icons/react'
 import { useAdminPrefetch } from '../../context/AdminPrefetchContext'
 
 function formatNum(n) {
@@ -83,7 +83,7 @@ export default function AdminOverview() {
   if (!ready || loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-        <Loader2 className="animate-spin" size={28} color="#7a12cc" />
+        <CircleNotch className="animate-spin" size={28} color="#7a12cc" />
       </div>
     )
   }
@@ -136,7 +136,7 @@ export default function AdminOverview() {
         </div>
         <div className="adm-kpi-card">
           <div className="adm-kpi-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <TrendingUp size={14} /> Active (5 min)
+            <ChartLineUp size={14} /> Active (5 min)
           </div>
           <div className="adm-kpi-value">{formatNum(stats.activeNow)}</div>
           <Link to="/admin/activity" className="adm-link" style={{ fontSize: 13, marginTop: 8, display: 'inline-block' }}>

@@ -32,7 +32,7 @@ const ProgressBar = ({ step, totalSteps, onBack }) => (
         onClick={onBack}
         style={{ background: '#F3F4F6', border: 'none', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#111' }}
       >
-        <ArrowLeft size={18} weight="bold" />
+        <ArrowLeft size={18} weight="light" />
       </motion.button>
     )}
     <div style={{ flex: 1, height: '8px', background: '#F3F4F6', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
@@ -117,7 +117,7 @@ const SearchInputWithSuggestions = ({ placeholder, value, onChange, icon: Icon, 
   
   return (
     <div style={{ position: 'relative', width: '100%' }}>
-      <Icon style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', zIndex: 1 }} color="#111" weight="bold" size={18} />
+      <Icon style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', zIndex: 1 }} color="#111" weight="light" size={18} />
       <input 
         value={value} 
         onChange={e => onChange(e.target.value)}
@@ -174,7 +174,7 @@ const SearchInputWithSuggestions = ({ placeholder, value, onChange, icon: Icon, 
 
 const CustomDatePicker = ({ value, onChange }) => (
   <div style={{ position: 'relative' }}>
-    <Calendar style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', zIndex: 1 }} color="#111" weight="bold" size={18} />
+    <Calendar style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', zIndex: 1 }} color="#111" weight="light" size={18} />
     <input 
       type="date" 
       value={value} 
@@ -647,7 +647,7 @@ const Onboarding = () => {
                   animate={{ scale: 1 }} 
                 />
                 <div style={{ width: '100%', maxWidth: '280px', margin: '0 auto' }}>
-                  <PremiumButton onClick={goToNext} style={{ ...onboardingPrimaryButtonStyle, width: '100%', height: '52px', fontSize: '16px' }}>{t('common:continue')}</PremiumButton>
+                  <PremiumButton onClick={goToNext} size="lg">{t('common:continue')}</PremiumButton>
                 </div>
               </motion.div>
             )}
@@ -673,14 +673,15 @@ const Onboarding = () => {
               role === 'student' ? (
                 <StepWrapper key="step3-student" title="idTitle" subtitle="idSub" t={t}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ position: 'relative' }}><User style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="bold" size={18} /><input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('fullName')} style={inputStyle} /></div>
-                    <div style={{ position: 'relative' }}><At style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="bold" size={18} /><input value={userName} onChange={e => setUserName(e.target.value)} placeholder={t('username')} style={inputStyle} /></div>
+                    <div style={{ position: 'relative' }}><User style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('fullName')} style={inputStyle} /></div>
+                    <div style={{ position: 'relative' }}><At style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={userName} onChange={e => setUserName(e.target.value)} placeholder={t('username')} style={inputStyle} /></div>
                     <CustomDatePicker value={birthday} onChange={setBirthday} />
                     <div style={{ height: '12px' }} />
                     <PremiumButton 
                       disabled={!fullName || !userName || !birthday} 
                       onClick={goToNext}
-                      style={{ ...onboardingPrimaryButtonStyle, width: '100%', height: '52px', fontSize: '16px' }}
+                      size="lg"
+                      style={{ width: '100%' }}
                     >
                       {t('common:continue')}
                     </PremiumButton>
@@ -756,7 +757,7 @@ const Onboarding = () => {
                           <option value="400">400 Level</option>
                           <option value="500">500 Level</option>
                         </select>
-                        <ChevronDown size={16} weight="bold" style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} color="#4B0082" />
+                        <ChevronDown size={16} weight="light" style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} color="#4B0082" />
                       </div>
                       <div style={{ position: 'relative' }}>
                         <select value={semester} onChange={e => setSemester(e.target.value)} style={{ ...selectStyle, paddingLeft: '24px' }}>
@@ -764,24 +765,24 @@ const Onboarding = () => {
                           <option value="1">1st Semester</option>
                           <option value="2">2nd Semester</option>
                         </select>
-                        <ChevronDown size={16} weight="bold" style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} color="#4B0082" />
+                        <ChevronDown size={16} weight="light" style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} color="#4B0082" />
                       </div>
                     </div>
                     <div style={{ height: '12px' }} />
-                    <PremiumButton disabled={!university || !major || !level || !semester} onClick={goToNext} style={{ ...onboardingPrimaryButtonStyle, width: '100%', height: '52px', fontSize: '16px' }}>{t('common:continue')}</PremiumButton>
+                    <PremiumButton disabled={!university || !major || !level || !semester} onClick={goToNext} size="lg">{t('common:continue')}</PremiumButton>
                   </div>
                 </StepWrapper>
               ) : (
                 <StepWrapper key="step4-solo" title="Tell us about yourself" subtitle="This helps us personalize your learning experience." t={t}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ position: 'relative' }}><User style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="bold" size={18} /><input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('fullName')} style={inputStyle} /></div>
-                    <div style={{ position: 'relative' }}><At style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="bold" size={18} /><input value={userName} onChange={e => setUserName(e.target.value)} placeholder={t('username')} style={inputStyle} /></div>
+                    <div style={{ position: 'relative' }}><User style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('fullName')} style={inputStyle} /></div>
+                    <div style={{ position: 'relative' }}><At style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={userName} onChange={e => setUserName(e.target.value)} placeholder={t('username')} style={inputStyle} /></div>
                     <CustomDatePicker value={birthday} onChange={setBirthday} />
                     <div style={{ height: '12px' }} />
                     <PremiumButton 
                       disabled={!fullName || !userName || !birthday} 
-                      onClick={goToNext}
-                      style={{ ...onboardingPrimaryButtonStyle, width: '100%', height: '52px', fontSize: '16px' }}
+                      size="lg"
+                      style={{ width: '100%' }}
                     >
                       {t('common:continue')}
                     </PremiumButton>
@@ -802,7 +803,7 @@ const Onboarding = () => {
                     ) : officialCourses.length > 0 ? (
                       <div style={{ background: '#F9FAFB', borderRadius: '16px', padding: '20px', border: '1px solid #F3F4F6' }}>
                         <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#111', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-outfit)' }}>
-                          <BookOpen size={16} color="#111" weight="bold" /> Official {level}L {semester === '1' ? '1st' : '2nd'} Sem Courses
+                          <BookOpen size={16} color="#111" weight="light" /> Official {level}L {semester === '1' ? '1st' : '2nd'} Sem Courses
                         </h4>
                         <div style={{ 
                           display: 'flex', 
@@ -841,7 +842,7 @@ const Onboarding = () => {
                                   <span style={{ fontSize: '13px', fontWeight: 500, color: isSelected ? '#4B0082' : '#111', fontFamily: 'var(--font-varela)' }}>{c.code}</span>
                                   <span style={{ fontSize: '12px', color: '#6B7280', fontFamily: 'var(--font-varela)' }}>{c.name}</span>
                                 </div>
-                                {isSelected ? <Check size={18} color="#111" weight="bold" /> : <Plus size={18} color="#94A3B8" weight="bold" />}
+                                {isSelected ? <Check size={18} color="#111" weight="light" /> : <Plus size={18} color="#94A3B8" weight="light" />}
                               </div>
                             );
                           })}
@@ -856,11 +857,11 @@ const Onboarding = () => {
                     <div style={{ borderTop: '1px solid #F3F4F6', paddingTop: '20px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                         <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#111', fontFamily: 'var(--font-outfit)' }}>Search & Add Other Courses</h4>
-                        {searchingAI && <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><RefreshCw size={12} className="animate-spin" color="#111" weight="bold" /><span style={{ fontSize: '11px', fontWeight: 500, color: '#111', fontFamily: 'var(--font-varela)' }}>Luter is searching...</span></div>}
+                        {searchingAI && <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><RefreshCw size={12} className="animate-spin" color="#111" weight="light" /><span style={{ fontSize: '11px', fontWeight: 500, color: '#111', fontFamily: 'var(--font-varela)' }}>Luter is searching...</span></div>}
                       </div>
                       
                       <div style={{ position: 'relative', marginBottom: '12px' }}>
-                        <Search style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#4B0082" weight="bold" size={18} />
+                        <Search style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#4B0082" weight="light" size={18} />
                         <input 
                           value={courseSearch}
                           onChange={e => setCourseSearch(e.target.value.toUpperCase())}
@@ -932,7 +933,7 @@ const Onboarding = () => {
                                     <span style={{ fontSize: '12px', fontWeight: 500, color: isSelected ? '#4B0082' : '#111', fontFamily: 'var(--font-varela)' }}>{s.code}</span>
                                     <span style={{ fontSize: '11px', color: '#6B7280', fontFamily: 'var(--font-varela)' }}>{s.name}</span>
                                   </div>
-                                  {isSelected ? <Check size={14} color="#111" weight="bold" /> : <Plus size={14} color="#94A3B8" weight="bold" />}
+                                  {isSelected ? <Check size={14} color="#111" weight="light" /> : <Plus size={14} color="#94A3B8" weight="light" />}
                                 </motion.div>
                               );
                             })}
@@ -959,7 +960,7 @@ const Onboarding = () => {
                       </div>
                     </div>
                     <div style={{ height: '12px' }} />
-                    <PremiumButton disabled={selectedCourses.length === 0} onClick={goToNext} style={{ ...onboardingPrimaryButtonStyle, width: '100%', height: '52px', fontSize: '16px' }}>{t('common:continue')}</PremiumButton>
+                    <PremiumButton disabled={selectedCourses.length === 0} onClick={goToNext} style={{ width: '100%' }} size="lg">{t('common:continue')}</PremiumButton>
                   </div>
                 </StepWrapper>
               ) : (
@@ -986,7 +987,7 @@ const Onboarding = () => {
                         }}
                       >
                         <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: grade === g ? 'linear-gradient(135deg, #A855F7, #C7B9FF)' : '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <GraduationCap size={22} weight="bold" color={grade === g ? "white" : "#111"} />
+                          <GraduationCap size={22} weight="light" color={grade === g ? "white" : "#111"} />
                         </div>
                         <span style={{ fontSize: '16px', fontWeight: 500, color: grade === g ? '#4B0082' : '#111', fontFamily: 'var(--font-outfit)', textTransform: 'uppercase' }}>{g}</span>
                       </motion.div>
@@ -1057,7 +1058,7 @@ const Onboarding = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div style={{ background: focusProfile.surface, border: `1px solid ${focusProfile.accent}22`, borderRadius: '24px', padding: '24px' }}>
                       <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px', boxShadow: '0 6px 20px rgba(15, 23, 42, 0.06)' }}>
-                        <Sparkle size={20} color={focusProfile.accent} weight="bold" />
+                        <Sparkle size={20} color={focusProfile.accent} weight="light" />
                       </div>
                       <h4 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#111', fontWeight: 700, fontFamily: 'var(--font-outfit)' }}>Your study profile</h4>
                       <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.7, color: '#4B5563', fontWeight: 400, fontFamily: 'var(--font-varela)' }}>
@@ -1072,7 +1073,7 @@ const Onboarding = () => {
                       style={{ padding: '22px', borderRadius: '24px', border: '1px solid', borderColor: reminders ? '#C4B5FD' : '#E5E7EB', background: reminders ? '#F5F3FF' : 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '14px', transition: 'all 0.2s ease', boxShadow: '0 12px 28px rgba(15, 23, 42, 0.04)' }}
                     >
                       <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: reminders ? '#A855F7' : '#F4F4F5', color: reminders ? 'white' : '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Bell size={20} weight="bold" color={reminders ? 'white' : '#111'} />
+                        <Bell size={20} weight="light" color={reminders ? 'white' : '#111'} />
                       </div>
                       <div style={{ flex: 1 }}>
                         <h4 style={{ fontSize: '15px', fontWeight: 600, color: '#111', fontFamily: 'var(--font-outfit)', margin: '0 0 4px 0' }}>Daily nudges</h4>
@@ -1085,7 +1086,7 @@ const Onboarding = () => {
                       </div>
                     </motion.div>
 
-                    <PremiumButton onClick={role === 'student' ? finish : goToNext} style={{ ...onboardingPrimaryButtonStyle, width: '100%', height: '54px', fontSize: '16px' }}>
+                    <PremiumButton onClick={role === 'student' ? finish : goToNext} style={{ width: '100%' }} size="lg">
                       {role === 'student' ? t('enterDashboard') : t('common:continue')}
                     </PremiumButton>
                   </div>
@@ -1137,7 +1138,7 @@ const IDCard = ({ name, role, info }) => (
     
     <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ width: '48px', height: '48px', background: '#A78BFA', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}><Rocket size={24} weight="bold" /></div>
+        <div style={{ width: '48px', height: '48px', background: '#A78BFA', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}><Rocket size={24} weight="light" /></div>
         <div style={{ textAlign: 'right' }}><p style={{ fontSize: '10px', fontWeight: 800, color: '#A78BFA', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '4px' }}>Verified Learner</p><div style={{ width: '60px', height: '4px', background: '#A78BFA', borderRadius: '2px', marginLeft: 'auto' }} /></div>
       </div>
       
@@ -1145,7 +1146,7 @@ const IDCard = ({ name, role, info }) => (
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div style={{ fontSize: '12px', fontWeight: 500, color: '#9CA3AF', fontFamily: 'var(--font-varela)', letterSpacing: '0.05em' }}>LUTER CARD ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}</div>
-        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check size={16} color="#4B0082" weight="bold" /></div>
+        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check size={16} color="#4B0082" weight="light" /></div>
       </div>
     </div>
   </motion.div>
@@ -1239,14 +1240,14 @@ const DocumentUploadStep = ({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px' }}>
           <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }} style={tileBaseStyle}>
             <div style={iconFrameStyle}>
-              <Youtube size={28} color="#111" weight="bold" />
+              <Youtube size={28} color="#111" weight="light" />
             </div>
             <div>
               <h4 style={{ fontSize: '18px', fontWeight: 600, color: '#111', margin: '0 0 6px 0', fontFamily: 'var(--font-outfit)' }}>Paste a YouTube link</h4>
               <p style={{ fontSize: '13px', color: '#6B7280', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-varela)', fontWeight: 400 }}>Ideal for recorded lessons, tutorials, and explainers.</p>
             </div>
             <div style={{ width: '100%', position: 'relative', marginTop: 'auto' }}>
-              <LinkIcon style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} size={18} color="#111" weight="bold" />
+              <LinkIcon style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} size={18} color="#111" weight="light" />
               <input
                 value={youtubeLink}
                 onChange={e => setYoutubeLink(e.target.value)}
@@ -1257,7 +1258,7 @@ const DocumentUploadStep = ({
             <div style={{ minHeight: '22px', display: 'flex', alignItems: 'center' }}>
               {hasYouTube ? (
                 <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#111', fontSize: '12px', fontWeight: 500, fontFamily: 'var(--font-varela)' }}>
-                  <CheckCircle size={16} weight="bold" color="#111" /> Link ready
+                  <CheckCircle size={16} weight="light" color="#111" /> Link ready
                 </motion.div>
               ) : (
                 <span style={{ fontSize: '12px', color: '#A1A1AA', fontFamily: 'var(--font-varela)' }}>Paste one link to continue with video study.</span>
@@ -1267,7 +1268,7 @@ const DocumentUploadStep = ({
 
           <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }} style={tileBaseStyle}>
             <div style={iconFrameStyle}>
-              <FileText size={28} color="#111" weight="bold" />
+              <FileText size={28} color="#111" weight="light" />
             </div>
             <div>
               <h4 style={{ fontSize: '18px', fontWeight: 600, color: '#111', margin: '0 0 6px 0', fontFamily: 'var(--font-outfit)' }}>Upload a document</h4>
@@ -1281,7 +1282,7 @@ const DocumentUploadStep = ({
               accept=".pdf,.docx,.doc,.pptx,.ppt,.txt"
             />
             <button onClick={() => fileInputRef.current.click()} style={{ ...actionButtonStyle, marginTop: 'auto' }}>
-              {hasDocument ? <CheckCircle size={18} weight="bold" color="white" /> : <Upload size={18} weight="bold" color="white" />}
+              {hasDocument ? <CheckCircle size={18} weight="light" color="white" /> : <Upload size={18} weight="light" color="white" />}
               {hasDocument ? 'Document attached' : 'Choose document'}
             </button>
             <div style={{ minHeight: '22px', display: 'flex', alignItems: 'center' }}>
@@ -1297,7 +1298,7 @@ const DocumentUploadStep = ({
 
           <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }} style={tileBaseStyle}>
             <div style={iconFrameStyle}>
-              <Music size={28} color="#111" weight="bold" />
+              <Music size={28} color="#111" weight="light" />
             </div>
             <div>
               <h4 style={{ fontSize: '18px', fontWeight: 600, color: '#111', margin: '0 0 6px 0', fontFamily: 'var(--font-outfit)' }}>Upload lecture audio</h4>
@@ -1311,7 +1312,7 @@ const DocumentUploadStep = ({
               accept="audio/*"
             />
             <button onClick={() => audioInputRef.current.click()} style={{ ...actionButtonStyle, marginTop: 'auto' }}>
-              {hasAudio ? <CheckCircle size={18} weight="bold" color="white" /> : <Mic size={18} weight="bold" color="white" />}
+              {hasAudio ? <CheckCircle size={18} weight="light" color="white" /> : <Mic size={18} weight="light" color="white" />}
               {hasAudio ? 'Audio attached' : 'Choose audio'}
             </button>
             <div style={{ minHeight: '22px', display: 'flex', alignItems: 'center' }}>
@@ -1333,7 +1334,8 @@ const DocumentUploadStep = ({
 
           <PremiumButton
             onClick={onContinue}
-            style={{ ...onboardingPrimaryButtonStyle, width: '220px', height: '52px', fontSize: '15px', opacity: hasAnySource ? 1 : 0.92 }}
+            size="lg"
+            style={{ width: '220px', opacity: hasAnySource ? 1 : 0.92 }}
           >
             {hasAnySource ? "Continue with source" : "Continue anyway"}
           </PremiumButton>

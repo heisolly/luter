@@ -563,8 +563,8 @@ export default function LandingPage() {
             transition={{ duration: 0.8, delay: 0.7 }}
             style={{ display: 'flex', justifyContent: 'center' }}
           >
-            <PremiumButton to="/signup" style={{ height: '56px', padding: '0 48px', fontSize: '16px' }}>
-              START LEARNING NOW <ArrowRight size={20} weight="bold" />
+            <PremiumButton to="/signup" size="lg">
+              START LEARNING NOW
             </PremiumButton>
           </motion.div>
         </div>
@@ -856,10 +856,10 @@ export default function LandingPage() {
           {/* 4 Cards */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))', gap:24, marginBottom:32 }}>
             {[
-              { icon:<Headphones style={{ width:40, height:40 }} weight="bold" />, title:'Lost in long lectures', desc:'"I zoned out 20 minutes in… now I\'m completely lost"' },
-              { icon:<Folder style={{ width:40, height:40 }} weight="bold" />, title:'Scattered notes', desc:'"Scattered across Google Docs, Notion, and random papers"' },
-              { icon:<RefreshCw style={{ width:40, height:40 }} weight="bold" />, title:'Read it. Forgot it', desc:'"I read this chapter 3 times and still can\'t remember it"' },
-              { icon:<MessageCircleQuestion style={{ width:40, height:40 }} weight="bold" />, title:'Stuck with no help', desc:'"It\'s midnight, I\'m confused, and there\'s no one to explain this to me"' },
+              { icon:<Headphones style={{ width:40, height:40 }} weight="light" />, title:'Lost in long lectures', desc:'"I zoned out 20 minutes in… now I\'m completely lost"' },
+              { icon:<Folder style={{ width:40, height:40 }} weight="light" />, title:'Scattered notes', desc:'"Scattered across Google Docs, Notion, and random papers"' },
+              { icon:<RefreshCw style={{ width:40, height:40 }} weight="light" />, title:'Read it. Forgot it', desc:'"I read this chapter 3 times and still can\'t remember it"' },
+              { icon:<MessageCircleQuestion style={{ width:40, height:40 }} weight="light" />, title:'Stuck with no help', desc:'"It\'s midnight, I\'m confused, and there\'s no one to explain this to me"' },
             ].map(({ icon, title, desc }) => (
               <InteractiveFeatureCard key={title} style={{ padding:'32px 24px', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
                 <div style={{ color:'#111', marginBottom:20, display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -882,7 +882,7 @@ export default function LandingPage() {
                 <strong style={{ color:'#111', fontWeight:700, fontFamily: 'var(--font-outfit)' }}>There's a better way.</strong> Luter turns this chaos into a structured learning system automatically. Studying feels easier.
               </p>
               <PremiumButton style={{ height:'52px', padding:'0 32px' }}>
-                Start a Free Study Session <ArrowRight size={20} weight="bold" style={{ marginLeft: 8 }} />
+                Start a Free Study Session <ArrowRight size={20} weight="light" style={{ marginLeft: 8 }} />
               </PremiumButton>
             </InteractiveFeatureCard>
           </div>
@@ -913,7 +913,7 @@ export default function LandingPage() {
                 <div style={{ flex:'1 1 400px', minWidth:0 }}>
                   <div style={{ display:'flex', flexDirection:'row', alignItems:'center', gap:28, marginBottom:28 }}>
                     <div style={{ width:88, height:88, background:'linear-gradient(135deg,#F8FAFC,#E2E8F0)', borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)' }}>
-                      <BookOpen style={{ width:40, height:40, color:'#111' }} weight="bold" />
+                      <BookOpen style={{ width:40, height:40, color:'#111' }} weight="light" />
                     </div>
                     <div>
                       <h3 style={{ color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:28, marginBottom:4, letterSpacing: '-0.01em' }}>AI Notes</h3>
@@ -957,7 +957,7 @@ export default function LandingPage() {
                 <div style={{ flex:'1 1 400px', minWidth:0 }}>
                   <div style={{ display:'flex', flexDirection:'row', alignItems:'center', gap:28, marginBottom:28 }}>
                     <div style={{ width:88, height:88, background:'linear-gradient(135deg,#D1FAE5,#10B981)', borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow: '0 8px 24px rgba(16, 185, 129, 0.15)' }}>
-                      <FileText style={{ width:40, height:40, color:'white' }} weight="bold" />
+                      <FileText style={{ width:40, height:40, color:'white' }} weight="light" />
                     </div>
                     <div>
                       <h3 style={{ color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:28, marginBottom:4, letterSpacing: '-0.01em' }}>AI Summary</h3>
@@ -992,7 +992,7 @@ export default function LandingPage() {
                 <div style={{ flex:'1 1 400px', minWidth:0 }}>
                   <div style={{ display:'flex', flexDirection:'row', alignItems:'center', gap:28, marginBottom:28 }}>
                     <div style={{ width:88, height:88, background:'linear-gradient(135deg,#FEE2E2,#EF4444)', borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow: '0 8px 24px rgba(239, 68, 68, 0.15)' }}>
-                      <Stack style={{ width:40, height:40, color:'white' }} weight="bold" />
+                      <Stack style={{ width:40, height:40, color:'white' }} weight="light" />
                     </div>
                     <div>
                       <h3 style={{ color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:28, marginBottom:4, letterSpacing: '-0.01em' }}>AI Flashcards</h3>
@@ -1026,7 +1026,7 @@ export default function LandingPage() {
                 <div style={{ flex:'1 1 400px', minWidth:0 }}>
                   <div style={{ display:'flex', flexDirection:'row', alignItems:'center', gap:28, marginBottom:28 }}>
                     <div style={{ width:88, height:88, background:'linear-gradient(135deg,#F8FAFC,#E2E8F0)', borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)' }}>
-                      <GraduationCap style={{ width:40, height:40, color:'#111' }} weight="bold" />
+                      <GraduationCap style={{ width:40, height:40, color:'#111' }} weight="light" />
                     </div>
                     <div>
                       <h3 style={{ color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:28, marginBottom:4, letterSpacing: '-0.01em' }}>AI Quizzes</h3>
@@ -1050,7 +1050,7 @@ export default function LandingPage() {
                     <div key={letter} style={{ display:'flex', gap:10, alignItems:'center', padding:'8px 12px', borderRadius:8, marginBottom:6, border:`1px solid ${correct ? 'rgba(75, 0, 130, 0.5)' : '#f3f4f6'}`, background: correct ? 'rgba(75, 0, 130, 0.06)' : '#fafafa' }}>
                       <div style={{ width:22, height:22, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, flexShrink:0, background: correct ? '#4B0082' : '#e5e7eb', color: correct ? 'white' : '#aaa' }}>{letter}</div>
                       <span style={{ fontSize:12, fontWeight: correct ? 700 : 400, color: correct ? '#4B0082' : '#666' }}>{text}</span>
-                      {correct && <Check style={{ width:12, height:12, color:'#111', marginLeft:'auto' }} weight="bold" />}
+                      {correct && <Check style={{ width:12, height:12, color:'#111', marginLeft:'auto' }} weight="light" />}
                     </div>
                   ))}
                 </div>
@@ -1063,7 +1063,7 @@ export default function LandingPage() {
                 <div style={{ flex:'1 1 400px', minWidth:0 }}>
                   <div style={{ display:'flex', flexDirection:'row', alignItems:'center', gap:28, marginBottom:28 }}>
                     <div style={{ width:88, height:88, background:'linear-gradient(135deg,#E0F2FE,#0284C7)', borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow: '0 8px 24px rgba(2, 132, 199, 0.15)' }}>
-                      <MessageSquare style={{ width:40, height:40, color:'white' }} weight="bold" />
+                      <MessageSquare style={{ width:40, height:40, color:'white' }} weight="light" />
                     </div>
                     <div>
                       <h3 style={{ color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:28, marginBottom:4, letterSpacing: '-0.01em' }}>AI Tutor</h3>
@@ -1154,8 +1154,8 @@ export default function LandingPage() {
               <p style={{ color:'#475569', textAlign:'center', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', fontSize:14, padding:'0 8px', marginBottom:20 }}>
                 PDFs, slides, YouTube videos, audio, web links, and more
               </p>
-              <PremiumButton style={{ width: '100%', height: '48px', fontSize: '13px' }}>
-                Start Now <ArrowRight size={16} weight="bold" style={{ marginLeft: 6 }} />
+              <PremiumButton size="lg" style={{ width: '100%' }}>
+                Start Now
               </PremiumButton>
             </article>
 
@@ -1223,7 +1223,7 @@ export default function LandingPage() {
               {['Instant AI-powered summaries','Auto-generated CBT exams','One unified study workspace','Focused, active learning sessions','Science-based retention system'].map((item) => (
                 <div key={item} className="comparison-item-new" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, color: 'white', fontFamily: 'var(--font-varela)', fontWeight: 600 }}>
                   <div style={{ width:20, height:20, borderRadius:'50%', background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <Check style={{ width:12, height:12, color:'white' }} weight="bold" />
+                    <Check style={{ width:12, height:12, color:'white' }} weight="light" />
                   </div>
                   {item}
                 </div>
@@ -1240,7 +1240,7 @@ export default function LandingPage() {
           <div className="container-custom" style={{ textAlign: 'center', marginBottom: 60 }}>
             <RevealDiv>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800, color: '#4B0082', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 20, background: 'rgba(75, 0, 130, 0.07)', padding: '8px 20px', borderRadius: 99, border: '1px solid rgba(75, 0, 130, 0.12)', fontFamily: 'var(--font-outfit)' }}>
-                <Lightning size={14} weight="bold" color="#111" /> Upgrade anytime
+                <Lightning size={14} weight="light" color="#111" /> Upgrade anytime
               </div>
             </RevealDiv>
             <RevealDiv delay={0.1}>
@@ -1281,7 +1281,7 @@ export default function LandingPage() {
                   }}>
                     {plan.isPopular && (
                       <div style={{ display: 'inline-flex', alignSelf: 'center', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.2)', color: 'white', padding: '6px 16px', borderRadius: 99, fontSize: 11, fontWeight: 800, marginBottom: 20, border: '1px solid rgba(255,255,255,0.3)', fontFamily: 'var(--font-outfit)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        <Lightning size={12} weight="bold" color="white" /> MOST POPULAR
+                        <Lightning size={12} weight="light" color="white" /> MOST POPULAR
                       </div>
                     )}
                     <div style={{ marginBottom: 24 }}>
@@ -1294,10 +1294,9 @@ export default function LandingPage() {
                     </div>
                     <PremiumButton 
                       to="/signup" 
-                      style={{ 
-                        width: '100%', marginBottom: 32, ...plan.buttonStyle,
-                        fontSize: 14, fontWeight: 700
-                      }}
+                      size="lg"
+                      variant={plan.isPopular ? 'primary' : 'outline'}
+                      style={{ width: '100%', marginBottom: 32 }}
                     >
                       {plan.buttonText}
                     </PremiumButton>
@@ -1305,7 +1304,7 @@ export default function LandingPage() {
                       {plan.features.map(f => (
                         <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                           <div style={{ width: 18, height: 18, borderRadius: '50%', background: plan.isPopular ? 'rgba(255,255,255,0.2)' : 'rgba(75, 0, 130, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                            <Check size={10} color={plan.isPopular ? 'white' : '#111'} weight="bold" />
+                            <Check size={10} color={plan.isPopular ? 'white' : '#111'} weight="light" />
                           </div>
                           <span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.5, color: plan.isPopular ? 'white' : '#475569', fontFamily: 'var(--font-varela)' }}>{f}</span>
                         </div>

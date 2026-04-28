@@ -63,6 +63,15 @@
   cursor: pointer;
   opacity: 0.8;
   transition: opacity 0.2s;
+  /* Mobile touch improvements */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 8px 4px;
 }
 
 .ws-bc-course:hover { opacity: 1; }
@@ -105,6 +114,12 @@
   padding: 6px 12px;
   border-radius: 8px;
   transition: all 0.2s;
+  /* Mobile touch improvements */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  min-height: 44px;
 }
 
 .ws-glass-action:hover { background: rgba(241, 245, 249, 0.5); color: #1E293B; }
@@ -120,6 +135,12 @@
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  /* Mobile touch improvements */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  min-height: 44px;
 }
 
 .ws-glass-exit:hover {

@@ -2,17 +2,21 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext, useLocation } from 'react-router-dom'
 import { uploadMaterial, addYoutubeMaterial } from '../../services/materialsService'
 import { supabase } from '../../supabaseClient'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useDeckStore } from '../../store/useDeckStore'
+import { checkNetworkConnectivity, getNetworkInfo } from '../../utils/networkUtils'
 import { 
-  RiFileTextFill as FileText, RiPresentationFill as Presentation, RiArchiveFill as FileArchive, RiCommandLine as SearchCode,
-  RiMusicFill as Music, RiVideoFill as Video, RiImageFill as ImageIcon, RiLink as Link2, RiYoutubeFill as Youtube,
-  RiArchiveDrawerFill as FileBox, RiLoader4Line as Loader2, RiCheckboxCircleFill as CheckCircle2, RiAlertFill as AlertCircle, RiDeleteBin6Fill as Trash2, RiAddLine as Plus, RiPenNibFill as PenTool, RiUploadCloudFill as UploadCloud,
-  RiArrowLeftSLine as ChevronLeft
+  RiFileTextFill as FileText, RiLink as Link2, RiYoutubeFill as Youtube,
+  RiLoader4Line as Loader2, RiCheckboxCircleFill as CheckCircle2, RiAlertFill as AlertCircle, 
+  RiUploadCloudFill as UploadCloud, RiArrowLeftSLine as ChevronLeft, RiMagicFill as Sparkles,
+  RiStackFill as Stack, RiArrowRightLine as ArrowRight, RiInformationFill as Info
 } from 'react-icons/ri'
 
 export default function UserUpload() {
   const { user } = useOutletContext()
   const navigate = useNavigate()
   const location = useLocation()
+  const { addToDeck } = useDeckStore()
   
   const queryParams = new URLSearchParams(location.search)
   const preSelectedCourse = queryParams.get('course_id') || ''
@@ -26,6 +30,7 @@ export default function UserUpload() {
   const [activeInputTab, setActiveInputTab] = useState('files')
   const [uploading, setUploading] = useState(false)
   const [status, setStatus] = useState(null)
+  const [autoAddToDeck, setAutoAddToDeck] = useState(true)
   
   const fileInputRef = useRef(null)
 
@@ -33,12 +38,6 @@ export default function UserUpload() {
     if (!user) return
     fetchUserCourses()
   }, [user])
-
-  useEffect(() => {
-    if (preSelectedCourse) {
-      setSelectedCourse(preSelectedCourse)
-    }
-  }, [preSelectedCourse])
 
   async function fetchUserCourses() {
     const { data } = await supabase
@@ -52,21 +51,14 @@ export default function UserUpload() {
     }
   }
 
-  const navigateToCourse = () => {
-    if (selectedCourse && preSelectedWeek) {
-      navigate(`/dashboard/courses/${selectedCourse}?week=${preSelectedWeek}`)
-    } else if (selectedCourse) {
-      navigate(`/dashboard/courses/${selectedCourse}`)
-    } else {
-      navigate('/dashboard/courses') // Navigate to Library/Vault
-    }
-  }
-
   const handleUploadSubmit = async () => {
     setUploading(true)
     setStatus(null)
 
     try {
+      let result = null
+      let itemType = ''
+
       if (activeInputTab === 'files' && file) {
         const ext = file.name.split('.').pop().toLowerCase()
         let type = 'pdf'
@@ -77,187 +69,270 @@ export default function UserUpload() {
         else if (['mp3', 'wav', 'm4a'].includes(ext)) type = 'audio'
         else if (['jpg', 'png', 'jpeg', 'webp'].includes(ext)) type = 'image'
 
-        await uploadMaterial({
+        itemType = type
+        
+        // Check network connectivity before upload
+        const networkInfo = getNetworkInfo()
+        if (!networkInfo.online) {
+          throw new Error('No internet connection. Please check your network and try again.')
+        }
+        
+        // Check if we have a stable connection
+        const isConnected = await checkNetworkConnectivity()
+        if (!isConnected) {
+          throw new Error('Network connection is unstable. Please check your internet connection and try again.')
+        }
+        
+        console.log('Starting file upload with network info:', networkInfo)
+        result = await uploadMaterial({
           file, courseId: selectedCourse || null, userId: user.id,
-          title: file.name, type: type, week: preSelectedWeek
+          title: file.name, type: type, week: preSelectedWeek || 1
         })
-        setStatus({ type: 'success', message: 'Resource saved to your vault.' })
-        setTimeout(() => navigateToCourse(), 1200)
       } else if (activeInputTab === 'links' && linkInput) {
-        let isYoutube = linkInput.includes('youtube.com') || linkInput.includes('youtu.be')
+        const isYoutube = linkInput.includes('youtube.com') || linkInput.includes('youtu.be')
+        itemType = isYoutube ? 'youtube' : (linkInput.includes('docs.google.com') ? 'google_doc' : 'link')
+        
         if (isYoutube) {
-          await addYoutubeMaterial({ 
-            url: linkInput, courseId: selectedCourse || null, userId: user.id, week: preSelectedWeek
+          result = await addYoutubeMaterial({ 
+            url: linkInput, courseId: selectedCourse || null, userId: user.id, week: preSelectedWeek || 1
           })
         } else {
-          await supabase.from('materials').insert({
+          const { data, error } = await supabase.from('materials').insert({
              course_id: selectedCourse || null, user_id: user.id,
-             title: linkInput, type: linkInput.includes('docs.google.com') ? 'google_doc' : 'link',
-             source_url: linkInput, owner_role: 'user', processing_status: 'ready', week_number: preSelectedWeek
+             title: linkInput, type: itemType,
+             source_url: linkInput, owner_role: 'user', processing_status: 'ready', week_number: preSelectedWeek || 1
+          }).select().single()
+          if (error) throw error
+          result = data
+        }
+      }
+
+      if (result) {
+        // Automatically add to deck for immediate visibility in Workstation
+        if (autoAddToDeck) {
+          addToDeck({
+            content_id: result.id,
+            content_type: 'material',
+            title: result.title,
+            metadata: { type: itemType, course_id: selectedCourse || null }
           })
         }
-        setStatus({ type: 'success', message: 'Link indexed successfully.' })
-        setTimeout(() => navigateToCourse(), 1200)
-      } else if (activeInputTab === 'notes' && textNote) {
-        const title = textNote.split('\n')[0].substring(0, 50) || 'New Note'
-        await supabase.from('user_notes').insert({
-          user_id: user.id, course_id: selectedCourse || null, title, content: textNote,
-          week_number: preSelectedWeek, source_type: 'personal'
+
+        setStatus({ 
+          type: 'success', 
+          message: 'Resource synced to your vault.',
+          materialId: result.id 
         })
-        setStatus({ type: 'success', message: 'Research note saved.' })
-        setTimeout(() => navigateToCourse(), 1200)
       }
     } catch (err) {
-      console.error(err)
-      setStatus({ type: 'error', message: 'Transmission failure. Try again.' })
+      console.error('Upload error:', err)
+      
+      let errorMessage = 'Upload failed. Please try again.'
+      
+      // Provide more specific error messages based on the error type
+      if (err.message.includes('No internet connection')) {
+        errorMessage = 'No internet connection. Please check your network and try again.'
+      } else if (err.message.includes('unstable')) {
+        errorMessage = 'Network connection is unstable. Please check your connection and try again.'
+      } else if (err.message.includes('Failed to upload file')) {
+        errorMessage = 'File upload failed. Please check the file and try again.'
+      } else if (err.message.includes('Failed to save material')) {
+        errorMessage = 'Database error. Please try again in a moment.'
+      } else if (err.message.includes('mime type') || err.message.includes('MIME type')) {
+        errorMessage = 'File type not supported. Please try a different file format.'
+      } else if (err.message.includes('timeout') || err.message.includes('Timeout')) {
+        errorMessage = 'Upload timed out. Please check your connection and try again.'
+      } else if (err.message.includes('ERR_NAME_NOT_RESOLVED')) {
+        errorMessage = 'Cannot connect to server. Please check your internet connection.'
+      } else if (err.message.includes('ERR_NETWORK_CHANGED')) {
+        errorMessage = 'Network connection changed. Please try again.'
+      } else if (err.message.includes('ERR_CERT_COMMON_NAME_INVALID')) {
+        errorMessage = 'Security certificate error. Please try again or contact support.'
+      }
+      
+      setStatus({ type: 'error', message: errorMessage })
     } finally {
       setUploading(false)
     }
   }
 
   const hasContent = (activeInputTab === 'files' && file) || 
-                    (activeInputTab === 'links' && linkInput.length > 0) ||
-                    (activeInputTab === 'notes' && textNote.length > 0)
+                    (activeInputTab === 'links' && linkInput.length > 0)
 
   return (
-    <div className="max-w-4xl mx-auto px-8 py-12 bg-white min-h-full">
+    <div className="ingest-studio" style={studioStyles}>
       
       {/* ── HEADER ── */}
-      <header className="flex items-center justify-between mb-12">
-        <div className="flex items-center gap-6">
+      <header style={headerStyles}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
           <button 
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-xl border border-[#f1f1f1] flex items-center justify-center text-slate-400 hover:bg-slate-50 transition-all"
+            style={backBtnStyles}
           >
             <ChevronLeft size={20} />
           </button>
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tighter leading-none mb-2">Ingest Material</h1>
-            <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Protocol V2.0 // Resource Management</p>
+            <h1 style={titleStyles}>Ingestion Studio</h1>
+            <p style={subtitleStyles}>Nebula Resource Management // Protocol 2.4</p>
           </div>
+        </div>
+
+        <div style={badgeStyles}>
+          <Sparkles size={14} /> ACTIVE ENCRYPTION
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div style={gridStyles}>
         
-        {/* ── SELECTION & INPUT ── */}
-        <div className="lg:col-span-2 space-y-8">
+        {/* ── MAIN AREA ── */}
+        <div style={mainAreaStyles}>
           
           {/* Tabs */}
-          <div className="flex gap-2 p-1.5 bg-[#f8f9fa] border border-[#f1f1f1] rounded-2xl">
+          <div style={tabContainerStyles}>
             {[
-              { id: 'files', label: 'Files', icon: FileText },
-              { id: 'links', label: 'Links', icon: Link2 },
-              { id: 'notes', label: 'Notes', icon: PenTool },
+              { id: 'files', label: 'Local Files', icon: FileText, desc: 'PDF, DOCX, PPTX' },
+              { id: 'links', label: 'Web Resources', icon: Link2, desc: 'URL, YouTube, Docs' },
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveInputTab(tab.id)}
-                className={`flex-1 h-12 rounded-xl flex items-center justify-center gap-2.5 text-[13px] font-bold transition-all
-                  ${activeInputTab === tab.id 
-                    ? 'bg-white text-purple-600 shadow-sm border border-[#f1f1f1]' 
-                    : 'text-slate-400 hover:text-slate-600'}`}
+                style={{
+                  ...tabBtnStyles,
+                  background: activeInputTab === tab.id ? 'white' : 'transparent',
+                  boxShadow: activeInputTab === tab.id ? '0 10px 25px rgba(0,0,0,0.05)' : 'none',
+                  border: activeInputTab === tab.id ? '1px solid #eee' : '1px solid transparent',
+                }}
               >
-                <tab.icon size={16} strokeWidth={2.5} />
-                {tab.label}
+                <div style={{
+                  ...tabIconStyles,
+                  background: activeInputTab === tab.id ? '#7a12cc' : '#f8f9fa',
+                  color: activeInputTab === tab.id ? 'white' : '#64748b',
+                }}>
+                  <tab.icon size={18} />
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ ...tabLabelStyles, color: activeInputTab === tab.id ? '#111' : '#64748b' }}>{tab.label}</div>
+                  <div style={tabDescStyles}>{tab.desc}</div>
+                </div>
               </button>
             ))}
           </div>
 
-          {/* Input Area */}
-          <div className="min-h-[360px]">
-            {activeInputTab === 'files' && (
-              <div 
-                onDragOver={e => e.preventDefault()}
-                onDrop={e => { e.preventDefault(); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]) }}
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full h-[360px] border-2 border-dashed border-[#e5e7eb] rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-purple-300 hover:bg-purple-50/30 transition-all group p-8"
-              >
-                <input type="file" ref={fileInputRef} hidden onChange={e => e.target.files[0] && setFile(e.target.files[0])} />
-                {file ? (
-                  <div className="flex flex-col items-center text-center">
-                    <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mb-6">
-                      <FileText size={32} strokeWidth={2.5} />
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-2 truncate max-w-xs">{file.name}</h3>
-                    <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-6">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                    <button onClick={e => { e.stopPropagation(); setFile(null) }} className="text-red-500 font-bold text-[13px] hover:underline">Discard and change</button>
+          {/* Dropzone / Input */}
+          <div style={contentCardStyles}>
+            <AnimatePresence mode="wait">
+              {activeInputTab === 'files' ? (
+                <motion.div 
+                  key="files"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  style={{ height: '100%' }}
+                >
+                  <div 
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => { e.preventDefault(); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]) }}
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      ...dropzoneStyles,
+                      borderColor: file ? '#7a12cc' : '#e5e7eb',
+                      background: file ? 'rgba(122, 18, 204, 0.02)' : 'transparent'
+                    }}
+                  >
+                    <input type="file" ref={fileInputRef} hidden onChange={e => e.target.files[0] && setFile(e.target.files[0])} />
+                    {file ? (
+                      <div style={fileInfoStyles}>
+                        <div style={fileIconContainer}>
+                          <FileText size={40} />
+                          <div style={fileCheckBadge}><CheckCircle2 size={16} /></div>
+                        </div>
+                        <h3 style={fileNameStyles}>{file.name}</h3>
+                        <p style={fileSizeStyles}>{(file.size / 1024 / 1024).toFixed(2)} MB • READY FOR COMMIT</p>
+                        <button onClick={e => { e.stopPropagation(); setFile(null) }} style={discardBtnStyles}>Discard and replace</button>
+                      </div>
+                    ) : (
+                      <div style={emptyStateStyles}>
+                        <div style={uploadIconStyles}>
+                          <UploadCloud size={32} />
+                        </div>
+                        <h3 style={uploadTitleStyles}>Drop material here</h3>
+                        <p style={uploadDescStyles}>or click to browse your workstation</p>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center text-center">
-                    <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                      <UploadCloud size={32} strokeWidth={1.5} />
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">Drop study materials</h3>
-                    <p className="text-slate-400 font-medium text-[14px]">PDF, Word, or Slide decks supported</p>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key="links"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  style={linkInputAreaStyles}
+                >
+                  <div style={linkIconBox}>
+                    <Youtube size={24} color="#ff0000" />
+                    <Stack size={20} color="#7a12cc" />
                   </div>
-                )}
-              </div>
-            )}
+                  <h3 style={inputTitleStyles}>Resource URL</h3>
+                  <p style={inputDescStyles}>Paste a link to a YouTube video, Google Doc, or any web resource.</p>
+                  
+                  <div style={inputWrapperStyles}>
+                    <input 
+                      type="text" 
+                      placeholder="https://..."
+                      value={linkInput} 
+                      onChange={e => setLinkInput(e.target.value)}
+                      style={inputStyles}
+                    />
+                    <div style={inputGlow}></div>
+                  </div>
 
-            {activeInputTab === 'links' && (
-              <div className="bg-[#f8f9fa] border border-[#f1f1f1] rounded-2xl p-8 h-[360px] flex flex-col justify-center">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-red-100 text-red-600 rounded-xl flex items-center justify-center">
-                    <Youtube size={20} />
+                  <div style={tipBoxStyles}>
+                    <Info size={16} color="#7a12cc" />
+                    <span>Luter AI will automatically crawl and index the content.</span>
                   </div>
-                  <h3 className="font-bold text-slate-900">Resource URL</h3>
-                </div>
-                <input 
-                  type="text" 
-                  placeholder="https://..."
-                  value={linkInput} 
-                  onChange={e => setLinkInput(e.target.value)}
-                  className="w-full bg-white border border-[#e5e7eb] rounded-xl px-6 py-5 text-[15px] font-bold text-slate-800 focus:outline-none focus:border-purple-500 transition-all shadow-sm"
-                />
-                <p className="mt-6 text-[13px] text-slate-400 font-medium leading-relaxed">
-                  Luter will automatically index the content of your links for AI analysis and mock exam generation.
-                </p>
-              </div>
-            )}
-
-            {activeInputTab === 'notes' && (
-              <div className="h-[360px] flex flex-col">
-                <textarea 
-                  placeholder="Paste research data or quick lecture notes..."
-                  value={textNote} 
-                  onChange={e => setTextNote(e.target.value)}
-                  className="flex-1 w-full bg-white border border-[#e5e7eb] rounded-2xl px-8 py-8 text-[15px] font-medium leading-relaxed text-slate-800 focus:outline-none focus:border-purple-500 transition-all shadow-sm resize-none"
-                />
-              </div>
-            )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
-        {/* ── SIDEBAR CONTROLS ── */}
-        <div className="space-y-6">
-          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-6">Target Archive</h4>
+        {/* ── SIDEBAR ── */}
+        <aside style={sidebarStyles}>
+          <div style={configCardStyles}>
+            <h4 style={configTitleStyles}>CONFIGURATION</h4>
             
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Contextual Course</label>
-                <select 
-                  value={selectedCourse} 
-                  onChange={e => setSelectedCourse(e.target.value)}
-                  className="w-full bg-white border border-[#e5e7eb] rounded-xl px-4 py-3.5 text-[13px] font-bold text-slate-700 focus:outline-none shadow-sm appearance-none"
-                >
-                  <option value="">Personal Archive (Standalone)</option>
-                  {courses.map(c => (
-                    <option key={c.id} value={c.id}>{c.code}</option>
-                  ))}
-                </select>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              <div style={controlGroupStyles}>
+                <label style={controlLabelStyles}>CONTEXTUAL ARCHIVE</label>
+                <div style={selectWrapperStyles}>
+                  <select 
+                    value={selectedCourse} 
+                    onChange={e => setSelectedCourse(e.target.value)}
+                    style={selectStyles}
+                  >
+                    <option value="">Personal Vault (Standalone)</option>
+                    {courses.map(c => (
+                      <option key={c.id} value={c.id}>{c.code} — {c.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {selectedCourse && (
-                <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Week Track</label>
-                  <div className="grid grid-cols-4 gap-2">
+                <div style={controlGroupStyles}>
+                  <label style={controlLabelStyles}>SYLLABUS WEEK</label>
+                  <div style={weekGridStyles}>
                     {[1,2,3,4,5,6,7,8].map(w => (
                       <button 
                         key={w}
-                        className={`h-9 rounded-lg border text-[11px] font-black transition-all
-                          ${preSelectedWeek === w ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-[#f1f1f1] text-slate-400 hover:border-slate-300'}`}
+                        className={preSelectedWeek === w ? 'active' : ''}
+                        style={{
+                          ...weekBtnStyles,
+                          background: preSelectedWeek === w ? '#7a12cc' : 'white',
+                          color: preSelectedWeek === w ? 'white' : '#64748b',
+                          borderColor: preSelectedWeek === w ? '#7a12cc' : '#eee',
+                        }}
                       >
                         W{w}
                       </button>
@@ -265,33 +340,544 @@ export default function UserUpload() {
                   </div>
                 </div>
               )}
+
+              <div style={toggleRowStyles}>
+                <div style={{ flex: 1 }}>
+                  <div style={toggleLabelStyles}>Auto-add to Deck</div>
+                  <div style={toggleDescStyles}>Immediate workstation access</div>
+                </div>
+                <button 
+                  onClick={() => setAutoAddToDeck(!autoAddToDeck)}
+                  style={{
+                    ...toggleSwitchStyles,
+                    background: autoAddToDeck ? '#7a12cc' : '#e2e8f0'
+                  }}
+                >
+                  <motion.div 
+                    animate={{ x: autoAddToDeck ? 20 : 2 }}
+                    style={toggleThumbStyles} 
+                  />
+                </button>
+              </div>
             </div>
           </div>
 
           <button
             onClick={handleUploadSubmit}
             disabled={uploading || !hasContent}
-            className="w-full py-5 bg-purple-600 text-white rounded-2xl font-black text-[14px] uppercase tracking-widest shadow-xl shadow-purple-100 hover:bg-purple-700 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
+            style={{
+              ...commitBtnStyles,
+              opacity: (uploading || !hasContent) ? 0.6 : 1,
+              transform: uploading ? 'scale(0.98)' : 'none'
+            }}
           >
-            {uploading ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
-            {uploading ? 'Processing...' : 'Commit to Vault'}
+            {uploading ? <Loader2 style={spinAnim} size={20} /> : <Stack size={20} />}
+            {uploading ? 'INGESTING...' : 'COMMIT TO VAULT'}
           </button>
 
-          {status && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`p-5 rounded-2xl flex items-center gap-3 border
-                ${status.type === 'success' ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-700'}`}
-            >
-              {status.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-              <span className="text-[13px] font-bold">{status.message}</span>
-            </motion.div>
-          )}
-        </div>
+          <AnimatePresence>
+            {status && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                style={{
+                  ...statusBoxStyles,
+                  background: status.type === 'success' ? '#f0fdf4' : '#fef2f2',
+                  borderColor: status.type === 'success' ? '#bbf7d0' : '#fecaca',
+                }}
+              >
+                <div style={{ display: 'flex', gap: 12 }}>
+                  {status.type === 'success' ? <CheckCircle2 color="#16a34a" size={18} /> : <AlertCircle color="#dc2626" size={18} />}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ ...statusTextStyles, color: status.type === 'success' ? '#166534' : '#991b1b' }}>{status.message}</div>
+                    {status.type === 'success' && (
+                      <button 
+                        onClick={() => navigate(`/dashboard/workstation?materialId=${status.materialId}`)}
+                        style={successActionBtn}
+                      >
+                        Open in Workstation <ArrowRight size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </aside>
 
       </div>
 
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .ingest-studio select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
+      `}</style>
     </div>
   )
 }
+
+// ── STYLES ──
+
+const studioStyles = {
+  maxWidth: '1100px',
+  margin: '0 auto',
+  padding: '60px 40px',
+  minHeight: '100%',
+  fontFamily: "'Outfit', sans-serif"
+}
+
+const headerStyles = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: '60px'
+}
+
+const backBtnStyles = {
+  width: '48px',
+  height: '48px',
+  borderRadius: '16px',
+  border: '1px solid #eee',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: '#64748b',
+  background: 'white',
+  cursor: 'pointer',
+  transition: 'all 0.2s',
+}
+
+const titleStyles = {
+  fontSize: '32px',
+  fontWeight: 900,
+  margin: 0,
+  letterSpacing: '-0.04em',
+  color: '#0f172a'
+}
+
+const subtitleStyles = {
+  fontSize: '11px',
+  fontWeight: 800,
+  color: '#94a3b8',
+  textTransform: 'uppercase',
+  letterSpacing: '0.15em',
+  marginTop: '4px'
+}
+
+const badgeStyles = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  padding: '8px 16px',
+  background: '#f8fafc',
+  border: '1px solid #f1f5f9',
+  borderRadius: '99px',
+  fontSize: '10px',
+  fontWeight: 800,
+  color: '#64748b',
+  letterSpacing: '0.05em'
+}
+
+const gridStyles = {
+  display: 'grid',
+  gridTemplateColumns: '1fr 380px',
+  gap: '40px',
+  alignItems: 'start'
+}
+
+const mainAreaStyles = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '32px'
+}
+
+const tabContainerStyles = {
+  display: 'flex',
+  gap: '12px',
+  padding: '8px',
+  background: '#f1f5f9',
+  borderRadius: '24px',
+  border: '1px solid #e2e8f0'
+}
+
+const tabBtnStyles = {
+  flex: 1,
+  padding: '12px 20px',
+  borderRadius: '18px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '16px',
+  cursor: 'pointer',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+}
+
+const tabIconStyles = {
+  width: '40px',
+  height: '40px',
+  borderRadius: '12px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  transition: 'all 0.2s'
+}
+
+const tabLabelStyles = {
+  fontSize: '14px',
+  fontWeight: 800,
+}
+
+const tabDescStyles = {
+  fontSize: '11px',
+  fontWeight: 500,
+  color: '#94a3b8',
+  marginTop: '2px'
+}
+
+const contentCardStyles = {
+  background: 'white',
+  border: '1px solid #f1f5f9',
+  borderRadius: '32px',
+  height: '480px',
+  overflow: 'hidden',
+  boxShadow: '0 20px 50px rgba(0,0,0,0.03)',
+  position: 'relative'
+}
+
+const dropzoneStyles = {
+  height: '100%',
+  border: '2px dashed #e5e7eb',
+  borderRadius: '32px',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  transition: 'all 0.3s',
+  padding: '40px'
+}
+
+const emptyStateStyles = {
+  textAlign: 'center'
+}
+
+const uploadIconStyles = {
+  width: '80px',
+  height: '80px',
+  background: '#f8fafc',
+  borderRadius: '24px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: '#cbd5e1',
+  margin: '0 auto 24px',
+  transition: 'all 0.3s'
+}
+
+const uploadTitleStyles = {
+  fontSize: '20px',
+  fontWeight: 800,
+  color: '#1e293b',
+  margin: '0 0 8px 0'
+}
+
+const uploadDescStyles = {
+  fontSize: '14px',
+  color: '#94a3b8',
+  fontWeight: 500
+}
+
+const fileInfoStyles = {
+  textAlign: 'center'
+}
+
+const fileIconContainer = {
+  width: '100px',
+  height: '100px',
+  background: 'rgba(122, 18, 204, 0.1)',
+  color: '#7a12cc',
+  borderRadius: '30px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  margin: '0 auto 24px',
+  position: 'relative'
+}
+
+const fileCheckBadge = {
+  position: 'absolute',
+  bottom: '-5px',
+  right: '-5px',
+  width: '32px',
+  height: '32px',
+  background: '#16a34a',
+  color: 'white',
+  borderRadius: '12px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  boxShadow: '0 4px 10px rgba(22, 163, 74, 0.3)'
+}
+
+const fileNameStyles = {
+  fontSize: '20px',
+  fontWeight: 900,
+  color: '#0f172a',
+  margin: '0 0 8px 0',
+  maxWidth: '400px',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis'
+}
+
+const fileSizeStyles = {
+  fontSize: '12px',
+  fontWeight: 800,
+  color: '#94a3b8',
+  textTransform: 'uppercase',
+  letterSpacing: '0.1em'
+}
+
+const discardBtnStyles = {
+  marginTop: '32px',
+  padding: '8px 20px',
+  background: 'white',
+  border: '1px solid #fee2e2',
+  color: '#ef4444',
+  borderRadius: '12px',
+  fontSize: '12px',
+  fontWeight: 800,
+  cursor: 'pointer',
+  transition: 'all 0.2s'
+}
+
+const linkInputAreaStyles = {
+  padding: '60px',
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center'
+}
+
+const linkIconBox = {
+  display: 'flex',
+  gap: '12px',
+  marginBottom: '24px'
+}
+
+const inputTitleStyles = {
+  fontSize: '22px',
+  fontWeight: 900,
+  color: '#0f172a',
+  margin: '0 0 8px 0'
+}
+
+const inputDescStyles = {
+  fontSize: '14px',
+  color: '#64748b',
+  fontWeight: 500,
+  lineHeight: 1.6,
+  marginBottom: '40px'
+}
+
+const inputWrapperStyles = {
+  position: 'relative',
+}
+
+const inputStyles = {
+  width: '100%',
+  padding: '24px 32px',
+  borderRadius: '24px',
+  border: '2px solid #f1f5f9',
+  fontSize: '16px',
+  fontWeight: 700,
+  color: '#1e293b',
+  background: '#f8fafc',
+  outline: 'none',
+  transition: 'all 0.3s',
+  position: 'relative',
+  zIndex: 1
+}
+
+const inputGlow = {
+  position: 'absolute',
+  inset: '-2px',
+  borderRadius: '26px',
+  background: 'linear-gradient(135deg, #7a12cc, #7180FE)',
+  opacity: 0,
+  transition: 'opacity 0.3s',
+  zIndex: 0
+}
+
+const tipBoxStyles = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+  marginTop: '32px',
+  padding: '16px 20px',
+  background: 'rgba(122, 18, 204, 0.03)',
+  borderRadius: '16px',
+  fontSize: '13px',
+  color: '#7a12cc',
+  fontWeight: 600
+}
+
+const sidebarStyles = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '24px'
+}
+
+const configCardStyles = {
+  background: 'white',
+  border: '1px solid #f1f5f9',
+  borderRadius: '32px',
+  padding: '32px',
+  boxShadow: '0 20px 50px rgba(0,0,0,0.03)'
+}
+
+const configTitleStyles = {
+  fontSize: '11px',
+  fontWeight: 900,
+  color: '#94a3b8',
+  letterSpacing: '0.2em',
+  margin: '0 0 32px 0'
+}
+
+const controlGroupStyles = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '10px'
+}
+
+const controlLabelStyles = {
+  fontSize: '11px',
+  fontWeight: 800,
+  color: '#64748b',
+  letterSpacing: '0.05em'
+}
+
+const selectWrapperStyles = {
+  position: 'relative',
+  display: 'flex',
+  alignItems: 'center'
+}
+
+const selectStyles = {
+  width: '100%',
+  padding: '16px 20px',
+  borderRadius: '16px',
+  border: '1px solid #eee',
+  background: '#f8fafc',
+  fontSize: '14px',
+  fontWeight: 700,
+  color: '#1e293b',
+  outline: 'none',
+  cursor: 'pointer'
+}
+
+const weekGridStyles = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(4, 1fr)',
+  gap: '8px'
+}
+
+const weekBtnStyles = {
+  height: '40px',
+  borderRadius: '10px',
+  border: '1px solid #eee',
+  fontSize: '12px',
+  fontWeight: 800,
+  cursor: 'pointer',
+  transition: 'all 0.2s'
+}
+
+const toggleRowStyles = {
+  display: 'flex',
+  alignItems: 'center',
+  paddingTop: '24px',
+  borderTop: '1px solid #f1f5f9'
+}
+
+const toggleLabelStyles = {
+  fontSize: '14px',
+  fontWeight: 800,
+  color: '#1e293b'
+}
+
+const toggleDescStyles = {
+  fontSize: '11px',
+  fontWeight: 500,
+  color: '#94a3b8'
+}
+
+const toggleSwitchStyles = {
+  width: '44px',
+  height: '24px',
+  borderRadius: '20px',
+  padding: '2px',
+  border: 'none',
+  cursor: 'pointer',
+  transition: 'background 0.3s',
+  display: 'flex',
+  alignItems: 'center'
+}
+
+const toggleThumbStyles = {
+  width: '20px',
+  height: '20px',
+  background: 'white',
+  borderRadius: '50%',
+  boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+}
+
+const commitBtnStyles = {
+  width: '100%',
+  padding: '24px',
+  borderRadius: '24px',
+  background: 'linear-gradient(135deg, #7a12cc, #9718fb)',
+  color: 'white',
+  border: 'none',
+  fontSize: '15px',
+  fontWeight: 900,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '12px',
+  cursor: 'pointer',
+  boxShadow: '0 20px 40px rgba(122, 18, 204, 0.2)',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  letterSpacing: '0.05em'
+}
+
+const statusBoxStyles = {
+  padding: '20px',
+  borderRadius: '24px',
+  border: '1px solid',
+  marginTop: '8px'
+}
+
+const statusTextStyles = {
+  fontSize: '13px',
+  fontWeight: 800,
+}
+
+const successActionBtn = {
+  marginTop: '12px',
+  background: 'white',
+  border: '1px solid rgba(0,0,0,0.05)',
+  padding: '10px 16px',
+  borderRadius: '12px',
+  fontSize: '12px',
+  fontWeight: 800,
+  color: '#7a12cc',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  cursor: 'pointer',
+  boxShadow: '0 4px 10px rgba(0,0,0,0.03)'
+}
+
+const spinAnim = {
+  animation: 'spin 1s linear infinite'
+}
+

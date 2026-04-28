@@ -1,6 +1,6 @@
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
-import { RiLogoutCircleRFill as LogOut, RiDashboardFill as LayoutDashboard } from 'react-icons/ri'
+import { SignOut, House } from '@phosphor-icons/react'
 
 export default function AdminSettings() {
   const { email, profile } = useOutletContext()
@@ -31,10 +31,10 @@ export default function AdminSettings() {
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           <a href="/dashboard" className="adm-btn adm-btn--ghost">
-            <LayoutDashboard size={16} /> Open student app
+            <House size={16} /> Open student app
           </a>
           <button type="button" className="adm-btn adm-btn--primary" onClick={signOut}>
-            <LogOut size={16} /> Sign out
+            <SignOut size={16} /> Sign out
           </button>
         </div>
       </div>

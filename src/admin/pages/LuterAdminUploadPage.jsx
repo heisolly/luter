@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import { uploadAdminMaterial } from '../../services/semesterNotesService'
 import { supabase } from '../../supabaseClient'
-import { RiUploadCloudFill as UploadCloud, RiFileTextFill as FileText, RiCheckboxCircleFill as CheckCircle2, RiErrorWarningFill as AlertCircle, RiLoader4Line as Loader2, RiArrowLeftSLine as ChevronLeft } from 'react-icons/ri'
+import { CloudArrowUp, FileText, CheckCircle, Warning, CircleNotch, CaretLeft } from '@phosphor-icons/react'
 
 export default function LuterAdminUploadPage() {
   const { user } = useOutletContext()
@@ -143,7 +143,7 @@ export default function LuterAdminUploadPage() {
               </div>
             ) : (
               <div>
-                <UploadCloud size={48} color="#94A3B8" style={{ marginBottom: '16px' }} />
+                <CloudArrowUp size={48} color="#94A3B8" style={{ marginBottom: '16px' }} />
                 <p style={{ color: '#718096', fontWeight: 500 }}>Click to select or drag and drop your file</p>
                 <p style={{ color: '#94A3B8', fontSize: '12px', marginTop: '4px' }}>PDF, DOCX, or PPTX (Max 20MB)</p>
               </div>
@@ -165,7 +165,7 @@ export default function LuterAdminUploadPage() {
             fontSize: '14px',
             fontWeight: 500
           }}>
-            {status.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+            {status.type === 'success' ? <CheckCircle size={18} /> : <Warning size={18} />}
             {status.message}
           </div>
         )}
@@ -194,12 +194,12 @@ export default function LuterAdminUploadPage() {
         >
           {uploading ? (
             <>
-              <Loader2 className="animate-spin" size={20} />
+              <CircleNotch className="animate-spin" size={20} />
               Processing Content...
             </>
           ) : (
             <>
-              <UploadCloud size={20} />
+              <CloudArrowUp size={20} />
               Publish Content
             </>
           )}

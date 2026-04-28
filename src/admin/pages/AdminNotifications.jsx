@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
-import { RiLoader4Line as Loader2, RiRefreshLine as RefreshCw, RiSendPlaneFill as Send } from 'react-icons/ri'
+import { CircleNotch, ArrowsClockwise, PaperPlaneTilt } from '@phosphor-icons/react'
 import { useAdminPrefetch } from '../../context/AdminPrefetchContext'
 
 function formatTs(s) {
@@ -118,7 +118,7 @@ export default function AdminNotifications() {
           </label>
           <div>
             <button type="submit" className="adm-btn adm-btn--primary" disabled={sending}>
-              <Send size={16} /> Insert notification
+              <PaperPlaneTilt size={16} /> Insert notification
             </button>
           </div>
         </form>
@@ -130,13 +130,13 @@ export default function AdminNotifications() {
             Recent notifications
           </span>
           <button type="button" className="adm-btn adm-btn--ghost" onClick={() => { refresh(); load() }}>
-            <RefreshCw size={16} /> Refresh
+            <ArrowsClockwise size={16} /> Refresh
           </button>
         </div>
         <div className="adm-table-wrap">
           {!ready || loading ? (
             <div style={{ padding: 48, display: 'flex', justifyContent: 'center' }}>
-              <Loader2 className="animate-spin" color="#7a12cc" />
+              <CircleNotch className="animate-spin" color="#7a12cc" />
             </div>
           ) : (
             <table className="adm-table">

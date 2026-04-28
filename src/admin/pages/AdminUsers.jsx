@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
-import { RiSearchLine as Search, RiLoader4Line as Loader2, RiDownloadLine as Download } from 'react-icons/ri'
+import { MagnifyingGlass, CircleNotch, DownloadSimple } from '@phosphor-icons/react'
 import { useAdminPrefetch } from '../../context/AdminPrefetchContext'
 
 const PAGE = 25
@@ -97,7 +97,7 @@ export default function AdminUsers() {
         <div className="adm-toolbar">
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
             <div style={{ position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+              <MagnifyingGlass size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
               <input
                 className="adm-input"
                 style={{ paddingLeft: 38, minWidth: 260 }}
@@ -108,14 +108,14 @@ export default function AdminUsers() {
             </div>
           </div>
           <button type="button" className="adm-btn adm-btn--ghost" onClick={exportCsv}>
-            <Download size={16} /> Export page CSV
+            <DownloadSimple size={16} /> Export page CSV
           </button>
         </div>
 
         <div className="adm-table-wrap">
           {!ready || loading ? (
             <div style={{ padding: 48, display: 'flex', justifyContent: 'center' }}>
-              <Loader2 className="animate-spin" color="#7a12cc" />
+              <CircleNotch className="animate-spin" color="#7a12cc" />
             </div>
           ) : (
             <table className="adm-table">

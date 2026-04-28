@@ -81,6 +81,7 @@ function WorkstationContent() {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
   const [mobileReadingMode, setMobileReadingMode] = useState('document')
   const [pageSummaries, setPageSummaries] = useState({})
+  const [loading, setLoading] = useState(false)
   const [userJottings, setUserJottings] = useState("")
   const [jottingNoteId, setJottingNoteId] = useState(null)
   const messagesEndRef = useRef(null)
@@ -204,21 +205,32 @@ function WorkstationContent() {
   async function loadDeckMaterials() {
     setLoading(true)
     try {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      
       const materialIds = activeDeckItems
         .filter(item => item.content_type !== 'assignment' && item.content_type !== 'ai_note')
         .map(item => item.content_id)
+        .filter(id => uuidRegex.test(id))
       
+      if (materialIds.length === 0) {
+        setCourseMaterials([])
+        setLoading(false)
+        return
+      }
+
       const { data, error } = await supabase
         .from('materials')
         .select('*')
         .in('id', materialIds)
       
-      if (data) {
+      if (data && data.length > 0) {
         setCourseMaterials(data)
         const initialMaterial = materialIdParam 
           ? data.find(m => m.id === materialIdParam) || data[0]
           : data[0]
         setSelectedMaterial(initialMaterial)
+      } else {
+        setCourseMaterials([])
       }
     } catch (err) {
       console.error('Error loading deck materials:', err)
@@ -230,6 +242,13 @@ function WorkstationContent() {
   async function fetchStandaloneMaterial(materialId) {
     setLoading(true)
     try {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(materialId)) {
+        console.warn('Invalid UUID provided for standalone material:', materialId)
+        setLoading(false)
+        return
+      }
+
       const { data, error } = await supabase
         .from('materials')
         .select('*')

@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { RiCheckLine as Check, RiMagicFill as Sparkles } from 'react-icons/ri'
+import { RiCheckLine as Check, RiMagicFill as Sparkles, RiLoader4Line as Loader, RiArrowRightLine } from 'react-icons/ri'
+import { supabase } from '../../supabaseClient'
+import { PremiumButton } from '../PageShared'
 
 const plans = [
   {
@@ -9,33 +11,80 @@ const plans = [
     priceMonthly: 0, priceSemester: 0,
     isPopular: false,
     bg: 'white', color: '#111', border: '#e5e7eb',
-    buttonStyle: { background: 'white', color: '#111', border: '1px solid #e5e7eb' },
-    buttonText: 'Current Plan',
+    buttonStyle: { 
+      background: 'white', 
+      color: '#4B0082', 
+      border: '2px solid #C7B9FF' 
+    },
+    buttonText: 'CURRENT TIER',
     features: ['5 uploads per month', 'AI Notes (Basic)', 'AI Summary', 'Flashcard generation', 'Community support']
   },
   {
     name: 'University Pro', trial: 'Most popular for students',
     priceMonthly: 4000, priceSemester: 9000,
     isPopular: true,
+    priceIdMonthly: 'price_1TQBBYHPD8pnlRZIniqKwUo0',
+    priceIdSemester: 'price_1TQBBcHPD8pnlRZImYqlm80o',
     bg: 'linear-gradient(160deg, #6d28d9, #9718fb 60%, #7180FE)', color: 'white', border: 'transparent',
-    buttonStyle: { background: 'white', color: 'var(--primary)', border: 'none' },
-    buttonText: 'Upgrade to Pro',
+    buttonStyle: { 
+      background: 'white', 
+      color: '#FB923C', 
+      border: '2px solid #FB923C',
+      borderRadius: '16px'
+    },
+    buttonText: 'UPGRADE TO PRO',
     features: ['Unlimited uploads', 'Advanced AI Notes', 'AI Summary + Quizzes', 'Spaced-rep Flashcards', 'AI Math Expert', 'Live Lecture Recording', 'Priority support']
   },
   {
     name: 'Premium', trial: 'For power users',
     priceMonthly: 7000, priceSemester: 16000,
     isPopular: false,
+    priceIdMonthly: 'price_1TQBBdHPD8pnlRZIp7HSWNQj',
+    priceIdSemester: 'price_1TQBBeHPD8pnlRZIeg7YvWbb',
     bg: 'white', color: '#111', border: '#e5e7eb',
-    buttonStyle: { background: 'linear-gradient(135deg, var(--primary), #7180fe)', color: 'white', border: 'none' },
-    buttonText: 'Get Premium',
+    buttonStyle: { 
+      background: '#C7B9FF', 
+      color: '#4B0082', 
+      border: 'none',
+      boxShadow: '0 10px 15px -3px rgba(75, 0, 130, 0.15)'
+    },
+    buttonText: 'GO PREMIUM',
     features: ['Everything in University Pro', 'Analyze Images with AI', 'Multi-file Sessions', 'Team collaboration', 'Dedicated support', 'Early feature access']
   }
 ]
 
 export default function UpgradePage() {
-  const { isMobile } = useOutletContext()
+  const { isMobile, userProfile } = useOutletContext()
   const [isSemester, setIsSemester] = useState(true)
+  const [loadingPlan, setLoadingPlan] = useState(null)
+
+  const handleUpgrade = async (plan) => {
+    if (plan.priceMonthly === 0) return
+    
+    setLoadingPlan(plan.name)
+    try {
+      const priceId = isSemester ? plan.priceIdSemester : plan.priceIdMonthly
+      
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        body: { priceId }
+      })
+
+      if (error) throw error
+      if (data?.url) {
+        window.location.href = data.url
+      }
+    } catch (err) {
+      console.error('Error starting checkout:', err)
+      alert('Failed to start checkout. Please try again.')
+    } finally {
+      setLoadingPlan(null)
+    }
+  }
+
+  const isCurrentPlan = (planName) => {
+    const currentTier = userProfile?.subscription_tier?.toLowerCase() || 'basic'
+    return currentTier === planName.toLowerCase()
+  }
 
   return (
     <div className="dh-root" style={{ 
@@ -86,58 +135,76 @@ export default function UpgradePage() {
           maxWidth: 1050, 
           margin: '0 auto' 
         }}>
-          {plans.map((plan, idx) => (
-            <motion.div 
-              key={plan.name}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: idx * 0.1 }}
-              style={{
-                flex: isMobile ? 'initial' : '1 1 300px', 
-                maxWidth: isMobile ? '100%' : 360,
-                background: plan.bg, 
-                color: plan.color,
-                borderRadius: 24, 
-                padding: plan.isPopular ? (isMobile ? '36px 24px' : '44px 32px') : (isMobile ? '32px 24px' : '36px 28px'),
-                border: plan.isPopular ? 'none' : `1px solid ${plan.border}`,
-                boxShadow: plan.isPopular ? '0 32px 64px rgba(113,128,254,0.25)' : '0 4px 20px rgba(0,0,0,0.03)',
-                transform: plan.isPopular && !isMobile ? 'scaleY(1.04)' : 'scaleY(1)',
-                position: 'relative', 
-                zIndex: plan.isPopular ? 10 : 1,
-                display: 'flex', 
-                flexDirection: 'column',
-                margin: plan.isPopular && !isMobile ? '-8px 0' : '8px 0',
-                width: '100%',
-                boxSizing: 'border-box'
-              }}
-            >
-              {plan.isPopular && (
-                <div style={{ display: 'inline-flex', alignSelf: 'center', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.2)', color: 'white', padding: '5px 14px', borderRadius: 99, fontSize: 10, fontWeight: 800, marginBottom: 20, border: '1px solid rgba(255,255,255,0.3)' }}>
-                  <Sparkles size={11} /> MOST POPULAR
-                </div>
-              )}
-              <div style={{ marginBottom: 24 }}>
-                <h3 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 4px 0' }}>{plan.name}</h3>
-                <span style={{ fontSize: 12, fontWeight: 600, color: plan.isPopular ? 'rgba(255,255,255,0.8)' : '#888' }}>{plan.trial}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 28 }}>
-                <span style={{ fontSize: 48, fontWeight: 900, lineHeight: 1 }}>{plan.priceMonthly === 0 ? '₦0' : `₦${(isSemester ? plan.priceSemester : plan.priceMonthly).toLocaleString()}`}</span>
-                {plan.priceMonthly > 0 && <span style={{ fontSize: 14, fontWeight: 600, color: plan.isPopular ? 'rgba(255,255,255,0.7)' : '#aaa', marginBottom: 8 }}>/{isSemester ? 'sem' : 'mo'}</span>}
-              </div>
-              <button style={{ width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 32, ...plan.buttonStyle, transition: 'all 0.2s' }}>{plan.buttonText}</button>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
-                {plan.features.map(f => (
-                  <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <div style={{ width: 16, height: 16, borderRadius: '50%', background: plan.isPopular ? 'rgba(255,255,255,0.25)' : 'rgba(151,24,251,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                      <Check size={9} color={plan.isPopular ? 'white' : 'var(--primary)'} strokeWidth={3.5} />
-                    </div>
-                    <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: plan.isPopular ? 'rgba(255,255,255,0.92)' : '#444' }}>{f}</span>
+          {plans.map((plan, idx) => {
+            const current = isCurrentPlan(plan.name)
+            return (
+              <motion.div 
+                key={plan.name}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                style={{
+                  flex: isMobile ? 'initial' : '1 1 300px', 
+                  maxWidth: isMobile ? '100%' : 360,
+                  background: plan.bg, 
+                  color: plan.color,
+                  borderRadius: 24, 
+                  padding: plan.isPopular ? (isMobile ? '36px 24px' : '44px 32px') : (isMobile ? '32px 24px' : '36px 28px'),
+                  border: plan.isPopular ? 'none' : `1px solid ${plan.border}`,
+                  boxShadow: plan.isPopular ? '0 32px 64px rgba(113,128,254,0.25)' : '0 4px 20px rgba(0,0,0,0.03)',
+                  transform: plan.isPopular && !isMobile ? 'scaleY(1.04)' : 'scaleY(1)',
+                  position: 'relative', 
+                  zIndex: plan.isPopular ? 10 : 1,
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  margin: plan.isPopular && !isMobile ? '-8px 0' : '8px 0',
+                  width: '100%',
+                  boxSizing: 'border-box'
+                }}
+              >
+                {plan.isPopular && (
+                  <div style={{ display: 'inline-flex', alignSelf: 'center', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.2)', color: 'white', padding: '5px 14px', borderRadius: 99, fontSize: 10, fontWeight: 800, marginBottom: 20, border: '1px solid rgba(255,255,255,0.3)' }}>
+                    <Sparkles size={11} /> MOST POPULAR
                   </div>
-                ))}
-              </div>
-            </motion.div>
-          ))}
+                )}
+                <div style={{ marginBottom: 24 }}>
+                  <h3 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 4px 0' }}>{plan.name}</h3>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: plan.isPopular ? 'rgba(255,255,255,0.8)' : '#888' }}>{plan.trial}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 28 }}>
+                  <span style={{ fontSize: 48, fontWeight: 900, lineHeight: 1 }}>{plan.priceMonthly === 0 ? '₦0' : `₦${(isSemester ? plan.priceSemester : plan.priceMonthly).toLocaleString()}`}</span>
+                  {plan.priceMonthly > 0 && <span style={{ fontSize: 14, fontWeight: 600, color: plan.isPopular ? 'rgba(255,255,255,0.7)' : '#aaa', marginBottom: 8 }}>/{isSemester ? 'sem' : 'mo'}</span>}
+                </div>
+                
+                <PremiumButton
+                  disabled={current || (loadingPlan !== null)}
+                  onClick={() => handleUpgrade(plan)}
+                  size="lg"
+                  variant={plan.isPopular ? 'primary' : 'outline'}
+                  isUpgradeButton={plan.isPopular}
+                  style={{ 
+                    width: '100%', 
+                    marginBottom: 32,
+                    opacity: current ? 0.7 : 1
+                  }}
+                >
+                  {loadingPlan === plan.name ? <Loader className="animate-spin" size={24} weight="light" /> : plan.buttonText}
+                </PremiumButton>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+                  {plan.features.map(f => (
+                    <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                      <div style={{ width: 16, height: 16, borderRadius: '50%', background: plan.isPopular ? 'rgba(255,255,255,0.25)' : 'rgba(151,24,251,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                        <Check size={9} color={plan.isPopular ? 'white' : 'var(--primary)'} strokeWidth={3.5} />
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: plan.isPopular ? 'rgba(255,255,255,0.92)' : '#444' }}>{f}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )
+          })}
         </div>
       </div>
     </div>

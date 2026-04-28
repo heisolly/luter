@@ -4,7 +4,7 @@ import { RiArrowRightSLine as CaretRight, RiLoader4Line as CircleNotch, RiCheckb
 import { supabase } from '../supabaseClient';
 
 import GoogleLoginButton from './auth/GoogleLoginButton';
-import { AuthNavbar } from './PageShared';
+import { AuthNavbar, PremiumButton } from './PageShared';
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -92,12 +92,12 @@ export default function SignUp() {
         {/* Floating Icons Background */}
         <div style={{ position: 'absolute', top: '15%', right: '8%', opacity: 0.1, animation: 'float 6s infinite ease-in-out' }}>
           <div style={{ padding: '20px', borderRadius: '24px', background: 'white', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
-            <BookOpen size={40} color="#4B0082" weight="bold" />
+            <BookOpen size={40} color="#4B0082" weight="light" />
           </div>
         </div>
         <div style={{ position: 'absolute', bottom: '15%', left: '8%', opacity: 0.1, animation: 'float 7s infinite ease-in-out-reverse' }}>
           <div style={{ padding: '20px', borderRadius: '24px', background: 'white', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
-            <GraduationCap size={40} color="#4B0082" weight="bold" />
+            <GraduationCap size={40} color="#4B0082" weight="light" />
           </div>
         </div>
       </div>
@@ -118,9 +118,9 @@ export default function SignUp() {
             <p style={{ fontSize: 16, color: '#64748B', lineHeight: 1.6, marginBottom: 40 }}>
               We've sent a magic link to <br /><strong style={{ color: '#111' }}>{successEmail}</strong>
             </p>
-            <Link to="/signin" style={primaryButtonStyle}>
-              Go to Sign In <CaretRight size={20} weight="bold" />
-            </Link>
+            <PremiumButton to="/signin" size="lg" style={{ width: '100%' }}>
+              Go to Sign In
+            </PremiumButton>
           </div>
         ) : (
           <div style={{ width: '100%', maxWidth: 440, textAlign: 'center' }}>
@@ -167,9 +167,9 @@ export default function SignUp() {
                 />
               </div>
 
-              <button type="submit" disabled={loading} style={primaryButtonStyle}>
-                {loading ? <CircleNotch className="animate-spin" size={20} weight="bold" /> : <>CREATE FREE ACCOUNT <CaretRight size={20} weight="bold" /></>}
-              </button>
+              <PremiumButton type="submit" disabled={loading} size="lg" style={{ width: '100%', marginTop: '12px' }}>
+                {loading ? <CircleNotch className="animate-spin" size={24} weight="light" /> : "CREATE FREE ACCOUNT"}
+              </PremiumButton>
             </form>
 
             <div style={{ textAlign: 'center', marginTop: 32, fontSize: 14, color: '#64748B', fontWeight: 600 }}>

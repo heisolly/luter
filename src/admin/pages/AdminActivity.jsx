@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
-import { RiLoader4Line as Loader2, RiRefreshLine as RefreshCw } from 'react-icons/ri'
+import { CircleNotch, ArrowsClockwise, Pulse } from '@phosphor-icons/react'
 import { useAdminPrefetch } from '../../context/AdminPrefetchContext'
 
 function formatTs(s) {
@@ -63,13 +63,13 @@ export default function AdminActivity() {
             {rows.length} active
           </span>
           <button type="button" className="adm-btn adm-btn--ghost" onClick={load}>
-            <RefreshCw size={16} /> Refresh now
+            <ArrowsClockwise size={16} /> Refresh now
           </button>
         </div>
         <div className="adm-table-wrap">
           {!ready || loading ? (
             <div style={{ padding: 48, display: 'flex', justifyContent: 'center' }}>
-              <Loader2 className="animate-spin" color="#7a12cc" />
+              <CircleNotch className="animate-spin" color="#7a12cc" />
             </div>
           ) : (
             <table className="adm-table">

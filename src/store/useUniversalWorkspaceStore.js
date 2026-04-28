@@ -144,12 +144,7 @@ export const useUniversalWorkspaceStore = create(
             .from('user_courses')
             .select(`
               *,
-              courses:course_id (
-                id,
-                code,
-                name,
-                faculty
-              )
+              courses(*)
             `)
             .eq('user_id', user.id)
             .order('created_at', { ascending: false })

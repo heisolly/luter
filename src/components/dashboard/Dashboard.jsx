@@ -9,9 +9,11 @@ import './dashboard.css'
 import { DashboardPrefetchProvider } from '../../context/DashboardPrefetchContext'
 import NotificationsOverlay from './NotificationsOverlay'
 import FloatingDock from './FloatingDock'
+import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceStore'
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { initializeWorkspaces } = useUniversalWorkspaceStore()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -33,10 +35,17 @@ export default function Dashboard() {
         const { data: p } = await supabase.from('profiles').select('full_name, is_university_user, role').eq('id', session.user.id).maybeSingle()
         if (p) setProfile(p)
 
+        // Initialize workspaces to ensure backpack shows all courses
+        await initializeWorkspaces()
+
         const updateHeartbeat = async () => {
-          await supabase.from('profiles')
-            .update({ last_active_at: new Date().toISOString() })
-            .eq('id', session.user.id)
+          try {
+            await supabase.from('profiles')
+              .update({ last_active_at: new Date().toISOString() })
+              .eq('id', session.user.id)
+          } catch (error) {
+            console.warn('Heartbeat update failed:', error.message)
+          }
         }
         updateHeartbeat()
         hb = setInterval(updateHeartbeat, 30000)

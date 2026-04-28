@@ -1,62 +1,96 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { RiCheckLine as Check, RiMagicFill as Sparkles, RiStarFill as Star, RiFlashlightFill as Zap } from 'react-icons/ri';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  RiCheckLine as Check, RiMagicFill as Sparkles, RiStarFill as Star,
+  RiFlashlightFill as Zap, RiShieldFill as Shield, RiRocketFill as Rocket,
+  RiArrowRightLine as ArrowRight, RiCloseLine as X,
+  RiLoader4Line as Loader, RiVipCrownFill as Crown
+} from 'react-icons/ri';
 import { supabase } from '../../supabaseClient';
 import PremiumModal from '../shared/PremiumModal';
 
 const plans = [
   {
     id: 'free',
-    name: 'Basic', trial: 'Free forever',
-    priceMonthly: 0, priceSemester: 0,
-    isPopular: false,
-    bg: 'white', color: '#111', border: '#e5e7eb',
-    buttonStyle: { background: 'white', color: '#111', border: '1px solid #e5e7eb' },
-    buttonText: 'Current Plan',
-    features: ['5 uploads per month', 'AI Notes (Basic)', 'AI Summary', 'Flashcard generation', 'Community support']
+    name: 'Scholar Basic',
+    tagline: 'Essential tools for every student',
+    priceMonthly: 0,
+    priceSemester: 0,
+    icon: Shield,
+    accentColor: '#94a3b8',
+    features: [
+      '5 uploads per month',
+      'AI Notes (Standard)',
+      'Basic Summaries',
+      'Flashcard generation',
+      'Community access',
+    ],
+    cta: 'Current Tier',
+    isPrimary: false,
   },
   {
     id: 'ultimate',
-    name: 'University Pro', trial: 'Most popular for students',
-    priceMonthly: 4000, priceSemester: 9000,
-    isPopular: true,
-    bg: 'linear-gradient(160deg, #6d28d9, #9718fb 60%, #7180FE)', color: 'white', border: 'transparent',
-    buttonStyle: { background: 'white', color: 'var(--primary)', border: 'none' },
-    buttonText: 'Upgrade to Pro',
-    features: ['Unlimited uploads', 'Advanced AI Notes', 'AI Summary + Quizzes', 'Spaced-rep Flashcards', 'AI Math Expert', 'Live Lecture Recording', 'Priority support']
+    name: 'University Pro',
+    tagline: 'The ultimate academic advantage',
+    priceMonthly: 4000,
+    priceSemester: 9000,
+    priceIdMonthly: 'price_1TQBBYHPD8pnlRZIniqKwUo0',
+    priceIdSemester: 'price_1TQBBcHPD8pnlRZImYqlm80o',
+    icon: Sparkles,
+    accentColor: '#7a12cc',
+    features: [
+      'Unlimited uploads',
+      'Advanced AI Insights',
+      'Smart Quizzes',
+      'Spaced-repetition engine',
+      'AI Math & Logic Expert',
+      'Priority processing',
+    ],
+    cta: 'Upgrade to Pro',
+    isPrimary: true,
+    badge: 'MOST CHOSEN',
   },
   {
     id: 'premium',
-    name: 'Premium', trial: 'For power users',
-    priceMonthly: 7000, priceSemester: 16000,
-    isPopular: false,
-    bg: 'white', color: '#111', border: '#e5e7eb',
-    buttonStyle: { background: 'linear-gradient(135deg, var(--primary), #7180fe)', color: 'white', border: 'none' },
-    buttonText: 'Get Premium',
-    features: ['Everything in University Pro', 'Analyze Images with AI', 'Multi-file Sessions', 'Team collaboration', 'Dedicated support', 'Early feature access']
-  }
+    name: 'Luter Executive',
+    tagline: 'For elite researchers & power users',
+    priceMonthly: 7000,
+    priceSemester: 16000,
+    priceIdMonthly: 'price_1TQBBdHPD8pnlRZIp7HSWNQj',
+    priceIdSemester: 'price_1TQBBeHPD8pnlRZIeg7YvWbb',
+    icon: Rocket,
+    accentColor: '#0ea5e9',
+    features: [
+      'Everything in Pro',
+      'Vision AI (Analyze Images)',
+      'Multi-document Synthesis',
+      'Custom AI Personas',
+      'Early access to Luter Lab',
+      'Dedicated Academic Concierge',
+    ],
+    cta: 'Go Executive',
+    isPrimary: false,
+  },
 ];
 
 export default function PricingPage() {
-  const { isMobile } = useOutletContext();
+  const { isMobile, userProfile } = useOutletContext();
   const navigate = useNavigate();
   const [isSemester, setIsSemester] = useState(true);
-  
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [hoveredPlan, setHoveredPlan] = useState(null);
+  const [loadingCheckout, setLoadingCheckout] = useState(false);
+  const [hoveredButton, setHoveredButton] = useState(null);
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-      }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) setUser(session.user);
       setLoading(false);
-    };
-    getUser();
+    });
   }, []);
 
   const handleUpgrade = (plan) => {
@@ -64,327 +98,460 @@ export default function PricingPage() {
     setShowPremiumModal(true);
   };
 
-  const handleStartTrial = async () => {
-    if (!user) {
-      navigate('/signin');
-      return;
-    }
-    try {
-      const { data, error } = await supabase.rpc('start_free_trial', {
-        p_user_id: user.id
-      });
-      if (error) throw error;
-      if (data) {
-        navigate('/dashboard');
-      } else {
-        alert('You have already used your free trial. Please upgrade to Premium.');
-      }
-    } catch (error) {
-      console.error('Error starting trial:', error);
-      alert('Failed to start trial. Please try again.');
-    }
-  };
-
   const handlePurchase = async () => {
-    alert('Payment integration coming soon! For now, enjoy the free trial.');
+    if (!selectedPlan || selectedPlan.id === 'free') return;
+    
+    setLoadingCheckout(true);
+    try {
+      const priceId = isSemester ? selectedPlan.priceIdSemester : selectedPlan.priceIdMonthly;
+      
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        body: { priceId }
+      });
+
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      console.error('Error starting checkout:', err);
+      alert('Network issue or checkout failed. Please refresh and try again.');
+    } finally {
+      setLoadingCheckout(false);
+      setShowPremiumModal(false);
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="dh-root" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafafa' }}>
-        <div style={{ width: 48, height: 48, border: '3px solid #f3f4f6', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
+  const isCurrentPlan = (planName) => {
+    const currentTier = userProfile?.subscription_tier?.toLowerCase() || 'free';
+    const planNormalized = planName.toLowerCase();
+    
+    if (planNormalized.includes('basic') && currentTier === 'free') return true;
+    if (planNormalized.includes('pro') && currentTier === 'pro') return true;
+    if (planNormalized.includes('executive') && currentTier === 'premium') return true;
+    return currentTier === planNormalized;
+  };
+
+  if (loading) return (
+    <div style={fullLoaderStyles}>
+      <div style={spinnerStyles} />
+    </div>
+  );
 
   return (
-    <div className="dh-root" style={{ 
-      overflowY: 'auto',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      paddingBottom: isMobile ? 100 : 80,
-      position: 'relative',
-      minHeight: '100vh'
-    }}>
-      {/* Background overlay pattern */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="4"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        backgroundSize: '60px 60px',
-        backgroundRepeat: 'repeat',
-        pointerEvents: 'none'
-      }} />
+    <div style={pageStyles}>
+      {/* Background Layer */}
+      <div style={bgOverlayStyles} />
       
-      {/* ── Topbar ── */}
-      <div style={{ 
-        padding: isMobile ? '24px 20px 16px' : '40px 48px',
-        background: '#fff',
-        borderBottom: '1px solid #e5e7eb',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          <h1 style={{ fontSize: isMobile ? 26 : 32, fontWeight: 1000, margin: 0, color: '#111', letterSpacing: '-0.04em' }}>
-            {isMobile ? 'Scholar Plans' : 'Subscription'}
-          </h1>
-          <p style={{ fontSize: isMobile ? 12 : 14, color: '#666', fontWeight: 700, margin: '4px 0 0' }}>
-            Manage your academic support plan.
-          </p>
-        </div>
+      {/* Content */}
+      <div style={contentWrapperStyles}>
         
-        {/* Trial Button */}
-        {!isMobile && (
-          <button 
-            onClick={handleStartTrial}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg, var(--primary), #7180fe)', color: 'white', padding: '10px 20px', borderRadius: 99, fontSize: 13, fontWeight: 800, cursor: 'pointer', border: 'none', boxShadow: '0 4px 14px rgba(113,128,254,0.3)', transition: 'transform 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+        {/* Header Section */}
+        <header style={headerStyles}>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={headerContentStyles}
           >
-            <Star size={16} /> 7-Day Free Trial
-          </button>
-        )}
-      </div>
+            <div style={badgeStyles}><Crown size={14} /> PREMIUM ACADEMICS</div>
+            <h1 style={titleStyles}>Elevate your <span style={highlightText}>Learning</span></h1>
+            <p style={subtitleStyles}>Join 10,000+ students using AI to master their curriculum in half the time.</p>
+          </motion.div>
 
-      <div style={{ 
-        padding: isMobile ? '32px 16px' : '60px 40px', 
-        maxWidth: 1100, 
-        margin: '0 auto', 
-        width: '100%',
-        boxSizing: 'border-box',
-        position: 'relative',
-        zIndex: 1
-      }}>
-        
-        {/* Toggle */}
-        <div style={{ textAlign: 'center', marginBottom: isMobile ? 40 : 60, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-          <div style={{ display: 'inline-flex', background: 'white', border: '1px solid #e5e7eb', borderRadius: 99, padding: 4, gap: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-            <button onClick={() => setIsSemester(false)} style={{ padding: '9px 28px', borderRadius: 99, background: !isSemester ? 'var(--primary)' : 'transparent', color: !isSemester ? 'white' : '#555', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', transition: 'all 0.25s' }}>Monthly</button>
-            <button onClick={() => setIsSemester(true)} style={{ padding: '9px 28px', borderRadius: 99, background: isSemester ? 'var(--primary)' : 'transparent', color: isSemester ? 'white' : '#555', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', transition: 'all 0.25s', display: 'flex', alignItems: 'center', gap: 8 }}>
-              Per Semester <span style={{ fontSize: 10, background: '#d1fae5', color: '#059669', padding: '2px 8px', borderRadius: 99, fontWeight: 800 }}>Best Value</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Pricing Cards */}
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: isMobile ? 'column' : 'row', 
-          justifyContent: 'center', 
-          gap: isMobile ? 24 : 32, 
-          maxWidth: 1200, 
-          margin: '0 auto',
-          fontFamily: 'Outfit, sans-serif'
-        }}>
-          {plans.map((plan, idx) => (
-            <motion.div 
-              key={plan.name}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1 }}
-              style={{
-                flex: '1',
-                maxWidth: isMobile ? '100%' : 380,
-                background: plan.isPopular 
-                  ? 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)' 
-                  : 'rgba(255, 255, 255, 0.95)', 
-                color: plan.color,
-                borderRadius: 0, // Sharp edges
-                padding: isMobile ? '32px 24px' : '48px 36px',
-                border: plan.isPopular 
-                  ? '2px solid rgba(255, 255, 255, 0.2)' 
-                  : '1px solid rgba(255, 255, 255, 0.3)',
-                boxShadow: plan.isPopular 
-                  ? '0 0 0 1px rgba(255, 255, 255, 0.1), 0 20px 40px rgba(122, 18, 204, 0.3)' 
-                  : '0 0 0 1px rgba(255, 255, 255, 0.1), 0 10px 30px rgba(0, 0, 0, 0.1)',
-                position: 'relative', 
-                zIndex: plan.isPopular ? 10 : 1,
-                display: 'flex', 
-                flexDirection: 'column',
-                width: '100%',
-                boxSizing: 'border-box',
-                backdropFilter: 'blur(10px)',
-                clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%)' // Diagonal cut corner
-              }}
-            >
-              {/* Top accent line */}
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: '4px',
-                background: plan.isPopular 
-                  ? 'linear-gradient(90deg, #fff, rgba(255,255,255,0.6))' 
-                  : 'linear-gradient(90deg, #7a12cc, #9718fb)',
-              }} />
-
-              {/* Popular badge */}
-              {plan.isPopular && (
-                <div style={{ 
-                  position: 'absolute',
-                  top: -12,
-                  right: 24,
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  gap: 6, 
-                  background: 'rgba(255,255,255,0.95)', 
-                  color: '#7a12cc', 
-                  padding: '6px 16px', 
-                  borderRadius: 0, // Sharp edges
-                  fontSize: 11, 
-                  fontWeight: 700, 
-                  fontFamily: 'Outfit',
-                  border: '2px solid rgba(255,255,255,0.3)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                }}>
-                  <Zap size={12} /> MOST POPULAR
-                </div>
-              )}
-
-              {/* Plan name and trial */}
-              <div style={{ marginBottom: 32, textAlign: 'center' }}>
-                <h3 style={{ 
-                  fontSize: 32, 
-                  fontWeight: 800, 
-                  margin: '0 0 8px 0',
-                  fontFamily: 'Outfit',
-                  letterSpacing: '-0.02em',
-                  color: plan.isPopular ? 'white' : '#111'
-                }}>{plan.name}</h3>
-                <div style={{ 
-                  fontSize: 14, 
-                  fontWeight: 500, 
-                  color: plan.isPopular ? 'rgba(255,255,255,0.8)' : '#666',
-                  fontFamily: 'Outfit'
-                }}>{plan.trial}</div>
-              </div>
-
-              {/* Price */}
-              <div style={{ 
-                textAlign: 'center', 
-                marginBottom: 32,
-                position: 'relative'
-              }}>
-                <div style={{ 
-                  fontSize: 64, 
-                  fontWeight: 900, 
-                  lineHeight: 1,
-                  fontFamily: 'Outfit',
-                  color: plan.isPopular ? 'white' : '#111',
-                  letterSpacing: '-0.03em'
-                }}>
-                  {plan.priceMonthly === 0 ? '₦0' : `₦${(isSemester ? plan.priceSemester : plan.priceMonthly).toLocaleString()}`}
-                </div>
-                {plan.priceMonthly > 0 && (
-                  <div style={{ 
-                    fontSize: 16, 
-                    fontWeight: 500, 
-                    color: plan.isPopular ? 'rgba(255,255,255,0.7)' : '#666',
-                    fontFamily: 'Outfit',
-                    marginTop: 4
-                  }}>
-                    per {isSemester ? 'semester' : 'month'}
-                  </div>
-                )}
-              </div>
-              
-              {/* CTA Button */}
+          <div style={toggleContainerStyles}>
+            <div style={togglePillStyles}>
               <button 
-                onClick={() => plan.id !== 'free' ? handleUpgrade(plan) : null}
-                style={{ 
-                  width: '100%', 
-                  padding: '18px', 
-                  borderRadius: 0, // Sharp edges
-                  fontSize: 16, 
-                  fontWeight: 700, 
-                  cursor: 'pointer', 
-                  marginBottom: 32, 
-                  fontFamily: 'Outfit',
-                  letterSpacing: '0.02em',
-                  background: plan.isPopular 
-                    ? 'rgba(255, 255, 255, 0.95)' 
-                    : 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)',
-                  color: plan.isPopular ? '#7a12cc' : 'white',
-                  border: plan.isPopular 
-                    ? '2px solid rgba(255, 255, 255, 0.3)' 
-                    : 'none',
-                  boxShadow: plan.isPopular 
-                    ? '0 8px 24px rgba(0,0,0,0.15)' 
-                    : '0 8px 24px rgba(122, 18, 204, 0.3)',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={e => { 
-                  e.currentTarget.style.transform = 'translateY(-2px)'; 
-                  e.currentTarget.style.boxShadow = plan.isPopular 
-                    ? '0 12px 32px rgba(0,0,0,0.2)' 
-                    : '0 12px 32px rgba(122, 18, 204, 0.4)';
-                }}
-                onMouseLeave={e => { 
-                  e.currentTarget.style.transform = 'none'; 
-                  e.currentTarget.style.boxShadow = plan.isPopular 
-                    ? '0 8px 24px rgba(0,0,0,0.15)' 
-                    : '0 8px 24px rgba(122, 18, 204, 0.3)';
-                }}
+                onClick={() => setIsSemester(false)}
+                style={{ ...toggleBtnStyles, background: !isSemester ? 'white' : 'transparent', color: !isSemester ? '#111' : '#fff' }}
               >
-                {plan.buttonText}
+                Monthly
               </button>
-              
-              {/* Features list */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
-                {plan.features.map((f, i) => (
-                  <div key={f} style={{ 
-                    display: 'flex', 
-                    gap: 12, 
-                    alignItems: 'flex-start',
-                    padding: '12px 0',
-                    borderBottom: i < plan.features.length - 1 
-                      ? `1px solid ${plan.isPopular ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.08)'}`
-                      : 'none'
-                  }}>
-                    <div style={{ 
-                      width: 20, 
-                      height: 20, 
-                      borderRadius: 0, // Sharp edges
-                      background: plan.isPopular 
-                        ? 'rgba(255,255,255,0.2)' 
-                        : 'linear-gradient(135deg, #7a12cc 0%, #9718fb 100%)', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      flexShrink: 0, 
-                      marginTop: 0,
-                      clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' // Sharp square
-                    }}>
-                      <Check size={12} color={plan.isPopular ? 'white' : 'white'} strokeWidth={3} />
-                    </div>
-                    <span style={{ 
-                      fontSize: 14, 
-                      fontWeight: 500, 
-                      lineHeight: 1.5, 
-                      color: plan.isPopular ? 'rgba(255,255,255,0.95)' : '#333',
-                      fontFamily: 'Outfit'
-                    }}>{f}</span>
+              <button 
+                onClick={() => setIsSemester(true)}
+                style={{ ...toggleBtnStyles, background: isSemester ? 'white' : 'transparent', color: isSemester ? '#111' : '#fff' }}
+              >
+                Semester <span style={discountBadgeStyles}>-40%</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Plans Grid */}
+        <div style={gridStyles(isMobile)}>
+          {plans.map((plan, idx) => {
+            const current = isCurrentPlan(plan.name);
+            const price = isSemester ? plan.priceSemester : plan.priceMonthly;
+            const PlanIcon = plan.icon;
+
+            return (
+              <motion.div
+                key={plan.id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                onMouseEnter={() => setHoveredPlan(plan.id)}
+                onMouseLeave={() => setHoveredPlan(null)}
+                style={cardStyles(plan.isPrimary, hoveredPlan === plan.id)}
+              >
+                {plan.badge && <div style={planBadgeStyles}>{plan.badge}</div>}
+                
+                <div style={cardHeaderStyles}>
+                  <div style={iconBoxStyles(plan.accentColor)}>
+                    <PlanIcon size={24} />
                   </div>
-                ))}
-              </div>
-            </motion.div>
-          ))}
+                  <div>
+                    <h3 style={planTitleStyles}>{plan.name}</h3>
+                    <p style={planTaglineStyles}>{plan.tagline}</p>
+                  </div>
+                </div>
+
+                <div style={priceContainerStyles}>
+                  <div style={priceValueStyles}>
+                    <span style={currencyStyles}>₦</span>
+                    <span style={amountStyles}>{price.toLocaleString()}</span>
+                  </div>
+                  <div style={pricePeriodStyles}>/ {isSemester ? 'semester' : 'month'}</div>
+                </div>
+
+                <button
+                  disabled={current || loadingCheckout}
+                  onClick={() => plan.id !== 'free' && handleUpgrade(plan)}
+                  onMouseEnter={() => setHoveredButton(plan.id)}
+                  onMouseLeave={() => setHoveredButton(null)}
+                  style={ctaStyles(plan.isPrimary, current, hoveredButton === plan.id)}
+                >
+                  {loadingCheckout && <Loader className="animate-spin" size={18} />}
+                  {!loadingCheckout && (current ? 'Active Plan' : plan.cta)}
+                </button>
+
+                <div style={dividerStyles} />
+
+                <ul style={featureListStyles}>
+                  {plan.features.map((f, i) => (
+                    <li key={i} style={featureItemStyles}>
+                      <div style={checkIconStyles}><Check size={12} strokeWidth={3} /></div>
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            );
+          })}
         </div>
+
+        {/* Footer Trust Section */}
+        <footer style={footerStyles}>
+          <div style={trustItemStyles}><Shield size={18} /> Bank-grade Security</div>
+          <div style={trustItemStyles}><Star size={18} /> Cancel Anytime</div>
+          <div style={trustItemStyles}><Zap size={18} /> Instant Activation</div>
+        </footer>
       </div>
 
       <PremiumModal
         isOpen={showPremiumModal}
         onClose={() => setShowPremiumModal(false)}
         onUpgrade={handlePurchase}
-        onStartTrial={handleStartTrial}
+        onStartTrial={() => navigate('/dashboard')}
       />
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+      `}</style>
     </div>
   );
 }
+
+// ── STYLES (Vanilla CSS in JS) ──
+
+const pageStyles = {
+  minHeight: '100vh',
+  background: '#050505',
+  color: '#fff',
+  fontFamily: "'Outfit', sans-serif",
+  position: 'relative',
+  overflowX: 'hidden',
+};
+
+const bgOverlayStyles = {
+  position: 'absolute',
+  inset: 0,
+  backgroundImage: 'url("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop")',
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  opacity: 0.2,
+  filter: 'grayscale(100%) contrast(150%)',
+  zIndex: 0,
+};
+
+const contentWrapperStyles = {
+  position: 'relative',
+  zIndex: 1,
+  padding: '80px 24px',
+  maxWidth: 1200,
+  margin: '0 auto',
+};
+
+const headerStyles = {
+  textAlign: 'center',
+  marginBottom: 80,
+};
+
+const headerContentStyles = {
+  maxWidth: 700,
+  margin: '0 auto 40px',
+};
+
+const badgeStyles = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  padding: '8px 16px',
+  background: 'rgba(122, 18, 204, 0.2)',
+  border: '1px solid rgba(122, 18, 204, 0.3)',
+  borderRadius: 99,
+  fontSize: 12,
+  fontWeight: 800,
+  color: '#a78bfa',
+  letterSpacing: '0.1em',
+  marginBottom: 24,
+};
+
+const titleStyles = {
+  fontSize: 'clamp(40px, 8vw, 64px)',
+  fontWeight: 900,
+  letterSpacing: '-0.05em',
+  lineHeight: 1,
+  marginBottom: 24,
+};
+
+const highlightText = {
+  background: 'linear-gradient(to right, #a78bfa, #818cf8)',
+  WebkitBackgroundClip: 'text',
+  WebkitTextFillColor: 'transparent',
+};
+
+const subtitleStyles = {
+  fontSize: 18,
+  color: '#94a3b8',
+  maxWidth: 500,
+  margin: '0 auto',
+  lineHeight: 1.6,
+};
+
+const toggleContainerStyles = {
+  display: 'flex',
+  justifyContent: 'center',
+};
+
+const togglePillStyles = {
+  display: 'flex',
+  background: 'rgba(255,255,255,0.05)',
+  padding: 4,
+  borderRadius: 99,
+  border: '1px solid rgba(255,255,255,0.1)',
+  gap: 4,
+};
+
+const toggleBtnStyles = {
+  padding: '10px 24px',
+  borderRadius: 99,
+  fontSize: 14,
+  fontWeight: 700,
+  border: 'none',
+  cursor: 'pointer',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+};
+
+const discountBadgeStyles = {
+  fontSize: 10,
+  padding: '2px 8px',
+  background: '#10b981',
+  color: '#fff',
+  borderRadius: 99,
+};
+
+const gridStyles = (isMobile) => ({
+  display: 'grid',
+  gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+  gap: 24,
+  alignItems: 'stretch',
+});
+
+const cardStyles = (isPrimary, isHovered) => ({
+  background: isPrimary ? 'rgba(15,15,15,0.8)' : 'rgba(20,20,20,0.6)',
+  backdropFilter: 'blur(20px)',
+  borderRadius: 32,
+  padding: 40,
+  border: isPrimary ? '2px solid #7a12cc' : '1px solid rgba(255,255,255,0.1)',
+  position: 'relative',
+  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+  transform: isHovered ? 'translateY(-12px)' : 'translateY(0)',
+  boxShadow: isHovered ? '0 30px 60px rgba(0,0,0,0.5)' : 'none',
+});
+
+const planBadgeStyles = {
+  position: 'absolute',
+  top: 20,
+  right: 24,
+  background: 'linear-gradient(135deg, #7a12cc, #9718fb)',
+  padding: '4px 12px',
+  borderRadius: 99,
+  fontSize: 10,
+  fontWeight: 900,
+  color: '#fff',
+};
+
+const cardHeaderStyles = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 16,
+  marginBottom: 32,
+};
+
+const iconBoxStyles = (color) => ({
+  width: 52,
+  height: 52,
+  borderRadius: 16,
+  background: `${color}15`,
+  color: color,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+});
+
+const planTitleStyles = {
+  fontSize: 22,
+  fontWeight: 800,
+  margin: 0,
+};
+
+const planTaglineStyles = {
+  fontSize: 13,
+  color: '#64748b',
+  margin: 0,
+};
+
+const priceContainerStyles = {
+  marginBottom: 32,
+};
+
+const priceValueStyles = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: 4,
+};
+
+const currencyStyles = {
+  fontSize: 24,
+  fontWeight: 700,
+  color: '#64748b',
+  marginTop: 8,
+};
+
+const amountStyles = {
+  fontSize: 56,
+  fontWeight: 900,
+  letterSpacing: '-0.04em',
+};
+
+const pricePeriodStyles = {
+  fontSize: 14,
+  color: '#64748b',
+  fontWeight: 600,
+};
+
+const ctaStyles = (isPrimary, current, isHovered) => ({
+  width: '100%',
+  height: '56px',
+  borderRadius: '16px',
+  fontSize: '15px',
+  fontWeight: 700,
+  fontFamily: 'var(--font-outfit)',
+  textTransform: 'none',
+  letterSpacing: 'normal',
+  cursor: current ? 'default' : 'pointer',
+  border: isPrimary && !current ? '2px solid #FB923C' : 'none',
+  background: current ? 'rgba(255,255,255,0.05)' : (isPrimary && !current && isHovered ? '#FB923C' : (isPrimary && !current ? 'white' : 'rgba(255,255,255,0.1)')),
+  color: current ? '#64748b' : (isPrimary && !current && isHovered ? 'white' : (isPrimary && !current ? '#FB923C' : '#FFFFFF')),
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '12px',
+  marginBottom: 32,
+  boxShadow: 'none',
+});
+
+const dividerStyles = {
+  height: 1,
+  background: 'rgba(255,255,255,0.05)',
+  marginBottom: 32,
+};
+
+const featureListStyles = {
+  listStyle: 'none',
+  padding: 0,
+  margin: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 16,
+};
+
+const featureItemStyles = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 12,
+  fontSize: 14,
+  fontWeight: 500,
+  color: '#cbd5e1',
+};
+
+const checkIconStyles = {
+  width: 20,
+  height: 20,
+  borderRadius: '50%',
+  background: 'rgba(16, 185, 129, 0.1)',
+  color: '#10b981',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
+};
+
+const footerStyles = {
+  marginTop: 80,
+  display: 'flex',
+  justifyContent: 'center',
+  gap: 40,
+  flexWrap: 'wrap',
+};
+
+const trustItemStyles = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 10,
+  fontSize: 14,
+  color: '#64748b',
+  fontWeight: 600,
+};
+
+const fullLoaderStyles = {
+  minHeight: '100vh',
+  background: '#050505',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
+
+const spinnerStyles = {
+  width: 40,
+  height: 40,
+  border: '3px solid rgba(122,18,204,0.1)',
+  borderTopColor: '#7a12cc',
+  borderRadius: '50%',
+  animation: 'spin 1s linear infinite',
+};

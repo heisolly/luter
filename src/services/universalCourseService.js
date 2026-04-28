@@ -147,22 +147,7 @@ export const universalCourseService = {
         .from('user_courses')
         .select(`
           *,
-          courses(*),
-          course_context_courses!inner(
-            context_matrix_id,
-            is_core,
-            is_elective,
-            is_gst,
-            credits,
-            prerequisites
-          ),
-          course_context_matrix!inner(
-            country,
-            university_name,
-            department_name,
-            level,
-            semester
-          )
+          courses(*)
         `)
         .eq('user_id', userId)
         .order('priority_level', { ascending: false })

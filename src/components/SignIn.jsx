@@ -4,7 +4,7 @@ import { RiArrowRightSLine as CaretRight, RiLoader4Line as CircleNotch, RiLockFi
 import { supabase } from '../supabaseClient';
 
 import GoogleLoginButton from './auth/GoogleLoginButton';
-import { AuthNavbar } from './PageShared';
+import { AuthNavbar, PremiumButton } from './PageShared';
 
 export default function SignIn() {
   const navigate = useNavigate();
@@ -82,10 +82,10 @@ export default function SignIn() {
 
         {/* Floating Icons Background */}
         <div style={{ position: 'absolute', top: '20%', left: '10%', opacity: 0.08, animation: 'float 8s infinite ease-in-out' }}>
-           <BookOpen size={48} color="#4B0082" weight="bold" />
+           <BookOpen size={48} color="#4B0082" weight="light" />
         </div>
         <div style={{ position: 'absolute', bottom: '20%', right: '10%', opacity: 0.08, animation: 'float 9s infinite ease-in-out-reverse' }}>
-           <GraduationCap size={48} color="#4B0082" weight="bold" />
+           <GraduationCap size={48} color="#4B0082" weight="light" />
         </div>
       </div>
 
@@ -136,9 +136,9 @@ export default function SignIn() {
               />
             </div>
 
-            <button type="submit" disabled={loading} style={primaryButtonStyle}>
-              {loading ? <CircleNotch className="animate-spin" size={20} weight="bold" /> : <>SIGN IN <CaretRight size={20} weight="bold" /></>}
-            </button>
+            <PremiumButton type="submit" disabled={loading} size="lg" style={{ width: '100%', marginTop: '12px' }}>
+              {loading ? <CircleNotch className="animate-spin" size={24} weight="light" /> : "SIGN IN"}
+            </PremiumButton>
           </form>
 
           <div style={{ textAlign: 'center', marginTop: 32, fontSize: 14, color: '#64748B', fontWeight: 600 }}>

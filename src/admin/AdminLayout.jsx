@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import { RiLoader4Line as Loader2, RiMenuLine as Menu, RiCloseLine as X, RiShieldFlashFill as ShieldAlert } from 'react-icons/ri'
+import { CircleNotch, List, X, ShieldWarning, SignOut } from '@phosphor-icons/react'
 import { isAdminUser } from './adminAuth'
 import AdminSidebar from './AdminSidebar'
 import { AdminPrefetchProvider } from '../context/AdminPrefetchContext'
@@ -11,104 +11,178 @@ export default function AdminLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState(null)
-  const [profile, setProfile] = useState(null)
-  const [email, setEmail] = useState('')
+  const [adminUser, setAdminUser] = useState(null)
   const [allowed, setAllowed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [passInput, setPassInput] = useState('')
-  const [passError, setPassError] = useState(false)
-  const [passVerified, setPassVerified] = useState(sessionStorage.getItem('luter_admin_session') === '242424')
+  const [username, setUsername] = useState('')
+  const [credential, setCredential] = useState('')
+  const [authError, setAuthError] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  const handleLogout = async () => {
+    if (adminUser) {
+      // Log admin logout
+      await supabase.rpc('log_standalone_admin_activity', {
+        admin_user_id: adminUser.admin_id,
+        action_param: 'logout',
+        resource_type_param: 'admin_session',
+        resource_id_param: null,
+        old_values_param: null,
+        new_values_param: null,
+        metadata_param: null,
+        ip_address_param: null,
+        user_agent_param: navigator.userAgent,
+        session_id_param: null
+      })
+    }
+    
+    // Clear session and state
+    sessionStorage.removeItem('standalone_admin_auth')
+    setAdminUser(null)
+    setIsAuthenticated(false)
+    setAllowed(false)
+    setUsername('')
+    setCredential('')
+  }
 
   useEffect(() => {
-    let cancelled = false
-
-    const run = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) {
+    // Check if admin is already authenticated in this session
+    const sessionAuth = sessionStorage.getItem('standalone_admin_auth')
+    if (sessionAuth) {
+      try {
+        const authData = JSON.parse(sessionAuth)
+        setAdminUser(authData)
+        setIsAuthenticated(true)
+        setAllowed(true)
         setLoading(false)
-        navigate(`/signin?redirect=${encodeURIComponent(location.pathname + location.search)}`, { replace: true })
         return
-      }
-
-      const u = session.user
-      const em = u.email || ''
-      setUser(u)
-      setEmail(em)
-
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', u.id).maybeSingle()
-
-      if (cancelled) return
-      setProfile(prof || {})
-
-      const ok = isAdminUser(prof, em)
-      setAllowed(ok)
-      setLoading(false)
-
-      if (!ok) {
-        navigate('/dashboard', { replace: true })
+      } catch (error) {
+        sessionStorage.removeItem('standalone_admin_auth')
       }
     }
-
-    run()
-    return () => {
-      cancelled = true
-    }
-  }, [navigate, location.pathname, location.search])
+    setLoading(false)
+  }, [])
 
   useEffect(() => {
     setMobileOpen(false)
   }, [location.pathname])
 
+  // Cleanup effect to prevent orphaned locks
+  useEffect(() => {
+    return () => {
+      // Cleanup any pending auth operations when component unmounts
+      // This helps prevent the lock warning in React Strict Mode
+    }
+  }, [])
+
   if (loading) {
     return (
       <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafafa' }}>
-        <Loader2 className="animate-spin" size={32} color="#7a12cc" />
+        <CircleNotch className="animate-spin" size={32} color="#7a12cc" />
       </div>
     )
   }
 
-  if (!allowed) {
-    return null
-  }
-
-  // Password gate
-  if (!passVerified) {
-    const handleVerify = (e) => {
+  // Admin authentication gate
+  if (!isAuthenticated) {
+    const handleLogin = async (e) => {
       e.preventDefault()
-      if (passInput === '242424') {
-        setPassVerified(true)
-        sessionStorage.setItem('luter_admin_session', '242424')
-      } else {
-        setPassError(true)
+      setAuthError(false)
+      
+      try {
+        // Verify standalone admin credentials
+        const { data, error } = await supabase.rpc('verify_standalone_admin_credential', {
+          username_param: username,
+          credential_param: credential
+        })
+        
+        if (error) {
+          console.error('Error verifying admin credentials:', error)
+          setAuthError(true)
+          return
+        }
+        
+        if (data && data.length > 0 && data[0].is_valid) {
+          const adminData = data[0]
+          setAdminUser(adminData)
+          setIsAuthenticated(true)
+          setAllowed(true)
+          
+          // Store in session
+          sessionStorage.setItem('standalone_admin_auth', JSON.stringify(adminData))
+          
+          // Update last login time
+          await supabase.from('admin_users').update({
+            last_login: new Date().toISOString()
+          }).eq('id', adminData.admin_id)
+          
+          // Log admin login
+          await supabase.rpc('log_standalone_admin_activity', {
+            admin_user_id: adminData.admin_id,
+            action_param: 'login',
+            resource_type_param: 'admin_session',
+            resource_id_param: null,
+            old_values_param: null,
+            new_values_param: null,
+            metadata_param: null,
+            ip_address_param: null,
+            user_agent_param: navigator.userAgent,
+            session_id_param: null
+          })
+        } else {
+          setAuthError(true)
+        }
+      } catch (error) {
+        console.error('Error during admin authentication:', error)
+        setAuthError(true)
       }
     }
 
     return (
       <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f4f5', padding: 20 }}>
-        <form onSubmit={handleVerify} style={{ background: '#fff', padding: '32px', borderRadius: 12, border: '1px solid #e4e4e7', width: '100%', maxWidth: 400, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
+        <form onSubmit={handleLogin} style={{ background: '#fff', padding: '32px', borderRadius: 12, border: '1px solid #e4e4e7', width: '100%', maxWidth: 400, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
             <div style={{ background: '#fef2f2', padding: 12, borderRadius: '50%' }}>
-              <ShieldAlert size={32} color="#dc2626" />
+              <ShieldWarning size={32} color="#dc2626" />
             </div>
           </div>
           <h2 style={{ fontSize: 20, fontWeight: 800, textAlign: 'center', marginBottom: 8, color: '#18181b' }}>Admin Access</h2>
-          <p style={{ fontSize: 14, color: '#71717a', textAlign: 'center', marginBottom: 24 }}>Enter the restricted password to continue</p>
+          <p style={{ fontSize: 14, color: '#71717a', textAlign: 'center', marginBottom: 24 }}>Enter your admin credentials to continue</p>
           
           <input
-            type="password"
+            type="text"
             autoFocus
-            placeholder="••••••"
-            value={passInput}
+            placeholder="Username"
+            value={username}
             onChange={(e) => {
-              setPassInput(e.target.value)
-              setPassError(false)
+              setUsername(e.target.value)
+              setAuthError(false)
             }}
             style={{ 
               width: '100%', 
               padding: '12px 16px', 
               borderRadius: 8, 
-              border: `2px solid ${passError ? '#dc2626' : '#e4e4e7'}`,
+              border: `2px solid ${authError ? '#dc2626' : '#e4e4e7'}`,
+              fontSize: 16,
+              marginBottom: 12,
+              outline: 'none',
+              transition: 'all 0.2s'
+            }}
+          />
+          
+          <input
+            type="password"
+            placeholder="Credential"
+            value={credential}
+            onChange={(e) => {
+              setCredential(e.target.value)
+              setAuthError(false)
+            }}
+            style={{ 
+              width: '100%', 
+              padding: '12px 16px', 
+              borderRadius: 8, 
+              border: `2px solid ${authError ? '#dc2626' : '#e4e4e7'}`,
               fontSize: 16,
               marginBottom: 16,
               outline: 'none',
@@ -116,8 +190,8 @@ export default function AdminLayout() {
             }}
           />
 
-          {passError && (
-            <p style={{ color: '#dc2626', fontSize: 13, textAlign: 'center', marginBottom: 16, fontWeight: 600 }}>Incorrect password. Try again.</p>
+          {authError && (
+            <p style={{ color: '#dc2626', fontSize: 13, textAlign: 'center', marginBottom: 16, fontWeight: 600 }}>Invalid username or credential. Please try again.</p>
           )}
 
           <button
@@ -159,7 +233,7 @@ export default function AdminLayout() {
           style={{ background: 'none', border: 'none', padding: 8, cursor: 'pointer', display: 'flex' }}
           aria-label="Open menu"
         >
-          <Menu size={22} />
+          <List size={22} />
         </button>
         <span style={{ fontWeight: 800, fontSize: 15, letterSpacing: '-0.02em' }}>Luter Admin</span>
         <button
@@ -174,9 +248,7 @@ export default function AdminLayout() {
 
       <main className="adm-main">
         <div className="adm-main-inner">
-          <AdminPrefetchProvider>
-            <Outlet context={{ user, profile, email }} />
-          </AdminPrefetchProvider>
+          <Outlet context={{ adminUser, isAuthenticated }} />
         </div>
       </main>
     </div>

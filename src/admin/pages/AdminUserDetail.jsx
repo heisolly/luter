@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
-import { RiLoader4Line as Loader2, RiArrowLeftLine as ArrowLeft, RiSaveFill as Save } from 'react-icons/ri'
+import { CircleNotch, ArrowLeft, FloppyDisk } from '@phosphor-icons/react'
 import { useAdminPrefetch } from '../../context/AdminPrefetchContext'
 
 export default function AdminUserDetail() {
@@ -105,7 +105,7 @@ export default function AdminUserDetail() {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-        <Loader2 className="animate-spin" size={28} color="#7a12cc" />
+        <CircleNotch className="animate-spin" size={28} color="#7a12cc" />
       </div>
     )
   }
@@ -202,7 +202,7 @@ export default function AdminUserDetail() {
               </select>
             </label>
             <button type="button" className="adm-btn adm-btn--primary" disabled={saving} onClick={saveProfile}>
-              <Save size={16} /> Save profile
+              <FloppyDisk size={16} /> Save profile
             </button>
           </div>
         </div>

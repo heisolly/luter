@@ -1,0 +1,108 @@
+/* Mobile Touch Optimizations */
+/* Add this class to any interactive element for better mobile touch support */
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.mobile-touch-optimized {
+  /* Remove default tap highlight */
+  -webkit-tap-highlight-color: transparent;
+  
+  /* Disable callout and selection on touch */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  
+  /* Optimize touch action */
+  touch-action: manipulation;
+  
+  /* Ensure minimum touch target size (44px recommended by Apple) */
+  min-height: 44px;
+  min-width: 44px;
+  
+  /* Better touch feedback */
+  transition: all 0.2s ease;
+}
+
+/* Specific touch optimizations for different element types */
+.mobile-touch-button {
+  @extend .mobile-touch-optimized;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.mobile-touch-link {
+  @extend .mobile-touch-optimized;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.mobile-touch-icon {
+  @extend .mobile-touch-optimized;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Touch-friendly input fields */
+.mobile-touch-input {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: text; /* Allow text selection in inputs */
+  touch-action: manipulation;
+  min-height: 44px;
+  font-size: 16px; /* Prevent zoom on iOS */
+}
+
+/* Disable hover effects on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .mobile-touch-optimized:hover {
+    /* Remove hover effects on touch devices */
+    transform: none;
+    box-shadow: none;
+  }
+  
+  .mobile-touch-optimized:active {
+    /* Add active state for touch feedback */
+    transform: scale(0.98);
+    opacity: 0.8;
+  }
+}
+
+/* Ensure proper spacing for touch targets */
+.mobile-touch-spaced {
+  margin: 4px;
+}
+
+/* For clickable cards and larger touch areas */
+.mobile-touch-card {
+  @extend .mobile-touch-optimized;
+  padding: 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  min-height: 48px;
+}
+
+/* For small touch targets like close buttons */
+.mobile-touch-small {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  min-height: 32px;
+  min-width: 32px;
+  padding: 4px;
+  cursor: pointer;
+}

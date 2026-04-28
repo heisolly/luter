@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient'
 import { ingestMaterial } from './langchainPipeline'
+import { getCorrectMimeType, validateFile } from '../utils/fileUtils'
 
 /** Fetch all materials for a course (admin + user's own) */
 export async function fetchCourseMaterials(courseId) {
@@ -26,15 +27,122 @@ export async function uploadMaterial({
   semesterNumber = 1,
   sharingScope = 'course' 
 }) {
-  const ext = file.name.split('.').pop()
+  // Validate file before upload
+  const validation = validateFile(file)
+  if (!validation.valid) {
+    throw new Error(`File validation failed: ${validation.errors.join(', ')}`)
+  }
+  
+  const ext = file.name.split('.').pop().toLowerCase()
   const path = courseId 
     ? `${userId}/${courseId}/${Date.now()}.${ext}`
     : `${userId}/standalone/${Date.now()}.${ext}`
 
-  const { error: storageErr } = await supabase.storage
-    .from('materials')
-    .upload(path, file, { upsert: false })
-  if (storageErr) throw storageErr
+  // Get the correct MIME type using utility function
+  let correctMimeType = getCorrectMimeType(file)
+  
+  // Hardcode PPTX MIME type as a fallback to ensure it works
+  if (ext === 'pptx') {
+    correctMimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    console.log('Hardcoded PPTX MIME type:', correctMimeType)
+  }
+  
+  console.log(`File: ${file.name}, Extension: ${ext}, Detected MIME: ${file.type}, Final MIME: ${correctMimeType}`)
+  
+  // Force override the file.type property for debugging
+  console.log('Original file.type:', file.type)
+  console.log('Overriding file.type to:', correctMimeType)
+  
+  // Use blob approach to completely bypass MIME type issues
+  const fileBuffer = await file.arrayBuffer()
+  const blob = new Blob([fileBuffer], { type: correctMimeType })
+  const correctedFile = new File([blob], file.name, { type: correctMimeType })
+  console.log('New file.type:', correctedFile.type)
+  console.log('Blob size:', blob.size, 'Original size:', file.size)
+
+  // Retry logic for upload with exponential backoff
+  let storageErr = null
+  let retryCount = 0
+  const maxRetries = 3
+  
+  while (retryCount < maxRetries) {
+    try {
+      console.log(`Upload attempt ${retryCount + 1}/${maxRetries} for ${file.name}`)
+      
+      // Use direct REST API call to bypass Supabase client MIME type issues
+      let uploadResult
+      if (ext === 'pptx') {
+        console.log('Using direct REST API for PPTX files')
+        
+        // Get auth token
+        const { data: { session } } = await supabase.auth.getSession()
+        const token = session?.access_token
+        
+        if (!token) {
+          throw new Error('No authentication token available')
+        }
+        
+        // Use direct REST API call
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+        const uploadUrl = `${supabaseUrl}/storage/v1/object/materials/${path}`
+        
+        const response = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            // Don't set Content-Type header - let browser set it with boundary
+          },
+          body: file
+        })
+        
+        if (response.ok) {
+          uploadResult = { data: { path }, error: null }
+        } else {
+          const errorText = await response.text()
+          console.error('Direct API upload failed:', errorText)
+          uploadResult = { data: null, error: { message: errorText } }
+        }
+      } else {
+        uploadResult = await supabase.storage
+          .from('materials')
+          .upload(path, correctedFile, { 
+            upsert: false,
+            contentType: correctMimeType,
+            cacheControl: 'no-cache'
+          })
+      }
+      
+      const { error: uploadError } = uploadResult
+      
+      if (!uploadError) {
+        storageErr = null
+        break
+      }
+      
+      storageErr = uploadError
+      console.warn(`Upload attempt ${retryCount + 1} failed:`, uploadError)
+      
+      // Wait before retry with exponential backoff
+      if (retryCount < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000))
+      }
+      
+      retryCount++
+    } catch (error) {
+      console.error(`Upload attempt ${retryCount + 1} threw error:`, error)
+      storageErr = error
+      retryCount++
+      
+      if (retryCount < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000))
+      }
+    }
+  }
+  
+  if (storageErr) {
+    console.error('Upload failed after all retries:', storageErr)
+    throw new Error(`Failed to upload file: ${storageErr.message || 'Unknown error'}`)
+  }
 
   const { data: urlData } = supabase.storage.from('materials').getPublicUrl(path)
 
@@ -53,47 +161,92 @@ export async function uploadMaterial({
     }
   }
 
-  const { data, error } = await supabase
-    .from('materials')
-    .insert({
-      course_id: courseId || null,
-      user_id: userId,
-      title: title || file.name,
-      type,
-      source_url: urlData.publicUrl,
-      owner_role: 'user',
-      processing_status: 'pending',
-      week_number: parseInt(week) || 1,
-      program_id: finalProgramId,
-      academic_year: academicYear,
-      semester_number: parseInt(semesterNumber) || 1,
-      sharing_scope: sharingScope,
-      metadata: {
-        uploaded_by_user: true,
-        file_size: file.size,
-        original_filename: file.name
+  // Retry logic for database insertion
+  let dbError = null
+  let dbRetryCount = 0
+  const maxDbRetries = 3
+  let materialData = null
+  
+  while (dbRetryCount < maxDbRetries) {
+    try {
+      console.log(`DB insert attempt ${dbRetryCount + 1}/${maxDbRetries}`)
+      
+      const { data, error } = await supabase
+        .from('materials')
+        .insert({
+          course_id: courseId || null,
+          user_id: userId,
+          title: title || file.name,
+          type,
+          source_url: urlData.publicUrl,
+          owner_role: 'user',
+          processing_status: 'pending',
+          week_number: parseInt(week) || 1,
+          program_id: finalProgramId,
+          academic_year: academicYear,
+          semester_number: parseInt(semesterNumber) || 1,
+          sharing_scope: sharingScope,
+          metadata: {
+            uploaded_by_user: true,
+            file_size: file.size,
+            original_filename: file.name
+          }
+        })
+        .select()
+        .single()
+      
+      if (!error && data) {
+        materialData = data
+        dbError = null
+        break
       }
-    })
-    .select()
-    .single()
-  if (error) throw error
+      
+      dbError = error
+      console.warn(`DB insert attempt ${dbRetryCount + 1} failed:`, error)
+      
+      if (dbRetryCount < maxDbRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, dbRetryCount) * 1000))
+      }
+      
+      dbRetryCount++
+    } catch (error) {
+      console.error(`DB insert attempt ${dbRetryCount + 1} threw error:`, error)
+      dbError = error
+      dbRetryCount++
+      
+      if (dbRetryCount < maxDbRetries) {
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, dbRetryCount) * 1000))
+      }
+    }
+  }
+  
+  if (dbError || !materialData) {
+    console.error('Database insert failed after all retries:', dbError)
+    // Clean up uploaded file if database insert fails
+    try {
+      await supabase.storage.from('materials').remove([path])
+    } catch (cleanupError) {
+      console.warn('Failed to cleanup uploaded file:', cleanupError)
+    }
+    throw new Error(`Failed to save material to database: ${dbError?.message || 'Unknown error'}`)
+  }
 
   // Run LangChain ingestion pipeline (non-blocking — extracts, chunks, embeds, stores)
   ingestMaterial({
     file,
     type,
     url: null,
-    metadata: { materialId: data.id, courseId: courseId || null, userId, title: title || file.name }
+    metadata: { materialId: materialData.id, courseId: courseId || null, userId, title: title || file.name }
   }).catch(err => console.error('[LangChain] Ingestion error after upload:', err))
 
   // Create share records based on sharing scope
   if (sharingScope === 'program' && finalProgramId) {
-    await createProgramShares(data.id, finalProgramId, userId, academicYear)
+    await createProgramShares(materialData.id, finalProgramId, userId, academicYear)
   } else if (sharingScope === 'year') {
-    await createYearShares(data.id, userId, academicYear)
+    await createYearShares(materialData.id, userId, academicYear)
   }
 
-  return data
+  return materialData
 }
 
 /** Create program-wide shares for a material */
@@ -314,6 +467,19 @@ export async function saveToVault({ userId, courseId, materialId, title, content
   
   console.log('saveToVault success:', data)
   return data
+}
+
+/** Fetch user's standalone materials (not attached to any course) */
+export async function fetchUserStandaloneMaterials(userId) {
+  const { data, error } = await supabase
+    .from('materials')
+    .select('*')
+    .eq('user_id', userId)
+    .is('course_id', null)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data || []
 }
 
 /** Fetch user's saved notes for a course */

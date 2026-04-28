@@ -507,14 +507,21 @@ input { font-family: var(--font); }
 }
 
 .dsb-nav-item--pro {
-  background: #fff;
-  border: 1px solid #fbbf24;
-  color: #b45309;
+  background: white;
+  color: #FB923C;
+  border: 2px solid #FB923C;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+  box-shadow: none;
+  border-radius: 12px;
 }
 
 .dsb-nav-item--pro:hover {
-  background: #fffbeb;
-  color: #b45309;
+  background: #FB923C;
+  color: white;
+  border: 2px solid #FB923C;
+  box-shadow: 0 4px 12px rgba(251, 146, 60, 0.15);
 }
 
 /* Children Navigation */

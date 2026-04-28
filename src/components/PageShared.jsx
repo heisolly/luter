@@ -20,35 +20,88 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import LuterLogo from './shared/LuterLogo';
 
-export const PremiumButton = ({ children, to, onClick, style = {}, variant = 'primary', disabled = false }) => {
+export const PremiumButton = ({ 
+  children, to, onClick, 
+  style = {}, variant = 'primary', size = 'md',
+  disabled = false, icon: Icon = null, type = 'button',
+  isUpgradeButton = false 
+}) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   
   const isPrimary = variant === 'primary';
+  const isOutline = variant === 'outline';
+  const isLarge = size === 'lg';
   
+  // User's specific RGB palette
+  const colors = {
+    bg: isUpgradeButton ? 'white' : 'rgba(196, 181, 253, 1)',      // primary-300
+    border: isUpgradeButton ? '#FB923C' : 'rgba(167, 139, 250, 1)',  // primary-400
+    text: isUpgradeButton ? '#FB923C' : 'rgba(46, 16, 101, 1)',      // primary-950
+    hoverBg: isUpgradeButton ? '#FB923C' : 'rgba(221, 214, 254, 1)', // primary-200
+    hoverBorder: isUpgradeButton ? '#FB923C' : 'rgba(196, 181, 253, 1)', // primary-300
+    outlineBg: 'rgba(245, 243, 255, 0.5)',
+    outlineBorder: 'rgba(196, 181, 253, 0.6)'
+  };
+
+  const height = isLarge ? '52px' : '36px';
+  const borderRadius = isLarge ? '16px' : '14px';
+  const padding = isLarge ? '0 32px' : '0 16px';
+  const fontSize = isLarge ? '18px' : '16px';
+  const fontWeight = isLarge ? 700 : 500;
+
+  const getBackground = () => {
+    if (disabled) return '#F3F4F6';
+    if (isPrimary) return isHovered ? colors.hoverBg : colors.bg;
+    if (isOutline) return isHovered ? colors.outlineBg : 'transparent';
+    return 'white';
+  };
+
+  const getBorder = () => {
+    if (disabled) return '1px solid #E5E7EB';
+    if (isPrimary) return `1px solid ${isHovered ? colors.hoverBorder : colors.border}`;
+    if (isOutline) return `2px solid ${isHovered ? colors.border : colors.outlineBorder}`;
+    return `1px solid ${colors.border}`;
+  };
+
+  const getColor = () => {
+    if (disabled) return '#9CA3AF';
+    if (isUpgradeButton && isPrimary && isHovered) return 'white';
+    return colors.text;
+  };
+
   const baseStyle = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    height: '52px', padding: '0 32px', borderRadius: '9999px',
-    background: isPrimary ? 'linear-gradient(135deg, #A855F7 0%, #C7B9FF 100%)' : 'white',
-    color: isPrimary ? 'white' : '#4B0082',
-    border: isPrimary ? 'none' : '2px solid #C7B9FF',
-    fontSize: '14px', 
-    fontWeight: 700, 
+    height: height, padding: padding, borderRadius: borderRadius,
+    background: getBackground(),
+    color: getColor(),
+    border: getBorder(),
+    borderBottom: (isPrimary && !disabled) ? (isHovered ? `1px solid ${colors.hoverBorder}` : `2px solid ${colors.border}`) : getBorder().replace('2px', '1px'),
+    fontSize: fontSize, 
+    fontWeight: fontWeight, 
     fontFamily: 'var(--font-outfit)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
+    textTransform: 'none',
+    letterSpacing: isLarge ? '-0.01em' : 'normal',
     textDecoration: 'none', 
     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     boxSizing: 'border-box', gap: '10px',
     cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.6 : 1,
-    transform: isPressed ? 'scale(0.98)' : (isHovered ? 'translateY(-2px)' : 'translateY(0px)'),
-    boxShadow: isPrimary && isHovered && !disabled ? '0 8px 24px rgba(168, 85, 247, 0.25)' : 'none',
+    opacity: 1,
+    transform: isPressed ? 'scale(0.98) translateY(1px)' : (isHovered ? 'translateY(-2px)' : 'translateY(0px)'),
+    boxShadow: (isPrimary && isHovered && !disabled) ? '0 12px 24px -8px rgba(75, 0, 130, 0.15)' : 'none',
+    width: '100%',
+    maxWidth: style.width === '100%' ? '100%' : 'max-content',
+    // Mobile touch improvements
+    WebkitTapHighlightColor: 'transparent',
+    WebkitTouchCallout: 'none',
+    WebkitUserSelect: 'none',
+    touchAction: 'manipulation',
+    minHeight: isLarge ? '52px' : '44px',
     ...style
   };
 
   const Component = to ? Link : 'button';
-  const componentProps = to ? { to } : { onClick, disabled };
+  const componentProps = to ? { to } : { onClick, disabled, type };
   
   return (
     <Component 
@@ -59,7 +112,11 @@ export const PremiumButton = ({ children, to, onClick, style = {}, variant = 'pr
       onMouseDown={() => !disabled && setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
     >
-      {children}
+      <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {children}
+        {(isPrimary || isLarge) && Icon && <Icon size={isLarge ? 22 : 18} weight="light" />}
+        {isLarge && !Icon && variant === 'primary' && <ChevronRight size={20} weight="light" />}
+      </span>
     </Component>
   );
 };
@@ -84,10 +141,26 @@ export const AuthNavbar = ({ type = 'signin' }) => {
         <PremiumButton 
           to={isSignIn ? "/signup" : "/signin"} 
           variant={isSignIn ? "primary" : "secondary"}
-          style={{ height: '38px', padding: '0 20px', fontSize: '13px' }}
+          style={!isSignIn ? {
+            background: 'transparent',
+            border: '2px solid transparent',
+            color: '#475569',
+            borderRadius: '14px'
+          } : {}}
+          onMouseEnter={!isSignIn ? (e) => {
+            e.currentTarget.style.borderColor = '#C7B9FF';
+            e.currentTarget.style.color = '#4B0082';
+            e.currentTarget.style.background = 'rgba(199, 185, 255, 0.05)';
+            e.currentTarget.style.transform = 'translateY(-2px)';
+          } : undefined}
+          onMouseLeave={!isSignIn ? (e) => {
+            e.currentTarget.style.borderColor = 'transparent';
+            e.currentTarget.style.color = '#475569';
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.transform = 'translateY(0px)';
+          } : undefined}
         >
           {isSignIn ? "Sign up" : "Sign in"}
-          {isSignIn && <ArrowRight size={14} weight="bold" />}
         </PremiumButton>
       </div>
     </div>
@@ -218,7 +291,7 @@ export function SharedFAQ({ items = [], title = "Frequently Asked Questions", su
                     animate={{ rotate: activeIndex === idx ? 0 : 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    {activeIndex === idx ? <Minus size={20} weight="bold" /> : <Plus size={20} weight="bold" />}
+                    {activeIndex === idx ? <Minus size={20} weight="light" /> : <Plus size={20} weight="light" />}
                   </motion.div>
                 </div>
                 <h3 style={{ 
@@ -315,35 +388,34 @@ export function SharedNavbar() {
             <Link 
               to="/signin" 
               style={{ 
-                fontSize: 14, 
-                fontWeight: 700, 
-                color: '#475569', 
-                textDecoration: 'none',
-                fontFamily: 'var(--font-outfit)',
-                height: '38px',
+                fontSize: '14px', 
+                fontWeight: 500,
+                height: '36px',
                 padding: '0 16px',
-                borderRadius: '9999px',
-                display: 'inline-flex',
+                borderRadius: '14px',
+                display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                transition: 'all 0.2s ease',
-                cursor: 'pointer',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em'
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                border: '2px solid transparent',
+                fontFamily: 'var(--font-outfit)',
+                letterSpacing: 'normal'
               }}
-              onMouseEnter={e => {
-                e.currentTarget.style.color = '#4B0082';
-                e.currentTarget.style.background = 'rgba(75, 0, 130, 0.05)';
+              onMouseEnter={(e) => {
+                e.currentTarget.style.border = '2px solid #C7B9FF';
+                e.currentTarget.style.background = '#FAF8FF';
+                e.currentTarget.style.transform = 'translateY(-2px)';
               }}
-              onMouseLeave={e => {
-                e.currentTarget.style.color = '#475569';
+              onMouseLeave={(e) => {
+                e.currentTarget.style.border = '2px solid transparent';
                 e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.transform = 'translateY(0px)';
               }}
             >
               Sign in
             </Link>
-            <PremiumButton to="/signup" style={{ height: '38px', padding: '0 20px' }}>
-              Sign up <ArrowRight size={14} weight="bold" />
+            <PremiumButton to="/signup">
+              Sign up
             </PremiumButton>
           </div>
         </div>
@@ -359,7 +431,7 @@ export function SharedNavbar() {
           </Link>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <PremiumButton to="/signup" style={{ height: '36px', padding: '0 18px', fontSize: '13px' }}>
+            <PremiumButton to="/signup">
               Get Started
             </PremiumButton>
             <button 
@@ -376,7 +448,7 @@ export function SharedNavbar() {
               }}
               aria-label={isOpen ? 'Close menu' : 'Open menu'}
             >
-              <Menu size={24} weight="bold" color="#111" />
+              <Menu size={24} weight="light" color="#111" />
             </button>
           </div>
         </div>
@@ -407,11 +479,11 @@ export function SharedNavbar() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 { [
-                  { l: 'Features', p: '/features', i: <Stack size={22} weight="bold" /> },
-                  { l: 'How it works', p: '/how-it-works', i: <BookOpen size={22} weight="bold" /> },
-                  { l: 'Pricing', p: '/pricing', i: <Lightning size={22} weight="bold" /> },
-                  { l: 'About', p: '/about', i: <Users size={22} weight="bold" /> },
-                  { l: 'Sign In', p: '/signin', i: <TrendingUp size={22} weight="bold" /> }
+                  { l: 'Features', p: '/features', i: <Stack size={22} weight="light" /> },
+                  { l: 'How it works', p: '/how-it-works', i: <BookOpen size={22} weight="light" /> },
+                  { l: 'Pricing', p: '/pricing', i: <Lightning size={22} weight="light" /> },
+                  { l: 'About', p: '/about', i: <Users size={22} weight="light" /> },
+                  { l: 'Sign In', p: '/signin', i: <TrendingUp size={22} weight="light" /> }
                 ].map((item, idx) => (
                 <motion.div
                   key={item.l}
@@ -445,7 +517,7 @@ export function SharedNavbar() {
                       {item.i}
                     </div>
                     {item.l}
-                    <ChevronRight size={18} weight="bold" style={{ marginLeft: 'auto', opacity: 0.3 }} />
+                    <ChevronRight size={18} weight="light" style={{ marginLeft: 'auto', opacity: 0.3 }} />
                   </Link>
                 </motion.div>
               ))}
@@ -465,8 +537,8 @@ export function SharedNavbar() {
                 <h4 style={{ fontSize: 16, fontWeight: 800, color: '#111', marginBottom: 4, fontFamily: 'var(--font-outfit)' }}>Level Up Your Grades</h4>
                 <p style={{ fontSize: 13, color: '#111', opacity: 0.7, fontWeight: 500, fontFamily: 'var(--font-varela)' }}>Join 5M+ students using AI to master their curriculum.</p>
               </div>
-              <PremiumButton to="/signup" onClick={() => setIsOpen(false)} style={{ width: '100%', height: '52px', fontSize: '16px' }}>
-                Start Free Today <ArrowRight size={18} weight="bold" style={{ marginLeft: 8 }} />
+              <PremiumButton to="/signup" onClick={() => setIsOpen(false)} style={{ width: '100%', height: '56px' }}>
+                Start Free Today
               </PremiumButton>
             </motion.div>
           </motion.div>
@@ -515,11 +587,11 @@ export function SharedFooter() {
             {/* Social Links */}
             <div style={{ display: 'flex', gap: 12 }}>
               {[
-                { icon: <Music size={18} weight="bold" />, label: 'TikTok' },
-                { icon: <Instagram size={18} weight="bold" />, label: 'Instagram' },
-                { icon: <Facebook size={18} weight="bold" />, label: 'Facebook' },
-                { icon: <Twitter size={18} weight="bold" />, label: 'Twitter' },
-                { icon: <Linkedin size={18} weight="bold" />, label: 'LinkedIn' }
+                { icon: <Music size={18} weight="light" />, label: 'TikTok' },
+                { icon: <Instagram size={18} weight="light" />, label: 'Instagram' },
+                { icon: <Facebook size={18} weight="light" />, label: 'Facebook' },
+                { icon: <Twitter size={18} weight="light" />, label: 'Twitter' },
+                { icon: <Linkedin size={18} weight="light" />, label: 'LinkedIn' }
               ].map((s, i) => (
                 <a 
                   key={i}
@@ -561,24 +633,26 @@ export function SharedFooter() {
               Get started with your personal AI tutor now
             </h3>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-              <PremiumButton to="/signup" style={{ height: '48px', padding: '0 24px' }}>
+              <PremiumButton to="/signup">
                 Try Luter
               </PremiumButton>
               <Link to="/demo" style={{
-                height: 48, padding: '0 24px', background: '#fff', color: '#111',
-                borderRadius: '9999px', fontSize: 15, fontWeight: 700, display: 'flex', 
+                height: 44, padding: '0 24px', background: '#fff', color: '#111',
+                borderRadius: '14px', fontSize: 15, fontWeight: 700, display: 'flex', 
                 alignItems: 'center', gap: 8, textDecoration: 'none', border: '2px solid #F1F5F9',
-                transition: 'all 0.2s ease', fontFamily: 'var(--font-outfit)', textTransform: 'uppercase', letterSpacing: '0.05em'
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', fontFamily: 'var(--font-outfit)', textTransform: 'none', letterSpacing: '0.02em'
               }}
                 onMouseEnter={e => {
                   e.currentTarget.style.background = '#F9FAFB';
                   e.currentTarget.style.borderColor = '#C7B9FF';
                   e.currentTarget.style.color = '#4B0082';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.background = '#fff';
                   e.currentTarget.style.borderColor = '#F1F5F9';
                   e.currentTarget.style.color = '#111';
+                  e.currentTarget.style.transform = 'translateY(0px)';
                 }}
               >
                 Watch Demo

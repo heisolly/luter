@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { 
-  RiBookOpenFill as BookOpen, RiCalendarFill as Calendar, RiUploadCloudFill as Upload, RiUserFill as Users, RiMessage2Fill as MessageSquare, 
-  RiLineChartFill as TrendingUp, RiTimeFill as Clock, RiCheckboxCircleFill as CheckCircle, RiErrorWarningFill as AlertCircle, 
-  RiAddLine as Plus, RiSearchLine as Search, RiFilterFill as Filter, RiDownloadLine as Download, RiRefreshLine as RefreshCw,
-  RiBrainFill as Brain, RiFlashlightFill as Zap, RiFocusFill as Target, RiAwardFill as Award, RiBarChartFill as BarChart3,
-  RiFileTextFill as FileText, RiVideoFill as Video, RiHeadphoneFill as Headphones, RiImageFill as Image, RiFileFill as File,
-  RiArrowRightSLine as ChevronRight, RiArrowDownSLine as ChevronDown, RiEyeFill as Eye, RiEditFill as Edit, RiDeleteBin7Fill as Trash2,
-  RiSendPlaneFill as Send, RiNotificationFill as Bell, RiSettingsFill as Settings, RiStackFill as Layers, RiGridFill as Grid3x3,
-  RiLoader4Line as Loader2, RiMoreFill as MoreHorizontal, RiCloseLine as X
-} from 'react-icons/ri'
+  Books, Calendar, CloudArrowUp, Users, ChatCircleDots, 
+  ChartLineUp, Clock, CheckCircle, Warning, 
+  Plus, MagnifyingGlass, Funnel, DownloadSimple, ArrowsClockwise,
+  Brain, Lightning, Target, Medal, ChartBar,
+  FileText, VideoCamera, Headphones, Image, File,
+  CaretRight, CaretDown, Eye, PencilSimple, Trash,
+  PaperPlaneTilt, Bell, GearSix, Stack, SquaresFour,
+  CircleNotch, DotsThree, X
+} from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // Luter purple theme palette
@@ -114,7 +114,7 @@ export default function AdminNotesManager() {
       
       {trend && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '8px' }}>
-          <TrendingUp size={16} color={trend > 0 ? PALETTE[1] : '#ef4444'} />
+          <ChartLineUp size={16} color={trend > 0 ? PALETTE[1] : '#ef4444'} />
           <span style={{ fontSize: '12px', color: trend > 0 ? PALETTE[1] : '#ef4444', fontWeight: 600, fontFamily: 'Varela Round' }}>
             {trend > 0 ? '+' : ''}{trend}%
           </span>
@@ -309,7 +309,7 @@ export default function AdminNotesManager() {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-        <Loader2 className="animate-spin" size={32} color={PALETTE[0]} />
+        <CircleNotch className="animate-spin" size={32} color={PALETTE[0]} />
       </div>
     )
   }
@@ -330,7 +330,7 @@ export default function AdminNotesManager() {
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <BookOpen size={24} color="white" />
+                <Books size={24} color="white" />
               </div>
               Notes Manager
             </h1>
@@ -414,7 +414,7 @@ export default function AdminNotesManager() {
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
             <StatCard
-              icon={BookOpen}
+              icon={Books}
               title="Total Materials"
               value={stats.total_materials || 0}
               color={PALETTE[0]}
@@ -435,7 +435,7 @@ export default function AdminNotesManager() {
               subtitle="Semester progress"
             />
             <StatCard
-              icon={MessageSquare}
+              icon={ChatCircleDots}
               title="Pending Requests"
               value={stats.pending_requests || 0}
               color={PALETTE[3]}
