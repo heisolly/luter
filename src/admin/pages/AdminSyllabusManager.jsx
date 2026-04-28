@@ -113,6 +113,11 @@ export default function AdminSyllabusManager() {
 
   const [bulkText, setBulkText] = useState('')
   const [bulkResult, setBulkResult] = useState(null)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [manualCourse, setManualCourse] = useState({ code: '', title: '', is_elective: false })
+  const [selectedPreviewIds, setSelectedPreviewIds] = useState(new Set())
+  const [bulkEditMode, setBulkEditMode] = useState(false)
+  const [bulkEditData, setBulkEditData] = useState({ code: '', title: '', is_elective: null })
 
   const syllabusIdPreview = useMemo(() => {
     const us = universitySlugFromName(univ)
@@ -123,12 +128,17 @@ export default function AdminSyllabusManager() {
   const reload = useCallback(async () => {
     setLoading(true)
     setError(null)
-    const { data, error: e } = await supabase
+    console.log('Reloading syllabus data...')
+    const { data, error: e, count } = await supabase
       .from('curriculum_offers')
       .select('*')
       .order('updated_at', { ascending: false })
+    console.log('Reload response:', { data: data?.length, rows: count, error: e })
     if (e) setError(e.message)
-    setRows(data || [])
+    else {
+      setRows(data || [])
+      console.log('Updated rows state with', data?.length || 0, 'items')
+    }
     setLoading(false)
   }, [])
 
@@ -166,11 +176,60 @@ export default function AdminSyllabusManager() {
     setAiQuery('')
   }
 
+  const checkForDuplicatesInList = async (courseList) => {
+    const duplicates = []
+    
+    for (const course of courseList) {
+      const normalizedCode = normalizeCourseCode(course.code)
+      
+      // Check for duplicate in current preview
+      const previewDuplicate = preview.find(c => 
+        normalizeCourseCode(c.code) === normalizedCode
+      )
+      
+      if (previewDuplicate) {
+        duplicates.push({ course, type: 'preview', existing: previewDuplicate })
+        continue
+      }
+      
+      // Check for duplicate in existing syllabi
+      const existingDuplicate = await checkDuplicateCourse(course.code)
+      if (existingDuplicate) {
+        duplicates.push({ course, type: 'existing', existing: existingDuplicate })
+      }
+    }
+    
+    return duplicates
+  }
+
   const runPasteParser = async () => {
     setBusy(true)
     setError(null)
     const list = await parseSyllabusPasteWithGroq(paste)
-    if (!list.length) setError('Parser returned no courses. Check Groq API key or paste content.')
+    if (!list.length) {
+      setError('Parser returned no courses. Check Groq API key or paste content.')
+      setBusy(false)
+      return
+    }
+    
+    const duplicates = await checkForDuplicatesInList(list)
+    
+    if (duplicates.length > 0) {
+      const duplicateMessages = duplicates.map(d => 
+        `${d.course.code}: "${d.course.title}" (conflicts with: "${d.existing.title}")`
+      ).join('\n')
+      
+      const proceed = window.confirm(
+        `Found ${duplicates.length} duplicate course(s):\n\n${duplicateMessages}\n\n` +
+        `Do you want to continue anyway? Duplicates will be added to preview.`
+      )
+      
+      if (!proceed) {
+        setBusy(false)
+        return
+      }
+    }
+    
     setPreview(list.map((c) => ({ code: c.code, title: c.title, is_elective: c.is_elective })))
     setBusy(false)
   }
@@ -179,11 +238,32 @@ export default function AdminSyllabusManager() {
     setBusy(true)
     setError(null)
     const list = await suggestSyllabusFromAiQuery(aiQuery)
-    if (!list.length) setError('Assistant returned no rows. Try a clearer query and ensure VITE_GROQ_API_KEY is set.')
-    else {
-      setPreview(list.map((c) => ({ code: c.code, title: c.title, is_elective: c.is_elective })))
-      setError(null)
+    if (!list.length) {
+      setError('Assistant returned no rows. Try a clearer query and ensure VITE_GROQ_API_KEY is set.')
+      setBusy(false)
+      return
     }
+    
+    const duplicates = await checkForDuplicatesInList(list)
+    
+    if (duplicates.length > 0) {
+      const duplicateMessages = duplicates.map(d => 
+        `${d.course.code}: "${d.course.title}" (conflicts with: "${d.existing.title}")`
+      ).join('\n')
+      
+      const proceed = window.confirm(
+        `Found ${duplicates.length} duplicate course(s):\n\n${duplicateMessages}\n\n` +
+        `Do you want to continue anyway? Duplicates will be added to preview.`
+      )
+      
+      if (!proceed) {
+        setBusy(false)
+        return
+      }
+    }
+    
+    setPreview(list.map((c) => ({ code: c.code, title: c.title, is_elective: c.is_elective })))
+    setError(null)
     setBusy(false)
   }
 
@@ -252,9 +332,25 @@ export default function AdminSyllabusManager() {
     if (st === 'live' && !window.confirm('This syllabus is Live for students. Delete anyway?')) return
     if (st === 'draft' && !window.confirm('Delete this draft?')) return
     setBusy(true)
-    const { error: e } = await supabase.from('curriculum_offers').delete().eq('id', id)
-    if (e) setError(e.message)
-    else await reload()
+    setError(null)
+    
+    console.log('Attempting to delete syllabus with ID:', id)
+    
+    const { data, error: e, count } = await supabase
+      .from('curriculum_offers')
+      .delete()
+      .eq('id', id)
+      .select()
+    
+    console.log('Delete response:', { data, error: e, count })
+    
+    if (e) {
+      console.error('Delete error:', e)
+      setError(`Delete failed: ${e.message}`)
+    } else {
+      console.log(`Successfully deleted ${count || 0} rows`)
+      await reload()
+    }
     setBusy(false)
   }
 
@@ -325,6 +421,259 @@ export default function AdminSyllabusManager() {
     setPreview((prev) => prev.filter((_, i) => i !== idx))
   }
 
+  const togglePreviewSelection = (idx) => {
+    setSelectedPreviewIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(idx)) next.delete(idx)
+      else next.add(idx)
+      return next
+    })
+  }
+
+  const toggleSelectAllPreview = () => {
+    if (selectedPreviewIds.size === preview.length) {
+      setSelectedPreviewIds(new Set())
+    } else {
+      setSelectedPreviewIds(new Set(preview.map((_, idx) => idx)))
+    }
+  }
+
+  const bulkDeletePreview = () => {
+    if (selectedPreviewIds.size === 0) {
+      setError('No courses selected for deletion')
+      return
+    }
+    
+    if (!window.confirm(`Delete ${selectedPreviewIds.size} selected course(s)?`)) {
+      return
+    }
+    
+    setPreview((prev) => prev.filter((_, idx) => !selectedPreviewIds.has(idx)))
+    setSelectedPreviewIds(new Set())
+    setBulkEditMode(false)
+    setBulkEditData({ code: '', title: '', is_elective: null })
+  }
+
+  const bulkEditPreview = () => {
+    if (selectedPreviewIds.size === 0) {
+      setError('No courses selected for editing')
+      return
+    }
+    
+    setBulkEditMode(true)
+  }
+
+  const applyBulkEdit = () => {
+    if (selectedPreviewIds.size === 0) return
+    
+    setPreview((prev) => prev.map((course, idx) => {
+      if (selectedPreviewIds.has(idx)) {
+        return {
+          ...course,
+          code: bulkEditData.code.trim() ? normalizeCourseCode(bulkEditData.code.trim()) : course.code,
+          title: bulkEditData.title.trim() || course.title,
+          is_elective: bulkEditData.is_elective !== null ? bulkEditData.is_elective : course.is_elective
+        }
+      }
+      return course
+    }))
+    
+    setSelectedPreviewIds(new Set())
+    setBulkEditMode(false)
+    setBulkEditData({ code: '', title: '', is_elective: null })
+  }
+
+  const cancelBulkEdit = () => {
+    setBulkEditMode(false)
+    setBulkEditData({ code: '', title: '', is_elective: null })
+  }
+
+  const checkDuplicateCourse = async (courseCode) => {
+    const normalizedCode = normalizeCourseCode(courseCode.trim())
+    const university_slug = universitySlugFromName(univ)
+    const department_slug = departmentSlugFromLabel(dept)
+    
+    const { data, error } = await supabase
+      .from('curriculum_offers')
+      .select('courses')
+      .eq('university_slug', university_slug)
+      .eq('department_slug', department_slug)
+      .eq('level', level)
+      .eq('semester', semester)
+      .eq('status', 'live')
+    
+    if (error || !data) return false
+    
+    // Check if any existing syllabus has this course code
+    for (const syllabus of data) {
+      if (Array.isArray(syllabus.courses)) {
+        const existingCourse = syllabus.courses.find(course => 
+          normalizeCourseCode(course.code || '') === normalizedCode
+        )
+        if (existingCourse) {
+          return existingCourse
+        }
+      }
+    }
+    
+    return false
+  }
+
+  const addManualCourse = async () => {
+    if (!manualCourse.code.trim() || !manualCourse.title.trim()) {
+      setError('Please enter both course code and title')
+      return
+    }
+    
+    const normalizedCode = normalizeCourseCode(manualCourse.code.trim())
+    
+    // Check for duplicate in current preview
+    const previewDuplicate = preview.find(course => 
+      normalizeCourseCode(course.code) === normalizedCode
+    )
+    
+    if (previewDuplicate) {
+      setError(`Course code "${normalizedCode}" already exists in current preview`)
+      return
+    }
+    
+    // Check for duplicate in existing syllabi
+    const existingDuplicate = await checkDuplicateCourse(manualCourse.code)
+    
+    if (existingDuplicate) {
+      const confirmOverride = window.confirm(
+        `Course code "${normalizedCode}" already exists in this syllabus:\n` +
+        `"${existingDuplicate.title}"\n\n` +
+        `Do you want to override it? This will replace the existing course.`
+      )
+      
+      if (!confirmOverride) return
+    }
+    
+    const newCourse = {
+      code: normalizedCode,
+      title: manualCourse.title.trim(),
+      is_elective: manualCourse.is_elective
+    }
+    
+    setPreview((prev) => [...prev, newCourse])
+    setManualCourse({ code: '', title: '', is_elective: false })
+    setError(null)
+  }
+
+  const toggleSelection = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === rows.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(rows.map(r => r.id)))
+    }
+  }
+
+  const bulkDelete = async () => {
+    if (selectedIds.size === 0) {
+      setError('No items selected for deletion')
+      return
+    }
+    
+    const hasLive = Array.from(selectedIds).some(id => 
+      rows.find(r => r.id === id)?.status === 'live'
+    )
+    
+    if (hasLive && !window.confirm(`${selectedIds.size} item(s) selected, including Live syllabi. Delete anyway?`)) {
+      return
+    }
+    
+    if (!hasLive && !window.confirm(`Delete ${selectedIds.size} selected syllabus syllabi?`)) {
+      return
+    }
+    
+    setBusy(true)
+    setError(null)
+    
+    try {
+      const { data, error: e, count } = await supabase
+        .from('curriculum_offers')
+        .delete()
+        .in('id', Array.from(selectedIds))
+        .select()
+      
+      console.log('Bulk delete response:', { data, error: e, count })
+      
+      if (e) {
+        setError(`Bulk delete failed: ${e.message}`)
+      } else {
+        console.log(`Successfully deleted ${count || 0} rows`)
+        setSelectedIds(new Set())
+        await reload()
+      }
+    } catch (err) {
+      setError(`Bulk delete failed: ${err.message}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const bulkPublish = async (status) => {
+    if (selectedIds.size === 0) {
+      setError('No items selected for publishing')
+      return
+    }
+    
+    if (!userId) {
+      setError('User not authenticated for publishing')
+      return
+    }
+    
+    const action = status === 'live' ? 'publish' : 'unpublish'
+    if (!window.confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} ${selectedIds.size} selected syllabi?`)) {
+      return
+    }
+    
+    setBusy(true)
+    setError(null)
+    
+    try {
+      const updateData = {
+        status,
+        updated_at: new Date().toISOString()
+      }
+      
+      if (status === 'live') {
+        updateData.reviewed_by = userId
+        updateData.reviewed_at = new Date().toISOString()
+      }
+      
+      const { data, error: e, count } = await supabase
+        .from('curriculum_offers')
+        .update(updateData)
+        .in('id', Array.from(selectedIds))
+        .select()
+      
+      console.log(`Bulk ${action} response:`, { data, error: e, count })
+      
+      if (e) {
+        setError(`Bulk ${action} failed: ${e.message}`)
+      } else {
+        console.log(`Successfully ${action}ed ${count || 0} rows`)
+        setSelectedIds(new Set())
+        await reload()
+      }
+    } catch (err) {
+      setError(`Bulk ${action} failed: ${err.message}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <>
       <h1 className="adm-page-title">Syllabus Manager</h1>
@@ -365,86 +714,312 @@ export default function AdminSyllabusManager() {
 
       {view === 'table' && (
         <div className="adm-card" style={{ padding: 0, overflow: 'auto' }}>
+          {selectedIds.size > 0 && (
+            <div style={{ 
+              padding: '16px', 
+              background: '#eff6ff', 
+              borderBottom: '1px solid #bfdbfe',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontWeight: 600, color: '#1e40af', fontSize: 14 }}>
+                  {selectedIds.size} item{selectedIds.size !== 1 ? 's' : ''} selected
+                </span>
+                <div style={{ display: 'flex', gap: 6, padding: '4px', background: 'white', borderRadius: 6, border: '1px solid #d1d5db' }}>
+                  <button
+                    type="button"
+                    className="adm-btn adm-btn--ghost"
+                    onClick={bulkDelete}
+                    disabled={busy}
+                    style={{ fontSize: '12px', padding: '4px 8px' }}
+                  >
+                    <Trash size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    className="adm-btn adm-btn--ghost"
+                    onClick={() => bulkPublish('live')}
+                    disabled={busy}
+                    style={{ fontSize: '12px', padding: '4px 8px' }}
+                  >
+                    <RocketLaunch size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    className="adm-btn adm-btn--ghost"
+                    onClick={() => bulkPublish('draft')}
+                    disabled={busy}
+                    style={{ fontSize: '12px', padding: '4px 8px' }}
+                  >
+                    <FloppyDisk size={12} />
+                  </button>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="adm-btn adm-btn--ghost"
+                onClick={() => setSelectedIds(new Set())}
+                style={{ fontSize: '12px', padding: '6px 12px' }}
+              >
+                Clear All
+              </button>
+            </div>
+          )}
           {loading ? (
             <div style={{ padding: 48, textAlign: 'center' }}>
               <CircleNotch className="animate-spin" style={{ display: 'inline-block' }} />
             </div>
           ) : (
-            <table className="adm-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: '#fafafa', textAlign: 'left' }}>
-                  <th style={{ padding: 12 }}>Syllabus ID</th>
-                  <th style={{ padding: 12 }}>University</th>
-                  <th style={{ padding: 12 }}>Faculty</th>
-                  <th style={{ padding: 12 }}>Department</th>
-                  <th style={{ padding: 12 }}>Lv / Sem</th>
-                  <th style={{ padding: 12 }}>Status</th>
-                  <th style={{ padding: 12 }}>#</th>
-                  <th style={{ padding: 12 }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id} style={{ borderTop: '1px solid #eee' }}>
-                    <td style={{ padding: 12, fontFamily: 'monospace', fontSize: 11 }}>{r.syllabus_id}</td>
-                    <td style={{ padding: 12 }}>{r.university_name}</td>
-                    <td style={{ padding: 12 }}>{r.faculty}</td>
-                    <td style={{ padding: 12 }}>{r.department_label}</td>
-                    <td style={{ padding: 12 }}>
-                      {r.level} / {r.semester}
-                    </td>
-                    <td style={{ padding: 12 }}>
-                      <span
-                        style={{
-                          padding: '4px 8px',
-                          borderRadius: 6,
-                          fontWeight: 800,
+            <>
+              {rows.length > 0 ? (
+                <table style={{ 
+                  width: '100%', 
+                  borderCollapse: 'collapse', 
+                  fontSize: 13,
+                  background: 'white'
+                }}>
+                  <thead>
+                    <tr style={{ 
+                      background: '#f9fafb', 
+                      borderBottom: '2px solid #e5e7eb',
+                      textAlign: 'left' 
+                    }}>
+                      <th style={{ 
+                        padding: '14px 12px', 
+                        width: '40px', 
+                        fontWeight: 600, 
+                        fontSize: 12, 
+                        color: '#374151',
+                        borderRight: '1px solid #e5e7eb'
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.size === rows.length && rows.length > 0}
+                          onChange={toggleSelectAll}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </th>
+                      <th style={{ 
+                        padding: '14px 12px', 
+                        fontWeight: 600, 
+                        fontSize: 12, 
+                        color: '#374151',
+                        borderRight: '1px solid #e5e7eb'
+                      }}>Syllabus ID</th>
+                      <th style={{ 
+                        padding: '14px 12px', 
+                        fontWeight: 600, 
+                        fontSize: 12, 
+                        color: '#374151',
+                        borderRight: '1px solid #e5e7eb'
+                      }}>University</th>
+                      <th style={{ 
+                        padding: '14px 12px', 
+                        fontWeight: 600, 
+                        fontSize: 12, 
+                        color: '#374151',
+                        borderRight: '1px solid #e5e7eb'
+                      }}>Faculty</th>
+                      <th style={{ 
+                        padding: '14px 12px', 
+                        fontWeight: 600, 
+                        fontSize: 12, 
+                        color: '#374151',
+                        borderRight: '1px solid #e5e7eb'
+                      }}>Department</th>
+                      <th style={{ 
+                        padding: '14px 12px', 
+                        fontWeight: 600, 
+                        fontSize: 12, 
+                        color: '#374151',
+                        borderRight: '1px solid #e5e7eb'
+                      }}>Level</th>
+                      <th style={{ 
+                        padding: '14px 12px', 
+                        fontWeight: 600, 
+                        fontSize: 12, 
+                        color: '#374151',
+                        borderRight: '1px solid #e5e7eb'
+                      }}>Status</th>
+                      <th style={{ 
+                        padding: '14px 12px', 
+                        fontWeight: 600, 
+                        fontSize: 12, 
+                        color: '#374151',
+                        borderRight: '1px solid #e5e7eb'
+                      }}>Courses</th>
+                      <th style={{ 
+                        padding: '14px 12px', 
+                        fontWeight: 600, 
+                        fontSize: 12, 
+                        color: '#374151'
+                      }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r, index) => (
+                      <tr key={r.id} style={{ 
+                        borderBottom: '1px solid #f3f4f6',
+                        background: selectedIds.has(r.id) ? '#eff6ff' : 'white',
+                        transition: 'background-color 0.15s ease'
+                      }}>
+                        <td style={{ 
+                          padding: '14px 12px', 
+                          width: '40px',
+                          verticalAlign: 'middle',
+                          borderRight: '1px solid #f3f4f6'
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(r.id)}
+                            onChange={() => toggleSelection(r.id)}
+                            style={{ cursor: 'pointer' }}
+                          />
+                        </td>
+                        <td style={{ 
+                          padding: '14px 12px', 
+                          fontFamily: 'monospace', 
                           fontSize: 11,
-                          background: r.status === 'live' ? '#faf5ff' : '#fef3c7',
-                          color: r.status === 'live' ? '#7a12cc' : '#92400e',
-                        }}
-                      >
-                        {r.status === 'live' ? 'Live' : 'Draft'}
-                      </span>
-                    </td>
-                    <td style={{ padding: 12 }}>{Array.isArray(r.courses) ? r.courses.length : 0}</td>
-                    <td style={{ padding: 12 }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {r.status === 'draft' && (
-                          <button
-                            type="button"
-                            className="adm-btn adm-btn--primary"
-                            style={{ padding: '6px 10px', fontSize: 12 }}
-                            disabled={busy}
-                            onClick={() => publishRow(r.id)}
+                          verticalAlign: 'middle',
+                          color: '#6b7280',
+                          borderRight: '1px solid #f3f4f6'
+                        }}>{r.syllabus_id}</td>
+                        <td style={{ 
+                          padding: '14px 12px', 
+                          verticalAlign: 'middle',
+                          fontWeight: 500,
+                          color: '#111827',
+                          borderRight: '1px solid #f3f4f6'
+                        }}>{r.university_name}</td>
+                        <td style={{ 
+                          padding: '14px 12px', 
+                          verticalAlign: 'middle',
+                          color: '#6b7280',
+                          borderRight: '1px solid #f3f4f6'
+                        }}>{r.faculty}</td>
+                        <td style={{ 
+                          padding: '14px 12px', 
+                          verticalAlign: 'middle',
+                          color: '#6b7280',
+                          borderRight: '1px solid #f3f4f6'
+                        }}>{r.department_label}</td>
+                        <td style={{ 
+                          padding: '14px 12px', 
+                          verticalAlign: 'middle',
+                          borderRight: '1px solid #f3f4f6'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ 
+                              background: '#f3f4f6', 
+                              padding: '2px 6px', 
+                              borderRadius: 4, 
+                              fontSize: 11, 
+                              fontWeight: 600 
+                            }}>
+                              {r.level}
+                            </span>
+                            <span style={{ color: '#9ca3af' }}>•</span>
+                            <span style={{ 
+                              background: '#f3f4f6', 
+                              padding: '2px 6px', 
+                              borderRadius: 4, 
+                              fontSize: 11, 
+                              fontWeight: 600 
+                            }}>
+                              {r.semester}
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ 
+                          padding: '14px 12px', 
+                          verticalAlign: 'middle',
+                          borderRight: '1px solid #f3f4f6'
+                        }}>
+                          <span
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: 6,
+                              fontWeight: 600,
+                              fontSize: 11,
+                              background: r.status === 'live' ? '#dcfce7' : '#fef3c7',
+                              color: r.status === 'live' ? '#166534' : '#92400e',
+                            }}
                           >
-                            <RocketLaunch size={14} /> Publish
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className="adm-btn"
-                          style={{ padding: '6px 10px', fontSize: 12 }}
-                          disabled={busy}
-                          onClick={() => loadRowIntoWizard(r)}
-                        >
-                          <PencilSimple size={14} /> Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="adm-btn"
-                          style={{ padding: '6px 10px', fontSize: 12, color: '#b91c1c' }}
-                          disabled={busy}
-                          onClick={() => deleteRow(r.id, r.status)}
-                        >
-                          <Trash size={14} /> Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                            {r.status === 'live' ? '● Live' : '○ Draft'}
+                          </span>
+                        </td>
+                        <td style={{ 
+                          padding: '14px 12px', 
+                          verticalAlign: 'middle',
+                          color: '#6b7280',
+                          borderRight: '1px solid #f3f4f6'
+                        }}>
+                          <span style={{ 
+                            background: '#f3f4f6', 
+                            padding: '4px 8px', 
+                            borderRadius: 4, 
+                            fontSize: 12, 
+                            fontWeight: 600 
+                          }}>
+                            {Array.isArray(r.courses) ? r.courses.length : 0}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 12px', verticalAlign: 'middle' }}>
+                          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                            {r.status === 'draft' && (
+                              <button
+                                type="button"
+                                className="adm-btn adm-btn--primary"
+                                style={{ padding: '4px 8px', fontSize: 11 }}
+                                disabled={busy}
+                                onClick={() => publishRow(r.id)}
+                              >
+                                <RocketLaunch size={12} />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="adm-btn adm-btn--ghost"
+                              style={{ padding: '4px 8px', fontSize: 11 }}
+                              disabled={busy}
+                              onClick={() => loadRowIntoWizard(r)}
+                            >
+                              <PencilSimple size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              className="adm-btn adm-btn--ghost"
+                              style={{ 
+                                padding: '4px 8px', 
+                                fontSize: 11, 
+                                color: '#dc2626'
+                              }}
+                              disabled={busy}
+                              onClick={() => deleteRow(r.id, r.status)}
+                            >
+                              <Trash size={12} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div style={{ 
+                  padding: '48px', 
+                  textAlign: 'center', 
+                  color: '#9ca3af',
+                  fontSize: 14,
+                  background: '#fafafa'
+                }}>
+                  <div style={{ marginBottom: 8 }}>No syllabi found</div>
+                  <div style={{ fontSize: 12 }}>Create your first syllabus using the Creation Wizard</div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -537,38 +1112,296 @@ export default function AdminSyllabusManager() {
             </div>
           </div>
 
-          <h4 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 10px' }}>Preview ({preview.length})</h4>
-          <div style={{ overflow: 'auto', border: '1px solid #e4e4e7', borderRadius: 10, marginBottom: 16 }}>
+          <div style={{ marginBottom: 20 }}>
+            <label className="adm-muted" style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 6 }}>
+              <PencilSimple size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> Add course manually
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 3fr auto auto', gap: 8, alignItems: 'end' }}>
+              <input
+                className="adm-input"
+                style={{ width: '100%' }}
+                placeholder="Course code"
+                value={manualCourse.code}
+                onChange={(e) => setManualCourse(prev => ({ ...prev, code: e.target.value }))}
+              />
+              <input
+                className="adm-input"
+                style={{ width: '100%' }}
+                placeholder="Course title"
+                value={manualCourse.title}
+                onChange={(e) => setManualCourse(prev => ({ ...prev, title: e.target.value }))}
+              />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+                <input
+                  type="checkbox"
+                  checked={manualCourse.is_elective}
+                  onChange={(e) => setManualCourse(prev => ({ ...prev, is_elective: e.target.checked }))}
+                />
+                Elective
+              </label>
+              <button
+                type="button"
+                className="adm-btn adm-btn--ghost"
+                onClick={addManualCourse}
+                disabled={!manualCourse.code.trim() || !manualCourse.title.trim()}
+              >
+                Add
+              </button>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h4 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#1f2937' }}>
+                Course Preview ({preview.length})
+              </h4>
+              {preview.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {selectedPreviewIds.size > 0 && (
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 8,
+                      padding: '6px 12px',
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: 6
+                    }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#1e40af' }}>
+                        {selectedPreviewIds.size} selected
+                      </span>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button
+                          type="button"
+                          className="adm-btn adm-btn--primary"
+                          onClick={bulkEditPreview}
+                          style={{ fontSize: '12px', padding: '4px 8px' }}
+                        >
+                          <PencilSimple size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          className="adm-btn adm-btn--ghost"
+                          onClick={bulkDeletePreview}
+                          style={{ fontSize: '12px', padding: '4px 8px' }}
+                        >
+                          <Trash size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="adm-btn adm-btn--ghost"
+                    onClick={() => setSelectedPreviewIds(new Set())}
+                    style={{ fontSize: '12px', padding: '4px 8px' }}
+                  >
+                    Clear All
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {bulkEditMode && selectedPreviewIds.size > 0 && (
+              <div style={{ 
+                padding: '16px', 
+                background: '#f8fafc', 
+                border: '1px solid #e2e8f0',
+                borderRadius: 8,
+                marginBottom: 16
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  marginBottom: 12 
+                }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1e40af' }}>
+                    <PencilSimple size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
+                    Bulk Edit {selectedPreviewIds.size} course{selectedPreviewIds.size !== 1 ? 's' : ''}
+                  </div>
+                  <button
+                    type="button"
+                    className="adm-btn adm-btn--ghost"
+                    onClick={cancelBulkEdit}
+                    style={{ fontSize: '12px', padding: '4px 8px' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: '1fr 2fr auto auto', 
+                  gap: 12, 
+                  alignItems: 'end' 
+                }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 500, color: '#6b7280', display: 'block', marginBottom: 4 }}>
+                      Course Code
+                    </label>
+                    <input
+                      className="adm-input"
+                      placeholder="Leave blank to keep current"
+                      value={bulkEditData.code}
+                      onChange={(e) => setBulkEditData(prev => ({ ...prev, code: e.target.value }))}
+                      style={{ fontSize: 13 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 500, color: '#6b7280', display: 'block', marginBottom: 4 }}>
+                      Course Title
+                    </label>
+                    <input
+                      className="adm-input"
+                      placeholder="Leave blank to keep current"
+                      value={bulkEditData.title}
+                      onChange={(e) => setBulkEditData(prev => ({ ...prev, title: e.target.value }))}
+                      style={{ fontSize: 13 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 500, color: '#6b7280', display: 'block', marginBottom: 4 }}>
+                      Type
+                    </label>
+                    <select
+                      className="adm-input"
+                      value={bulkEditData.is_elective === null ? '' : bulkEditData.is_elective ? 'elective' : 'core'}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setBulkEditData(prev => ({ 
+                          ...prev, 
+                          is_elective: value === '' ? null : value === 'elective'
+                        }))
+                      }}
+                      style={{ fontSize: 13, minWidth: 80 }}
+                    >
+                      <option value="">No change</option>
+                      <option value="core">Core</option>
+                      <option value="elective">Elective</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'end' }}>
+                    <button
+                      type="button"
+                      className="adm-btn adm-btn--primary"
+                      onClick={applyBulkEdit}
+                      style={{ fontSize: '13px', padding: '6px 12px' }}
+                    >
+                      Apply Changes
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ 
+            border: '1px solid #e5e7eb', 
+            borderRadius: 8, 
+            overflow: 'hidden',
+            marginBottom: 16,
+            background: 'white'
+          }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr style={{ background: '#fafafa' }}>
-                  <th style={{ textAlign: 'left', padding: 10 }}>Code</th>
-                  <th style={{ textAlign: 'left', padding: 10 }}>Title</th>
-                  <th style={{ textAlign: 'left', padding: 10 }}>Elective</th>
-                  <th style={{ padding: 10 }} />
+                <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                  <th style={{ padding: '12px 8px', width: '40px', fontWeight: 600, fontSize: 12, color: '#6b7280' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedPreviewIds.size === preview.length && preview.length > 0}
+                      onChange={toggleSelectAllPreview}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </th>
+                  <th style={{ textAlign: 'left', padding: '12px 8px', fontWeight: 600, fontSize: 12, color: '#6b7280' }}>Course Code</th>
+                  <th style={{ textAlign: 'left', padding: '12px 8px', fontWeight: 600, fontSize: 12, color: '#6b7280' }}>Course Title</th>
+                  <th style={{ textAlign: 'left', padding: '12px 8px', fontWeight: 600, fontSize: 12, color: '#6b7280' }}>Type</th>
+                  <th style={{ padding: '12px 8px', width: '100px', fontWeight: 600, fontSize: 12, color: '#6b7280' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {preview.map((p, i) => (
-                  <tr key={`${p.code}-${i}`} style={{ borderTop: '1px solid #eee' }}>
-                    <td style={{ padding: 8 }}>
-                      <input className="adm-input" style={{ width: 100 }} value={p.code} onChange={(e) => updatePreviewRow(i, 'code', e.target.value)} />
+                  <tr key={`${p.code}-${i}`} style={{ 
+                    borderBottom: '1px solid #f3f4f6',
+                    background: selectedPreviewIds.has(i) ? '#eff6ff' : 'white',
+                    transition: 'background-color 0.15s ease'
+                  }}>
+                    <td style={{ padding: '12px 8px', verticalAlign: 'middle' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedPreviewIds.has(i)}
+                        onChange={() => togglePreviewSelection(i)}
+                        style={{ cursor: 'pointer' }}
+                      />
                     </td>
-                    <td style={{ padding: 8 }}>
-                      <input className="adm-input" style={{ width: '100%', minWidth: 200 }} value={p.title} onChange={(e) => updatePreviewRow(i, 'title', e.target.value)} />
+                    <td style={{ padding: '8px', verticalAlign: 'middle' }}>
+                      <input 
+                        className="adm-input" 
+                        style={{ 
+                          width: '100%', 
+                          fontSize: 12,
+                          border: selectedPreviewIds.has(i) ? '1px solid #3b82f6' : '1px solid #d1d5db',
+                          background: selectedPreviewIds.has(i) ? '#f8fafc' : 'white'
+                        }} 
+                        value={p.code} 
+                        onChange={(e) => updatePreviewRow(i, 'code', e.target.value)} 
+                      />
                     </td>
-                    <td style={{ padding: 8 }}>
-                      <input type="checkbox" checked={p.is_elective} onChange={(e) => updatePreviewRow(i, 'is_elective', e.target.checked)} />
+                    <td style={{ padding: '8px', verticalAlign: 'middle' }}>
+                      <input 
+                        className="adm-input" 
+                        style={{ 
+                          width: '100%', 
+                          fontSize: 12,
+                          border: selectedPreviewIds.has(i) ? '1px solid #3b82f6' : '1px solid #d1d5db',
+                          background: selectedPreviewIds.has(i) ? '#f8fafc' : 'white'
+                        }} 
+                        value={p.title} 
+                        onChange={(e) => updatePreviewRow(i, 'title', e.target.value)} 
+                      />
                     </td>
-                    <td style={{ padding: 8 }}>
-                      <button type="button" className="adm-btn" style={{ padding: '4px 8px' }} onClick={() => removePreviewRow(i)}>
-                        Remove
+                    <td style={{ padding: '8px', verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <input 
+                          type="checkbox" 
+                          checked={p.is_elective} 
+                          onChange={(e) => updatePreviewRow(i, 'is_elective', e.target.checked)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <span style={{ fontSize: 11, color: '#6b7280' }}>
+                          {p.is_elective ? 'Elective' : 'Core'}
+                        </span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '8px', verticalAlign: 'middle' }}>
+                      <button 
+                        type="button" 
+                        className="adm-btn adm-btn--ghost" 
+                        style={{ 
+                          fontSize: '11px', 
+                          padding: '4px 8px',
+                          width: '100%'
+                        }} 
+                        onClick={() => removePreviewRow(i)}
+                      >
+                        <Trash size={12} />
                       </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            {preview.length === 0 && (
+              <div style={{ 
+                padding: '32px', 
+                textAlign: 'center', 
+                color: '#9ca3af',
+                fontSize: 13,
+                background: '#fafafa'
+              }}>
+                No courses added yet. Use the options above to add courses.
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
