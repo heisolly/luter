@@ -264,6 +264,7 @@ const Onboarding = () => {
   const [youtubeLink, setYoutubeLink] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedAudio, setSelectedAudio] = useState(null);
+  const [authProvider, setAuthProvider] = useState('email');
   
   const fileInputRef = useRef(null);
   const audioInputRef = useRef(null);
@@ -296,6 +297,34 @@ const Onboarding = () => {
   // Official Courses
   const [officialCourses, setOfficialCourses] = useState([]);
   const [fetchingOfficialCourses, setFetchingOfficialCourses] = useState(false);
+  const isGoogleUser = authProvider === 'google';
+  const shouldAskFullName = !fullName; // Only ask if we don't have it from signup/google
+  const shouldAskBirthday = !isGoogleUser; // Skip birthday for Google users as requested
+
+  useEffect(() => {
+    const hydrateFromAuth = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const provider = user.app_metadata?.provider || 'email';
+        setAuthProvider(provider);
+
+        const existingFullName =
+          user.user_metadata?.full_name ||
+          user.user_metadata?.name ||
+          '';
+
+        if (existingFullName) {
+          setFullName(existingFullName);
+        }
+      } catch (err) {
+        console.warn('Failed to hydrate onboarding auth data', err);
+      }
+    };
+
+    hydrateFromAuth();
+  }, []);
 
   // Fetch Universities when country changes
   useEffect(() => {
@@ -428,9 +457,14 @@ const Onboarding = () => {
       const normalizedRole = role === 'solo' ? 'solo_learner' : 'student';
       const isSoloLearner = normalizedRole === 'solo_learner';
       const normalizedSemester = semester === '1' ? '1st' : semester === '2' ? '2nd' : null;
+      const resolvedFullName =
+        fullName ||
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        '';
       const profilePayload = {
         id: user.id,
-        full_name: fullName,
+        full_name: resolvedFullName,
         username: userName,
         birthday: birthday || null,
         role: normalizedRole,
@@ -673,12 +707,14 @@ const Onboarding = () => {
               role === 'student' ? (
                 <StepWrapper key="step3-student" title="idTitle" subtitle="idSub" t={t}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ position: 'relative' }}><User style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('fullName')} style={inputStyle} /></div>
+                    {shouldAskFullName && (
+                      <div style={{ position: 'relative' }}><User style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('fullName')} style={inputStyle} /></div>
+                    )}
                     <div style={{ position: 'relative' }}><At style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={userName} onChange={e => setUserName(e.target.value)} placeholder={t('username')} style={inputStyle} /></div>
-                    <CustomDatePicker value={birthday} onChange={setBirthday} />
+                    {shouldAskBirthday && <CustomDatePicker value={birthday} onChange={setBirthday} />}
                     <div style={{ height: '12px' }} />
                     <PremiumButton 
-                      disabled={!fullName || !userName || !birthday} 
+                      disabled={(shouldAskFullName && !fullName) || !userName || (shouldAskBirthday && !birthday)} 
                       onClick={goToNext}
                       size="lg"
                       style={{ width: '100%' }}
@@ -775,12 +811,15 @@ const Onboarding = () => {
               ) : (
                 <StepWrapper key="step4-solo" title="Tell us about yourself" subtitle="This helps us personalize your learning experience." t={t}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ position: 'relative' }}><User style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('fullName')} style={inputStyle} /></div>
+                    {shouldAskFullName && (
+                      <div style={{ position: 'relative' }}><User style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('fullName')} style={inputStyle} /></div>
+                    )}
                     <div style={{ position: 'relative' }}><At style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={userName} onChange={e => setUserName(e.target.value)} placeholder={t('username')} style={inputStyle} /></div>
-                    <CustomDatePicker value={birthday} onChange={setBirthday} />
+                    {shouldAskBirthday && <CustomDatePicker value={birthday} onChange={setBirthday} />}
                     <div style={{ height: '12px' }} />
                     <PremiumButton 
-                      disabled={!fullName || !userName || !birthday} 
+                      disabled={(shouldAskFullName && !fullName) || !userName || (shouldAskBirthday && !birthday)}
+                      onClick={goToNext}
                       size="lg"
                       style={{ width: '100%' }}
                     >

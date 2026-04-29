@@ -27,31 +27,47 @@ export default function Dashboard() {
     let channel
 
     const fetchUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        setUser(session.user)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          setUser(session.user)
 
-        // Fetch profile to get the most up-to-date name and role type
-        const { data: p } = await supabase.from('profiles').select('full_name, is_university_user, role').eq('id', session.user.id).maybeSingle()
-        if (p) setProfile(p)
-
-        // Initialize workspaces to ensure backpack shows all courses
-        await initializeWorkspaces()
-
-        const updateHeartbeat = async () => {
           try {
-            await supabase.from('profiles')
-              .update({ last_active_at: new Date().toISOString() })
+            // Fetch profile to get the most up-to-date name and role type
+            const { data: p } = await supabase
+              .from('profiles')
+              .select('full_name, is_university_user, role')
               .eq('id', session.user.id)
+              .maybeSingle()
+            if (p) setProfile(p)
           } catch (error) {
-            console.warn('Heartbeat update failed:', error.message)
+            console.warn('Profile fetch failed:', error.message)
           }
+
+          try {
+            // Initialize workspaces to ensure backpack shows all courses
+            await initializeWorkspaces()
+          } catch (error) {
+            console.warn('Workspace initialization failed:', error.message)
+          }
+
+          const updateHeartbeat = async () => {
+            try {
+              await supabase.from('profiles')
+                .update({ last_active_at: new Date().toISOString() })
+                .eq('id', session.user.id)
+            } catch (error) {
+              console.warn('Heartbeat update failed:', error.message)
+            }
+          }
+          updateHeartbeat()
+          hb = setInterval(updateHeartbeat, 30000)
+        } else {
+          const currentPath = window.location.pathname + window.location.search
+          navigate(`/signin?redirect=${encodeURIComponent(currentPath)}`)
         }
-        updateHeartbeat()
-        hb = setInterval(updateHeartbeat, 30000)
-      } else {
-        const currentPath = window.location.pathname + window.location.search
-        navigate(`/signin?redirect=${encodeURIComponent(currentPath)}`)
+      } catch (error) {
+        console.warn('Dashboard session bootstrap failed:', error.message)
       }
       setLoading(false)
     }

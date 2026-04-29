@@ -298,18 +298,20 @@ export const useUniversalWorkspaceStore = create(
           if (deckError) throw deckError
           
           // Add smart start items to deck
-          const deckItems = smartStartContent.items.map((item, index) => ({
-            deck_id: deck.id,
-            content_id: `smart-start-${index}`,
-            content_type: 'note',
-            title: item.title,
-            order_index: index,
-            metadata: {
-              type: item.type,
-              description: item.description,
-              is_smart_start: true
-            }
-          }))
+          const deckItems = smartStartContent.items.map((item, index) => {
+            return {
+              deck_id: deck.id,
+              content_id: `smart-start-${index}`,
+              content_type: 'note',
+              order_index: index,
+              metadata: {
+                type: item.type,
+                title: item.title,
+                description: item.description,
+                is_smart_start: true
+              }
+            };
+          });
           
           const { error: itemsError } = await supabase
             .from('deck_items')

@@ -7,6 +7,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import {
+  Calculator,
   Plus,
   ArrowRight,
   BookOpen,
@@ -820,6 +821,124 @@ export default function LandingPage() {
             }
           }
         `}</style>
+      </section>
+
+      {/* ═══════════════ PATH CALCULATOR CTA ═══════════════ */}
+      <section style={{ padding: '80px 0', background: 'white' }}>
+        <div className="container-custom">
+          <div className="reveal-child" style={{
+            background: 'linear-gradient(135deg, #4B0082 0%, #A855F7 100%)',
+            borderRadius: 32,
+            padding: '48px',
+            color: 'white',
+            textAlign: 'center',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            {/* Background decoration */}
+            <div style={{
+              position: 'absolute',
+              top: -50,
+              right: -50,
+              width: 200,
+              height: 200,
+              background: 'rgba(255,255,255,0.1)',
+              borderRadius: '50%'
+            }} />
+            <div style={{
+              position: 'absolute',
+              bottom: -30,
+              left: -30,
+              width: 150,
+              height: 150,
+              background: 'rgba(255,255,255,0.08)',
+              borderRadius: '50%'
+            }} />
+
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                backgroundColor: 'rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255,255,255,0.25)',
+                borderRadius: '100px',
+                marginBottom: '24px',
+                fontFamily: 'var(--font-outfit)',
+                fontSize: '14px',
+                fontWeight: '800',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>
+                <Calculator size={16} />
+                New Feature
+              </div>
+
+              <h2 style={{
+                fontSize: 'clamp(2rem, 4vw, 3rem)',
+                fontWeight: 800,
+                lineHeight: '1.2',
+                marginBottom: '16px',
+                fontFamily: 'var(--font-outfit)',
+                letterSpacing: '-0.02em'
+              }}>
+                What's Your Path to First Class?
+              </h2>
+
+              <p style={{
+                fontSize: 'clamp(1rem, 2vw, 1.25rem)',
+                lineHeight: '1.6',
+                marginBottom: '32px',
+                fontFamily: 'var(--font-varela)',
+                fontWeight: '400',
+                maxWidth: '600px',
+                margin: '0 auto 32px'
+              }}>
+                Calculate your exact semester-by-semester GPA needed to reach your graduation goal. 
+                Get your personalized roadmap to academic excellence.
+              </p>
+
+              <div style={{
+                display: 'flex',
+                gap: 16,
+                justifyContent: 'center',
+                flexWrap: 'wrap'
+              }}>
+                <PremiumButton
+                  to="/path-calculator"
+                  size="lg"
+                  style={{
+                    background: 'white',
+                    color: '#4B0082',
+                    border: 'none',
+                    padding: '16px 32px',
+                    fontSize: 18,
+                    fontWeight: 700
+                  }}
+                >
+                  <Calculator size={20} />
+                  Calculate My Path
+                </PremiumButton>
+                
+                <PremiumButton
+                  to="/path-calculator"
+                  variant="outline"
+                  size="lg"
+                  style={{
+                    borderColor: 'white',
+                    color: 'white',
+                    padding: '16px 32px',
+                    fontSize: 18,
+                    fontWeight: 700
+                  }}
+                >
+                  Learn More
+                </PremiumButton>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       
