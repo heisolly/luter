@@ -20,10 +20,11 @@ import {
   Eye as EyeLight,
   GraduationCap as GraduationCapLight,
   DownloadSimple,
-  ArrowsOutSimple
+  ArrowsOutSimple,
+  CircleNotch
 } from '@phosphor-icons/react'
 import { 
-  RiLoader4Line as CircleNotch, RiErrorWarningFill as Warning, RiFileTextFill as FileText, RiEyeFill as Eye, RiMagicFill as Sparkle, RiImageFill as ImageIcon, RiMusicFill as Music, RiPlayFill as Play, RiGlobalFill as Globe, RiStackFill as Stack, RiDownloadLine as Download, RiFullscreenFill as CornersOut, 
+  RiErrorWarningFill as Warning, RiFileTextFill as FileText, RiEyeFill as Eye, RiMagicFill as Sparkle, RiImageFill as ImageIcon, RiMusicFill as Music, RiPlayFill as Play, RiGlobalFill as Globe, RiStackFill as Stack, RiDownloadLine as Download, RiFullscreenFill as CornersOut, 
   RiSearchLine as MagnifyingGlass, RiMoonFill as Moon, RiSunFill as Sun, RiVolumeUpFill as SpeakerHigh, RiLayoutColumnFill as Columns, RiRefreshLine as ArrowClockwise, RiArrowDownSLine as CaretDown, RiMagicLine as MagicWand, RiLightbulbFill as Lightbulb, RiGraduationCapFill as GraduationCap, RiBookmarkFill as Bookmark,
   RiYoutubeFill as YoutubeLogo, RiCheckboxCircleFill as CheckCircle, RiListCheck as List
 } from "react-icons/ri";
@@ -37,6 +38,7 @@ import QuickPinchZoom, { make3dTransformValue } from 'react-quick-pinch-zoom'
 import { searchPlugin } from '@react-pdf-viewer/search'
 import { fullScreenPlugin } from '@react-pdf-viewer/full-screen'
 import * as XLSX from 'xlsx'
+import UniversalViewer from './UniversalViewer'
 
 // Styles
 import '@react-pdf-viewer/core/lib/styles/index.css'
@@ -352,43 +354,20 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
     <div className="ws-infinite-reader-container" ref={canvasRef}>
       <div className="ws-canvas-scroller">
         {/* Minimal Tool Overlay */}
-        {/* Minimal Tool Overlay Removed */}
+        <StudioNav />
         <ActionBubble />
         
         <div className="ws-canvas-surface" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
           {/* VISUAL VIEW: CLEAN DOCUMENT MODE */}
           {viewMode === 'visuals' && (
             <div className="ws-visual-viewport" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-               {type === 'pdf' && material.source_url && (
-                 <div className="ws-paper-sheet">
-                    <HighFidelityPDF 
-                      fileUrl={material.source_url} 
-                      initialPage={currentPage}
-                      onPageChange={(e) => setCurrentPage(e.currentPage + 1)}
-                      onDocumentLoad={(e) => setTotalPages(e.doc.numPages)}
-                      plugins={[searchPluginInstance, fullScreenPluginInstance]}
-                    />
-                 </div>
-               )}
-               {(type === 'docx' || type === 'doc' || type === 'pptx' || type === 'ppt') && material.source_url && (
-                 <div className="ws-paper-sheet">
-                    <OfficeViewer fileUrl={material.source_url} />
-                 </div>
-               )}
-               {(type === 'xlsx' || type === 'xls' || type === 'csv') && material.source_url && (
-                 <div className="ws-paper-sheet">
-                   <HighFidelityExcel fileUrl={material.source_url} />
-                 </div>
-               )}
-               {isImage && <div className="ws-paper-sheet"><HighFidelityImage fileUrl={material.source_url} /></div>}
-               {isVideo && (
-                  <div style={{ height: '100%', background: '#000', borderRadius: 12, overflow: 'hidden' }}>
-                    <ReactPlayer url={material.source_url} controls width="100%" height="100%" />
-                  </div>
-               )}
-               {isAudio && <HighFidelityAudio material={material} />}
-               {isWeb && <HighFidelityWeb url={material.source_url} />}
-               {(type === 'anki' || type === 'apkg') && <HighFidelityAnki material={material} />}
+               <UniversalViewer 
+                  material={material}
+                  initialPage={currentPage}
+                  onPageChange={(e) => setCurrentPage(e.currentPage + 1)}
+                  onDocumentLoad={(e) => setTotalPages(e.doc.numPages)}
+                  plugins={[searchPluginInstance, fullScreenPluginInstance]}
+               />
             </div>
           )}
 
@@ -470,7 +449,7 @@ function OfficeViewer({ fileUrl }) {
     <div style={{ width: '100%', height: 'calc(100vh - 56px)', position: 'relative', overflow: 'hidden', background: 'white' }}>
       {loading && (
         <div style={{ position: 'absolute', inset: 0, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
-           <CircleNotch className="animate-spin" color="#4B0082" size={32} weight="bold" />
+           <CircleNotch className="ws-spin" color="#4B0082" size={32} weight="bold" />
         </div>
       )}
       <iframe
@@ -560,7 +539,7 @@ function PendingState({ material }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - 56px)', gap: 24, background: '#F8FAFC' }}>
       <div style={{ position: 'relative' }}>
-        <CircleNotch size={48} color="#4B0082" weight="bold" className="animate-spin" />
+        <CircleNotch size={48} color="#4B0082" weight="bold" className="ws-spin" />
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Sparkle size={20} weight="bold" color="#7a12cc" />
         </div>

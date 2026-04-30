@@ -4,8 +4,9 @@ import {
   RiDownloadFill as Download, RiShareForwardFill as Share2, RiPrinterFill as Printer, 
   RiCheckboxCircleFill as CheckCircle, RiErrorWarningFill as AlertCircle, RiBookmarkFill as Bookmark, RiRefreshLine as RefreshCw, 
   RiTrophyFill as Trophy, RiMagicFill as Sparkle, RiStackFill as Layers, RiQuestionFill as HelpCircle, 
-  RiPencilFill as Edit3, RiMagicFill as Wand2, RiSaveFill as Save,
-  RiCloseCircleFill as XCircle, RiListCheck as List, RiLayoutMasonryFill as Layout, RiEyeFill as Eye, RiTimeFill as Clock, RiBarChartFill as BarChart3, RiGraduationCapFill as GraduationCap
+  RiPencilFill as PencilLine, RiMagicFill as Wand2, RiSaveFill as Save,
+  RiCloseCircleFill as XCircle, RiListCheck as List, RiLayoutMasonryFill as Layout, RiEyeFill as Eye, RiTimeFill as Clock, RiBarChartFill as BarChart3, RiGraduationCapFill as GraduationCap,
+  RiLoader4Line as CircleNotch, RiStickyNoteFill as NoteIcon
 } from 'react-icons/ri'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence } from 'framer-motion'

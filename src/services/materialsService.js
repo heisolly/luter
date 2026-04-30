@@ -57,6 +57,8 @@ export async function uploadMaterial({
   const fileBuffer = await file.arrayBuffer()
   const blob = new Blob([fileBuffer], { type: correctMimeType })
   const correctedFile = new File([blob], file.name, { type: correctMimeType })
+  // Create a fresh file for ingestion so the pipeline can read it reliably
+  const ingestFile = new File([fileBuffer], file.name, { type: correctMimeType })
   console.log('New file.type:', correctedFile.type)
   console.log('Blob size:', blob.size, 'Original size:', file.size)
 
@@ -233,7 +235,7 @@ export async function uploadMaterial({
 
   // Run LangChain ingestion pipeline (non-blocking — extracts, chunks, embeds, stores)
   ingestMaterial({
-    file,
+    file: ingestFile,
     type,
     url: null,
     metadata: { materialId: materialData.id, courseId: courseId || null, userId, title: title || file.name }
@@ -603,4 +605,149 @@ export async function reprocessMaterial(material) {
   } catch (e) {
     console.warn('reprocessMaterial failed', e)
   }
+}
+
+// =====================================================
+// SESSION MANAGEMENT FUNCTIONS
+// =====================================================
+
+/** Fetch all user sessions */
+export async function fetchUserSessions(userId) {
+  if (!userId) {
+    console.error('fetchUserSessions: userId is required')
+    return { error: 'User ID is missing' }
+  }
+
+  const { data, error } = await supabase
+    .from('deck_sessions')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .order('last_accessed', { ascending: false })
+
+  if (error) throw error
+  return { data: data || [] }
+}
+
+/** Create a new study session */
+export async function createStudySession(userId, sessionName, items = []) {
+  if (!userId || !sessionName) {
+    console.error('createStudySession: userId and sessionName are required')
+    return { error: 'User ID and session name are required' }
+  }
+
+  const { data, error } = await supabase
+    .from('deck_sessions')
+    .insert([{
+      user_id: userId,
+      session_name: sessionName,
+      items: items,
+      is_active: true,
+      last_accessed: new Date().toISOString()
+    }])
+    .select()
+    .single()
+
+  if (error) throw error
+  return { data }
+}
+
+/** Update a study session */
+export async function updateStudySession(sessionId, updates) {
+  if (!sessionId) {
+    console.error('updateStudySession: sessionId is required')
+    return { error: 'Session ID is required' }
+  }
+
+  const { data, error } = await supabase
+    .from('deck_sessions')
+    .update({
+      ...updates,
+      last_accessed: new Date().toISOString()
+    })
+    .eq('id', sessionId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return { data }
+}
+
+/** Delete (soft delete) a study session */
+export async function deleteStudySession(sessionId) {
+  if (!sessionId) {
+    console.error('deleteStudySession: sessionId is required')
+    return { error: 'Session ID is required' }
+  }
+
+  const { error } = await supabase
+    .from('deck_sessions')
+    .update({ is_active: false })
+    .eq('id', sessionId)
+
+  if (error) throw error
+  return { success: true }
+}
+
+/** Add item to session */
+export async function addItemToSession(sessionId, item) {
+  if (!sessionId || !item) {
+    console.error('addItemToSession: sessionId and item are required')
+    return { error: 'Session ID and item are required' }
+  }
+
+  const { data: session } = await supabase
+    .from('deck_sessions')
+    .select('items')
+    .eq('id', sessionId)
+    .single()
+
+  if (!session) {
+    return { error: 'Session not found' }
+  }
+
+  const currentItems = session.items || []
+  if (currentItems.some(i => i.id === item.id)) {
+    return { error: 'Item already in session' }
+  }
+
+  const updatedItems = [...currentItems, item]
+  return await updateStudySession(sessionId, { items: updatedItems })
+}
+
+/** Remove item from session */
+export async function removeItemFromSession(sessionId, itemId) {
+  if (!sessionId || !itemId) {
+    console.error('removeItemFromSession: sessionId and itemId are required')
+    return { error: 'Session ID and item ID are required' }
+  }
+
+  const { data: session } = await supabase
+    .from('deck_sessions')
+    .select('items')
+    .eq('id', sessionId)
+    .single()
+
+  if (!session) {
+    return { error: 'Session not found' }
+  }
+
+  const updatedItems = (session.items || []).filter(i => i.id !== itemId)
+  return await updateStudySession(sessionId, { items: updatedItems })
+}
+
+/** Update session last accessed time */
+export async function updateSessionLastAccessed(sessionId) {
+  if (!sessionId) {
+    console.error('updateSessionLastAccessed: sessionId is required')
+    return { error: 'Session ID is required' }
+  }
+
+  const { error } = await supabase
+    .from('deck_sessions')
+    .update({ last_accessed: new Date().toISOString() })
+    .eq('id', sessionId)
+
+  if (error) throw error
+  return { success: true }
 }

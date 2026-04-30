@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { 
-  RiBookFill as Book, RiStackFill as Layers, RiArrowRightSLine as ChevronRight,
-  RiLoader4Line as Loader2, RiBriefcaseFill as Backpack, RiAddLine as Plus,
-  RiSearchLine as Search, RiFileTextFill as FileText
+  RiBookFill as Book, RiArrowRightSLine as ChevronRight,
+  RiBriefcaseFill as Backpack, RiAddLine as Plus,
+  RiSearchLine as Search, RiFileTextFill as FileText, RiUploadLine as Upload
 } from 'react-icons/ri'
+import { LuterPageLoader } from '../shared/LuterPageLoader'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../supabaseClient'
 import { courseService } from '../../services/courseService'
 import { fetchUserStandaloneMaterials } from '../../services/materialsService'
 import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceStore'
-import { useDeckStore } from '../../store/useDeckStore'
+import { useSessionStore } from '../../store/useSessionStore'
 
 export default function CoursesPage() {
   const { user, isMobile } = useOutletContext()
@@ -22,15 +23,13 @@ export default function CoursesPage() {
     userRole,
     workspaces,
     activeWorkspace,
-    setActiveWorkspace,
-    decks,
-    loadDecks
+    setActiveWorkspace
   } = useUniversalWorkspaceStore()
   
-  // Deck store
-  const { addToDeck } = useDeckStore()
+  // Session store
+  const { loadSessions } = useSessionStore()
   
-  const [activeTab, setActiveTab] = useState('courses') // 'courses' | 'materials' | 'decks'
+  const [activeTab, setActiveTab] = useState('courses') // 'courses' | 'materials'
   const [courses, setCourses] = useState([])
   const [materials, setMaterials] = useState([])
   const [loading, setLoading] = useState(true)
@@ -40,7 +39,7 @@ export default function CoursesPage() {
     if (user?.id) {
       fetchCourses()
       fetchMaterials()
-      loadDecks(user.id)
+      loadSessions()
     }
   }, [user?.id])
 
@@ -70,10 +69,6 @@ export default function CoursesPage() {
     material.type?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const filteredDecks = decks.filter(deck =>
-    deck.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    deck.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
 
   return (
     <div style={{ 
@@ -134,7 +129,7 @@ export default function CoursesPage() {
             type="text" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search courses or decks..." 
+            placeholder="Search courses or materials..." 
             style={{ 
               width: '100%', 
               padding: '16px 20px 16px 56px', 
@@ -207,26 +202,6 @@ export default function CoursesPage() {
           </div>
         </button>
         
-        <button
-          onClick={() => setActiveTab('decks')}
-          style={{
-            padding: '12px 24px',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'decks' ? '3px solid #7a12cc' : '3px solid transparent',
-            color: activeTab === 'decks' ? '#7a12cc' : '#64748b',
-            fontSize: 16,
-            fontWeight: 700,
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            borderRadius: '8px 8px 0 0'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Layers size={18} />
-            Decks ({decks.length})
-          </div>
-        </button>
       </div>
 
       {/* Content */}
@@ -239,10 +214,7 @@ export default function CoursesPage() {
             exit={{ opacity: 0, y: -20 }}
           >
             {loading ? (
-              <div style={{ textAlign: 'center', padding: 60 }}>
-                <Loader2 size={32} className="animate-spin" color="#7a12cc" />
-                <p style={{ color: '#64748b', marginTop: 16 }}>Loading your courses...</p>
-              </div>
+              <LuterPageLoader message="Loading your courses..." />
             ) : filteredCourses.length === 0 ? (
               <div style={{ 
                 textAlign: 'center', 
@@ -372,209 +344,207 @@ export default function CoursesPage() {
             animate={{ opacity: 1, y: 0 }} 
             exit={{ opacity: 0, y: -20 }}
           >
+            {/* Materials Header with Upload Button */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <div>
+                <h2 style={{ fontSize: 24, fontWeight: 800, color: '#111', margin: 0 }}>Your Files</h2>
+                <p style={{ fontSize: 14, color: '#64748b', margin: '4px 0 0' }}>
+                  All your uploaded study materials
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/dashboard/upload')}
+                style={{
+                  padding: '12px 20px',
+                  background: '#7a12cc',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 12,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.background = '#6a0fb8'}
+                onMouseLeave={(e) => e.target.style.background = '#7a12cc'}
+              >
+                <Upload size={18} />
+                Upload
+              </button>
+            </div>
+
             {filteredMaterials.length === 0 ? (
               <div style={{ 
                 textAlign: 'center', 
-                padding: 80, 
+                padding: 100, 
                 color: '#94a3b8',
                 background: '#f8fafc',
-                borderRadius: 20,
+                borderRadius: 24,
                 border: '2px dashed #e2e8f0'
               }}>
-                <FileText size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
-                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: '#64748b' }}>
-                  {searchQuery ? 'No materials found' : 'No materials yet'}
+                <div style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 20,
+                  background: 'linear-gradient(135deg, rgba(122, 18, 204, 0.1), rgba(151, 24, 251, 0.1))',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 24px'
+                }}>
+                  <Upload size={40} style={{ color: '#7a12cc' }} />
+                </div>
+                <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 12, color: '#111' }}>
+                  {searchQuery ? 'No materials found' : 'Start by uploading your materials'}
                 </h3>
-                <p style={{ fontSize: 14 }}>
-                  {searchQuery ? 'Try a different search term' : 'Upload documents to study them in the workstation'}
+                <p style={{ fontSize: 16, marginBottom: 32, maxWidth: 400, margin: '0 auto 32px' }}>
+                  {searchQuery 
+                    ? 'Try a different search term' 
+                    : 'Upload PDFs, documents, or add YouTube links to create your study sessions'}
                 </p>
+                {!searchQuery && (
+                  <button
+                    onClick={() => navigate('/dashboard/upload')}
+                    style={{
+                      padding: '16px 32px',
+                      background: '#7a12cc',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 14,
+                      fontSize: 16,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 10
+                    }}
+                  >
+                    <Upload size={20} />
+                    Upload Your First Material
+                  </button>
+                )}
               </div>
             ) : (
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))', 
-                gap: 20 
-              }}>
-                {filteredMaterials.map((material) => (
-                  <motion.div
-                    key={material.id}
-                    whileHover={{ y: -4, boxShadow: '0 12px 24px rgba(0,0,0,0.1)' }}
-                    style={{
-                      background: 'white',
-                      borderRadius: 20,
-                      padding: 24,
-                      border: '2px solid #f1f5f9',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s'
-                    }}
-                    onClick={() => navigate(`/dashboard/workstation?materialId=${material.id}`)}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 16 }}>
+              <>
+                {/* Materials Grid */}
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', 
+                  gap: 16 
+                }}>
+                  {filteredMaterials.map((material) => (
+                    <motion.div
+                      key={material.id}
+                      whileHover={{ y: -4, boxShadow: '0 12px 24px rgba(0,0,0,0.08)' }}
+                      style={{
+                        background: 'white',
+                        borderRadius: 16,
+                        padding: 20,
+                        border: '1.5px solid #f1f5f9',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 14
+                      }}
+                      onClick={() => navigate(`/dashboard/workstation?materialId=${material.id}`)}
+                    >
                       <div style={{
-                        width: 48, height: 48,
+                        width: 44, height: 44,
                         borderRadius: 12,
-                        background: material.processing_status === 'pending' ? '#fef3c7' : '#dcfce7',
+                        background: material.processing_status === 'pending' 
+                          ? '#fef3c7' 
+                          : material.type === 'youtube' 
+                            ? '#fef2f2'
+                            : '#f0f9ff',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: 24
+                        fontSize: 20,
+                        flexShrink: 0
                       }}>
-                        {material.processing_status === 'pending' ? '⏳' : '📄'}
+                        {material.processing_status === 'pending' 
+                          ? '⏳' 
+                          : material.type === 'youtube' 
+                            ? '▶️'
+                            : '📄'}
                       </div>
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <h3 style={{ 
-                          fontSize: 18, 
-                          fontWeight: 800, 
+                          fontSize: 15, 
+                          fontWeight: 700, 
                           color: '#111', 
-                          margin: '0 0 4px',
-                          lineHeight: 1.2
+                          margin: '0 0 6px',
+                          lineHeight: 1.3,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
                         }}>
                           {material.title}
                         </h3>
-                        <p style={{ 
-                          fontSize: 13, 
+                        <div style={{ 
+                          fontSize: 12, 
                           color: '#64748b', 
                           fontWeight: 600,
-                          margin: 0,
-                          textTransform: 'uppercase'
+                          textTransform: 'uppercase',
+                          marginBottom: 4
                         }}>
                           {material.type}
-                        </p>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500 }}>
+                          {material.processing_status === 'pending' 
+                            ? 'Processing...' 
+                            : new Date(material.created_at).toLocaleDateString()}
+                        </div>
                       </div>
-                    </div>
-                    
-                    <p style={{ 
-                      fontSize: 14, 
-                      color: '#374151', 
-                      margin: '0 0 16px',
-                      lineHeight: 1.5
-                    }}>
-                      {material.processing_status === 'pending' ? 'Processing...' : 'Ready to study'}
-                    </p>
-                    
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      color: '#94a3b8',
-                      fontSize: 13,
-                      fontWeight: 600
-                    }}>
-                      <span>Open in Workstation</span>
-                      <ChevronRight size={16} />
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                    </motion.div>
+                  ))}
+                </div>
+                
+                {/* Add More Button */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate('/dashboard/upload')}
+                  style={{
+                    width: '100%',
+                    padding: 20,
+                    background: 'white',
+                    border: '2px dashed #e2e8f0',
+                    borderRadius: 16,
+                    color: '#64748b',
+                    fontSize: 15,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    marginTop: 16,
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.borderColor = '#7a12cc'
+                    e.target.style.color = '#7a12cc'
+                    e.target.style.background = 'rgba(122, 18, 204, 0.02)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.borderColor = '#e2e8f0'
+                    e.target.style.color = '#64748b'
+                    e.target.style.background = 'white'
+                  }}
+                >
+                  <Plus size={20} />
+                  Add More Materials
+                </motion.button>
+              </>
             )}
           </motion.div>
         )}
 
-        {activeTab === 'decks' && (
-          <motion.div 
-            key="decks" 
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: -20 }}
-          >
-            {filteredDecks.length === 0 ? (
-              <div style={{ 
-                textAlign: 'center', 
-                padding: 80, 
-                color: '#94a3b8',
-                background: '#f8fafc',
-                borderRadius: 20,
-                border: '2px dashed #e2e8f0'
-              }}>
-                <Layers size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
-                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: '#64748b' }}>
-                  {searchQuery ? 'No decks found' : 'No decks yet'}
-                </h3>
-                <p style={{ fontSize: 14 }}>
-                  {searchQuery ? 'Try a different search term' : 'Create flashcard decks to study smarter'}
-                </p>
-              </div>
-            ) : (
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))', 
-                gap: 20 
-              }}>
-                {filteredDecks.map((deck) => (
-                  <motion.div
-                    key={deck.id}
-                    whileHover={{ y: -4, boxShadow: '0 12px 24px rgba(0,0,0,0.1)' }}
-                    style={{
-                      background: 'white',
-                      borderRadius: 20,
-                      padding: 24,
-                      border: '2px solid #f1f5f9',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s'
-                    }}
-                    onClick={() => navigate(`/dashboard/deck/${deck.id}`)}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 16 }}>
-                      <div style={{
-                        width: 48, height: 48,
-                        borderRadius: 12,
-                        background: deck.deck_type === 'smart_start' ? '#dcfce7' : '#f0f9ff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 24
-                      }}>
-                        {deck.deck_type === 'smart_start' ? '✨' : '📚'}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <h3 style={{ 
-                          fontSize: 18, 
-                          fontWeight: 800, 
-                          color: '#111', 
-                          margin: '0 0 4px',
-                          lineHeight: 1.2
-                        }}>
-                          {deck.title}
-                        </h3>
-                        <p style={{ 
-                          fontSize: 13, 
-                          color: '#64748b', 
-                          fontWeight: 600,
-                          margin: 0
-                        }}>
-                          {deck.deck_type === 'smart_start' ? 'Smart Start Deck' : 'Custom Deck'}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {deck.description && (
-                      <p style={{ 
-                        fontSize: 14, 
-                        color: '#374151', 
-                        margin: '0 0 16px',
-                        lineHeight: 1.5
-                      }}>
-                        {deck.description}
-                      </p>
-                    )}
-                    
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      color: '#94a3b8',
-                      fontSize: 13,
-                      fontWeight: 600
-                    }}>
-                      <span>Study Deck</span>
-                      <ChevronRight size={16} />
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </motion.div>
-        )}
       </AnimatePresence>
     </div>
   )

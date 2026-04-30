@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { RiSearchLine as Search, RiArrowDownSLine as ChevronDown, RiBookOpenFill as BookOpen, RiStackFill as Layers, RiFolderFill as Folder, RiClipboardFill as ClipboardCheck, RiCheckboxCircleFill as CheckCircle, RiMore2Fill as MoreVertical, RiStarFill as Star, RiTimeFill as Clock, RiTrophyFill as Trophy, RiArrowRightLine as ArrowRight, RiLoader4Line as Loader2 } from 'react-icons/ri'
+import { LuterPageLoader } from '../shared/LuterPageLoader'
 import { supabase } from '../../supabaseClient'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -110,9 +111,7 @@ export default function LibraryPage() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '100px 0' }}>
-            <Loader2 className="animate-spin" size={32} color="#7a12cc" />
-        </div>
+        <LuterPageLoader message="Loading your library..." />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '48px' }}>
           {/* Recent Sessions Section */}

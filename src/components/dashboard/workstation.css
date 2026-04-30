@@ -16,6 +16,15 @@
   --font-body: 'Outfit', sans-serif;
 }
 
+@keyframes ws-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.ws-spin {
+  animation: ws-spin 1s linear infinite;
+}
+
 /* ── Root & Background ── */
 .ws-root {
   background-color: var(--luter-bg);
@@ -67,6 +76,7 @@
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
+  user-select: none;
   touch-action: manipulation;
   min-height: 44px;
   display: flex;
@@ -118,6 +128,7 @@
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
+  user-select: none;
   touch-action: manipulation;
   min-height: 44px;
 }
@@ -139,6 +150,7 @@
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
+  user-select: none;
   touch-action: manipulation;
   min-height: 44px;
 }
@@ -1858,3 +1870,136 @@
 
 .ws-bubble-divider { width: 1px; height: 16px; background: rgba(255,255,255,0.1); margin: 0 4px; }
 
+
+/* ─────────────────────────────────────────
+   MOBILE WORKSTATION LAYOUT  (≤ 768px)
+───────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Root container: takes full viewport, reserves space for mobile top bar (60px) and bottom nav (72px) */
+  .ws-root {
+    height: 100dvh;
+    padding-bottom: 72px;   /* reserve space for the fixed bottom nav */
+    overflow: hidden;
+  }
+
+  /* The sticky mobile top bar inside the workstation */
+  .mobile-top-bar {
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-top-bar button {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Main layout becomes a vertical stack */
+  .ws-main-layout {
+    flex-direction: column !important;
+    overflow: hidden;
+    height: 100%;
+  }
+
+  /* Left pane (document/tool area) takes all remaining space */
+  .ws-pane-left {
+    flex: 1 !important;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Allow scroll within the reading area */
+    overscroll-behavior: contain;
+  }
+
+  /* Canvas scroll area */
+  .ws-canvas-container {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    height: 100%;
+  }
+
+  /* Bottom navigation bar */
+  .mobile-bottom-nav {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Individual bottom nav tab button */
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex: 1;
+    padding: 8px 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .mobile-nav-item svg {
+    transition: transform 0.2s;
+  }
+
+  .mobile-nav-item--active svg {
+    transform: scale(1.1);
+  }
+
+  /* AI chat panel full-screen on mobile */
+  .ws-chat-panel {
+    width: 100% !important;
+    border-left: none !important;
+    border-top: 1px solid #F1F5F9;
+    height: 100% !important;
+  }
+
+  /* Tool containers (summary, flashcards, quiz) */
+  .ws-side-tool-container {
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ensure AI content pane fills full height on mobile */
+  .ws-ai-content-pane {
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Hide the floating studio toolbar on mobile — too small to be useful */
+  .ws-studio-floating-bar {
+    display: none !important;
+  }
+
+  /* Increase touch targets for all interactive elements */
+  .ws-nav-btn,
+  .ws-capsule-btn,
+  .ws-bubble-icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Workstation studio canvas: tighter padding on mobile */
+  .ws-ai-reader-pane,
+  .ws-ai-content-pane {
+    padding: 24px 16px !important;
+  }
+
+  /* Force side panel visible when activeTab = chat/flashcards/quiz */
+  .ws-pane-right--mobile-visible {
+    display: flex !important;
+    flex: 1;
+    width: 100%;
+    overflow: hidden;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 380px) {
+  .ws-root {
+    padding-bottom: 80px;
+  }
+}

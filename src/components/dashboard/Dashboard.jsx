@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import DashboardSidebar from './DashboardSidebar'
 import { RiLoader4Line as Loader2, RiSwordFill as Sword, RiCloseLine as X, RiArrowRightLine as ArrowRight } from 'react-icons/ri'
+import { LuterPageLoader } from '../shared/LuterPageLoader'
 import { motion, AnimatePresence } from 'framer-motion'
 import LuterLogo from '../shared/LuterLogo'
 import './dashboard.css'
@@ -96,18 +97,18 @@ export default function Dashboard() {
     }
   }, [navigate])
 
+  const location = useLocation()
+  const isWorkstation = location.pathname.includes('/workstation')
+  const [wsSidebarHovered, setWsSidebarHovered] = useState(false)
+
   if (loading) {
-    return (
-      <div style={{ height: '100vh', width: '100vw', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-        <Loader2 className="animate-spin" size={32} color="var(--primary)" />
-      </div>
-    )
+    return <LuterPageLoader message="Resuming your session..." minHeight="100vh" />
   }
 
   return (
     <DashboardPrefetchProvider userId={user.id}>
-    <div className={`dash-root ${isMobile ? 'dash-root--mobile' : ''}`}>
-      {isMobile && (
+    <div className={`dash-root ${isMobile ? 'dash-root--mobile' : ''} ${isWorkstation ? 'ws-mode' : ''}`}>
+      {isMobile && !isWorkstation && (
         <div
           className="mobile-topbar"
           style={{
@@ -178,31 +179,91 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      <div className={`dsb-container ${isMobile && mobileSidebarOpen ? 'dsb-container--open' : ''}`}>
+      {isWorkstation && !isMobile && (
+        <div 
+          className="ws-sidebar-trigger" 
+          onMouseEnter={() => setWsSidebarHovered(true)}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, bottom: 0,
+            width: '4px',
+            zIndex: 9998,
+            background: 'transparent'
+          }}
+        />
+      )}
+
+      <motion.div 
+        className={`dsb-container ${isMobile && mobileSidebarOpen ? 'dsb-container--open' : ''}`}
+        initial={
+          isWorkstation && !isMobile
+            ? { x: '-110%', opacity: 0 }
+            : isMobile
+              ? { x: '-100%' }
+              : false
+        }
+        animate={
+          isWorkstation && !isMobile
+            ? { x: (wsSidebarHovered || !sidebarCollapsed) ? 0 : '-110%', opacity: (wsSidebarHovered || !sidebarCollapsed) ? 1 : 0 }
+            : isMobile
+              ? { x: mobileSidebarOpen ? 0 : '-100%' }
+              : { x: 0, opacity: 1 }
+        }
+        transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+        onMouseEnter={() => {
+          if (isWorkstation && !isMobile) setWsSidebarHovered(true)
+        }}
+        onMouseLeave={() => {
+          if (isWorkstation && !isMobile) setWsSidebarHovered(false)
+        }}
+        style={isWorkstation && !isMobile ? (sidebarCollapsed ? {
+          position: 'fixed',
+          top: '12px',
+          left: '12px',
+          bottom: '12px',
+          zIndex: 9999,
+          width: 'var(--dsb-w)',
+          background: 'white',
+          borderRadius: '18px',
+          boxShadow: '0 15px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05)',
+          overflow: 'hidden'
+        } : {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          bottom: 0,
+          zIndex: 9999,
+          width: 'var(--dsb-w)',
+          background: 'white',
+          borderRight: '1px solid #eef2f7',
+          overflow: 'hidden'
+        }) : {}}
+      >
         <DashboardSidebar
-          collapsed={sidebarCollapsed}
+          collapsed={isWorkstation ? false : sidebarCollapsed}
           setCollapsed={setSidebarCollapsed}
           user={user}
           isMobile={isMobile}
           onClose={() => setMobileSidebarOpen(false)}
           onNavigate={() => {
             if (isMobile) setMobileSidebarOpen(false)
+            if (isWorkstation) setWsSidebarHovered(false)
           }}
           onNotificationsClick={() => setNotificationsOpen(true)}
         />
-      </div>
+      </motion.div>
 
       <main
-        className={`dash-main ${sidebarCollapsed ? 'collapsed' : ''} ${isMobile ? 'dash-main--mobile' : ''}`}
+        className={`dash-main ${sidebarCollapsed ? 'collapsed' : ''} ${isMobile ? 'dash-main--mobile' : ''} ${isWorkstation ? 'ws-mode' : ''}`}
         style={{
-          paddingTop: isMobile ? 64 : 0,
+          paddingTop: isMobile && !isWorkstation ? 64 : 0,
           paddingBottom: 0,
         }}
       >
-        <Outlet context={{ user, isMobile, sidebarCollapsed, setSidebarCollapsed, profile }} />
+        <Outlet context={{ user, isMobile, sidebarCollapsed, setSidebarCollapsed, profile, mobileSidebarOpen, setMobileSidebarOpen }} />
       </main>
 
-      <FloatingDock user={user} isMobile={isMobile} />
+      {!(isWorkstation && isMobile) && <FloatingDock user={user} isMobile={isMobile} />}
 
       <NotificationsOverlay isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
     </div>

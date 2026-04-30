@@ -39,6 +39,7 @@ import {
   Backpack
 } from '@phosphor-icons/react';
 import { supabase } from '../../supabaseClient';
+import { LuterPageLoader } from '../shared/LuterPageLoader';
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -84,6 +85,7 @@ const SettingsPage = () => {
   }, []);
 
   const fetchUserProfile = async () => {
+    setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -202,6 +204,10 @@ const SettingsPage = () => {
     inactive: { scale: 1, backgroundColor: 'transparent' },
     active: { scale: 1.05, backgroundColor: 'rgba(151, 24, 251, 0.1)' }
   };
+
+  if (loading && !profile) {
+    return <LuterPageLoader message="Loading settings..." minHeight="80vh" />;
+  }
 
   return (
     <div style={{ 

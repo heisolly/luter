@@ -1,29 +1,48 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import {
-  House as HouseLight,
-  CaretLeft as CaretLeftLight,
-  CaretRight as CaretRightLight,
-  FileText as FileTextLight,
-  Sparkle as SparkleLight,
+  House,
+  CaretLeft,
+  CaretRight,
+  FileText,
+  Sparkle,
   CardsThree,
   Checks,
-  ShareNetwork as ShareNetworkLight,
-  DotsThree as DotsThreeLight,
-  Lightning as LightningLight,
+  ShareNetwork,
+  DotsThree,
+  Lightning,
   NotePencil,
   PencilSimple,
-  ArrowRight as ArrowRightLight,
-  BookmarkSimple
+  ArrowRight,
+  BookmarkSimple,
+  User as UserIcon,
+  ArrowSquareOut as ArrowSquareOutIcon,
+  ChatCircleText as ChatCircleTextIcon,
+  ThumbsUp,
+  CopySimple,
+  ArrowUpRight,
+  Microphone,
+  PaperPlaneRight,
+  CircleNotch,
+  SidebarSimple,
+  SquaresFour,
+  Stack,
+  ClipboardText,
+  List
 } from '@phosphor-icons/react'
 import { 
-  RiBookOpenFill as BookOpen, RiStarFill as Star, RiFileTextFill as FileText, RiCheckboxCircleFill as CheckCircle, RiArrowRightSLine as CaretRight, RiArrowLeftLine as ArrowLeft, RiExternalLinkLine as ArrowSquareOut, RiStackFill as Stack, 
-  RiQuestionFill as Question, RiAddLine as Plus, RiSearchLine as MagnifyingGlass, RiArrowLeftSLine as CaretLeft, RiBriefcaseFill as Briefcase, RiPlayCircleFill as PlayCircle, RiSettings4Fill as Settings, RiUserFill as User, RiLogoutBoxLine as SignOut, 
-  RiMore2Fill as DotsThreeVertical, RiLayoutMasonryFill as Layout, RiBookmarkFill as Bookmark, RiFlashlightFill as Zap, RiSendPlaneFill as PaperPlaneRight, RiLoader4Line as CircleNotch, RiErrorWarningFill as Warning, RiListCheck as List, RiShareFill as Share, 
-  RiGraduationCapFill as GraduationCap, RiShareForwardFill as ShareNetwork, RiClipboardFill as ClipboardText, RiMicFill as Microphone, RiUserSmileFill as Baby, RiFileCopyFill as Copy, RiCheckLine as Check, RiSubtractLine as Minus, RiMagicFill as Sparkles, 
-  RiLightbulbFill as Lightbulb, RiChat3Fill as ChatCircleText, RiRefreshLine as ArrowClockwise, RiArrowRightLine as ArrowRight, RiHome4Fill as House, RiCheckboxFill as CheckSquare, RiMoreFill as DotsThreeOutline, 
-  RiStickyNoteFill as Note, RiArrowUpLine as ArrowUp, RiBookFill as Book, RiStackFill as Library, RiPencilFill as PencilLine, RiLayoutColumnFill as Columns, RiFullscreenFill as CornersOut, RiZoomInLine as MagnifyingGlassPlus
+  RiBookOpenFill as BookOpen, RiStarFill as Star, RiFileTextFill as RiFileText, RiCheckboxCircleFill as CheckCircle, RiArrowRightSLine as RiCaretRight, RiArrowLeftLine as ArrowLeft, RiExternalLinkLine as ArrowSquareOut, RiStackFill as RiStack, 
+  RiQuestionFill as Question, RiAddLine as Plus, RiSearchLine as MagnifyingGlass, RiArrowLeftSLine as RiCaretLeft, RiBriefcaseFill as Briefcase, RiPlayCircleFill as PlayCircle, RiSettings4Fill as Settings, RiUserFill as User, RiLogoutBoxLine as SignOut, 
+  RiMore2Fill as DotsThreeVertical, RiLayoutMasonryFill as RiLayoutMasonry, RiBookmarkFill as Bookmark, RiFlashlightFill as Zap, 
+  RiErrorWarningFill as Warning, RiListCheck, RiShareFill as Share, 
+  RiGraduationCapFill as GraduationCap, RiShareForwardFill as RiShareNetwork, RiClipboardFill as RiClipboardText, RiUserSmileFill as Baby, RiCheckLine as Check, RiSubtractLine as Minus, 
+  RiLightbulbFill as Lightbulb, RiRefreshLine as ArrowClockwise, RiArrowRightLine as RiArrowRight, RiHome4Fill as RiHouse, RiCheckboxFill as CheckSquare, RiMoreFill as DotsThreeOutline, 
+  RiStickyNoteFill as Note, RiArrowUpLine as ArrowUp, RiBookFill as Book, RiStackFill as Library, RiPencilFill as PencilLine, RiLayoutColumnFill as Columns, RiFullscreenFill as CornersOut, RiZoomInLine as MagnifyingGlassPlus,
+  RiThumbUpLine, RiThumbDownLine, RiFileCopyLine, RiArrowRightUpLine, RiMicLine
 } from "react-icons/ri"
+import { Typing } from '../ui/Typing'
+import { DotmSquare11 } from '../ui/dotm-square-11'
+import { LuterPageLoader } from '../shared/LuterPageLoader'
 
 import LuterLogo from '../shared/LuterLogo'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -45,20 +64,19 @@ import { debounce } from '../../utils/debounce'
 import './workstation.css'
 
 const SUGGESTED_QUESTIONS = [
-  { id: 'el5', text: "explain it like i'm five years old" },
-  { id: 'analogy', text: "give me an analogy" },
-  { id: 'mnemonic', text: "give me a mnemonic to help me remember" },
-  { id: 'animals', text: "explain it through a conversation between two animals" },
+  { id: 'summary', text: "Summarize the core concepts" },
+  { id: 'explain', text: "Explain this like I'm a student" },
+  { id: 'analogy', text: "Give me an academic analogy" },
+  { id: 'quiz', text: "Generate a quick practice quiz" },
 ]
 
 function WorkstationContent() {
   const { t } = useTranslation(['workspace'])
   const navigate = useNavigate()
   const { courseId } = useParams()
-  const context = useOutletContext() || {}
-  const { user } = context
   const [searchParams] = useSearchParams()
   const materialIdParam = searchParams.get('materialId')
+  const { user, isMobile, sidebarCollapsed, setSidebarCollapsed, profile, mobileSidebarOpen, setMobileSidebarOpen } = useOutletContext() || {}
   const { setViewportData, highlightText, updateSpark, clearHighlights, viewportData, updateSelection, isSidePanelCollapsed, setSidePanelCollapsed } = useReadingSpace()
   
   const [activeTab, setActiveTab] = useState('content')
@@ -73,31 +91,19 @@ function WorkstationContent() {
   const [materialAnalysis, setMaterialAnalysis] = useState(null)
   const [showTools, setShowTools] = useState(false)
   const [hasNewAssignment, setHasNewAssignment] = useState(false)
-  const [showDashboard, setShowDashboard] = useState(false)
-  
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false)
   const [isExtractingText, setIsExtractingText] = useState(false)
   const constraintsRef = useRef(null)
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
   const [mobileReadingMode, setMobileReadingMode] = useState('document')
   const [pageSummaries, setPageSummaries] = useState({})
   const [loading, setLoading] = useState(false)
+  const [showDashboard, setShowDashboard] = useState(true)
   const [userJottings, setUserJottings] = useState("")
   const [jottingNoteId, setJottingNoteId] = useState(null)
   const messagesEndRef = useRef(null)
   
   // Deck Store integration
   const { activeDeckItems } = useDeckStore()
-
-  // Use the context from useOutletContext to handle sidebar
-  const { sidebarCollapsed, setSidebarCollapsed } = context
-
-  useEffect(() => {
-    // Auto-collapse sidebar only once on mount
-    if (typeof setSidebarCollapsed === 'function') {
-      setSidebarCollapsed(true)
-    }
-  }, []) // Empty dependency array means this runs only once on mount
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -107,12 +113,6 @@ function WorkstationContent() {
     }, 150)
     return () => clearTimeout(timer)
   }, [messages, isProcessingLoading])
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768)
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
 
   const currentAnalysis = selectedMaterial ? (analysisCache[selectedMaterial.id] || {}) : {}
 
@@ -199,19 +199,22 @@ function WorkstationContent() {
     } else if (activeDeckItems.length > 0) {
       // Load materials from deck if no courseId is provided
       loadDeckMaterials()
+    } else if (user?.id) {
+      // Fallback: fetch all user's standalone + course materials
+      fetchAllUserMaterials()
     }
-  }, [courseId, materialIdParam, activeDeckItems.length])
+  }, [courseId, materialIdParam, activeDeckItems.length, user?.id])
 
   async function loadDeckMaterials() {
     setLoading(true)
     try {
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      
+
       const materialIds = activeDeckItems
         .filter(item => item.content_type !== 'assignment' && item.content_type !== 'ai_note')
         .map(item => item.content_id)
         .filter(id => uuidRegex.test(id))
-      
+
       if (materialIds.length === 0) {
         setCourseMaterials([])
         setLoading(false)
@@ -222,18 +225,63 @@ function WorkstationContent() {
         .from('materials')
         .select('*')
         .in('id', materialIds)
-      
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error loading deck materials:', error)
+        setCourseMaterials([])
+        return
+      }
+
       if (data && data.length > 0) {
         setCourseMaterials(data)
-        const initialMaterial = materialIdParam 
+        const initialMaterial = materialIdParam
           ? data.find(m => m.id === materialIdParam) || data[0]
           : data[0]
         setSelectedMaterial(initialMaterial)
+        setShowDashboard(false)
       } else {
         setCourseMaterials([])
       }
     } catch (err) {
       console.error('Error loading deck materials:', err)
+      setCourseMaterials([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function fetchAllUserMaterials() {
+    if (!user?.id) return
+    setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('materials')
+        .select('*')
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching all user materials:', error)
+        setCourseMaterials([])
+        return
+      }
+
+      if (data && data.length > 0) {
+        setCourseMaterials(data)
+        const initialMaterial = materialIdParam
+          ? data.find(m => m.id === materialIdParam) || data[0]
+          : data[0]
+        setSelectedMaterial(initialMaterial)
+        setShowDashboard(false)
+      } else {
+        setCourseMaterials([])
+      }
+    } catch (err) {
+      console.error('fetchAllUserMaterials error:', err)
+      setCourseMaterials([])
     } finally {
       setLoading(false)
     }
@@ -294,17 +342,36 @@ function WorkstationContent() {
   }
 
   async function fetchMaterials() {
-    const { data, error } = await supabase
-      .from('materials')
-      .select('*')
-      .eq('course_id', courseId)
-    if (data && data.length > 0) {
-      setCourseMaterials(data)
-      const initialMaterial = materialIdParam 
-        ? data.find(m => m.id === materialIdParam) || data[0]
-        : data[0]
-      setSelectedMaterial(initialMaterial)
-      setShowDashboard(false)
+    setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('materials')
+        .select('*')
+        .eq('course_id', courseId)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching course materials:', error)
+        setCourseMaterials([])
+        return
+      }
+
+      if (data && data.length > 0) {
+        setCourseMaterials(data)
+        const initialMaterial = materialIdParam
+          ? data.find(m => m.id === materialIdParam) || data[0]
+          : data[0]
+        setSelectedMaterial(initialMaterial)
+        setShowDashboard(false)
+      } else {
+        setCourseMaterials([])
+      }
+    } catch (err) {
+      console.error('fetchMaterials error:', err)
+      setCourseMaterials([])
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -593,6 +660,50 @@ function WorkstationContent() {
     <div className="ws-root" style={{ background: '#F8F9FA' }}>
       <SelectionActionBar onAction={handleSelectionAction} />
       
+      {isMobile && (
+        <div className="mobile-top-bar" style={{ 
+          padding: '12px 16px', 
+          background: 'rgba(255, 255, 255, 0.95)', 
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid #F1F5F9', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          position: 'sticky',
+          top: 0,
+          zIndex: 1000,
+          height: '60px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button 
+              onClick={() => setMobileSidebarOpen(true)} 
+              style={{ background: 'none', border: 'none', color: '#1E293B', display: 'flex', alignItems: 'center', padding: '8px' }}
+            >
+              <List size={22} weight="bold" />
+            </button>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {courseInfo?.code || 'Workstation'}
+              </span>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-outfit)' }}>
+                {selectedMaterial?.title || 'Study'}
+              </span>
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate('/dashboard')} 
+            style={{ 
+              background: '#FEF2F2', border: '1px solid #FEE2E2', color: '#EF4444', 
+              fontWeight: 800, fontSize: '10px', padding: '8px 14px', borderRadius: '10px', 
+              textTransform: 'uppercase', letterSpacing: '0.02em',
+              display: 'flex', alignItems: 'center', gap: '6px'
+            }}
+          >
+            Exit
+          </button>
+        </div>
+      )}
+
       {!isMobile && (
         <header className="ws-global-glass-header" style={{ 
           background: 'rgba(255, 255, 255, 0.9)', 
@@ -611,17 +722,17 @@ function WorkstationContent() {
             <button 
               className="ws-sidebar-toggle" 
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              style={{ background: '#F8FAFC', border: '1.5px solid #F1F5F9', borderRadius: '12px', padding: '8px', color: '#4B0082', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
-              title={sidebarCollapsed ? "Open sidebar" : "Hide sidebar"}
+              style={{ background: 'white', border: '1.5px solid #E2E8F0', borderRadius: '12px', padding: '8px', color: '#1E293B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+              title={sidebarCollapsed ? "Pin sidebar" : "Unpin sidebar"}
             >
-              {sidebarCollapsed ? <CaretRightLight size={18} weight="light" /> : <CaretLeftLight size={18} weight="light" />}
+              <SidebarSimple size={20} weight="bold" mirrored={!sidebarCollapsed} />
             </button>
-            <div className="ws-breadcrumb-minimal" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#64748B', fontSize: '13px', fontFamily: 'var(--font-outfit)', fontWeight: 500 }}>
-              <HouseLight size={18} weight="light" onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer', color: '#4B0082' }} />
-              <CaretRightLight size={14} weight="light" color="#CBD5E1" />
-              <span onClick={() => navigate(`/dashboard/courses/${courseId}`)} style={{ cursor: 'pointer', letterSpacing: '0.02em', fontWeight: 600 }}>{courseInfo?.code || 'Course'}</span>
-              <CaretRightLight size={14} weight="light" color="#CBD5E1" />
-              <span style={{ fontWeight: 600, color: '#1A102D', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedMaterial?.title || 'Material'}</span>
+            <div className="ws-breadcrumb-minimal" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#64748B', fontSize: '13px', fontFamily: 'var(--font-outfit)', fontWeight: 700 }}>
+              <House size={18} weight="bold" onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer', color: '#1E293B' }} />
+              <CaretRight size={14} weight="bold" color="#64748B" />
+              <span onClick={() => navigate(`/dashboard/courses/${courseId}`)} style={{ cursor: 'pointer', letterSpacing: '0.02em', fontWeight: 700, color: '#334155' }}>{courseInfo?.code || 'Course'}</span>
+              <CaretRight size={14} weight="bold" color="#64748B" />
+              <span style={{ fontWeight: 800, color: '#1E293B', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedMaterial?.title || 'Material'}</span>
             </div>
           </div>
 
@@ -638,53 +749,57 @@ function WorkstationContent() {
                 onClick={() => { setActiveTab('content'); setActiveSideTab('chat'); }}
                 className={`ws-capsule-btn ${activeTab === 'content' && activeSideTab === 'chat' ? 'active' : ''}`}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', fontSize: '13px', fontWeight: 600, 
+                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', fontSize: '13px', fontWeight: 700, 
                   borderRadius: '16px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
                   fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
-                  background: activeTab === 'content' && activeSideTab === 'chat' ? '#4B0082' : 'transparent',
-                  color: activeTab === 'content' && activeSideTab === 'chat' ? 'white' : '#64748B',
+                  background: activeTab === 'content' && activeSideTab === 'chat' ? '#FFF7ED' : 'transparent',
+                  color: activeTab === 'content' && activeSideTab === 'chat' ? '#EA580C' : '#64748B',
+                  boxShadow: activeTab === 'content' && activeSideTab === 'chat' ? '0 1px 3px rgba(234, 88, 12, 0.1)' : 'none'
                 }}
               >
-                <FileTextLight size={18} weight="light" /> Source
+                <FileText size={18} weight="bold" /> Source
               </button>
               <button 
                 onClick={() => { setActiveTab('summary'); }}
                 className={`ws-capsule-btn ${activeTab === 'summary' ? 'active' : ''}`}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', fontSize: '13px', fontWeight: 600, 
+                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', fontSize: '13px', fontWeight: 700, 
                   borderRadius: '16px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
                   fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
-                  background: activeTab === 'summary' ? '#4B0082' : 'transparent',
-                  color: activeTab === 'summary' ? 'white' : '#64748B',
+                  background: activeTab === 'summary' ? '#FFF7ED' : 'transparent',
+                  color: activeTab === 'summary' ? '#EA580C' : '#64748B',
+                  boxShadow: activeTab === 'summary' ? '0 1px 3px rgba(234, 88, 12, 0.1)' : 'none'
                 }}
               >
-                <SparkleLight size={18} weight="light" /> Summary
+                <Sparkle size={18} weight="bold" /> Summary
               </button>
               <button 
                 onClick={() => { setActiveTab('flashcards'); }}
                 className={`ws-capsule-btn ${activeTab === 'flashcards' ? 'active' : ''}`}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', fontSize: '13px', fontWeight: 600, 
+                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', fontSize: '13px', fontWeight: 700, 
                   borderRadius: '16px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
                   fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
-                  background: activeTab === 'flashcards' ? '#4B0082' : 'transparent',
-                  color: activeTab === 'flashcards' ? 'white' : '#64748B',
+                  background: activeTab === 'flashcards' ? '#FFF7ED' : 'transparent',
+                  color: activeTab === 'flashcards' ? '#EA580C' : '#64748B',
+                  boxShadow: activeTab === 'flashcards' ? '0 1px 3px rgba(234, 88, 12, 0.1)' : 'none'
                 }}
               >
-                <CardsThree size={18} weight="light" /> Flashcards
+                <CardsThree size={18} weight="bold" /> Flashcards
               </button>
               <button 
                 onClick={() => { setActiveTab('quiz'); }}
                 className={`ws-capsule-btn ${activeTab === 'quiz' ? 'active' : ''}`}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', fontSize: '13px', fontWeight: 600, 
+                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', fontSize: '13px', fontWeight: 700, 
                   borderRadius: '16px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
                   fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
-                  background: activeTab === 'quiz' ? '#4B0082' : 'transparent',
-                  color: activeTab === 'quiz' ? 'white' : '#64748B',
+                  background: activeTab === 'quiz' ? '#FFF7ED' : 'transparent',
+                  color: activeTab === 'quiz' ? '#EA580C' : '#64748B',
+                  boxShadow: activeTab === 'quiz' ? '0 1px 3px rgba(234, 88, 12, 0.1)' : 'none'
                 }}
               >
-                <Checks size={18} weight="light" /> Quiz
+                <Checks size={18} weight="bold" /> Quiz
               </button>
             </div>
           </div>
@@ -696,7 +811,7 @@ function WorkstationContent() {
               fontSize: '11px', fontWeight: 600, color: '#475569', letterSpacing: '0.04em',
               fontFamily: 'var(--font-outfit)', boxShadow: '0 4px 10px rgba(14, 165, 233, 0.1)'
             }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0EA5E9', boxShadow: '0 0 10px rgba(14, 165, 233, 0.6)' }}></div>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#000' }}></div>
               {(() => {
                   let progress = 0;
                   if (selectedMaterial?.extracted_text) progress += 25;
@@ -706,38 +821,21 @@ function WorkstationContent() {
                   return progress;
               })()}% analyzed
             </div>
-            <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '12px', fontWeight: 600, borderRadius: '12px', border: '1.5px solid #F1F5F9', background: 'white', color: '#1A102D', cursor: 'pointer', fontFamily: 'var(--font-outfit)' }}>
-              <ShareNetworkLight size={16} weight="light" /> Share
+            <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '12px', fontWeight: 700, borderRadius: '12px', border: '1.5px solid #000', background: 'white', color: '#000', cursor: 'pointer', fontFamily: 'var(--font-outfit)' }}>
+              <ShareNetwork size={16} weight="bold" /> Share
             </button>
-            <button style={{ padding: '10px', borderRadius: '12px', border: '1.5px solid #F1F5F9', background: 'white', color: '#64748B', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <DotsThreeLight size={18} weight="light" />
+            <button style={{ padding: '10px', borderRadius: '12px', border: '1.5px solid #000', background: 'white', color: '#000', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <DotsThree size={18} weight="bold" />
             </button>
           </div>
         </header>
       )}
 
-      {isMobile && !showDashboard && (
-        <div style={{ padding: '12px 20px', background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(20px)', borderBottom: '1px solid #E2E8F0', flexShrink: 0, position: 'sticky', top: 0, zIndex: 50 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <div style={{ width: '36px', height: '36px', background: 'white', border: '1px solid var(--luter-border)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><LightningLight size={20} color="var(--luter-primary)" weight="light" /></div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}><span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--luter-primary-dark)' }}>{courseInfo?.code || 'Luter'}</span><span style={{ fontSize: '11px', color: '#475569', fontWeight: 500 }}>Week {selectedMaterial?.week_number || '1'}</span></div>
-            </div>
-            <button className="ws-tactile-btn" style={{ padding: '8px 16px', fontSize: '12px', background: 'white', color: '#EF4444', border: '1px solid #FEE2E2' }} onClick={() => navigate(`/dashboard/courses/${courseId}`)}><ArrowLeft size={16} /> Exit</button>
-          </div>
-          {activeTab === 'content' && (
-            <div className="mobile-segmented-control" style={{ margin: '0', background: '#F1F5F9', padding: '4px', borderRadius: '12px' }}>
-              <button className={`segmented-item ${mobileReadingMode === 'document' ? 'segmented-item--active' : ''}`} onClick={() => setMobileReadingMode('document')}><FileText size={16} /> Document</button>
-              <button className={`segmented-item ${mobileReadingMode === 'notes' ? 'segmented-item--active' : ''}`} onClick={() => setMobileReadingMode('notes')}><BookOpen size={16} /> Notes</button>
-            </div>
-          )}
-        </div>
-      )}
 
       <main className="ws-main-layout" style={{ flexDirection: isMobile ? 'column' : 'row', background: 'transparent', overflow: 'hidden', padding: '0', display: 'flex', flex: 1 }}>
         <div ref={constraintsRef} className="ws-pane-left" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#F8FAFB', position: 'relative' }}>
           {/* Subheader for Document/Notes toggle */}
-          {(activeTab === 'content' || activeTab === 'notes') && (
+          {activeTab === 'content' && !isMobile && (
             <div className="ws-canvas-tabs" style={{ 
               padding: '16px 32px', 
               display: 'flex', 
@@ -754,11 +852,11 @@ function WorkstationContent() {
                     borderRadius: '10px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
                     fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
                     background: activeTab === 'content' ? 'white' : 'transparent',
-                    color: activeTab === 'content' ? '#4B0082' : '#64748B',
-                    boxShadow: activeTab === 'content' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none'
+                    color: activeTab === 'content' ? '#6D28D9' : '#64748B',
+                    boxShadow: activeTab === 'content' ? '0 4px 12px rgba(109, 40, 217, 0.1)' : 'none'
                   }}
                 >
-                  <FileTextLight size={16} weight="light" /> Source
+                  <FileText size={16} weight="bold" /> Source
                 </button>
                 <button 
                   onClick={() => setActiveTab('notes')}
@@ -767,27 +865,26 @@ function WorkstationContent() {
                     borderRadius: '10px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
                     fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
                     background: activeTab === 'notes' ? 'white' : 'transparent',
-                    color: activeTab === 'notes' ? '#4B0082' : '#64748B',
-                    boxShadow: activeTab === 'notes' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none'
+                    color: activeTab === 'notes' ? '#6D28D9' : '#64748B',
+                    boxShadow: activeTab === 'notes' ? '0 4px 12px rgba(109, 40, 217, 0.1)' : 'none'
                   }}
                 >
-                  <NotePencil size={16} weight="light" /> Notes
+                  <PencilSimple size={16} weight="bold" /> Notes
                 </button>
               </div>
             </div>
           )}
 
-          <div className="ws-canvas-container" style={{ flex: 1, overflowY: 'auto', display: (isMobile && activeTab !== 'content' && activeTab !== 'notes' && activeTab !== 'summary' && activeTab !== 'write' && activeTab !== 'flashcards' && activeTab !== 'quiz') ? 'none' : 'block' }}>
+          <div className="ws-canvas-container" style={{ flex: 1, overflowY: 'auto', display: (isMobile && activeTab === 'chat') ? 'none' : 'block' }}>
             {activeTab === 'notes' ? (
               <div className="ws-ai-content-pane" style={{ padding: '60px', maxWidth: '800px', margin: '0 auto' }}>
                 <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '32px', color: '#111' }}>Extracted Text</h2>
                 <div style={{ fontSize: '16px', lineHeight: '1.8', color: '#3F3F46', whiteSpace: 'pre-wrap', fontStyle: 'normal' }}>
                   {selectedMaterial?.extracted_text || (
-                    <div style={{ textAlign: 'center', padding: '60px' }}>
-                      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
-                         <CircleNotch size={48} weight="bold" color="#4B0082" className="animate-spin" />
+                    <div style={{ textAlign: 'center', padding: '60px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <div style={{ marginBottom: '24px', width: '100%' }}>
+                        <LuterPageLoader message="Luter is extracting the text for optimized analysis..." minHeight="200px" />
                       </div>
-                      <p style={{ marginBottom: '32px', color: '#64748B', fontWeight: 400, fontFamily: 'var(--font-varela)', fontSize: '15px' }}>Luter is extracting the text for optimized analysis...</p>
                       <button 
                         onClick={async () => {
                           setIsExtractingText(true)
@@ -802,7 +899,7 @@ function WorkstationContent() {
                           display: 'flex', alignItems: 'center', gap: '10px', margin: '0 auto', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em'
                         }}
                       >
-                        <LightningLight size={18} weight="light" /> Extract now
+                        <Lightning size={18} weight="light" /> Extract now
                       </button>
                     </div>
                   )}
@@ -836,6 +933,7 @@ function WorkstationContent() {
             ) : (
               <MaterialRenderer 
                 material={selectedMaterial} 
+                activeTab={activeTab}
                 onSparkUpdate={updateSpark}
                 setViewportData={setViewportData}
               />
@@ -889,39 +987,58 @@ function WorkstationContent() {
         </div>
 
         {!isSidePanelCollapsed && (
-          <div className="ws-pane-right" style={{ 
-            display: (isMobile && activeTab === 'content') ? 'none' : 'flex', 
-            width: '440px', 
-            borderLeft: '1px solid var(--luter-border)', 
-            background: 'white',
-            flexDirection: 'column'
+          <aside className="ws-pane-right" style={{ 
+            display: isMobile ? (activeTab === 'chat' ? 'flex' : 'none') : 'flex', 
+            width: isMobile ? '100%' : '440px', 
+            borderLeft: isMobile ? 'none' : '1px solid rgba(0,0,0,0.05)', 
+            background: 'rgba(255, 255, 255, 0.85)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            flexDirection: 'column',
+            zIndex: 10,
+            position: isMobile ? 'fixed' : 'sticky',
+            top: isMobile ? '60px' : '72px',
+            bottom: isMobile ? '72px' : 'auto',
+            left: 0,
+            right: 0,
+            height: isMobile ? 'calc(100dvh - 132px)' : 'calc(100vh - 72px)'
           }}>
             <div className="ws-chat-container" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <header className="ws-side-tabs-header" style={{ padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center', borderBottom: '1.5px solid #F1F5F9' }}>
-                <div className="ws-text-tabs-bar" style={{ display: 'flex', gap: '24px' }}>
+              <header className="ws-side-header" style={{ padding: '20px 24px 12px', background: 'transparent' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  padding: '4px', 
+                  background: '#F1F5F9', 
+                  borderRadius: '14px',
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)'
+                }}>
                   <button 
-                    className="ws-text-tab" 
                     onClick={() => setActiveSideTab('chat')}
                     style={{ 
-                      background: 'none', border: 'none', padding: '24px 0', fontSize: '13px', fontWeight: 600, letterSpacing: '0.01em', cursor: 'pointer',
-                      color: activeSideTab === 'chat' ? '#4B0082' : '#94A3B8',
-                      borderBottom: activeSideTab === 'chat' ? '3px solid #4B0082' : '3px solid transparent',
-                      fontFamily: 'var(--font-outfit)', transition: 'all 0.2s'
+                      flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                      background: activeSideTab === 'chat' ? 'white' : 'transparent',
+                      color: activeSideTab === 'chat' ? '#000' : '#64748B',
+                      fontFamily: 'var(--font-outfit)', transition: 'all 0.2s',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                      boxShadow: activeSideTab === 'chat' ? '0 4px 12px rgba(0,0,0,0.08)' : 'none'
                     }}
                   >
+                    <ChatCircleTextIcon size={18} weight={activeSideTab === 'chat' ? 'bold' : 'regular'} />
                     Chat
                   </button>
                   <button 
-                    className="ws-text-tab" 
                     onClick={() => setActiveSideTab('write')}
                     style={{ 
-                      background: 'none', border: 'none', padding: '24px 0', fontSize: '13px', fontWeight: 600, letterSpacing: '0.01em', cursor: 'pointer',
-                      color: activeSideTab === 'write' ? '#4B0082' : '#94A3B8',
-                      borderBottom: activeSideTab === 'write' ? '3px solid #4B0082' : '3px solid transparent',
-                      fontFamily: 'var(--font-outfit)', transition: 'all 0.2s'
+                      flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                      background: activeSideTab === 'write' ? 'white' : 'transparent',
+                      color: activeSideTab === 'write' ? '#000' : '#64748B',
+                      fontFamily: 'var(--font-outfit)', transition: 'all 0.2s',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                      boxShadow: activeSideTab === 'write' ? '0 4px 12px rgba(0,0,0,0.08)' : 'none'
                     }}
                   >
-                    Write
+                    <PencilSimple size={18} weight={activeSideTab === 'write' ? 'bold' : 'regular'} />
+                    Notes
                   </button>
                 </div>
               </header>
@@ -938,115 +1055,188 @@ function WorkstationContent() {
                   <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                     <div className="ws-chat-messages" style={{ flex: 1 }}>
                       {messages.length === 0 ? (
-                        <div className="ws-chat-empty-state" style={{ padding: '48px 32px', textAlign: 'center' }}>
-                          <motion.img 
-                            src="/mascot.png" 
-                            alt="Luter" 
-                            style={{ height: '100px', marginBottom: '24px' }}
-                            animate={{ y: [0, -10, 0] }}
-                            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                          />
-                          <div className="ws-suggested-header" style={{ marginBottom: '24px', fontSize: '11px', letterSpacing: '0.08em', fontWeight: 600, color: '#94A3B8', fontFamily: 'var(--font-outfit)' }}>Choose a starting point</div>
-                          <div className="ws-suggested-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {SUGGESTED_QUESTIONS.map(q => (
-                              <button key={q.id} className="ws-suggested-item" onClick={() => handleSend(q.text)} style={{ background: '#F8FAFC', border: '1.5px solid #F1F5F9', borderRadius: '16px', padding: '16px 20px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s', cursor: 'pointer' }}>
-                                <span className="ws-suggested-text" style={{ fontSize: '13px', color: '#1A102D', fontWeight: 600, fontFamily: 'var(--font-outfit)' }}>{q.text}</span>
-                                <ArrowRightLight size={16} weight="light" color="#4B0082" />
-                              </button>
+                        <div className="ws-chat-empty-state" style={{ padding: '24px 24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+
+                          <div className="ws-suggested-list" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {SUGGESTED_QUESTIONS.map((q, idx) => (
+                              <motion.button 
+                                key={q.id} 
+                                initial={{ x: -10, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ delay: 0.1 + (idx * 0.05) }}
+                                className="ws-suggested-item" 
+                                onClick={() => handleSend(q.text)} 
+                                style={{ 
+                                  width: '100%', background: 'white', border: '1px solid #F1F5F9', 
+                                  borderRadius: '16px', padding: '16px 20px', textAlign: 'left', 
+                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                                  transition: 'all 0.2s', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.background = '#F8FAFC' }}
+                                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#F1F5F9'; e.currentTarget.style.background = 'white' }}
+                              >
+                                <span style={{ fontSize: '14px', color: '#334155', fontWeight: 600, fontFamily: 'var(--font-outfit)' }}>{q.text}</span>
+                                <ArrowSquareOutIcon size={16} color="#6D28D9" weight="bold" />
+                              </motion.button>
                             ))}
                           </div>
                         </div>
                       ) : (
-                        <div className="ws-chat-scroll" style={{ padding: '40px' }}>
+                        <div className="ws-chat-scroll" style={{ padding: '24px' }}>
                           {messages.map((msg, i) => {
-                            const sanitizedContent = msg.content.replace(/\[View Source\]\s*\(source:\/\/([^)]+)\)/g, (match, p1) => {
-                              const encoded = p1.split('|').map((part, index) => index % 2 === 1 ? encodeURIComponent(decodeURIComponent(part)) : part).join('|')
-                              return `[View Source](source://${encoded})`
-                            })
-                            const withLinks = msg.role === 'ai' ? sanitizedContent.replace(/\b(page\s*(\d+))\b/gi, '[$1](#page-$2)') : msg.content
-                            const [mainPart, suggestionPart] = withLinks.split('---SUGGESTIONS---')
+                            const isUser = msg.role === 'user'
+                            const [mainPart, suggestionPart] = msg.content.split('---SUGGESTIONS---')
                             const suggestions = suggestionPart ? suggestionPart.split('|').map(s => s.trim()).filter(Boolean) : []
 
                             return (
-                              <div key={i} className={`ws-chat-bubble ws-chat-bubble--${msg.role === 'user' ? 'user' : 'ai'}`}>
-                                {msg.role === 'user' ? (
-                                  <div style={{ marginBottom: '24px' }}>
-                                     <div style={{ fontSize: '11px', fontWeight: 600, color: '#A1A1AA', letterSpacing: '0.04em', marginBottom: '4px' }}>You</div>
-                                     <p style={{ margin: 0, fontSize: '15px', color: '#111', fontWeight: '500' }}>{msg.content}</p>
+                              <div key={i} style={{ 
+                                marginBottom: '40px', 
+                                display: 'flex', 
+                                gap: '16px',
+                                animation: 'fadeUp 0.3s ease-out'
+                              }}>
+                                <div style={{ 
+                                  width: '36px', 
+                                  height: '36px', 
+                                  borderRadius: '10px', 
+                                  background: isUser ? 'rgba(0,0,0,0.03)' : 'var(--primary-bg)', 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center', 
+                                  color: isUser ? 'var(--muted)' : 'var(--primary)',
+                                  flexShrink: 0,
+                                  marginTop: '4px'
+                                }}>
+                                   {isUser ? <UserIcon size={20} weight="bold" /> : <Sparkle size={20} weight="fill" />}
+                                </div>
+
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ 
+                                    fontSize: '12px', 
+                                    fontWeight: 800, 
+                                    color: isUser ? 'var(--muted)' : 'var(--primary)', 
+                                    marginBottom: '6px', 
+                                    textTransform: 'uppercase', 
+                                    letterSpacing: '0.08em',
+                                    fontFamily: 'var(--font-outfit)'
+                                  }}>
+                                     {isUser ? 'You' : 'Luter AI'}
                                   </div>
-                                ) : (
-                                  <div style={{ marginBottom: '32px' }}>
-                                     <div style={{ fontSize: '11px', fontWeight: 600, color: '#A1A1AA', letterSpacing: '0.04em', marginBottom: '8px' }}>Luter</div>
-                                     <div className="ws-ai-message-content" style={{ fontSize: '15px', color: '#333' }}>
-                                       <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
-                                         a: ({ children, href, ...props }) => {
-                                           if (href?.startsWith('source://')) {
-                                              try {
-                                                const parts = href.replace('source://', '').split('|')
-                                                let pageNum = 1, snippet = ""
-                                                for(let i=0; i<parts.length; i+=2) {
-                                                  if(parts[i] === 'page' && parts[i+1]) pageNum = parseInt(parts[i+1])
-                                                  if(parts[i] === 'text' && parts[i+1]) snippet = decodeURIComponent(parts[i+1])
-                                                }
-                                                return (
-                                                  <button className="ws-citation-pill" onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    window.dispatchEvent(new CustomEvent('luter-jump-to-page', { detail: { page: pageNum } }))
-                                                    if (snippet) window.dispatchEvent(new CustomEvent('luter-highlight-text', { detail: { text: snippet } }))
-                                                  }} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#f8f8f8', border: '1px solid #f1f1f1', borderRadius: '6px', padding: '2px 8px', fontSize: '11px', fontWeight: '600', color: '#71717A', margin: '0 4px', cursor: 'pointer' }}>
-                                                    <BookmarkSimple size={10} weight="light" /> {pageNum}
-                                                  </button>
-                                                )
-                                              } catch (e) { return <span>{children}</span> }
-                                           }
-                                           if (href?.startsWith('#page-')) {
-                                             const pageNum = parseInt(href.split('-')[1])
-                                             return <span style={{ color: '#7a12cc', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => window.dispatchEvent(new CustomEvent('luter-jump-to-page', { detail: { page: pageNum } }))}>{children}</span>
-                                           }
-                                           return <a href={href} target="_blank" rel="noopener noreferrer" {...props} style={{ color: '#7a12cc' }}>{children}</a>
-                                         }
-                                       }}>{mainPart}</ReactMarkdown>
-                                     </div>
-                                     {suggestions.length > 0 && (
-                                       <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                                         {suggestions.map((s, idx) => (
-                                           <button key={idx} onClick={() => handleSend(s)} style={{ background: '#fff', border: '1px solid #f1f1f1', borderRadius: '10px', padding: '8px 12px', fontSize: '13px', color: '#111', fontWeight: '500', cursor: 'pointer' }}>{s}</button>
-                                         ))}
-                                       </div>
-                                     )}
+
+                                  <div className="ws-plain-message" style={{ 
+                                    fontSize: '15px', 
+                                    color: 'var(--text)', 
+                                    lineHeight: '1.6', 
+                                    fontFamily: 'var(--font-outfit)'
+                                  }}>
+                                    {isUser ? (
+                                       <p style={{ margin: 0, fontWeight: 500 }}>{msg.content}</p>
+                                    ) : (
+                                      <div style={{ width: '100%' }}>
+                                         <div className="ws-ai-message-content">
+                                           <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                                             h1: ({ children }) => <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '12px', color: 'var(--text)', marginTop: '8px' }}>{children}</h3>,
+                                             h2: ({ children }) => <h3 style={{ fontSize: '17px', fontWeight: 700, marginBottom: '10px', color: 'var(--text)', marginTop: '8px' }}>{children}</h3>,
+                                             p: ({ children }) => <p style={{ marginBottom: '12px' }}>{children}</p>,
+                                             li: ({ children }) => <li style={{ marginBottom: '8px' }}>{children}</li>,
+                                             code: ({ children }) => <code style={{ background: 'rgba(0,0,0,0.05)', padding: '2px 6px', borderRadius: '4px', fontSize: '14px' }}>{children}</code>
+                                           }}>{mainPart}</ReactMarkdown>
+                                         </div>
+                                         <div style={{ display: 'flex', gap: '20px', marginTop: '16px', opacity: 0.6 }}>
+                                           <button style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, background: 'none', border: 'none', color: '#64748B' }}>
+                                             <ThumbsUp size={14} /> <span>Helpful</span>
+                                           </button>
+                                           <button style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, background: 'none', border: 'none', color: '#64748B' }}>
+                                             <CopySimple size={14} /> <span>Copy</span>
+                                           </button>
+                                         </div>
+                                         
+                                         {suggestions.length > 0 && (
+                                           <div style={{ marginTop: '32px', padding: '20px', background: 'rgba(0,0,0,0.02)', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.04)' }}>
+                                             <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Next Steps</div>
+                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                               {suggestions.map((s, idx) => (
+                                                 <button key={idx} onClick={() => handleSend(s)} style={{ width: '100%', background: 'white', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '10px', padding: '12px 14px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.borderColor = 'var(--primary)' }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.05)' }}>
+                                                   <span style={{ fontSize: '13px', color: 'var(--text)', fontWeight: 500 }}>{s}</span>
+                                                   <ArrowSquareOutIcon size={14} color="var(--primary)" />
+                                                 </button>
+                                               ))}
+                                             </div>
+                                           </div>
+                                         )}
+                                      </div>
+                                    )}
                                   </div>
-                                )}
+                                </div>
                               </div>
                             )
                           })}
-                          {isProcessingLoading && <div style={{ fontSize: '11px', color: '#A1A1AA', fontWeight: 600, letterSpacing: '0.04em' }}>Luter is thinking...</div>}
+                          {isProcessingLoading && (
+                            <div style={{ 
+                              display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px', 
+                              background: 'white', borderRadius: '16px', width: 'fit-content', 
+                              border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' 
+                            }}>
+                               <Typing dots={3} className="text-[var(--primary)]" />
+                            </div>
+                          )}
                           <div ref={messagesEndRef} />
                         </div>
                       )}
                     </div>
-                    <div className="ws-chat-input-area" style={{ padding: '24px', borderTop: '1.5px solid #F1F5F9' }}>
-                      <div className="ws-input-wrapper" style={{ border: '1.5px solid #F1F5F9', background: '#F8FAFC', borderRadius: '16px', padding: '8px 8px 8px 20px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+                    <div className="ws-chat-input-area" style={{ 
+                      padding: '24px 24px 32px', 
+                      borderTop: '1px solid #F1F5F9',
+                      background: 'rgba(255,255,255,0.95)',
+                      backdropFilter: 'blur(20px)',
+                    }}>
+                      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
+                        <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }}></div>
+                          3 explanations left
+                        </div>
+                        <button style={{ fontSize: '11px', color: '#6D28D9', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', background: '#F5F3FF', padding: '4px 10px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>Upgrade <ArrowUpRight size={12} weight="bold" /></button>
+                      </div>
+                      
+                      <div style={{ 
+                        background: '#F8FAFC', 
+                        border: '1px solid #E2E8F0', 
+                        borderRadius: '20px', 
+                        padding: '10px 14px',
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '12px',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }} onFocusCapture={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.background = 'white'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(109, 40, 217, 0.1)' }} onBlurCapture={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.02)' }}>
                         <input 
-                          className="ws-chat-input" 
-                          placeholder={t('ai_placeholder')}
-                          value={chatInput}
+                          type="text" 
+                          placeholder="Ask Luter anything..." 
+                          value={chatInput} 
                           onChange={(e) => setChatInput(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                           disabled={isProcessingLoading}
-                          style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '14px', fontWeight: 600, color: '#1A102D', fontFamily: 'var(--font-varela)' }}
+                          style={{ 
+                            flex: 1, border: 'none', background: 'transparent', outline: 'none', 
+                            fontSize: '14px', color: '#1E293B', fontFamily: 'var(--font-outfit)',
+                            padding: '8px 4px', fontWeight: 500
+                          }}
                         />
+                        <button style={{ color: '#94A3B8', background: 'none', border: 'none', cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#6D28D9'} onMouseLeave={(e) => e.currentTarget.style.color = '#94A3B8'}>
+                          <Microphone size={20} weight="bold" />
+                        </button>
                         <button 
-                          className="ws-send-btn" 
                           onClick={() => handleSend()} 
                           disabled={isProcessingLoading || !chatInput.trim()}
                           style={{ 
-                            background: chatInput.trim() ? '#4B0082' : '#E2E8F0', 
-                            color: 'white', border: 'none', borderRadius: '12px', width: '40px', height: '40px', 
+                            background: '#000', 
+                            color: 'white', border: 'none', borderRadius: '12px', width: '42px', height: '42px', 
                             display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', cursor: 'pointer',
-                            boxShadow: chatInput.trim() ? '0 4px 12px rgba(75, 0, 130, 0.2)' : 'none'
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            opacity: (!chatInput.trim() && !isProcessingLoading) ? 0.3 : 1
                           }}
                         >
-                          {isProcessingLoading ? <CircleNotch className="animate-spin" size={20} weight="bold" /> : <PaperPlaneRight size={20} weight="bold" />}
+                          <PaperPlaneRight size={20} weight="bold" />
                         </button>
                       </div>
                     </div>
@@ -1072,15 +1262,55 @@ function WorkstationContent() {
                 <WorkstationQuiz material={selectedMaterial} items={currentAnalysis.quiz} />
               </div>
             )}
-          </div>
+          </aside>
         )}
       </main>
 
       {isMobile && (
-        <div className="mobile-bottom-nav">
-          <button className={`mobile-nav-item ${activeTab === 'content' ? 'mobile-nav-item--active mobile-nav-item--accent' : ''}`} onClick={() => setActiveTab('content')}><Layout size={20} /><span>Source</span></button>
-          <button className={`mobile-nav-item ${activeTab === 'flashcards' ? 'mobile-nav-item--active' : ''}`} onClick={() => setActiveTab('flashcards')}><Layers size={20} /><span>Flashcards</span></button>
-          <button className={`mobile-nav-item ${activeTab === 'quiz' ? 'mobile-nav-item--active' : ''}`} onClick={() => setActiveTab('quiz')}><ClipboardList size={20} /><span>Quizzes</span></button>
+        <div className="mobile-bottom-nav" style={{ 
+          display: 'flex', 
+          justifyContent: 'space-around', 
+          padding: '12px 16px 28px', 
+          background: 'rgba(255, 255, 255, 0.95)', 
+          backdropFilter: 'blur(20px)',
+          borderTop: '1px solid #F1F5F9',
+          position: 'fixed',
+          bottom: 0, left: 0, right: 0,
+          zIndex: 1000,
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.03)'
+        }}>
+          <button 
+            className={`mobile-nav-item ${activeTab === 'content' ? 'mobile-nav-item--active' : ''}`} 
+            onClick={() => setActiveTab('content')}
+            style={{ color: activeTab === 'content' ? '#6D28D9' : '#64748B', transition: 'all 0.2s', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            <SquaresFour size={22} weight={activeTab === 'content' ? 'bold' : 'regular'} />
+            <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Source</span>
+          </button>
+          <button 
+            className={`mobile-nav-item ${activeTab === 'chat' ? 'mobile-nav-item--active' : ''}`} 
+            onClick={() => { setActiveTab('chat'); setActiveSideTab('chat'); setSidePanelCollapsed(false); }}
+            style={{ color: activeTab === 'chat' ? '#6D28D9' : '#64748B', transition: 'all 0.2s', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            <ChatCircleTextIcon size={22} weight={activeTab === 'chat' ? 'bold' : 'regular'} />
+            <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Chat</span>
+          </button>
+          <button 
+            className={`mobile-nav-item ${activeTab === 'flashcards' ? 'mobile-nav-item--active' : ''}`} 
+            onClick={() => { setActiveTab('flashcards'); setActiveSideTab('flashcards'); }}
+            style={{ color: activeTab === 'flashcards' ? '#6D28D9' : '#64748B', transition: 'all 0.2s', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            <Stack size={22} weight={activeTab === 'flashcards' ? 'bold' : 'regular'} />
+            <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Cards</span>
+          </button>
+          <button 
+            className={`mobile-nav-item ${activeTab === 'quiz' ? 'mobile-nav-item--active' : ''}`} 
+            onClick={() => { setActiveTab('quiz'); setActiveSideTab('quiz'); }}
+            style={{ color: activeTab === 'quiz' ? '#6D28D9' : '#64748B', transition: 'all 0.2s', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            <ClipboardText size={22} weight={activeTab === 'quiz' ? 'bold' : 'regular'} />
+            <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Quiz</span>
+          </button>
         </div>
       )}
     </div>

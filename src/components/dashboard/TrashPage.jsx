@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { RiDeleteBin6Fill as Trash2, RiRestartLine as RotateCcw, RiFileTextFill as FileText, RiYoutubeFill as Youtube, RiPenNibFill as PenTool, RiHashtag as Hash, RiLoader4Line as Loader2, RiSearchLine as Search, RiMore2Fill as MoreVertical, RiAlertFill as AlertCircle } from 'react-icons/ri'
+import { LuterPageLoader } from '../shared/LuterPageLoader'
 import { supabase } from '../../supabaseClient'
 import { useOutletContext } from 'react-router-dom'
 
@@ -101,9 +102,7 @@ export default function TrashPage() {
 
       <div className="trash-content">
         {loading ? (
-          <div style={{ padding: '100px 0', textAlign: 'center' }}>
-            <Loader2 className="animate-spin" style={{ margin: '0 auto', color: 'var(--primary)' }} />
-          </div>
+          <LuterPageLoader message="Scanning trash..." />
         ) : filteredItems.length > 0 ? (
           <div style={{ display: 'grid', gap: '12px' }}>
             {filteredItems.map(item => (

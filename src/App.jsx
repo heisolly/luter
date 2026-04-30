@@ -54,6 +54,7 @@ import JoinGroupPage from './components/dashboard/JoinGroupPage'
 import LibraryPage from './components/dashboard/LibraryPage'
 import TrashPage from './components/dashboard/TrashPage'
 import VaultPage from './components/dashboard/VaultPage'
+import StudySessionPage from './components/dashboard/StudySessionPage'
 
 
 const OFFLINE_BAR_PT = '2.75rem'
@@ -130,6 +131,7 @@ export default function App() {
             <Route path="study-groups" element={<StudyGroupsPage />} />
             <Route path="study-groups/:groupId" element={<StudyGroupDetailsPage />} />
             <Route path="trash" element={<TrashPage />} />
+            <Route path="session/:sessionId" element={<StudySessionPage />} />
             <Route path="exam-session/:sessionId" element={<ExamSessionPage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>

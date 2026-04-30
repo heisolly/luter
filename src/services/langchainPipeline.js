@@ -27,6 +27,16 @@ if (typeof window !== 'undefined' && pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL
 }
 
+/** Race a promise against a timeout */
+function withTimeout(promise, ms, label = 'Operation') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    )
+  ])
+}
+
 /** Trigger Supabase Edge Function to convert PPTX to PDF */
 async function triggerConversion(material) {
   if (material.type === 'pptx' || material.type === 'ppt') {
@@ -296,8 +306,12 @@ export async function extractTextChunks(file, type, url) {
  */
 export async function ingestMaterial({ file, type, url, metadata }) {
   try {
-    // 1. Extract raw text chunks
-    const rawChunks = await extractTextChunks(file, type, url)
+    // 1. Extract raw text chunks (with timeout guard to prevent pending-forever hangs)
+    const rawChunks = await withTimeout(
+      extractTextChunks(file, type, url),
+      45000,
+      'Text extraction'
+    )
     if (!rawChunks.length) throw new Error('No text could be extracted from this material.')
 
     // 2. Build LangChain Documents
@@ -340,11 +354,15 @@ export async function ingestMaterial({ file, type, url, metadata }) {
 
     // 5. Save full extracted_text back to materials table + mark ready
     const fullText = rawChunks.map(c => c.text).join('\n\n')
-    const { error: updateError } = await supabase
-      .from('materials')
-      .update({ extracted_text: fullText, processing_status: 'ready' })
-      .eq('id', metadata.materialId)
-    
+    const { error: updateError } = await withTimeout(
+      supabase
+        .from('materials')
+        .update({ extracted_text: fullText, processing_status: 'ready' })
+        .eq('id', metadata.materialId),
+      15000,
+      'Material status update'
+    )
+
     if (updateError) {
       console.error('[LangChain] materials update failed:', updateError)
       throw new Error(`Failed to update material metadata: ${updateError.message}`)
