@@ -29,6 +29,20 @@ export default function LibraryPage() {
 
   async function fetchLibraryContent() {
     setLoading(true)
+    const cacheKey = `luter:library:${user.id}`
+    const offline = typeof navigator !== 'undefined' && !navigator.onLine
+
+    if (offline) {
+      try {
+        const raw = localStorage.getItem(cacheKey)
+        if (raw) {
+          setRecentSessions(JSON.parse(raw))
+          setLoading(false)
+          return
+        }
+      } catch {}
+    }
+
     try {
       // Fetch recent exam sessions
       const { data: sessions, error: sErr } = await supabase
@@ -38,8 +52,17 @@ export default function LibraryPage() {
         .order('created_at', { ascending: false })
         .limit(10)
 
-      if (sessions) setRecentSessions(sessions)
+      if (sessions) {
+        setRecentSessions(sessions)
+        try { localStorage.setItem(cacheKey, JSON.stringify(sessions)) } catch {}
+      }
       if (sErr) console.error('Error fetching sessions:', sErr)
+    } catch (e) {
+      console.error('Library fetch error:', e)
+      try {
+        const raw = localStorage.getItem(cacheKey)
+        if (raw) setRecentSessions(JSON.parse(raw))
+      } catch {}
     } finally {
       setLoading(false)
     }

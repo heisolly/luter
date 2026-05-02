@@ -496,3 +496,521 @@
   .dhd-statbar-div { display: none; }
   .dhd-statbar--level { flex: 1 1 100%; }
 }
+
+/* ==============================================
+   NEW GAMIFIED HOME PAGE STYLES
+   ============================================== */
+
+/* ── Large Engaging Greeting ── */
+.dhd-hero-large {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  margin-bottom: 32px;
+  padding: 24px 0;
+}
+
+.dhd-hero-content {
+  flex: 1;
+}
+
+.dhd-hero-title {
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px 0;
+  line-height: 1.2;
+  color: #0f172a;
+}
+
+.dhd-hero-subtitle {
+  font-size: 16px;
+  color: #64748b;
+  margin: 0;
+  font-weight: 400;
+}
+
+.dhd-hero-mascot-large {
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+}
+
+.dhd-hero-mascot-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* ── Streak Section ── */
+.dhd-streak-section {
+  margin-bottom: 24px;
+}
+
+.dhd-streak-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dhd-streak-card:hover {
+  border-color: #cbd5e1;
+  background: #fafafa;
+}
+
+.dhd-streak-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dhd-streak-icon {
+  color: #f59e0b;
+  background: #fffbeb;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.dhd-streak-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.dhd-streak-number {
+  font-size: 36px;
+  font-weight: 700;
+  color: #f59e0b;
+  line-height: 1;
+}
+
+.dhd-streak-label {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.dhd-streak-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 120px;
+}
+
+.dhd-streak-progress {
+  height: 6px;
+  background: #f59e0b;
+  border-radius: 99px;
+  width: 100%;
+}
+
+.dhd-streak-goal {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* ── Jump Back In / New User Section ── */
+.dhd-jump-section {
+  margin-bottom: 24px;
+}
+
+.dhd-jump-card,
+.dhd-new-user-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dhd-jump-card:hover,
+.dhd-new-user-card:hover {
+  border-color: #cbd5e1;
+  background: #fafafa;
+}
+
+.dhd-jump-content,
+.dhd-new-user-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.dhd-jump-icon {
+  color: #0ea5e9;
+  background: #f0f9ff;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.dhd-new-user-icon {
+  color: #7a12cc;
+  background: #f3e8ff;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.dhd-jump-text,
+.dhd-new-user-text {
+  flex: 1;
+}
+
+.dhd-jump-text h3,
+.dhd-new-user-text h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: #0f172a;
+}
+
+.dhd-jump-text p,
+.dhd-new-user-text p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+.dhd-jump-btn,
+.dhd-new-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0f172a;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dhd-new-user-btn {
+  background: #7a12cc;
+}
+
+.dhd-jump-btn:hover,
+.dhd-new-user-btn:hover {
+  opacity: 0.9;
+}
+
+/* ── Courses Section ── */
+.dhd-courses-section {
+  margin-bottom: 32px;
+}
+
+.dhd-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.dhd-section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.dhd-see-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #7a12cc;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dhd-see-all-btn:hover {
+  color: #5a0d99;
+  transform: translateX(4px);
+}
+
+.dhd-courses-scroll {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 8px 4px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.dhd-courses-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.dhd-courses-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 99px;
+}
+
+.dhd-courses-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 99px;
+}
+
+.dhd-course-card {
+  flex-shrink: 0;
+  width: 220px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #e2e8f0;
+}
+
+.dhd-course-card:hover {
+  border-color: #cbd5e1;
+  background: #fafafa;
+}
+
+.dhd-course-color {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.dhd-course-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dhd-course-code {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dhd-course-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.dhd-course-count {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+/* ── Materials Section ── */
+.dhd-materials-section {
+  margin-bottom: 24px;
+}
+
+.dhd-materials-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dhd-materials-card:hover {
+  border-color: #cbd5e1;
+  background: #fafafa;
+}
+
+.dhd-materials-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dhd-materials-icon {
+  color: #64748b;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.dhd-materials-text h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0 0 2px 0;
+}
+
+.dhd-materials-text p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.dhd-materials-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #64748b;
+}
+
+.dhd-materials-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 6px 12px;
+  border-radius: 99px;
+}
+
+/* ── Have Fun Section ── */
+.dhd-fun-section {
+  margin-bottom: 24px;
+}
+
+.dhd-fun-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dhd-fun-card:hover {
+  border-color: #cbd5e1;
+  background: #fafafa;
+}
+
+.dhd-fun-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dhd-fun-icon {
+  color: #64748b;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.dhd-fun-text h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 2px 0;
+  color: #0f172a;
+}
+
+.dhd-fun-text p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.dhd-fun-sparkles {
+  margin-left: auto;
+  font-size: 20px;
+  color: #fbbf24;
+}
+
+/* ── Minimal Stats ── */
+.dhd-stats-minimal {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.dhd-stats-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.dhd-stats-item svg {
+  color: #94a3b8;
+}
+
+/* ── Mobile Responsive ── */
+@media (max-width: 768px) {
+  .dhd-hero-large {
+    flex-direction: column;
+    text-align: center;
+    padding: 24px 0;
+  }
+  
+  .dhd-hero-title {
+    font-size: 36px;
+  }
+  
+  .dhd-hero-mascot-large {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .dhd-streak-card {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .dhd-streak-right {
+    align-items: center;
+    width: 100%;
+  }
+  
+  .dhd-jump-content,
+  .dhd-new-user-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .dhd-course-card {
+    width: 180px;
+  }
+  
+  .dhd-materials-card {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+  
+  .dhd-fun-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .dhd-fun-sparkles {
+    position: relative;
+    right: auto;
+    top: auto;
+    transform: none;
+  }
+  
+  .dhd-stats-minimal {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+}

@@ -72,46 +72,36 @@ export async function uploadMaterial({
       console.log(`Upload attempt ${retryCount + 1}/${maxRetries} for ${file.name}`)
       
       // Use direct REST API call to bypass Supabase client MIME type issues
+      console.log('Using direct REST API for all files')
+      
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      
+      if (!token) {
+        throw new Error('No authentication token available')
+      }
+      
+      // Use direct REST API call
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      const uploadUrl = `${supabaseUrl}/storage/v1/object/materials/${path}`
+      
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': correctMimeType,
+        },
+        body: correctedFile
+      })
+      
       let uploadResult
-      if (ext === 'pptx') {
-        console.log('Using direct REST API for PPTX files')
-        
-        // Get auth token
-        const { data: { session } } = await supabase.auth.getSession()
-        const token = session?.access_token
-        
-        if (!token) {
-          throw new Error('No authentication token available')
-        }
-        
-        // Use direct REST API call
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-        const uploadUrl = `${supabaseUrl}/storage/v1/object/materials/${path}`
-        
-        const response = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            // Don't set Content-Type header - let browser set it with boundary
-          },
-          body: file
-        })
-        
-        if (response.ok) {
-          uploadResult = { data: { path }, error: null }
-        } else {
-          const errorText = await response.text()
-          console.error('Direct API upload failed:', errorText)
-          uploadResult = { data: null, error: { message: errorText } }
-        }
+      if (response.ok) {
+        uploadResult = { data: { path }, error: null }
       } else {
-        uploadResult = await supabase.storage
-          .from('materials')
-          .upload(path, correctedFile, { 
-            upsert: false,
-            contentType: correctMimeType,
-            cacheControl: 'no-cache'
-          })
+        const errorText = await response.text()
+        console.error('Direct API upload failed:', errorText)
+        uploadResult = { data: null, error: { message: errorText } }
       }
       
       const { error: uploadError } = uploadResult
@@ -240,6 +230,12 @@ export async function uploadMaterial({
     url: null,
     metadata: { materialId: materialData.id, courseId: courseId || null, userId, title: title || file.name }
   }).catch(err => console.error('[LangChain] Ingestion error after upload:', err))
+
+  // Trigger high-fidelity conversion for Office documents (non-blocking)
+  if (['docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv'].includes(type)) {
+    triggerDocumentConversion(materialData.id, materialData.source_url, type, title || file.name, userId)
+      .catch(err => console.error('[Conversion] Document conversion trigger failed:', err))
+  }
 
   // Create share records based on sharing scope
   if (sharingScope === 'program' && finalProgramId) {
@@ -750,4 +746,62 @@ export async function updateSessionLastAccessed(sessionId) {
 
   if (error) throw error
   return { success: true }
+}
+
+/**
+ * Trigger the document-processor Edge Function to convert Office files → PDF.
+ * Non-blocking; fires after upload and returns immediately.
+ */
+export async function triggerDocumentConversion(materialId, fileUrl, fileType, fileName, userId) {
+  if (!materialId || !fileUrl) throw new Error('Missing materialId or fileUrl')
+
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  const response = await fetch(`${supabaseUrl}/functions/v1/document-processor`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ materialId, fileUrl, fileType, fileName, userId }),
+  })
+
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.error || 'Conversion request failed')
+  return result
+}
+
+/**
+ * Poll a material's conversion status until a converted_url is available or it fails.
+ */
+export function pollConversionStatus(materialId, { onConverted, onFailed, intervalMs = 4000, maxAttempts = 60 } = {}) {
+  let attempts = 0
+  const timer = setInterval(async () => {
+    attempts++
+    try {
+      const { data } = await supabase
+        .from('materials')
+        .select('converted_url, converted_type, render_quality, processing_status')
+        .eq('id', materialId)
+        .single()
+
+      if (data?.converted_url) {
+        clearInterval(timer)
+        onConverted?.(data)
+      } else if (data?.processing_status === 'failed' || attempts >= maxAttempts) {
+        clearInterval(timer)
+        onFailed?.()
+      }
+    } catch (err) {
+      console.warn('[PollConversion] Error:', err)
+      if (attempts >= maxAttempts) {
+        clearInterval(timer)
+        onFailed?.()
+      }
+    }
+  }, intervalMs)
+
+  return () => clearInterval(timer)
 }

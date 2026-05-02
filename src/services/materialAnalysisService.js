@@ -16,28 +16,41 @@ export class MaterialAnalysisService {
    */
   static async getOrCreateAnalysis(materialId, material, userId) {
     try {
-      console.log('Getting material analysis for:', materialId)
+      console.log('[MaterialAnalysisService] Getting analysis for material:', materialId)
+      console.log('[MaterialAnalysisService] Material has extracted_text:', !!material.extracted_text, 'Length:', material.extracted_text?.length || 0)
       
       // First try to get existing analysis from Supabase
       const existingAnalysis = await this.getAnalysisFromSupabase(materialId, userId)
       
-      if (existingAnalysis) {
-        console.log('Found cached analysis for material:', materialId)
-        return {
-          success: true,
-          analysis: existingAnalysis,
-          isCached: true
+      if (existingAnalysis && !existingAnalysis.isFallback && !existingAnalysis.fallbackAnalysis) {
+        // Check if analysis has actual content (not just placeholder)
+        const hasContent = existingAnalysis.summary && 
+          !existingAnalysis.summary.includes('will be available soon') &&
+          !existingAnalysis.summary.includes('being processed')
+        
+        if (hasContent) {
+          console.log('[MaterialAnalysisService] Found valid cached analysis')
+          return {
+            success: true,
+            analysis: existingAnalysis,
+            isCached: true
+          }
         }
+        console.log('[MaterialAnalysisService] Cached analysis incomplete, regenerating...')
+      } else if (existingAnalysis) {
+        console.log('[MaterialAnalysisService] Cached analysis is fallback, regenerating...')
       }
       
       // No cached analysis found, generate new one
-      console.log('No cached analysis found, generating new analysis...')
+      console.log('[MaterialAnalysisService] Generating new analysis...')
       const newAnalysis = await this.generateNewAnalysis(material, userId)
       
-      if (newAnalysis.success) {
-        // Save to Supabase for future use
+      if (newAnalysis.success && !newAnalysis.isFallback) {
+        // Save to Supabase for future use - but not if it's a fallback
         await this.saveAnalysisToSupabase(materialId, newAnalysis.analysis, userId)
         console.log('New analysis saved to cache')
+      } else if (newAnalysis.isFallback) {
+        console.log('Fallback analysis not saved to cache (will regenerate next time)')
       }
       
       return {
@@ -120,8 +133,8 @@ export class MaterialAnalysisService {
       // Check rate limiting - if we're close to limit, use fallback
       const lastCall = window.lastAnalysisCall || 0
       const now = Date.now()
-      if (now - lastCall < 60000) { // 1 minute cooldown
-        console.log('Analysis generation rate limited, using fallback')
+      if (now - lastCall < 5000) { // 5 second cooldown between analysis generations
+        console.log('Analysis generation rate limited (5s cooldown), using fallback')
         return this.createFallbackAnalysis(material, userId)
       }
       window.lastAnalysisCall = now
@@ -312,7 +325,7 @@ Return the analysis in JSON format with the following structure:
       const content = material?.extracted_text || analysis?.extracted_text || ""
       
       if ((!analysis || (!analysis.summary && !analysis.keyTopics && !analysis.keyTerms)) && content) {
-        console.log('Analysis is incomplete, generating flashcards directly from material content')
+        console.log('[Flashcards] Analysis incomplete, generating directly from material content')
         return this.generateDirectFlashcards({ ...analysis, extracted_text: content }, count)
       }
       
@@ -320,7 +333,7 @@ Return the analysis in JSON format with the following structure:
         throw new Error('No analysis or material available for flashcard generation')
       }
 
-      console.log('Using cached analysis to generate flashcards')
+      console.log('[Flashcards] Using cached analysis to generate flashcards')
       
       const flashcardPrompt = `
 Based on this educational material analysis, generate ${count} flashcards for studying. Create question-answer pairs that test understanding of the key concepts.
@@ -386,7 +399,7 @@ Focus on:
       const content = material?.extracted_text || analysis?.extracted_text || ""
       
       if ((!analysis || (!analysis.summary && !analysis.keyTopics && !analysis.keyTerms)) && content) {
-        console.log('Analysis is incomplete, generating quiz directly from material content')
+        console.log('[Quiz] Analysis incomplete, generating directly from material content')
         return this.generateDirectQuiz({ ...analysis, extracted_text: content }, questionCount, difficulty)
       }
       
@@ -394,7 +407,7 @@ Focus on:
         throw new Error('No analysis or material available for quiz generation')
       }
 
-      console.log('Using cached analysis to generate quiz')
+      console.log('[Quiz] Using cached analysis to generate quiz')
       
       const quizPrompt = `
 Based on this educational material analysis, generate a quiz with ${questionCount} multiple-choice questions at ${difficulty} difficulty level.
@@ -512,7 +525,7 @@ Create questions that test:
       }
     }
     
-    return { flashcards }
+    return { success: true, flashcards }
   }
   
   static createBasicQuiz(analysis, questionCount, difficulty) {
@@ -535,6 +548,7 @@ Create questions that test:
     }
     
     return {
+      success: true,
       quiz: {
         title: `Quiz on ${analysis.materialMetadata?.topics?.join(', ') || 'Material'}`,
         difficulty,
@@ -613,9 +627,18 @@ Focus on:
 4. Practical applications
 `
 
-      const response = await callGroqAPI([
-        { role: 'user', content: flashcardPrompt }
-      ], GROQ_MODELS.SPEEDSTER, 0.3)
+      let response
+      try {
+        response = await callGroqAPI([
+          { role: 'user', content: flashcardPrompt }
+        ], GROQ_MODELS.SPEEDSTER, 0.3)
+      } catch (rateLimitError) {
+        if (rateLimitError.message?.includes('429') || rateLimitError.message?.includes('rate limit')) {
+          console.warn('Rate limit hit for flashcards, using fallback method')
+          return this.createFallbackFlashcards(count)
+        }
+        throw rateLimitError
+      }
       
       let flashcardData
       try {
@@ -633,10 +656,12 @@ Focus on:
         }
       }
       
-      return {
+      const result = {
         success: true,
         flashcards: flashcardData.flashcards || []
       }
+      console.log('Direct flashcards generated:', result.flashcards?.length || 0, 'cards')
+      return result
       
     } catch (error) {
       console.error('Failed to generate direct flashcards:', error)
@@ -701,9 +726,18 @@ Create questions that test:
 4. Critical thinking about the content
 `
 
-      const response = await callGroqAPI([
-        { role: 'user', content: quizPrompt }
-      ], GROQ_MODELS.SPEEDSTER, 0.3)
+      let response
+      try {
+        response = await callGroqAPI([
+          { role: 'user', content: quizPrompt }
+        ], GROQ_MODELS.SPEEDSTER, 0.3)
+      } catch (rateLimitError) {
+        if (rateLimitError.message?.includes('429') || rateLimitError.message?.includes('rate limit')) {
+          console.warn('Rate limit hit for quiz, using fallback method')
+          return this.createFallbackQuiz(questionCount, difficulty)
+        }
+        throw rateLimitError
+      }
       
       let quizData
       try {
@@ -794,32 +828,47 @@ Create questions that test:
     const pageSummaries = {};
     const pages = Object.keys(pageTextMap).sort((a,b) => parseInt(a)-parseInt(b));
     
-    const targetPages = pages.slice(0, 20);
+    const targetPages = pages.slice(0, 10); // Reduced from 20 to 10
     console.log(`Generating summaries for ${targetPages.length} pages...`);
 
-    for (let i = 0; i < targetPages.length; i += 3) {
-      const batch = targetPages.slice(i, i + 3);
-      await Promise.all(batch.map(async (pg) => {
-        const text = pageTextMap[pg];
-        if (!text || text.length < 100) return;
+    // Process pages one by one to avoid rate limiting
+    for (let i = 0; i < targetPages.length; i++) {
+      const pg = targetPages[i];
+      const text = pageTextMap[pg];
+      if (!text || text.length < 100) {
+        console.log(`Skipping page ${pg} - insufficient content`);
+        continue;
+      }
 
-        const prompt = `Summarize the following page from an academic document in 2-4 concise bullet points. Focus on key definitions, formulas, or concepts.
+      const prompt = `Summarize the following page from an academic document in 2-4 concise bullet points. Focus on key definitions, formulas, or concepts.
 MATERIAL PAGE ${pg}:
 """
-${text.substring(0, 3000)}
+${text.substring(0, 2000)} // Reduced from 3000 to save tokens
 """`;
 
-        try {
-          const res = await callGroqAPI(
-            [{ role: 'user', content: prompt }], 
-            GROQ_MODELS.SPEEDSTER, 
-            { systemPromptOverride: "You are an expert academic summarizer. Be concise and precise." }
-          );
-          pageSummaries[pg] = res.choices[0].message.content;
-        } catch (e) {
-          console.warn(`Failed to summarize page ${pg}:`, e);
+      try {
+        console.log(`Summarizing page ${pg} (${i + 1}/${targetPages.length})...`);
+        const res = await callGroqAPI(
+          [{ role: 'user', content: prompt }], 
+          GROQ_MODELS.SPEEDSTER, 
+          { systemPromptOverride: "You are an expert academic summarizer. Be concise and precise." }
+        );
+        pageSummaries[pg] = res.choices[0].message.content;
+        console.log(`✓ Page ${pg} summarized`);
+        
+        // Add delay between requests to avoid rate limiting
+        if (i < targetPages.length - 1) {
+          console.log('Waiting 3 seconds before next request...');
+          await new Promise(resolve => setTimeout(resolve, 3000));
         }
-      }));
+      } catch (e) {
+        console.warn(`Failed to summarize page ${pg}:`, e);
+        // Wait longer if we hit rate limit
+        if (e.message?.includes('429') || e.message?.includes('rate limit')) {
+          console.log('Rate limit hit, waiting 10 seconds...');
+          await new Promise(resolve => setTimeout(resolve, 10000));
+        }
+      }
     }
 
     return pageSummaries;
@@ -877,23 +926,54 @@ MaterialAnalysisService.cleanAndParseJson = function(text) {
       // 1. Fix trailing commas in arrays/objects
       let repaired = cleaned.replace(/,\s*([\}\]])/g, '$1');
       
-      // 2. Fix unescaped newlines in strings
-      repaired = repaired.replace(/\n/g, '\\n');
+      // 2. Fix unescaped newlines in strings (but not within already escaped content)
+      repaired = repaired.replace(/(?<!\\)\n/g, '\\n');
       
-      // 3. Fix minor quoting issues
+      // 3. Fix unescaped quotes in strings
+      repaired = repaired.replace(/(?<!\\)"(?=[^,:}\]\s]*[,}\]])/g, '\\"');
+      
+      // 4. Fix missing quotes around property names
+      repaired = repaired.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+      
+      // 5. Fix single quotes to double quotes
+      repaired = repaired.replace(/'/g, '"');
+      
       return JSON.parse(repaired);
     } catch (repairError) {
-      // 4. Final attempt: Extract just the object using a more permissive regex
+      // 6. Final attempt: Extract just the object using a more permissive regex
       const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         try {
-          const finalTry = jsonMatch[0].replace(/,\s*([\}\]])/g, '$1');
+          let finalTry = jsonMatch[0];
+          // Apply all repairs to the extracted JSON
+          finalTry = finalTry.replace(/,\s*([\}\]])/g, '$1');
+          finalTry = finalTry.replace(/(?<!\\)\n/g, '\\n');
+          finalTry = finalTry.replace(/(?<!\\)"(?=[^,:}\]\s]*[,}\]])/g, '\\"');
+          finalTry = finalTry.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+          finalTry = finalTry.replace(/'/g, '"');
+          
           return JSON.parse(finalTry);
         } catch (e) {
-          throw new Error('JSON repair failed: ' + e.message);
+          // If all fails, return a basic structure
+          console.error('JSON repair completely failed, returning fallback structure');
+          return {
+            summary: "Analysis temporarily unavailable",
+            topics: [],
+            difficulty: "Medium",
+            studyTime: "30 minutes",
+            keyPoints: []
+          };
         }
       }
-      throw repairError;
+      // Return fallback if no JSON found
+      console.error('No JSON found in response, returning fallback structure');
+      return {
+        summary: "Analysis temporarily unavailable",
+        topics: [],
+        difficulty: "Medium",
+        studyTime: "30 minutes",
+        keyPoints: []
+      };
     }
   }
 }

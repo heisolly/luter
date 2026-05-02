@@ -1,11 +1,18 @@
 import React from 'react'
-import PDFRenderer from './PDFRenderer'
-import OfficeRenderer from './OfficeRenderer'
+import FlashkaDocumentViewer from './FlashkaDocumentViewer'
+import DocxRenderer from './DocxRenderer'
+import PptxRenderer from './PptxRenderer'
+import ImageSlidesRenderer from './ImageSlidesRenderer'
 import TextRenderer from './TextRenderer'
 import ExcelRenderer from './ExcelRenderer'
+import YouTubeRenderer from './YouTubeRenderer'
+import AudioRenderer from './AudioRenderer'
+import VideoRenderer from './VideoRenderer'
+import ImageRenderer from './ImageRenderer'
 import ReactPlayer from 'react-player'
 import QuickPinchZoom, { make3dTransformValue } from 'react-quick-pinch-zoom'
-import { RiMusicFill as Music } from "react-icons/ri"
+import { RiMusicFill as Music, RiSparklingFill as Sparkle } from "react-icons/ri"
+import { LuterPageLoader } from '../../shared/LuterPageLoader'
 
 export const getFileType = (material) => {
   if (!material) return 'unknown'
@@ -24,10 +31,55 @@ export const getFileType = (material) => {
   return 'unknown'
 }
 
-export default function UniversalViewer({ material, initialPage, onPageChange, onDocumentLoad, plugins }) {
+/** Check if material has a high-fidelity converted version ready */
+function hasConvertedPdf(material) {
+  return !!material?.converted_url
+}
+
+function hasSlideImages(material) {
+  const imgs = material?.slide_images
+  return Array.isArray(imgs) && imgs.length > 0
+}
+
+/**
+ * UniversalViewer — Flashka philosophy: normalize everything to one experience.
+ *
+ * Priority:
+ * 1. High-fidelity converted PDF → FlashkaDocumentViewer (single engine, perfect consistency)
+ * 2. Slide images (for PPTX) → ImageSlidesRenderer (visual fidelity)
+ * 3. Native renderer → DocxRenderer / PptxRenderer / ExcelRenderer (fallback while converting)
+ * 4. Video / Audio / Image → Native (these don't convert)
+ * 5. Text → TextRenderer
+ */
+export default function UniversalViewer({ material, initialPage, onPageChange, onDocumentLoad }) {
   const type = getFileType(material)
   const fileUrl = material?.source_url
 
+  // ─── 1. HIGH-FIDELITY PDF (THE FLASHKA WAY) ─────────────────────────────
+  if (hasConvertedPdf(material)) {
+    return (
+      <FlashkaDocumentViewer
+        fileUrl={material.converted_url}
+        title={material.title}
+        type={type}
+        onPageChange={onPageChange}
+        onDocumentLoad={onDocumentLoad}
+      />
+    )
+  }
+
+  // ─── 2. SLIDE IMAGES (PPTX visual fallback) ───────────────────────────────
+  if (hasSlideImages(material)) {
+    return (
+      <ImageSlidesRenderer
+        slideImages={material.slide_images}
+        title={material.title}
+        fileUrl={fileUrl}
+      />
+    )
+  }
+
+  // ─── 3. MISSING SOURCE URL ────────────────────────────────────────────────
   if (!fileUrl && type !== 'text') {
     return (
       <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC', padding: '40px' }}>
@@ -37,27 +89,47 @@ export default function UniversalViewer({ material, initialPage, onPageChange, o
           </div>
           <h3 style={{ fontFamily: 'var(--font-outfit)', fontSize: '18px', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>Source URL Missing</h3>
           <p style={{ color: '#64748B', fontSize: '14px', lineHeight: '1.6' }}>
-            We couldn't locate the source file for this material. This might happen if the file was deleted or moved.
+            We couldn&apos;t locate the source file. This might happen if the file was deleted or moved.
           </p>
         </div>
       </div>
     )
   }
 
+  // ─── 4. CONVERSION PENDING (show native + banner) ─────────────────────────
+  const isConverting = material?.render_quality === 'native' && ['docx', 'pptx', 'excel'].includes(type)
+
   return (
-    <div className="ws-universal-viewer" style={{ height: '100%', overflowY: 'auto' }}>
+    <>
+      {isConverting && (
+        <div style={{
+          position: 'sticky', top: 0, zIndex: 20,
+          background: '#FFF7ED', borderBottom: '1.5px solid #FED7AA',
+          padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+        }}>
+          <Sparkle size={18} color="#F97316" />
+          <span style={{ fontFamily: 'var(--font-outfit)', fontSize: 13, fontWeight: 600, color: '#9A3412' }}>
+            Converting to high-fidelity view… native preview shown below.
+          </span>
+        </div>
+      )}
+
       {type === 'pdf' && (
-        <PDFRenderer 
-          fileUrl={fileUrl} 
-          initialPage={initialPage} 
-          onPageChange={onPageChange} 
-          onDocumentLoad={onDocumentLoad} 
-          plugins={plugins} 
+        <FlashkaDocumentViewer
+          fileUrl={fileUrl}
+          title={material.title}
+          type={type}
+          onPageChange={onPageChange}
+          onDocumentLoad={onDocumentLoad}
         />
       )}
 
-      {(type === 'docx' || type === 'pptx') && (
-        <OfficeRenderer fileUrl={fileUrl} type={type} />
+      {type === 'docx' && (
+        <DocxRenderer fileUrl={fileUrl} title={material.title} />
+      )}
+
+      {type === 'pptx' && (
+        <PptxRenderer fileUrl={fileUrl} title={material.title} />
       )}
 
       {type === 'excel' && (
@@ -69,37 +141,19 @@ export default function UniversalViewer({ material, initialPage, onPageChange, o
       )}
 
       {type === 'image' && (
-        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC', padding: '40px' }}>
-          <QuickPinchZoom onUpdate={({ x, y, scale }) => {
-            const img = document.getElementById('zoom-img')
-            if (img) img.style.transform = make3dTransformValue({ x, y, scale })
-          }} enforceBounds>
-            <img id="zoom-img" src={fileUrl} alt="Visual" style={{ maxWidth: '100%', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.1)' }} />
-          </QuickPinchZoom>
-        </div>
+        <ImageRenderer fileUrl={fileUrl} title={material.title} />
       )}
 
       {type === 'video' && (
-        <div style={{ height: '100%', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <ReactPlayer url={fileUrl} controls width="100%" height="100%" />
-        </div>
+        material.type === 'youtube' ? (
+          <YouTubeRenderer url={fileUrl} />
+        ) : (
+          <VideoRenderer fileUrl={fileUrl} title={material.title} />
+        )
       )}
 
       {type === 'audio' && (
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 32, background: '#F8FAFC' }}>
-           <div style={{ 
-             width: '120px', height: '120px', borderRadius: '40px', 
-             background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-             boxShadow: '0 20px 40px rgba(0,0,0,0.05)', border: '1.5px solid #F1F5F9'
-           }}>
-             <Music size={64} color="#4B0082" weight="bold" />
-           </div>
-           <div style={{ textAlign: 'center' }}>
-             <h3 style={{ fontFamily: 'var(--font-outfit)', fontWeight: 800, fontSize: '20px', color: '#1A102D', marginBottom: '8px' }}>AUDIO LECTURE</h3>
-             <p style={{ fontFamily: 'var(--font-varela)', color: '#64748B', fontSize: '14px' }}>{material.title}</p>
-           </div>
-           <audio controls src={fileUrl} style={{ width: '400px' }} />
-        </div>
+        <AudioRenderer fileUrl={fileUrl} title={material.title} />
       )}
 
       {type === 'unknown' && (
@@ -107,7 +161,7 @@ export default function UniversalViewer({ material, initialPage, onPageChange, o
           <div style={{ textAlign: 'center' }}>
             <p style={{ fontSize: '18px', fontWeight: 700 }}>Unsupported file format</p>
             <p style={{ fontSize: '14px' }}>{material?.title}</p>
-            <button 
+            <button
               onClick={() => window.open(fileUrl, '_blank')}
               style={{ marginTop: '20px', padding: '10px 20px', background: '#4B0082', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer' }}
             >
@@ -116,6 +170,6 @@ export default function UniversalViewer({ material, initialPage, onPageChange, o
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }

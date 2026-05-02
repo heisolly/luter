@@ -19,7 +19,8 @@ import {
   CrownSimple,
   HashStraight,
   Plus,
-  BookOpenText
+  BookOpenText,
+  Clock
 } from '@phosphor-icons/react'
 import { isAdminUser } from '../../admin/adminAuth'
 import LuterLogo from '../shared/LuterLogo'
@@ -27,6 +28,7 @@ import { useTranslation } from 'react-i18next'
 
 const TOP_NAV = [
   { id: 'home', labelKey: 'home', icon: House, path: '/dashboard' },
+  { id: 'sessions', labelKey: 'sessions', icon: Clock, path: '/dashboard/sessions' },
   { id: 'library', labelKey: 'library', icon: Books, path: '/dashboard/library' },
   { id: 'study-groups', labelKey: 'studyGroups', icon: UsersThree, path: '/dashboard/study-groups', badge: 'New' },
   { id: 'notifications', labelKey: 'notifications', icon: Bell, path: '/dashboard/notifications', count: 3 },

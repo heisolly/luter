@@ -55,6 +55,10 @@ import LibraryPage from './components/dashboard/LibraryPage'
 import TrashPage from './components/dashboard/TrashPage'
 import VaultPage from './components/dashboard/VaultPage'
 import StudySessionPage from './components/dashboard/StudySessionPage'
+import SessionsPage from './components/dashboard/SessionsPage'
+import LevelPage from './components/dashboard/LevelPage'
+import StorePage from './components/dashboard/StorePage'
+import SharedMaterialPreview from './components/shared/SharedMaterialPreview'
 
 
 const OFFLINE_BAR_PT = '2.75rem'
@@ -124,6 +128,8 @@ export default function App() {
             <Route path="upgrade" element={<UpgradePage />} />
             <Route path="pricing" element={<PricingPage />} />
             <Route path="streak" element={<StreakPage />} />
+            <Route path="level" element={<LevelPage />} />
+            <Route path="store" element={<StorePage />} />
             <Route path="refer" element={<ReferPage />} />
             <Route path="compete" element={<PlaygroundPage />} />
             <Route path="upload" element={<UserUpload />} />
@@ -131,6 +137,7 @@ export default function App() {
             <Route path="study-groups" element={<StudyGroupsPage />} />
             <Route path="study-groups/:groupId" element={<StudyGroupDetailsPage />} />
             <Route path="trash" element={<TrashPage />} />
+            <Route path="sessions" element={<SessionsPage />} />
             <Route path="session/:sessionId" element={<StudySessionPage />} />
             <Route path="exam-session/:sessionId" element={<ExamSessionPage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -138,6 +145,7 @@ export default function App() {
 
           <Route path="/exam-session/:sessionId" element={<ExamSessionView />} />
           <Route path="/share/flashcards/:bundleId" element={<SharedFlashcardsView />} />
+          <Route path="/shared/:shareToken" element={<SharedMaterialPreview />} />
 
           <Route path="/join/:inviteCode" element={<JoinGroupPage />} />
           <Route path="/admin" element={<AdminLayout />}>

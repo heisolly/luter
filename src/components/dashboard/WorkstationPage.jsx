@@ -38,9 +38,10 @@ import {
   RiGraduationCapFill as GraduationCap, RiShareForwardFill as RiShareNetwork, RiClipboardFill as RiClipboardText, RiUserSmileFill as Baby, RiCheckLine as Check, RiSubtractLine as Minus, 
   RiLightbulbFill as Lightbulb, RiRefreshLine as ArrowClockwise, RiArrowRightLine as RiArrowRight, RiHome4Fill as RiHouse, RiCheckboxFill as CheckSquare, RiMoreFill as DotsThreeOutline, 
   RiStickyNoteFill as Note, RiArrowUpLine as ArrowUp, RiBookFill as Book, RiStackFill as Library, RiPencilFill as PencilLine, RiLayoutColumnFill as Columns, RiFullscreenFill as CornersOut, RiZoomInLine as MagnifyingGlassPlus,
-  RiThumbUpLine, RiThumbDownLine, RiFileCopyLine, RiArrowRightUpLine, RiMicLine
+  RiThumbUpLine, RiThumbDownLine, RiFileCopyLine, RiArrowRightUpLine, RiMicLine, RiEyeOffLine, RiEyeLine
 } from "react-icons/ri"
 import { Typing } from '../ui/Typing'
+import { Wave } from '../ui/Wave'
 import { DotmSquare11 } from '../ui/dotm-square-11'
 import { LuterPageLoader } from '../shared/LuterPageLoader'
 
@@ -58,6 +59,7 @@ import { WorkstationNotes, WorkstationSummary, WorkstationFlashcards, Workstatio
 import { saveToVault, fetchUserNotes, deleteUserNote } from '../../services/materialsService'
 import { queryStudyMaterials, reprocessMaterial } from '../../services/langchainPipeline'
 import { pollMaterialUntilReady } from '../../services/materialsService'
+import VoiceModeBlob from './voice/VoiceModeBlob'
 import { MaterialAnalysisService } from '../../services/materialAnalysisService'
 import { useDeckStore } from '../../store/useDeckStore'
 import { debounce } from '../../utils/debounce'
@@ -93,6 +95,7 @@ function WorkstationContent() {
   const [hasNewAssignment, setHasNewAssignment] = useState(false)
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false)
   const [isExtractingText, setIsExtractingText] = useState(false)
+  const [focusMode, setFocusMode] = useState(false)
   const constraintsRef = useRef(null)
   const [mobileReadingMode, setMobileReadingMode] = useState('document')
   const [pageSummaries, setPageSummaries] = useState({})
@@ -533,12 +536,15 @@ function WorkstationContent() {
   const runAnalysis = async (type) => {
     if (isExtractingText || isAnalysisLoading || !selectedMaterial) return
     setIsAnalysisLoading(true)
+    
+    // Add timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      console.error(`[runAnalysis] Timeout reached for ${type}`)
+      setIsAnalysisLoading(false)
+    }, 30000) // 30 second timeout
+    
     try {
-      if (analysisCache[selectedMaterial.id]?.[type]) {
-        setIsAnalysisLoading(false)
-        return
-      }
-      let currentAnalysisRow = materialAnalysis
+      console.log(`[runAnalysis] Starting ${type} generation for material:`, selectedMaterial.id)
       
       // FORCE REFRESH: Fetch the latest material data to ensure we have the extracted_text
       const { data: latestMaterial } = await supabase
@@ -549,16 +555,25 @@ function WorkstationContent() {
       
       if (latestMaterial?.extracted_text) {
         selectedMaterial.extracted_text = latestMaterial.extracted_text
+        console.log(`[runAnalysis] Found extracted_text, length:`, latestMaterial.extracted_text.length)
+      } else {
+        console.warn(`[runAnalysis] No extracted_text found for material:`, selectedMaterial.id)
       }
 
-      if (!materialAnalysis || !materialAnalysis.summary) {
+      // ALWAYS get fresh analysis if we don't have it or if it's incomplete
+      let currentAnalysisRow = materialAnalysis
+      if (!materialAnalysis || !materialAnalysis.summary || materialAnalysis.isFallback) {
+        console.log(`[runAnalysis] Generating new analysis...`)
         const analysisResult = await MaterialAnalysisService.getOrCreateAnalysis(selectedMaterial.id, selectedMaterial, user.id)
         if (analysisResult.success) {
           setMaterialAnalysis(analysisResult.analysis)
           currentAnalysisRow = analysisResult.analysis
+          console.log(`[runAnalysis] Analysis generated successfully`)
         } else {
           throw new Error(analysisResult.error)
         }
+      } else {
+        console.log(`[runAnalysis] Using existing analysis`)
       }
       let finalResult
       switch(type) {
@@ -573,11 +588,15 @@ function WorkstationContent() {
           break;
         case 'summary': finalResult = currentAnalysisRow?.summary || 'No summary available.'; break;
         case 'flashcards':
+          console.log(`[runAnalysis] Generating flashcards...`)
           const fRes = await MaterialAnalysisService.generateFlashcards(currentAnalysisRow, 10, selectedMaterial);
+          console.log(`[runAnalysis] Flashcards result:`, fRes)
           finalResult = fRes.success ? fRes.flashcards : [];
           break;
         case 'quiz':
+          console.log(`[runAnalysis] Generating quiz...`)
           const qRes = await MaterialAnalysisService.generateQuiz(currentAnalysisRow, 5, 'medium', selectedMaterial);
+          console.log(`[runAnalysis] Quiz result:`, qRes)
           finalResult = qRes.success ? qRes.quiz : [];
           break;
         default: 
@@ -596,6 +615,7 @@ function WorkstationContent() {
     } catch (error) {
       console.error('Analysis error:', error)
     } finally {
+      clearTimeout(timeout)
       setIsAnalysisLoading(false)
     }
   }
@@ -618,10 +638,12 @@ function WorkstationContent() {
         } catch (err) {}
       }
       
-      const content = currentAnalysis[toolToRun]
-      if (selectedMaterial && isPlaceholderContent(content) && selectedMaterial.processing_status !== 'pending' && !isAnalysisLoading) {
-        runAnalysis(toolToRun);
-      }
+      // REMOVED: Auto-run analysis on tab switch. Analysis is now user-initiated only.
+      // Users must explicitly click 'Generate' buttons to create flashcards/quiz.
+      // const content = currentAnalysis[toolToRun]
+      // if (selectedMaterial && isPlaceholderContent(content) && selectedMaterial.processing_status !== 'pending' && !isAnalysisLoading) {
+      //   runAnalysis(toolToRun);
+      // }
     }
     checkExistingAnalysis();
   }, [activeTab, activeSideTab, selectedMaterial, currentAnalysis]);
@@ -649,11 +671,9 @@ function WorkstationContent() {
     } finally { setIsProcessingLoading(false) }
   }
 
-  useEffect(() => {
-    if (selectedMaterial?.processing_status === 'ready' && selectedMaterial?.extracted_text) {
-      if (!analysisCache[selectedMaterial.id]?.summary) runAnalysis('summary').catch(() => {})
-    }
-  }, [selectedMaterial?.id, selectedMaterial?.processing_status])
+  // REMOVED: Auto-analysis on material load. Analysis should be user-initiated only.
+  // The PDF viewer should display immediately without waiting for any analysis.
+  // Users can click Summary/Flashcards/Quiz tabs when they want to generate content.
 
 
   return (
@@ -821,6 +841,26 @@ function WorkstationContent() {
                   return progress;
               })()}% analyzed
             </div>
+            <button 
+              onClick={() => setFocusMode(!focusMode)}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                padding: '10px 20px', 
+                fontSize: '12px', 
+                fontWeight: 700, 
+                borderRadius: '12px', 
+                border: '1.5px solid #000', 
+                background: focusMode ? '#000' : 'white', 
+                color: focusMode ? 'white' : '#000', 
+                cursor: 'pointer', 
+                fontFamily: 'var(--font-outfit)' 
+              }}
+            >
+              {focusMode ? <RiEyeLine size={16} /> : <RiEyeOffLine size={16} />}
+              {focusMode ? 'Exit Focus' : 'Focus Mode'}
+            </button>
             <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '12px', fontWeight: 700, borderRadius: '12px', border: '1.5px solid #000', background: 'white', color: '#000', cursor: 'pointer', fontFamily: 'var(--font-outfit)' }}>
               <ShareNetwork size={16} weight="bold" /> Share
             </button>
@@ -832,8 +872,26 @@ function WorkstationContent() {
       )}
 
 
-      <main className="ws-main-layout" style={{ flexDirection: isMobile ? 'column' : 'row', background: 'transparent', overflow: 'hidden', padding: '0', display: 'flex', flex: 1 }}>
-        <div ref={constraintsRef} className="ws-pane-left" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#F8FAFB', position: 'relative' }}>
+      <main className="ws-main-layout" style={{ 
+        display: 'grid', 
+        gridTemplateColumns: isMobile ? '1fr' : (focusMode ? '1fr' : 'minmax(0, 1fr) 320px'), 
+        background: 'transparent', 
+        overflow: 'hidden', 
+        padding: '0', 
+        flex: 1,
+        minHeight: 'calc(100vh - 72px)',
+        transition: 'grid-template-columns 0.3s ease'
+      }}>
+        <div ref={constraintsRef} className="ws-pane-left" style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          overflow: 'hidden', 
+          background: 'linear-gradient(to bottom, #F8FAFC, #F1F5F9)', 
+          position: 'relative',
+          gridColumn: '1 / 2',
+          height: '100%',
+          minHeight: 0
+        }}>
           {/* Subheader for Document/Notes toggle */}
           {activeTab === 'content' && !isMobile && (
             <div className="ws-canvas-tabs" style={{ 
@@ -875,9 +933,9 @@ function WorkstationContent() {
             </div>
           )}
 
-          <div className="ws-canvas-container" style={{ flex: 1, overflowY: 'auto', display: (isMobile && activeTab === 'chat') ? 'none' : 'block' }}>
+          <div className="ws-canvas-container" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             {activeTab === 'notes' ? (
-              <div className="ws-ai-content-pane" style={{ padding: '60px', maxWidth: '800px', margin: '0 auto' }}>
+              <div className="ws-ai-content-pane" style={{ padding: '60px', maxWidth: '800px', margin: '0 auto', overflowY: 'auto', flex: 1 }}>
                 <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '32px', color: '#111' }}>Extracted Text</h2>
                 <div style={{ fontSize: '16px', lineHeight: '1.8', color: '#3F3F46', whiteSpace: 'pre-wrap', fontStyle: 'normal' }}>
                   {selectedMaterial?.extracted_text || (
@@ -906,7 +964,7 @@ function WorkstationContent() {
                 </div>
               </div>
             ) : activeTab === 'summary' ? (
-              <div className="ws-ai-content-pane" style={{ background: '#F8FAFB', height: '100%', overflowY: 'auto' }}>
+              <div className="ws-ai-content-pane" style={{ background: '#F8FAFB', flex: 1, overflowY: 'auto' }}>
                 <WorkstationSummaryEnhanced 
                   content={currentAnalysis.summary} 
                   material={selectedMaterial} 
@@ -915,7 +973,7 @@ function WorkstationContent() {
                 />
               </div>
             ) : activeTab === 'flashcards' ? (
-              <div className="ws-ai-content-pane" style={{ background: '#F8FAFB', height: '100%', overflowY: 'auto' }}>
+              <div className="ws-ai-content-pane" style={{ background: '#F8FAFB', flex: 1, overflowY: 'auto' }}>
                 <WorkstationFlashcards 
                   flashcards={currentAnalysis.flashcards} 
                   material={selectedMaterial} 
@@ -923,7 +981,7 @@ function WorkstationContent() {
                 />
               </div>
             ) : activeTab === 'quiz' ? (
-              <div className="ws-ai-content-pane" style={{ background: '#F8FAFB', height: '100%', overflowY: 'auto' }}>
+              <div className="ws-ai-content-pane" style={{ background: '#F8FAFB', flex: 1, overflowY: 'auto' }}>
                 <WorkstationQuiz 
                   quiz={currentAnalysis.quiz} 
                   material={selectedMaterial} 
@@ -931,12 +989,14 @@ function WorkstationContent() {
                 />
               </div>
             ) : (
-              <MaterialRenderer 
-                material={selectedMaterial} 
-                activeTab={activeTab}
-                onSparkUpdate={updateSpark}
-                setViewportData={setViewportData}
-              />
+              <div style={{ height: '100%', width: '100%' }}>
+                <MaterialRenderer 
+                  material={selectedMaterial} 
+                  activeTab={activeTab}
+                  onSparkUpdate={updateSpark}
+                  setViewportData={setViewportData}
+                />
+              </div>
             )}
             
             {/* Floating Write Toggle */}
@@ -986,10 +1046,11 @@ function WorkstationContent() {
           </div>
         </div>
 
-        {!isSidePanelCollapsed && (
+        {!isSidePanelCollapsed && !focusMode && (
           <aside className="ws-pane-right" style={{ 
             display: isMobile ? (activeTab === 'chat' ? 'flex' : 'none') : 'flex', 
-            width: isMobile ? '100%' : '440px', 
+            width: isMobile ? '100%' : '320px',
+            gridColumn: '2 / 3', 
             borderLeft: isMobile ? 'none' : '1px solid rgba(0,0,0,0.05)', 
             background: 'rgba(255, 255, 255, 0.85)',
             backdropFilter: 'blur(20px)',
@@ -1040,6 +1101,19 @@ function WorkstationContent() {
                     <PencilSimple size={18} weight={activeSideTab === 'write' ? 'bold' : 'regular'} />
                     Notes
                   </button>
+                  <button 
+                    onClick={() => setActiveSideTab('voice')}
+                    style={{ 
+                      width: '56px', padding: '10px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+                      background: activeSideTab === 'voice' ? 'white' : 'transparent',
+                      color: activeSideTab === 'voice' ? '#7a12cc' : '#64748B',
+                      transition: 'all 0.2s',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: activeSideTab === 'voice' ? '0 4px 12px rgba(0,0,0,0.08)' : 'none'
+                    }}
+                  >
+                    <Wave color={activeSideTab === 'voice' ? '#7a12cc' : '#64748B'} size="20px" />
+                  </button>
                 </div>
               </header>
 
@@ -1051,6 +1125,8 @@ function WorkstationContent() {
                     material={selectedMaterial} 
                     user={user} 
                   />
+                ) : activeSideTab === 'voice' ? (
+                  <VoiceModeBlob onExit={() => setActiveSideTab('chat')} />
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                     <div className="ws-chat-messages" style={{ flex: 1 }}>

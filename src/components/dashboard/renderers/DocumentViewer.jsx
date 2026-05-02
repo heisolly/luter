@@ -73,9 +73,7 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
       totalPages: totalPages || prev.totalPages
     }))
   }, [currentPage, totalPages, setViewportData])
-  const [highlightText, setHighlightText] = useState('')
-  const [selection, setSelection] = useState({ text: '', x: 0, y: 0, show: false })
-  
+    
   const aiReaderRef = useRef(null)
   const canvasRef = useRef(null)
 
@@ -122,50 +120,11 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
 
     return () => {
       window.removeEventListener('luter-jump-to-page', handleJump)
-      window.removeEventListener('luter-highlight-text', handleHighlight)
     }
   }, [material?.id, material?.extracted_text])
 
-  // Contextual Selection Logic
-  useEffect(() => {
-    const handleMouseUp = () => {
-      const activeSelection = window.getSelection()
-      const text = activeSelection.toString().trim()
-      
-      if (text && text.length > 2) {
-        const range = activeSelection.getRangeAt(0)
-        const rect = range.getBoundingClientRect()
-        
-        setSelection({
-          text,
-          x: rect.left + rect.width / 2,
-          y: rect.top,
-          show: true
-        })
-      } else {
-        setSelection(s => ({ ...s, show: false }))
-      }
-    }
-
-    document.addEventListener('mouseup', handleMouseUp)
-    return () => document.removeEventListener('mouseup', handleMouseUp)
-  }, [])
-
-  // AI Reader Scroll Logic
-  useEffect(() => {
-    if (highlightText && aiReaderRef.current && viewMode === 'ai') {
-      setTimeout(() => {
-        const el = aiReaderRef.current.querySelector('.luter-highlight-active')
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }, 100)
-    }
-  }, [highlightText, viewMode])
-
   const getProcessedText = () => {
-    if (!highlightText || !material.extracted_text) return material.extracted_text
-    const escaped = highlightText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const regex = new RegExp(`(${escaped})`, 'gi')
-    return material.extracted_text.replace(regex, '*$1*')
+    return material.extracted_text || ''
   }
 
   if (!material) return null
@@ -176,132 +135,6 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
   const isAudio = type === 'audio' || (!['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv'].includes(type) && material.source_url?.match(/\.(mp3|wav|ogg|m4a)$/))
   const isWeb = type === 'web'
   const isImage = type === 'image' || (!['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv'].includes(type) && material.source_url?.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/))
-
-  /* Raycast-Inspired Pro Action Bubble */
-  const ActionBubble = () => {
-    if (!selection.show) return null
-    return (
-      <div 
-        className="ws-pro-action-bubble" 
-        style={{ 
-          left: selection.x, 
-          top: selection.y - 60,
-          background: '#1A102D',
-          border: '1px solid rgba(255,255,255,0.1)',
-          padding: '8px',
-          borderRadius: '16px',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
-        }}
-      >
-        <button 
-          className="ws-bubble-main-btn" 
-          onClick={() => askAI(selection.text)}
-          style={{ 
-            background: '#6D28D9',
-            color: 'white',
-            borderRadius: '10px',
-            padding: '8px 16px',
-            fontWeight: 600,
-            fontSize: '12px',
-            letterSpacing: '0.02em'
-          }}
-        >
-          <SparkleLight size={16} weight="light" />
-          <span>Luter analyze</span>
-        </button>
-        <div className="ws-bubble-divider" style={{ background: 'rgba(255,255,255,0.1)', height: '24px' }} />
-        <button className="ws-bubble-icon-btn" title="Explain"><LightbulbLight size={18} weight="light" color="#C7B9FF" /></button>
-        <button className="ws-bubble-icon-btn" title="Summarize"><StackLight size={18} weight="light" color="#C7B9FF" /></button>
-        <button 
-          className="ws-bubble-icon-btn" 
-          onClick={() => {
-            setHighlightText(selection.text)
-            setViewMode('ai')
-          }}
-          title="Keep Highlight"
-        >
-          <BookmarkSimple size={18} weight="light" color="#C7B9FF" />
-        </button>
-      </div>
-    )
-  }
-
-  /** Floating Studio Navigation Bar */
-  const { isSidePanelCollapsed, setSidePanelCollapsed } = useReadingSpace()
-  const StudioNav = () => (
-    <div className="ws-studio-floating-bar" style={{ 
-      background: 'rgba(255, 255, 255, 0.95)', 
-      border: '1.5px solid #F1F5F9',
-      borderRadius: '20px',
-      padding: '0 20px'
-    }}>
-      <div className="ws-nav-section">
-        <button 
-          className="ws-nav-btn" 
-          onClick={() => setSidePanelCollapsed(!isSidePanelCollapsed)}
-          title="Toggle Sidebar"
-        >
-          <ColumnsLight size={20} weight="light" color="#4B0082" />
-        </button>
-        <button 
-          className="ws-nav-btn" 
-          onClick={() => searchPluginInstance.openSearchPopover()}
-          title="Search Document"
-        >
-          <MagnifyingGlassLight size={20} weight="light" color="#4B0082" />
-        </button>
-        <button className="ws-nav-btn"><MoonLight size={20} weight="light" color="#4B0082" /></button>
-        <button className="ws-nav-btn"><SpeakerHighLight size={20} weight="light" color="#4B0082" /></button>
-      </div>
-      
-      <div className="ws-nav-center-group" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
-        <div className="ws-nav-pg-wrap">
-          <input 
-            className="ws-nav-pg-input" 
-            key={currentPage}
-            defaultValue={currentPage}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handlePageJump(e.target.value)
-            }}
-            style={{ fontFamily: 'var(--font-outfit)', fontWeight: 600, color: '#4B0082' }}
-          />
-          <span className="ws-pg-total" style={{ fontFamily: 'var(--font-varela)', fontWeight: 600 }}>/ {totalPages || '--'}</span>
-        </div>
-        <div className="ws-nav-divider" />
-        <div className="ws-nav-dropdown" style={{ fontFamily: 'var(--font-varela)', fontSize: '13px', fontWeight: 600, color: '#4B0082' }}>
-          <span>Page fit</span>
-          <CaretDownLight size={14} weight="light" />
-        </div>
-      </div>
-
-      <div className="ws-nav-section">
-        <button 
-          className="ws-nav-btn" 
-          onClick={() => setViewMode(viewMode === 'visuals' ? 'ai' : 'visuals')}
-          title={viewMode === 'visuals' ? 'Switch to AI View' : 'Switch to Visual View'}
-          style={{ 
-            background: viewMode === 'ai' ? '#F3E8FF' : 'transparent',
-            borderRadius: '10px'
-          }}
-        >
-          {viewMode === 'visuals' ? <SparkleLight size={20} weight="light" color="#7a12cc" /> : <EyeLight size={20} weight="light" color="#4B0082" />}
-        </button>
-        <button className="ws-nav-btn" title="Summarize Material">
-          <StackLight size={20} weight="light" color="#4B0082" />
-        </button>
-        <button className="ws-nav-btn" title="View Contextual Analysis">
-          <GraduationCapLight size={20} weight="light" color="#4B0082" />
-        </button>
-        <div className="ws-nav-divider" />
-        <button className="ws-nav-btn" onClick={() => window.open(material.source_url, '_blank')} title="Download">
-          <DownloadSimple size={20} weight="light" color="#4B0082" />
-        </button>
-        <button className="ws-nav-btn" onClick={() => fullScreenPluginInstance.enterFullScreen()} title="Fullscreen">
-          <ArrowsOutSimple size={20} weight="light" color="#4B0082" />
-        </button>
-      </div>
-    </div>
-  )
 
   /** Flashka-Style Property Grid for Metadata */
   const PropertyGridHeader = () => {
@@ -353,9 +186,6 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
   return (
     <div className="ws-infinite-reader-container" ref={canvasRef}>
       <div className="ws-canvas-scroller">
-        {/* Minimal Tool Overlay */}
-        <StudioNav />
-        <ActionBubble />
         
         <div className="ws-canvas-surface" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
           {/* VISUAL VIEW: CLEAN DOCUMENT MODE */}
@@ -386,11 +216,7 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
                         h3: ({ children }) => <h3 style={{ fontFamily: 'var(--font-outfit)', fontSize: '20px', fontWeight: 700, marginTop: '28px', marginBottom: '12px' }}>{children}</h3>,
                         p: ({ children }) => <p className="ws-ntn-p" style={{ fontSize: `${fontSize}px`, fontFamily: 'var(--font-varela)', lineHeight: '1.8', color: '#334155', marginBottom: '24px' }}>{children}</p>,
                         li: ({ children }) => <li style={{ fontFamily: 'var(--font-varela)', fontSize: `${fontSize - 1}px`, marginBottom: '12px', color: '#334155' }}>{children}</li>,
-                        em: ({ children, node, ...props }) => {
-                          const text = node?.children?.[0]?.value || ""
-                          if (highlightText && typeof text === 'string' && text.toLowerCase().includes(highlightText.toLowerCase())) {
-                            return <mark className="luter-highlight-active" style={{ background: '#F3E8FF', color: '#7a12cc', padding: '2px 4px', borderRadius: '4px', fontWeight: 700, borderBottom: '2px solid #7a12cc' }}>{children}</mark>
-                          }
+                        em: ({ children, ...props }) => {
                           return <em {...props}>{children}</em>
                         }
                       }}

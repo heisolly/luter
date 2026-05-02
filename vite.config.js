@@ -50,9 +50,10 @@ export default defineConfig(({ mode }) => {
           globPatterns: ['**/*.{js,css,html,ico,svg,png,webp,woff2,webmanifest}'],
           navigateFallback: '/index.html',
           navigateFallbackDenylist: [/^\/api\//],
+          navigateFallbackAllowlist: [/.*/],
           maximumFileSizeToCacheInBytes: 4194304, // 4MiB
         },
-        devOptions: { enabled: false },
+        devOptions: { enabled: true },
       }),
       {
         name: 'api-server',

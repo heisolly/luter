@@ -27,6 +27,7 @@
     "@react-pdf-viewer/core": "^3.12.0",
     "@react-pdf-viewer/default-layout": "^3.12.0",
     "@react-pdf-viewer/selection-mode": "^3.12.0",
+    "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.0",
     "@react-three/postprocessing": "^3.0.4",
     "@splinetool/react-spline": "^4.1.0",

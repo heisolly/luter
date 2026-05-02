@@ -301,7 +301,7 @@ export const useUniversalWorkspaceStore = create(
           const deckItems = smartStartContent.items.map((item, index) => {
             return {
               deck_id: deck.id,
-              content_id: `smart-start-${index}`,
+              content_id: crypto.randomUUID(),
               content_type: 'note',
               order_index: index,
               metadata: {
@@ -461,7 +461,13 @@ export const useUniversalWorkspaceStore = create(
         institution: state.institution,
         programName: state.programName,
         levelGrade: state.levelGrade,
-        activeBackpackTab: state.activeBackpackTab
+        activeBackpackTab: state.activeBackpackTab,
+        workspaces: state.workspaces,
+        activeWorkspace: state.activeWorkspace,
+        decks: state.decks,
+        smartStartDecks: state.smartStartDecks,
+        classrooms: state.classrooms,
+        activeClassroom: state.activeClassroom
       })
     }
   )

@@ -33,6 +33,17 @@ export default function Dashboard() {
         if (session?.user) {
           setUser(session.user)
 
+          const profileCacheKey = `luter:profile:${session.user.id}`
+          const offline = typeof navigator !== 'undefined' && !navigator.onLine
+
+          // Load from cache when offline
+          if (offline) {
+            try {
+              const raw = localStorage.getItem(profileCacheKey)
+              if (raw) setProfile(JSON.parse(raw))
+            } catch {}
+          }
+
           try {
             // Fetch profile to get the most up-to-date name and role type
             const { data: p } = await supabase
@@ -40,9 +51,17 @@ export default function Dashboard() {
               .select('full_name, is_university_user, role')
               .eq('id', session.user.id)
               .maybeSingle()
-            if (p) setProfile(p)
+            if (p) {
+              setProfile(p)
+              try { localStorage.setItem(profileCacheKey, JSON.stringify(p)) } catch {}
+            }
           } catch (error) {
             console.warn('Profile fetch failed:', error.message)
+            // Fallback to cache on error
+            try {
+              const raw = localStorage.getItem(profileCacheKey)
+              if (raw) setProfile(JSON.parse(raw))
+            } catch {}
           }
 
           try {
@@ -53,6 +72,7 @@ export default function Dashboard() {
           }
 
           const updateHeartbeat = async () => {
+            if (typeof navigator !== 'undefined' && !navigator.onLine) return
             try {
               await supabase.from('profiles')
                 .update({ last_active_at: new Date().toISOString() })

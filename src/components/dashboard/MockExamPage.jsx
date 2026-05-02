@@ -728,23 +728,30 @@ export default function MockExamPage() {
     if (!ready) return
 
     const mapFromRows = (data) =>
-      data.map((row, i) => ({
-        ...row.course,
-        color: PALETTE[i % PALETTE.length]
-      }))
+      data.map((row, i) => {
+        // Handle both 'course' (aliased) and 'courses' (auto-joined) formats
+        const courseData = row.courses || row.course || {}
+        return {
+          ...courseData,
+          color: PALETTE[i % PALETTE.length]
+        }
+      })
 
     const fetchCourses = async () => {
       const { data } = await supabase
         .from('user_courses')
-        .select('course:courses(id, code, name, faculty)')
+        .select('*, courses(*)')
         .eq('user_id', user.id)
 
-      if (data) setCourses(mapFromRows(data))
+      // Filter out entries where course was deleted (soft-delete handling)
+      const validData = (data || []).filter(row => row.courses !== null && row.courses !== undefined)
+      if (validData) setCourses(mapFromRows(validData))
       setLoading(false)
     }
 
     if (bundle?.uc && !bundle.uc.error && Array.isArray(bundle.uc.data)) {
-      setCourses(mapFromRows(bundle.uc.data))
+      const validData = bundle.uc.data.filter(row => row.courses !== null && row.courses !== undefined)
+      setCourses(mapFromRows(validData))
       setLoading(false)
       return
     }
@@ -1276,53 +1283,80 @@ Please explain where I went wrong and why the correct answer is the right choice
               </h2>
             </div>
             
-            {configStep === 1 && courses.length > 0 && (
+            {configStep === 1 && (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: isMobile ? 12 : 20, marginBottom: 40 }}>
-                  <motion.button 
-                    whileHover={{ y: -2 }} whileTap={{ scale: 0.94 }}
-                    onClick={() => {
-                      if (courses.length === 0) return;
-                      const amount = Math.min(courses.length, Math.floor(Math.random() * 2) + 1);
-                      const shuffled = [...courses].sort(() => 0.5 - Math.random());
-                      setExamCourses(shuffled.slice(0, amount));
-                    }}
-                    style={{ 
-                      padding: isMobile ? '16px 20px' : '24px', borderRadius: 16, background: '#fffbeb', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit', border: '1.5px solid #fbbf24', color: '#b45309', boxShadow: '0 4px 12px rgba(217,119,6,0.1)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(217,119,6,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Dices size={20} color="#d97706" />
-                      </div>
-                    </div>
-                    <h3 style={{ fontSize: 16, fontWeight: 900, margin: '0 0 2px', color: '#d97706', textTransform: 'lowercase' }}>dice roll</h3>
-                    <p style={{ fontSize: 12, margin: 0, fontWeight: 700, color: '#b45309', textTransform: 'lowercase' }}>select random courses</p>
-                  </motion.button>
-                  {courses.map(c => {
-                    const isSelected = examCourses.some(x => x.id === c.id)
-                    return (
-                      <motion.button 
-                        key={c.id} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}
-                        onClick={() => toggleCourseConfig(c)}
-                        style={{ 
-                          padding: isMobile ? '16px 20px' : '24px', borderRadius: 16, background: 'white', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit', border: isSelected ? '1.5px solid #111' : '1px solid #e5e7eb', color: isSelected ? '#111' : '#555'
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                          <div style={{ width: 40, height: 40, borderRadius: 12, background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <span style={{ fontSize: 14, fontWeight: 900, color: '#111' }}>
-                              {(c.code || '??').slice(0, 3)}
-                            </span>
-                          </div>
-                          {isSelected && <CheckCircle2 size={24} color="#111" />}
+                {courses.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                    <div style={{ fontSize: 48, marginBottom: 16 }}>📚</div>
+                    <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px', color: '#111' }}>No courses available</h3>
+                    <p style={{ margin: 0, lineHeight: 1.6 }}>Please add courses to your backpack first to create mock exams.</p>
+                    <button 
+                      onClick={() => navigate('/dashboard/courses')}
+                      style={{ 
+                        marginTop: 24, 
+                        padding: '12px 24px', 
+                        background: '#111', 
+                        color: '#fff', 
+                        borderRadius: 12, 
+                        border: 'none', 
+                        fontWeight: 700, 
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#333'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = '#111'}
+                    >
+                      Go to Courses
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: isMobile ? 12 : 20, marginBottom: 40 }}>
+                    <motion.button 
+                      key="dice-roll"
+                      whileHover={{ y: -2 }} whileTap={{ scale: 0.94 }}
+                      onClick={() => {
+                        if (courses.length === 0) return;
+                        const amount = Math.min(courses.length, Math.floor(Math.random() * 2) + 1);
+                        const shuffled = [...courses].sort(() => 0.5 - Math.random());
+                        setExamCourses(shuffled.slice(0, amount));
+                      }}
+                      style={{ 
+                        padding: isMobile ? '16px 20px' : '24px', borderRadius: 16, background: '#fffbeb', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit', border: '1.5px solid #fbbf24', color: '#b45309', boxShadow: '0 4px 12px rgba(217,119,6,0.1)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(217,119,6,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Dices size={20} color="#d97706" />
                         </div>
-                        <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 2px', color: '#111' }}>{c.code}</h3>
-                        <p style={{ fontSize: 12, margin: 0, fontWeight: 600 }}>{c.name}</p>
-                      </motion.button>
-                    )
-                  })}
-                </div>
+                      </div>
+                      <h3 style={{ fontSize: 16, fontWeight: 900, margin: '0 0 2px', color: '#d97706', textTransform: 'lowercase' }}>dice roll</h3>
+                      <p style={{ fontSize: 12, margin: 0, fontWeight: 700, color: '#b45309', textTransform: 'lowercase' }}>select random courses</p>
+                    </motion.button>
+                    {courses.map(c => {
+                      const isSelected = examCourses.some(x => x.id === c.id)
+                      return (
+                        <motion.button 
+                          key={c.id} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}
+                          onClick={() => toggleCourseConfig(c)}
+                          style={{ 
+                            padding: isMobile ? '16px 20px' : '24px', borderRadius: 16, background: 'white', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit', border: isSelected ? '1.5px solid #111' : '1px solid #e5e7eb', color: isSelected ? '#111' : '#555'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 12, background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: 14, fontWeight: 900, color: '#111' }}>
+                                {(c.code || '??').slice(0, 3)}
+                              </span>
+                            </div>
+                            {isSelected && <CheckCircle2 size={24} color="#111" />}
+                          </div>
+                          <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 2px', color: '#111' }}>{c.code}</h3>
+                          <p style={{ fontSize: 12, margin: 0, fontWeight: 600 }}>{c.name}</p>
+                        </motion.button>
+                      )
+                    })}
+                  </div>
+                )}
 
                 {/* Past Sessions History */}
                 {pastSessions.length > 0 && (

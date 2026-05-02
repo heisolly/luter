@@ -8,6 +8,7 @@ import {
   RiArrowRightSLine as ChevronRight, RiArrowDownSLine as ChevronDown, RiNotificationFill as Bell, RiCloseLine as X, RiRefreshLine as RefreshCw, RiAddLine as Plus,
   RiYoutubeFill as Youtube, RiFileTextFill as FileText, RiMusicFill as Music, RiUploadFill as Upload, RiMicFill as Mic, RiLink as LinkIcon, RiCheckboxCircleFill as CheckCircle
 } from 'react-icons/ri';
+import { Clock } from '@phosphor-icons/react';
 import LuterLogo from './shared/LuterLogo';
 import LanguageToggle from './LanguageToggle';
 import { PremiumButton } from './PageShared';
@@ -264,7 +265,6 @@ const Onboarding = () => {
   const [youtubeLink, setYoutubeLink] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedAudio, setSelectedAudio] = useState(null);
-  const [authProvider, setAuthProvider] = useState('email');
   
   const fileInputRef = useRef(null);
   const audioInputRef = useRef(null);
@@ -297,34 +297,6 @@ const Onboarding = () => {
   // Official Courses
   const [officialCourses, setOfficialCourses] = useState([]);
   const [fetchingOfficialCourses, setFetchingOfficialCourses] = useState(false);
-  const isGoogleUser = authProvider === 'google';
-  const shouldAskFullName = !fullName; // Only ask if we don't have it from signup/google
-  const shouldAskBirthday = !isGoogleUser; // Skip birthday for Google users as requested
-
-  useEffect(() => {
-    const hydrateFromAuth = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const provider = user.app_metadata?.provider || 'email';
-        setAuthProvider(provider);
-
-        const existingFullName =
-          user.user_metadata?.full_name ||
-          user.user_metadata?.name ||
-          '';
-
-        if (existingFullName) {
-          setFullName(existingFullName);
-        }
-      } catch (err) {
-        console.warn('Failed to hydrate onboarding auth data', err);
-      }
-    };
-
-    hydrateFromAuth();
-  }, []);
 
   // Fetch Universities when country changes
   useEffect(() => {
@@ -457,14 +429,9 @@ const Onboarding = () => {
       const normalizedRole = role === 'solo' ? 'solo_learner' : 'student';
       const isSoloLearner = normalizedRole === 'solo_learner';
       const normalizedSemester = semester === '1' ? '1st' : semester === '2' ? '2nd' : null;
-      const resolvedFullName =
-        fullName ||
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
-        '';
       const profilePayload = {
         id: user.id,
-        full_name: resolvedFullName,
+        full_name: fullName,
         username: userName,
         birthday: birthday || null,
         role: normalizedRole,
@@ -485,90 +452,97 @@ const Onboarding = () => {
 
       if (profileError) throw profileError;
 
-      // 2. Save Courses
+      // 2. Save Courses (parallelized to avoid sequential network round-trips)
       if (!isSoloLearner && selectedCourses.length > 0) {
-        for (const course of selectedCourses) {
-          // Find or create course in master catalog
-          let courseId;
-          const { data: existingCourse } = await supabase
-            .from('courses')
-            .select('id')
-            .eq('code', course.code)
-            .maybeSingle();
+        const uniSlug = universitySlugFromName(university);
+        const deptSlug = departmentSlugFromLabel(major);
 
-          if (existingCourse) {
-            courseId = existingCourse.id;
-          } else {
-            const { data: newCourse, error: createError } = await supabase
+        await Promise.all(
+          selectedCourses.map(async (course) => {
+            let courseId;
+            // Scope course lookup by university to avoid code collisions across institutions
+            const { data: existingCourse } = await supabase
               .from('courses')
-              .insert({
-                code: course.code,
-                name: course.name || course.code,
-                faculty: major
-              })
               .select('id')
-              .single();
-            
-            if (createError) console.error("Error creating course:", createError);
-            else courseId = newCourse.id;
-          }
+              .eq('code', course.code)
+              .eq('university_slug', uniSlug)
+              .maybeSingle();
 
-          // Link to user
-          if (courseId) {
-            await supabase
-              .from('user_courses')
-              .upsert({
-                user_id: user.id,
-                course_id: courseId,
-                semester: normalizedSemester
-              }, { onConflict: 'user_id,course_id' });
-          }
-        }
+            if (existingCourse) {
+              courseId = existingCourse.id;
+            } else {
+              const { data: newCourse, error: createError } = await supabase
+                .from('courses')
+                .insert({
+                  code: course.code,
+                  name: course.name || course.code,
+                  faculty: major, // This is actually the department/field of study
+                  university_slug: uniSlug,
+                  department_slug: deptSlug,
+                  education_level: level,
+                  semester: normalizedSemester
+                })
+                .select('id')
+                .single();
+
+              if (createError) console.error("Error creating course:", createError);
+              else courseId = newCourse.id;
+            }
+
+            if (courseId) {
+              await supabase
+                .from('user_courses')
+                .upsert({
+                  user_id: user.id,
+                  course_id: courseId,
+                  semester: normalizedSemester,
+                  enrollment_source: 'onboarding'
+                }, { onConflict: 'user_id,course_id' });
+            }
+          })
+        );
       }
 
-      // 3. Process Uploaded Materials (Solo or Student if they have them)
+      // 3. Process Uploaded Materials (parallelized)
+      const materialPromises = [];
       if (youtubeLink) {
-        try {
-          await addYoutubeMaterial({
+        materialPromises.push(
+          addYoutubeMaterial({
             url: youtubeLink,
             userId: user.id,
             title: `Onboarding Video - ${new Date().toLocaleDateString()}`
-          });
-        } catch (ytErr) {
-          console.error("YouTube onboarding ingestion failed:", ytErr);
-        }
+          }).catch((ytErr) => console.error("YouTube onboarding ingestion failed:", ytErr))
+        );
       }
 
       if (selectedFile) {
-        try {
-          const ext = selectedFile.name.split('.').pop().toLowerCase();
-          let type = 'pdf';
-          if (['docx', 'doc'].includes(ext)) type = 'docx';
-          else if (['pptx', 'ppt'].includes(ext)) type = 'pptx';
-          
-          await uploadMaterial({
+        const ext = selectedFile.name.split('.').pop().toLowerCase();
+        let type = 'pdf';
+        if (['docx', 'doc'].includes(ext)) type = 'docx';
+        else if (['pptx', 'ppt'].includes(ext)) type = 'pptx';
+
+        materialPromises.push(
+          uploadMaterial({
             file: selectedFile,
             userId: user.id,
             title: selectedFile.name,
             type: type
-          });
-        } catch (fileErr) {
-          console.error("File onboarding ingestion failed:", fileErr);
-        }
+          }).catch((fileErr) => console.error("File onboarding ingestion failed:", fileErr))
+        );
       }
 
       if (selectedAudio) {
-        try {
-          await uploadMaterial({
+        materialPromises.push(
+          uploadMaterial({
             file: selectedAudio,
             userId: user.id,
             title: selectedAudio.name,
             type: 'audio'
-          });
-        } catch (audioErr) {
-          console.error("Audio onboarding ingestion failed:", audioErr);
-        }
+          }).catch((audioErr) => console.error("Audio onboarding ingestion failed:", audioErr))
+        );
       }
+
+      await Promise.all(materialPromises);
 
       // 4. Create initial stats if missing
       await supabase.from('user_stats').upsert({ user_id: user.id }, { onConflict: 'user_id' });
@@ -707,14 +681,12 @@ const Onboarding = () => {
               role === 'student' ? (
                 <StepWrapper key="step3-student" title="idTitle" subtitle="idSub" t={t}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {shouldAskFullName && (
-                      <div style={{ position: 'relative' }}><User style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('fullName')} style={inputStyle} /></div>
-                    )}
+                    <div style={{ position: 'relative' }}><User style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('fullName')} style={inputStyle} /></div>
                     <div style={{ position: 'relative' }}><At style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={userName} onChange={e => setUserName(e.target.value)} placeholder={t('username')} style={inputStyle} /></div>
-                    {shouldAskBirthday && <CustomDatePicker value={birthday} onChange={setBirthday} />}
+                    <CustomDatePicker value={birthday} onChange={setBirthday} />
                     <div style={{ height: '12px' }} />
                     <PremiumButton 
-                      disabled={(shouldAskFullName && !fullName) || !userName || (shouldAskBirthday && !birthday)} 
+                      disabled={!fullName || !userName || !birthday} 
                       onClick={goToNext}
                       size="lg"
                       style={{ width: '100%' }}
@@ -811,15 +783,12 @@ const Onboarding = () => {
               ) : (
                 <StepWrapper key="step4-solo" title="Tell us about yourself" subtitle="This helps us personalize your learning experience." t={t}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {shouldAskFullName && (
-                      <div style={{ position: 'relative' }}><User style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('fullName')} style={inputStyle} /></div>
-                    )}
+                    <div style={{ position: 'relative' }}><User style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('fullName')} style={inputStyle} /></div>
                     <div style={{ position: 'relative' }}><At style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={userName} onChange={e => setUserName(e.target.value)} placeholder={t('username')} style={inputStyle} /></div>
-                    {shouldAskBirthday && <CustomDatePicker value={birthday} onChange={setBirthday} />}
+                    <CustomDatePicker value={birthday} onChange={setBirthday} />
                     <div style={{ height: '12px' }} />
                     <PremiumButton 
-                      disabled={(shouldAskFullName && !fullName) || !userName || (shouldAskBirthday && !birthday)}
-                      onClick={goToNext}
+                      disabled={!fullName || !userName || !birthday} 
                       size="lg"
                       style={{ width: '100%' }}
                     >
@@ -1036,99 +1005,236 @@ const Onboarding = () => {
               )
             )}
             {step === 6 && (
-              <StepWrapper key="step6" title="routineTitle" subtitle="routineSub" t={t}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(280px, 0.9fr)', gap: '20px', alignItems: 'stretch' }}>
-                  <div style={{ background: 'white', border: '1px solid #EAECEF', borderRadius: '28px', padding: '28px', boxShadow: '0 16px 40px rgba(15, 23, 42, 0.05)', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
-                      <div>
-                        <p style={{ margin: 0, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8B5CF6', fontWeight: 600, fontFamily: 'var(--font-outfit)' }}>Focus Window</p>
-                        <h3 style={{ margin: '8px 0 0 0', fontSize: '22px', lineHeight: 1.2, color: '#111', fontWeight: 700, fontFamily: 'var(--font-outfit)' }}>{focusProfile.label}</h3>
+              <StepWrapper key="step6" title="routineTitle" subtitle="routineSub" t={t} maxWidth="800px">
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '40px' }}>
+                  
+                  {/* Circular Time Picker */}
+                  <motion.div 
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    style={{ 
+                      position: 'relative', 
+                      width: '280px', 
+                      height: '280px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    {/* Outer decorative ring */}
+                    <div style={{
+                      position: 'absolute',
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: '50%',
+                      background: `conic-gradient(from 0deg, ${focusProfile.accent}22 0deg, ${focusProfile.accent}44 90deg, ${focusProfile.accent}22 180deg, ${focusProfile.accent}44 270deg, ${focusProfile.accent}22 360deg)`,
+                      animation: 'rotate 20s linear infinite'
+                    }} />
+                    
+                    {/* Inner circle */}
+                    <div style={{
+                      position: 'absolute',
+                      width: '240px',
+                      height: '240px',
+                      borderRadius: '50%',
+                      background: 'white',
+                      border: `2px solid ${focusProfile.accent}33`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
+                    }}>
+                      <Clock size={32} color={focusProfile.accent} weight="light" style={{ marginBottom: '8px' }} />
+                      <div style={{ fontSize: '36px', fontWeight: 700, color: '#111', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>
+                        {studyTime}
                       </div>
-                      <div style={{ padding: '10px 14px', borderRadius: '999px', background: focusProfile.surface, color: focusProfile.accent, fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-varela)' }}>
-                        {focusProfile.tone}
+                      <div style={{ fontSize: '12px', color: '#6B7280', fontFamily: 'var(--font-varela)', marginTop: '4px' }}>
+                        Your focus time
                       </div>
                     </div>
 
-                    <div style={{ padding: '28px', borderRadius: '24px', background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)', border: '1px solid #ECEEF2', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: 500, fontFamily: 'var(--font-varela)' }}>Pick the time you usually lock in best.</span>
-                        <span style={{ fontSize: '12px', color: '#111', fontWeight: 600, fontFamily: 'var(--font-outfit)' }}>Local time</span>
-                      </div>
-                      <div style={{ textAlign: 'center', padding: '12px 0 4px' }}>
-                        <input
-                          type="time"
-                          value={studyTime}
-                          onChange={e => setStudyTime(e.target.value)}
-                          style={{ background: 'transparent', border: 'none', color: '#111', fontSize: '56px', fontWeight: 600, outline: 'none', textAlign: 'center', width: '100%', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.04em' }}
+                    {/* Floating time indicators */}
+                    {[0, 6, 12, 18].map((hour, idx) => {
+                      const angle = (hour * 15) - 90; // Convert to degrees, offset for 12 o'clock
+                      const isActive = parseInt(studyTime.split(':')[0]) === hour;
+                      return (
+                        <motion.div
+                          key={hour}
+                          animate={{ 
+                            scale: isActive ? 1.2 : 1,
+                            backgroundColor: isActive ? focusProfile.accent : '#E5E7EB'
+                          }}
+                          style={{
+                            position: 'absolute',
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            top: '50%',
+                            left: '50%',
+                            transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(-130px)`,
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => setStudyTime(`${hour.toString().padStart(2, '0')}:00`)}
                         />
-                      </div>
-                    </div>
+                      );
+                    })}
+                  </motion.div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
-                      {routinePresets.map((preset) => {
+                  {/* Time Presets */}
+                  <div style={{ width: '100%', maxWidth: '600px' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#111', fontFamily: 'var(--font-outfit)', marginBottom: '20px', textAlign: 'center' }}>
+                      Quick schedule presets
+                    </h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                      {routinePresets.map((preset, idx) => {
                         const active = studyTime === preset.value;
+                        const hour = parseInt(preset.value.split(':')[0]);
+                        const icon = hour < 12 ? '🌅' : hour < 17 ? '☀️' : hour < 21 ? '🌆' : '🌙';
+                        
                         return (
-                          <motion.button
+                          <motion.div
                             key={preset.value}
-                            type="button"
-                            whileHover={{ y: -2 }}
-                            whileTap={{ scale: 0.98 }}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.1 }}
                             onClick={() => setStudyTime(preset.value)}
+                            whileHover={{ y: -4, scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                             style={{
-                              borderRadius: '18px',
-                              border: active ? '1px solid #C4B5FD' : '1px solid #E5E7EB',
-                              background: active ? '#F5F3FF' : '#FCFCFD',
-                              padding: '16px',
-                              textAlign: 'left',
+                              padding: '20px',
+                              borderRadius: '20px',
+                              border: `2px solid ${active ? focusProfile.accent : '#E5E7EB'}`,
+                              background: active ? `${focusProfile.surface}` : 'white',
                               cursor: 'pointer',
                               display: 'flex',
-                              flexDirection: 'column',
-                              gap: '6px'
+                              alignItems: 'center',
+                              gap: '16px',
+                              transition: 'all 0.3s ease',
+                              boxShadow: active ? `0 8px 24px ${focusProfile.accent}33` : '0 4px 12px rgba(0,0,0,0.04)'
                             }}
                           >
-                            <span style={{ fontSize: '14px', color: '#111', fontWeight: 600, fontFamily: 'var(--font-outfit)' }}>{preset.label}</span>
-                            <span style={{ fontSize: '13px', color: active ? '#6D28D9' : '#6B7280', fontWeight: 400, fontFamily: 'var(--font-varela)' }}>{preset.value}</span>
-                          </motion.button>
+                            <div style={{ fontSize: '32px' }}>{icon}</div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: '16px', fontWeight: 600, color: '#111', fontFamily: 'var(--font-outfit)', marginBottom: '4px' }}>
+                                {preset.label}
+                              </div>
+                              <div style={{ fontSize: '14px', color: active ? focusProfile.accent : '#6B7280', fontFamily: 'var(--font-varela)' }}>
+                                {preset.value}
+                              </div>
+                            </div>
+                            {active && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                style={{ 
+                                  width: '24px', 
+                                  height: '24px', 
+                                  borderRadius: '50%', 
+                                  background: focusProfile.accent,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                <Check size={14} color="white" weight="bold" />
+                              </motion.div>
+                            )}
+                          </motion.div>
                         );
                       })}
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ background: focusProfile.surface, border: `1px solid ${focusProfile.accent}22`, borderRadius: '24px', padding: '24px' }}>
-                      <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px', boxShadow: '0 6px 20px rgba(15, 23, 42, 0.06)' }}>
-                        <Sparkle size={20} color={focusProfile.accent} weight="light" />
+                  {/* Study Profile Card */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    style={{ 
+                      width: '100%', 
+                      maxWidth: '600px',
+                      background: 'white',
+                      border: `1px solid ${focusProfile.accent}33`,
+                      borderRadius: '24px',
+                      padding: '32px',
+                      boxShadow: '0 12px 32px rgba(0,0,0,0.06)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px' }}>
+                      <div style={{ 
+                        width: '60px', 
+                        height: '60px', 
+                        borderRadius: '16px', 
+                        background: `linear-gradient(135deg, ${focusProfile.accent}, ${focusProfile.accent}dd)`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Sparkle size={28} color="white" weight="light" />
                       </div>
-                      <h4 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#111', fontWeight: 700, fontFamily: 'var(--font-outfit)' }}>Your study profile</h4>
-                      <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.7, color: '#4B5563', fontWeight: 400, fontFamily: 'var(--font-varela)' }}>
-                        Luter will use this window to shape reminders, quick prompts, and your first study rhythm.
-                      </p>
-                    </div>
-
-                    <motion.div
-                      onClick={() => setReminders(!reminders)}
-                      whileHover={{ y: -2 }}
-                      whileTap={{ scale: 0.98 }}
-                      style={{ padding: '22px', borderRadius: '24px', border: '1px solid', borderColor: reminders ? '#C4B5FD' : '#E5E7EB', background: reminders ? '#F5F3FF' : 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '14px', transition: 'all 0.2s ease', boxShadow: '0 12px 28px rgba(15, 23, 42, 0.04)' }}
-                    >
-                      <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: reminders ? '#A855F7' : '#F4F4F5', color: reminders ? 'white' : '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Bell size={20} weight="light" color={reminders ? 'white' : '#111'} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <h4 style={{ fontSize: '15px', fontWeight: 600, color: '#111', fontFamily: 'var(--font-outfit)', margin: '0 0 4px 0' }}>Daily nudges</h4>
-                        <p style={{ fontSize: '13px', color: '#6B7280', fontFamily: 'var(--font-varela)', fontWeight: 400, margin: 0 }}>
-                          {reminders ? 'We will nudge you around your chosen focus time.' : 'No reminders for now. You can change this later.'}
+                      <div>
+                        <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#111', fontFamily: 'var(--font-outfit)', margin: '0 0 4px 0' }}>
+                          {focusProfile.label}
+                        </h3>
+                        <p style={{ fontSize: '14px', color: '#6B7280', fontFamily: 'var(--font-varela)', margin: 0 }}>
+                          {focusProfile.tone}
                         </p>
                       </div>
-                      <div style={{ width: '48px', height: '24px', background: reminders ? '#A855F7' : '#E5E7EB', borderRadius: '9999px', padding: '4px', position: 'relative', flexShrink: 0 }}>
-                        <motion.div animate={{ x: reminders ? 24 : 0 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} style={{ width: '16px', height: '16px', background: 'white', borderRadius: '50%', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-                      </div>
-                    </motion.div>
+                    </div>
 
-                    <PremiumButton onClick={role === 'student' ? finish : goToNext} style={{ width: '100%' }} size="lg">
-                      {role === 'student' ? t('enterDashboard') : t('common:continue')}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px', borderRadius: '16px', background: focusProfile.surface, marginBottom: '24px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <Bell size={20} color={focusProfile.accent} weight="light" />
+                        <div>
+                          <div style={{ fontSize: '16px', fontWeight: 600, color: '#111', fontFamily: 'var(--font-outfit)' }}>Daily reminders</div>
+                          <div style={{ fontSize: '13px', color: '#6B7280', fontFamily: 'var(--font-varela)' }}>
+                            {reminders ? 'Get nudged at your focus time' : 'No reminders for now'}
+                          </div>
+                        </div>
+                      </div>
+                      <motion.button
+                        onClick={() => setReminders(!reminders)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        style={{
+                          width: '56px',
+                          height: '28px',
+                          borderRadius: '14px',
+                          background: reminders ? focusProfile.accent : '#E5E7EB',
+                          border: 'none',
+                          cursor: 'pointer',
+                          position: 'relative',
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        <motion.div
+                          animate={{ x: reminders ? 28 : 0 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                          style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            background: 'white',
+                            position: 'absolute',
+                            top: '4px',
+                            left: '4px',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                          }}
+                        />
+                      </motion.button>
+                    </div>
+
+                    <PremiumButton 
+                      onClick={role === 'student' ? finish : goToNext} 
+                      style={{ width: '100%' }} 
+                      size="lg"
+                      disabled={saving}
+                    >
+                      {saving ? 'Saving your profile...' : (role === 'student' ? t('enterDashboard') : t('common:continue'))}
                     </PremiumButton>
-                  </div>
+                  </motion.div>
                 </div>
               </StepWrapper>
             )}
@@ -1146,6 +1252,7 @@ const Onboarding = () => {
                     audioInputRef={audioInputRef}
                     onSkip={finish}
                     onContinue={finish}
+                    saving={saving}
                   />
                 </StepWrapper>
             )}
@@ -1191,12 +1298,13 @@ const IDCard = ({ name, role, info }) => (
   </motion.div>
 );
 
-const DocumentUploadStep = ({ 
-  youtubeLink, setYoutubeLink, 
-  selectedFile, setSelectedFile, 
+const DocumentUploadStep = ({
+  youtubeLink, setYoutubeLink,
+  selectedFile, setSelectedFile,
   selectedAudio, setSelectedAudio,
   fileInputRef, audioInputRef,
-  onSkip, onContinue 
+  onSkip, onContinue,
+  saving = false
 }) => {
   const hasYouTube = youtubeLink.trim().length > 0;
   const hasDocument = Boolean(selectedFile);
@@ -1269,9 +1377,10 @@ const DocumentUploadStep = ({
 
         <button
           onClick={onSkip}
-          style={{ background: 'transparent', border: 'none', color: '#6B7280', fontSize: '14px', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'var(--font-outfit)' }}
+          disabled={saving}
+          style={{ background: 'transparent', border: 'none', color: saving ? '#A1A1AA' : '#6B7280', fontSize: '14px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', textDecoration: 'underline', fontFamily: 'var(--font-outfit)' }}
         >
-          Skip for now
+          {saving ? 'Saving...' : 'Skip for now'}
         </button>
       </div>
 
@@ -1374,9 +1483,10 @@ const DocumentUploadStep = ({
           <PremiumButton
             onClick={onContinue}
             size="lg"
+            disabled={saving}
             style={{ width: '220px', opacity: hasAnySource ? 1 : 0.92 }}
           >
-            {hasAnySource ? "Continue with source" : "Continue anyway"}
+            {saving ? 'Saving...' : (hasAnySource ? "Continue with source" : "Continue anyway")}
           </PremiumButton>
         </div>
       </div>

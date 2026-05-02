@@ -167,7 +167,8 @@ export const useSessionStore = create(
       name: 'luter-session-store',
       partialize: (state) => ({
         activeSession: state.activeSession,
-        isDockExpanded: state.isDockExpanded
+        isDockExpanded: state.isDockExpanded,
+        sessions: state.sessions
       })
     }
   )

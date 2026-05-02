@@ -28,7 +28,10 @@ export const courseService = {
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
       
-      return { data, error }
+      // Filter out entries where courses row was deleted (soft-delete handling)
+      const validData = (data || []).filter(uc => uc.courses !== null)
+      
+      return { data: validData, error }
     } catch (err) {
       console.error('Enhanced course fetch failed, using fallback:', err)
       
@@ -39,7 +42,10 @@ export const courseService = {
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
       
-      return { data, error }
+      // Filter out entries where courses row was deleted
+      const validData = (data || []).filter(uc => uc.courses !== null)
+      
+      return { data: validData, error }
     }
   },
 
@@ -72,16 +78,27 @@ export const courseService = {
       console.warn('Universal enrollment failed, using fallback:', universalError)
       
       // 1. Ensure the course exists in the global 'courses' table
+      // Include university_slug in conflict resolution to prevent cross-institution collisions
+      const courseUpsertData = {
+        code: normalized.code,
+        name: normalized.name,
+        faculty: courseData.faculty || 'General',
+        source_type: source === 'manual' ? 'admin' : source,
+        confidence_score: source === 'admin' ? 1.0 : 0.8,
+        verification_status: source === 'admin' ? 'verified' : 'pending'
+      }
+      
+      // Add university/department context if available for proper scoping
+      if (context.university_slug) courseUpsertData.university_slug = context.university_slug
+      if (context.department_slug) courseUpsertData.department_slug = context.department_slug
+      if (context.semester) courseUpsertData.semester = context.semester
+      if (context.education_level) courseUpsertData.education_level = context.education_level
+
       const { data: globalCourse, error: courseError } = await supabase
         .from('courses')
-        .upsert({
-          code: normalized.code,
-          name: normalized.name,
-          faculty: courseData.faculty || 'General',
-          source_type: source === 'manual' ? 'admin' : source,
-          confidence_score: source === 'admin' ? 1.0 : 0.8,
-          verification_status: source === 'admin' ? 'verified' : 'pending'
-        }, { onConflict: 'code' })
+        .upsert(courseUpsertData, { 
+          onConflict: context.university_slug ? 'code,university_slug' : 'code' 
+        })
         .select()
         .single()
 
@@ -95,7 +112,7 @@ export const courseService = {
           course_id: globalCourse.id,
           progress: 0,
           target_score: courseData.targetScore || 75,
-          semester: courseData.semester || '1st',
+          semester: context.semester || courseData.semester || '1st',
           enrollment_source: source,
           ai_suggested: source === 'ai_generated',
           peer_recommended: source === 'peer_recommendation'

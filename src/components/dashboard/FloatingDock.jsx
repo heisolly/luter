@@ -121,14 +121,6 @@ const FloatingDock = ({ user, isMobile }) => {
     navigate(`/dashboard/session/${session.id}`);
   };
 
-  const getFileIcon = (type) => {
-    if (type?.includes('pdf')) return <FileText size={18} />;
-    if (type?.includes('image')) return <ImageIcon size={18} />;
-    if (type?.includes('video')) return <Video size={18} />;
-    if (type?.includes('audio')) return <Music size={18} />;
-    return <BookOpen size={18} />;
-  };
-
   const formatSessionDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();

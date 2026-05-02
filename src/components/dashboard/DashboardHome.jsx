@@ -1,23 +1,24 @@
 import { useState, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Books, BookOpenText, GameController, Target, FileText,
-  UsersThree, Lightning, ChartBar, GraduationCap, UploadSimple,
-  Flask, Crown, ArrowRight, Sparkle, Plus, CaretRight, FolderOpen
+  UploadSimple, FolderOpen, Sparkle, Plus, Fire, Trophy, Play,
+  BookOpen, GameController, ArrowRight, Flame, Star, Target
 } from '@phosphor-icons/react'
 import { DotmCircular7 } from '../ui/dotm-circular-7'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import { useSessionStore } from '../../store/useSessionStore'
+import Header from '../shared/Header'
 import './dhd.css'
 
 export default function DashboardHome() {
   const navigate = useNavigate()
   const { user, isMobile } = useOutletContext()
   const { ready, bundle } = useDashboardPrefetch()
-  const { createSession, setActiveSession } = useSessionStore()
+  const { createSession, setActiveSession, sessions } = useSessionStore()
   const [showNewUserPrompt, setShowNewUserPrompt] = useState(false)
+  const [isStreakAnimating, setIsStreakAnimating] = useState(false)
   
   const profile = bundle?.profile?.data || bundle?.profile 
   const isSoloLearner = profile?.is_university_user === false || profile?.role === 'solo_learner'
@@ -63,6 +64,25 @@ export default function DashboardHome() {
   const loadRemote = useCallback(async () => {
     if (!user?.id) return
     setLoading(true)
+    const offline = typeof navigator !== 'undefined' && !navigator.onLine
+    const cachedKey = `luter:dash-home:${user.id}`
+
+    // Serve from cache immediately if offline
+    if (offline) {
+      try {
+        const raw = localStorage.getItem(cachedKey)
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (parsed.courses) setCourses(parsed.courses)
+          if (parsed.pendingMaterials) setPendingMaterials(parsed.pendingMaterials)
+          if (parsed.soloMaterials) setSoloMaterials(parsed.soloMaterials)
+          if (parsed.stats) setStats(parsed.stats)
+          setLoading(false)
+          return
+        }
+      } catch {}
+    }
+
     try {
       const { data: uc } = await supabase
         .from('user_courses')
@@ -91,8 +111,29 @@ export default function DashboardHome() {
         .eq('user_id', user.id)
         .maybeSingle()
       if (st) setStats(st)
+
+      // Cache successful fetch
+      try {
+        localStorage.setItem(cachedKey, JSON.stringify({
+          courses: mapCourses(uc || []),
+          pendingMaterials: (pm || []).filter((item) => item.processing_status === 'pending'),
+          soloMaterials: (pm || []).filter((item) => !item.course_id),
+          stats: st || null
+        }))
+      } catch {}
     } catch (e) {
       console.error('Loader error:', e)
+      // On error, try cache fallback
+      try {
+        const raw = localStorage.getItem(cachedKey)
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (parsed.courses) setCourses(parsed.courses)
+          if (parsed.pendingMaterials) setPendingMaterials(parsed.pendingMaterials)
+          if (parsed.soloMaterials) setSoloMaterials(parsed.soloMaterials)
+          if (parsed.stats) setStats(parsed.stats)
+        }
+      } catch {}
     } finally {
       setLoading(false)
     }
@@ -135,12 +176,22 @@ export default function DashboardHome() {
     }
   }
 
-  const handleUploadMaterials = () => {
-    navigate('/dashboard/upload')
+  const handleStreakClick = () => {
+    setIsStreakAnimating(true)
+    setTimeout(() => setIsStreakAnimating(false), 1000)
+  }
+
+  const handleJumpBackIn = () => {
+    if (sessions.length > 0) {
+      navigate(`/dashboard/session/${sessions[0].id}`)
+    } else {
+      navigate('/dashboard/sessions')
+    }
   }
 
   const xp    = stats?.total_xp   ?? 0
   const streak= stats?.streak_days ?? 0
+  const level = Math.floor(xp / 500) + 1
   const latestSoloMaterial = soloMaterials[0]
 
   if (loading) return (
@@ -151,22 +202,44 @@ export default function DashboardHome() {
 
   return (
     <div className="dhd-root">
-      {/* ===== HERO ===== */}
-      <section className="dhd-hero">
-        <div className="dhd-hero-text">
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            Hi, {displayName}!
+      <Header 
+        showSearch={false}
+        pageTitle="Dashboard"
+        showCreateButton={true}
+        createButtonPath="/dashboard/upload"
+      />
+      {/* ===== LARGE ENGAGING GREETING ===== */}
+      <section className="dhd-hero-large">
+        <motion.div 
+          className="dhd-hero-content"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+        >
+          <motion.h1 
+            className="dhd-hero-title"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+          >
+            Hi, {displayName}! 👋
           </motion.h1>
-          <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="dhd-hero-sub">
-            What are we doing today?
+          <motion.p 
+            className="dhd-hero-subtitle"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+          >
+            Ready to continue learning?
           </motion.p>
-          <motion.div className="dhd-hero-orbs" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
-            <div className="dhd-orb dhd-orb--fire"><Lightning weight="fill" size={16} /> <span>{streak}</span></div>
-            <div className="dhd-orb dhd-orb--xp"><Crown weight="fill" size={16} /> <span>{xp.toLocaleString()}</span></div>
-            <div className="dhd-orb dhd-orb--lvl"><Sparkle weight="fill" size={16} /> <span>LVL {Math.floor(xp / 500) + 1}</span></div>
-          </motion.div>
-        </div>
-        <motion.div className="dhd-hero-mascot" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, type: 'spring' }}>
+        </motion.div>
+        
+        <motion.div 
+          className="dhd-hero-mascot-large"
+          initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
+          animate={{ opacity: 1, scale: 1, rotate: 0 }}
+          transition={{ delay: 0.6, duration: 0.8, type: "spring" }}
+        >
           <img src="/mascot.png" alt="Luter mascot" />
         </motion.div>
       </section>
@@ -192,8 +265,8 @@ export default function DashboardHome() {
               <FolderOpen weight="fill" size={32} />
             </div>
             <div className="dhd-prompt-text">
-              <h3>Create Your First Study Session</h3>
-              <p>Upload materials from your device or use semester notes to start learning</p>
+              <h3>Welcome to Luter!</h3>
+              <p>Start by uploading your first materials to begin your learning journey</p>
             </div>
             <div className="dhd-prompt-actions">
               <motion.button 
@@ -205,17 +278,6 @@ export default function DashboardHome() {
                 <UploadSimple weight="bold" size={18} />
                 Upload Materials
               </motion.button>
-              {!isSoloLearner && (
-                <motion.button 
-                  className="dhd-prompt-btn dhd-prompt-btn--secondary"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate('/dashboard/courses')}
-                >
-                  <BookOpenText weight="bold" size={18} />
-                  Use Semester Notes
-                </motion.button>
-              )}
             </div>
             <button 
               className="dhd-prompt-dismiss"
@@ -227,105 +289,257 @@ export default function DashboardHome() {
         </motion.div>
       )}
 
-      {/* ===== FEATURE GRID (the main focus) ===== */}
-      <section className="dhd-features">
-        <h2 className="dhd-section-label">Quick Start</h2>
-        <div className="dhd-feature-grid">
-          <motion.button className="dhd-ftile dhd-ftile--exam" whileHover={{ y: -4 }} onClick={() => navigate('/dashboard/mock-exam')}>
-            <div className="dhd-ftile-icon"><Flask weight="fill" size={28} /></div>
-            <span className="dhd-ftile-title">Mock Exam</span>
-            <span className="dhd-ftile-desc">Test your readiness</span>
-          </motion.button>
-          <motion.button className="dhd-ftile dhd-ftile--work" whileHover={{ y: -4 }} onClick={() => navigate('/dashboard/workstation')}>
-            <div className="dhd-ftile-icon"><BookOpenText weight="fill" size={28} /></div>
-            <span className="dhd-ftile-title">Workstation</span>
-            <span className="dhd-ftile-desc">Deep study mode</span>
-          </motion.button>
-          <motion.button className="dhd-ftile dhd-ftile--arena" whileHover={{ y: -4 }} onClick={() => navigate('/dashboard/compete')}>
-            <div className="dhd-ftile-icon"><GameController weight="fill" size={28} /></div>
-            <span className="dhd-ftile-title">Arena</span>
-            <span className="dhd-ftile-desc">Compete & practice</span>
-          </motion.button>
-          <motion.button className="dhd-ftile dhd-ftile--groups" whileHover={{ y: -4 }} onClick={() => navigate('/dashboard/study-groups')}>
-            <div className="dhd-ftile-icon"><UsersThree weight="fill" size={28} /></div>
-            <span className="dhd-ftile-title">Study Groups</span>
-            <span className="dhd-ftile-desc">Learn together</span>
-          </motion.button>
-          <motion.button className="dhd-ftile dhd-ftile--lib" whileHover={{ y: -4 }} onClick={() => navigate('/dashboard/library')}>
-            <div className="dhd-ftile-icon"><Books weight="fill" size={28} /></div>
-            <span className="dhd-ftile-title">Library</span>
-            <span className="dhd-ftile-desc">All your materials</span>
-          </motion.button>
-          <motion.button className="dhd-ftile dhd-ftile--more" whileHover={{ y: -4 }} onClick={() => navigate('/dashboard/courses')}>
-            <div className="dhd-ftile-icon"><ArrowRight weight="bold" size={28} /></div>
-            <span className="dhd-ftile-title">See all</span>
-            <span className="dhd-ftile-desc">Courses & more</span>
-          </motion.button>
-        </div>
+      {/* ===== NICE STREAK TAB ===== */}
+      <section className="dhd-streak-section">
+        <motion.div
+          className={`dhd-streak-card ${isStreakAnimating ? 'animate' : ''}`}
+          onClick={handleStreakClick}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <div className="dhd-streak-left">
+            <motion.div
+              className="dhd-streak-icon"
+              animate={isStreakAnimating ? {
+                rotate: [0, 360],
+                scale: [1, 1.2, 1]
+              } : {}}
+              transition={{ duration: 0.8 }}
+            >
+              <Flame size={32} weight="fill" />
+            </motion.div>
+            <div className="dhd-streak-text">
+              <motion.div 
+                className="dhd-streak-number"
+                animate={isStreakAnimating ? {
+                  scale: [1, 1.3, 1],
+                  color: ['#ff9b38', '#ff6b35', '#ff9b38']
+                } : {}}
+                transition={{ duration: 0.6 }}
+              >
+                {streak}
+              </motion.div>
+              <div className="dhd-streak-label">Day Streak 🔥</div>
+            </div>
+          </div>
+          <div className="dhd-streak-right">
+            <motion.div
+              className="dhd-streak-progress"
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min((streak % 7) * 14.28, 100)}%` }}
+              transition={{ delay: 0.8, duration: 1 }}
+            />
+            <span className="dhd-streak-goal">Keep it going!</span>
+          </div>
+        </motion.div>
       </section>
 
-      {/* ===== COMPACT COURSES / PROJECTS ===== */}
-      <section className="dhd-condensed">
-        <div className="dhd-condensed-head">
-          <h2 className="dhd-section-label">{isSoloLearner ? 'My Projects' : 'My Courses'}</h2>
-          <button className="dhd-text-btn" onClick={() => navigate(isSoloLearner ? '/dashboard/vault' : '/dashboard/courses')}>
-            See all <ArrowRight size={14} weight="bold" />
+      {/* ===== JUMP BACK IN / NEW USER PROMPT ===== */}
+      <section className="dhd-jump-section">
+        <AnimatePresence mode="wait">
+          {showNewUserPrompt ? (
+            <motion.div
+              key="new-user"
+              className="dhd-new-user-card"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="dhd-new-user-content">
+                <motion.div
+                  className="dhd-new-user-icon"
+                  animate={{ 
+                    rotate: [0, 10, -10, 0],
+                    scale: [1, 1.1, 1]
+                  }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Star size={40} weight="fill" />
+                </motion.div>
+                <div className="dhd-new-user-text">
+                  <h3>Start Your Learning Journey! 🚀</h3>
+                  <p>Create your first study session to begin studying with AI-powered tools</p>
+                </div>
+                <motion.button
+                  className="dhd-new-user-btn"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleCreateFirstSession}
+                >
+                  <Play weight="bold" size={20} />
+                  Create Study Session
+                </motion.button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="jump-back"
+              className="dhd-jump-card"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="dhd-jump-content">
+                <motion.div
+                  className="dhd-jump-icon"
+                  animate={{ 
+                    y: [0, -5, 0],
+                  }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Target size={32} weight="fill" />
+                </motion.div>
+                <div className="dhd-jump-text">
+                  <h3>Jump Back In! 🎯</h3>
+                  <p>Continue where you left off in your recent study session</p>
+                </div>
+                <motion.button
+                  className="dhd-jump-btn"
+                  whileHover={{ scale: 1.05, x: 5 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleJumpBackIn}
+                >
+                  Continue Learning
+                  <ArrowRight weight="bold" size={18} />
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </section>
+
+      {/* ===== SCROLLING COURSES TAB ===== */}
+      {!isSoloLearner && courses.length > 0 && (
+        <section className="dhd-courses-section">
+          <div className="dhd-section-header">
+            <h2 className="dhd-section-title">My Courses 📚</h2>
+            <button 
+              className="dhd-see-all-btn"
+              onClick={() => navigate('/dashboard/courses')}
+            >
+              See All <ArrowRight size={14} weight="bold" />
+            </button>
+          </div>
+          <div className="dhd-courses-scroll">
+            {courses.map((course, index) => (
+              <motion.div
+                key={course.id}
+                className="dhd-course-card"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1, duration: 0.5 }}
+                whileHover={{ y: -5, scale: 1.02 }}
+                onClick={() => navigate(`/dashboard/courses/${course.id}`)}
+              >
+                <div className="dhd-course-color" style={{ background: course.color }} />
+                <div className="dhd-course-content">
+                  <span className="dhd-course-code">{course.code}</span>
+                  <span className="dhd-course-name">{course.name}</span>
+                  <span className="dhd-course-count">{course.materials_count} materials</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ===== MINIMAL MATERIALS TAB ===== */}
+      <section className="dhd-materials-section">
+        <div className="dhd-section-header">
+          <h2 className="dhd-section-title">Materials 📁</h2>
+          <button 
+            className="dhd-see-all-btn"
+            onClick={() => navigate('/dashboard/courses')}
+          >
+            Manage <ArrowRight size={14} weight="bold" />
           </button>
         </div>
-        <div className="dhd-condensed-row">
-          {(isSoloLearner ? soloMaterials : courses).slice(0, 5).map((c, i) => (
+        <motion.div
+          className="dhd-materials-card"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+          whileHover={{ scale: 1.02 }}
+          onClick={() => navigate('/dashboard/upload')}
+        >
+          <div className="dhd-materials-left">
             <motion.div
-              key={c.id}
-              className="dhd-chip"
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
-              onClick={() => navigate(isSoloLearner ? `/dashboard/workstation?materialId=${c.id}` : `/dashboard/courses/${c.id}`)}
+              className="dhd-materials-icon"
+              animate={{ 
+                rotate: [0, 5, -5, 0],
+              }}
+              transition={{ duration: 3, repeat: Infinity }}
             >
-              <div className="dhd-chip-dot" style={{ background: isSoloLearner ? '#7a12cc' : c.color }} />
-              <div className="dhd-chip-body">
-                <span className="dhd-chip-code">{isSoloLearner ? (c.type || 'DOC').toUpperCase() : c.code}</span>
-                <span className="dhd-chip-name">{isSoloLearner ? (c.title || 'Untitled') : c.name}</span>
-              </div>
-              <CaretRight size={14} weight="bold" className="dhd-chip-arrow" />
+              <UploadSimple size={28} weight="bold" />
             </motion.div>
-          ))}
-          <motion.button
-            className="dhd-chip dhd-chip--add"
-            whileHover={{ scale: 1.02 }}
-            onClick={() => navigate(isSoloLearner ? '/dashboard/upload' : '/dashboard/courses')}
-          >
-            <Plus size={18} weight="bold" />
-            <span>{isSoloLearner ? 'Upload' : 'Add course'}</span>
-          </motion.button>
-        </div>
+            <div className="dhd-materials-text">
+              <h3>Upload New Materials</h3>
+              <p>Add PDFs, documents, images, and more</p>
+            </div>
+          </div>
+          <div className="dhd-materials-right">
+            <div className="dhd-materials-count">
+              {soloMaterials.length} files
+            </div>
+            <Plus size={20} weight="bold" />
+          </div>
+        </motion.div>
       </section>
 
-      {/* ===== GAMIFIED STAT BAR ===== */}
-      <section className="dhd-statbar">
-        <div className="dhd-statbar-item">
-          <ChartBar size={22} weight="fill" />
-          <div>
-            <span className="dhd-statbar-val">{xp.toLocaleString()}</span>
-            <span className="dhd-statbar-lbl">Total XP</span>
+      {/* ===== HAVE FUN SECTION ===== */}
+      <section className="dhd-fun-section">
+        <motion.div
+          className="dhd-fun-card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+          whileHover={{ scale: 1.02, rotate: 1 }}
+          onClick={() => navigate('/dashboard/playground')}
+        >
+          <div className="dhd-fun-content">
+            <motion.div
+              className="dhd-fun-icon"
+              animate={{ 
+                rotate: [0, 360],
+              }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+            >
+              <GameController size={32} weight="fill" />
+            </motion.div>
+            <div className="dhd-fun-text">
+              <h3>Have Fun! 🎮</h3>
+              <p>Take a break and explore the playground</p>
+            </div>
+            <motion.div
+              className="dhd-fun-sparkles"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              ✨
+            </motion.div>
           </div>
-        </div>
-        <div className="dhd-statbar-div" />
-        <div className="dhd-statbar-item">
-          <Lightning size={22} weight="fill" />
-          <div>
-            <span className="dhd-statbar-val">{streak}</span>
-            <span className="dhd-statbar-lbl">Day Streak</span>
-          </div>
-        </div>
-        <div className="dhd-statbar-div" />
-        <div className="dhd-statbar-item dhd-statbar--level">
-          <div className="dhd-statbar-leveltrack">
-            <motion.div className="dhd-statbar-levelfill" initial={{ width: 0 }} animate={{ width: `${(xp % 500) / 5}%` }} />
-          </div>
-          <span className="dhd-statbar-lvl">Level {Math.floor(xp / 500) + 1}</span>
-        </div>
+        </motion.div>
       </section>
+
+      {/* ===== QUICK STATS ===== */}
+      {!showNewUserPrompt && (
+        <section className="dhd-stats-minimal">
+          <div className="dhd-stats-item">
+            <Trophy size={20} weight="fill" />
+            <span>Level {level}</span>
+          </div>
+          <div className="dhd-stats-item">
+            <Star size={20} weight="fill" />
+            <span>{xp.toLocaleString()} XP</span>
+          </div>
+          <div className="dhd-stats-item">
+            <Fire size={20} weight="fill" />
+            <span>{streak} day streak</span>
+          </div>
+        </section>
+      )}
     </div>
   )
 }
