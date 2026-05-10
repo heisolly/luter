@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import DashboardSidebar from './DashboardSidebar'
 import { RiLoader4Line as Loader2, RiSwordFill as Sword, RiCloseLine as X, RiArrowRightLine as ArrowRight } from 'react-icons/ri'
+import { SidebarSimple } from '@phosphor-icons/react'
 import { LuterPageLoader } from '../shared/LuterPageLoader'
 import { motion, AnimatePresence } from 'framer-motion'
 import LuterLogo from '../shared/LuterLogo'
@@ -11,6 +12,7 @@ import { DashboardPrefetchProvider } from '../../context/DashboardPrefetchContex
 import NotificationsOverlay from './NotificationsOverlay'
 import FloatingDock from './FloatingDock'
 import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceStore'
+import { preloadingService } from '../../services/preloadingService'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -45,10 +47,10 @@ export default function Dashboard() {
           }
 
           try {
-            // Fetch profile to get the most up-to-date name and role type
+            // Fetch profile to get the most up-to-date name, role type, and subscription
             const { data: p } = await supabase
               .from('profiles')
-              .select('full_name, is_university_user, role')
+              .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at')
               .eq('id', session.user.id)
               .maybeSingle()
             if (p) {
@@ -67,6 +69,11 @@ export default function Dashboard() {
           try {
             // Initialize workspaces to ensure backpack shows all courses
             await initializeWorkspaces()
+            
+            // Start preloading all user data in background
+            preloadingService.preloadUserData(session.user.id).catch(err => {
+              console.warn('Background preload failed:', err.message)
+            })
           } catch (error) {
             console.warn('Workspace initialization failed:', error.message)
           }
@@ -121,6 +128,20 @@ export default function Dashboard() {
   const isWorkstation = location.pathname.includes('/workstation')
   const [wsSidebarHovered, setWsSidebarHovered] = useState(false)
 
+  // Subscription tier display for mobile topbar
+  const subscriptionTier = profile?.subscription_tier?.toLowerCase() || 'free'
+  const subscriptionType = profile?.subscription_type?.toLowerCase() || 'free'
+  const getTierBadge = () => {
+    if (subscriptionTier === 'premium' || subscriptionType === 'premium') {
+      return { label: 'Executive', color: '#0ea5e9', bg: 'rgba(14, 165, 233, 0.15)' }
+    }
+    if (subscriptionTier === 'pro' || subscriptionType === 'pro') {
+      return { label: 'Pro', color: '#7a12cc', bg: 'rgba(122, 18, 204, 0.15)' }
+    }
+    return null
+  }
+  const tierBadge = getTierBadge()
+
   if (loading) {
     return <LuterPageLoader message="Resuming your session..." minHeight="100vh" />
   }
@@ -162,16 +183,32 @@ export default function Dashboard() {
 
           <div className="mobile-logo-wrap" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <LuterLogo size={22} fontSize={17} />
+            {tierBadge && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '3px 8px',
+                background: tierBadge.bg,
+                borderRadius: 12,
+                fontSize: 10,
+                fontWeight: 700,
+                color: tierBadge.color,
+                border: `1px solid ${tierBadge.color}40`
+              }}>
+                {tierBadge.label}
+              </div>
+            )}
           </div>
 
           <div
             className="mobile-user-avatar"
-            onClick={() => navigate('/dashboard/settings')}
+            onClick={() => navigate('/dashboard/profile')}
             style={{
               width: 32,
               height: 32,
               borderRadius: 10,
-              background: 'linear-gradient(135deg, var(--primary), var(--primary-light))',
+              background: profile?.avatar_url ? 'transparent' : 'linear-gradient(135deg, var(--primary), var(--primary-light))',
               color: 'white',
               display: 'flex',
               alignItems: 'center',
@@ -180,9 +217,18 @@ export default function Dashboard() {
               fontWeight: 800,
               cursor: 'pointer',
               boxShadow: '0 4px 12px var(--primary-glow)',
+              overflow: 'hidden'
             }}
           >
-            {profile?.full_name?.slice(0, 1).toUpperCase() || user?.user_metadata?.full_name?.slice(0, 1).toUpperCase() || 'S'}
+            {profile?.avatar_url ? (
+              <img 
+                src={profile.avatar_url} 
+                alt="Profile" 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              />
+            ) : (
+              profile?.full_name?.slice(0, 1).toUpperCase() || user?.user_metadata?.full_name?.slice(0, 1).toUpperCase() || 'S'
+            )}
           </div>
         </div>
       )}
@@ -208,70 +254,109 @@ export default function Dashboard() {
             top: 0, left: 0, bottom: 0,
             width: '4px',
             zIndex: 9998,
-            background: 'transparent'
           }}
         />
       )}
 
-      <motion.div 
-        className={`dsb-container ${isMobile && mobileSidebarOpen ? 'dsb-container--open' : ''}`}
-        initial={
-          isWorkstation && !isMobile
-            ? { x: '-110%', opacity: 0 }
-            : isMobile
-              ? { x: '-100%' }
-              : false
-        }
-        animate={
-          isWorkstation && !isMobile
-            ? { x: (wsSidebarHovered || !sidebarCollapsed) ? 0 : '-110%', opacity: (wsSidebarHovered || !sidebarCollapsed) ? 1 : 0 }
-            : isMobile
-              ? { x: mobileSidebarOpen ? 0 : '-100%' }
-              : { x: 0, opacity: 1 }
-        }
-        transition={{ type: 'spring', stiffness: 350, damping: 35 }}
-        onMouseEnter={() => {
-          if (isWorkstation && !isMobile) setWsSidebarHovered(true)
-        }}
-        onMouseLeave={() => {
-          if (isWorkstation && !isMobile) setWsSidebarHovered(false)
-        }}
-        style={isWorkstation && !isMobile ? (sidebarCollapsed ? {
-          position: 'fixed',
-          top: '12px',
-          left: '12px',
-          bottom: '12px',
-          zIndex: 9999,
-          width: 'var(--dsb-w)',
-          background: 'white',
-          borderRadius: '18px',
-          boxShadow: '0 15px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05)',
-          overflow: 'hidden'
-        } : {
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          bottom: 0,
-          zIndex: 9999,
-          width: 'var(--dsb-w)',
-          background: 'white',
-          borderRight: '1px solid #eef2f7',
-          overflow: 'hidden'
-        }) : {}}
-      >
+      {(!isMobile && !isWorkstation && sidebarCollapsed) ? null : (
+        <motion.div 
+          className={`dsb-container ${isMobile && mobileSidebarOpen ? 'dsb-container--open' : ''}`}
+          initial={
+            isWorkstation && !isMobile
+              ? { x: '-110%', opacity: 0 }
+              : isMobile
+                ? { x: '-100%' }
+                : { x: '-110%', opacity: 0 }
+          }
+          animate={
+            isWorkstation && !isMobile
+              ? { x: (wsSidebarHovered || !sidebarCollapsed) ? 0 : '-110%', opacity: (wsSidebarHovered || !sidebarCollapsed) ? 1 : 0 }
+              : isMobile
+                ? { x: mobileSidebarOpen ? 0 : '-100%' }
+                : { x: 0, opacity: 1 }
+          }
+          transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+          onMouseEnter={() => {
+            if (isWorkstation && !isMobile) setWsSidebarHovered(true)
+          }}
+          onMouseLeave={() => {
+            if (isWorkstation && !isMobile) setWsSidebarHovered(false)
+          }}
+          style={isWorkstation && !isMobile ? (sidebarCollapsed ? {
+            position: 'fixed',
+            top: '12px',
+            left: '12px',
+            bottom: '12px',
+            zIndex: 150,
+            width: 'var(--dsb-w)',
+            borderRadius: '18px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+            background: 'white',
+            borderRight: '1px solid #eef2f7',
+            overflow: 'hidden'
+          } : {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            bottom: 0,
+            zIndex: 150,
+            width: 'var(--dsb-w)',
+            background: 'white',
+            borderRight: '1px solid #eef2f7',
+            overflow: 'hidden'
+          }) : undefined}
+        >
         <DashboardSidebar
           collapsed={isWorkstation ? false : sidebarCollapsed}
           setCollapsed={setSidebarCollapsed}
           user={user}
           isMobile={isMobile}
-          onClose={() => setMobileSidebarOpen(false)}
+          onClose={() => {
+            if (isMobile) {
+              setMobileSidebarOpen(false)
+            } else {
+              setSidebarCollapsed(true)
+            }
+          }}
           onNavigate={() => {
             if (isMobile) setMobileSidebarOpen(false)
             if (isWorkstation) setWsSidebarHovered(false)
           }}
           onNotificationsClick={() => setNotificationsOpen(true)}
         />
-      </motion.div>
+        </motion.div>
+      )}
+
+      {/* Floating sidebar toggle when closed on desktop */}
+      {!isMobile && !isWorkstation && sidebarCollapsed && (
+        <button
+          onClick={() => setSidebarCollapsed(false)}
+          style={{
+            position: 'fixed',
+            top: '20px',
+            left: '20px',
+            zIndex: 100,
+            background: 'transparent',
+            border: 'none',
+            padding: '8px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease',
+            color: '#111'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = '#7a12cc'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = '#111'
+          }}
+          title="Open sidebar"
+        >
+          <SidebarSimple size={24} weight="bold" mirrored={true} />
+        </button>
+      )}
 
       <main
         className={`dash-main ${sidebarCollapsed ? 'collapsed' : ''} ${isMobile ? 'dash-main--mobile' : ''} ${isWorkstation ? 'ws-mode' : ''}`}

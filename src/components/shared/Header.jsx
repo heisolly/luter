@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 
 const Header = ({ 
   showSearch = true, 
@@ -12,6 +13,8 @@ const Header = ({
   createButtonPath = '/dashboard/upload'
 }) => {
   const navigate = useNavigate()
+  const { bundle } = useDashboardPrefetch()
+  const profile = bundle?.profile?.data || bundle?.profile
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [searchQuery, setSearchQuery] = useState('')
   const [streak, setStreak] = useState(1)
@@ -230,7 +233,7 @@ const Header = ({
           <div className="breakpoints-module__zbexiG__mdDownDisplayNone">
             <button 
               className="MuiBox-root knowt-3peil5"
-              onClick={() => navigate('/dashboard/level')}
+              onClick={() => navigate('/dashboard/profile')}
               style={{
                 background: 'none',
                 border: 'none',
@@ -288,6 +291,44 @@ const Header = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <img alt="your coins" width="20" height="20" decoding="async" data-nimg="1" src="https://s3.amazonaws.com/knowt-generic-storage/gamification/coin-icon.svg" style={{ color: 'transparent' }} />
               <span className="new_bodyMBold" style={{ color: 'rgb(254, 153, 35)' }}>{coins}</span>
+            </div>
+          </button>
+
+          {/* Profile Avatar - Links to profile page */}
+          <button
+            onClick={() => navigate('/dashboard/profile')}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <div style={{
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              background: profile?.avatar_url ? 'transparent' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: 12,
+              fontWeight: 700,
+              border: '2px solid #e2e8f0',
+              transition: 'border-color 0.2s'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#ff9b38' }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e2e8f0' }}
+            >
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                profile?.full_name?.slice(0, 1).toUpperCase() || 'U'
+              )}
             </div>
           </button>
         </div>

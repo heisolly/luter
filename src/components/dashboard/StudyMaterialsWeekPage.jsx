@@ -3,6 +3,8 @@ import { useParams, useOutletContext, useNavigate } from 'react-router-dom'
 import { RiArrowLeftLine as ArrowLeft, RiFileTextFill as FileText, RiVideoFill as Video, RiBookOpenFill as BookOpen, RiDownloadLine as Download, RiExternalLinkFill as ExternalLink, RiTimeFill as Clock, RiFolderAddLine as FolderAdd, RiCloseLine as X } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { fetchCourseMaterials } from '../../services/materialsService'
+import { clearMaterialsCache } from './StudyMaterialsPage'
+import { preloadingService } from '../../services/preloadingService'
 import { useSessionStore } from '../../store/useSessionStore'
 
 export default function StudyMaterialsWeekPage() {
@@ -18,6 +20,9 @@ export default function StudyMaterialsWeekPage() {
 
   useEffect(() => {
     if (courseId && user?.id) {
+      // Clear all caches to ensure fresh data after uploads
+      clearMaterialsCache(courseId)
+      preloadingService.clearCache()
       loadMaterials()
       fetchCourseName()
     }
@@ -105,7 +110,11 @@ export default function StudyMaterialsWeekPage() {
           {materials.map(m => (
             <div 
               key={m.id} 
-              style={{ background: 'white', padding: '24px', borderRadius: '20px', border: '1.5px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s' }}
+              onClick={() => {
+                console.log('Material card clicked, navigating to:', m.id)
+                navigate(`/dashboard/workstation?materialId=${m.id}`)
+              }}
+              style={{ background: 'white', padding: '24px', borderRadius: '20px', border: '1.5px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s', cursor: 'pointer' }}
               onMouseOver={(e) => e.currentTarget.style.borderColor = '#7a12cc'}
               onMouseOut={(e) => e.currentTarget.style.borderColor = '#E2E8F0'}
             >
@@ -127,13 +136,20 @@ export default function StudyMaterialsWeekPage() {
               
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button 
-                  onClick={() => navigate(`/dashboard/courses/${courseId}/learn?materialId=${m.id}`)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    console.log('Navigating to workstation with materialId:', m.id)
+                    navigate(`/dashboard/workstation?materialId=${m.id}`)
+                  }}
                   style={{ padding: '10px 20px', borderRadius: '10px', background: '#7a12cc', color: 'white', fontWeight: 600, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
                   <ExternalLink size={16} /> Open in Workstation
                 </button>
                 <button 
-                  onClick={() => handleAddToSession(m)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleAddToSession(m)
+                  }}
                   style={{ padding: '10px 16px', borderRadius: '10px', background: '#F5F3FF', color: '#7a12cc', fontWeight: 600, border: '1px solid #E9D5FF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
                   <FolderAdd size={16} /> Add to Session
@@ -142,6 +158,7 @@ export default function StudyMaterialsWeekPage() {
                   href={m.source_url} 
                   target="_blank" 
                   rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
                   style={{ padding: '10px', borderRadius: '10px', background: '#F1F5F9', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}
                 >
                   <Download size={20} />

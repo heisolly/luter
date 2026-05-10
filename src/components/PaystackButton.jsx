@@ -1,0 +1,257 @@
+import React, { useState, useEffect } from 'react';
+import PaystackPop from '@paystack/inline-js';
+import { ExternalLink } from 'lucide-react';
+import { supabase } from '../supabaseClient';
+
+/**
+ * Production-ready Paystack payment button component
+ * 
+ * Features:
+ * - Inline popup overlay
+ * - Proper error handling
+ * - Loading states
+ * - Amount conversion (Naira to Kobo)
+ * - Email validation
+ * - Environment variable support
+ * - Success/Cancel callbacks
+ * 
+ * @param {Object} props - Component props
+ * @param {string} props.email - User email (required)
+ * @param {number} props.amount - Amount in Naira (required)
+ * @param {Object} props.metadata - Additional payment metadata
+ * @param {Function} props.onSuccess - Success callback
+ * @param {Function} props.onCancel - Cancel callback
+ * @param {Function} props.onError - Error callback
+ * @param {string} props.className - Custom CSS classes
+ * @param {React.ReactNode} props.children - Button content
+ * @param {boolean} props.disabled - Disabled state
+ * @param {Object} props.buttonProps - Additional button props
+ * @param {'inline'|'redirect'} props.mode - Payment mode: inline popup or redirect
+ */
+const PaystackButton = ({
+  email,
+  amount,
+  metadata = {},
+  onSuccess,
+  onCancel,
+  onError,
+  className = '',
+  children = 'Pay Now',
+  disabled = false,
+  buttonProps = {},
+  mode = 'inline', // 'inline' or 'redirect'
+}) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [paystackReady, setPaystackReady] = useState(false);
+
+  // Check if Paystack is loaded
+  useEffect(() => {
+    // PaystackPop is available immediately after import
+    setPaystackReady(true);
+  }, []);
+
+  // Get public key
+  const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+
+  // Validate required fields
+  const validatePayment = () => {
+    const errors = [];
+
+    // Check email
+    if (!email || typeof email !== 'string') {
+      errors.push('Email is required');
+    } else if (!email.includes('@') || !email.includes('.')) {
+      errors.push('Invalid email format');
+    }
+
+    // Check amount
+    if (!amount || typeof amount !== 'number' || amount <= 0) {
+      errors.push('Amount must be a positive number');
+    }
+
+    // Check public key
+    if (!publicKey) {
+      errors.push('Paystack public key not configured. Check your .env file');
+    } else if (!publicKey.startsWith('pk_')) {
+      errors.push('Invalid Paystack public key format');
+    }
+
+    return errors;
+  };
+
+  // Handle payment initialization
+  const handlePayment = async () => {
+    // Validate inputs
+    const errors = validatePayment();
+    if (errors.length > 0) {
+      const errorMessage = errors.join(', ');
+      console.error('Paystack validation errors:', errors);
+      if (onError) {
+        onError(new Error(errorMessage));
+      } else {
+        alert(`Payment Error: ${errorMessage}`);
+      }
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Get auth session
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      
+      if (!accessToken) {
+        window.location.href = `/signin?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+        return;
+      }
+
+      // Initialize via backend to get reference and create DB record
+      const planId = metadata.plan_id || 'default_plan';
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-paystack-checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          planId,
+          amount: amount,
+          email,
+          callback_url: `${window.location.origin}/dashboard/payment/success`,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Payment initialization failed');
+      }
+
+      const data = await response.json();
+      
+      if (mode === 'redirect') {
+        if (data?.url) {
+          console.log('Opening Paystack checkout in new tab:', data.url);
+          if (data.reference) {
+            localStorage.setItem('paystack_reference', data.reference);
+          }
+          window.open(data.url, '_blank');
+          setIsLoading(false);
+        } else {
+          throw new Error('No payment URL received');
+        }
+      } else {
+        // INLINE/OVERLAY MODE: Use Paystack popup with the reference from backend
+        const paystack = new PaystackPop();
+
+        const transactionConfig = {
+          key: data.publicKey || publicKey, // Use key from backend or env
+          email: email,
+          amount: Number(amount) * 100,
+          currency: 'NGN',
+          ref: data.reference, // CRITICAL: Use the reference generated by our backend
+          metadata: {
+            ...metadata,
+            source: 'luter_website',
+            timestamp: new Date().toISOString(),
+          },
+          onSuccess: (transaction) => {
+            console.log('Payment successful:', transaction);
+            setIsLoading(false);
+            if (onSuccess) onSuccess(transaction);
+          },
+          onCancel: () => {
+            console.log('Payment cancelled by user');
+            setIsLoading(false);
+            if (onCancel) onCancel();
+          },
+          onError: (error) => {
+            console.error('Paystack payment error:', error);
+            setIsLoading(false);
+            if (onError) onError(error);
+          },
+        };
+
+        paystack.newTransaction(transactionConfig);
+      }
+
+    } catch (error) {
+      console.error('Payment initialization error:', error);
+      setIsLoading(false);
+      
+      if (onError) {
+        onError(error);
+      } else {
+        alert(`Payment initialization failed: ${error.message}`);
+      }
+    }
+  };
+
+  // Default button styling with Tailwind
+  const defaultButtonClasses = `
+    relative inline-flex items-center justify-center
+    px-6 py-3 text-base font-medium text-white
+    bg-green-600 hover:bg-green-700
+    border border-transparent rounded-lg
+    shadow-sm hover:shadow-md
+    focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2
+    transition-all duration-200 ease-in-out
+    disabled:opacity-50 disabled:cursor-not-allowed
+    disabled:hover:bg-green-600
+    ${className}
+  `.trim().replace(/\s+/g, ' ');
+
+  return (
+    <button
+      type="button"
+      onClick={handlePayment}
+      disabled={disabled || isLoading || !paystackReady}
+      className={defaultButtonClasses}
+      {...buttonProps}
+    >
+      {/* Loading spinner */}
+      {isLoading && (
+        <svg
+          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          />
+        </svg>
+      )}
+
+      {/* Button content */}
+      <span className={isLoading ? 'opacity-75' : ''}>
+        {isLoading ? 'Processing...' : children}
+      </span>
+
+      {/* Mode indicator */}
+      {!isLoading && mode === 'redirect' && (
+        <ExternalLink className="ml-2 h-4 w-4" />
+      )}
+      
+      {/* Paystack branding (optional) */}
+      {!isLoading && (
+        <span className="ml-2 text-xs opacity-75">
+          {mode === 'redirect' ? 'Secure Checkout' : 'Powered by Paystack'}
+        </span>
+      )}
+    </button>
+  );
+};
+
+export default PaystackButton;

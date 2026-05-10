@@ -860,10 +860,9 @@ function MaterialCard({ item, idx, user, purpleColor, lightGrey, onDelete }) {
   
   const handleClick = () => {
     if (item.material_id) {
-       navigate(`/dashboard/courses/${item.course_id}/learn?materialId=${item.material_id}`)
+       navigate(`/dashboard/workstation?materialId=${item.material_id}`)
     } else if (item.type !== 'task') {
-       const cid = item.course_id || course?.id
-       if (cid) navigate(`/dashboard/courses/${cid}/learn?materialId=${item.id}`)
+       navigate(`/dashboard/workstation?materialId=${item.id}`)
     }
   }
 
@@ -1037,7 +1036,7 @@ function WeekDetailView({ week, onBack, materials, userNotes, assignments, cours
                 {materials.map(m => (
                   <div 
                     key={m.id} 
-                    onClick={() => navigate(`/dashboard/courses/${course.id}/learn?materialId=${m.id}`)}
+                    onClick={() => navigate(`/dashboard/workstation?materialId=${m.id}`)}
                     style={{ padding: '24px', borderRadius: '28px', border: '1.5px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', cursor: 'pointer' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -1091,7 +1090,7 @@ function WeekDetailView({ week, onBack, materials, userNotes, assignments, cours
                assignments.filter(a => a.week_number === week).map(a => (
                 <div 
                   key={a.id} 
-                  onClick={() => a.material_id && navigate(`/dashboard/courses/${course.id}/learn?materialId=${a.material_id}`)}
+                  onClick={() => a.material_id && navigate(`/dashboard/workstation?materialId=${a.material_id}`)}
                   style={{ padding: '20px', borderRadius: '24px', border: '1.5px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', cursor: a.material_id ? 'pointer' : 'default' }}
                 >
                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext, useLocation } from 'react-router-dom'
 import { uploadMaterial, addYoutubeMaterial } from '../../services/materialsService'
+import { preloadingService } from '../../services/preloadingService'
+import { clearMaterialsCache } from './StudyMaterialsPage'
 import { supabase } from '../../supabaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDeckStore } from '../../store/useDeckStore'
@@ -142,6 +144,10 @@ export default function UserUpload() {
           })
         }
 
+        // Clear caches so the new material appears in lists immediately
+        clearMaterialsCache(selectedCourse)
+        preloadingService.clearCache()
+        
         setStatus({ 
           type: 'success', 
           message: '🎉 Great! Your material has been added.',

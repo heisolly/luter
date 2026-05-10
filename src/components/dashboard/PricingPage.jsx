@@ -8,7 +8,6 @@ import {
   RiLoader4Line as Loader, RiVipCrownFill as Crown
 } from 'react-icons/ri';
 import { supabase } from '../../supabaseClient';
-import PremiumModal from '../shared/PremiumModal';
 
 const plans = [
   {
@@ -33,7 +32,7 @@ const plans = [
     id: 'ultimate',
     name: 'University Pro',
     tagline: 'The ultimate academic advantage',
-    priceMonthly: 4000,
+    priceMonthly: 3000,
     priceSemester: 9000,
     priceIdMonthly: 'price_1TQBBYHPD8pnlRZIniqKwUo0',
     priceIdSemester: 'price_1TQBBcHPD8pnlRZImYqlm80o',
@@ -55,7 +54,7 @@ const plans = [
     id: 'premium',
     name: 'Luter Executive',
     tagline: 'For elite researchers & power users',
-    priceMonthly: 7000,
+    priceMonthly: 9000,
     priceSemester: 16000,
     priceIdMonthly: 'price_1TQBBdHPD8pnlRZIp7HSWNQj',
     priceIdSemester: 'price_1TQBBeHPD8pnlRZIeg7YvWbb',
@@ -80,46 +79,38 @@ export default function PricingPage() {
   const [isSemester, setIsSemester] = useState(true);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showPremiumModal, setShowPremiumModal] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [hoveredPlan, setHoveredPlan] = useState(null);
+    const [hoveredPlan, setHoveredPlan] = useState(null);
   const [loadingCheckout, setLoadingCheckout] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(null);
 
+  // Load Paystack script
   useEffect(() => {
+    const loadPaystackScript = () => {
+      return new Promise((resolve, reject) => {
+        if (window.PaystackPop) {
+          resolve();
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://js.paystack.co/v1/inline.js';
+        script.async = true;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.body.appendChild(script);
+      });
+    };
+    
+    loadPaystackScript().catch(console.error);
+    
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) setUser(session.user);
       setLoading(false);
     });
   }, []);
 
-  const handleUpgrade = (plan) => {
-    setSelectedPlan(plan);
-    setShowPremiumModal(true);
-  };
-
-  const handlePurchase = async () => {
-    if (!selectedPlan || selectedPlan.id === 'free') return;
-    
-    setLoadingCheckout(true);
-    try {
-      const priceId = isSemester ? selectedPlan.priceIdSemester : selectedPlan.priceIdMonthly;
-      
-      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: { priceId }
-      });
-
-      if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (err) {
-      console.error('Error starting checkout:', err);
-      alert('Network issue or checkout failed. Please refresh and try again.');
-    } finally {
-      setLoadingCheckout(false);
-      setShowPremiumModal(false);
-    }
+  // Navigate to custom checkout page
+  const handleCheckout = (plan) => {
+    navigate(`/checkout?plan=${plan.id}&period=${isSemester ? 'semester' : 'monthly'}`);
   };
 
   const isCurrentPlan = (planName) => {
@@ -153,25 +144,39 @@ export default function PricingPage() {
             animate={{ opacity: 1, y: 0 }}
             style={headerContentStyles}
           >
-            <div style={badgeStyles}><Crown size={14} /> PREMIUM ACADEMICS</div>
-            <h1 style={titleStyles}>Elevate your <span style={highlightText}>Learning</span></h1>
-            <p style={subtitleStyles}>Join 10,000+ students using AI to master their curriculum in half the time.</p>
+            <div style={badgeStyles}>
+              <Crown size={16} />
+              <span>PREMIUM ACADEMICS</span>
+            </div>
+            <h1 style={titleStyles}>
+              Elevate your <span style={highlightText}>Learning</span>
+            </h1>
+            <p style={subtitleStyles}>
+              Join 10,000+ students using AI to master their curriculum in half the time.
+            </p>
           </motion.div>
 
           <div style={toggleContainerStyles}>
             <div style={togglePillStyles}>
-              <button 
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => setIsSemester(false)}
-                style={{ ...toggleBtnStyles, background: !isSemester ? 'white' : 'transparent', color: !isSemester ? '#111' : '#fff' }}
+                style={{ ...toggleBtnStyles, background: !isSemester ? '#ffffff' : 'transparent', color: !isSemester ? '#1e293b' : '#94a3b8', border: !isSemester ? '1px solid #e2e8f0' : '1px solid transparent' }}
               >
                 Monthly
-              </button>
-              <button 
+              </motion.button>
+                  <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => setIsSemester(true)}
-                style={{ ...toggleBtnStyles, background: isSemester ? 'white' : 'transparent', color: isSemester ? '#111' : '#fff' }}
+                style={{ ...toggleBtnStyles, background: isSemester ? '#ffffff' : 'transparent', color: isSemester ? '#1e293b' : '#94a3b8', border: isSemester ? '1px solid #e2e8f0' : '1px solid transparent' }}
               >
-                Semester <span style={discountBadgeStyles}>-40%</span>
-              </button>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  Long Term
+                  <span style={discountBadgeStyles}>SAVINGS</span>
+                </span>
+              </motion.button>
             </div>
           </div>
         </header>
@@ -196,7 +201,7 @@ export default function PricingPage() {
                 {plan.badge && <div style={planBadgeStyles}>{plan.badge}</div>}
                 
                 <div style={cardHeaderStyles}>
-                  <div style={iconBoxStyles(plan.accentColor)}>
+                  <div style={iconBoxStyles(plan.accentColor, plan.isPrimary)}>
                     <PlanIcon size={24} />
                   </div>
                   <div>
@@ -210,19 +215,28 @@ export default function PricingPage() {
                     <span style={currencyStyles}>₦</span>
                     <span style={amountStyles}>{price.toLocaleString()}</span>
                   </div>
-                  <div style={pricePeriodStyles}>/ {isSemester ? 'semester' : 'month'}</div>
+                  <div style={pricePeriodStyles}>
+                    / {isSemester ? (plan.id === 'premium' ? 'year' : '4 months') : 'month'}
+                  </div>
                 </div>
 
-                <button
-                  disabled={current || loadingCheckout}
-                  onClick={() => plan.id !== 'free' && handleUpgrade(plan)}
-                  onMouseEnter={() => setHoveredButton(plan.id)}
-                  onMouseLeave={() => setHoveredButton(null)}
-                  style={ctaStyles(plan.isPrimary, current, hoveredButton === plan.id)}
-                >
-                  {loadingCheckout && <Loader className="animate-spin" size={18} />}
-                  {!loadingCheckout && (current ? 'Active Plan' : plan.cta)}
-                </button>
+                {plan.id === 'free' ? (
+                  <button
+                    disabled={true}
+                    style={ctaStyles(plan.isPrimary, true, false)}
+                  >
+                    Current Plan
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => !current && handleCheckout(plan)}
+                    disabled={current}
+                    style={ctaStyles(plan.isPrimary, current, hoveredButton === plan.id)}
+                  >
+                    {current ? 'Active Plan' : plan.cta}
+                    {!current && <ArrowRight size={16} />}
+                  </button>
+                )}
 
                 <div style={dividerStyles} />
 
@@ -247,12 +261,6 @@ export default function PricingPage() {
         </footer>
       </div>
 
-      <PremiumModal
-        isOpen={showPremiumModal}
-        onClose={() => setShowPremiumModal(false)}
-        onUpgrade={handlePurchase}
-        onStartTrial={() => navigate('/dashboard')}
-      />
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -266,8 +274,8 @@ export default function PricingPage() {
 
 const pageStyles = {
   minHeight: '100vh',
-  background: '#050505',
-  color: '#fff',
+  background: '#f8fafc',
+  color: '#1e293b',
   fontFamily: "'Outfit', sans-serif",
   position: 'relative',
   overflowX: 'hidden',
@@ -276,25 +284,21 @@ const pageStyles = {
 const bgOverlayStyles = {
   position: 'absolute',
   inset: 0,
-  backgroundImage: 'url("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop")',
-  backgroundSize: 'cover',
-  backgroundPosition: 'center',
-  opacity: 0.2,
-  filter: 'grayscale(100%) contrast(150%)',
+  background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
   zIndex: 0,
 };
 
 const contentWrapperStyles = {
   position: 'relative',
   zIndex: 1,
-  padding: '80px 24px',
+  padding: '60px 24px',
   maxWidth: 1200,
   margin: '0 auto',
 };
 
 const headerStyles = {
   textAlign: 'center',
-  marginBottom: 80,
+  marginBottom: 60,
 };
 
 const headerContentStyles = {
@@ -305,73 +309,82 @@ const headerContentStyles = {
 const badgeStyles = {
   display: 'inline-flex',
   alignItems: 'center',
-  gap: 8,
-  padding: '8px 16px',
-  background: 'rgba(122, 18, 204, 0.2)',
-  border: '1px solid rgba(122, 18, 204, 0.3)',
-  borderRadius: 99,
-  fontSize: 12,
-  fontWeight: 800,
-  color: '#a78bfa',
-  letterSpacing: '0.1em',
+  gap: 6,
+  padding: '6px 12px',
+  background: '#f1f5f9',
+  border: '1px solid #e2e8f0',
+  borderRadius: 8,
+  fontSize: 11,
+  fontWeight: 700,
+  color: '#7a12cc',
+  letterSpacing: '0.05em',
   marginBottom: 24,
+  textTransform: 'uppercase',
 };
 
 const titleStyles = {
-  fontSize: 'clamp(40px, 8vw, 64px)',
-  fontWeight: 900,
-  letterSpacing: '-0.05em',
-  lineHeight: 1,
-  marginBottom: 24,
+  fontSize: 'clamp(36px, 6vw, 56px)',
+  fontWeight: 800,
+  letterSpacing: '-0.02em',
+  lineHeight: 1.1,
+  marginBottom: 20,
+  color: '#1e293b',
 };
 
 const highlightText = {
-  background: 'linear-gradient(to right, #a78bfa, #818cf8)',
+  background: 'linear-gradient(135deg, #7a12cc 0%, #8b5cf6 100%)',
   WebkitBackgroundClip: 'text',
   WebkitTextFillColor: 'transparent',
+  backgroundClip: 'text',
+  color: 'transparent',
 };
 
 const subtitleStyles = {
   fontSize: 18,
-  color: '#94a3b8',
+  color: '#64748b',
   maxWidth: 500,
   margin: '0 auto',
   lineHeight: 1.6,
+  fontWeight: 400,
 };
 
 const toggleContainerStyles = {
   display: 'flex',
   justifyContent: 'center',
+  marginBottom: 40,
 };
 
 const togglePillStyles = {
-  display: 'flex',
-  background: 'rgba(255,255,255,0.05)',
+  display: 'inline-flex',
+  background: '#ffffff',
   padding: 4,
-  borderRadius: 99,
-  border: '1px solid rgba(255,255,255,0.1)',
-  gap: 4,
+  borderRadius: 12,
+  border: '1px solid #e2e8f0',
+  gap: 2,
+  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
 };
 
 const toggleBtnStyles = {
-  padding: '10px 24px',
-  borderRadius: 99,
+  padding: '12px 24px',
+  borderRadius: 8,
   fontSize: 14,
-  fontWeight: 700,
+  fontWeight: 600,
   border: 'none',
   cursor: 'pointer',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  transition: 'all 0.2s ease',
   display: 'flex',
   alignItems: 'center',
   gap: 8,
+  fontFamily: 'inherit',
 };
 
 const discountBadgeStyles = {
   fontSize: 10,
-  padding: '2px 8px',
+  padding: '2px 6px',
   background: '#10b981',
   color: '#fff',
-  borderRadius: 99,
+  borderRadius: 6,
+  fontWeight: 700,
 };
 
 const gridStyles = (isMobile) => ({
@@ -382,61 +395,67 @@ const gridStyles = (isMobile) => ({
 });
 
 const cardStyles = (isPrimary, isHovered) => ({
-  background: isPrimary ? 'rgba(15,15,15,0.8)' : 'rgba(20,20,20,0.6)',
-  backdropFilter: 'blur(20px)',
-  borderRadius: 32,
-  padding: 40,
-  border: isPrimary ? '2px solid #7a12cc' : '1px solid rgba(255,255,255,0.1)',
+  background: '#ffffff',
+  borderRadius: 16,
+  padding: 32,
+  border: isPrimary ? '2px solid #7a12cc' : (isHovered ? '1px solid #cbd5e1' : '1px solid #e2e8f0'),
   position: 'relative',
-  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-  transform: isHovered ? 'translateY(-12px)' : 'translateY(0)',
-  boxShadow: isHovered ? '0 30px 60px rgba(0,0,0,0.5)' : 'none',
+  transition: 'all 0.3s ease',
+  transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
+  boxShadow: isHovered ? '0 8px 24px rgba(0,0,0,0.08)' : '0 2px 8px rgba(0,0,0,0.04)',
 });
 
 const planBadgeStyles = {
   position: 'absolute',
-  top: 20,
-  right: 24,
-  background: 'linear-gradient(135deg, #7a12cc, #9718fb)',
+  top: -8,
+  right: 20,
+  background: 'linear-gradient(135deg, #7a12cc, #8b5cf6)',
   padding: '4px 12px',
-  borderRadius: 99,
+  borderRadius: 6,
   fontSize: 10,
-  fontWeight: 900,
+  fontWeight: 700,
   color: '#fff',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
 };
 
 const cardHeaderStyles = {
   display: 'flex',
-  alignItems: 'center',
+  alignItems: 'flex-start',
   gap: 16,
-  marginBottom: 32,
+  marginBottom: 24,
 };
 
-const iconBoxStyles = (color) => ({
-  width: 52,
-  height: 52,
-  borderRadius: 16,
-  background: `${color}15`,
+const iconBoxStyles = (color, isPrimary) => ({
+  width: 48,
+  height: 48,
+  borderRadius: 12,
+  background: isPrimary ? `${color}15` : '#f8fafc',
   color: color,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
+  border: isPrimary ? `1px solid ${color}30` : '1px solid #e2e8f0',
 });
 
 const planTitleStyles = {
-  fontSize: 22,
-  fontWeight: 800,
+  fontSize: 20,
+  fontWeight: 700,
   margin: 0,
+  color: '#1e293b',
+  lineHeight: 1.2,
 };
 
 const planTaglineStyles = {
   fontSize: 13,
   color: '#64748b',
   margin: 0,
+  fontWeight: 400,
+  marginTop: 4,
 };
 
 const priceContainerStyles = {
-  marginBottom: 32,
+  marginBottom: 24,
 };
 
 const priceValueStyles = {
@@ -446,16 +465,17 @@ const priceValueStyles = {
 };
 
 const currencyStyles = {
-  fontSize: 24,
-  fontWeight: 700,
+  fontSize: 20,
+  fontWeight: 600,
   color: '#64748b',
-  marginTop: 8,
+  marginTop: 4,
 };
 
 const amountStyles = {
-  fontSize: 56,
-  fontWeight: 900,
-  letterSpacing: '-0.04em',
+  fontSize: 48,
+  fontWeight: 800,
+  letterSpacing: '-0.02em',
+  color: '#1e293b',
 };
 
 const pricePeriodStyles = {
@@ -466,30 +486,29 @@ const pricePeriodStyles = {
 
 const ctaStyles = (isPrimary, current, isHovered) => ({
   width: '100%',
-  height: '56px',
-  borderRadius: '16px',
-  fontSize: '15px',
-  fontWeight: 700,
-  fontFamily: 'var(--font-outfit)',
+  height: '48px',
+  borderRadius: 8,
+  fontSize: '14px',
+  fontWeight: 600,
+  fontFamily: 'inherit',
   textTransform: 'none',
   letterSpacing: 'normal',
   cursor: current ? 'default' : 'pointer',
-  border: isPrimary && !current ? '2px solid #FB923C' : 'none',
-  background: current ? 'rgba(255,255,255,0.05)' : (isPrimary && !current && isHovered ? '#FB923C' : (isPrimary && !current ? 'white' : 'rgba(255,255,255,0.1)')),
-  color: current ? '#64748b' : (isPrimary && !current && isHovered ? 'white' : (isPrimary && !current ? '#FB923C' : '#FFFFFF')),
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  border: isPrimary && !current ? '1px solid #7a12cc' : '1px solid #e2e8f0',
+  background: current ? '#f8fafc' : (isPrimary && !current && isHovered ? '#7a12cc' : (isPrimary && !current ? '#ffffff' : '#ffffff')),
+  color: current ? '#94a3b8' : (isPrimary && !current && isHovered ? '#ffffff' : (isPrimary && !current ? '#7a12cc' : '#1e293b')),
+  transition: 'all 0.2s ease',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  gap: '12px',
-  marginBottom: 32,
-  boxShadow: 'none',
+  gap: '8px',
+  marginBottom: 24,
 });
 
 const dividerStyles = {
   height: 1,
-  background: 'rgba(255,255,255,0.05)',
-  marginBottom: 32,
+  background: '#f1f5f9',
+  marginBottom: 24,
 };
 
 const featureListStyles = {
@@ -498,7 +517,7 @@ const featureListStyles = {
   margin: 0,
   display: 'flex',
   flexDirection: 'column',
-  gap: 16,
+  gap: 12,
 };
 
 const featureItemStyles = {
@@ -506,37 +525,44 @@ const featureItemStyles = {
   alignItems: 'center',
   gap: 12,
   fontSize: 14,
-  fontWeight: 500,
-  color: '#cbd5e1',
+  fontWeight: 400,
+  color: '#475569',
+  lineHeight: 1.4,
 };
 
 const checkIconStyles = {
   width: 20,
   height: 20,
-  borderRadius: '50%',
-  background: 'rgba(16, 185, 129, 0.1)',
-  color: '#10b981',
+  borderRadius: 6,
+  background: '#dcfce7',
+  color: '#16a34a',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   flexShrink: 0,
+  border: '1px solid #bbf7d0',
 };
 
 const footerStyles = {
-  marginTop: 80,
+  marginTop: 60,
   display: 'flex',
   justifyContent: 'center',
-  gap: 40,
+  gap: 32,
   flexWrap: 'wrap',
 };
 
 const trustItemStyles = {
   display: 'flex',
   alignItems: 'center',
-  gap: 10,
-  fontSize: 14,
+  gap: 8,
+  fontSize: 13,
   color: '#64748b',
-  fontWeight: 600,
+  fontWeight: 500,
+  padding: '12px 16px',
+  background: '#ffffff',
+  borderRadius: 8,
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
 };
 
 const fullLoaderStyles = {

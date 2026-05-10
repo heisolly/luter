@@ -62,7 +62,7 @@ import { pollMaterialUntilReady } from '../../services/materialsService'
 import VoiceModeBlob from './voice/VoiceModeBlob'
 import { MaterialAnalysisService } from '../../services/materialAnalysisService'
 import { useDeckStore } from '../../store/useDeckStore'
-import { debounce } from '../../utils/debounce'
+import { preloadingService } from '../../services/preloadingService'
 import './workstation.css'
 
 const SUGGESTED_QUESTIONS = [
@@ -190,19 +190,32 @@ function WorkstationContent() {
 
     document.addEventListener('mouseup', handleMouseUp)
     return () => document.removeEventListener('mouseup', handleMouseUp)
-  }, [updateSelection])
+  }, [])
 
   useEffect(() => {
-    if (courseId) {
+    if (!user?.id) return
+
+    if (materialIdParam) {
+      // If materialId is specified, load that specific material regardless of courseId
+      fetchStandaloneMaterial(materialIdParam)
+    } else if (courseId) {
+      // Load course-specific materials
+      const preloadPromise = preloadingService.preloadWorkspace(courseId, user.id)
+        .then((res) => {
+          if (res.success && res.data) {
+            console.log('[Workstation] Preload successful:', res.data)
+          } else {
+            console.warn('Workspace preload failed:', err.message)
+          }
+        })
+      
       fetchCourseInfo()
       fetchMaterials()
       checkAssignments()
-    } else if (materialIdParam) {
-      fetchStandaloneMaterial(materialIdParam)
     } else if (activeDeckItems.length > 0) {
       // Load materials from deck if no courseId is provided
       loadDeckMaterials()
-    } else if (user?.id) {
+    } else {
       // Fallback: fetch all user's standalone + course materials
       fetchAllUserMaterials()
     }
@@ -347,6 +360,22 @@ function WorkstationContent() {
   async function fetchMaterials() {
     setLoading(true)
     try {
+      // Try to get preloaded data first
+      const preloadedData = preloadingService.getCachedData(`course-${courseId}-${user?.id}`)
+      
+      if (preloadedData) {
+        console.log('[Workstation] Using preloaded materials data')
+        setCourseMaterials(preloadedData)
+        const initialMaterial = materialIdParam
+          ? preloadedData.find(m => m.id === materialIdParam) || preloadedData[0]
+          : preloadedData[0]
+        setSelectedMaterial(initialMaterial)
+        setShowDashboard(false)
+        setLoading(false)
+        return
+      }
+
+      // Fallback to network request
       const { data, error } = await supabase
         .from('materials')
         .select('*')
@@ -874,7 +903,7 @@ function WorkstationContent() {
 
       <main className="ws-main-layout" style={{ 
         display: 'grid', 
-        gridTemplateColumns: isMobile ? '1fr' : (focusMode ? '1fr' : 'minmax(0, 1fr) 320px'), 
+        gridTemplateColumns: isMobile ? '1fr' : (focusMode ? '1fr' : 'minmax(0, 3fr) minmax(260px, 340px)'), 
         background: 'transparent', 
         overflow: 'hidden', 
         padding: '0', 
@@ -894,13 +923,13 @@ function WorkstationContent() {
         }}>
           {/* Subheader for Document/Notes toggle */}
           {activeTab === 'content' && !isMobile && (
-            <div className="ws-canvas-tabs" style={{ 
-              padding: '16px 32px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between', 
-              borderBottom: '1.5px solid #F1F5F9', 
-              background: 'white' 
+            <div className="ws-canvas-tabs" style={{
+              padding: '8px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: '1.5px solid #F1F5F9',
+              background: 'white'
             }}>
               <div style={{ display: 'flex', background: '#F8FAFC', padding: '4px', borderRadius: '12px', border: '1px solid #F1F5F9' }}>
                 <button 
@@ -935,7 +964,7 @@ function WorkstationContent() {
 
           <div className="ws-canvas-container" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             {activeTab === 'notes' ? (
-              <div className="ws-ai-content-pane" style={{ padding: '60px', maxWidth: '800px', margin: '0 auto', overflowY: 'auto', flex: 1 }}>
+              <div className="ws-ai-content-pane" style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto', overflowY: 'auto', flex: 1 }}>
                 <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '32px', color: '#111' }}>Extracted Text</h2>
                 <div style={{ fontSize: '16px', lineHeight: '1.8', color: '#3F3F46', whiteSpace: 'pre-wrap', fontStyle: 'normal' }}>
                   {selectedMaterial?.extracted_text || (
@@ -987,6 +1016,24 @@ function WorkstationContent() {
                   material={selectedMaterial} 
                   onRegenerate={() => runAnalysis('quiz')} 
                 />
+              </div>
+            ) : !selectedMaterial ? (
+              <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F8FAFB', padding: '40px', flex: 1 }}>
+                <div style={{ textAlign: 'center', maxWidth: '400px' }}>
+                  <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(122, 18, 204, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                    <BookOpen size={32} color="#7a12cc" />
+                  </div>
+                  <h3 style={{ fontFamily: 'var(--font-outfit)', fontSize: '20px', fontWeight: 700, color: '#111', marginBottom: '12px' }}>No material selected</h3>
+                  <p style={{ color: '#6B7280', fontSize: '14px', lineHeight: '1.6', marginBottom: '24px' }}>
+                    Select a study material from the sidebar or upload a new one to begin your session.
+                  </p>
+                  <button 
+                    onClick={() => navigate('/dashboard/upload')}
+                    style={{ padding: '12px 24px', background: '#7a12cc', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-outfit)' }}
+                  >
+                    Upload Material
+                  </button>
+                </div>
               </div>
             ) : (
               <div style={{ height: '100%', width: '100%' }}>
@@ -1049,7 +1096,8 @@ function WorkstationContent() {
         {!isSidePanelCollapsed && !focusMode && (
           <aside className="ws-pane-right" style={{ 
             display: isMobile ? (activeTab === 'chat' ? 'flex' : 'none') : 'flex', 
-            width: isMobile ? '100%' : '320px',
+            width: isMobile ? '100%' : '100%', 
+            minWidth: isMobile ? 'auto' : '260px',
             gridColumn: '2 / 3', 
             borderLeft: isMobile ? 'none' : '1px solid rgba(0,0,0,0.05)', 
             background: 'rgba(255, 255, 255, 0.85)',

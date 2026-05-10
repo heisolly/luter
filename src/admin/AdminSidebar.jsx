@@ -15,6 +15,7 @@ import {
   GearSix,
   ArrowSquareOut,
   ShieldCheck,
+  CreditCard,
 } from '@phosphor-icons/react'
 import LuterLogo from '../components/shared/LuterLogo'
 
@@ -31,6 +32,7 @@ const NAV = [
   { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
   { to: '/admin/activity', icon: Pulse, label: 'Live activity' },
   { to: '/admin/system', icon: Cpu, label: 'System' },
+  { to: '/admin/payment-settings', icon: CreditCard, label: 'Payment Settings' },
   { to: '/admin/settings', icon: GearSix, label: 'Admin settings' },
 ]
 

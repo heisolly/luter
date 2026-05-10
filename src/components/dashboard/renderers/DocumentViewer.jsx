@@ -102,9 +102,7 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
 
     const handleHighlight = (e) => {
       if (e.detail && e.detail.text) {
-        setHighlightText(e.detail.text)
         setViewMode('ai')
-        setTimeout(() => setHighlightText(''), 8000)
       }
     }
 

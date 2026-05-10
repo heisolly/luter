@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import { 
   User, 
   Bell, 
@@ -40,9 +41,12 @@ import {
 } from '@phosphor-icons/react';
 import { supabase } from '../../supabaseClient';
 import { LuterPageLoader } from '../shared/LuterPageLoader';
+import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceStore';
+import { useSessionStore } from '../../store/useSessionStore';
 
 const SettingsPage = () => {
-  const [activeTab, setActiveTab] = useState('profile');
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'profile');
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -179,7 +183,16 @@ const SettingsPage = () => {
 
   const handleSignOut = async () => {
     try {
+      // 1. Clear Supabase session
       await supabase.auth.signOut();
+      
+      // 2. Clear stores (using state directly to avoid hook constraints if needed, but here we can just call them)
+      useUniversalWorkspaceStore.getState().resetStore();
+      useSessionStore.getState().resetStore();
+      
+      // 3. Clear all local storage as a scorched-earth fix for any other cached bundles
+      localStorage.clear();
+      
       window.location.href = '/signin';
     } catch (error) {
       console.error('Error signing out:', error);
@@ -188,6 +201,7 @@ const SettingsPage = () => {
 
   const tabs = [
     { id: 'profile', label: 'Profile', icon: UserCircle },
+    { id: 'subscription', label: 'Subscription', icon: CrownSimple },
     { id: 'account', label: 'Account', icon: Lock },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'appearance', label: 'Appearance', icon: Palette },
@@ -714,6 +728,264 @@ const SettingsPage = () => {
                     )}
                   </motion.button>
                 </form>
+              </motion.div>
+            )}
+
+            {/* Subscription Tab */}
+            {activeTab === 'subscription' && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div style={{ marginBottom: '24px' }}>
+                  <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937', marginBottom: '8px' }}>
+                    Your Subscription
+                  </h2>
+                  <p style={{ fontSize: '14px', color: '#6b7280' }}>
+                    Manage your plan and billing details
+                  </p>
+                </div>
+
+                {(() => {
+                  const subscriptionTier = profile?.subscription_tier?.toLowerCase() || 'free';
+                  const subscriptionType = profile?.subscription_type?.toLowerCase() || 'free';
+                  const expiryDate = profile?.subscription_expires_at;
+                  
+                  const getPlanDetails = () => {
+                    if (subscriptionTier === 'premium' || subscriptionType === 'premium') {
+                      return {
+                        name: 'Luter Executive',
+                        badge: 'Executive',
+                        color: '#0ea5e9',
+                        bg: 'rgba(14, 165, 233, 0.1)',
+                        features: [
+                          'Unlimited uploads',
+                          'Vision AI (Analyze Images)',
+                          'Multi-document Synthesis',
+                          'Custom AI Personas',
+                          'Early access to Luter Lab',
+                          'Dedicated Academic Concierge'
+                        ]
+                      };
+                    }
+                    if (subscriptionTier === 'pro' || subscriptionType === 'pro') {
+                      return {
+                        name: 'University Pro',
+                        badge: 'Pro',
+                        color: '#7a12cc',
+                        bg: 'rgba(122, 18, 204, 0.1)',
+                        features: [
+                          'Unlimited uploads',
+                          'Advanced AI Insights',
+                          'Smart Quizzes',
+                          'Spaced-repetition engine',
+                          'AI Math & Logic Expert',
+                          'Priority processing'
+                        ]
+                      };
+                    }
+                    return {
+                      name: 'Scholar Basic',
+                      badge: 'Free',
+                      color: '#64748b',
+                      bg: 'rgba(100, 116, 139, 0.1)',
+                      features: [
+                        '5 uploads per month',
+                        'AI Notes (Standard)',
+                        'Basic Summaries',
+                        'Flashcard generation',
+                        'Community access'
+                      ]
+                    };
+                  };
+                  
+                  const plan = getPlanDetails();
+                  const isPremium = subscriptionTier === 'premium' || subscriptionTier === 'pro';
+                  
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                      {/* Current Plan Card */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        style={{
+                          background: 'linear-gradient(135deg, #ffffff 0%, #fafafa 100%)',
+                          borderRadius: '16px',
+                          padding: '28px',
+                          border: `2px solid ${plan.color}30`,
+                          boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                          <div>
+                            <div style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '6px 14px',
+                              background: plan.bg,
+                              borderRadius: '20px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              color: plan.color,
+                              marginBottom: '12px'
+                            }}>
+                              <CrownSimple size={14} weight="fill" />
+                              {plan.badge} Plan
+                            </div>
+                            <h3 style={{ fontSize: '28px', fontWeight: 800, color: '#1f2937', margin: 0 }}>
+                              {plan.name}
+                            </h3>
+                          </div>
+                          
+                          {isPremium && (
+                            <div style={{
+                              padding: '10px 18px',
+                              background: '#f0fdf4',
+                              borderRadius: '10px',
+                              border: '1px solid #86efac'
+                            }}>
+                              <div style={{ fontSize: '11px', color: '#22c55e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Status
+                              </div>
+                              <div style={{ fontSize: '16px', fontWeight: 700, color: '#16a34a' }}>
+                                Active
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {expiryDate && isPremium && (
+                          <div style={{
+                            padding: '14px 18px',
+                            background: '#fefce8',
+                            borderRadius: '12px',
+                            border: '1px solid #fde047',
+                            marginBottom: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px'
+                          }}>
+                            <Sparkle size={20} weight="fill" color="#eab308" />
+                            <div>
+                              <div style={{ fontSize: '13px', fontWeight: 600, color: '#854d0e' }}>
+                                Subscription expires on
+                              </div>
+                              <div style={{ fontSize: '15px', fontWeight: 700, color: '#a16207' }}>
+                                {new Date(expiryDate).toLocaleDateString('en-US', { 
+                                  weekday: 'long', 
+                                  year: 'numeric', 
+                                  month: 'long', 
+                                  day: 'numeric' 
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Features List */}
+                        <div style={{ marginTop: '20px' }}>
+                          <h4 style={{ fontSize: '14px', fontWeight: 600, color: '#6b7280', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Included Features
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px' }}>
+                            {plan.features.map((feature, idx) => (
+                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{
+                                  width: '20px',
+                                  height: '20px',
+                                  borderRadius: '50%',
+                                  background: plan.bg,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}>
+                                  <Check size={12} weight="bold" color={plan.color} />
+                                </div>
+                                <span style={{ fontSize: '14px', color: '#374151' }}>{feature}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+
+                      {/* Action Buttons */}
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                        {!isPremium ? (
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => window.location.href = '/dashboard/pricing'}
+                            style={{
+                              padding: '14px 28px',
+                              background: 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '12px',
+                              fontSize: '15px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px'
+                            }}
+                          >
+                            <CrownSimple size={20} weight="fill" />
+                            Upgrade Now
+                          </motion.button>
+                        ) : (
+                          <>
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => window.location.href = '/dashboard/pricing'}
+                              style={{
+                                padding: '14px 28px',
+                                background: '#f3f4f6',
+                                color: '#374151',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '12px',
+                                fontSize: '15px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                              }}
+                            >
+                              <ArrowRight size={20} />
+                              Change Plan
+                            </motion.button>
+                            
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => window.location.href = '/dashboard/payment/history'}
+                              style={{
+                                padding: '14px 28px',
+                                background: 'white',
+                                color: '#6b7280',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '12px',
+                                fontSize: '15px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                              }}
+                            >
+                              <CreditCard size={20} />
+                              Payment History
+                            </motion.button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </motion.div>
             )}
 

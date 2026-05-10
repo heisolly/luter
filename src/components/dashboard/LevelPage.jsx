@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { RiArrowLeftSLine as ChevronLeft, RiArrowRightSLine as ChevronRight, RiTrophyLine, RiFireLine, RiTimeLine, RiBook2Line, RiMedalLine } from 'react-icons/ri'
+import { RiArrowLeftSLine as ChevronLeft, RiArrowRightSLine as ChevronRight, RiTrophyLine, RiFireLine, RiTimeLine, RiBook2Line, RiMedalLine, RiCameraLine } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import Header from '../shared/Header'
 
 export default function LevelPage() {
   const { user, isMobile } = useOutletContext()
-  const { ready, bundle } = useDashboardPrefetch()
+  const { ready, bundle, refresh } = useDashboardPrefetch()
   
   const [gamificationData, setGamificationData] = useState(null)
   const [levelInfo, setLevelInfo] = useState(null)
@@ -16,13 +16,112 @@ export default function LevelPage() {
   const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [avatarUrl, setAvatarUrl] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     if (!user) return
     loadGamificationData()
     loadLevelInfo()
     loadAchievements()
+    loadAvatar()
   }, [user])
+
+  const loadAvatar = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('avatar_url')
+        .eq('id', user.id)
+        .single()
+      
+      if (!error && data?.avatar_url) {
+        setAvatarUrl(data.avatar_url)
+      }
+    } catch (error) {
+      console.error('Error loading avatar:', error)
+    }
+  }
+
+  const handleAvatarUpload = async (event) => {
+    try {
+      setUploading(true)
+      
+      const file = event.target.files[0]
+      if (!file) return
+
+      console.log('Selected file:', file.name, file.type, file.size)
+
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg']
+      if (!allowedTypes.includes(file.type)) {
+        alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)')
+        setUploading(false)
+        return
+      }
+
+      // Validate file size (20MB max)
+      if (file.size > 20 * 1024 * 1024) {
+        alert('Image size must be less than 20MB')
+        setUploading(false)
+        return
+      }
+
+      const fileExt = file.name.split('.').pop().toLowerCase()
+      const filePath = `${user.id}/avatar.${fileExt}`
+
+      console.log('Uploading to:', filePath)
+
+      // Upload to avatars bucket
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath)
+
+      // Update profile with direct URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id)
+
+      if (updateError) {
+        throw updateError
+      }
+
+      // Set avatar URL with cache bust
+      setAvatarUrl(`${publicUrl}?v=${Date.now()}`)
+      
+      // Wait a moment then refresh
+      setTimeout(() => {
+        refresh()
+        loadAvatar()
+      }, 500)
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      
+    } catch (error) {
+      console.error('Error uploading avatar:', error)
+      alert(`Failed to upload image: ${error.message}. Please try again.`)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click()
+  }
 
   const loadGamificationData = async () => {
     try {
@@ -151,7 +250,7 @@ export default function LevelPage() {
     }}>
       <Header 
         showSearch={false}
-        pageTitle="Level & Profile"
+        pageTitle="My Profile"
         showCreateButton={true}
         createButtonPath="/dashboard/upload"
       />
@@ -169,21 +268,95 @@ export default function LevelPage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          {/* Avatar */}
-          <div style={{
-            width: isMobile ? 80 : 100,
-            height: isMobile ? 80 : 100,
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: isMobile ? 32 : 40,
-            fontWeight: 700,
-            color: 'white'
-          }}>
-            {user?.email?.charAt(0).toUpperCase() || 'U'}
+          {/* Avatar with Upload */}
+          <div 
+            onClick={triggerFileInput}
+            style={{
+              width: isMobile ? 80 : 100,
+              height: isMobile ? 80 : 100,
+              borderRadius: '50%',
+              background: avatarUrl ? 'transparent' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: isMobile ? 32 : 40,
+              fontWeight: 700,
+              color: 'white',
+              cursor: 'pointer',
+              position: 'relative',
+              overflow: 'hidden',
+              border: '3px solid #e2e8f0',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#ff9b38'
+              e.currentTarget.style.transform = 'scale(1.02)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#e2e8f0'
+              e.currentTarget.style.transform = 'scale(1)'
+            }}
+          >
+            {avatarUrl ? (
+              <img 
+                src={avatarUrl} 
+                alt="Profile" 
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'cover',
+                  display: 'block'
+                }}
+              />
+            ) : (
+              <span>{user?.email?.charAt(0).toUpperCase() || 'U'}</span>
+            )}
+            
+            {/* Upload Overlay */}
+            <div style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '35%',
+              background: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backdropFilter: 'blur(2px)'
+            }}>
+              <RiCameraLine size={isMobile ? 20 : 24} color="white" />
+            </div>
+            
+            {uploading && (
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(0,0,0,0.6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <div style={{
+                  width: 30,
+                  height: 30,
+                  border: '3px solid rgba(255,255,255,0.3)',
+                  borderTopColor: 'white',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }} />
+              </div>
+            )}
           </div>
+          
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleAvatarUpload}
+            accept="image/*"
+            style={{ display: 'none' }}
+          />
           
           {/* User Info */}
           <div>
@@ -497,3 +670,12 @@ export default function LevelPage() {
     </div>
   )
 }
+
+// Add CSS for spinner animation
+const style = document.createElement('style')
+style.textContent = `
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`
+document.head.appendChild(style)

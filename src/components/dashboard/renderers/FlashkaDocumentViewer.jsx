@@ -40,7 +40,7 @@ export default function FlashkaDocumentViewer({
 }) {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
-  const [scale, setScale] = useState(1.4)
+  const [scale, setScale] = useState(SpecialZoomLevel.PageWidth)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [focusMode, setFocusMode] = useState(false)
   const [docLoaded, setDocLoaded] = useState(false)
@@ -106,13 +106,24 @@ export default function FlashkaDocumentViewer({
           padding: 0 !important;
           margin: 0 !important;
         }
-        /* Page styling - Allow proper scrolling */
+        /* Page styling - FULL WIDTH */
         .flashka-desk .rpv-core__page-layer {
           box-shadow: 0 1px 8px rgba(0,0,0,0.04) !important;
           border-radius: 4px !important;
           overflow: hidden !important;
           background: white !important;
           margin: 0 auto 8px auto !important;
+          max-width: 100% !important;
+          width: 100% !important;
+        }
+        /* Make canvas fill the page width */
+        .flashka-desk .rpv-core__canvas-layer {
+          max-width: 100% !important;
+          width: 100% !important;
+        }
+        /* Text layer should also fill */
+        .flashka-desk .rpv-core__text-layer {
+          max-width: 100% !important;
         }
         .flashka-desk .rpv-core__page-layer:hover {
           box-shadow: 0 2px 16px rgba(0,0,0,0.06) !important;
@@ -132,6 +143,22 @@ export default function FlashkaDocumentViewer({
         .flashka-desk .rpv-core__inner-pages {
           padding: 0 !important;
           margin: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          width: 100% !important;
+        }
+        /* Make each page take full width */
+        .flashka-desk .rpv-core__inner-page {
+          width: 100% !important;
+          max-width: 100% !important;
+          display: flex !important;
+          justify-content: center !important;
+        }
+        /* Ensure the viewer container fills width */
+        .flashka-desk .rpv-core__viewer {
+          width: 100% !important;
+          max-width: 100% !important;
         }
         /* Smooth scrolling on all elements */
         .flashka-desk * {
@@ -166,7 +193,7 @@ export default function FlashkaDocumentViewer({
   }, [])
 
   const fitToWidth = useCallback(() => {
-    setScale(1.4)
+    setScale(SpecialZoomLevel.PageWidth)
   }, [])
 
   const toggleFullscreen = useCallback(() => {

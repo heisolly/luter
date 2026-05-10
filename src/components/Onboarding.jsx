@@ -173,22 +173,175 @@ const SearchInputWithSuggestions = ({ placeholder, value, onChange, icon: Icon, 
   );
 };
 
-const CustomDatePicker = ({ value, onChange }) => (
-  <div style={{ position: 'relative' }}>
-    <Calendar style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', zIndex: 1 }} color="#111" weight="light" size={18} />
-    <input 
-      type="date" 
-      value={value} 
-      onChange={e => onChange(e.target.value)}
-      style={{ ...inputStyle, paddingLeft: '48px' }} 
-    />
-  </div>
-);
+const CustomDatePicker = ({ value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [viewDate, setViewDate] = useState(value ? new Date(value) : new Date());
+  const [showYearPicker, setShowYearPicker] = useState(false);
+  const containerRef = useRef(null);
+
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const days = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+  const currentMonth = viewDate.getMonth();
+  const currentYear = viewDate.getFullYear();
+
+  const handlePrevMonth = (e) => { e.stopPropagation(); setViewDate(new Date(currentYear, currentMonth - 1, 1)); };
+  const handleNextMonth = (e) => { e.stopPropagation(); setViewDate(new Date(currentYear, currentMonth + 1, 1)); };
+
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const startDay = new Date(currentYear, currentMonth, 1).getDay();
+
+  const calendarDays = [];
+  for (let i = 0; i < startDay; i++) calendarDays.push(null);
+  for (let d = 1; d <= daysInMonth; d++) calendarDays.push(d);
+
+  const selectDate = (day) => {
+    const selected = new Date(currentYear, currentMonth, day);
+    onChange(selected.toISOString().split('T')[0]);
+    setIsOpen(false);
+  };
+
+  const formattedDate = value ? new Date(value).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+        setShowYearPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{ 
+          ...inputStyle, 
+          paddingLeft: '48px', 
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          color: value ? '#111' : '#9CA3AF',
+          fontFamily: 'var(--font-outfit)',
+          background: isOpen ? '#FFF' : '#F9FAFB',
+          borderColor: isOpen ? '#A855F7' : '#F3F4F6',
+          boxShadow: isOpen ? '4px 4px 0px rgba(168, 85, 247, 0.1)' : 'none',
+          borderRadius: '0px',
+          border: '2px solid #111'
+        }}
+      >
+        <Calendar style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color={isOpen ? '#A855F7' : "#111"} weight="light" size={18} />
+        {formattedDate || "Select your birthday"}
+      </div>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 0 }}
+            animate={{ opacity: 1, y: 4 }}
+            exit={{ opacity: 0, y: 0 }}
+            style={{ 
+              position: 'absolute', 
+              top: '100%', 
+              left: 0, 
+              width: '320px', 
+              background: 'white', 
+              borderRadius: '0px', 
+              padding: '24px', 
+              boxShadow: '8px 8px 0px rgba(0,0,0,0.05)',
+              zIndex: 100,
+              border: '2px solid #111',
+              fontFamily: 'var(--font-outfit)'
+            }}
+          >
+            {!showYearPicker ? (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                  <div 
+                    onClick={() => setShowYearPicker(true)}
+                    style={{ fontWeight: 800, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: '#111', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                  >
+                    {months[currentMonth]} {currentYear} <ChevronDown size={14} />
+                  </div>
+                  <div style={{ display: 'flex', gap: '2px' }}>
+                    <button onClick={handlePrevMonth} style={{ background: '#F3F4F6', border: '1px solid #111', borderRadius: '0px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ArrowLeft size={14} /></button>
+                    <button onClick={handleNextMonth} style={{ background: '#F3F4F6', border: '1px solid #111', borderRadius: '0px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ArrowRight size={14} /></button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0px', textAlign: 'center' }}>
+                  {days.map(d => <div key={d} style={{ fontSize: '11px', fontWeight: 800, color: '#111', marginBottom: '16px', textTransform: 'uppercase' }}>{d}</div>)}
+                  {calendarDays.map((day, i) => (
+                    <div key={i} style={{ height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '0.5px solid #F3F4F6' }}>
+                      {day && (
+                        <motion.div
+                          whileHover={{ background: '#F5F3FF' }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => selectDate(day)}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            background: value && new Date(value).getDate() === day && new Date(value).getMonth() === currentMonth && new Date(value).getFullYear() === currentYear ? '#A855F7' : 'transparent',
+                            color: value && new Date(value).getDate() === day && new Date(value).getMonth() === currentMonth && new Date(value).getFullYear() === currentYear ? 'white' : '#111',
+                            borderRadius: '0px'
+                          }}
+                        >
+                          {day}
+                        </motion.div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '2px solid #111', display: 'flex', justifyContent: 'space-between' }}>
+                  <button onClick={() => { onChange(''); setIsOpen(false); }} style={{ background: 'transparent', border: 'none', color: '#111', fontSize: '12px', fontWeight: 800, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Clear</button>
+                  <button onClick={() => { selectDate(new Date().getDate()); setViewDate(new Date()); }} style={{ background: 'transparent', border: 'none', color: '#A855F7', fontSize: '12px', fontWeight: 800, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Today</button>
+                </div>
+              </>
+            ) : (
+              <div style={{ maxHeight: '300px', overflowY: 'auto' }} className="custom-scrollbar">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2px' }}>
+                  {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                    <div 
+                      key={year}
+                      onClick={() => { setViewDate(new Date(year, currentMonth, 1)); setShowYearPicker(false); }}
+                      style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: currentYear === year ? 800 : 500,
+                        background: currentYear === year ? '#111' : 'transparent',
+                        color: currentYear === year ? 'white' : '#111',
+                        border: '1px solid #F3F4F6'
+                      }}
+                    >
+                      {year}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 const inputStyle = {
   width: '100%',
   padding: '16px 16px 16px 48px',
-  borderRadius: '9999px',
+  borderRadius: '12px',
   border: '2px solid #F3F4F6',
   background: '#F9FAFB',
   fontSize: '15px',
@@ -196,7 +349,7 @@ const inputStyle = {
   color: '#111',
   outline: 'none',
   transition: 'all 0.2s ease',
-  fontFamily: 'var(--font-varela)',
+  fontFamily: 'var(--font-outfit)',
   boxSizing: 'border-box'
 };
 
@@ -269,23 +422,109 @@ const Onboarding = () => {
   const fileInputRef = useRef(null);
   const audioInputRef = useRef(null);
 
+  // Pre-fill full name from Google/Social metadata
+  useEffect(() => {
+    const getInitialUserData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.user_metadata) {
+          // Priority: full_name > name > display_name
+          const metadataName = user.user_metadata.full_name || user.user_metadata.name || user.user_metadata.display_name;
+          if (metadataName && !fullName) {
+            setFullName(metadataName);
+          }
+        }
+      } catch (err) {
+        console.warn("Could not pre-fill user data:", err);
+      }
+    };
+    getInitialUserData();
+  }, []); // Run only once on mount
+
+  // Debounced Username Availability Check
+  useEffect(() => {
+    if (!userName || userName.length < 3) {
+      setUsernameAvailable(true);
+      setCheckingUsername(false);
+      return;
+    }
+
+    setCheckingUsername(true);
+    const timer = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('username', userName)
+          .maybeSingle();
+
+        if (error) throw error;
+        setUsernameAvailable(!data);
+      } catch (err) {
+        console.error("Error checking username:", err);
+      } finally {
+        setCheckingUsername(false);
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [userName]);
+
   const focusHour = Number((studyTime || '20:00').split(':')[0] || 20);
-  const focusProfile = focusHour < 12
-    ? { label: 'Morning focus', tone: 'Fresh starts and lighter mental load.', accent: '#F59E0B', surface: '#FFF7ED' }
-    : focusHour < 17
-      ? { label: 'Afternoon flow', tone: 'Best for deep work after the day settles in.', accent: '#0EA5E9', surface: '#F0F9FF' }
-      : focusHour < 21
-        ? { label: 'Evening rhythm', tone: 'A calm slot for structured revision and catch-up.', accent: '#8B5CF6', surface: '#F5F3FF' }
-        : { label: 'Night owl mode', tone: 'Quiet hours for uninterrupted study sessions.', accent: '#111827', surface: '#F3F4F6' };
+  
+  const focusProfile = useMemo(() => {
+    const hour = focusHour;
+    if (hour >= 5 && hour < 12) return { 
+      label: 'Morning Catalyst', 
+      tone: 'Clarity and fresh starts.', 
+      accent: '#F59E0B', 
+      surface: '#FFF7ED', 
+      glow: 'rgba(245, 158, 11, 0.2)',
+      sky: 'linear-gradient(180deg, #FF9D6C 0%, #FBBF24 100%)',
+      icon: '🌅',
+      tagline: 'Peak Cognitive Window'
+    };
+    if (hour >= 12 && hour < 17) return { 
+      label: 'Afternoon Pulse', 
+      tone: 'Sustained momentum and flow.', 
+      accent: '#0EA5E9', 
+      surface: '#F0F9FF', 
+      glow: 'rgba(14, 165, 233, 0.2)',
+      sky: 'linear-gradient(180deg, #38BDF8 0%, #818CF8 100%)',
+      icon: '☀️',
+      tagline: 'Deep Work Session'
+    };
+    if (hour >= 17 && hour < 21) return { 
+      label: 'Twilight Rhythm', 
+      tone: 'Structured revision and calm.', 
+      accent: '#8B5CF6', 
+      surface: '#F5F3FF', 
+      glow: 'rgba(139, 92, 246, 0.2)',
+      sky: 'linear-gradient(180deg, #6366F1 0%, #EC4899 100%)',
+      icon: '🌆',
+      tagline: 'Reflective Learning'
+    };
+    return { 
+      label: 'Night Navigator', 
+      tone: 'Silent hours for deep focus.', 
+      accent: '#111827', 
+      surface: '#F1F5F9', 
+      glow: 'rgba(17, 24, 39, 0.1)',
+      sky: 'linear-gradient(180deg, #1E293B 0%, #0F172A 100%)',
+      icon: '🌙',
+      tagline: 'Uninterrupted Mastery'
+    };
+  }, [focusHour]);
 
   const routinePresets = [
-    { label: 'Before classes', value: '07:00' },
-    { label: 'Lunch break', value: '13:00' },
-    { label: 'After lectures', value: '18:00' },
-    { label: 'Late night', value: '22:00' }
+    { label: 'Morning Kickstart', value: '07:00', icon: '🌅' },
+    { label: 'Prime Flow', value: '13:00', icon: '☀️' },
+    { label: 'Evening Ritual', value: '19:00', icon: '🌆' },
+    { label: 'Midnight Focus', value: '23:00', icon: '🌙' }
   ];
   
   const [usernameAvailable, setUsernameAvailable] = useState(true);
+  const [checkingUsername, setCheckingUsername] = useState(false);
   const [isUniversityUser, setIsUniversityUser] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -681,12 +920,108 @@ const Onboarding = () => {
               role === 'student' ? (
                 <StepWrapper key="step3-student" title="idTitle" subtitle="idSub" t={t}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ position: 'relative' }}><User style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('fullName')} style={inputStyle} /></div>
-                    <div style={{ position: 'relative' }}><At style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={userName} onChange={e => setUserName(e.target.value)} placeholder={t('username')} style={inputStyle} /></div>
+                    <div style={{ position: 'relative' }}>
+                      <User style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} />
+                      <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('fullName')} style={inputStyle} />
+                    </div>
+
+                    <div style={{ position: 'relative' }}>
+                      <At style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} />
+                      <input 
+                        value={userName} 
+                        onChange={e => setUserName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))} 
+                        placeholder={t('username')} 
+                        style={{
+                          ...inputStyle,
+                          paddingRight: '120px',
+                          borderColor: !usernameAvailable && !checkingUsername ? '#EF4444' : (userName.length >= 3 && usernameAvailable && !checkingUsername ? '#C7B9FF' : '#F3F4F6'),
+                          transition: 'all 0.3s ease'
+                        }} 
+                      />
+                      
+                      <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+                        <AnimatePresence mode="wait">
+                          {checkingUsername ? (
+                            <motion.div
+                              key="checking"
+                              animate={{ rotate: 360 }}
+                              transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+                              style={{ width: '24px', height: '24px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                              {[0, 120, 240].map((deg) => (
+                                <div
+                                  key={deg}
+                                  style={{
+                                    position: 'absolute',
+                                    width: '5px',
+                                    height: '5px',
+                                    background: '#A855F7',
+                                    borderRadius: '50%',
+                                    transform: `rotate(${deg}deg) translateY(-8px)`
+                                  }}
+                                />
+                              ))}
+                            </motion.div>
+                          ) : userName.length >= 3 ? (
+                            <motion.div
+                              key={usernameAvailable ? 'available' : 'taken'}
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              exit={{ scale: 0, opacity: 0 }}
+                              transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                            >
+                              {usernameAvailable ? (
+                                <CheckCircle size={24} color="#C7B9FF" />
+                              ) : (
+                                <X size={24} color="#EF4444" />
+                              )}
+                            </motion.div>
+                          ) : (userName.length === 0 && fullName) ? (
+                            <motion.div
+                              key="suggestion"
+                              initial={{ opacity: 0, x: 10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: 10 }}
+                              onClick={() => setUserName(fullName.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                              style={{
+                                background: '#F5F3FF',
+                                border: '1px solid #DDD6FE',
+                                borderRadius: '20px',
+                                padding: '4px 12px',
+                                fontSize: '11px',
+                                color: '#7C3AED',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                fontWeight: 700,
+                                fontFamily: 'var(--font-outfit)',
+                                boxShadow: '0 2px 8px rgba(124, 58, 237, 0.1)'
+                              }}
+                            >
+                              <Sparkle size={12} /> {fullName.split(' ')[0].toLowerCase()}?
+                            </motion.div>
+                          ) : null}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+
+                    <AnimatePresence>
+                      {!usernameAvailable && !checkingUsername && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          style={{ color: '#EF4444', fontSize: '12px', paddingLeft: '16px', marginTop: '-8px', fontFamily: 'var(--font-varela)' }}
+                        >
+                          This username is already taken.
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     <CustomDatePicker value={birthday} onChange={setBirthday} />
                     <div style={{ height: '12px' }} />
                     <PremiumButton 
-                      disabled={!fullName || !userName || !birthday} 
+                      disabled={!fullName || !userName || !birthday || !usernameAvailable || checkingUsername || userName.length < 3} 
                       onClick={goToNext}
                       size="lg"
                       style={{ width: '100%' }}
@@ -1005,236 +1340,170 @@ const Onboarding = () => {
               )
             )}
             {step === 6 && (
-              <StepWrapper key="step6" title="routineTitle" subtitle="routineSub" t={t} maxWidth="800px">
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '40px' }}>
+              <StepWrapper key="step6" title="Your Study Atmosphere" subtitle="Set your prime time. Luter adapts to your rhythm." t={t} maxWidth="600px">
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '32px', padding: '12px 0' }}>
                   
-                  {/* Circular Time Picker */}
-                  <motion.div 
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
-                    style={{ 
-                      position: 'relative', 
-                      width: '280px', 
-                      height: '280px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
+                  {/* Minimal Central Card */}
+                  <motion.div
+                    layout
+                    style={{
+                      width: '100%',
+                      background: 'white',
+                      borderRadius: '32px',
+                      padding: '48px 32px',
+                      textAlign: 'center',
+                      boxShadow: '0 20px 60px rgba(0,0,0,0.03)',
+                      border: '1px solid #F1F5F9',
+                      position: 'relative',
+                      overflow: 'hidden'
                     }}
                   >
-                    {/* Outer decorative ring */}
-                    <div style={{
-                      position: 'absolute',
-                      width: '100%',
-                      height: '100%',
-                      borderRadius: '50%',
-                      background: `conic-gradient(from 0deg, ${focusProfile.accent}22 0deg, ${focusProfile.accent}44 90deg, ${focusProfile.accent}22 180deg, ${focusProfile.accent}44 270deg, ${focusProfile.accent}22 360deg)`,
-                      animation: 'rotate 20s linear infinite'
-                    }} />
-                    
-                    {/* Inner circle */}
-                    <div style={{
-                      position: 'absolute',
-                      width: '240px',
-                      height: '240px',
-                      borderRadius: '50%',
-                      background: 'white',
-                      border: `2px solid ${focusProfile.accent}33`,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
-                    }}>
-                      <Clock size={32} color={focusProfile.accent} weight="light" style={{ marginBottom: '8px' }} />
-                      <div style={{ fontSize: '36px', fontWeight: 700, color: '#111', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>
-                        {studyTime}
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#6B7280', fontFamily: 'var(--font-varela)', marginTop: '4px' }}>
-                        Your focus time
-                      </div>
-                    </div>
+                    <motion.div 
+                      animate={{ background: focusProfile.sky, opacity: 0.1 }}
+                      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
+                    />
 
-                    {/* Floating time indicators */}
-                    {[0, 6, 12, 18].map((hour, idx) => {
-                      const angle = (hour * 15) - 90; // Convert to degrees, offset for 12 o'clock
-                      const isActive = parseInt(studyTime.split(':')[0]) === hour;
-                      return (
-                        <motion.div
-                          key={hour}
-                          animate={{ 
-                            scale: isActive ? 1.2 : 1,
-                            backgroundColor: isActive ? focusProfile.accent : '#E5E7EB'
-                          }}
-                          style={{
-                            position: 'absolute',
-                            width: '12px',
-                            height: '12px',
-                            borderRadius: '50%',
-                            top: '50%',
-                            left: '50%',
-                            transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(-130px)`,
+                    <div style={{ position: 'relative', zIndex: 1 }}>
+                      <motion.div
+                        key={focusProfile.icon}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        style={{ fontSize: '72px', marginBottom: '20px' }}
+                      >
+                        {focusProfile.icon}
+                      </motion.div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <input 
+                          type="time" 
+                          value={studyTime} 
+                          onChange={(e) => setStudyTime(e.target.value)}
+                          style={{ 
+                            fontSize: '88px', 
+                            fontWeight: 800, 
+                            color: '#111', 
+                            fontFamily: 'var(--font-outfit)', 
+                            border: 'none', 
+                            background: 'transparent',
+                            outline: 'none',
+                            textAlign: 'center',
+                            width: '100%',
+                            letterSpacing: '-5px',
                             cursor: 'pointer'
                           }}
-                          onClick={() => setStudyTime(`${hour.toString().padStart(2, '0')}:00`)}
                         />
-                      );
-                    })}
+                        
+                        <motion.div
+                          key={focusProfile.label}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          style={{ 
+                            background: focusProfile.surface,
+                            color: focusProfile.accent,
+                            padding: '8px 20px',
+                            borderRadius: '30px',
+                            fontSize: '14px',
+                            fontWeight: 800,
+                            fontFamily: 'var(--font-outfit)',
+                            marginTop: '4px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.08em'
+                          }}
+                        >
+                          {focusProfile.label}
+                        </motion.div>
+                      </div>
+
+                      <div style={{ 
+                        marginTop: '40px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        gap: '12px',
+                        padding: '16px',
+                        borderRadius: '20px',
+                        background: '#F9FAFB'
+                      }}>
+                        <Bell size={18} color={reminders ? focusProfile.accent : '#9CA3AF'} />
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: '#374151', fontFamily: 'var(--font-outfit)' }}>
+                          Daily study nudge
+                        </span>
+                        <motion.button
+                          onClick={() => setReminders(!reminders)}
+                          whileTap={{ scale: 0.9 }}
+                          style={{
+                            width: '44px', height: '22px',
+                            borderRadius: '20px',
+                            background: reminders ? focusProfile.accent : '#E2E8F0',
+                            position: 'relative', cursor: 'pointer', border: 'none', transition: 'background 0.3s'
+                          }}
+                        >
+                          <motion.div 
+                            animate={{ x: reminders ? 22 : 0 }}
+                            style={{ 
+                              width: '16px', height: '16px', 
+                              background: 'white', borderRadius: '50%',
+                              position: 'absolute', top: '3px', left: '3px',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                            }} 
+                          />
+                        </motion.button>
+                      </div>
+                    </div>
                   </motion.div>
 
-                  {/* Time Presets */}
-                  <div style={{ width: '100%', maxWidth: '600px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#111', fontFamily: 'var(--font-outfit)', marginBottom: '20px', textAlign: 'center' }}>
-                      Quick schedule presets
-                    </h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-                      {routinePresets.map((preset, idx) => {
-                        const active = studyTime === preset.value;
-                        const hour = parseInt(preset.value.split(':')[0]);
-                        const icon = hour < 12 ? '🌅' : hour < 17 ? '☀️' : hour < 21 ? '🌆' : '🌙';
-                        
-                        return (
-                          <motion.div
-                            key={preset.value}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.1 }}
-                            onClick={() => setStudyTime(preset.value)}
-                            whileHover={{ y: -4, scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            style={{
-                              padding: '20px',
-                              borderRadius: '20px',
-                              border: `2px solid ${active ? focusProfile.accent : '#E5E7EB'}`,
-                              background: active ? `${focusProfile.surface}` : 'white',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '16px',
-                              transition: 'all 0.3s ease',
-                              boxShadow: active ? `0 8px 24px ${focusProfile.accent}33` : '0 4px 12px rgba(0,0,0,0.04)'
-                            }}
-                          >
-                            <div style={{ fontSize: '32px' }}>{icon}</div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: '16px', fontWeight: 600, color: '#111', fontFamily: 'var(--font-outfit)', marginBottom: '4px' }}>
-                                {preset.label}
-                              </div>
-                              <div style={{ fontSize: '14px', color: active ? focusProfile.accent : '#6B7280', fontFamily: 'var(--font-varela)' }}>
-                                {preset.value}
-                              </div>
-                            </div>
-                            {active && (
-                              <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                style={{ 
-                                  width: '24px', 
-                                  height: '24px', 
-                                  borderRadius: '50%', 
-                                  background: focusProfile.accent,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}
-                              >
-                                <Check size={14} color="white" weight="bold" />
-                              </motion.div>
-                            )}
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Study Profile Card */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    style={{ 
-                      width: '100%', 
-                      maxWidth: '600px',
-                      background: 'white',
-                      border: `1px solid ${focusProfile.accent}33`,
-                      borderRadius: '24px',
-                      padding: '32px',
-                      boxShadow: '0 12px 32px rgba(0,0,0,0.06)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px' }}>
-                      <div style={{ 
-                        width: '60px', 
-                        height: '60px', 
-                        borderRadius: '16px', 
-                        background: `linear-gradient(135deg, ${focusProfile.accent}, ${focusProfile.accent}dd)`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <Sparkle size={28} color="white" weight="light" />
-                      </div>
-                      <div>
-                        <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#111', fontFamily: 'var(--font-outfit)', margin: '0 0 4px 0' }}>
-                          {focusProfile.label}
-                        </h3>
-                        <p style={{ fontSize: '14px', color: '#6B7280', fontFamily: 'var(--font-varela)', margin: 0 }}>
-                          {focusProfile.tone}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px', borderRadius: '16px', background: focusProfile.surface, marginBottom: '24px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <Bell size={20} color={focusProfile.accent} weight="light" />
-                        <div>
-                          <div style={{ fontSize: '16px', fontWeight: 600, color: '#111', fontFamily: 'var(--font-outfit)' }}>Daily reminders</div>
-                          <div style={{ fontSize: '13px', color: '#6B7280', fontFamily: 'var(--font-varela)' }}>
-                            {reminders ? 'Get nudged at your focus time' : 'No reminders for now'}
-                          </div>
-                        </div>
-                      </div>
+                  {/* Minimal Quick Select Chips */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px' }}>
+                    {routinePresets.map((preset) => (
                       <motion.button
-                        onClick={() => setReminders(!reminders)}
-                        whileHover={{ scale: 1.05 }}
+                        key={preset.value}
+                        whileHover={{ y: -2, background: 'white' }}
                         whileTap={{ scale: 0.95 }}
+                        onClick={() => setStudyTime(preset.value)}
                         style={{
-                          width: '56px',
-                          height: '28px',
+                          padding: '10px 18px',
                           borderRadius: '14px',
-                          background: reminders ? focusProfile.accent : '#E5E7EB',
-                          border: 'none',
+                          background: studyTime === preset.value ? '#111' : '#F3F4F6',
+                          color: studyTime === preset.value ? '#FFF' : '#4B5563',
+                          border: studyTime === preset.value ? '2px solid #111' : '2px solid transparent',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          fontFamily: 'var(--font-outfit)',
                           cursor: 'pointer',
-                          position: 'relative',
-                          transition: 'all 0.3s ease'
+                          transition: 'all 0.2s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
                         }}
                       >
-                        <motion.div
-                          animate={{ x: reminders ? 28 : 0 }}
-                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                          style={{
-                            width: '20px',
-                            height: '20px',
-                            borderRadius: '50%',
-                            background: 'white',
-                            position: 'absolute',
-                            top: '4px',
-                            left: '4px',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                          }}
-                        />
+                        <span>{preset.icon}</span> {preset.label}
                       </motion.button>
-                    </div>
+                    ))}
+                  </div>
 
+                  <div style={{ width: '100%', maxWidth: '320px', marginTop: '12px' }}>
                     <PremiumButton 
                       onClick={role === 'student' ? finish : goToNext} 
-                      style={{ width: '100%' }} 
+                      style={{ width: '100%', height: '64px', borderRadius: '24px', fontSize: '18px' }} 
                       size="lg"
                       disabled={saving}
                     >
-                      {saving ? 'Saving your profile...' : (role === 'student' ? t('enterDashboard') : t('common:continue'))}
+                      {saving ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <RefreshCw size={20} className="animate-spin" />
+                          <span>Setting up...</span>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span>{role === 'student' ? 'Launch Dashboard' : 'Continue'}</span>
+                          <ArrowRight size={20} />
+                        </div>
+                      )}
                     </PremiumButton>
-                  </motion.div>
+                    <p style={{ textAlign: 'center', fontSize: '12px', color: '#94A3B8', marginTop: '16px', fontFamily: 'var(--font-varela)' }}>
+                      You can change your study routine anytime in settings.
+                    </p>
+                  </div>
                 </div>
               </StepWrapper>
             )}

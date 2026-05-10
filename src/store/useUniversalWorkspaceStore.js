@@ -25,6 +25,25 @@ export const useUniversalWorkspaceStore = create(
       // Classroom State (Teacher-Student Bridge)
       classrooms: [],
       activeClassroom: null,
+      currentUserId: null, // Track current user to prevent leaks
+
+      // ── CORE ACTIONS ──
+      setLoading: (loading) => set({ loading }),
+      
+      resetStore: () => set({
+        workspaces: [],
+        activeWorkspace: null,
+        decks: [],
+        smartStartDecks: [],
+        classrooms: [],
+        activeClassroom: null,
+        currentUserId: null,
+        userRole: null,
+        educationLevel: null,
+        institution: null,
+        programName: null,
+        levelGrade: null
+      }),
       
       // UI State
       loading: false,
@@ -136,7 +155,11 @@ export const useUniversalWorkspaceStore = create(
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
         
-        set({ loading: true })
+        // Safety: If the user changed, clear the store first
+        if (state.currentUserId && state.currentUserId !== user.id) {
+          state.resetStore()
+        }
+        set({ currentUserId: user.id, loading: true })
         
         try {
           // Load existing courses as workspaces
@@ -467,7 +490,8 @@ export const useUniversalWorkspaceStore = create(
         decks: state.decks,
         smartStartDecks: state.smartStartDecks,
         classrooms: state.classrooms,
-        activeClassroom: state.activeClassroom
+        activeClassroom: state.activeClassroom,
+        currentUserId: state.currentUserId
       })
     }
   )

@@ -1268,20 +1268,33 @@ Please explain where I went wrong and why the correct answer is the right choice
           justifyContent: 'center', 
           alignItems: 'flex-start' 
         }}>
-          <motion.div 
+          <motion.div
             key={configStep}
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             style={{ width: '100%', maxWidth: (configStep === 1 || configStep === 4) ? (isMobile ? 500 : 900) : 560, display: 'flex', flexDirection: 'column' }}
           >
-            {/* Heading */}
-            <div style={{ background: '#eefaec', borderRadius: 12, padding: isMobile ? '20px' : '24px 28px', marginBottom: 24 }}>
-              <h2 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600, color: '#222', margin: 0, lineHeight: 1.5, textTransform: 'lowercase' }}>
+            {/* Heading Banner */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+              style={{ background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderRadius: 16, padding: isMobile ? '20px' : '24px 28px', marginBottom: 28, border: '1px solid #a7f3d0', display: 'flex', alignItems: 'center', gap: 16, boxShadow: '0 4px 12px rgba(16, 185, 129, 0.08)' }}
+            >
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(16, 185, 129, 0.15)' }}>
+                {configStep === 1 && <BookOpen size={22} color="#10b981" />}
+                {configStep === 2 && <BarChart3 size={22} color="#10b981" />}
+                {configStep === 3 && <Clock size={22} color="#10b981" />}
+                {configStep === 4 && <Zap size={22} color="#10b981" />}
+              </div>
+              <h2 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 700, color: '#065f46', margin: 0, lineHeight: 1.5, textTransform: 'lowercase' }}>
                 {configStep === 1 && "which courses do you want to pull questions from for this mock exam?"}
                 {configStep === 2 && "how many questions do you want to attempt?"}
                 {configStep === 3 && "what time limit per question do you want to set?"}
                 {configStep === 4 && "customize your exam experience"}
               </h2>
-            </div>
+            </motion.div>
             
             {configStep === 1 && (
               <>
@@ -1311,17 +1324,17 @@ Please explain where I went wrong and why the correct answer is the right choice
                   </div>
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: isMobile ? 12 : 20, marginBottom: 40 }}>
-                    <motion.button 
+                    <motion.button
                       key="dice-roll"
-                      whileHover={{ y: -2 }} whileTap={{ scale: 0.94 }}
+                      whileHover={{ y: -3, boxShadow: '0 16px 40px -8px rgba(217,119,6,0.2)' }} whileTap={{ scale: 0.94 }}
                       onClick={() => {
                         if (courses.length === 0) return;
                         const amount = Math.min(courses.length, Math.floor(Math.random() * 2) + 1);
                         const shuffled = [...courses].sort(() => 0.5 - Math.random());
                         setExamCourses(shuffled.slice(0, amount));
                       }}
-                      style={{ 
-                        padding: isMobile ? '16px 20px' : '24px', borderRadius: 16, background: '#fffbeb', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit', border: '1.5px solid #fbbf24', color: '#b45309', boxShadow: '0 4px 12px rgba(217,119,6,0.1)'
+                      style={{
+                        padding: isMobile ? '16px 20px' : '24px', borderRadius: 16, background: '#fffbeb', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.2s', fontFamily: 'inherit', border: '1.5px solid #fbbf24', color: '#b45309', boxShadow: '0 4px 12px rgba(217,119,6,0.1)'
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
@@ -1332,26 +1345,31 @@ Please explain where I went wrong and why the correct answer is the right choice
                       <h3 style={{ fontSize: 16, fontWeight: 900, margin: '0 0 2px', color: '#d97706', textTransform: 'lowercase' }}>dice roll</h3>
                       <p style={{ fontSize: 12, margin: 0, fontWeight: 700, color: '#b45309', textTransform: 'lowercase' }}>select random courses</p>
                     </motion.button>
-                    {courses.map(c => {
+                    {courses.map((c, idx) => {
                       const isSelected = examCourses.some(x => x.id === c.id)
+                      const courseColor = PALETTE[idx % PALETTE.length]
                       return (
-                        <motion.button 
-                          key={c.id} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}
+                        <motion.button
+                          key={c.id} whileHover={{ y: -3, boxShadow: `0 16px 40px -8px ${courseColor}20` }} whileTap={{ scale: 0.97 }}
                           onClick={() => toggleCourseConfig(c)}
-                          style={{ 
-                            padding: isMobile ? '16px 20px' : '24px', borderRadius: 16, background: 'white', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit', border: isSelected ? '1.5px solid #111' : '1px solid #e5e7eb', color: isSelected ? '#111' : '#555'
+                          style={{
+                            padding: isMobile ? '16px 20px' : '24px', borderRadius: 16, background: 'white', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.2s', fontFamily: 'inherit', border: isSelected ? `2px solid ${courseColor}` : '1px solid #e5e7eb', color: isSelected ? '#111' : '#555', boxShadow: isSelected ? `0 4px 16px ${courseColor}25` : '0 1px 3px rgba(0,0,0,0.04)'
                           }}
                         >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                            <div style={{ width: 40, height: 40, borderRadius: 12, background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span style={{ fontSize: 14, fontWeight: 900, color: '#111' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                            <div style={{ width: 44, height: 44, borderRadius: 14, background: `${courseColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1.5px solid ${courseColor}30` }}>
+                              <span style={{ fontSize: 14, fontWeight: 900, color: courseColor }}>
                                 {(c.code || '??').slice(0, 3)}
                               </span>
                             </div>
-                            {isSelected && <CheckCircle2 size={24} color="#111" />}
+                            {isSelected && (
+                              <div style={{ width: 28, height: 28, borderRadius: '50%', background: courseColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <CheckCircle2 size={16} color="#fff" />
+                              </div>
+                            )}
                           </div>
-                          <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 2px', color: '#111' }}>{c.code}</h3>
-                          <p style={{ fontSize: 12, margin: 0, fontWeight: 600 }}>{c.name}</p>
+                          <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 4px', color: '#111' }}>{c.code}</h3>
+                          <p style={{ fontSize: 12, margin: 0, fontWeight: 600, color: '#64748b', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.name}</p>
                         </motion.button>
                       )
                     })}
@@ -1390,27 +1408,37 @@ Please explain where I went wrong and why the correct answer is the right choice
             )}
 
             {configStep === 2 && (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 12, marginBottom: 40 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 16, marginBottom: 40 }}>
                 {[
-                  { n: 10, label: 'small batch', desc: 'quick drill' },
-                  { n: 20, label: 'standard run', desc: 'daily goal' },
-                  { n: 50, label: 'the marathon', desc: 'deep dive' },
-                  { n: 100, label: 'cbt simulator', desc: 'exam ready' }
-                ].map((item, i) => {
+                  { n: 10, label: 'small batch', desc: 'quick drill', color: '#14b8a6', icon: <Zap size={20} /> },
+                  { n: 20, label: 'standard run', desc: 'daily goal', color: '#7a12cc', icon: <BarChart3 size={20} /> },
+                  { n: 50, label: 'the marathon', desc: 'deep dive', color: '#f59e0b', icon: <Flame size={20} /> },
+                  { n: 100, label: 'cbt simulator', desc: 'exam ready', color: '#ef4444', icon: <Trophy size={20} /> }
+                ].map((item) => {
                   const isSelected = examQs === item.n;
                   return (
-                    <motion.button 
-                      key={item.n} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+                    <motion.button
+                      key={item.n} whileHover={{ y: -3, boxShadow: `0 16px 40px -8px ${item.color}20` }} whileTap={{ scale: 0.97 }}
                       onClick={() => setExamQs(item.n)}
-                      style={{ 
-                        padding: isMobile ? '16px 20px' : '20px 24px', borderRadius: 12, background: 'white', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit', border: isSelected ? '1.5px solid var(--primary)' : '1.5px solid var(--border)', color: isSelected ? 'var(--primary)' : '#555', boxShadow: isSelected ? '0 8px 20px -6px var(--primary-glow)' : 'none', display: 'flex', flexDirection: 'column', gap: 2, textTransform: 'lowercase'
+                      style={{
+                        padding: isMobile ? '16px 20px' : '24px', borderRadius: 16, background: 'white', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.2s', fontFamily: 'inherit', border: isSelected ? `2px solid ${item.color}` : '1.5px solid #e5e7eb', color: isSelected ? item.color : '#555', boxShadow: isSelected ? `0 4px 16px ${item.color}25` : '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 10, textTransform: 'lowercase'
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                        <span style={{ fontSize: 16, fontWeight: 900 }}>{item.n} qs</span>
-                        {isSelected && <CheckCircle2 size={20} color="#111" />}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'flex-start' }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 14, background: `${item.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: item.color, border: `1.5px solid ${item.color}30` }}>
+                          {item.icon}
+                        </div>
+                        {isSelected && (
+                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <CheckCircle2 size={16} color="#fff" />
+                          </div>
+                        )}
                       </div>
-                      <span style={{ fontSize: 12, fontWeight: 700, opacity: 0.8 }}>{item.label}</span>
+                      <div>
+                        <div style={{ fontSize: 20, fontWeight: 900, color: '#111', marginBottom: 2 }}>{item.n} <span style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8' }}>qs</span></div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#64748b' }}>{item.label}</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginTop: 4 }}>{item.desc}</div>
+                      </div>
                     </motion.button>
                   )
                 })}
@@ -1418,29 +1446,38 @@ Please explain where I went wrong and why the correct answer is the right choice
             )}
 
             {configStep === 3 && (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 12, marginBottom: 40 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 16, marginBottom: 40 }}>
                 {[
-                  { v: 0, l: 'no limit', sub: 'study mode' }, 
-                  { v: 5, l: '5s / q', sub: 'flash zone' },
-                  { v: 10, l: '10s / q', sub: 'very fast' },
-                  { v: 15, l: '15s / q', sub: 'fast pace' }, 
-                  { v: 30, l: '30s / q', sub: 'standard' }, 
-                  { v: 60, l: '60s / q', sub: 'deep work' }
-                ].map((t, i) => {
+                  { v: 0, l: 'no limit', sub: 'study mode', color: '#14b8a6', icon: <BookOpen size={20} /> },
+                  { v: 5, l: '5s / q', sub: 'flash zone', color: '#ef4444', icon: <Zap size={20} /> },
+                  { v: 10, l: '10s / q', sub: 'very fast', color: '#f97316', icon: <Flame size={20} /> },
+                  { v: 15, l: '15s / q', sub: 'fast pace', color: '#f59e0b', icon: <Clock size={20} /> },
+                  { v: 30, l: '30s / q', sub: 'standard', color: '#7a12cc', icon: <BarChart3 size={20} /> },
+                  { v: 60, l: '60s / q', sub: 'deep work', color: '#6366f1', icon: <Star size={20} /> }
+                ].map((t) => {
                   const isSelected = examTimer === t.v;
                   return (
-                    <motion.button 
-                      key={t.v} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+                    <motion.button
+                      key={t.v} whileHover={{ y: -3, boxShadow: `0 16px 40px -8px ${t.color}20` }} whileTap={{ scale: 0.97 }}
                       onClick={() => setExamTimer(t.v)}
-                      style={{ 
-                        padding: isMobile ? '16px 20px' : '20px 24px', borderRadius: 12, background: 'white', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.1s', fontFamily: 'inherit', border: isSelected ? '1.5px solid var(--primary)' : '1.5px solid var(--border)', color: isSelected ? 'var(--primary)' : '#555', boxShadow: isSelected ? '0 8px 20px -6px var(--primary-glow)' : 'none', display: 'flex', flexDirection: 'column', gap: 2, textTransform: 'lowercase'
+                      style={{
+                        padding: isMobile ? '16px 20px' : '24px', borderRadius: 16, background: 'white', textAlign: 'left', cursor: 'pointer', outline: 'none', transition: 'all 0.2s', fontFamily: 'inherit', border: isSelected ? `2px solid ${t.color}` : '1.5px solid #e5e7eb', color: isSelected ? t.color : '#555', boxShadow: isSelected ? `0 4px 16px ${t.color}25` : '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 10, textTransform: 'lowercase'
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                        <span style={{ fontSize: 16, fontWeight: 900 }}>{t.l}</span>
-                        {isSelected && <CheckCircle2 size={20} color="#111" />}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'flex-start' }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 14, background: `${t.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.color, border: `1.5px solid ${t.color}30` }}>
+                          {t.icon}
+                        </div>
+                        {isSelected && (
+                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: t.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <CheckCircle2 size={16} color="#fff" />
+                          </div>
+                        )}
                       </div>
-                      <span style={{ fontSize: 12, fontWeight: 700, opacity: 0.8 }}>{t.sub}</span>
+                      <div>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: '#111', marginBottom: 2 }}>{t.l}</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>{t.sub}</div>
+                      </div>
                     </motion.button>
                   )
                 })}
@@ -1577,11 +1614,48 @@ Please explain where I went wrong and why the correct answer is the right choice
         </div>
 
         {/* Floating Config Footer */}
-        <div style={{ background: '#f4fdf4', padding: isMobile ? '16px 20px' : '24px 40px', display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: 'auto', position: isMobile ? 'fixed' : 'relative', bottom: 0, left: 0, right: 0, zIndex: 100, borderTop: '2px solid #111' }}>
+        <div style={{ background: '#ffffff', padding: isMobile ? '16px 20px' : '20px 40px', display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: 'auto', position: isMobile ? 'fixed' : 'relative', bottom: 0, left: 0, right: 0, zIndex: 100, borderTop: '1px solid #e5e7eb', boxShadow: '0 -4px 20px rgba(0,0,0,0.04)' }}>
           <div style={{ width: '100%', maxWidth: (configStep === 1 || configStep === 4) ? 900 : 560, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <button disabled={configStep===1} onClick={() => setConfigStep(c=>c-1)} style={{ padding: isMobile ? '10px 16px' : '10px 28px', borderRadius: 12, background: 'white', color: '#111', border: '1.5px solid #e5e7eb', fontSize: 13, fontWeight: 600, cursor: configStep===1?'not-allowed':'pointer', opacity: configStep===1?0:1, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.1s', fontFamily: 'inherit', textTransform: 'lowercase' }}>← {isMobile ? '' : 'back'}</button>
-            <div style={{ display:'flex', gap:4 }}>{[1,2,3,4].map(s => (<div key={s} style={{ width:s===configStep?24:8, height:8, borderRadius: 99, background:s===configStep?'var(--primary)':(s<configStep?'#10b981':'#ddd'), transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)' }} />))}</div>
-            <button onClick={() => { if (configStep < 4) setConfigStep(c=>c+1); else generateQuestions() }} disabled={!isStepReady || isGenerating} style={{ padding: isMobile ? '10px 16px' : '10px 28px', borderRadius: 12, border: '1.5px solid var(--primary)', fontSize: 13, fontWeight: 800, cursor: (!isStepReady || isGenerating)?'not-allowed':'pointer', opacity: (!isStepReady || isGenerating)?0.5:1, boxShadow: (!isStepReady || isGenerating)?'none':'0 10px 25px -5px var(--primary-glow)', background: (isStepReady && !isGenerating) ? 'var(--primary)' : 'white', color: (isStepReady && !isGenerating) ? 'white' : '#111', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.1s', fontFamily: 'inherit', textTransform: 'lowercase' }}>{isGenerating ? <Loader2 className="animate-spin" size={16} /> : null}{configStep === 4 ? (isGenerating ? 'generating' : 'generate exam') : 'next'} →</button>
+            <motion.button
+              whileHover={configStep !== 1 ? { scale: 1.02 } : {}}
+              whileTap={configStep !== 1 ? { scale: 0.98 } : {}}
+              disabled={configStep===1}
+              onClick={() => setConfigStep(c=>c-1)}
+              style={{ padding: isMobile ? '10px 18px' : '12px 28px', borderRadius: 12, background: 'white', color: '#111', border: '1.5px solid #e5e7eb', fontSize: 13, fontWeight: 600, cursor: configStep===1?'not-allowed':'pointer', opacity: configStep===1?0.4:1, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s', fontFamily: 'inherit', textTransform: 'lowercase' }}
+            >
+              <ArrowLeft size={16} /> {isMobile ? '' : 'back'}
+            </motion.button>
+
+            {/* Step Indicators */}
+            <div style={{ display:'flex', alignItems: 'center', gap: 8 }}>
+              {[1,2,3,4].map(s => (
+                <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: '50%',
+                    background: s === configStep ? '#7a12cc' : (s < configStep ? '#d1fae5' : '#f1f5f9'),
+                    color: s === configStep ? 'white' : (s < configStep ? '#059669' : '#94a3b8'),
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 12, fontWeight: 800, transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
+                    border: s < configStep ? '1.5px solid #a7f3d0' : (s === configStep ? 'none' : '1.5px solid #e2e8f0')
+                  }}>
+                    {s < configStep ? <CheckCircle2 size={14} /> : s}
+                  </div>
+                  {s < 4 && <div style={{ width: 16, height: 2, borderRadius: 1, background: s < configStep ? '#a7f3d0' : '#e2e8f0', transition: 'all 0.3s' }} />}
+                </div>
+              ))}
+            </div>
+
+            <motion.button
+              whileHover={isStepReady && !isGenerating ? { scale: 1.02 } : {}}
+              whileTap={isStepReady && !isGenerating ? { scale: 0.98 } : {}}
+              onClick={() => { if (configStep < 4) setConfigStep(c=>c+1); else generateQuestions() }}
+              disabled={!isStepReady || isGenerating}
+              style={{ padding: isMobile ? '10px 18px' : '12px 28px', borderRadius: 12, border: 'none', fontSize: 13, fontWeight: 700, cursor: (!isStepReady || isGenerating)?'not-allowed':'pointer', opacity: (!isStepReady || isGenerating)?0.5:1, boxShadow: (isStepReady && !isGenerating) ? '0 4px 14px rgba(122, 18, 204, 0.25)' : 'none', background: (isStepReady && !isGenerating) ? '#7a12cc' : '#f1f5f9', color: (isStepReady && !isGenerating) ? 'white' : '#64748b', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontFamily: 'inherit', textTransform: 'lowercase' }}
+            >
+              {isGenerating ? <Loader2 className="animate-spin" size={16} /> : null}
+              {configStep === 4 ? (isGenerating ? 'generating' : 'generate exam') : 'next'}
+              <ArrowRight size={16} />
+            </motion.button>
           </div>
         </div>
       </div>
@@ -1599,16 +1673,21 @@ Please explain where I went wrong and why the correct answer is the right choice
       <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Outfit', 'Varela Round', sans-serif", overflow: 'hidden', color: '#1A3A32', position: 'relative' }}>
         
         {/* Exit Button */}
-        <button 
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => setMode('configure')}
-          style={{ position: 'absolute', top: 24, left: 24, background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', zIndex: 20 }}
+          style={{ position: 'absolute', top: 24, left: 24, background: '#f8fafc', border: '1.5px solid #e2e8f0', cursor: 'pointer', color: '#64748b', zIndex: 20, width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#111'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#64748b'; }}
         >
-          <X size={28} strokeWidth={1.5} />
-        </button>
+          <X size={22} strokeWidth={2} />
+        </motion.button>
 
-        {/* Exam Header (Optional/Hidden in Screenshot, but kept for timer) */}
-        <div style={{ padding: isMobile ? '16px 20px' : '24px 40px', background: 'transparent', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', zIndex: 10 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#eefaec', color: '#16a34a', padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 800, border: '1.5px solid #4ade80', boxShadow: '0 4px 12px rgba(22,163,74,0.1)', textTransform: 'lowercase' }}>
+        {/* Exam Header with Timer */}
+        <div style={{ padding: isMobile ? '20px 20px 8px' : '28px 40px 8px', background: 'transparent', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', zIndex: 10 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f0fdf4', color: '#16a34a', padding: '8px 16px', borderRadius: 99, fontSize: 13, fontWeight: 700, border: '1.5px solid #bbf7d0', boxShadow: '0 4px 12px rgba(22,163,74,0.08)' }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: timeLeft < 10 ? '#ef4444' : '#22c55e', animation: timeLeft < 10 ? 'pulse 1s infinite' : 'none' }} />
             <Clock size={14} /> {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
           </div>
         </div>
@@ -1618,31 +1697,51 @@ Please explain where I went wrong and why the correct answer is the right choice
           <motion.div key={current} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ width: '100%', maxWidth: 560, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             
             {/* Question Card */}
-            <div style={{ background: '#E2F9D1', borderRadius: 16, padding: '24px', marginBottom: 32, boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', border: '1px solid rgba(0, 0, 0, 0.02)', width: '100%' }}>
-              <h2 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 500, color: '#1A3A32', margin: 0, lineHeight: 1.6, textAlign: 'center' }}>{q.question}</h2>
-            </div>
-            
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{ background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderRadius: 20, padding: '28px', marginBottom: 32, boxShadow: '0 8px 32px rgba(16, 185, 129, 0.1)', border: '1px solid #a7f3d0', width: '100%' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'white', fontSize: 13, fontWeight: 800 }}>
+                  {current + 1}
+                </div>
+                <h2 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 600, color: '#065f46', margin: 0, lineHeight: 1.6 }}>{q.question}</h2>
+              </div>
+            </motion.div>
+
             {/* Answer Options */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 32, width: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32, width: '100%' }}>
               {/* Multiple Choice Options */}
               {q.type === 'multiple' && q.options && q.options.length > 0 && q.options.map((opt, i) => {
                 const isSelected = selected[current] === i
                 const showFeedbackState = instantFeedback && isAnswered
                 const isCorrectOption = showFeedbackState && i === q.answer
                 const isWrongOption = showFeedbackState && isSelected && i !== q.answer
-                
+                const letterColors = ['#7a12cc', '#8b5cf6', '#6366f1', '#14b8a6']
+                const letterColor = letterColors[i % letterColors.length]
+
                 return (
                   <motion.button
-                    key={i} whileHover={{ y: isAnswered ? 0 : -2 }} whileTap={{ scale: isAnswered ? 1 : 0.98 }}
-                    onClick={() => !isAnswered && choose(i)} 
+                    key={i} whileHover={{ y: isAnswered ? 0 : -2, boxShadow: isAnswered ? 'none' : '0 8px 24px rgba(0,0,0,0.08)' }} whileTap={{ scale: isAnswered ? 1 : 0.98 }}
+                    onClick={() => !isAnswered && choose(i)}
                     disabled={isAnswered}
-                    style={{ padding: '20px 24px', borderRadius: 12, background: isCorrectOption ? '#DCFCE7' : isWrongOption ? '#FEF2F2' : (isSelected && !instantFeedback ? '#F5F3FF' : '#ffffff'), textAlign: 'left', cursor: isAnswered ? 'default' : 'pointer', outline: 'none', transition: 'all 0.2s ease', fontFamily: 'inherit', border: isCorrectOption ? '1.5px solid #22C55E' : isWrongOption ? '1.5px solid #EF4444' : (isSelected && !instantFeedback ? '1.5px solid #7A12CC' : '1.5px solid #E2E8F0'), color: '#1A3A32', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', fontWeight: 500, position: 'relative' }}
+                    style={{ padding: '18px 20px', borderRadius: 14, background: isCorrectOption ? '#f0fdf4' : isWrongOption ? '#fef2f2' : (isSelected && !instantFeedback ? '#f5f3ff' : '#ffffff'), textAlign: 'left', cursor: isAnswered ? 'default' : 'pointer', outline: 'none', transition: 'all 0.2s ease', fontFamily: 'inherit', border: isCorrectOption ? '2px solid #22c55e' : isWrongOption ? '2px solid #ef4444' : (isSelected && !instantFeedback ? '2px solid #7a12cc' : '1.5px solid #e2e8f0'), color: '#111827', boxShadow: isSelected && !isAnswered ? `0 4px 12px ${letterColor}20` : '0 2px 8px rgba(0,0,0,0.03)', fontWeight: 500, position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                      <span style={{ fontSize: 16, flex: 1 }}>{String.fromCharCode(65 + i)}. {opt}</span>
-                      {isCorrectOption && <CheckCircle2 size={20} strokeWidth={1.5} color="#22C55E" />}
-                      {isWrongOption && <XCircle size={20} strokeWidth={1.5} color="#EF4444" />}
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 10,
+                      background: isCorrectOption ? '#dcfce7' : isWrongOption ? '#fee2e2' : (isSelected && !instantFeedback ? `${letterColor}15` : '#f8fafc'),
+                      color: isCorrectOption ? '#16a34a' : isWrongOption ? '#dc2626' : (isSelected && !instantFeedback ? letterColor : '#94a3b8'),
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 14, fontWeight: 800, flexShrink: 0,
+                      border: isSelected || isCorrectOption || isWrongOption ? `1.5px solid ${isCorrectOption ? '#86efac' : isWrongOption ? '#fca5a5' : letterColor + '40'}` : '1.5px solid #e2e8f0'
+                    }}>
+                      {String.fromCharCode(65 + i)}
                     </div>
+                    <span style={{ fontSize: 15, flex: 1, lineHeight: 1.5 }}>{opt}</span>
+                    {isCorrectOption && <CheckCircle2 size={22} strokeWidth={2} color="#22c55e" />}
+                    {isWrongOption && <XCircle size={22} strokeWidth={2} color="#ef4444" />}
                   </motion.button>
                 )
               })}
@@ -1654,19 +1753,29 @@ Please explain where I went wrong and why the correct answer is the right choice
                 const isCorrectOption = showFeedbackState && i === q.answer
                 const isWrongOption = showFeedbackState && isSelected && i !== q.answer
                 const label = i === 1 ? 'true' : 'false'
-                
+                const tfColors = { true: '#22c55e', false: '#ef4444' }
+                const tfColor = i === 1 ? '#22c55e' : '#ef4444'
+
                 return (
                   <motion.button
-                    key={i} whileHover={{ y: isAnswered ? 0 : -2 }} whileTap={{ scale: isAnswered ? 1 : 0.98 }}
-                    onClick={() => !isAnswered && choose(i)} 
+                    key={i} whileHover={{ y: isAnswered ? 0 : -2, boxShadow: isAnswered ? 'none' : '0 8px 24px rgba(0,0,0,0.08)' }} whileTap={{ scale: isAnswered ? 1 : 0.98 }}
+                    onClick={() => !isAnswered && choose(i)}
                     disabled={isAnswered}
-                    style={{ padding: '20px 24px', borderRadius: 12, background: isCorrectOption ? '#DCFCE7' : isWrongOption ? '#FEF2F2' : (isSelected && !instantFeedback ? '#F5F3FF' : '#ffffff'), textAlign: 'left', cursor: isAnswered ? 'default' : 'pointer', outline: 'none', transition: 'all 0.2s ease', fontFamily: 'inherit', border: isCorrectOption ? '1.5px solid #22C55E' : isWrongOption ? '1.5px solid #EF4444' : (isSelected && !instantFeedback ? '1.5px solid #7A12CC' : '1.5px solid #E2E8F0'), color: '#1A3A32', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', fontWeight: 500, position: 'relative', textTransform: 'lowercase' }}
+                    style={{ padding: '18px 20px', borderRadius: 14, background: isCorrectOption ? '#f0fdf4' : isWrongOption ? '#fef2f2' : (isSelected && !instantFeedback ? '#f5f3ff' : '#ffffff'), textAlign: 'left', cursor: isAnswered ? 'default' : 'pointer', outline: 'none', transition: 'all 0.2s ease', fontFamily: 'inherit', border: isCorrectOption ? '2px solid #22c55e' : isWrongOption ? '2px solid #ef4444' : (isSelected && !instantFeedback ? '2px solid #7a12cc' : '1.5px solid #e2e8f0'), color: '#111827', boxShadow: isSelected && !isAnswered ? `0 4px 12px ${tfColor}20` : '0 2px 8px rgba(0,0,0,0.03)', fontWeight: 500, position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                      <span style={{ fontSize: 16, flex: 1 }}>{label}</span>
-                      {isCorrectOption && <CheckCircle2 size={20} strokeWidth={1.5} color="#22C55E" />}
-                      {isWrongOption && <XCircle size={20} strokeWidth={1.5} color="#EF4444" />}
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 10,
+                      background: isCorrectOption ? '#dcfce7' : isWrongOption ? '#fee2e2' : (isSelected && !instantFeedback ? `${tfColor}15` : '#f8fafc'),
+                      color: isCorrectOption ? '#16a34a' : isWrongOption ? '#dc2626' : (isSelected && !instantFeedback ? tfColor : '#94a3b8'),
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 14, fontWeight: 800, flexShrink: 0,
+                      border: isSelected || isCorrectOption || isWrongOption ? `1.5px solid ${isCorrectOption ? '#86efac' : isWrongOption ? '#fca5a5' : tfColor + '40'}` : '1.5px solid #e2e8f0'
+                    }}>
+                      {i === 1 ? 'T' : 'F'}
                     </div>
+                    <span style={{ fontSize: 15, flex: 1, lineHeight: 1.5, textTransform: 'lowercase' }}>{label}</span>
+                    {isCorrectOption && <CheckCircle2 size={22} strokeWidth={2} color="#22c55e" />}
+                    {isWrongOption && <XCircle size={22} strokeWidth={2} color="#ef4444" />}
                   </motion.button>
                 )
               })}
@@ -1731,43 +1840,47 @@ Please explain where I went wrong and why the correct answer is the right choice
               )}
               
               {!isAnswered && (
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => choose(-1)} style={{ alignSelf: 'center', marginTop: 8, padding: '8px 20px', borderRadius: 99, background: '#FEF2F2', border: '1.5px solid #FECACA', color: '#EF4444', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', textTransform: 'lowercase' }}>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => choose(-1)} style={{ alignSelf: 'center', marginTop: 8, padding: '10px 22px', borderRadius: 99, background: '#fef2f2', border: '1.5px solid #fecaca', color: '#ef4444', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', textTransform: 'lowercase', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(239, 68, 68, 0.08)' }}>
                   <X size={14} /> i don't know this one
                 </motion.button>
               )}
             </div>
 
             {/* Utility Bar (In-flow) */}
-            <div style={{ 
-              display: 'flex', justifyContent: 'center', alignItems: 'center', gap: isMobile ? 20 : 32, 
+            <div style={{
+              display: 'flex', justifyContent: 'center', alignItems: 'center', gap: isMobile ? 8 : 12,
               padding: '32px 0', width: '100%'
             }}>
               {[
-                { id: 'like', icon: <ThumbsUp size={20} strokeWidth={1.5} />, action: () => handleLike(current), active: likedQuestions[current], activeColor: '#2D8A4E' },
-                { id: 'dislike', icon: <ThumbsDown size={20} strokeWidth={1.5} />, action: () => handleDislike(current), active: dislikedQuestions[current], activeColor: '#EF4444' },
-                { id: 'chat', icon: <MessageCircle size={20} strokeWidth={1.5} />, action: handleAiChat },
-                { id: 'search', icon: <Search size={20} strokeWidth={1.5} />, action: () => handleSearchAction(q) },
-                { id: 'share', icon: <Share2 size={20} strokeWidth={1.5} />, action: () => handleShare(q) },
-                { id: 'gift', icon: <Gift size={20} strokeWidth={1.5} />, action: handleGiftAction },
-                { id: 'delete', icon: <Trash2 size={20} strokeWidth={1.5} />, action: () => handleDelete(current) },
-                { id: 'more', icon: <MoreHorizontal size={20} strokeWidth={1.5} />, action: () => setShowMoreOptions(!showMoreOptions) }
-              ].map((item, i) => (
+                { id: 'like', icon: <ThumbsUp size={20} strokeWidth={1.5} />, action: () => handleLike(current), active: likedQuestions[current], activeColor: '#22c55e', bg: '#dcfce7' },
+                { id: 'dislike', icon: <ThumbsDown size={20} strokeWidth={1.5} />, action: () => handleDislike(current), active: dislikedQuestions[current], activeColor: '#ef4444', bg: '#fee2e2' },
+                { id: 'chat', icon: <MessageCircle size={20} strokeWidth={1.5} />, action: handleAiChat, activeColor: '#7a12cc', bg: '#f5f3ff' },
+                { id: 'search', icon: <Search size={20} strokeWidth={1.5} />, action: () => handleSearchAction(q), activeColor: '#3b82f6', bg: '#dbeafe' },
+                { id: 'share', icon: <Share2 size={20} strokeWidth={1.5} />, action: () => handleShare(q), activeColor: '#f59e0b', bg: '#fef3c7' },
+                { id: 'gift', icon: <Gift size={20} strokeWidth={1.5} />, action: handleGiftAction, activeColor: '#ec4899', bg: '#fce7f3' },
+                { id: 'delete', icon: <Trash2 size={20} strokeWidth={1.5} />, action: () => handleDelete(current), activeColor: '#64748b', bg: '#f1f5f9' },
+                { id: 'more', icon: <MoreHorizontal size={20} strokeWidth={1.5} />, action: () => setShowMoreOptions(!showMoreOptions), activeColor: '#111827', bg: '#f1f5f9' }
+              ].map((item) => (
                 <div key={item.id} style={{ position: 'relative' }}>
-                  <motion.button 
-                    whileHover={{ scale: 1.1, color: item.active ? (item.activeColor || '#1A3A32') : '#1A3A32' }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={item.action} 
-                    style={{ 
-                      background: 'none', 
-                      border: 'none', 
-                      cursor: 'pointer', 
-                      color: item.active ? (item.activeColor || '#1A3A32') : '#64748B', 
+                  <motion.button
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.93 }}
+                    onClick={item.action}
+                    style={{
+                      background: item.active ? item.bg : 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: item.active ? item.activeColor : '#94a3b8',
                       transition: 'all 0.2s ease',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      padding: '8px'
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12
                     }}
+                    onMouseEnter={(e) => { if (!item.active) { e.currentTarget.style.background = item.bg; e.currentTarget.style.color = item.activeColor; }}}
+                    onMouseLeave={(e) => { if (!item.active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94a3b8'; }}}
                   >
                     {item.icon}
                   </motion.button>
@@ -2130,85 +2243,135 @@ Please explain where I went wrong and why the correct answer is the right choice
       
       {/* Tabs - Only show in configure mode */}
       {mode === 'configure' && (
-        <div style={{ padding: '24px 40px 0', display: 'flex', gap: 32, borderBottom: '1px solid #eee' }}>
-          {['arena', 'history'].map(tab => (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 32, marginBottom: 8 }}>
+          <div style={{
+            display: 'flex',
+            background: '#f1f5f9',
+            borderRadius: 12,
+            padding: 4,
+            gap: 4
+          }}>
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => setActiveTab('arena')}
               style={{
-                padding: '0 0 16px',
-                background: 'none',
+                padding: '10px 24px',
+                background: activeTab === 'arena' ? '#7a12cc' : 'transparent',
+                color: activeTab === 'arena' ? '#fff' : '#64748b',
                 border: 'none',
-                borderBottom: activeTab === tab ? '3px solid #7a12cc' : '3px solid transparent',
-                color: activeTab === tab ? '#111' : '#94a3b8',
-                fontWeight: 900,
-                fontSize: 15,
-                textTransform: 'lowercase',
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                fontFamily: "'Outfit', sans-serif"
               }}
             >
-              {tab === 'arena' ? 'luter arena' : 'session history'}
+              Luter Arena
             </button>
-          ))}
+            <button
+              onClick={() => setActiveTab('history')}
+              style={{
+                padding: '10px 24px',
+                background: activeTab === 'history' ? '#fb923c' : 'transparent',
+                color: activeTab === 'history' ? '#fff' : '#64748b',
+                border: 'none',
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                fontFamily: "'Outfit', sans-serif"
+              }}
+            >
+              Session History
+            </button>
+          </div>
         </div>
       )}
 
       {/* Dynamic Content based on mode */}
       {mode === 'preparing' && renderPreparing()}
       {mode === 'configure' && (
-        activeTab === 'arena' ? renderConfigure() : (
-          <div style={{ padding: '40px', maxWidth: 800, margin: '0 auto', width: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
-               <Trophy size={32} color="#7a12cc" />
-               <h2 style={{ fontSize: 24, fontWeight: 1000, margin: 0 }}>Your Mock Exam Legacy</h2>
-            </div>
-            
-            {loadingHistory ? (
-              <div style={{ textAlign: 'center', padding: '100px 0' }}>
-                 <Loader2 className="animate-spin" size={40} color="#7a12cc" />
-              </div>
-            ) : pastSessions.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '100px 40px', background: '#f8fafc', borderRadius: 32, border: '1.5px dashed #e2e8f0' }}>
-                 <BookOpen size={48} color="#cbd5e1" style={{ marginBottom: 20 }} />
-                 <h3 style={{ fontSize: 18, fontWeight: 800, color: '#64748b' }}>No sessions yet</h3>
-                 <p style={{ color: '#94a3b8', fontWeight: 500, marginTop: 8 }}>Complete your first mock exam to build your history!</p>
-                 <button onClick={() => setActiveTab('arena')} style={{ marginTop: 24, padding: '12px 24px', background: '#111', color: '#fff', borderRadius: 12, border: 'none', fontWeight: 800, cursor: 'pointer' }}>Start Exam</button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {pastSessions.map((session) => (
+        <AnimatePresence mode="wait">
+          {activeTab === 'arena' ? (
+            <motion.div
+              key="arena"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+            >
+              {renderConfigure()}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="history"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+            >
+              <div style={{ padding: '40px', maxWidth: 800, margin: '0 auto', width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
+                   <Trophy size={32} color="#7a12cc" />
+                   <h2 style={{ fontSize: 24, fontWeight: 1000, margin: 0 }}>Your Mock Exam Legacy</h2>
+                </div>
+                
+                {loadingHistory ? (
+                  <div style={{ textAlign: 'center', padding: '100px 0' }}>
+                     <Loader2 className="animate-spin" size={40} color="#7a12cc" />
+                  </div>
+                ) : pastSessions.length === 0 ? (
                   <motion.div 
-                    key={session.id} 
-                    whileHover={{ x: 6, borderColor: '#7a12cc' }} 
-                    onClick={() => navigate(`/dashboard/exam-session/${session.id}`)} 
-                    style={{ 
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-                      padding: '24px', borderRadius: 24, border: '1.5px solid #E2E8F0', 
-                      cursor: 'pointer', transition: 'all 0.2s', background: 'white',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
-                    }}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.4 }}
+                    style={{ textAlign: 'center', padding: '100px 40px', background: '#f8fafc', borderRadius: 32, border: '1.5px dashed #e2e8f0' }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                      <div style={{ width: 56, height: 56, borderRadius: 18, background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a12cc' }}>
-                        <BarChart3 size={28} />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 18, fontWeight: 900, color: '#111' }}>{session.course_code}</div>
-                        <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>{session.course_name}</div>
-                        <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500, marginTop: 4 }}>{new Date(session.created_at).toLocaleDateString()} • {session.total_questions} questions</div>
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 24, fontWeight: 1000, color: session.accuracy >= 50 ? '#10b981' : '#ef4444', lineHeight: 1 }}>{session.score}/{session.total_questions}</div>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', textTransform: 'lowercase', marginTop: 8 }}>{session.accuracy}% accuracy</div>
-                    </div>
+                     <BookOpen size={48} color="#cbd5e1" style={{ marginBottom: 20 }} />
+                     <h3 style={{ fontSize: 18, fontWeight: 800, color: '#64748b' }}>No sessions yet</h3>
+                     <p style={{ color: '#94a3b8', fontWeight: 500, marginTop: 8 }}>Complete your first mock exam to build your history!</p>
+                     <button onClick={() => setActiveTab('arena')} style={{ marginTop: 24, padding: '12px 24px', background: '#111', color: '#fff', borderRadius: 12, border: 'none', fontWeight: 800, cursor: 'pointer' }}>Start Exam</button>
                   </motion.div>
-                ))}
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {pastSessions.map((session, i) => (
+                      <motion.div 
+                        key={session.id}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: i * 0.05 }}
+                        whileHover={{ x: 6, borderColor: '#7a12cc' }}
+                        onClick={() => navigate(`/dashboard/exam-session/${session.id}`)} 
+                        style={{ 
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                          padding: '24px', borderRadius: 24, border: '1.5px solid #E2E8F0', 
+                          cursor: 'pointer', transition: 'all 0.2s', background: 'white',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                          <div style={{ width: 56, height: 56, borderRadius: 18, background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a12cc' }}>
+                            <BarChart3 size={28} />
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 18, fontWeight: 900, color: '#111' }}>{session.course_code}</div>
+                            <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>{session.course_name}</div>
+                            <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500, marginTop: 4 }}>{new Date(session.created_at).toLocaleDateString()} • {session.total_questions} questions</div>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 24, fontWeight: 1000, color: session.accuracy >= 50 ? '#10b981' : '#ef4444', lineHeight: 1 }}>{session.score}/{session.total_questions}</div>
+                          <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', textTransform: 'lowercase', marginTop: 8 }}>{session.accuracy}% accuracy</div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )
+            </motion.div>
+          )}
+        </AnimatePresence>
       )}
       {mode === 'exam' && renderExam()}
       {mode === 'result' && renderResult()}
@@ -2293,12 +2456,38 @@ Please explain where I went wrong and why the correct answer is the right choice
             style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: '360px', background: '#FFFFFF', borderLeft: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', zIndex: 1000, fontFamily: "'Outfit', 'Varela Round', sans-serif" }}
           >
             {/* Luter Chat Panel Content */}
-            <div style={{ display: 'flex', alignItems: 'flex-end', padding: '0 16px', borderBottom: '1px solid #E5E7EB', flexShrink: 0 }}>
-              {[{ id: 'chat', label: 'chat' }, { id: 'source', label: 'view source' }].map((tab, i) => (
-                <button key={tab.id} onClick={() => setAiChatMode(tab.id)} style={{ background: 'none', border: 'none', borderBottom: aiChatMode === tab.id ? '2px solid #111827' : '2px solid transparent', padding: '16px 0', marginRight: i === 0 ? '24px' : '0', fontSize: '14px', fontWeight: 500, color: aiChatMode === tab.id ? '#111827' : '#6B7280', cursor: 'pointer', transition: 'color 0.2s ease', lineHeight: 1, whiteSpace: 'nowrap', fontFamily: 'inherit', textTransform: 'lowercase' }}>{tab.label}</button>
-              ))}
+            <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #E5E7EB', flexShrink: 0, gap: 8 }}>
+              <div style={{
+                display: 'flex',
+                background: '#f1f5f9',
+                borderRadius: 10,
+                padding: 3,
+                gap: 3
+              }}>
+                {[{ id: 'chat', label: 'chat' }, { id: 'source', label: 'view source' }].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setAiChatMode(tab.id)}
+                    style={{
+                      background: aiChatMode === tab.id ? '#7a12cc' : 'transparent',
+                      color: aiChatMode === tab.id ? '#fff' : '#64748b',
+                      border: 'none',
+                      borderRadius: 8,
+                      padding: '6px 14px',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      fontFamily: "'Outfit', sans-serif",
+                      textTransform: 'lowercase'
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
               <div style={{ flex: 1 }} />
-              <button onClick={() => setAiChatOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '16px 0', color: '#6B7280', display: 'flex', alignItems: 'center' }}><X size={18} /></button>
+              <button onClick={() => setAiChatOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, color: '#6B7280', display: 'flex', alignItems: 'center', borderRadius: 8, transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9' }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}><X size={18} /></button>
             </div>
             <div ref={chatScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column' }}>
               {aiChatMessages.filter(m => m.role !== 'system').length === 0 ? (

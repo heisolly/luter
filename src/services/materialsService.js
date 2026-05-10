@@ -223,19 +223,45 @@ export async function uploadMaterial({
     throw new Error(`Failed to save material to database: ${dbError?.message || 'Unknown error'}`)
   }
 
-  // Run LangChain ingestion pipeline (non-blocking — extracts, chunks, embeds, stores)
-  ingestMaterial({
+  // Run LangChain ingestion pipeline immediately (non-blocking — extracts, chunks, embeds, stores)
+  const ingestionPromise = ingestMaterial({
     file: ingestFile,
     type,
     url: null,
     metadata: { materialId: materialData.id, courseId: courseId || null, userId, title: title || file.name }
-  }).catch(err => console.error('[LangChain] Ingestion error after upload:', err))
+  })
 
-  // Trigger high-fidelity conversion for Office documents (non-blocking)
-  if (['docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv'].includes(type)) {
-    triggerDocumentConversion(materialData.id, materialData.source_url, type, title || file.name, userId)
-      .catch(err => console.error('[Conversion] Document conversion trigger failed:', err))
-  }
+  // Trigger high-fidelity conversion for Office documents immediately (non-blocking)
+  const conversionPromise = ['docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv'].includes(type) 
+    ? triggerDocumentConversion(materialData.id, materialData.source_url, type, title || file.name, userId)
+    : Promise.resolve()
+
+  // Process both in parallel and update status
+  Promise.allSettled([ingestionPromise, conversionPromise]).then(results => {
+    const [ingestionResult, conversionResult] = results
+    
+    if (ingestionResult.status === 'rejected') {
+      console.error('[LangChain] Ingestion error after upload:', ingestionResult.reason)
+    }
+    
+    if (conversionResult.status === 'rejected') {
+      console.error('[Conversion] Document conversion trigger failed:', conversionResult.reason)
+    }
+    
+    // Update material status to processing_complete if both succeeded
+    if (ingestionResult.status === 'fulfilled' && conversionResult.status === 'fulfilled') {
+      supabase
+        .from('materials')
+        .update({ 
+          processing_status: 'ready',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', materialData.id)
+        .then(({ error }) => {
+          if (error) console.error('Failed to update material status:', error)
+        })
+    }
+  })
 
   // Create share records based on sharing scope
   if (sharingScope === 'program' && finalProgramId) {

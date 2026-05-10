@@ -164,7 +164,6 @@
 
 /* ── Premium Research Vertical Rail ── */
 .ws-pane-right {
-  width: 440px; 
   background: white;
   border-left: 1px solid #f1f1f1;
   display: flex;
@@ -336,7 +335,6 @@
 }
 
 .ws-pane-right {
-  width: 500px; /* Increased to accommodate rail + chat workspace */
   background: white;
   border-left: 1px solid var(--luter-border);
   display: flex;
@@ -1597,7 +1595,7 @@
 
 .ws-canvas-surface {
   width: 100%;
-  max-width: 1000px;
+  max-width: none;
 }
 
 .ws-paper-sheet {

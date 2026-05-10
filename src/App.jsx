@@ -22,6 +22,9 @@ import StreakPage from './components/dashboard/StreakPage'
 import ReferPage from './components/dashboard/ReferPage'
 import PlaygroundPage from './components/dashboard/PlaygroundPage'
 import PricingPage from './components/dashboard/PricingPage'
+import PaymentSuccess from './components/dashboard/PaymentSuccess'
+import PaystackCheckout from './components/PaystackCheckout'
+import StandalonePricingPage from './components/StandalonePricingPage'
 import ExamSessionView from './components/ExamSessionView'
 import SharedFlashcardsView from './components/SharedFlashcardsView'
 import AdminLayout from './admin/AdminLayout'
@@ -37,6 +40,7 @@ import AdminSystem from './admin/pages/AdminSystem'
 import AdminSettings from './admin/pages/AdminSettings'
 import AdminSyllabusManager from './admin/pages/AdminSyllabusManager'
 import AdminNotesManager from './admin/pages/AdminNotesManager'
+import PaymentSettings from './components/admin/PaymentSettings'
 import LuterAdminUploadPage from './admin/pages/LuterAdminUploadPage'
 import StudyMaterialsPage from './components/dashboard/StudyMaterialsPage'
 import FilesPage from './components/dashboard/FilesPage'
@@ -101,7 +105,8 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/features" element={<Features />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
-          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/pricing" element={<StandalonePricingPage />} />
+          <Route path="/checkout" element={<PaystackCheckout />} />
           <Route path="/about" element={<About />} />
           <Route path="/path-calculator" element={<PathCalculator />} />
           <Route path="/signin" element={<SignIn />} />
@@ -127,8 +132,9 @@ export default function App() {
             <Route path="settings" element={<SettingsPage />} />
             <Route path="upgrade" element={<UpgradePage />} />
             <Route path="pricing" element={<PricingPage />} />
+            <Route path="payment/success" element={<PaymentSuccess />} />
             <Route path="streak" element={<StreakPage />} />
-            <Route path="level" element={<LevelPage />} />
+            <Route path="profile" element={<LevelPage />} />
             <Route path="store" element={<StorePage />} />
             <Route path="refer" element={<ReferPage />} />
             <Route path="compete" element={<PlaygroundPage />} />
@@ -161,6 +167,7 @@ export default function App() {
             <Route path="notifications" element={<AdminNotifications />} />
             <Route path="activity" element={<AdminActivity />} />
             <Route path="system" element={<AdminSystem />} />
+            <Route path="payment-settings" element={<PaymentSettings />} />
             <Route path="settings" element={<AdminSettings />} />
             <Route path="syllabus" element={<AdminSyllabusManager />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />

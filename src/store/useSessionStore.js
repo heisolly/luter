@@ -11,16 +11,27 @@ export const useSessionStore = create(
       isDockExpanded: false,
       isCreating: false,
       loading: false,
+      currentUserId: null,
 
       // UI Actions
       setDockExpanded: (expanded) => set({ isDockExpanded: expanded }),
+      
+      resetStore: () => set({
+        sessions: [],
+        activeSession: null,
+        currentUserId: null
+      }),
 
       // Load user sessions from Supabase
       loadSessions: async () => {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
-        set({ loading: true })
+        if (get().currentUserId && get().currentUserId !== user.id) {
+          get().resetStore()
+        }
+        set({ currentUserId: user.id, loading: true })
+
         try {
           const { data, error } = await supabase
             .from('deck_sessions')
@@ -168,7 +179,8 @@ export const useSessionStore = create(
       partialize: (state) => ({
         activeSession: state.activeSession,
         isDockExpanded: state.isDockExpanded,
-        sessions: state.sessions
+        sessions: state.sessions,
+        currentUserId: state.currentUserId
       })
     }
   )

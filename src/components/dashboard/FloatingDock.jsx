@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
   RiAddLine as Plus, RiUploadCloudFill as Upload, RiMagicFill as Sparkles, RiBookOpenFill as BookOpen, 
   RiDeleteBin6Fill as Trash2, RiPlayFill as Play, RiCloseLine as X, RiArrowUpSLine as ChevronUp, RiStackFill as Layers,
   RiFileTextFill as FileText, RiMusicFill as Music, RiVideoFill as Video, RiImageFill as ImageIcon,
-  RiFolderOpenFill as Folder, RiTimeFill as Clock
+  RiFolderOpenFill as Folder, RiTimeFill as Clock, RiDragMoveFill as DragHandle
 } from 'react-icons/ri';
 import { supabase } from '../../supabaseClient';
 import { useSessionStore } from '../../store/useSessionStore';
@@ -16,7 +16,10 @@ import './FloatingDock.css';
 const FloatingDock = ({ user, isMobile }) => {
   const { t } = useTranslation(['dock']);
   const navigate = useNavigate();
+  const containerRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const dragControls = useDragControls();
   const { 
     sessions, 
     activeSession, 
@@ -43,7 +46,6 @@ const FloatingDock = ({ user, isMobile }) => {
     setIsUploading(true);
     setIsOpen(true);
 
-    // Upload files and create a session with them
     const uploadedItems = [];
     for (const file of files) {
       try {
@@ -77,7 +79,6 @@ const FloatingDock = ({ user, isMobile }) => {
       }
     }
 
-    // Create session with uploaded files
     if (uploadedItems.length > 0) {
       const sessionName = newSessionName || `Study Session ${new Date().toLocaleDateString()}`;
       const { success, session } = await createSession(sessionName, uploadedItems);
@@ -137,7 +138,44 @@ const FloatingDock = ({ user, isMobile }) => {
   };
 
   return (
-    <div className={`floating-dock-container ${isMobile ? 'mobile' : ''}`}>
+    <motion.div 
+      ref={containerRef}
+      className={`floating-dock-container ${isMobile ? 'mobile' : ''}`}
+      drag={!isOpen && !showCreateModal}
+      dragControls={dragControls}
+      dragMomentum={false}
+      dragElastic={0.1}
+      dragConstraints={{
+        left: -window.innerWidth + 100,
+        right: -50,
+        top: -window.innerHeight + 120,
+        bottom: -40
+      }}
+      whileDrag={{ scale: 1.02, cursor: 'grabbing' }}
+      initial={{ opacity: 0, y: 100, scale: 0.8 }}
+      animate={{ 
+        opacity: 1, 
+        y: 0, 
+        scale: 1,
+        transition: {
+          type: "spring",
+          stiffness: 260,
+          damping: 20,
+          duration: 0.6
+        }
+      }}
+      style={{ 
+        position: 'fixed',
+        bottom: 32,
+        right: 32,
+        x: position.x,
+        y: position.y,
+        zIndex: 1000
+      }}
+      onDragEnd={(_, info) => {
+        setPosition({ x: info.offset.x, y: info.offset.y });
+      }}
+    >
       <AnimatePresence>
         {isOpen && (
           <motion.div 
@@ -178,7 +216,7 @@ const FloatingDock = ({ user, isMobile }) => {
                       <span className="dock-session-name">{session.session_name}</span>
                       <span className="dock-session-meta">
                         <Clock size={10} />
-                        {formatSessionDate(session.last_accessed)} • {session.items?.length || 0} items
+                        {formatSessionDate(session.last_accessed)} &bull; {session.items?.length || 0} items
                       </span>
                     </div>
                     <button 
@@ -269,56 +307,90 @@ const FloatingDock = ({ user, isMobile }) => {
         )}
       </AnimatePresence>
 
-      <div className="dock-main-bar">
-        <label className="dock-main-action upload">
-          <Upload size={20} />
-          <input type="file" multiple onChange={handleFileUpload} hidden />
-          <div className="dock-tooltip">Quick Upload</div>
-        </label>
+      {/* Draggable Handle */}
+      <motion.div 
+        className="dock-drag-handle"
+        onPointerDown={(e) => dragControls.start(e)}
+        title="Drag to move"
+        whileHover={{ scale: 1.1, opacity: 1 }}
+        whileTap={{ scale: 0.9 }}
+      >
+        <DragHandle size={14} />
+      </motion.div>
 
-        <div className="dock-divider" />
-
-        <div className="dock-active-area" onClick={() => setIsOpen(!isOpen)}>
-          {sessions.length > 0 ? (
-            <div className="dock-sessions">
-              {sessions.slice(0, 3).map((session, i) => (
-                <div 
-                  key={session.id} 
-                  className="dock-session-preview" 
-                  style={{ 
-                    position: 'absolute',
-                    left: 0,
-                    transform: `translateX(${i * 8}px) scale(${1 - i * 0.05})`,
-                    zIndex: 10 - i,
-                    opacity: 1 - i * 0.2
-                  }}
-                >
-                  <Folder size={18} />
-                </div>
-              ))}
-              <div className="dock-session-count" style={{ marginLeft: sessions.length > 1 ? (sessions.slice(0,3).length * 8 + 24) : 40 }}>
-                {sessions.length}
-              </div>
-            </div>
-          ) : (
-            <div className="dock-empty-hint">
-              <Sparkles size={16} color="var(--primary)" />
-              <span>Sessions</span>
-            </div>
-          )}
-        </div>
-
-        <div className="dock-divider" />
-
-        <button 
-          className="dock-main-action create"
-          onClick={() => setShowCreateModal(true)}
+      {/* Main Dock Bar - Study Groups Style */}
+      <motion.div 
+        className="dock-main-bar"
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.4 }}
+      >
+        <motion.label 
+          className="dock-nav-btn dock-nav-btn--upload"
+          whileHover={{ scale: 1.05, y: -2 }}
+          whileTap={{ scale: 0.95 }}
         >
-          <Plus size={20} />
-          <div className="dock-tooltip">New Session</div>
-        </button>
-      </div>
-    </div>
+          <motion.div
+            initial={{ rotate: 0 }}
+            whileHover={{ rotate: 15 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            <Upload size={18} strokeWidth={2.5} />
+          </motion.div>
+          <span>Upload</span>
+          <input type="file" multiple onChange={handleFileUpload} hidden />
+        </motion.label>
+
+        <div className="dock-nav-divider" />
+
+        <motion.button 
+          className="dock-nav-btn dock-nav-btn--sessions"
+          onClick={() => setIsOpen(!isOpen)}
+          whileHover={{ scale: 1.05, y: -2 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          {sessions.length > 0 ? (
+            <>
+              <motion.div 
+                className="dock-nav-session-dot"
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              <span>Sessions ({sessions.length})</span>
+            </>
+          ) : (
+            <>
+              <motion.div
+                initial={{ rotate: 0 }}
+                animate={{ rotate: 360 }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              >
+                <Sparkles size={18} strokeWidth={2.5} />
+              </motion.div>
+              <span>Sessions</span>
+            </>
+          )}
+        </motion.button>
+
+        <div className="dock-nav-divider" />
+
+        <motion.button 
+          className="dock-nav-btn dock-nav-btn--create"
+          onClick={() => setShowCreateModal(true)}
+          whileHover={{ scale: 1.05, y: -2 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <motion.div 
+            className="dock-nav-icon-circle"
+            whileHover={{ rotate: 90 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            <Plus size={18} strokeWidth={3} />
+          </motion.div>
+          <span>New Session</span>
+        </motion.button>
+      </motion.div>
+    </motion.div>
   );
 };
 
