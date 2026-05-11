@@ -51,7 +51,7 @@ export default defineConfig(({ mode }) => {
           navigateFallback: '/index.html',
           navigateFallbackDenylist: [/^\/api\//],
           navigateFallbackAllowlist: [/.*/],
-          maximumFileSizeToCacheInBytes: 4194304, // 4MiB
+          maximumFileSizeToCacheInBytes: 10485760, // 10MiB
         },
         devOptions: { enabled: true },
       }),
@@ -155,6 +155,21 @@ export default defineConfig(({ mode }) => {
         }
       }
     ],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-three': ['three', '@react-three/fiber', '@react-three/drei', 'postprocessing', '@react-three/postprocessing'],
+            'vendor-pdf': ['pdfjs-dist', '@react-pdf-viewer/core', '@react-pdf-viewer/default-layout'],
+            'vendor-excel': ['xlsx'],
+            'vendor-langchain': ['langchain', '@langchain/core', '@langchain/community', '@langchain/google-genai'],
+            'vendor-utils': ['jspdf', 'mammoth', 'jszip', 'docx-preview'],
+            'vendor-ui': ['framer-motion', 'gsap', 'lucide-react', '@phosphor-icons/react'],
+          }
+        }
+      },
+      chunkSizeWarningLimit: 1000,
+    },
     resolve: {
       alias: {
         "@": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "./src"),
