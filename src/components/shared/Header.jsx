@@ -176,7 +176,7 @@ const Header = ({
             <button
               className="MuiBox-root knowt-h58brt"
               aria-label="Knowt button" 
-              id="nav-create-new-content-btn"
+              id="tour-upload-btn"
               onClick={() => navigate(createButtonPath)}
               style={{
                 background: 'none',

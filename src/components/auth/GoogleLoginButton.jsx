@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
+import { clearLuterCaches } from '../../utils/cacheUtils';
 
 const GoogleLoginButton = () => {
   const navigate = useNavigate();
@@ -25,6 +26,9 @@ const GoogleLoginButton = () => {
         setIsAuthenticating(false);
         return;
       }
+
+      // Clear caches upon login to ensure fresh data for the new session
+      clearLuterCaches();
 
       // 2. Parallel operations: get redirect params and profile data simultaneously
       const redirectParam = new URLSearchParams(window.location.search).get('redirect');

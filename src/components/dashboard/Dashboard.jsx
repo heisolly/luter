@@ -14,16 +14,28 @@ import FloatingDock from './FloatingDock'
 import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceStore'
 import { preloadingService } from '../../services/preloadingService'
 
+import { LuterTourGuide } from '../shared/tour/LuterTourGuide'
+import { useTourStore } from '../../store/useTourStore'
+
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { isTourActive, startTour, hasCompletedTour } = useTourStore()
   const { initializeWorkspaces } = useUniversalWorkspaceStore()
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+
+  // Trigger tour for new users on dashboard home
+  useEffect(() => {
+    if (!loading && user && !hasCompletedTour('dashboard-home') && window.location.pathname === '/dashboard') {
+      const timer = setTimeout(() => startTour('dashboard-home'), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [loading, user, window.location.pathname])
 
   useEffect(() => {
     let hb
@@ -126,6 +138,7 @@ export default function Dashboard() {
 
   const location = useLocation()
   const isWorkstation = location.pathname.includes('/workstation')
+  const isPlayground = location.pathname.includes('/playground')
   const [wsSidebarHovered, setWsSidebarHovered] = useState(false)
 
   // Subscription tier display for mobile topbar
@@ -148,6 +161,7 @@ export default function Dashboard() {
 
   return (
     <DashboardPrefetchProvider userId={user.id}>
+    <LuterTourGuide />
     <div className={`dash-root ${isMobile ? 'dash-root--mobile' : ''} ${isWorkstation ? 'ws-mode' : ''}`}>
       {isMobile && !isWorkstation && (
         <div
@@ -328,7 +342,7 @@ export default function Dashboard() {
       )}
 
       {/* Floating sidebar toggle when closed on desktop */}
-      {!isMobile && !isWorkstation && sidebarCollapsed && (
+      {!isMobile && !isWorkstation && !isPlayground && sidebarCollapsed && (
         <button
           onClick={() => setSidebarCollapsed(false)}
           style={{

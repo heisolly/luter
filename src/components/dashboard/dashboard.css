@@ -565,6 +565,10 @@ input { font-family: var(--font); }
   letter-spacing: normal;
   box-shadow: none;
   border-radius: 12px;
+  width: fit-content;
+  align-self: center;
+  padding: 10px 20px;
+  margin: 8px auto 12px;
 }
 
 .dsb-nav-item--pro:hover {

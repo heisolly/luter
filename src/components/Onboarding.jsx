@@ -22,6 +22,7 @@ import {
 } from '../lib/curriculumSlugs';
 import { fetchGroqLiveCourseSearch } from '../groqClient';
 import { uploadMaterial, addYoutubeMaterial } from '../services/materialsService';
+import { clearLuterCaches } from '../utils/cacheUtils';
 
 // Step progress bar component
 const ProgressBar = ({ step, totalSteps, onBack }) => (
@@ -785,6 +786,9 @@ const Onboarding = () => {
 
       // 4. Create initial stats if missing
       await supabase.from('user_stats').upsert({ user_id: user.id }, { onConflict: 'user_id' });
+
+      // 5. Clear all dashboard and workspace caches to ensure fresh data after onboarding
+      clearLuterCaches();
 
       window.location.href = '/dashboard';
     } catch (err) {

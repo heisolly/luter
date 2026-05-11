@@ -5,6 +5,7 @@ import { RiArrowLeftSLine as ChevronLeft, RiArrowRightSLine as ChevronRight, RiT
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import Header from '../shared/Header'
+import useTourStore from '../../store/useTourStore'
 
 export default function LevelPage() {
   const { user, isMobile } = useOutletContext()
@@ -27,6 +28,15 @@ export default function LevelPage() {
     loadAchievements()
     loadAvatar()
   }, [user])
+
+  const { startTour, hasCompletedTour } = useTourStore()
+
+  useEffect(() => {
+    if (!loading && gamificationData && !hasCompletedTour('profile')) {
+      const timer = setTimeout(() => startTour('profile'), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [loading, gamificationData])
 
   const loadAvatar = async () => {
     try {
@@ -257,6 +267,7 @@ export default function LevelPage() {
       
       {/* Profile Header */}
       <motion.div
+        id="tour-profile-card"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         style={{ 
@@ -485,6 +496,7 @@ export default function LevelPage() {
 
       {/* Stats Grid */}
       <motion.div
+        id="tour-profile-stats"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}

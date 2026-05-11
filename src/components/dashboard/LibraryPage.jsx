@@ -4,6 +4,7 @@ import { LuterPageLoader } from '../shared/LuterPageLoader'
 import { supabase } from '../../supabaseClient'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import useTourStore from '../../store/useTourStore'
 
 const TABS = [
   { id: 'all', label: 'All Activity', icon: Layers },
@@ -26,6 +27,15 @@ export default function LibraryPage() {
       fetchLibraryContent()
     }
   }, [user])
+
+  const { startTour, hasCompletedTour } = useTourStore()
+
+  useEffect(() => {
+    if (!loading && !hasCompletedTour('library')) {
+      const timer = setTimeout(() => startTour('library'), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [loading])
 
   async function fetchLibraryContent() {
     setLoading(true)
@@ -77,7 +87,7 @@ export default function LibraryPage() {
 
   return (
     <div className="dh-root" style={{ background: '#fbfbff', minHeight: '100vh', padding: '40px 60px' }}>
-      <header style={{ marginBottom: '40px' }}>
+      <header id="tour-library-header" style={{ marginBottom: '40px' }}>
         <h1 style={{ fontSize: '32px', fontWeight: '800', color: '#111', marginBottom: '32px' }}>Your library</h1>
         
         <div style={{ display: 'flex', gap: '32px', borderBottom: '1px solid #e1e1e1', paddingBottom: '2px' }}>
@@ -110,8 +120,7 @@ export default function LibraryPage() {
         <button style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', fontSize: '14px', fontWeight: '700', color: '#444', cursor: 'pointer' }}>
           Recent <ChevronDown size={14} />
         </button>
-
-        <div style={{ position: 'relative', width: '440px' }}>
+        <div id="tour-library-search" style={{ position: 'relative', width: '440px' }}>
           <input 
             type="text"
             placeholder={`Search ${TABS.find(t => t.id === activeTab)?.label.toLowerCase()}`}

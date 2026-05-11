@@ -85,6 +85,7 @@ function useNavigatorOffline() {
 
   return offline
 }
+const GuestPlayPage = lazy(() => import('./components/dashboard/playground/GuestPlayPage'))
 
 export default function App() {
   const offline = useNavigatorOffline()
@@ -138,6 +139,7 @@ export default function App() {
             <Route path="store" element={<StorePage />} />
             <Route path="refer" element={<ReferPage />} />
             <Route path="compete" element={<PlaygroundPage />} />
+            <Route path="playground/:roomId" element={<PlaygroundPage />} />
             <Route path="upload" element={<UserUpload />} />
             <Route path="requests" element={<StudyRequestsPage />} />
             <Route path="study-groups" element={<StudyGroupsPage />} />
@@ -153,6 +155,7 @@ export default function App() {
           <Route path="/share/flashcards/:bundleId" element={<SharedFlashcardsView />} />
           <Route path="/shared/:shareToken" element={<SharedMaterialPreview />} />
 
+          <Route path="/play/:roomId" element={<Suspense fallback={<div>Loading Arena...</div>}><GuestPlayPage /></Suspense>} />
           <Route path="/join/:inviteCode" element={<JoinGroupPage />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminOverview />} />

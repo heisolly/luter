@@ -17,6 +17,7 @@ import {
 } from 'react-icons/ri'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
+import useTourStore from '../../store/useTourStore'
 import './study-groups.css'
 
 // Curated Luter palette
@@ -43,6 +44,15 @@ export default function StudyGroupsPage() {
   useEffect(() => {
     if (user) fetchGroups()
   }, [user])
+
+  const { startTour, hasCompletedTour } = useTourStore()
+
+  useEffect(() => {
+    if (!loading && !hasCompletedTour('study-groups')) {
+      const timer = setTimeout(() => startTour('study-groups'), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [loading])
 
   async function fetchGroups() {
     try {
@@ -89,7 +99,7 @@ export default function StudyGroupsPage() {
   return (
     <div className="sg-container">
       {/* Breadcrumbs */}
-      <div className="sg-header">
+      <div id="tour-groups-header" className="sg-header">
         <div className="sg-breadcrumbs">
           <button className="sg-breadcrumb-item" onClick={() => navigate('/dashboard')}>
             <Home size={14} />
@@ -191,7 +201,7 @@ export default function StudyGroupsPage() {
       {/* Floating Bottom Navigation */}
       <div className="sg-floating-nav">
         <div className="sg-nav-pills">
-          <button className="sg-nav-btn sg-nav-btn--primary" onClick={() => setShowCreateModal(true)}>
+          <button id="tour-groups-create" className="sg-nav-btn sg-nav-btn--primary" onClick={() => setShowCreateModal(true)}>
             <div className="sg-nav-icon-circle">
                <Plus size={18} strokeWidth={3} />
             </div>

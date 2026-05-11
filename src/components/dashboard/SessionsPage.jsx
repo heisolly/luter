@@ -9,6 +9,7 @@ import {
 } from 'react-icons/ri'
 import { useSessionStore } from '../../store/useSessionStore'
 import Header from '../shared/Header'
+import useTourStore from '../../store/useTourStore'
 
 // Chalkboard/Class illustration component
 const ChalkboardIllustration = () => (
@@ -53,12 +54,21 @@ export default function SessionsPage() {
   const [activeTab, setActiveTab] = useState('active')
   const [sortBy, setSortBy] = useState('lastUpdated')
 
+  const { startTour, hasCompletedTour } = useTourStore()
+
   useEffect(() => {
     if (user?.id) {
       loadSessions()
     }
     setLoading(false)
   }, [user?.id, loadSessions])
+
+  useEffect(() => {
+    if (sessions.length > 0 && !hasCompletedTour('sessions')) {
+      const timer = setTimeout(() => startTour('sessions'), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [sessions])
 
   const handleCreateSession = async () => {
     if (!newSessionName.trim()) return
@@ -130,6 +140,7 @@ export default function SessionsPage() {
         
         {/* Classes-style Header Card */}
         <motion.div
+          id="tour-sessions-header"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           style={{
@@ -339,6 +350,7 @@ export default function SessionsPage() {
               {filteredSessions.map((session, index) => (
                 <motion.div
                   key={session.id}
+                  id={index === 0 ? "tour-session-list" : undefined}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}

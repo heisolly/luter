@@ -35,6 +35,7 @@ import {
 import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceStore'
 import { useSessionStore } from '../../store/useSessionStore'
 import { cachePageData, getCachedPageData } from '../../lib/offlineCache'
+import useTourStore from '../../store/useTourStore'
 
 // Course icon mapping (metadata-based with heuristic fallback)
 const getCourseIcon = (courseName = '', courseCode = '', courseMetadata = {}) => {
@@ -192,6 +193,15 @@ export default function CoursesPage() {
       loadGamificationData()
     }
   }, [user?.id])
+
+  const { startTour, hasCompletedTour } = useTourStore()
+
+  useEffect(() => {
+    if (!loading && courses.length >= 0 && !hasCompletedTour('backpack')) {
+      const timer = setTimeout(() => startTour('backpack'), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [loading, courses])
 
   // Save active tab to localStorage whenever it changes
   useEffect(() => {
@@ -877,7 +887,7 @@ export default function CoursesPage() {
           <button
             className="MuiBox-root knowt-h58brt"
             aria-label="Knowt button" 
-            id="nav-create-new-content-btn"
+            id="tour-enroll-btn"
             onClick={() => navigate('/dashboard/upload')}
             style={{
               background: 'none',
@@ -1033,7 +1043,7 @@ export default function CoursesPage() {
       </div>
 
       {/* Pill Toggle Tabs - Centered */}
-      <div style={{ 
+      <div id="tour-backpack-tabs" style={{ 
         display: 'flex', 
         justifyContent: 'center',
         marginBottom: 48,

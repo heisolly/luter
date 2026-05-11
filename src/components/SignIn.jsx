@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { RiArrowRightSLine as CaretRight, RiLoader4Line as CircleNotch, RiLockFill as Lock, RiMailFill as Envelope, RiBookOpenFill as BookOpen, RiGraduationCapFill as GraduationCap } from 'react-icons/ri';
 import { supabase } from '../supabaseClient';
+import { clearLuterCaches } from '../utils/cacheUtils';
 
 import GoogleLoginButton from './auth/GoogleLoginButton';
 import { AuthNavbar, PremiumButton } from './PageShared';
@@ -26,7 +27,10 @@ export default function SignIn() {
     });
     setLoading(false);
     if (err) { setError(err.message); return; }
-    if (data?.session) { navigate(redirectPath); }
+    if (data?.session) { 
+      clearLuterCaches();
+      navigate(redirectPath); 
+    }
   };
 
   return (

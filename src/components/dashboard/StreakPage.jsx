@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { RiArrowLeftSLine as ChevronLeft, RiArrowRightSLine as ChevronRight } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
+import useTourStore from '../../store/useTourStore'
 
 export default function StreakPage() {
   const { user, isMobile } = useOutletContext()
@@ -23,6 +24,15 @@ export default function StreakPage() {
     }
     getStreak()
   }, [user, ready, bundle])
+
+  const { startTour, hasCompletedTour } = useTourStore()
+
+  useEffect(() => {
+    if (ready && !hasCompletedTour('streak')) {
+      const timer = setTimeout(() => startTour('streak'), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [ready])
 
   const DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
   
@@ -52,7 +62,7 @@ export default function StreakPage() {
     }}>
       
       {/* Top Section */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 40, padding: '0 8px' }}>
+      <div id="tour-streak-reward" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 40, padding: '0 8px' }}>
         <div>
           <h1 style={{ fontSize: isMobile ? 64 : 80, fontWeight: 800, color: 'var(--primary)', margin: 0, lineHeight: 1 }}>{streak || 1}</h1>
           <p style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, color: 'var(--primary)', margin: '4px 0 0' }}>day streak</p>
@@ -90,7 +100,7 @@ export default function StreakPage() {
       </div>
 
       {/* Streak Calendar */}
-      <div style={{ 
+      <div id="tour-streak-calendar" style={{ 
         background: 'white', borderRadius: 20, padding: isMobile ? '24px 16px' : '32px 40px', 
         border: '2px solid #f1f5f9', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', marginBottom: 32
       }}>

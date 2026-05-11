@@ -131,19 +131,33 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
             }
           }}
           title={collapsed ? label : ''}
+          style={{
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: isActive ? 'translateX(2px)' : 'translateX(0)'
+          }}
         >
-          <div className="dsb-nav-icon-wrap">
-            <Icon size={20} weight="regular" />
+          <div className="dsb-nav-icon-wrap" style={{
+            transition: 'all 0.2s ease',
+            transform: isActive ? 'scale(1.05)' : 'scale(1)'
+          }}>
+            <Icon size={20} weight={isActive ? "fill" : "regular"} />
             {count > 0 && collapsed && <div className="dsb-nav-badge dsb-nav-badge--count">{count}</div>}
           </div>
           {!collapsed && (
             <>
-              <span className="dsb-nav-label-text">{label}</span>
+              <span className="dsb-nav-label-text" style={{
+                fontWeight: isActive ? 600 : 500,
+                transition: 'all 0.2s ease'
+              }}>{label}</span>
               {badge && <span className="dsb-nav-badge-pill">{badge}</span>}
               {count > 0 && <span className="dsb-nav-badge-count">{count}</span>}
               {children && (
-                <div className="dsb-nav-arrow" style={{ marginLeft: 'auto' }}>
-                  {isExpanded ? <CaretDown size={16} weight="regular" /> : <CaretRight size={16} weight="regular" />}
+                <div className="dsb-nav-arrow" style={{ 
+                  marginLeft: 'auto',
+                  transition: 'transform 0.2s ease',
+                  transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'
+                }}>
+                  <CaretDown size={16} weight="regular" />
                 </div>
               )}
             </>
@@ -196,11 +210,20 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
 
       <nav className="dsb-nav">
         {/* Top Section */}
-        <div className="dsb-nav-section">
+        <div className="dsb-nav-section" style={{ marginTop: '0px' }}>
           {TOP_NAV.map((item) => (
             <NavButton key={item.id} item={item} />
           ))}
         </div>
+
+        {/* Section divider */}
+        {!collapsed && (
+          <div style={{
+            height: '1px',
+            background: 'linear-gradient(to right, transparent, rgba(226, 232, 240, 0.5), transparent)',
+            margin: '16px 12px 8px 12px'
+          }} />
+        )}
 
         <div className="dsb-divider" />
 
@@ -208,7 +231,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
         {!collapsed && (
           <div 
             className="dsb-section-label dsb-section-label--clickable" 
-            style={{ marginTop: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}
+            style={{ marginTop: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} onClick={() => go('/dashboard/courses')}>
               <div style={{ width: 4, height: 16, background: '#7a12cc', borderRadius: 2 }} />
@@ -236,7 +259,13 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
         )}
 
         {expandedItems.includes('backpack') && (
-          <div className="dsb-nav-section dsb-backpack-section" style={{ maxHeight: '380px', overflowY: 'auto', paddingRight: '4px', marginBottom: '8px', marginTop: '8px' }}>
+          <div className="dsb-nav-section dsb-backpack-section" style={{ 
+            maxHeight: '380px', 
+            overflowY: 'auto', 
+            paddingRight: '4px', 
+            marginBottom: '8px', 
+            marginTop: '8px'
+          }}>
             {isSoloLearner ? (
               standaloneMaterials.length > 0 ? (
                 <>
@@ -248,10 +277,12 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
                         className={`dsb-nav-item dsb-course-item ${isActive ? 'dsb-nav-item--active' : ''} ${collapsed ? 'dsb-nav-item--center' : ''}`}
                         onClick={() => go(`/dashboard/workstation?materialId=${material.id}`)}
                         style={{
-                          padding: '10px 16px',
-                          marginBottom: '2px',
-                          background: isActive ? 'rgba(122, 18, 204, 0.05)' : 'transparent',
-                          border: 'none'
+                          padding: '12px 16px',
+                          marginBottom: '4px',
+                          background: isActive ? 'rgba(122, 18, 204, 0.08)' : 'transparent',
+                          border: isActive ? '1px solid rgba(122, 18, 204, 0.2)' : '1px solid transparent',
+                          borderRadius: '8px',
+                          transition: 'all 0.2s ease'
                         }}
                         title={material.title}
                       >
@@ -297,9 +328,10 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
               )
             ) : bundle?.uc?.data?.length > 0 ? (
               <>
-                {bundle.uc.data
-                  .filter(row => row && (row.courses || row.course))
-                  .map((row, idx) => {
+                {(() => {
+                  const coursesWithData = bundle.uc.data.filter(row => row && (row.courses || row.course));
+                  console.log('Courses found:', coursesWithData.length, coursesWithData);
+                  return coursesWithData.map((row, idx) => {
                     const c = row.courses || row.course;
                     const isActive = pathname.includes(c?.id);
                     return (
@@ -308,10 +340,12 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
                         className={`dsb-nav-item dsb-course-item ${isActive ? 'dsb-nav-item--active' : ''} ${collapsed ? 'dsb-nav-item--center' : ''}`}
                         onClick={() => go(`/dashboard/courses/${c?.id}`)}
                         style={{ 
-                          padding: '10px 16px', 
-                          marginBottom: '2px',
-                          background: isActive ? 'rgba(122, 18, 204, 0.05)' : 'transparent',
-                          border: 'none'
+                          padding: '12px 16px', 
+                          marginBottom: '4px',
+                          background: isActive ? 'rgba(122, 18, 204, 0.08)' : 'transparent',
+                          border: isActive ? '1px solid rgba(122, 18, 204, 0.2)' : '1px solid transparent',
+                          borderRadius: '8px',
+                          transition: 'all 0.2s ease'
                         }}
                         title={c?.name}
                       >
@@ -331,7 +365,8 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
                         )}
                       </button>
                     );
-                  })}
+                  });
+                })()}
                 <button
                   className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`}
                   onClick={() => go(isSoloLearner ? '/dashboard/upload' : '/dashboard/courses')}
@@ -359,7 +394,10 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
         )}
 
         {/* Down Section (Toolbox) sits directly below Backpack */}
-        <div className="dsb-nav-section" style={{ marginTop: '0px' }}>
+        <div className="dsb-nav-section" style={{ 
+          marginTop: '0px',
+          paddingTop: !collapsed ? '8px' : '0'
+        }}>
           {BOTTOM_NAV.map((item) => (
             <NavButton key={item.id} item={item} />
           ))}
@@ -367,24 +405,116 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
       </nav>
 
       <div className="dsb-bottom" style={{ paddingBottom: collapsed ? '12px' : '0' }}>
-        {!collapsed && <div className="dsb-section-label" style={{ marginTop: '8px' }}>{t('personal')}</div>}
+        {!collapsed && <div className="dsb-section-label" style={{ 
+          marginTop: '8px',
+          fontSize: '11px',
+          fontWeight: 600,
+          color: '#94a3b8',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          padding: '0 12px'
+        }}>{t('personal')}</div>}
         
-        <div className="dsb-personal-group">
-          <button className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/dashboard/analytics')}>
+        <div className="dsb-personal-group" style={{
+          borderRadius: '12px',
+          overflow: 'hidden',
+          background: collapsed ? 'transparent' : 'rgba(248, 250, 252, 0.5)',
+          border: collapsed ? 'none' : '1px solid rgba(226, 232, 240, 0.6)',
+          padding: collapsed ? 0 : '4px'
+        }}>
+          <button className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/dashboard/analytics')} style={{
+            borderRadius: '8px',
+            margin: collapsed ? 0 : '2px'
+          }}>
             <div className="dsb-nav-icon-wrap"><ChartBar size={20} weight="regular" /></div>
             {!collapsed && <span className="dsb-nav-label-text">{t('myProgress')}</span>}
           </button>
           
-          <button className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/dashboard/settings')}>
+          <button className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/dashboard/settings')} style={{
+            borderRadius: '8px',
+            margin: collapsed ? 0 : '2px'
+          }}>
             <div className="dsb-nav-icon-wrap"><GearSix size={20} weight="regular" /></div>
             {!collapsed && <span className="dsb-nav-label-text">{t('settings')}</span>}
           </button>
 
         </div>  
           {!tierBadge && (
-            <button className={`dsb-nav-item dsb-nav-item--pro ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/dashboard/pricing')}>
-              <div className="dsb-nav-icon-wrap"><CrownSimple size={20} weight="regular" /></div>
-              {!collapsed && <span className="dsb-nav-label-text">{t('upgradePro')}</span>}
+            <button 
+              className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} 
+              onClick={() => go('/dashboard/pricing')}
+              style={{
+                background: collapsed ? 'none' : 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(124, 58, 237, 0.06) 100%)',
+                border: collapsed ? '1px solid #8b5cf6' : '1px solid rgba(139, 92, 246, 0.2)',
+                borderRadius: '10px',
+                padding: collapsed ? '8px' : '10px 16px',
+                margin: collapsed ? '0 0 12px 0' : '8px 12px 16px 12px',
+                color: '#8b5cf6',
+                fontWeight: 500,
+                fontSize: '14px',
+                transition: 'all 0.25s ease',
+                position: 'relative',
+                overflow: 'hidden',
+                width: collapsed ? 'auto' : 'calc(100% - 24px)'
+              }}
+              onMouseEnter={(e) => {
+                if (!collapsed) {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(124, 58, 237, 0.08) 100%)'
+                  e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.4)'
+                  e.currentTarget.style.transform = 'translateX(2px)'
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(139, 92, 246, 0.15)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!collapsed) {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(124, 58, 237, 0.06) 100%)'
+                  e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.2)'
+                  e.currentTarget.style.transform = 'translateX(0)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }
+              }}
+            >
+              <div className="dsb-nav-icon-wrap" style={{ 
+                color: '#8b5cf6',
+                position: 'relative'
+              }}>
+                <CrownSimple size={18} weight="fill" />
+                {!collapsed && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '-2px',
+                    right: '-2px',
+                    width: '6px',
+                    height: '6px',
+                    background: '#f59e0b',
+                    borderRadius: '50%',
+                    border: '2px solid white'
+                  }} />
+                )}
+              </div>
+              {!collapsed && (
+                <span className="dsb-nav-label-text" style={{ 
+                  color: '#8b5cf6',
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '14px'
+                }}>
+                  {t('upgradePro')}
+                  <span style={{
+                    background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                    color: 'white',
+                    padding: '1px 6px',
+                    borderRadius: '6px',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    letterSpacing: '0.5px'
+                  }}>
+                    PRO
+                  </span>
+                </span>
+              )}
             </button>
           )}
           {/* Gamified User Profile - Streak, Level, Coins */}

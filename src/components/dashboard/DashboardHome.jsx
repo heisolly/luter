@@ -306,6 +306,7 @@ export default function DashboardHome() {
             </motion.div>
           )}
           <motion.h1 
+            id="tour-welcome"
             className="dhd-hero-title"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -381,6 +382,7 @@ export default function DashboardHome() {
       {/* ===== NICE STREAK TAB ===== */}
       <section className="dhd-streak-section">
         <motion.div
+          id="tour-streak"
           className={`dhd-streak-card ${isStreakAnimating ? 'animate' : ''}`}
           onClick={handleStreakClick}
           whileHover={{ scale: 1.02 }}

@@ -30,6 +30,7 @@ import {
   ClipboardText,
   List
 } from '@phosphor-icons/react'
+import useTourStore from '../../store/useTourStore'
 import { 
   RiBookOpenFill as BookOpen, RiStarFill as Star, RiFileTextFill as RiFileText, RiCheckboxCircleFill as CheckCircle, RiArrowRightSLine as RiCaretRight, RiArrowLeftLine as ArrowLeft, RiExternalLinkLine as ArrowSquareOut, RiStackFill as RiStack, 
   RiQuestionFill as Question, RiAddLine as Plus, RiSearchLine as MagnifyingGlass, RiArrowLeftSLine as RiCaretLeft, RiBriefcaseFill as Briefcase, RiPlayCircleFill as PlayCircle, RiSettings4Fill as Settings, RiUserFill as User, RiLogoutBoxLine as SignOut, 
@@ -83,6 +84,14 @@ function WorkstationContent() {
   
   const [activeTab, setActiveTab] = useState('content')
   const [activeSideTab, setActiveSideTab] = useState('chat')
+  const { startTour, hasCompletedTour } = useTourStore()
+
+  useEffect(() => {
+    if (selectedMaterial && !hasCompletedTour('workstation')) {
+      const timer = setTimeout(() => startTour('workstation'), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [selectedMaterial])
   const [chatInput, setChatInput] = useState('')
   const [messages, setMessages] = useState([])
   const [isProcessingLoading, setIsProcessingLoading] = useState(false)
@@ -786,7 +795,7 @@ function WorkstationContent() {
           </div>
 
           <div className="ws-header-center" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-            <div className="ws-top-nav-capsule" style={{ 
+            <div id="tour-ai-tools" className="ws-top-nav-capsule" style={{ 
               display: 'flex', 
               background: '#F1F5F9', 
               padding: '4px', 
@@ -1036,7 +1045,7 @@ function WorkstationContent() {
                 </div>
               </div>
             ) : (
-              <div style={{ height: '100%', width: '100%' }}>
+              <div id="tour-material-view" style={{ height: '100%', width: '100%' }}>
                 <MaterialRenderer 
                   material={selectedMaterial} 
                   activeTab={activeTab}
@@ -1094,7 +1103,7 @@ function WorkstationContent() {
         </div>
 
         {!isSidePanelCollapsed && !focusMode && (
-          <aside className="ws-pane-right" style={{ 
+          <aside id="tour-ai-chat" className="ws-pane-right" style={{ 
             display: isMobile ? (activeTab === 'chat' ? 'flex' : 'none') : 'flex', 
             width: isMobile ? '100%' : '100%', 
             minWidth: isMobile ? 'auto' : '260px',

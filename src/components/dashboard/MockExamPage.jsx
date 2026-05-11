@@ -14,6 +14,7 @@ import { toPng } from 'html-to-image'
 import confetti from 'canvas-confetti'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
 import LuterLogo from '../shared/LuterLogo'
+import useTourStore from '../../store/useTourStore'
 
 // Sound Effects
 import correctSound from '../../assets/sounds/dragon-studio-correct-472358.mp3'
@@ -116,6 +117,14 @@ export default function MockExamPage() {
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [lastAutoAdvancedIndex, setLastAutoAdvancedIndex] = useState(-1)
+  const { startTour, hasCompletedTour } = useTourStore()
+
+  useEffect(() => {
+    if (mode === 'exam' && generatedQuestions.length > 0 && !hasCompletedTour('mock-exam')) {
+      const timer = setTimeout(() => startTour('mock-exam'), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [mode, generatedQuestions])
 
   useEffect(() => {
     if (user && mode === 'configure') {
@@ -1685,7 +1694,7 @@ Please explain where I went wrong and why the correct answer is the right choice
         </motion.button>
 
         {/* Exam Header with Timer */}
-        <div style={{ padding: isMobile ? '20px 20px 8px' : '28px 40px 8px', background: 'transparent', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', zIndex: 10 }}>
+        <div id="tour-exam-timer" style={{ padding: isMobile ? '20px 20px 8px' : '28px 40px 8px', background: 'transparent', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', zIndex: 10 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f0fdf4', color: '#16a34a', padding: '8px 16px', borderRadius: 99, fontSize: 13, fontWeight: 700, border: '1.5px solid #bbf7d0', boxShadow: '0 4px 12px rgba(22,163,74,0.08)' }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: timeLeft < 10 ? '#ef4444' : '#22c55e', animation: timeLeft < 10 ? 'pulse 1s infinite' : 'none' }} />
             <Clock size={14} /> {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
@@ -1698,6 +1707,7 @@ Please explain where I went wrong and why the correct answer is the right choice
             
             {/* Question Card */}
             <motion.div
+              id="tour-exam-engine"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
@@ -1854,7 +1864,7 @@ Please explain where I went wrong and why the correct answer is the right choice
               {[
                 { id: 'like', icon: <ThumbsUp size={20} strokeWidth={1.5} />, action: () => handleLike(current), active: likedQuestions[current], activeColor: '#22c55e', bg: '#dcfce7' },
                 { id: 'dislike', icon: <ThumbsDown size={20} strokeWidth={1.5} />, action: () => handleDislike(current), active: dislikedQuestions[current], activeColor: '#ef4444', bg: '#fee2e2' },
-                { id: 'chat', icon: <MessageCircle size={20} strokeWidth={1.5} />, action: handleAiChat, activeColor: '#7a12cc', bg: '#f5f3ff' },
+                { id: 'chat', icon: <MessageCircle id="tour-ai-review" size={20} strokeWidth={1.5} />, action: handleAiChat, activeColor: '#7a12cc', bg: '#f5f3ff' },
                 { id: 'search', icon: <Search size={20} strokeWidth={1.5} />, action: () => handleSearchAction(q), activeColor: '#3b82f6', bg: '#dbeafe' },
                 { id: 'share', icon: <Share2 size={20} strokeWidth={1.5} />, action: () => handleShare(q), activeColor: '#f59e0b', bg: '#fef3c7' },
                 { id: 'gift', icon: <Gift size={20} strokeWidth={1.5} />, action: handleGiftAction, activeColor: '#ec4899', bg: '#fce7f3' },

@@ -30,6 +30,11 @@ export function useDashboardPrefetch() {
   return useContext(DashboardPrefetchContext)
 }
 
+export function clearPrefetchCache(userId) {
+  if (!userId || typeof localStorage === 'undefined') return
+  localStorage.removeItem(storageKey(userId))
+}
+
 /**
  * Fetches the dashboard data individually to avoid cascading failures.
  */
