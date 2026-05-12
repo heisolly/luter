@@ -117,7 +117,7 @@ class PreloadingService {
     // Get all user materials (both course and standalone)
     const { data, error } = await supabase
       .from('materials')
-      .select('id, title, type, source_url, processing_status, created_at, updated_at, course_id')
+      .select('id, title, type, source_url, extracted_text, processing_status, created_at, updated_at, course_id')
       .eq('user_id', userId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
@@ -213,7 +213,7 @@ class PreloadingService {
   /**
    * Preload workspace data for faster workstation loading
    */
-  async preloadWorkspaceData(courseId, userId) {
+  async preloadWorkspace(courseId, userId) {
     if (!courseId || !userId) return
 
     const cacheKey = `workspace-${courseId}-${userId}`

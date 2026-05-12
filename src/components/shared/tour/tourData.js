@@ -13,7 +13,9 @@ import {
   Briefcase,
   UsersThree,
   UserCircle,
-  MagnifyingGlass
+  MagnifyingGlass,
+  Bell,
+  GearSix
 } from '@phosphor-icons/react'
 
 export const TOURS = {
@@ -200,6 +202,78 @@ export const TOURS = {
         title: 'The Grind',
         content: 'See your total study time, materials mastered, and current rank on the Luter leaderboards.',
         icon: UserCircle
+      }
+    ]
+  },
+  'dashboard-nav': {
+    id: 'dashboard-nav',
+    title: 'Explore Your Navigation',
+    steps: [
+      {
+        target: '#nav-home',
+        title: 'Home Base',
+        content: 'Your study command center. Return here anytime for your daily roadmap and quick actions.',
+        image: '/onboard-mascot.png'
+      },
+      {
+        target: '#nav-sessions',
+        title: 'Deep Focus History',
+        content: 'Review every hour you spend in deep focus. Luter tracks your mastery over time.',
+        icon: Clock
+      },
+      {
+        target: '#nav-library',
+        title: 'The Knowledge Vault',
+        content: 'Access all your uploaded documents and personal research materials in one organized space.',
+        icon: Books
+      },
+      {
+        target: '#nav-study-groups',
+        title: 'Collaborative Study',
+        content: 'Connect with study squads, share materials, and learn faster together.',
+        icon: UsersThree
+      },
+      {
+        target: '#nav-notifications',
+        title: 'Stay Notified',
+        content: 'Keep track of mentions, group updates, and study reminders right here.',
+        icon: Bell
+      },
+      {
+        target: '#nav-backpack',
+        title: 'The Backpack',
+        content: 'Your core academic modules. All your enrolled courses and their materials live here.',
+        icon: Briefcase
+      },
+      {
+        target: '#nav-playground',
+        title: 'The Playground',
+        content: 'Challenge yourself or compete with peers in our collection of study games.',
+        icon: GameController
+      },
+      {
+        target: '#nav-mock-exam',
+        title: 'Exam Simulation',
+        content: 'Simulate real exam environments with our adaptive testing engine.',
+        icon: Flask
+      },
+      {
+        target: '#nav-progress',
+        title: 'Progress Tracking',
+        content: 'Visualize your growth, XP, and levels as you master your curriculum.',
+        icon: Sparkle
+      },
+      {
+        target: '#nav-settings',
+        title: 'Customization',
+        content: 'Personalize your experience, manage your account, and adjust your study preferences.',
+        icon: GearSix
+      },
+      {
+        target: '#nav-profile-card',
+        title: 'Your Identity',
+        content: 'Customize your profile, track your streak, and see your rank on the leaderboard.',
+        image: '/onboard-mascot.png'
       }
     ]
   }

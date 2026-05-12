@@ -14,22 +14,42 @@ import {
   RiArrowLeftSLine as ChevronLeft,
   RiArrowRightSLine as ChevronRight,
   RiFullscreenExitFill as Compress,
-  RiEyeOffLine as EyeOff,
-  RiEyeLine as Eye,
 } from 'react-icons/ri'
 
 const PDF_WORKER_URL = 'https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js'
 
+/** Loading skeleton with faint page outlines */
+function DocumentSkeleton() {
+  return (
+    <div style={{ height: '100%', background: 'linear-gradient(to bottom, #F8FAFC, #F1F5F9)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 16px' }}>
+      <div style={{ width: '100%', maxWidth: '1100px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {[1, 2, 3].map((page) => (
+          <div
+            key={page}
+            style={{
+              background: 'white',
+              borderRadius: 8,
+              boxShadow: '0 1px 8px rgba(0,0,0,0.04)',
+              height: page === 1 ? '70vh' : '75vh',
+              animation: `flashka-skeleton-pulse 2s ease-in-out ${page * 0.3}s infinite`,
+              opacity: 0.6,
+            }}
+          />
+        ))}
+      </div>
+      <style>{`
+        @keyframes flashka-skeleton-pulse {
+          0%, 100% { opacity: 0.45; }
+          50% { opacity: 0.75; }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 /**
  * FlashkaDocumentViewer — Immersive, full-width document experience.
  * Built around the document, not the other way around.
- *
- * Design principles:
- * - Document is the main character
- * - Fluid canvas, not boxed pages
- * - Auto-fit scaling
- * - Minimal, floating controls
- * - Notion-style background
  */
 export default function FlashkaDocumentViewer({
   fileUrl,
@@ -42,12 +62,13 @@ export default function FlashkaDocumentViewer({
   const [totalPages, setTotalPages] = useState(0)
   const [scale, setScale] = useState(SpecialZoomLevel.PageWidth)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [focusMode, setFocusMode] = useState(false)
   const [docLoaded, setDocLoaded] = useState(false)
+  const [showToolbar, setShowToolbar] = useState(true)
   const [loadingTimeout, setLoadingTimeout] = useState(false)
+  const [fadeIn, setFadeIn] = useState(false)
   const viewerContainerRef = useRef(null)
-  const containerRef = useRef(null)
-  
+  const toolbarTimerRef = useRef(null)
+
   const searchPluginInstance = searchPlugin()
   const pageNavigationPluginInstance = pageNavigationPlugin()
   const zoomPluginInstance = zoomPlugin()
@@ -61,16 +82,64 @@ export default function FlashkaDocumentViewer({
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }, [])
 
-  
-  // Timeout for loading - if PDF takes too long, show error
+  // Auto-hide toolbar after 3s of inactivity
+  const scheduleToolbarHide = useCallback(() => {
+    if (toolbarTimerRef.current) clearTimeout(toolbarTimerRef.current)
+    setShowToolbar(true)
+    toolbarTimerRef.current = setTimeout(() => {
+      setShowToolbar(false)
+    }, 3000)
+  }, [])
+
+  useEffect(() => {
+    scheduleToolbarHide()
+    return () => { if (toolbarTimerRef.current) clearTimeout(toolbarTimerRef.current) }
+  }, [scheduleToolbarHide])
+
+  // Timeout for loading
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!docLoaded) {
-        setLoadingTimeout(true)
-      }
-    }, 15000) // 15 second timeout
+      if (!docLoaded) setLoadingTimeout(true)
+    }, 15000)
     return () => clearTimeout(timer)
   }, [docLoaded, fileUrl])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+
+      switch (e.key) {
+        case 'ArrowLeft':
+        case 'ArrowUp':
+          e.preventDefault()
+          goToPage(-1)
+          break
+        case 'ArrowRight':
+        case 'ArrowDown':
+          e.preventDefault()
+          goToPage(1)
+          break
+        case 'f':
+        case 'F':
+          e.preventDefault()
+          toggleFullscreen()
+          break
+        case '+':
+        case '=':
+          e.preventDefault()
+          zoomIn()
+          break
+        case '-':
+        case '_':
+          e.preventDefault()
+          zoomOut()
+          break
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [])
 
   if (!fileUrl) {
     return (
@@ -90,9 +159,8 @@ export default function FlashkaDocumentViewer({
       style.id = styleId
       style.textContent = `
         .flashka-desk {
-          background: linear-gradient(to bottom, #F8FAFC, #F1F5F9) !important;
+          background: #F8FAFC !important;
         }
-        /* Let the viewer handle scrolling internally */
         .flashka-desk .rpv-core__viewer {
           background: transparent !important;
           border: none !important;
@@ -100,35 +168,23 @@ export default function FlashkaDocumentViewer({
           scroll-behavior: smooth !important;
           height: 100% !important;
         }
-        /* ZERO padding around pages - full bleed */
         .flashka-desk .rpv-core__inner-page {
           background: transparent !important;
-          padding: 0 !important;
+          padding: 16px 24px 32px !important;
           margin: 0 !important;
+          will-change: transform !important;
         }
-        /* Page styling - FULL WIDTH */
         .flashka-desk .rpv-core__page-layer {
-          box-shadow: 0 1px 8px rgba(0,0,0,0.04) !important;
-          border-radius: 4px !important;
-          overflow: hidden !important;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
+          border-radius: 12px !important;
           background: white !important;
-          margin: 0 auto 8px auto !important;
-          max-width: 100% !important;
-          width: 100% !important;
-        }
-        /* Make canvas fill the page width */
-        .flashka-desk .rpv-core__canvas-layer {
-          max-width: 100% !important;
-          width: 100% !important;
-        }
-        /* Text layer should also fill */
-        .flashka-desk .rpv-core__text-layer {
-          max-width: 100% !important;
+          transition: box-shadow 0.3s ease !important;
+          transform: translateZ(0) !important;
+          will-change: transform !important;
         }
         .flashka-desk .rpv-core__page-layer:hover {
-          box-shadow: 0 2px 16px rgba(0,0,0,0.06) !important;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
         }
-        /* Remove default toolbar and sidebar */
         .flashka-desk .rpv-default-layout__toolbar,
         .flashka-desk .rpv-default-layout__sidebar {
           display: none !important;
@@ -139,30 +195,24 @@ export default function FlashkaDocumentViewer({
           border: none !important;
           background: transparent !important;
         }
-        /* ZERO padding on inner page container */
         .flashka-desk .rpv-core__inner-pages {
-          padding: 0 !important;
+          padding: 24px 0 80px 0 !important;
           margin: 0 !important;
           display: flex !important;
           flex-direction: column !important;
           align-items: center !important;
           width: 100% !important;
         }
-        /* Make each page take full width */
         .flashka-desk .rpv-core__inner-page {
           width: 100% !important;
           max-width: 100% !important;
           display: flex !important;
           justify-content: center !important;
         }
-        /* Ensure the viewer container fills width */
         .flashka-desk .rpv-core__viewer {
           width: 100% !important;
           max-width: 100% !important;
-        }
-        /* Smooth scrolling on all elements */
-        .flashka-desk * {
-          scroll-behavior: smooth !important;
+          -webkit-overflow-scrolling: touch !important;
         }
       `
       document.head.appendChild(style)
@@ -176,6 +226,8 @@ export default function FlashkaDocumentViewer({
   const handleDocumentLoad = useCallback((e) => {
     setTotalPages(e.doc.numPages)
     setDocLoaded(true)
+    // Trigger fade-in after a brief delay for smoothness
+    requestAnimationFrame(() => setFadeIn(true))
     onDocumentLoad?.(e)
   }, [onDocumentLoad])
 
@@ -242,9 +294,51 @@ export default function FlashkaDocumentViewer({
   }
 
   return (
-    <div className="flashka-desk bg-gradient-to-b from-gray-50 to-gray-100 h-full flex flex-col">
-      {/* Floating Toolbar - minimal padding */}
-      <div className="shrink-0 flex justify-center py-2">
+    <div
+      ref={viewerContainerRef}
+      className="flashka-desk h-full flex flex-col relative"
+      style={{ background: '#F8FAFC' }}
+      onMouseMove={scheduleToolbarHide}
+    >
+      {/* Loading Skeleton */}
+      {!docLoaded && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 2 }}>
+          <DocumentSkeleton />
+        </div>
+      )}
+
+      {/* PDF Viewer with fade-in */}
+      <div
+        className="flex-1 overflow-auto"
+        style={{
+          opacity: fadeIn ? 1 : 0,
+          transition: 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+          scrollBehavior: 'smooth',
+        }}
+      >
+        <div style={{ maxWidth: '1000px', margin: '0 auto', height: '100%', padding: '0 24px' }}>
+          <Worker workerUrl={PDF_WORKER_URL}>
+            <Viewer
+              fileUrl={fileUrl}
+              plugins={[searchPluginInstance, pageNavigationPluginInstance, zoomPluginInstance]}
+              defaultScale={scale}
+              onDocumentLoad={handleDocumentLoad}
+              onPageChange={handlePageChange}
+            />
+          </Worker>
+        </div>
+      </div>
+
+      {/* Floating Toolbar — auto-hides */}
+      <div
+        className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
+        style={{
+          opacity: showToolbar ? 1 : 0,
+          transform: showToolbar ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-12px)',
+          transition: 'opacity 0.3s ease, transform 0.3s ease',
+          pointerEvents: showToolbar ? 'auto' : 'none',
+        }}
+      >
         <div className="bg-white/95 backdrop-blur border border-gray-200 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-lg">
           {/* Navigation */}
           <div className="flex items-center gap-0.5">
@@ -308,21 +402,17 @@ export default function FlashkaDocumentViewer({
         </div>
       </div>
 
-      {/* Document Canvas - Restore scrolling */}
-      <div 
-        ref={viewerContainerRef}
-        className="flex-1 overflow-hidden"
-      >
-        <Worker workerUrl={PDF_WORKER_URL}>
-          <Viewer
-            fileUrl={fileUrl}
-            plugins={[searchPluginInstance, pageNavigationPluginInstance, zoomPluginInstance]}
-            defaultScale={scale}
-            onDocumentLoad={handleDocumentLoad}
-            onPageChange={handlePageChange}
-          />
-        </Worker>
-      </div>
+      {/* Page Badge — always visible at bottom center */}
+      {docLoaded && totalPages > 0 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+          <div
+            className="bg-gray-900/80 backdrop-blur text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg"
+            style={{ fontFamily: 'var(--font-outfit)', letterSpacing: '0.02em' }}
+          >
+            {currentPage} / {totalPages}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

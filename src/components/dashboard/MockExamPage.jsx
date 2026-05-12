@@ -117,14 +117,14 @@ export default function MockExamPage() {
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [lastAutoAdvancedIndex, setLastAutoAdvancedIndex] = useState(-1)
-  const { startTour, hasCompletedTour } = useTourStore()
+  const { startTour, hasCompletedTour, completedTours, currentUserId } = useTourStore()
 
   useEffect(() => {
-    if (mode === 'exam' && generatedQuestions.length > 0 && !hasCompletedTour('mock-exam')) {
+    if (user?.id && currentUserId === user.id && !loading && !hasCompletedTour('mock-exam')) {
       const timer = setTimeout(() => startTour('mock-exam'), 2000)
       return () => clearTimeout(timer)
     }
-  }, [mode, generatedQuestions])
+  }, [user?.id, currentUserId, completedTours, loading, hasCompletedTour, startTour])
 
   useEffect(() => {
     if (user && mode === 'configure') {

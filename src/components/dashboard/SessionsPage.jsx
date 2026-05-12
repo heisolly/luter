@@ -38,7 +38,7 @@ const SessionIcon = ({ color = '#22c55e' }) => (
 
 export default function SessionsPage() {
   const navigate = useNavigate()
-  const { user, isMobile } = useOutletContext()
+  const { user, isMobile, sidebarCollapsed } = useOutletContext()
   const { 
     sessions, 
     loadSessions, 
@@ -54,7 +54,7 @@ export default function SessionsPage() {
   const [activeTab, setActiveTab] = useState('active')
   const [sortBy, setSortBy] = useState('lastUpdated')
 
-  const { startTour, hasCompletedTour } = useTourStore()
+  const { startTour, hasCompletedTour, completedTours, currentUserId } = useTourStore()
 
   useEffect(() => {
     if (user?.id) {
@@ -64,11 +64,11 @@ export default function SessionsPage() {
   }, [user?.id, loadSessions])
 
   useEffect(() => {
-    if (sessions.length > 0 && !hasCompletedTour('sessions')) {
+    if (user?.id && currentUserId === user.id && !loading && !hasCompletedTour('sessions')) {
       const timer = setTimeout(() => startTour('sessions'), 2000)
       return () => clearTimeout(timer)
     }
-  }, [sessions])
+  }, [user?.id, currentUserId, completedTours, loading, hasCompletedTour, startTour])
 
   const handleCreateSession = async () => {
     if (!newSessionName.trim()) return
@@ -136,7 +136,13 @@ export default function SessionsPage() {
       />
 
       {/* Main Content */}
-      <div style={{ padding: isMobile ? '20px' : '40px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ 
+        padding: isMobile ? '20px' : '32px', 
+        paddingLeft: sidebarCollapsed ? (isMobile ? '20px' : '100px') : (isMobile ? '20px' : '280px'),
+        paddingRight: isMobile ? '20px' : '32px',
+        transition: 'padding 0.3s ease',
+        minHeight: 'calc(100vh - 80px)'
+      }}>
         
         {/* Classes-style Header Card */}
         <motion.div
@@ -343,8 +349,11 @@ export default function SessionsPage() {
               exit={{ opacity: 0 }}
               style={{
                 display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))',
-                gap: '16px'
+                gridTemplateColumns: isMobile ? '1fr' : sidebarCollapsed 
+                  ? 'repeat(auto-fill, minmax(320px, 1fr))' 
+                  : 'repeat(auto-fill, minmax(300px, 1fr))',
+                gap: sidebarCollapsed ? '20px' : '16px',
+                maxWidth: '100%'
               }}
             >
               {filteredSessions.map((session, index) => (

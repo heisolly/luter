@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { RiTimeLine, RiTrophyLine, RiLightbulbFill, RiCloseFill, RiDeleteBack2Fill, RiFireFill, RiStarFill } from 'react-icons/ri'
 import { PuzzlePiece } from '@phosphor-icons/react'
-import { GameStartScreen, GameOverScreen, shuffleWithSeed } from './GameShared'
+import { GameStartScreen, GameOverScreen, createSeededRandom, shuffleWithSeed, MultiplayerHUD } from './GameShared'
 import { playgroundService } from '../../../services/playgroundService'
 import confetti from 'canvas-confetti'
 
@@ -34,7 +34,12 @@ export default function TermBuilderGame({ room, participants, user, deck, onExit
   useEffect(() => {
     let interval
     if (gameState === 'playing') {
-      const startTime = room.updated_at ? new Date(room.updated_at).getTime() : Date.now()
+      const isMultiplayer = !!room.created_by
+      const startOffset = isMultiplayer ? 3000 : 0
+      const startTime = (isMultiplayer && room.updated_at) 
+        ? (new Date(room.updated_at).getTime() + startOffset) 
+        : Date.now()
+
       interval = setInterval(() => {
         const now = Date.now()
         const diff = (now - startTime) / 1000
@@ -42,7 +47,7 @@ export default function TermBuilderGame({ room, participants, user, deck, onExit
       }, 100)
     }
     return () => clearInterval(interval)
-  }, [gameState, room.updated_at])
+  }, [gameState, room.updated_at, room.created_by])
 
   // Auto-start for multiplayer
   useEffect(() => {
@@ -79,6 +84,7 @@ export default function TermBuilderGame({ room, participants, user, deck, onExit
     roundStartTimeRef.current = Date.now()
 
     const roundSeed = room.id + "_round_" + (deck.length - list.length)
+    const rng = createSeededRandom(roundSeed)
     const words = item.term.trim().split(/\s+/).filter(Boolean)
     const allOtherWords = deck
       .filter(x => x.term !== item.term)
@@ -86,11 +92,14 @@ export default function TermBuilderGame({ room, participants, user, deck, onExit
 
     const uniqueDistractors = [...new Set(allOtherWords)]
     const distractorCount = Math.min(4, Math.max(2, words.length + 2))
-    const distractors = shuffleWithSeed(uniqueDistractors, roundSeed + "_dist").slice(0, distractorCount)
+    
+    // Use seeded shuffle for distractors
+    const shuffledUnique = shuffleWithSeed(uniqueDistractors, roundSeed + "_dist")
+    const distractors = shuffledUnique.slice(0, distractorCount)
 
     const fallbacks = ['Concept', 'Theory', 'System', 'Data', 'Model', 'Value', 'Method']
     while (distractors.length < distractorCount) {
-      const fb = fallbacks[Math.floor(Math.random() * fallbacks.length)]
+      const fb = fallbacks[Math.floor(rng() * fallbacks.length)]
       if (!distractors.includes(fb) && !words.includes(fb)) {
         distractors.push(fb)
       }
@@ -107,15 +116,35 @@ export default function TermBuilderGame({ room, participants, user, deck, onExit
   }, [room.status, gameState])
 
   const addWord = (word, index) => {
-    if (feedback || gameState !== 'playing') return
+    if (feedback || gameState !== 'playing' || !targetItem) return
 
+    const targetWords = targetItem.term.trim().split(/\s+/).filter(Boolean)
+    const currentWordIndex = currentGuess.length
+    const expectedWord = targetWords[currentWordIndex]?.toLowerCase()
+
+    // Immediate validation: if the word picked doesn't match the word at this position
+    if (!expectedWord || word.toLowerCase() !== expectedWord) {
+      setFeedback('wrong')
+      setFailedAttempts(f => f + 1)
+      setStreak(0)
+      setWrongCount(w => w + 1)
+      
+      setTimeout(() => {
+        setFeedback(null)
+        setCurrentGuess([])
+        // Seeded reshuffle for retry
+        const retrySeed = `${room.id}_retry_${failedAttempts}_${Date.now()}`
+        setScrambled(prev => shuffleWithSeed([...prev], retrySeed))
+      }, 800)
+      return
+    }
+
+    // Correct word picked for this position
     const newGuess = [...currentGuess, { word, originalIndex: index }]
     setCurrentGuess(newGuess)
 
-    const guessString = newGuess.map(g => g.word).join(' ').toLowerCase()
-    const targetString = targetItem.term.trim().toLowerCase()
-
-    if (guessString === targetString) {
+    // Only if the entire term is built correctly
+    if (newGuess.length === targetWords.length) {
       setFeedback('correct')
       setStreak(s => s + 1)
       setCompletedTerms(c => c + 1)
@@ -128,10 +157,8 @@ export default function TermBuilderGame({ room, participants, user, deck, onExit
         bonus += 15
         bonusLabel = { amount: '+15 Speed Bonus!', id: Date.now() }
       }
-      // Streak bonus
-      if (streak >= 2) {
-        bonus += 10
-      }
+      
+      if (streak >= 2) bonus += 10
 
       const newScore = score + bonus
       setScore(newScore)
@@ -145,16 +172,6 @@ export default function TermBuilderGame({ room, participants, user, deck, onExit
         setSpeedBonus(null)
         nextRound()
       }, 900)
-    } else if (newGuess.length >= targetItem.term.trim().split(/\s+/).filter(Boolean).length) {
-      setFeedback('wrong')
-      setFailedAttempts(f => f + 1)
-      setStreak(0)
-      setWrongCount(w => w + 1)
-      setTimeout(() => {
-        setFeedback(null)
-        setCurrentGuess([])
-        setScrambled(prev => [...prev].sort(() => Math.random() - 0.5))
-      }, 800)
     }
   }
 
@@ -232,9 +249,10 @@ export default function TermBuilderGame({ room, participants, user, deck, onExit
             setCompletedTerms(0)
             setStreak(0)
           }}
-          onExit={onExit}
+          onExit={(nextGame) => onExit(nextGame)}
           isGuest={!user.id}
           color="#7c3aed"
+          room={room}
         />
       </div>
     )
@@ -243,7 +261,21 @@ export default function TermBuilderGame({ room, participants, user, deck, onExit
   const progress = totalTerms > 0 ? completedTerms / totalTerms : 0
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '20px' }}>
+    <div style={{ 
+      width: '100%',
+      maxWidth: 800, 
+      margin: '0 auto', 
+      padding: '12px', 
+      fontFamily: "'Outfit', sans-serif",
+      boxSizing: 'border-box'
+    }}>
+      {room.created_by && (
+        <MultiplayerHUD 
+          participants={participants} 
+          user={user} 
+          color="#7c3aed" 
+        />
+      )}
       {/* Header */}
       <div style={{
         display: 'flex',

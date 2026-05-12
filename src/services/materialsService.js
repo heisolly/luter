@@ -781,6 +781,8 @@ export async function updateSessionLastAccessed(sessionId) {
 export async function triggerDocumentConversion(materialId, fileUrl, fileType, fileName, userId) {
   if (!materialId || !fileUrl) throw new Error('Missing materialId or fileUrl')
 
+  console.log(`[Conversion] Triggering document-processor for ${materialId} (${fileType})`)
+
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token
 
@@ -795,6 +797,12 @@ export async function triggerDocumentConversion(materialId, fileUrl, fileType, f
   })
 
   const result = await response.json()
+  console.log('[Conversion] Edge Function raw response:', {
+    status: response.status,
+    statusText: response.statusText,
+    body: result
+  })
+
   if (!response.ok) throw new Error(result.error || 'Conversion request failed')
   return result
 }
@@ -804,24 +812,42 @@ export async function triggerDocumentConversion(materialId, fileUrl, fileType, f
  */
 export function pollConversionStatus(materialId, { onConverted, onFailed, intervalMs = 4000, maxAttempts = 60 } = {}) {
   let attempts = 0
+  console.log(`[PollConversion] Started polling for material ${materialId} (max ${maxAttempts} attempts, ${intervalMs}ms interval)`)
+
   const timer = setInterval(async () => {
     attempts++
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('materials')
-        .select('converted_url, converted_type, render_quality, processing_status')
+        .select('converted_url, converted_type, render_quality, processing_status, metadata')
         .eq('id', materialId)
         .single()
 
-      if (data?.converted_url) {
+      if (error) {
+        console.warn(`[PollConversion] DB error for ${materialId}:`, error.message)
+      }
+
+      // Check converted_url (new pipeline) or metadata.pdf_url (legacy pipeline)
+      const legacyPdfUrl = data?.metadata?.pdf_url
+      const effectiveUrl = data?.converted_url || legacyPdfUrl
+
+      console.log(`[Poll] Attempt ${attempts} for ${materialId}:`, {
+        converted_url: data?.converted_url,
+        processing_status: data?.processing_status,
+        raw_data: data
+      })
+
+      if (effectiveUrl) {
+        console.log(`[PollConversion] Conversion complete for ${materialId}! URL: ${effectiveUrl}`)
         clearInterval(timer)
-        onConverted?.(data)
+        onConverted?.({ ...data, converted_url: effectiveUrl })
       } else if (data?.processing_status === 'failed' || attempts >= maxAttempts) {
+        console.warn(`[PollConversion] Giving up on ${materialId}. Status: ${data?.processing_status}, attempts: ${attempts}`)
         clearInterval(timer)
         onFailed?.()
       }
     } catch (err) {
-      console.warn('[PollConversion] Error:', err)
+      console.warn(`[PollConversion] Error for ${materialId}:`, err)
       if (attempts >= maxAttempts) {
         clearInterval(timer)
         onFailed?.()

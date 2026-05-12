@@ -142,10 +142,17 @@ Rules:
 - If query is a topic like "THERMO" or "HEAT", return courses whose titles match.
 - No markdown, no commentary. Return ONLY a JSON array: [{"code":"MCE301","name":"Full official-style title"}, ...]`,
 
-  MANUAL_COURSE_ENRICH: `You summarize one university course for a study app. Use Nigerian university norms. If web snippets are provided, ground the summary in them; otherwise use careful general knowledge and say when typical titles vary by school.
-
-Return ONLY valid JSON (no markdown):
-{"canonical_title":"string","short_description":"2-4 sentences for a student","learning_topics":["topic1","topic2","topic3"],"typical_credits":"e.g. 2 or 3","notes":"optional caveats or empty string"}`,
+  ADMIN_WEB_RESEARCH_PARSE: `You are an expert at synthesizing web search results into a structured Nigerian university syllabus.
+  
+  You will receive search results containing fragments of handbooks, department news, or curriculum announcements.
+  
+  Rules:
+  - Extract every plausible course code and title. 
+  - Normalize codes (e.g. "CSC 301" -> "CSC301").
+  - Assign a confidence score (0.0 to 1.0) based on how clearly the search result links the course to the specific university/dept/level.
+  - If snippets contradict, prefer the most official-looking source or the most recent one.
+  - Return ONLY a JSON object: {"courses":[{"code":"CSC301","title":"Course Name","is_elective":false,"confidence":0.9,"source_snippet":"..."}]}
+  No markdown, no commentary.`,
 }
 
 // Request Queue for Rate Limit Handling
@@ -513,5 +520,48 @@ ${(webSnippet || '').slice(0, 6000)}`
   } catch (e) {
     console.warn('enrichManualCourseWithGroq', e)
     return null
+  }
+}
+/**
+ * Research and synthesize a syllabus using web results
+ */
+export async function researchSyllabusOnline({ university, department, level, semester, searchResults }) {
+  if (!GROQ_API_KEY) return []
+  
+  const resultsContext = searchResults.results
+    .map((r, i) => `Source [${i+1}]: ${r.title}\nURL: ${r.url}\nContent: ${r.content}`)
+    .join('\n\n---\n\n')
+
+  const userMsg = `University: ${university}
+Department: ${department}
+Level: ${level}
+Semester: ${semester}
+
+WEB SEARCH RESULTS:
+${resultsContext.slice(0, 15000)}
+
+TASK:
+Based on these search results, identify the official or most plausible course list for this specific academic slot. If the results mention "handbook", "curriculum", or "official list", prioritize those.`
+
+  try {
+    const data = await callGroqAPI([{ role: 'user', content: userMsg }], GROQ_MODELS.PROFESSOR, {
+      temperature: 0.2,
+      systemPromptOverride: GROQ_PROMPTS.ADMIN_WEB_RESEARCH_PARSE,
+    })
+    const raw = stripJsonFence(data?.choices?.[0]?.message?.content || '')
+    const parsed = JSON.parse(raw)
+    const arr = Array.isArray(parsed) ? parsed : parsed?.courses
+    if (!Array.isArray(arr)) return []
+    
+    return arr.map((c) => ({
+      code: String(c.code || '').replace(/\s+/g, '').toUpperCase().slice(0, 16),
+      title: String(c.title || c.name || '').trim(),
+      is_elective: Boolean(c.is_elective),
+      confidence: Number(c.confidence || 0.8),
+      source_snippet: String(c.source_snippet || '').slice(0, 200)
+    })).filter(c => c.code && c.title)
+  } catch (e) {
+    console.warn('researchSyllabusOnline failed', e)
+    return []
   }
 }

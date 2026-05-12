@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { RiTimeLine, RiTrophyLine, RiCheckFill, RiCloseFill, RiFireFill } from 'react-icons/ri'
 import { Lightning } from '@phosphor-icons/react'
-import { GameStartScreen, GameOverScreen, shuffleWithSeed, createSeededRandom } from './GameShared'
+import { GameStartScreen, GameOverScreen, shuffleWithSeed, createSeededRandom, MultiplayerHUD } from './GameShared'
 import { playgroundService } from '../../../services/playgroundService'
 import confetti from 'canvas-confetti'
 
@@ -43,7 +43,14 @@ export default function BrainBlitzGame({ room, participants, user, deck, onExit 
   useEffect(() => {
     let interval
     if (gameState === 'playing') {
-      const startTime = room.updated_at ? new Date(room.updated_at).getTime() : Date.now()
+      // If multiplayer, the game starts exactly 3 seconds after room.updated_at (the countdown)
+      // If solo, it starts from the moment setGameState('playing') was called.
+      const isMultiplayer = !!room.created_by
+      const startOffset = isMultiplayer ? 3000 : 0
+      const startTime = (isMultiplayer && room.updated_at) 
+        ? (new Date(room.updated_at).getTime() + startOffset) 
+        : Date.now()
+
       interval = setInterval(() => {
         const now = Date.now()
         const diff = (now - startTime) / 1000
@@ -51,7 +58,7 @@ export default function BrainBlitzGame({ room, participants, user, deck, onExit 
       }, 100)
     }
     return () => clearInterval(interval)
-  }, [gameState, room.updated_at])
+  }, [gameState, room.updated_at, room.created_by])
 
   const nextRound = (currentUnplayed) => {
     const list = currentUnplayed || unplayedDeck
@@ -151,7 +158,18 @@ export default function BrainBlitzGame({ room, participants, user, deck, onExit 
         total={totalTerms}
         xp={score * 3}
         accuracy={Math.round((correctAnswers / Math.max(1, totalTerms)) * 100)}
-        onRetry={() => {
+        onRetry={async () => {
+          if (room.created_by && room.created_by === user.id) {
+            try {
+              await playgroundService.supabase
+                .from('playground_rooms')
+                .update({ status: 'waiting', updated_at: new Date().toISOString() })
+                .eq('id', room.id)
+            } catch (e) {
+              console.error("Failed to reset room:", e)
+            }
+          }
+          
           setGameState('start')
           setScore(0)
           setTimeElapsed(0)
@@ -160,9 +178,10 @@ export default function BrainBlitzGame({ room, participants, user, deck, onExit 
           setStreak(0)
           setCompletedTerms(0)
         }}
-        onExit={onExit}
+        onExit={(nextGame) => onExit(nextGame)}
         isGuest={!user.id}
         color="#f59e0b"
+        room={room}
       />
     )
   }
@@ -170,7 +189,21 @@ export default function BrainBlitzGame({ room, participants, user, deck, onExit 
   const progress = completedTerms / (totalTerms || 1)
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '20px', fontFamily: "'Outfit', sans-serif" }}>
+    <div style={{ 
+      width: '100%',
+      maxWidth: 800, 
+      margin: '0 auto', 
+      padding: '12px', 
+      fontFamily: "'Outfit', sans-serif",
+      boxSizing: 'border-box'
+    }}>
+      {room.created_by && (
+        <MultiplayerHUD 
+          participants={participants} 
+          user={user} 
+          color="#f59e0b" 
+        />
+      )}
       {/* Header Info */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -244,32 +277,33 @@ export default function BrainBlitzGame({ room, participants, user, deck, onExit 
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             style={{
               background: 'white',
-              padding: '48px 40px',
-              borderRadius: 40,
+              padding: 'clamp(24px, 5vw, 48px) clamp(20px, 4vw, 40px)',
+              borderRadius: 32,
               textAlign: 'center',
               border: `4px solid ${feedback === 'correct' ? '#10b981' : feedback === 'wrong' ? '#ef4444' : '#e2e8f0'}`,
-              transition: 'border-color 0.25s'
+              transition: 'border-color 0.25s',
+              boxShadow: '0 12px 48px rgba(0,0,0,0.08)'
             }}
           >
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 24, letterSpacing: '2px' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 20, letterSpacing: '2px' }}>
               Does this match?
             </div>
 
-            <h2 style={{ fontSize: 40, fontWeight: 900, color: '#0f172a', marginBottom: 28, lineHeight: 1.2 }}>
+            <h2 style={{ fontSize: 'clamp(28px, 6vw, 40px)', fontWeight: 900, color: '#0f172a', marginBottom: 24, lineHeight: 1.2 }}>
               {currentPair?.term}
             </h2>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, margin: '0 auto 32px' }}>
-              <div style={{ height: 3, background: '#e2e8f0', width: 60, borderRadius: 2 }} />
-              <div style={{ background: '#f8fafc', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 800, color: '#64748b', border: '2px solid #e2e8f0' }}>MEANS</div>
-              <div style={{ height: 3, background: '#e2e8f0', width: 60, borderRadius: 2 }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, margin: '0 auto 28px' }}>
+              <div style={{ height: 2, background: '#e2e8f0', width: 40, borderRadius: 1 }} />
+              <div style={{ background: '#f8fafc', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 800, color: '#64748b', border: '1px solid #e2e8f0' }}>MEANS</div>
+              <div style={{ height: 2, background: '#e2e8f0', width: 40, borderRadius: 1 }} />
             </div>
 
-            <p style={{ fontSize: 22, color: '#334155', fontWeight: 600, lineHeight: 1.6, maxWidth: 580, margin: '0 auto 48px' }}>
+            <p style={{ fontSize: 'clamp(16px, 4vw, 20px)', color: '#334155', fontWeight: 600, lineHeight: 1.6, maxWidth: 580, margin: '0 auto 40px' }}>
               {currentPair?.definition}
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, padding: '0 16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(10px, 2vw, 20px)', padding: '0 8px' }}>
               {buttonsSwapped ? (
                 <>
                   <motion.button
@@ -277,9 +311,9 @@ export default function BrainBlitzGame({ room, participants, user, deck, onExit 
                     whileTap={{ scale: 0.98, y: 0, boxShadow: '0px 0px 0px transparent' }}
                     onClick={() => handleAnswer(false)}
                     style={{
-                      padding: '22px',
+                      padding: 'clamp(14px, 3vw, 22px)',
                       background: 'white', color: '#ef4444', border: '3px solid #ef4444',
-                      borderRadius: 24, fontSize: 20, fontWeight: 900, cursor: 'pointer',
+                      borderRadius: 24, fontSize: 'clamp(16px, 4vw, 20px)', fontWeight: 900, cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                       transition: 'background-color 0.2s ease'
                     }}
@@ -293,9 +327,9 @@ export default function BrainBlitzGame({ room, participants, user, deck, onExit 
                     whileTap={{ scale: 0.98, y: 0, boxShadow: '0px 0px 0px transparent' }}
                     onClick={() => handleAnswer(true)}
                     style={{
-                      padding: '22px',
+                      padding: 'clamp(14px, 3vw, 22px)',
                       background: 'white', color: '#10b981', border: '3px solid #10b981',
-                      borderRadius: 24, fontSize: 20, fontWeight: 900, cursor: 'pointer',
+                      borderRadius: 24, fontSize: 'clamp(16px, 4vw, 20px)', fontWeight: 900, cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                       transition: 'background-color 0.2s ease'
                     }}
@@ -312,9 +346,9 @@ export default function BrainBlitzGame({ room, participants, user, deck, onExit 
                     whileTap={{ scale: 0.98, y: 0, boxShadow: '0px 0px 0px transparent' }}
                     onClick={() => handleAnswer(true)}
                     style={{
-                      padding: '22px',
+                      padding: 'clamp(14px, 3vw, 22px)',
                       background: 'white', color: '#10b981', border: '3px solid #10b981',
-                      borderRadius: 24, fontSize: 20, fontWeight: 900, cursor: 'pointer',
+                      borderRadius: 24, fontSize: 'clamp(16px, 4vw, 20px)', fontWeight: 900, cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                       transition: 'background-color 0.2s ease'
                     }}
@@ -328,9 +362,9 @@ export default function BrainBlitzGame({ room, participants, user, deck, onExit 
                     whileTap={{ scale: 0.98, y: 0, boxShadow: '0px 0px 0px transparent' }}
                     onClick={() => handleAnswer(false)}
                     style={{
-                      padding: '22px',
+                      padding: 'clamp(14px, 3vw, 22px)',
                       background: 'white', color: '#ef4444', border: '3px solid #ef4444',
-                      borderRadius: 24, fontSize: 20, fontWeight: 900, cursor: 'pointer',
+                      borderRadius: 24, fontSize: 'clamp(16px, 4vw, 20px)', fontWeight: 900, cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                       transition: 'background-color 0.2s ease'
                     }}

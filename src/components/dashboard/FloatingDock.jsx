@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   RiAddLine as Plus, RiUploadCloudFill as Upload, RiMagicFill as Sparkles, RiBookOpenFill as BookOpen, 
   RiDeleteBin6Fill as Trash2, RiPlayFill as Play, RiCloseLine as X, RiArrowUpSLine as ChevronUp, RiStackFill as Layers,
   RiFileTextFill as FileText, RiMusicFill as Music, RiVideoFill as Video, RiImageFill as ImageIcon,
-  RiFolderOpenFill as Folder, RiTimeFill as Clock, RiDragMoveFill as DragHandle
+  RiFolderOpenFill as Folder, RiTimeFill as Clock, RiDragMoveFill as DragHandle, RiMenuFill as Menu,
+  RiBook2Fill as Book
 } from 'react-icons/ri';
 import { supabase } from '../../supabaseClient';
 import { useSessionStore } from '../../store/useSessionStore';
@@ -16,9 +17,11 @@ import './FloatingDock.css';
 const FloatingDock = ({ user, isMobile }) => {
   const { t } = useTranslation(['dock']);
   const navigate = useNavigate();
+  const location = useLocation();
   const containerRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
   const dragControls = useDragControls();
   const { 
     sessions, 
@@ -137,10 +140,20 @@ const FloatingDock = ({ user, isMobile }) => {
     return date.toLocaleDateString();
   };
 
+  // Pages where the Floating Dock should appear
+  const allowedPages = ['/dashboard', '/dashboard/session', '/dashboard/flashcards', '/dashboard/playground'];
+  
+  // Check if current page should show the Floating Dock
+  const shouldShowDock = allowedPages.some(page => location.pathname.startsWith(page));
+  
+  if (!shouldShowDock || !user) {
+    return null;
+  }
+
   return (
     <motion.div 
       ref={containerRef}
-      className={`floating-dock-container ${isMobile ? 'mobile' : ''}`}
+      className={`floating-orb-container ${isMobile ? 'mobile' : ''}`}
       drag={!isOpen && !showCreateModal}
       dragControls={dragControls}
       dragMomentum={false}
@@ -151,11 +164,10 @@ const FloatingDock = ({ user, isMobile }) => {
         top: -window.innerHeight + 120,
         bottom: -40
       }}
-      whileDrag={{ scale: 1.02, cursor: 'grabbing' }}
-      initial={{ opacity: 0, y: 100, scale: 0.8 }}
+      whileDrag={{ scale: 1.05, cursor: 'grabbing' }}
+      initial={{ opacity: 0, scale: 0 }}
       animate={{ 
-        opacity: 1, 
-        y: 0, 
+        opacity: isHovered || isOpen ? 1 : 0.3,
         scale: 1,
         transition: {
           type: "spring",
@@ -175,29 +187,37 @@ const FloatingDock = ({ user, isMobile }) => {
       onDragEnd={(_, info) => {
         setPosition({ x: info.offset.x, y: info.offset.y });
       }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
     >
+      {/* Expanded Panel */}
       <AnimatePresence>
         {isOpen && (
           <motion.div 
-            initial={{ y: 20, opacity: 0, scale: 0.95 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 20, opacity: 0, scale: 0.95 }}
-            className="dock-expanded-panel"
+            initial={{ scale: 0, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0, opacity: 0, y: 20 }}
+            className="orb-expanded-panel"
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 20
+            }}
           >
-            <div className="dock-panel-header">
-              <div className="dock-panel-title">
-                <Folder size={14} />
+            <div className="orb-panel-header">
+              <div className="orb-panel-title">
+                <Folder size={16} />
                 <span>Study Sessions ({sessions.length})</span>
               </div>
-              <button onClick={() => setIsOpen(false)} className="dock-close-btn">
-                <X size={14} />
+              <button onClick={() => setIsOpen(false)} className="orb-close-btn">
+                <X size={16} />
               </button>
             </div>
 
-            <div className="dock-items-list">
+            <div className="orb-items-list">
               {sessions.length === 0 ? (
-                <div className="dock-empty-state">
-                  <Folder size={24} opacity={0.3} />
+                <div className="orb-empty-state">
+                  <Folder size={32} opacity={0.3} />
                   <p>No study sessions yet</p>
                   <p style={{ fontSize: 12, marginTop: 8, opacity: 0.7 }}>Create a session to start studying</p>
                 </div>
@@ -206,15 +226,16 @@ const FloatingDock = ({ user, isMobile }) => {
                   <motion.div 
                     layout
                     key={session.id} 
-                    className="dock-session-row"
+                    className="orb-session-row"
                     onClick={() => handleOpenSession(session)}
+                    whileHover={{ scale: 1.02, x: 4 }}
                   >
-                    <div className="dock-session-icon">
+                    <div className="orb-session-icon">
                       <Folder size={20} />
                     </div>
-                    <div className="dock-session-info">
-                      <span className="dock-session-name">{session.session_name}</span>
-                      <span className="dock-session-meta">
+                    <div className="orb-session-info">
+                      <span className="orb-session-name">{session.session_name}</span>
+                      <span className="orb-session-meta">
                         <Clock size={10} />
                         {formatSessionDate(session.last_accessed)} &bull; {session.items?.length || 0} items
                       </span>
@@ -224,7 +245,7 @@ const FloatingDock = ({ user, isMobile }) => {
                         e.stopPropagation();
                         handleDeleteSession(session.id);
                       }} 
-                      className="dock-item-remove"
+                      className="orb-item-remove"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -233,16 +254,31 @@ const FloatingDock = ({ user, isMobile }) => {
               )}
             </div>
 
-            <button 
-              onClick={() => {
-                setShowCreateModal(true);
-                setIsOpen(false);
-              }} 
-              className="dock-action-btn primary"
-            >
-              <Plus size={16} />
-              <span>New Session</span>
-            </button>
+            {/* Action Buttons */}
+            <div className="orb-action-buttons">
+              <motion.label 
+                className="orb-action-btn orb-action-btn--upload"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Upload size={20} />
+                <span>Upload Files</span>
+                <input type="file" multiple onChange={handleFileUpload} hidden />
+              </motion.label>
+
+              <motion.button 
+                className="orb-action-btn orb-action-btn--create"
+                onClick={() => {
+                  setShowCreateModal(true);
+                  setIsOpen(false);
+                }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Plus size={20} />
+                <span>New Session</span>
+              </motion.button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -254,24 +290,24 @@ const FloatingDock = ({ user, isMobile }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="dock-modal-overlay"
+            className="orb-modal-overlay"
             onClick={() => setShowCreateModal(false)}
           >
             <motion.div 
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
-              className="dock-modal-content"
+              className="orb-modal-content"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="dock-modal-header">
+              <div className="orb-modal-header">
                 <h3>Create Study Session</h3>
-                <button onClick={() => setShowCreateModal(false)} className="dock-close-btn">
+                <button onClick={() => setShowCreateModal(false)} className="orb-close-btn">
                   <X size={16} />
                 </button>
               </div>
-              <div className="dock-modal-body">
-                <div className="dock-form-group">
+              <div className="orb-modal-body">
+                <div className="orb-form-group">
                   <label>Session Name</label>
                   <input 
                     type="text" 
@@ -281,23 +317,23 @@ const FloatingDock = ({ user, isMobile }) => {
                     autoFocus
                   />
                 </div>
-                <label className="dock-upload-label">
+                <label className="orb-upload-label">
                   <Upload size={20} />
                   <span>Upload Materials (optional)</span>
                   <input type="file" multiple onChange={handleFileUpload} hidden />
                 </label>
               </div>
-              <div className="dock-modal-footer">
+              <div className="orb-modal-footer">
                 <button 
                   onClick={() => setShowCreateModal(false)}
-                  className="dock-btn-secondary"
+                  className="orb-btn-secondary"
                 >
                   Cancel
                 </button>
                 <button 
                   onClick={handleCreateSession}
                   disabled={!newSessionName.trim()}
-                  className="dock-btn-primary"
+                  className="orb-btn-primary"
                 >
                   Create Session
                 </button>
@@ -307,89 +343,40 @@ const FloatingDock = ({ user, isMobile }) => {
         )}
       </AnimatePresence>
 
-      {/* Draggable Handle */}
-      <motion.div 
-        className="dock-drag-handle"
-        onPointerDown={(e) => dragControls.start(e)}
-        title="Drag to move"
-        whileHover={{ scale: 1.1, opacity: 1 }}
+      {/* Main Orb Button */}
+      <motion.button
+        className="floating-orb"
+        onClick={() => setIsOpen(!isOpen)}
+        whileHover={{ scale: 1.1, rotate: 180 }}
         whileTap={{ scale: 0.9 }}
+        animate={{
+          rotate: isOpen ? 45 : 0,
+          scale: isHovered ? 1.1 : 1
+        }}
+        transition={{
+          type: "spring",
+          stiffness: 300,
+          damping: 15
+        }}
       >
-        <DragHandle size={14} />
-      </motion.div>
-
-      {/* Main Dock Bar - Study Groups Style */}
-      <motion.div 
-        className="dock-main-bar"
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.2, duration: 0.4 }}
-      >
-        <motion.label 
-          className="dock-nav-btn dock-nav-btn--upload"
-          whileHover={{ scale: 1.05, y: -2 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <motion.div
-            initial={{ rotate: 0 }}
-            whileHover={{ rotate: 15 }}
-            transition={{ type: "spring", stiffness: 300 }}
-          >
-            <Upload size={18} strokeWidth={2.5} />
-          </motion.div>
-          <span>Upload</span>
-          <input type="file" multiple onChange={handleFileUpload} hidden />
-        </motion.label>
-
-        <div className="dock-nav-divider" />
-
-        <motion.button 
-          className="dock-nav-btn dock-nav-btn--sessions"
-          onClick={() => setIsOpen(!isOpen)}
-          whileHover={{ scale: 1.05, y: -2 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          {sessions.length > 0 ? (
-            <>
-              <motion.div 
-                className="dock-nav-session-dot"
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
-              <span>Sessions ({sessions.length})</span>
-            </>
-          ) : (
-            <>
-              <motion.div
-                initial={{ rotate: 0 }}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              >
-                <Sparkles size={18} strokeWidth={2.5} />
-              </motion.div>
-              <span>Sessions</span>
-            </>
-          )}
-        </motion.button>
-
-        <div className="dock-nav-divider" />
-
-        <motion.button 
-          className="dock-nav-btn dock-nav-btn--create"
-          onClick={() => setShowCreateModal(true)}
-          whileHover={{ scale: 1.05, y: -2 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <motion.div 
-            className="dock-nav-icon-circle"
-            whileHover={{ rotate: 90 }}
-            transition={{ type: "spring", stiffness: 300 }}
-          >
-            <Plus size={18} strokeWidth={3} />
-          </motion.div>
-          <span>New Session</span>
-        </motion.button>
-      </motion.div>
+        <div className="orb-icon">
+          {isOpen ? <X size={24} /> : <Book size={24} />}
+        </div>
+        
+        {/* Subtle pulse effect */}
+        <motion.div
+          className="orb-pulse"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.5, 0.8, 0.5]
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+      </motion.button>
     </motion.div>
   );
 };

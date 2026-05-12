@@ -23,6 +23,7 @@ import {
   ArrowsOutSimple,
   CircleNotch
 } from '@phosphor-icons/react'
+import { supabase } from '../../../supabaseClient'
 import { 
   RiErrorWarningFill as Warning, RiFileTextFill as FileText, RiEyeFill as Eye, RiMagicFill as Sparkle, RiImageFill as ImageIcon, RiMusicFill as Music, RiPlayFill as Play, RiGlobalFill as Globe, RiStackFill as Stack, RiDownloadLine as Download, RiFullscreenFill as CornersOut, 
   RiSearchLine as MagnifyingGlass, RiMoonFill as Moon, RiSunFill as Sun, RiVolumeUpFill as SpeakerHigh, RiLayoutColumnFill as Columns, RiRefreshLine as ArrowClockwise, RiArrowDownSLine as CaretDown, RiMagicLine as MagicWand, RiLightbulbFill as Lightbulb, RiGraduationCapFill as GraduationCap, RiBookmarkFill as Bookmark,
@@ -57,7 +58,7 @@ if (typeof window !== 'undefined' && pdfjsLib) {
 
 // ─── Main Document Viewer ─────────────────────────────────────────────────────
 
-export default function DocumentViewer({ material, onScrollUpdate }) {
+export default function DocumentViewer({ material, onScrollUpdate, onMaterialUpdate }) {
   const { setViewportData, askAI } = useReadingSpace()
   const [viewMode, setViewMode] = useState('visuals')
   const [fontSize, setFontSize] = useState(17)
@@ -109,8 +110,26 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
     window.addEventListener('luter-jump-to-page', handleJump)
     window.addEventListener('luter-highlight-text', handleHighlight)
 
+    // Handle signed URL for Office documents
+    const fetchSignedUrl = async () => {
+      if (['docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv'].includes(type)) {
+        try {
+          const path = material.source_url.split('/storage/v1/object/public/materials/')[1] || 
+                       material.source_url.split('/storage/v1/object/authenticated/materials/')[1]
+          
+          if (path) {
+            const { data, error } = await supabase.storage.from('materials').createSignedUrl(path, 3600)
+            if (data?.signedUrl) setSignedUrl(data.signedUrl)
+          }
+        } catch (e) {
+          console.warn('Failed to get signed URL:', e)
+        }
+      }
+    }
+    fetchSignedUrl()
+
     setViewportData({
-      visibleText: material.extracted_text?.slice(0, 3000) || '',
+      visibleText: (material.extracted_text || '').replace(/\*\*/g, '').slice(0, 3000),
       scrollPercent: 0,
       currentPage: 1,
       documentType: material.type || 'unknown',
@@ -118,11 +137,18 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
 
     return () => {
       window.removeEventListener('luter-jump-to-page', handleJump)
+      window.removeEventListener('luter-highlight-text', handleHighlight)
     }
-  }, [material?.id, material?.extracted_text])
+  }, [material?.id, material?.extracted_text, material?.source_url])
+
+  const [signedUrl, setSignedUrl] = useState(null)
 
   const getProcessedText = () => {
-    return material.extracted_text || ''
+    let text = material.extracted_text || ''
+    // If user sees literal ** in context, it might be artifacts from OCR/LLM cleaning
+    // but we still want to support it for Markdown rendering.
+    // However, if they specifically complained, we can do a light sanitization for the 'Context' view
+    return text
   }
 
   if (!material) return null
@@ -189,12 +215,12 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
           {/* VISUAL VIEW: CLEAN DOCUMENT MODE */}
           {viewMode === 'visuals' && (
             <div className="ws-visual-viewport" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-               <UniversalViewer 
-                  material={material}
+               <UniversalViewer
+                  material={{ ...material, source_url: signedUrl || material.source_url }}
                   initialPage={currentPage}
                   onPageChange={(e) => setCurrentPage(e.currentPage + 1)}
                   onDocumentLoad={(e) => setTotalPages(e.doc.numPages)}
-                  plugins={[searchPluginInstance, fullScreenPluginInstance]}
+                  onMaterialUpdate={onMaterialUpdate}
                />
             </div>
           )}
@@ -216,10 +242,11 @@ export default function DocumentViewer({ material, onScrollUpdate }) {
                         li: ({ children }) => <li style={{ fontFamily: 'var(--font-varela)', fontSize: `${fontSize - 1}px`, marginBottom: '12px', color: '#334155' }}>{children}</li>,
                         em: ({ children, ...props }) => {
                           return <em {...props}>{children}</em>
-                        }
+                        },
+                        strong: ({ children }) => <strong style={{ fontWeight: 700, color: '#1A102D' }}>{children}</strong>
                       }}
                     >
-                      {getProcessedText()}
+                      {getProcessedText().replace(/\\\*/g, '*')}
                     </ReactMarkdown>
                   </div>
                 </div>

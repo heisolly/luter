@@ -45,14 +45,14 @@ export default function StudyGroupsPage() {
     if (user) fetchGroups()
   }, [user])
 
-  const { startTour, hasCompletedTour } = useTourStore()
+  const { startTour, hasCompletedTour, completedTours, currentUserId } = useTourStore()
 
   useEffect(() => {
-    if (!loading && !hasCompletedTour('study-groups')) {
+    if (user?.id && currentUserId === user.id && !loading && !hasCompletedTour('study-groups')) {
       const timer = setTimeout(() => startTour('study-groups'), 2000)
       return () => clearTimeout(timer)
     }
-  }, [loading])
+  }, [user?.id, currentUserId, completedTours, loading, hasCompletedTour, startTour])
 
   async function fetchGroups() {
     try {

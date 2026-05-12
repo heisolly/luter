@@ -6,7 +6,7 @@
 
 import { supabase } from '../supabaseClient'
 import { callGroqAPI, GROQ_MODELS } from '../groqClient'
-import { queryStudyMaterials } from './langchainPipeline' // Import the extraction pipeline
+import { queryStudyMaterials, reprocessMaterial } from './langchainPipeline' // Import the extraction pipeline
 
 export class MaterialAnalysisService {
   
@@ -153,16 +153,20 @@ export class MaterialAnalysisService {
         console.warn('[AnalysisService] Content missing or too short, attempting emergency extraction...')
         try {
           // Trigger the LangChain pipeline to re-extract
-          await queryStudyMaterials('', material) 
+          const result = await reprocessMaterial(material) 
           
-          // Re-fetch the material to see if text is now present
-          const { data: updatedMaterial } = await supabase
-            .from('materials')
-            .select('extracted_text')
-            .eq('id', material.id)
-            .single()
-            
-          content = updatedMaterial?.extracted_text || ''
+          if (result.success && result.fullText) {
+            content = result.fullText
+          } else {
+            // Re-fetch the material to see if text is now present
+            const { data: updatedMaterial } = await supabase
+              .from('materials')
+              .select('extracted_text')
+              .eq('id', material.id)
+              .single()
+              
+            content = updatedMaterial?.extracted_text || ''
+          }
         } catch (extractionError) {
           console.error('[AnalysisService] Emergency extraction failed:', extractionError)
         }

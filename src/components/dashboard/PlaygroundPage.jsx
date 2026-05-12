@@ -173,9 +173,10 @@ export default function PlaygroundPage() {
     }
   }
 
-  const handleStartGame = async (modeOverride) => {
+  const handleStartGame = async (modeOverride, gameOverride) => {
     const finalMode = modeOverride || playMode
-    if (!user || !selectedGame || !selectedMaterial || !finalMode) return
+    const finalGame = gameOverride || selectedGame
+    if (!user || !finalGame || !selectedMaterial || !finalMode) return
     setLoading(true)
     try {
       // 1. Fetch materials for this course to see if we have text
@@ -192,7 +193,7 @@ export default function PlaygroundPage() {
       const contextText = materials?.map(m => m.extracted_text).join('\n').substring(0, 3000)
       console.log("Generating questions with AI...")
       const aiQuestions = await playgroundService.generateAIQuestions(
-        selectedGame, 
+        finalGame, 
         selectedMaterial.name + (contextText ? ` (Context: ${contextText})` : ''), 
         15
       )
@@ -219,7 +220,7 @@ export default function PlaygroundPage() {
         deck: finalDeck
       }
       
-      const newRoom = await playgroundService.createRoom(selectedGame, user.id, { mode: finalMode }, metadata)
+      const newRoom = await playgroundService.createRoom(finalGame, user.id, { mode: finalMode }, metadata)
       
       if (finalMode === 'solo') {
         await playgroundService.startGame(newRoom.id)
@@ -235,7 +236,12 @@ export default function PlaygroundPage() {
     }
   }
 
-  const handleBack = () => {
+  const handleBack = (nextGame) => {
+    if (nextGame && typeof nextGame === 'string') {
+      setSelectedGame(nextGame)
+      handleStartGame(playMode, nextGame)
+      return
+    }
     if (roomId) {
       navigate('/dashboard/compete')
     } else if (step === 'mode') setStep('game')

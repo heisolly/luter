@@ -60,9 +60,7 @@ import { WorkstationNotes, WorkstationSummary, WorkstationFlashcards, Workstatio
 import { saveToVault, fetchUserNotes, deleteUserNote } from '../../services/materialsService'
 import { queryStudyMaterials, reprocessMaterial } from '../../services/langchainPipeline'
 import { pollMaterialUntilReady } from '../../services/materialsService'
-import VoiceModeBlob from './voice/VoiceModeBlob'
-import { MaterialAnalysisService } from '../../services/materialAnalysisService'
-import { useDeckStore } from '../../store/useDeckStore'
+const VoiceModeBlob = React.lazy(() => import('./voice/VoiceModeBlob'))
 import { preloadingService } from '../../services/preloadingService'
 import './workstation.css'
 
@@ -86,18 +84,20 @@ function WorkstationContent() {
   const [activeSideTab, setActiveSideTab] = useState('chat')
   const { startTour, hasCompletedTour } = useTourStore()
 
-  useEffect(() => {
-    if (selectedMaterial && !hasCompletedTour('workstation')) {
-      const timer = setTimeout(() => startTour('workstation'), 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [selectedMaterial])
   const [chatInput, setChatInput] = useState('')
   const [messages, setMessages] = useState([])
   const [isProcessingLoading, setIsProcessingLoading] = useState(false)
   const [courseMaterials, setCourseMaterials] = useState([])
   const [selectedMaterial, setSelectedMaterial] = useState(null)
   const [courseInfo, setCourseInfo] = useState(null)
+
+  // Tour effect — must come AFTER selectedMaterial declaration
+  useEffect(() => {
+    if (user?.id && selectedMaterial && !hasCompletedTour('workstation')) {
+      const timer = setTimeout(() => startTour('workstation'), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [user?.id, selectedMaterial, hasCompletedTour, startTour])
   const [analysisCache, setAnalysisCache] = useState({})
   const [materialAnalysis, setMaterialAnalysis] = useState(null)
   const [showTools, setShowTools] = useState(false)
@@ -126,7 +126,17 @@ function WorkstationContent() {
     return () => clearTimeout(timer)
   }, [messages, isProcessingLoading])
 
-  const currentAnalysis = selectedMaterial ? (analysisCache[selectedMaterial.id] || {}) : {}
+  const currentAnalysis = React.useMemo(() => {
+    if (!selectedMaterial) return {}
+    const cached = analysisCache[selectedMaterial.id] || {}
+    return {
+      summary: cached.summary || materialAnalysis?.summary || null,
+      flashcards: cached.flashcards || materialAnalysis?.flashcards || [],
+      quiz: cached.quiz || materialAnalysis?.quiz || [],
+      notes: cached.notes || materialAnalysis?.smart_notes || null,
+      page_summaries: cached.page_summaries || materialAnalysis?.analysis?.page_summaries || {}
+    }
+  }, [selectedMaterial?.id, analysisCache, materialAnalysis])
 
   const isPlaceholderContent = (content) => {
     if (!content) return true
@@ -202,30 +212,29 @@ function WorkstationContent() {
   }, [])
 
   useEffect(() => {
-    if (!user?.id) return
+    console.log('🔍 WorkstationPage useEffect triggered:', { materialIdParam, courseId, userId: user?.id })
+    if (!user?.id) {
+      console.log('❌ No user ID, skipping material loading')
+      return
+    }
 
     if (materialIdParam) {
       // If materialId is specified, load that specific material regardless of courseId
+      console.log('📄 Loading standalone material:', materialIdParam)
       fetchStandaloneMaterial(materialIdParam)
     } else if (courseId) {
       // Load course-specific materials
-      const preloadPromise = preloadingService.preloadWorkspace(courseId, user.id)
-        .then((res) => {
-          if (res.success && res.data) {
-            console.log('[Workstation] Preload successful:', res.data)
-          } else {
-            console.warn('Workspace preload failed:', err.message)
-          }
-        })
-      
+      console.log('📚 Loading course materials for:', courseId)
       fetchCourseInfo()
       fetchMaterials()
       checkAssignments()
     } else if (activeDeckItems.length > 0) {
       // Load materials from deck if no courseId is provided
+      console.log('🎒 Loading deck materials')
       loadDeckMaterials()
     } else {
       // Fallback: fetch all user's standalone + course materials
+      console.log('🔄 Loading all user materials')
       fetchAllUserMaterials()
     }
   }, [courseId, materialIdParam, activeDeckItems.length, user?.id])
@@ -313,11 +322,12 @@ function WorkstationContent() {
   }
 
   async function fetchStandaloneMaterial(materialId) {
+    console.log('🔍 fetchStandaloneMaterial called with:', materialId)
     setLoading(true)
     try {
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(materialId)) {
-        console.warn('Invalid UUID provided for standalone material:', materialId)
+        console.warn('❌ Invalid UUID provided for standalone material:', materialId)
         setLoading(false)
         return
       }
@@ -331,12 +341,21 @@ function WorkstationContent() {
       if (error) throw error
 
       if (data) {
+        console.log('✅ Material found:', data.title)
         setCourseMaterials([data])
         setSelectedMaterial(data)
         setShowDashboard(false)
+      } else {
+        console.warn('❌ Material not found:', materialId)
+        // Redirect to dashboard if material not found
+        console.log('🔄 Redirecting to dashboard - material not found')
+        navigate('/dashboard')
       }
     } catch (err) {
-      console.error('Error loading standalone material:', err)
+      console.error('❌ Error loading standalone material:', err)
+      // Redirect to dashboard on error
+      console.log('🔄 Redirecting to dashboard - error occurred')
+      navigate('/dashboard')
     } finally {
       setLoading(false)
     }
@@ -435,6 +454,18 @@ function WorkstationContent() {
         }))
         setMaterialAnalysis(data.analysis || data)
       }
+
+      // Proactive extraction check (Process on Arrival)
+      if (selectedMaterial && (!selectedMaterial.extracted_text || selectedMaterial.extracted_text.length < 50)) {
+        console.log('[Workstation] Material missing text. Triggering proactive extraction...')
+        MaterialAnalysisService.getOrCreateAnalysis(materialId, selectedMaterial, user?.id)
+          .then(res => {
+            if (res.success && res.material?.extracted_text) {
+              // Update local state if text recovered
+              selectedMaterial.extracted_text = res.material.extracted_text
+            }
+          })
+      }
     } catch (err) {
       console.error('Error fetching analysis:', err)
     }
@@ -456,7 +487,7 @@ function WorkstationContent() {
     setMessages(prev => [...prev, userMsg])
     setIsProcessingLoading(true)
     try {
-      const docContext = selectedMaterial?.extracted_text?.slice(0, 4000) || ""
+      const docContext = (selectedMaterial?.extracted_text || "").replace(/\*\*/g, '').slice(0, 4000)
       const response = await callGroqAPI(
         [
           { role: 'system', content: `You are Luter, a helpful tutor. Ground your answer in this document context: ${docContext}` },
@@ -617,7 +648,7 @@ function WorkstationContent() {
       switch(type) {
         case 'notes':
           try {
-            const content = selectedMaterial.extracted_text?.slice(0, 6000) || ''
+            const content = (selectedMaterial.extracted_text || "").replace(/\*\*/g, '').slice(0, 6000)
             if (!content) { finalResult = 'No content available.'; break; }
             const notesPrompt = `You are Luter Tutor. Provide academic notes for this material. Title: ${selectedMaterial.title}. Content: ${content}`
             const response = await callGroqAPI([{ role: 'user', content: notesPrompt }], GROQ_MODELS.SPEEDSTER, { systemPromptOverride: GROQ_PROMPTS.AI_NOTES })
@@ -701,7 +732,7 @@ function WorkstationContent() {
         question: textToSend, 
         courseId, 
         materialId: materialContext, 
-        fallbackContext: selectedMaterial?.extracted_text?.slice(0, 8000) || '' 
+        fallbackContext: (selectedMaterial?.extracted_text || "").replace(/\*\*/g, '').slice(0, 8000)
       })
       setMessages(prev => [...prev, { role: 'ai', content: aiResponse }])
     } catch (err) {
@@ -763,113 +794,97 @@ function WorkstationContent() {
       )}
 
       {!isMobile && (
-        <header className="ws-global-glass-header" style={{ 
-          background: 'rgba(255, 255, 255, 0.9)', 
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid #F1F5F9', 
-          height: '72px', 
+        <header style={{ 
+          background: 'rgba(255, 255, 255, 0.95)', 
+          borderBottom: '1px solid rgba(229, 231, 235, 0.6)', 
+          height: '64px', 
           padding: '0 32px', 
           display: 'flex', 
           alignItems: 'center',
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
         }}>
-          <div className="ws-header-left" style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
             <button 
-              className="ws-sidebar-toggle" 
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              style={{ background: 'white', border: '1.5px solid #E2E8F0', borderRadius: '12px', padding: '8px', color: '#1E293B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+              style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '8px', color: '#374151', cursor: 'pointer' }}
               title={sidebarCollapsed ? "Pin sidebar" : "Unpin sidebar"}
             >
-              <SidebarSimple size={20} weight="bold" mirrored={!sidebarCollapsed} />
+              <SidebarSimple size={18} weight="bold" mirrored={!sidebarCollapsed} />
             </button>
-            <div className="ws-breadcrumb-minimal" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#64748B', fontSize: '13px', fontFamily: 'var(--font-outfit)', fontWeight: 700 }}>
-              <House size={18} weight="bold" onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer', color: '#1E293B' }} />
-              <CaretRight size={14} weight="bold" color="#64748B" />
-              <span onClick={() => navigate(`/dashboard/courses/${courseId}`)} style={{ cursor: 'pointer', letterSpacing: '0.02em', fontWeight: 700, color: '#334155' }}>{courseInfo?.code || 'Course'}</span>
-              <CaretRight size={14} weight="bold" color="#64748B" />
-              <span style={{ fontWeight: 800, color: '#1E293B', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedMaterial?.title || 'Material'}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6B7280', fontSize: '13px' }}>
+              <House size={16} weight="bold" onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer', color: '#374151' }} />
+              <CaretRight size={12} weight="bold" />
+              <span onClick={() => navigate(`/dashboard/courses/${courseId}`)} style={{ cursor: 'pointer', color: '#374151' }}>{courseInfo?.code || 'Course'}</span>
+              <CaretRight size={12} weight="bold" />
+              <span style={{ color: '#111827', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedMaterial?.title || 'Material'}</span>
             </div>
           </div>
 
-          <div className="ws-header-center" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-            <div id="tour-ai-tools" className="ws-top-nav-capsule" style={{ 
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+            <div id="tour-ai-tools" style={{ 
               display: 'flex', 
-              background: '#F1F5F9', 
+              background: '#F9FAFB', 
               padding: '4px', 
-              borderRadius: '20px', 
-              border: '1.5px solid #E2E8F0',
-              gap: '4px'
+              borderRadius: '12px', 
+              border: '1px solid #E5E7EB',
+              gap: '2px'
             }}>
               <button 
                 onClick={() => { setActiveTab('content'); setActiveSideTab('chat'); }}
-                className={`ws-capsule-btn ${activeTab === 'content' && activeSideTab === 'chat' ? 'active' : ''}`}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', fontSize: '13px', fontWeight: 700, 
-                  borderRadius: '16px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                  fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
-                  background: activeTab === 'content' && activeSideTab === 'chat' ? '#FFF7ED' : 'transparent',
-                  color: activeTab === 'content' && activeSideTab === 'chat' ? '#EA580C' : '#64748B',
-                  boxShadow: activeTab === 'content' && activeSideTab === 'chat' ? '0 1px 3px rgba(234, 88, 12, 0.1)' : 'none'
+                  display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, 
+                  borderRadius: '8px', border: 'none', cursor: 'pointer',
+                  background: activeTab === 'content' && activeSideTab === 'chat' ? '#F3F4F6' : 'transparent',
+                  color: activeTab === 'content' && activeSideTab === 'chat' ? '#111827' : '#6B7280',
                 }}
               >
-                <FileText size={18} weight="bold" /> Source
+                <FileText size={14} weight="bold" /> Source
               </button>
               <button 
                 onClick={() => { setActiveTab('summary'); }}
-                className={`ws-capsule-btn ${activeTab === 'summary' ? 'active' : ''}`}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', fontSize: '13px', fontWeight: 700, 
-                  borderRadius: '16px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                  fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
-                  background: activeTab === 'summary' ? '#FFF7ED' : 'transparent',
-                  color: activeTab === 'summary' ? '#EA580C' : '#64748B',
-                  boxShadow: activeTab === 'summary' ? '0 1px 3px rgba(234, 88, 12, 0.1)' : 'none'
+                  display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, 
+                  borderRadius: '8px', border: 'none', cursor: 'pointer',
+                  background: activeTab === 'summary' ? '#F3F4F6' : 'transparent',
+                  color: activeTab === 'summary' ? '#111827' : '#6B7280',
                 }}
               >
-                <Sparkle size={18} weight="bold" /> Summary
+                <Sparkle size={14} weight="bold" /> Summary
               </button>
               <button 
-                onClick={() => { setActiveTab('flashcards'); }}
-                className={`ws-capsule-btn ${activeTab === 'flashcards' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('flashcards'); setActiveSideTab('flashcards'); }}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', fontSize: '13px', fontWeight: 700, 
-                  borderRadius: '16px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                  fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
-                  background: activeTab === 'flashcards' ? '#FFF7ED' : 'transparent',
-                  color: activeTab === 'flashcards' ? '#EA580C' : '#64748B',
-                  boxShadow: activeTab === 'flashcards' ? '0 1px 3px rgba(234, 88, 12, 0.1)' : 'none'
+                  display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, 
+                  borderRadius: '8px', border: 'none', cursor: 'pointer',
+                  background: activeTab === 'flashcards' ? '#F3F4F6' : 'transparent',
+                  color: activeTab === 'flashcards' ? '#111827' : '#6B7280',
                 }}
               >
-                <CardsThree size={18} weight="bold" /> Flashcards
+                <Stack size={14} weight="bold" /> Cards
               </button>
               <button 
-                onClick={() => { setActiveTab('quiz'); }}
-                className={`ws-capsule-btn ${activeTab === 'quiz' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('quiz'); setActiveSideTab('quiz'); }}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', fontSize: '13px', fontWeight: 700, 
-                  borderRadius: '16px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                  fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
-                  background: activeTab === 'quiz' ? '#FFF7ED' : 'transparent',
-                  color: activeTab === 'quiz' ? '#EA580C' : '#64748B',
-                  boxShadow: activeTab === 'quiz' ? '0 1px 3px rgba(234, 88, 12, 0.1)' : 'none'
+                  display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, 
+                  borderRadius: '8px', border: 'none', cursor: 'pointer',
+                  background: activeTab === 'quiz' ? '#F3F4F6' : 'transparent',
+                  color: activeTab === 'quiz' ? '#111827' : '#6B7280',
                 }}
               >
-                <Checks size={18} weight="bold" /> Quiz
+                <Checks size={14} weight="bold" /> Quiz
               </button>
             </div>
           </div>
 
-          <div className="ws-header-right" style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '16px', alignItems: 'center' }}>
-            <div className="ws-analysis-badge" style={{ 
-              display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 18px', 
-              background: 'linear-gradient(135deg, #F0F9FF, #E0F2FE)', border: '1.5px solid #BAE6FD', borderRadius: '14px',
-              fontSize: '11px', fontWeight: 600, color: '#475569', letterSpacing: '0.04em',
-              fontFamily: 'var(--font-outfit)', boxShadow: '0 4px 10px rgba(14, 165, 233, 0.1)'
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '12px', alignItems: 'center' }}>
+            <div style={{ 
+              display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 10px', 
+              background: '#F3F4F6', borderRadius: '8px',
+              fontSize: '11px', fontWeight: 600, color: '#6B7280'
             }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#000' }}></div>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }}></div>
               {(() => {
                   let progress = 0;
                   if (selectedMaterial?.extracted_text) progress += 25;
@@ -877,7 +892,7 @@ function WorkstationContent() {
                   if (currentAnalysis.flashcards && Array.isArray(currentAnalysis.flashcards) && currentAnalysis.flashcards.length > 0) progress += 25;
                   if (currentAnalysis.quiz && Array.isArray(currentAnalysis.quiz) && currentAnalysis.quiz.length > 0) progress += 25;
                   return progress;
-              })()}% analyzed
+              })()}%
             </div>
             <button 
               onClick={() => setFocusMode(!focusMode)}
@@ -912,7 +927,7 @@ function WorkstationContent() {
 
       <main className="ws-main-layout" style={{ 
         display: 'grid', 
-        gridTemplateColumns: isMobile ? '1fr' : (focusMode ? '1fr' : 'minmax(0, 3fr) minmax(260px, 340px)'), 
+        gridTemplateColumns: isMobile ? '1fr' : (focusMode ? '1fr' : 'minmax(0, 5fr) minmax(360px, 420px)'), 
         background: 'transparent', 
         overflow: 'hidden', 
         padding: '0', 
@@ -924,63 +939,57 @@ function WorkstationContent() {
           display: 'flex', 
           flexDirection: 'column', 
           overflow: 'hidden', 
-          background: 'linear-gradient(to bottom, #F8FAFC, #F1F5F9)', 
+          background: 'linear-gradient(180deg, #FAFBFC 0%, #F8FAFC 50%, #F1F5F9 100%)', 
           position: 'relative',
           gridColumn: '1 / 2',
           height: '100%',
-          minHeight: 0
+          minHeight: 0,
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -1px 0 rgba(0,0,0,0.03)'
         }}>
-          {/* Subheader for Document/Notes toggle */}
+
+          {/* Source/Notes toggle */}
           {activeTab === 'content' && !isMobile && (
-            <div className="ws-canvas-tabs" style={{
-              padding: '8px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderBottom: '1.5px solid #F1F5F9',
-              background: 'white'
+            <div style={{
+              padding: '12px 20px',
+              borderBottom: '1px solid #E5E7EB',
+              background: '#FAFAFA',
             }}>
-              <div style={{ display: 'flex', background: '#F8FAFC', padding: '4px', borderRadius: '12px', border: '1px solid #F1F5F9' }}>
-                <button 
-                  onClick={() => setActiveTab('content')}
-                  style={{ 
-                    display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '12px', fontWeight: 600, 
-                    borderRadius: '10px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                    fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
-                    background: activeTab === 'content' ? 'white' : 'transparent',
-                    color: activeTab === 'content' ? '#6D28D9' : '#64748B',
-                    boxShadow: activeTab === 'content' ? '0 4px 12px rgba(109, 40, 217, 0.1)' : 'none'
-                  }}
-                >
-                  <FileText size={16} weight="bold" /> Source
-                </button>
-                <button 
-                  onClick={() => setActiveTab('notes')}
-                  style={{ 
-                    display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '12px', fontWeight: 600, 
-                    borderRadius: '10px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                    fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em',
-                    background: activeTab === 'notes' ? 'white' : 'transparent',
-                    color: activeTab === 'notes' ? '#6D28D9' : '#64748B',
-                    boxShadow: activeTab === 'notes' ? '0 4px 12px rgba(109, 40, 217, 0.1)' : 'none'
-                  }}
-                >
-                  <PencilSimple size={16} weight="bold" /> Notes
-                </button>
+              <div style={{ display: 'flex', background: '#F3F4F6', padding: '2px', borderRadius: '8px' }}>
+                {['content', 'notes'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    style={{
+                      flex: 1,
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      borderRadius: '6px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: activeTab === tab ? 'white' : 'transparent',
+                      color: activeTab === tab ? '#111827' : '#6B7280',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    {tab === 'content' ? <FileText size={14} weight="bold" /> : <PencilSimple size={14} weight="bold" />}
+                    {tab === 'content' ? 'Source' : 'Notes'}
+                  </button>
+                ))}
               </div>
             </div>
           )}
 
-          <div className="ws-canvas-container" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             {activeTab === 'notes' ? (
-              <div className="ws-ai-content-pane" style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto', overflowY: 'auto', flex: 1 }}>
-                <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '32px', color: '#111' }}>Extracted Text</h2>
-                <div style={{ fontSize: '16px', lineHeight: '1.8', color: '#3F3F46', whiteSpace: 'pre-wrap', fontStyle: 'normal' }}>
+              <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto', overflowY: 'auto', flex: 1 }}>
+                <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '24px', color: '#111' }}>Extracted Text</h2>
+                <div style={{ fontSize: '15px', lineHeight: '1.7', color: '#374151', whiteSpace: 'pre-wrap' }}>
                   {selectedMaterial?.extracted_text || (
-                    <div style={{ textAlign: 'center', padding: '60px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <div style={{ marginBottom: '24px', width: '100%' }}>
-                        <LuterPageLoader message="Luter is extracting the text for optimized analysis..." minHeight="200px" />
-                      </div>
+                    <div style={{ textAlign: 'center', padding: '60px' }}>
+                      <LuterPageLoader message="Extracting text..." minHeight="200px" />
                       <button 
                         onClick={async () => {
                           setIsExtractingText(true)
@@ -991,27 +1000,28 @@ function WorkstationContent() {
                           setIsExtractingText(false)
                         }}
                         style={{
-                          padding: '14px 28px', background: '#6D28D9', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 600,
-                          display: 'flex', alignItems: 'center', gap: '10px', margin: '0 auto', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em'
+                          padding: '12px 24px', background: '#6D28D9', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600,
+                          marginTop: '24px'
                         }}
                       >
-                        <Lightning size={18} weight="light" /> Extract now
+                        Extract now
                       </button>
                     </div>
                   )}
                 </div>
               </div>
             ) : activeTab === 'summary' ? (
-              <div className="ws-ai-content-pane" style={{ background: '#F8FAFB', flex: 1, overflowY: 'auto' }}>
+              <div style={{ flex: 1, overflowY: 'auto', background: '#F9FAFB' }}>
                 <WorkstationSummaryEnhanced 
                   content={currentAnalysis.summary} 
                   material={selectedMaterial} 
                   pageSummaries={pageSummaries}
                   onFetchPageSummaries={handleFetchPageSummaries}
+                  onRegenerate={() => runAnalysis('summary')}
                 />
               </div>
             ) : activeTab === 'flashcards' ? (
-              <div className="ws-ai-content-pane" style={{ background: '#F8FAFB', flex: 1, overflowY: 'auto' }}>
+              <div style={{ flex: 1, overflowY: 'auto', background: '#F9FAFB' }}>
                 <WorkstationFlashcards 
                   flashcards={currentAnalysis.flashcards} 
                   material={selectedMaterial} 
@@ -1019,7 +1029,7 @@ function WorkstationContent() {
                 />
               </div>
             ) : activeTab === 'quiz' ? (
-              <div className="ws-ai-content-pane" style={{ background: '#F8FAFB', flex: 1, overflowY: 'auto' }}>
+              <div style={{ flex: 1, overflowY: 'auto', background: '#F9FAFB' }}>
                 <WorkstationQuiz 
                   quiz={currentAnalysis.quiz} 
                   material={selectedMaterial} 
@@ -1027,30 +1037,35 @@ function WorkstationContent() {
                 />
               </div>
             ) : !selectedMaterial ? (
-              <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F8FAFB', padding: '40px', flex: 1 }}>
+              <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px', flex: 1 }}>
                 <div style={{ textAlign: 'center', maxWidth: '400px' }}>
-                  <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(122, 18, 204, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-                    <BookOpen size={32} color="#7a12cc" />
+                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                    <BookOpen size={24} color="#6B7280" />
                   </div>
-                  <h3 style={{ fontFamily: 'var(--font-outfit)', fontSize: '20px', fontWeight: 700, color: '#111', marginBottom: '12px' }}>No material selected</h3>
-                  <p style={{ color: '#6B7280', fontSize: '14px', lineHeight: '1.6', marginBottom: '24px' }}>
-                    Select a study material from the sidebar or upload a new one to begin your session.
+                  <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111', marginBottom: '8px' }}>No material selected</h3>
+                  <p style={{ color: '#6B7280', fontSize: '14px', lineHeight: '1.5', marginBottom: '20px' }}>
+                    Select a study material from the sidebar to begin.
                   </p>
                   <button 
                     onClick={() => navigate('/dashboard/upload')}
-                    style={{ padding: '12px 24px', background: '#7a12cc', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-outfit)' }}
+                    style={{ padding: '10px 20px', background: '#111', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
                   >
                     Upload Material
                   </button>
                 </div>
               </div>
             ) : (
-              <div id="tour-material-view" style={{ height: '100%', width: '100%' }}>
-                <MaterialRenderer 
-                  material={selectedMaterial} 
+              <div style={{ height: '100%', width: '100%' }}>
+                <MaterialRenderer
+                  key={selectedMaterial.id}
+                  material={selectedMaterial}
                   activeTab={activeTab}
                   onSparkUpdate={updateSpark}
                   setViewportData={setViewportData}
+                  onMaterialUpdate={(updates) => {
+                    setSelectedMaterial(prev => prev ? { ...prev, ...updates } : null)
+                    setCourseMaterials(prev => prev.map(m => m.id === selectedMaterial.id ? { ...m, ...updates } : m))
+                  }}
                 />
               </div>
             )}
@@ -1079,102 +1094,104 @@ function WorkstationContent() {
                 position: 'absolute',
                 bottom: '32px',
                 right: '32px',
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                background: activeSideTab === 'write' ? '#4B0082' : 'white',
-                color: activeSideTab === 'write' ? 'white' : '#4B0082',
+                width: '72px',
+                height: '72px',
+                borderRadius: '20px',
+                background: activeSideTab === 'write' 
+                  ? 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)' 
+                  : 'linear-gradient(135deg, #ffffff 0%, #F8FAFC 100%)',
+                color: activeSideTab === 'write' ? 'white' : '#6D28D9',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 12px 32px rgba(75, 0, 130, 0.15)',
-                border: '1.5px solid #F1F5F9',
+                boxShadow: activeSideTab === 'write'
+                  ? '0 20px 40px rgba(109, 40, 217, 0.25), 0 8px 16px rgba(109, 40, 217, 0.15), 0 0 0 1px rgba(255,255,255,0.1)'
+                  : '0 20px 40px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0,0,0,0.04)',
+                border: 'none',
                 cursor: 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                 zIndex: 40,
                 touchAction: 'none'
               }}
-              whileHover={{ scale: 1.1, y: -4 }}
-              whileTap={{ scale: 0.9 }}
+              whileHover={{ 
+                scale: 1.05, 
+                y: -6,
+                boxShadow: activeSideTab === 'write'
+                  ? '0 25px 50px rgba(109, 40, 217, 0.35), 0 10px 20px rgba(109, 40, 217, 0.2), 0 0 0 1px rgba(255,255,255,0.2)'
+                  : '0 25px 50px rgba(0, 0, 0, 0.12), 0 10px 20px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0,0,0,0.06)'
+              }}
+              whileTap={{ scale: 0.95 }}
             >
-              <PencilSimple size={28} weight="light" />
+              <PencilSimple size={32} weight={activeSideTab === 'write' ? 'regular' : 'bold'} />
             </motion.button>
-          </div>
         </div>
 
         {!isSidePanelCollapsed && !focusMode && (
-          <aside id="tour-ai-chat" className="ws-pane-right" style={{ 
+          <aside id="tour-ai-chat" style={{ 
             display: isMobile ? (activeTab === 'chat' ? 'flex' : 'none') : 'flex', 
-            width: isMobile ? '100%' : '100%', 
-            minWidth: isMobile ? 'auto' : '260px',
+            minWidth: '360px',
             gridColumn: '2 / 3', 
-            borderLeft: isMobile ? 'none' : '1px solid rgba(0,0,0,0.05)', 
-            background: 'rgba(255, 255, 255, 0.85)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
+            borderLeft: '1px solid #E5E7EB', 
+            background: 'white',
             flexDirection: 'column',
             zIndex: 10,
             position: isMobile ? 'fixed' : 'sticky',
             top: isMobile ? '60px' : '72px',
-            bottom: isMobile ? '72px' : 'auto',
-            left: 0,
-            right: 0,
             height: isMobile ? 'calc(100dvh - 132px)' : 'calc(100vh - 72px)'
           }}>
-            <div className="ws-chat-container" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <header className="ws-side-header" style={{ padding: '20px 24px 12px', background: 'transparent' }}>
-                <div style={{ 
-                  display: 'flex', 
-                  padding: '4px', 
-                  background: '#F1F5F9', 
-                  borderRadius: '14px',
-                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)'
-                }}>
-                  <button 
-                    onClick={() => setActiveSideTab('chat')}
-                    style={{ 
-                      flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
-                      background: activeSideTab === 'chat' ? 'white' : 'transparent',
-                      color: activeSideTab === 'chat' ? '#000' : '#64748B',
-                      fontFamily: 'var(--font-outfit)', transition: 'all 0.2s',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                      boxShadow: activeSideTab === 'chat' ? '0 4px 12px rgba(0,0,0,0.08)' : 'none'
-                    }}
-                  >
-                    <ChatCircleTextIcon size={18} weight={activeSideTab === 'chat' ? 'bold' : 'regular'} />
-                    Chat
-                  </button>
-                  <button 
-                    onClick={() => setActiveSideTab('write')}
-                    style={{ 
-                      flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
-                      background: activeSideTab === 'write' ? 'white' : 'transparent',
-                      color: activeSideTab === 'write' ? '#000' : '#64748B',
-                      fontFamily: 'var(--font-outfit)', transition: 'all 0.2s',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                      boxShadow: activeSideTab === 'write' ? '0 4px 12px rgba(0,0,0,0.08)' : 'none'
-                    }}
-                  >
-                    <PencilSimple size={18} weight={activeSideTab === 'write' ? 'bold' : 'regular'} />
-                    Notes
-                  </button>
-                  <button 
-                    onClick={() => setActiveSideTab('voice')}
-                    style={{ 
-                      width: '56px', padding: '10px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-                      background: activeSideTab === 'voice' ? 'white' : 'transparent',
-                      color: activeSideTab === 'voice' ? '#7a12cc' : '#64748B',
-                      transition: 'all 0.2s',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: activeSideTab === 'voice' ? '0 4px 12px rgba(0,0,0,0.08)' : 'none'
-                    }}
-                  >
-                    <Wave color={activeSideTab === 'voice' ? '#7a12cc' : '#64748B'} size="20px" />
-                  </button>
-                </div>
-              </header>
+            <div style={{ padding: '16px 20px 8px' }}>
+              <div style={{ 
+                display: 'flex', 
+                padding: '3px', 
+                background: '#F3F4F6', 
+                borderRadius: '10px'
+              }}>
+                <button 
+                  onClick={() => setActiveSideTab('chat')}
+                  style={{ 
+                    flex: 1, 
+                    padding: '8px 12px', 
+                    background: activeSideTab === 'chat' ? 'white' : 'transparent', 
+                    border: 'none', 
+                    borderRadius: '7px', 
+                    cursor: 'pointer', 
+                    fontSize: '12px', 
+                    fontWeight: 600, 
+                    color: activeSideTab === 'chat' ? '#111827' : '#6B7280',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: '6px'
+                  }}
+                >
+                  <ChatsCircleIcon size={14} weight={activeSideTab === 'chat' ? 'bold' : 'regular'} />
+                  Chat
+                </button>
+                <button 
+                  onClick={() => setActiveSideTab('write')}
+                  style={{ 
+                    flex: 1, 
+                    padding: '8px 12px', 
+                    background: activeSideTab === 'write' ? 'white' : 'transparent', 
+                    border: 'none', 
+                    borderRadius: '7px', 
+                    cursor: 'pointer', 
+                    fontSize: '12px', 
+                    fontWeight: 600, 
+                    color: activeSideTab === 'write' ? '#111827' : '#6B7280',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: '6px'
+                  }}
+                >
+                  <PencilSimple size={14} weight={activeSideTab === 'write' ? 'bold' : 'regular'} />
+                  Write
+                </button>
+              </div>
+            </div>
 
-              <div style={{ flex: 1, overflowY: 'auto' }}>
+            <div style={{ flex: 1, overflowY: 'auto' }}>
                 {activeSideTab === 'write' ? (
                   <WorkstationWrite 
                     initialContent={userJottings} 
@@ -1318,10 +1335,11 @@ function WorkstationContent() {
                       )}
                     </div>
                     <div className="ws-chat-input-area" style={{ 
-                      padding: '24px 24px 32px', 
-                      borderTop: '1px solid #F1F5F9',
-                      background: 'rgba(255,255,255,0.95)',
-                      backdropFilter: 'blur(20px)',
+                      padding: '24px 28px 40px', 
+                      borderTop: '1px solid rgba(241, 245, 249, 0.5)',
+                      background: 'rgba(255,255,255,0.7)',
+                      backdropFilter: 'blur(40px)',
+                      WebkitBackdropFilter: 'blur(40px)',
                     }}>
                       <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
                         <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1332,16 +1350,27 @@ function WorkstationContent() {
                       </div>
                       
                       <div style={{ 
-                        background: '#F8FAFC', 
-                        border: '1px solid #E2E8F0', 
-                        borderRadius: '20px', 
-                        padding: '10px 14px',
+                        background: 'rgba(248, 250, 252, 0.8)', 
+                        border: '1.5px solid rgba(226, 232, 240, 0.8)', 
+                        borderRadius: '24px', 
+                        padding: '12px 18px',
                         display: 'flex', 
                         alignItems: 'center', 
-                        gap: '12px',
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                      }} onFocusCapture={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.background = 'white'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(109, 40, 217, 0.1)' }} onBlurCapture={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.02)' }}>
+                        gap: '14px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                        transition: 'all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                        position: 'relative'
+                      }} onFocusCapture={(e) => { 
+                        e.currentTarget.style.borderColor = '#6D28D9'; 
+                        e.currentTarget.style.background = 'white'; 
+                        e.currentTarget.style.boxShadow = '0 12px 30px rgba(109, 40, 217, 0.15)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                      }} onBlurCapture={(e) => { 
+                        e.currentTarget.style.borderColor = 'rgba(226, 232, 240, 0.8)'; 
+                        e.currentTarget.style.background = 'rgba(248, 250, 252, 0.8)'; 
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.03)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}>
                         <input 
                           type="text" 
                           placeholder="Ask Luter anything..." 
@@ -1376,20 +1405,17 @@ function WorkstationContent() {
                   </div>
                 )}
               </div>
-            </div>
-            
+
             {activeSideTab === 'summary' && (
               <div className="ws-side-tool-container" style={{ padding: '32px', height: '100%', overflowY: 'auto' }}>
                 <WorkstationSummary material={selectedMaterial} content={currentAnalysis.summary} />
               </div>
             )}
-
             {activeSideTab === 'flashcards' && (
               <div className="ws-side-tool-container" style={{ height: '100%', overflow: 'hidden' }}>
                 <WorkstationFlashcards material={selectedMaterial} items={currentAnalysis.flashcards} user={user} />
               </div>
             )}
-
             {activeSideTab === 'quiz' && (
               <div className="ws-side-tool-container" style={{ padding: '32px', height: '100%', overflowY: 'auto' }}>
                 <WorkstationQuiz material={selectedMaterial} items={currentAnalysis.quiz} />
@@ -1400,17 +1426,18 @@ function WorkstationContent() {
       </main>
 
       {isMobile && (
-        <div className="mobile-bottom-nav" style={{ 
-          display: 'flex', 
-          justifyContent: 'space-around', 
-          padding: '12px 16px 28px', 
-          background: 'rgba(255, 255, 255, 0.95)', 
-          backdropFilter: 'blur(20px)',
-          borderTop: '1px solid #F1F5F9',
-          position: 'fixed',
-          bottom: 0, left: 0, right: 0,
-          zIndex: 1000,
-          boxShadow: '0 -4px 20px rgba(0,0,0,0.03)'
+        <header className="ws-header" style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '16px 28px',
+          background: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          borderBottom: '1px solid rgba(229, 231, 235, 0.6)',
+          position: 'relative',
+          zIndex: 10,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         }}>
           <button 
             className={`mobile-nav-item ${activeTab === 'content' ? 'mobile-nav-item--active' : ''}`} 
@@ -1444,7 +1471,7 @@ function WorkstationContent() {
             <ClipboardText size={22} weight={activeTab === 'quiz' ? 'bold' : 'regular'} />
             <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Quiz</span>
           </button>
-        </div>
+        </header>
       )}
     </div>
   )

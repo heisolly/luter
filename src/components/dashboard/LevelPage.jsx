@@ -32,11 +32,11 @@ export default function LevelPage() {
   const { startTour, hasCompletedTour } = useTourStore()
 
   useEffect(() => {
-    if (!loading && gamificationData && !hasCompletedTour('profile')) {
+    if (user?.id && !loading && gamificationData && !hasCompletedTour('profile')) {
       const timer = setTimeout(() => startTour('profile'), 2000)
       return () => clearTimeout(timer)
     }
-  }, [loading, gamificationData])
+  }, [user?.id, loading, gamificationData])
 
   const loadAvatar = async () => {
     try {

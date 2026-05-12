@@ -17,7 +17,7 @@ const LoadingFallback = () => (
   <LuterPageLoader message="Preparing your workstation..." minHeight="100%" />
 )
 
-export default function MaterialRenderer({ material, activeTab, onSparkUpdate, setViewportData, onScrollUpdate }) {
+export default function MaterialRenderer({ material, activeTab, onSparkUpdate, setViewportData, onScrollUpdate, onMaterialUpdate }) {
   if (!material) return null
 
   // Only mount the viewer when we're on the content tab
@@ -73,6 +73,7 @@ export default function MaterialRenderer({ material, activeTab, onSparkUpdate, s
           onScrollUpdate={onScrollUpdate}
           onSparkUpdate={onSparkUpdate}
           setViewportData={setViewportData}
+          onMaterialUpdate={onMaterialUpdate}
         />
       </Suspense>
     </div>

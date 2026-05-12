@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { RiTimeLine, RiTrophyLine, RiCheckFill, RiCloseFill } from 'react-icons/ri'
 import { Stack } from '@phosphor-icons/react'
-import { GameStartScreen, GameOverScreen, shuffleWithSeed } from './GameShared'
+import { GameStartScreen, GameOverScreen, createSeededRandom, shuffleWithSeed, MultiplayerHUD } from './GameShared'
 import { playgroundService } from '../../../services/playgroundService'
 import confetti from 'canvas-confetti'
 
@@ -26,7 +26,12 @@ export default function StackerGame({ room, participants, user, deck, onExit }) 
   useEffect(() => {
     let interval
     if (gameState === 'playing') {
-      const startTime = room.updated_at ? new Date(room.updated_at).getTime() : Date.now()
+      const isMultiplayer = !!room.created_by
+      const startOffset = isMultiplayer ? 3000 : 0
+      const startTime = (isMultiplayer && room.updated_at) 
+        ? (new Date(room.updated_at).getTime() + startOffset) 
+        : Date.now()
+
       interval = setInterval(() => {
         const now = Date.now()
         const diff = (now - startTime) / 1000
@@ -34,7 +39,7 @@ export default function StackerGame({ room, participants, user, deck, onExit }) 
       }, 100)
     }
     return () => clearInterval(interval)
-  }, [gameState, room.updated_at])
+  }, [gameState, room.updated_at, room.created_by])
 
   // Auto-start for multiplayer
   useEffect(() => {
@@ -145,26 +150,41 @@ export default function StackerGame({ room, participants, user, deck, onExit }) 
         total={stack.length}
         xp={score * 3}
         accuracy={100} 
-        onRetry={() => {
+        onRetry={async () => {
+          if (room.created_by && room.created_by === user.id) {
+            try {
+              await playgroundService.supabase
+                .from('playground_rooms')
+                .update({ status: 'waiting', updated_at: new Date().toISOString() })
+                .eq('id', room.id)
+            } catch (e) {
+              console.error("Failed to reset room:", e)
+            }
+          }
           setGameState('start')
           setStack([])
           setTimeElapsed(0)
           setScore(0)
           setStreak(0)
         }}
-        onExit={onExit}
+        onExit={(nextGame) => onExit(nextGame)}
         isGuest={!user.id}
-        color="#0ea5e9"
+        color="#7c3aed"
+        room={room}
       />
     )
   }
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '20px' }}>
-      {/* Stats Bar */}
+    <div style={{ width: '100%', maxWidth: 800, margin: '0 auto', padding: '12px' }}>
+      {room.created_by && (
+        <MultiplayerHUD 
+          participants={participants} 
+          user={user} 
+          color="#7c3aed" 
+        />
+      )}
       <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
         alignItems: 'center', 
         marginBottom: 32,
         background: 'white',

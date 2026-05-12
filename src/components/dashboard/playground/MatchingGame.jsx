@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Cards, Gear, X } from '@phosphor-icons/react'
-import { GameStartScreen, GameOverScreen, shuffleWithSeed, createSeededRandom } from './GameShared'
+import { GameStartScreen, GameOverScreen, shuffleWithSeed, createSeededRandom, MultiplayerHUD } from './GameShared'
 import { playgroundService } from '../../../services/playgroundService'
 import confetti from 'canvas-confetti'
 
@@ -42,7 +42,11 @@ export default function MatchingGame({ room, participants, user, deck, onExit })
   useEffect(() => {
     let interval
     if (gameState === 'playing') {
-      const startTime = room.updated_at ? new Date(room.updated_at).getTime() : Date.now()
+      const isMultiplayer = !!room.created_by
+      const startOffset = isMultiplayer ? 3000 : 0
+      const startTime = (isMultiplayer && room.updated_at) 
+        ? (new Date(room.updated_at).getTime() + startOffset) 
+        : Date.now()
       
       interval = setInterval(() => {
         const now = Date.now()
@@ -51,7 +55,7 @@ export default function MatchingGame({ room, participants, user, deck, onExit })
       }, 100)
     }
     return () => clearInterval(interval)
-  }, [gameState, room.updated_at])
+  }, [gameState, room.updated_at, room.created_by])
 
   useEffect(() => {
     if (matches.length > 0 && matches.length === cards.length && gameState === 'playing') {
@@ -137,30 +141,49 @@ export default function MatchingGame({ room, participants, user, deck, onExit })
         total={cards.length / 2}
         xp={score * 2}
         accuracy={100}
-        onRetry={() => {
+        onRetry={async () => {
+          if (room.created_by && room.created_by === user.id) {
+            try {
+              await playgroundService.supabase
+                .from('playground_rooms')
+                .update({ status: 'waiting', updated_at: new Date().toISOString() })
+                .eq('id', room.id)
+            } catch (e) {
+              console.error("Failed to reset room:", e)
+            }
+          }
           setGameState('start')
           setMatches([])
           setScore(0)
           setTimeElapsed(0)
           setSelected(null)
         }}
-        onExit={onExit}
+        onExit={(nextGame) => onExit(nextGame)}
         isGuest={!user.id}
-        color="#3b82f6"
+        color="#7c3aed"
+        room={room}
       />
     )
   }
 
   return (
     <div style={{ 
-      maxWidth: '100%', 
-      width: '100%', 
-      height: '100%',
+      width: '100%',
+      maxWidth: 1000, 
       margin: '0 auto', 
-      padding: '0 20px 20px 20px', 
+      padding: '12px',
+      boxSizing: 'border-box',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      minHeight: '100%'
     }}>
+      {room.created_by && (
+        <MultiplayerHUD 
+          participants={participants} 
+          user={user} 
+          color="#7c3aed" 
+        />
+      )}
       
       {/* Quizlet-Style Header */}
       <div style={{ 

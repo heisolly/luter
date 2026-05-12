@@ -13,7 +13,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
     flowType: 'pkce',
-    lockTimeout: 30000, // Increase lock timeout to prevent conflicts
+    lock: false, // Disable navigator.locks to prevent concurrent-query contention
     debug: false // Disable debug to reduce console noise
   },
   global: {

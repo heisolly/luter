@@ -37,26 +37,14 @@ function withTimeout(promise, ms, label = 'Operation') {
   ])
 }
 
-/** Trigger Supabase Edge Function to convert PPTX to PDF */
+/** Trigger Supabase Edge Function to convert PPTX to PDF
+ *  DEPRECATED: materialsService.js handles conversion via triggerDocumentConversion.
+ *  This is kept as a no-op to avoid CORS errors from the old pptx-to-pdf endpoint.
+ */
 async function triggerConversion(material) {
-  if (material.type === 'pptx' || material.type === 'ppt') {
-    console.log('[Conversion] Triggering PPTX-to-PDF conversion...')
-    const { data, error } = await supabase.functions.invoke('pptx-to-pdf', {
-      body: { 
-        fileUrl: material.source_url, 
-        fileName: material.title,
-        materialId: material.id
-      }
-    })
-    
-    if (error) {
-      console.warn('[Conversion] Failed to trigger conversion:', error.message)
-      return null
-    }
-    
-    console.log('[Conversion] ✓ Conversion triggered successfully:', data?.pdfUrl)
-    return data?.pdfUrl
-  }
+  // Conversion is now handled by materialsService.js postUploadProcessing
+  // which calls the document-processor Edge Function.
+  console.log('[Conversion] Skipping legacy triggerConversion — handled by materialsService.js')
   return null
 }
 

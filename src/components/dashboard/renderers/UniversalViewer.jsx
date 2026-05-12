@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import FlashkaDocumentViewer from './FlashkaDocumentViewer'
 import DocxRenderer from './DocxRenderer'
 import PptxRenderer from './PptxRenderer'
@@ -9,10 +10,8 @@ import YouTubeRenderer from './YouTubeRenderer'
 import AudioRenderer from './AudioRenderer'
 import VideoRenderer from './VideoRenderer'
 import ImageRenderer from './ImageRenderer'
-import ReactPlayer from 'react-player'
-import QuickPinchZoom, { make3dTransformValue } from 'react-quick-pinch-zoom'
-import { RiMusicFill as Music, RiSparklingFill as Sparkle } from "react-icons/ri"
-import { LuterPageLoader } from '../../shared/LuterPageLoader'
+import ConversionSkeleton from './ConversionSkeleton'
+import { pollConversionStatus } from '../../../services/materialsService'
 
 export const getFileType = (material) => {
   if (!material) return 'unknown'
@@ -41,25 +40,83 @@ function hasSlideImages(material) {
   return Array.isArray(imgs) && imgs.length > 0
 }
 
+/** Determine if a material type is one that gets converted to PDF */
+function isConvertibleToPdf(type) {
+  return ['docx', 'doc', 'pptx', 'ppt'].includes(type)
+}
+
 /**
  * UniversalViewer — Flashka philosophy: normalize everything to one experience.
  *
  * Priority:
- * 1. High-fidelity converted PDF → FlashkaDocumentViewer (single engine, perfect consistency)
- * 2. Slide images (for PPTX) → ImageSlidesRenderer (visual fidelity)
- * 3. Native renderer → DocxRenderer / PptxRenderer / ExcelRenderer (fallback while converting)
- * 4. Video / Audio / Image → Native (these don't convert)
- * 5. Text → TextRenderer
+ * 1. High-fidelity converted PDF → FlashkaDocumentViewer
+ * 2. Native PDF → FlashkaDocumentViewer
+ * 3. DOCX → DocxRenderer (fallback only, no raw text)
+ * 4. PPTX → ConversionSkeleton (wait for PDF conversion)
+ * 5. Everything else → appropriate native renderer
  */
-export default function UniversalViewer({ material, initialPage, onPageChange, onDocumentLoad }) {
+export default function UniversalViewer({ material, initialPage, onPageChange, onDocumentLoad, onMaterialUpdate }) {
+  if (!material) return null
+
   const type = getFileType(material)
   const fileUrl = material?.source_url
+  const [conversionFailed, setConversionFailed] = useState(false)
 
-  // ─── 1. HIGH-FIDELITY PDF (THE FLASHKA WAY) ─────────────────────────────
+  console.log('[UniversalViewer] Render state:', {
+    type,
+    has_converted_url: !!material?.converted_url,
+    converted_url: material?.converted_url,
+    material_id: material?.id
+  })
+
+  // ─── Poll for converted_url when PPTX has no converted_url yet ────────────
+  useEffect(() => {
+    if (type !== 'pptx' && type !== 'docx') return
+    if (hasConvertedPdf(material)) return
+    if (conversionFailed) return
+
+    console.log(`[UniversalViewer] Starting conversion poll for ${material.id} (${type})`)
+    const cleanup = pollConversionStatus(material.id, {
+      onConverted: (data) => {
+        console.log(`[UniversalViewer] Conversion ready for ${material.id}, triggering update`)
+        onMaterialUpdate?.({ converted_url: data.converted_url, converted_type: data.converted_type })
+      },
+      onFailed: () => {
+        console.warn(`[UniversalViewer] Conversion failed for ${material.id}`)
+        setConversionFailed(true)
+      },
+      intervalMs: 3000,
+      maxAttempts: 120, // 6 minutes
+    })
+
+    return cleanup
+  }, [material.id, type, material.converted_url, conversionFailed])
+
+  // ─── 1. CONVERTED PDF (highest fidelity) ────────────────────────────────
   if (hasConvertedPdf(material)) {
     return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        style={{ height: '100%' }}
+      >
+        <FlashkaDocumentViewer
+          fileUrl={material.converted_url}
+          title={material.title}
+          type={type}
+          onPageChange={onPageChange}
+          onDocumentLoad={onDocumentLoad}
+        />
+      </motion.div>
+    )
+  }
+
+  // ─── 2. NATIVE PDF ───────────────────────────────────────────────────────
+  if (type === 'pdf') {
+    return (
       <FlashkaDocumentViewer
-        fileUrl={material.converted_url}
+        fileUrl={fileUrl}
         title={material.title}
         type={type}
         onPageChange={onPageChange}
@@ -68,18 +125,12 @@ export default function UniversalViewer({ material, initialPage, onPageChange, o
     )
   }
 
-  // ─── 2. SLIDE IMAGES (PPTX visual fallback) ───────────────────────────────
-  if (hasSlideImages(material)) {
-    return (
-      <ImageSlidesRenderer
-        slideImages={material.slide_images}
-        title={material.title}
-        fileUrl={fileUrl}
-      />
-    )
+  // ─── 3. PPTX — show skeleton while converting, or error if failed ───────
+  if (type === 'pptx') {
+    return <ConversionSkeleton type="pptx" failed={conversionFailed} onRetry={() => setConversionFailed(false)} />
   }
 
-  // ─── 3. MISSING SOURCE URL ────────────────────────────────────────────────
+  // ─── 4. MISSING SOURCE URL ────────────────────────────────────────────────
   if (!fileUrl && type !== 'text') {
     return (
       <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC', padding: '40px' }}>
@@ -96,80 +147,45 @@ export default function UniversalViewer({ material, initialPage, onPageChange, o
     )
   }
 
-  // ─── 4. CONVERSION PENDING (show native + banner) ─────────────────────────
-  const isConverting = material?.render_quality === 'native' && ['docx', 'pptx', 'excel'].includes(type)
+  // ─── 5. EVERYTHING ELSE → native renderer ───────────────────────────────
+  if (type === 'docx') {
+    return <DocxRenderer fileUrl={fileUrl} title={material.title} />
+  }
+
+  if (type === 'excel') {
+    return <ExcelRenderer fileUrl={fileUrl} />
+  }
+
+  if (type === 'text') {
+    return <TextRenderer content={material.extracted_text} title={material.title} />
+  }
+
+  if (type === 'image') {
+    return <ImageRenderer fileUrl={fileUrl} title={material.title} />
+  }
+
+  if (type === 'video') {
+    return material.type === 'youtube'
+      ? <YouTubeRenderer url={fileUrl} />
+      : <VideoRenderer fileUrl={fileUrl} title={material.title} />
+  }
+
+  if (type === 'audio') {
+    return <AudioRenderer fileUrl={fileUrl} title={material.title} />
+  }
 
   return (
-    <>
-      {isConverting && (
-        <div style={{
-          position: 'sticky', top: 0, zIndex: 20,
-          background: '#FFF7ED', borderBottom: '1.5px solid #FED7AA',
-          padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-        }}>
-          <Sparkle size={18} color="#F97316" />
-          <span style={{ fontFamily: 'var(--font-outfit)', fontSize: 13, fontWeight: 600, color: '#9A3412' }}>
-            Converting to high-fidelity view… native preview shown below.
-          </span>
-        </div>
-      )}
-
-      {type === 'pdf' && (
-        <FlashkaDocumentViewer
-          fileUrl={fileUrl}
-          title={material.title}
-          type={type}
-          onPageChange={onPageChange}
-          onDocumentLoad={onDocumentLoad}
-        />
-      )}
-
-      {type === 'docx' && (
-        <DocxRenderer fileUrl={fileUrl} title={material.title} />
-      )}
-
-      {type === 'pptx' && (
-        <PptxRenderer fileUrl={fileUrl} title={material.title} />
-      )}
-
-      {type === 'excel' && (
-        <ExcelRenderer fileUrl={fileUrl} />
-      )}
-
-      {type === 'text' && (
-        <TextRenderer content={material.extracted_text} title={material.title} />
-      )}
-
-      {type === 'image' && (
-        <ImageRenderer fileUrl={fileUrl} title={material.title} />
-      )}
-
-      {type === 'video' && (
-        material.type === 'youtube' ? (
-          <YouTubeRenderer url={fileUrl} />
-        ) : (
-          <VideoRenderer fileUrl={fileUrl} title={material.title} />
-        )
-      )}
-
-      {type === 'audio' && (
-        <AudioRenderer fileUrl={fileUrl} title={material.title} />
-      )}
-
-      {type === 'unknown' && (
-        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', fontFamily: 'var(--font-outfit)' }}>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ fontSize: '18px', fontWeight: 700 }}>Unsupported file format</p>
-            <p style={{ fontSize: '14px' }}>{material?.title}</p>
-            <button
-              onClick={() => window.open(fileUrl, '_blank')}
-              style={{ marginTop: '20px', padding: '10px 20px', background: '#4B0082', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer' }}
-            >
-              Download anyway
-            </button>
-          </div>
-        </div>
-      )}
-    </>
+    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', fontFamily: 'var(--font-outfit)' }}>
+      <div style={{ textAlign: 'center' }}>
+        <p style={{ fontSize: '18px', fontWeight: 700 }}>Unsupported file format</p>
+        <p style={{ fontSize: '14px' }}>{material?.title}</p>
+        <button
+          onClick={() => window.open(fileUrl, '_blank')}
+          style={{ marginTop: '20px', padding: '10px 20px', background: '#4B0082', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer' }}
+        >
+          Download anyway
+        </button>
+      </div>
+    </div>
   )
 }

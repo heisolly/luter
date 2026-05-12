@@ -194,14 +194,14 @@ export default function CoursesPage() {
     }
   }, [user?.id])
 
-  const { startTour, hasCompletedTour } = useTourStore()
+  const { startTour, hasCompletedTour, completedTours, currentUserId } = useTourStore()
 
   useEffect(() => {
-    if (!loading && courses.length >= 0 && !hasCompletedTour('backpack')) {
+    if (user?.id && currentUserId === user.id && !loading && !hasCompletedTour('backpack')) {
       const timer = setTimeout(() => startTour('backpack'), 2000)
       return () => clearTimeout(timer)
     }
-  }, [loading, courses])
+  }, [user?.id, currentUserId, completedTours, loading, hasCompletedTour, startTour])
 
   // Save active tab to localStorage whenever it changes
   useEffect(() => {

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-import { createClient } from "@supabase/supabase-js"
+import { createClient } from "npm:@supabase/supabase-js"
 
 const CLOUDMERSIVE_API_KEY = Deno.env.get('CLOUDMERSIVE_API_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
@@ -97,16 +97,20 @@ Deno.serve(async (req) => {
     console.log(`[Processor] Uploading converted PDF: ${pdfPath}`)
 
     const { error: uploadError } = await supabase.storage
-      .from('study-materials')
+      .from('materials')
       .upload(pdfPath, convertedBlob, {
         contentType: 'application/pdf',
         upsert: true
       })
 
-    if (uploadError) throw uploadError
+    if (uploadError) {
+      console.error('[EdgeFunction] Storage upload failed:', uploadError)
+      throw uploadError
+    }
+    console.log('[EdgeFunction] Storage upload success:', pdfPath)
 
     const { data: { publicUrl } } = supabase.storage
-      .from('study-materials')
+      .from('materials')
       .getPublicUrl(pdfPath)
 
     // ─── 5. UPDATE MATERIALS TABLE ───────────────────────────────────────────
@@ -117,11 +121,14 @@ Deno.serve(async (req) => {
         converted_url: publicUrl,
         converted_type: outputType,
         converted_at: new Date().toISOString(),
-        render_quality: 'high_fidelity',
       })
       .eq('id', materialId)
 
-    if (updateError) throw updateError
+    if (updateError) {
+      console.error('[EdgeFunction] CRITICAL: DB update failed:', updateError)
+      throw new Error(`DB update failed: ${updateError.message}`)
+    }
+    console.log('[EdgeFunction] DB updated successfully:', publicUrl)
 
     // ─── 6. MARK JOB COMPLETED ───────────────────────────────────────────────
     await supabase

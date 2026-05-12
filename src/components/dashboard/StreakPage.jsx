@@ -28,11 +28,11 @@ export default function StreakPage() {
   const { startTour, hasCompletedTour } = useTourStore()
 
   useEffect(() => {
-    if (ready && !hasCompletedTour('streak')) {
+    if (user?.id && ready && !hasCompletedTour('streak')) {
       const timer = setTimeout(() => startTour('streak'), 2000)
       return () => clearTimeout(timer)
     }
-  }, [ready])
+  }, [user?.id, ready])
 
   const DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
   

@@ -874,6 +874,14 @@ input { font-family: var(--font); }
   background: #ffffff;
 }
 
+.dash-main.collapsed {
+  margin-left: var(--dsb-w-col) !important;
+}
+
+.dash-main:not(.collapsed) {
+  margin-left: var(--dsb-w) !important;
+}
+
 /* =============================================
    DASHBOARD HOME
    ============================================= */

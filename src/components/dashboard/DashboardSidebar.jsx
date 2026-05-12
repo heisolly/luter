@@ -113,6 +113,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
     return (
       <div className="dsb-nav-group">
         <button
+          id={`nav-${id}`}
           className={`dsb-nav-item 
             ${isActive ? 'dsb-nav-item--active' : ''} 
             ${highlight ? 'dsb-nav-item--playground' : ''}
@@ -233,7 +234,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
             className="dsb-section-label dsb-section-label--clickable" 
             style={{ marginTop: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} onClick={() => go('/dashboard/courses')}>
+            <div id="nav-backpack" style={{ display: 'flex', alignItems: 'center', gap: 8 }} onClick={() => go('/dashboard/courses')}>
               <div style={{ width: 4, height: 16, background: '#7a12cc', borderRadius: 2 }} />
               <span style={{ fontWeight: 800, fontSize: 11, letterSpacing: '0.05em', color: '#111' }}>
                 {isSoloLearner ? t('myVault') : t('backpack')}
@@ -422,7 +423,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
           border: collapsed ? 'none' : '1px solid rgba(226, 232, 240, 0.6)',
           padding: collapsed ? 0 : '4px'
         }}>
-          <button className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/dashboard/analytics')} style={{
+          <button id="nav-progress" className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/dashboard/analytics')} style={{
             borderRadius: '8px',
             margin: collapsed ? 0 : '2px'
           }}>
@@ -430,7 +431,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
             {!collapsed && <span className="dsb-nav-label-text">{t('myProgress')}</span>}
           </button>
           
-          <button className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/dashboard/settings')} style={{
+          <button id="nav-settings" className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/dashboard/settings')} style={{
             borderRadius: '8px',
             margin: collapsed ? 0 : '2px'
           }}>
@@ -441,6 +442,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
         </div>  
           {!tierBadge && (
             <button 
+              id="nav-upgrade"
               className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} 
               onClick={() => go('/dashboard/pricing')}
               style={{
@@ -519,6 +521,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
           )}
           {/* Gamified User Profile - Streak, Level, Coins */}
           <button 
+            id="nav-profile-card"
             className={`dsb-user-compact ${collapsed ? 'dsb-user--collapsed' : ''}`}
             onClick={() => go('/dashboard/profile')}
             style={{

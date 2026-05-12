@@ -1,13 +1,16 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 
 export const useTourStore = create(
   persist(
     (set, get) => ({
-      completedTours: [], // Array of tour IDs like ['dashboard-home', 'workstation']
+      completedTours: {}, // Object keyed by userId: Array of tour IDs
       isTourActive: false,
       currentTourId: null,
       currentStep: 0,
+      currentUserId: null,
+
+      setUserId: (userId) => set({ currentUserId: userId }),
 
       startTour: (tourId) => set({ 
         isTourActive: true, 
@@ -24,20 +27,37 @@ export const useTourStore = create(
       })),
 
       endTour: () => {
-        const { currentTourId, completedTours } = get()
+        const { currentUserId, currentTourId, completedTours } = get()
+        if (!currentUserId) return
+
+        const userCompleted = completedTours[currentUserId] || []
+        
         set({ 
           isTourActive: false, 
           currentTourId: null, 
           currentStep: 0,
-          completedTours: currentTourId && !completedTours.includes(currentTourId) 
-            ? [...completedTours, currentTourId] 
-            : completedTours
+          completedTours: {
+            ...completedTours,
+            [currentUserId]: currentTourId && !userCompleted.includes(currentTourId) 
+              ? [...userCompleted, currentTourId] 
+              : userCompleted
+          }
         })
       },
 
-      resetTours: () => set({ completedTours: [] }),
+      resetTours: () => {
+        const { currentUserId } = get()
+        if (currentUserId) {
+          set((state) => ({
+            completedTours: { ...state.completedTours, [currentUserId]: [] }
+          }))
+        }
+      },
 
-      hasCompletedTour: (tourId) => get().completedTours.includes(tourId)
+      hasCompletedTour: (tourId) => {
+        const { currentUserId, completedTours } = get()
+        return currentUserId ? (completedTours[currentUserId] || []).includes(tourId) : false
+      }
     }),
     {
       name: 'luter-tour-storage'

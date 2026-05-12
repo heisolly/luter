@@ -19,7 +19,7 @@ import { useTourStore } from '../../store/useTourStore'
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const { isTourActive, startTour, hasCompletedTour } = useTourStore()
+  const { isTourActive, currentTourId, startTour, hasCompletedTour, setUserId, completedTours, currentUserId } = useTourStore()
   const { initializeWorkspaces } = useUniversalWorkspaceStore()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const [user, setUser] = useState(null)
@@ -31,11 +31,33 @@ export default function Dashboard() {
 
   // Trigger tour for new users on dashboard home
   useEffect(() => {
-    if (!loading && user && !hasCompletedTour('dashboard-home') && window.location.pathname === '/dashboard') {
-      const timer = setTimeout(() => startTour('dashboard-home'), 2000)
-      return () => clearTimeout(timer)
+    if (user?.id) {
+      setUserId(user.id)
     }
-  }, [loading, user, window.location.pathname])
+  }, [user?.id, setUserId])
+
+  useEffect(() => {
+    if (!loading && user && currentUserId === user.id && window.location.pathname === '/dashboard') {
+      if (!hasCompletedTour('dashboard-home')) {
+        const timer = setTimeout(() => startTour('dashboard-home'), 2000)
+        return () => clearTimeout(timer)
+      }
+      
+      // Trigger nav tour after home tour is done
+      if (hasCompletedTour('dashboard-home') && !hasCompletedTour('dashboard-nav')) {
+        const timer = setTimeout(() => startTour('dashboard-nav'), 1000)
+        return () => clearTimeout(timer)
+      }
+    }
+  }, [loading, user, currentUserId, completedTours, window.location.pathname, hasCompletedTour, startTour])
+
+  // Force sidebar open during nav tour
+  useEffect(() => {
+    if (isTourActive && currentTourId === 'dashboard-nav') {
+      setSidebarCollapsed(false)
+      if (isMobile) setMobileSidebarOpen(true)
+    }
+  }, [isTourActive, currentTourId, isMobile])
 
   useEffect(() => {
     let hb
@@ -81,11 +103,6 @@ export default function Dashboard() {
           try {
             // Initialize workspaces to ensure backpack shows all courses
             await initializeWorkspaces()
-            
-            // Start preloading all user data in background
-            preloadingService.preloadUserData(session.user.id).catch(err => {
-              console.warn('Background preload failed:', err.message)
-            })
           } catch (error) {
             console.warn('Workspace initialization failed:', error.message)
           }
@@ -103,7 +120,9 @@ export default function Dashboard() {
           updateHeartbeat()
           hb = setInterval(updateHeartbeat, 30000)
         } else {
+          console.log('❌ No session found, redirecting to signin')
           const currentPath = window.location.pathname + window.location.search
+          console.log('🔄 Redirect path:', currentPath)
           navigate(`/signin?redirect=${encodeURIComponent(currentPath)}`)
         }
       } catch (error) {

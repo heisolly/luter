@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import {
   CircleNotch,
@@ -13,15 +14,22 @@ import {
   Trash,
   ArrowsClockwise,
   Globe,
+  Robot,
   FileCsv,
+  MagnifyingGlass,
 } from '@phosphor-icons/react'
+import tavilyService from '../../services/tavilyService'
 import {
   buildSyllabusId,
   departmentSlugFromLabel,
   normalizeCourseCode,
   universitySlugFromName,
 } from '../../lib/curriculumSlugs'
-import { parseSyllabusPasteWithGroq, suggestSyllabusFromAiQuery } from '../../groqClient'
+import { 
+  parseSyllabusPasteWithGroq, 
+  suggestSyllabusFromAiQuery,
+  researchSyllabusOnline,
+} from '../../groqClient'
 
 const LEVELS = ['100', '200', '300', '400', '500']
 const SEMESTERS = [
@@ -94,6 +102,7 @@ function rowCoursesFromDelimited(codesStr, titlesStr) {
 }
 
 export default function AdminSyllabusManager() {
+  const navigate = useNavigate()
   const [view, setView] = useState('table')
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
@@ -110,6 +119,8 @@ export default function AdminSyllabusManager() {
   const [aiQuery, setAiQuery] = useState('')
   const [preview, setPreview] = useState([])
   const [editId, setEditId] = useState(null)
+  const [researchData, setResearchData] = useState(null)
+  const [isResearching, setIsResearching] = useState(false)
 
   const [bulkText, setBulkText] = useState('')
   const [bulkResult, setBulkResult] = useState(null)
@@ -124,6 +135,71 @@ export default function AdminSyllabusManager() {
     const ds = departmentSlugFromLabel(dept)
     return buildSyllabusId(us, ds, level, semester)
   }, [univ, dept, level, semester])
+
+  const runWebResearch = async () => {
+    setIsResearching(true)
+    setError(null)
+    setResearchData(null)
+    
+    try {
+      console.log('Starting web research for:', { univ, dept, level, semester })
+      const searchResults = await tavilyService.researchSyllabus(univ, dept, level, semester)
+      console.log('Tavily results:', searchResults)
+      
+      if (!searchResults.results?.length) {
+        throw new Error('No search results found for this context.')
+      }
+
+      const synthesized = await researchSyllabusOnline({
+        university: univ,
+        department: dept,
+        level,
+        semester,
+        searchResults
+      })
+
+      console.log('Synthesized syllabus:', synthesized)
+      setResearchData({
+        courses: synthesized,
+        answer: searchResults.answer,
+        sources: searchResults.results
+      })
+      
+      if (synthesized.length > 0) {
+        setPreview(synthesized.map(c => ({
+          code: c.code,
+          title: c.title,
+          is_elective: c.is_elective
+        })))
+      }
+    } catch (err) {
+      console.error('Web research failed:', err)
+      setError(`Research failed: ${err.message}`)
+    } finally {
+      setIsResearching(false)
+    }
+  }
+
+  const runAutonomousResearch = async () => {
+    // Find the Syllabus Researcher agent
+    const { data: agents } = await supabase.from('admin_agents')
+      .select('id')
+      .ilike('name', '%Syllabus Researcher%')
+      .single()
+
+    if (!agents?.id) {
+      alert('Syllabus Researcher agent not found. Please create one in the Agent Directory.')
+      navigate('/admin/agents')
+      return
+    }
+
+    const prompt = `Research and verify the official curriculum for ${univ} (${dept}) for Level ${level}, Semester ${semester}. 
+    Compare at least 3 sources. If you find discrepancies (like 13 vs 37 courses), explain which one is correct. 
+    Return the verified course list in the structured data field.`
+
+    // Navigate to agent console with the prompt as a state or query param
+    navigate(`/admin/agents/${agents.id}`, { state: { autoPrompt: prompt } })
+  }
 
   const reload = useCallback(async () => {
     setLoading(true)
@@ -894,6 +970,7 @@ const publishRow = async (id) => {
         {[
           { id: 'table', label: 'Data table', icon: Table },
           { id: 'wizard', label: 'Creation wizard', icon: MagicWand },
+          { id: 'research', label: 'Web Research', icon: Globe },
           { id: 'bulk', label: 'Bulk CSV', icon: FileCsv },
         ].map(({ id, label, icon: Icon }) => (
           <button
@@ -1617,6 +1694,206 @@ const publishRow = async (id) => {
               Clear form
             </button>
           </div>
+        </div>
+      )}
+
+      {view === 'research' && (
+        <div className="adm-card" style={{ padding: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#111827' }}>
+                <Globe size={24} style={{ verticalAlign: 'middle', marginRight: 10, color: '#2563eb' }} />
+                Web Research Engine
+              </h3>
+              <p className="adm-muted" style={{ fontSize: 13, marginTop: 4 }}>
+                Search the live web for official university handbooks and curricula using Tavily + Groq.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gap: 16,
+            marginBottom: 24,
+            padding: 16,
+            background: '#f8fafc',
+            borderRadius: 12,
+            border: '1px solid #e2e8f0'
+          }}>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#4b5563', display: 'block', marginBottom: 6 }}>University</label>
+              <input 
+                className="adm-input" 
+                placeholder="e.g. University of Lagos"
+                value={univ} 
+                onChange={e => setUniv(e.target.value)} 
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#4b5563', display: 'block', marginBottom: 6 }}>Department</label>
+              <input 
+                className="adm-input" 
+                placeholder="e.g. Computer Science"
+                value={dept} 
+                onChange={e => setDept(e.target.value)} 
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#4b5563', display: 'block', marginBottom: 6 }}>Level</label>
+                <select className="adm-input" value={level} onChange={e => setLevel(e.target.value)}>
+                  {LEVELS.map(l => <option key={l} value={l}>{l}L</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#4b5563', display: 'block', marginBottom: 6 }}>Semester</label>
+                <select className="adm-input" value={semester} onChange={e => setSemester(e.target.value)}>
+                  {SEMESTERS.map(s => <option key={s.v} value={s.v}>{s.label}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button 
+                className="adm-btn adm-btn--primary" 
+                style={{ width: '100%', height: 42, gap: 8 }}
+                onClick={runWebResearch}
+                disabled={isResearching || !univ || !dept}
+              >
+                {isResearching ? (
+                  <CircleNotch className="animate-spin" size={18} />
+                ) : (
+                  <MagnifyingGlass size={18} />
+                )}
+                {isResearching ? 'Searching Web...' : 'Research Online'}
+              </button>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button 
+                className="adm-btn adm-btn--primary" 
+                style={{ width: '100%', height: 42, gap: 8, background: '#7a12cc', border: 'none' }}
+                onClick={runAutonomousResearch}
+                disabled={isResearching}
+              >
+                <Robot size={18} weight="fill" />
+                Launch AI Researcher
+              </button>
+            </div>
+          </div>
+
+          {isResearching && (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <CircleNotch className="animate-spin" size={32} style={{ color: '#2563eb', marginBottom: 16 }} />
+              <p style={{ fontSize: 15, fontWeight: 500, color: '#4b5563' }}>
+                Scanning academic portals and public documents...
+              </p>
+              <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>
+                This usually takes 10-15 seconds.
+              </p>
+            </div>
+          )}
+
+          {researchData && !isResearching && (
+            <div style={{ marginTop: 20 }}>
+              <div style={{ 
+                padding: 16, 
+                background: '#f0f9ff', 
+                border: '1px solid #bae6fd', 
+                borderRadius: 8,
+                marginBottom: 20
+              }}>
+                <h4 style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 700, color: '#0369a1' }}>
+                  Research Summary
+                </h4>
+                <p style={{ fontSize: 13, color: '#0c4a6e', lineHeight: 1.5, margin: 0 }}>
+                  {researchData.answer || 'Research complete. Found several potential curriculum fragments.'}
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>
+                  Extracted Courses ({researchData.courses.length})
+                </h4>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>
+                  Confidence: <span style={{ color: '#059669', fontWeight: 600 }}>High</span>
+                </div>
+              </div>
+
+              <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden', marginBottom: 24 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead style={{ background: '#f9fafb' }}>
+                    <tr>
+                      <th style={{ padding: 10, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Code</th>
+                      <th style={{ padding: 10, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Title</th>
+                      <th style={{ padding: 10, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Confidence</th>
+                      <th style={{ padding: 10, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Snippet</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {researchData.courses.map((c, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td style={{ padding: 10, fontWeight: 600 }}>{c.code}</td>
+                        <td style={{ padding: 10 }}>{c.title}</td>
+                        <td style={{ padding: 10 }}>
+                          <div style={{ width: 40, height: 4, background: '#e5e7eb', borderRadius: 2 }}>
+                            <div style={{ 
+                              width: `${c.confidence * 100}%`, 
+                              height: '100%', 
+                              background: c.confidence > 0.8 ? '#059669' : '#d97706',
+                              borderRadius: 2
+                            }} />
+                          </div>
+                        </td>
+                        <td style={{ padding: 10, color: '#6b7280', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {c.source_snippet}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ marginBottom: 32 }}>
+                <h4 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700 }}>Sources</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {researchData.sources.map((s, i) => (
+                    <a 
+                      key={i} 
+                      href={s.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ 
+                        fontSize: 11, 
+                        padding: '4px 8px', 
+                        background: '#f3f4f6', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: 4,
+                        color: '#2563eb',
+                        textDecoration: 'none'
+                      }}
+                    >
+                      {new URL(s.url).hostname}
+                    </a>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, padding: 20, background: '#f8fafc', borderRadius: 12, border: '1px dashed #cbd5e1' }}>
+                <div style={{ flex: 1 }}>
+                  <h5 style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700 }}>Action Required</h5>
+                  <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                    Review the extracted courses above. Clicking "Populate Preview" will move these into the editable wizard for final verification and publishing.
+                  </p>
+                </div>
+                <button 
+                  className="adm-btn adm-btn--primary"
+                  onClick={() => setView('wizard')}
+                >
+                  Populate Preview &amp; Edit
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

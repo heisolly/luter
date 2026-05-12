@@ -40,6 +40,14 @@ import AdminSystem from './admin/pages/AdminSystem'
 import AdminSettings from './admin/pages/AdminSettings'
 import AdminSyllabusManager from './admin/pages/AdminSyllabusManager'
 import AdminNotesManager from './admin/pages/AdminNotesManager'
+import AdminAudit from './admin/pages/AdminAudit'
+import AdminAgents from './admin/pages/AdminAgents'
+import AdminAgentBuilder from './admin/pages/AdminAgentBuilder'
+import AdminAgentConsole from './admin/pages/AdminAgentConsole'
+import AdminAgentMonitor from './admin/pages/AdminAgentMonitor'
+import AdminAgentFactory from './admin/pages/AdminAgentFactory'
+import AdminAnalytics from './admin/pages/AdminAnalytics'
+import AdminSystemControls from './admin/pages/AdminSystemControls'
 import PaymentSettings from './components/admin/PaymentSettings'
 import LuterAdminUploadPage from './admin/pages/LuterAdminUploadPage'
 import StudyMaterialsPage from './components/dashboard/StudyMaterialsPage'
@@ -173,6 +181,14 @@ export default function App() {
             <Route path="payment-settings" element={<PaymentSettings />} />
             <Route path="settings" element={<AdminSettings />} />
             <Route path="syllabus" element={<AdminSyllabusManager />} />
+            <Route path="audit" element={<AdminAudit />} />
+            <Route path="agents" element={<AdminAgents />} />
+            <Route path="agents/new" element={<AdminAgentBuilder />} />
+            <Route path="agents/monitor" element={<AdminAgentMonitor />} />
+            <Route path="agents/factory" element={<AdminAgentFactory />} />
+            <Route path="agents/:id" element={<AdminAgentConsole />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
+            <Route path="controls" element={<AdminSystemControls />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Route>
         </Routes>

@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  RiFolderOpenFill as Folder, RiAddLine as Plus, RiDeleteBin6Fill as Trash2,
-  RiPlayFill as Play, RiArrowLeftLine as ArrowLeft, RiFileTextFill as FileText,
-  RiVideoFill as Video, RiMusicFill as Music, RiImageFill as ImageIcon, RiSearchLine as Search,
-  RiMore2Fill as More, RiCloseLine as X, RiUploadLine as Upload, RiDragDropLine,
-  RiTimeLine as Clock, RiBook2Fill as Book, RiSparklingFill as Sparkle
-} from 'react-icons/ri'
+  Folder, Plus, Trash2, Play, ArrowLeft, FileText, Video, Music, Image as ImageIcon, Search,
+  Upload, Clock, Edit2
+} from 'lucide-react'
 import { supabase } from '../../supabaseClient'
 import { useSessionStore } from '../../store/useSessionStore'
 import { uploadMaterial } from '../../services/materialsService'
@@ -16,7 +13,7 @@ import Header from '../shared/Header'
 export default function StudySessionPage() {
   const { sessionId } = useParams()
   const navigate = useNavigate()
-  const { user, isMobile } = useOutletContext()
+  const { user, isMobile, sidebarCollapsed } = useOutletContext()
   const { 
     sessions, 
     loadSessions, 
@@ -248,7 +245,7 @@ export default function StudySessionPage() {
   if (loading) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontSize: 16, color: '#64748b' }}>Loading session...</div>
+        <div style={{ fontSize: 14, color: '#64748b' }}>Loading session...</div>
       </div>
     )
   }
@@ -257,8 +254,7 @@ export default function StudySessionPage() {
     <div 
       style={{ 
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #faf5ff 0%, #f0f9ff 100%)',
-        fontFamily: "'Outfit', 'Varela Round', sans-serif"
+        background: '#f8fafc',
       }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -267,150 +263,101 @@ export default function StudySessionPage() {
       <Header 
         showSearch={false}
         pageTitle={session?.session_name || "Study Session"}
-        showCreateButton={true}
-        createButtonPath="/dashboard/upload"
+        showCreateButton={false}
       />
+
       {/* Drag Overlay */}
-      <AnimatePresence>
-        {isDragging && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(122, 18, 204, 0.1)',
-              backdropFilter: 'blur(8px)',
-              zIndex: 1000,
+      {isDragging && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(139, 92, 246, 0.1)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '2px dashed #8b5cf6'
+          }}
+        >
+          <div style={{ textAlign: 'center', color: '#8b5cf6' }}>
+            <Upload size={48} style={{ margin: '0 auto 12px' }} />
+            <p style={{ fontSize: 18, fontWeight: 500, margin: 0 }}>
+              Drop files here
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div style={{ 
+        padding: isMobile ? '20px' : '32px', 
+        paddingLeft: sidebarCollapsed ? (isMobile ? '20px' : '100px') : (isMobile ? '20px' : '280px'),
+        paddingRight: isMobile ? '20px' : '32px',
+        transition: 'padding 0.3s ease',
+        minHeight: 'calc(100vh - 80px)'
+      }}>
+        {/* Back Button */}
+        <button 
+          onClick={() => navigate('/dashboard/sessions')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 12px',
+            background: 'transparent',
+            border: 'none',
+            color: '#64748b',
+            fontSize: 14,
+            cursor: 'pointer',
+            marginBottom: 24,
+            transition: 'color 0.2s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = '#111'}
+          onMouseLeave={(e) => e.currentTarget.style.color = '#64748b'}
+        >
+          <ArrowLeft size={18} />
+          Back to Sessions
+        </button>
+
+        {/* Session Header */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 16,
+            marginBottom: 24
+          }}>
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: 12,
+              background: '#8b5cf6',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: '3px dashed #7a12cc'
-            }}
-          >
-            <div style={{ textAlign: 'center', color: '#7a12cc' }}>
-              <RiDragDropLine size={64} style={{ margin: '0 auto 16px' }} />
-              <h2 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>
-                Drop files here to add to session
-              </h2>
+              color: 'white',
+              flexShrink: 0
+            }}>
+              <Folder size={24} />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div style={{ 
-        maxWidth: 1200, 
-        margin: '0 auto', 
-        padding: isMobile ? '20px' : '40px'
-      }}>
-        {/* Header */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{ marginBottom: 40 }}
-        >
-          <button 
-            onClick={() => navigate('/dashboard')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 20px',
-              background: 'white',
-              border: '2px solid #e9d5ff',
-              borderRadius: 16,
-              color: '#7a12cc',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-              marginBottom: 32,
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              boxShadow: '0 4px 12px rgba(122, 18, 204, 0.1)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#7a12cc'
-              e.currentTarget.style.color = 'white'
-              e.currentTarget.style.transform = 'translateY(-2px)'
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(122, 18, 204, 0.3)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'white'
-              e.currentTarget.style.color = '#7a12cc'
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(122, 18, 204, 0.1)'
-            }}
-          >
-            <ArrowLeft size={18} />
-            Back to Dashboard
-          </button>
-
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'flex-start', 
-            gap: 24, 
-            marginBottom: 32,
-            flexWrap: 'wrap'
-          }}>
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: 24,
-                background: 'linear-gradient(135deg, #7a12cc, #a855f7)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: 32,
-                flexShrink: 0,
-                boxShadow: '0 12px 32px rgba(122, 18, 204, 0.4)',
-                position: 'relative'
-              }}
-            >
-              <Folder size={40} />
-              <div style={{
-                position: 'absolute',
-                top: -4,
-                right: -4,
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                background: '#10b981',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '3px solid white'
-              }}>
-                <Sparkle size={12} />
-              </div>
-            </motion.div>
             
             <div style={{ flex: 1, minWidth: 0 }}>
               {isEditing ? (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}
-                >
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input
                     type="text"
                     value={sessionName}
                     onChange={(e) => setSessionName(e.target.value)}
                     style={{
-                      fontSize: 36,
-                      fontWeight: 900,
-                      padding: '12px 24px',
-                      borderRadius: 16,
-                      border: '3px solid #e9d5ff',
+                      fontSize: 20,
+                      fontWeight: 600,
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      border: '1px solid #e2e8f0',
                       background: 'white',
-                      fontFamily: "'Outfit', sans-serif",
                       outline: 'none',
-                      boxShadow: '0 8px 24px rgba(122, 18, 204, 0.1)',
-                      minWidth: 300
+                      flex: 1
                     }}
                     autoFocus
                     onKeyDown={(e) => {
@@ -421,157 +368,96 @@ export default function StudySessionPage() {
                       }
                     }}
                   />
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                  <button
                     onClick={handleSaveName}
                     style={{
-                      padding: '12px 24px',
-                      background: 'linear-gradient(135deg, #7a12cc, #a855f7)',
+                      padding: '8px 16px',
+                      background: '#8b5cf6',
                       color: 'white',
                       border: 'none',
-                      borderRadius: 16,
-                      fontSize: 16,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      boxShadow: '0 8px 24px rgba(122, 18, 204, 0.3)'
+                      borderRadius: 8,
+                      fontSize: 14,
+                      fontWeight: 500,
+                      cursor: 'pointer'
                     }}
                   >
                     Save
-                  </motion.button>
-                </motion.div>
+                  </button>
+                </div>
               ) : (
-                <motion.h1 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  style={{ 
-                    fontSize: 36, 
-                    fontWeight: 900, 
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <h1 style={{ 
+                    fontSize: 24, 
+                    fontWeight: 600, 
                     margin: 0,
-                    color: '#111',
-                    letterSpacing: '-0.02em',
-                    lineHeight: 1.2
-                  }}
-                >
-                  {session?.session_name || 'Study Session'}
-                </motion.h1>
+                    color: '#111'
+                  }}>
+                    {session?.session_name || 'Study Session'}
+                  </h1>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    style={{
+                      padding: '4px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#64748b',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                </div>
               )}
               
               <div style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                gap: 20, 
-                marginTop: 16,
-                flexWrap: 'wrap'
+                gap: 16, 
+                marginTop: 4
               }}>
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 8,
-                    padding: '8px 16px',
-                    background: 'white',
-                    borderRadius: 12,
-                    border: '1px solid #e9d5ff'
-                  }}
-                >
-                  <Book size={16} style={{ color: '#7a12cc' }} />
-                  <span style={{ fontSize: 14, color: '#64748b', fontWeight: 600 }}>
-                    {session?.items?.length || 0} materials
-                  </span>
-                </motion.div>
-                
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 8,
-                    padding: '8px 16px',
-                    background: 'white',
-                    borderRadius: 12,
-                    border: '1px solid #e9d5ff'
-                  }}
-                >
-                  <Clock size={16} style={{ color: '#7a12cc' }} />
-                  <span style={{ fontSize: 14, color: '#64748b', fontWeight: 600 }}>
-                    {new Date(session?.created_at).toLocaleDateString()}
-                  </span>
-                </motion.div>
+                <span style={{ fontSize: 13, color: '#64748b' }}>
+                  {session?.items?.length || 0} materials
+                </span>
+                <span style={{ fontSize: 13, color: '#94a3b8' }}>
+                  Created {new Date(session?.created_at).toLocaleDateString()}
+                </span>
               </div>
             </div>
 
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}
-            >
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsEditing(!isEditing)}
-                style={{
-                  padding: '12px 20px',
-                  background: 'white',
-                  border: '2px solid #e9d5ff',
-                  borderRadius: 16,
-                  color: '#7a12cc',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(122, 18, 204, 0.1)'
-                }}
-              >
-                {isEditing ? 'Cancel' : 'Rename'}
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
                 onClick={handleDeleteSession}
                 style={{
-                  padding: '12px 20px',
-                  background: 'white',
-                  border: '2px solid #fecaca',
-                  borderRadius: 16,
-                  color: '#dc2626',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(220, 38, 38, 0.1)'
+                  padding: '8px 12px',
+                  background: 'transparent',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 8,
+                  color: '#64748b',
+                  fontSize: 13,
+                  cursor: 'pointer'
                 }}
               >
                 Delete
-              </motion.button>
-            </motion.div>
+              </button>
+            </div>
           </div>
 
           {/* Search and Actions Bar */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            style={{ 
-              display: 'flex', 
-              gap: 16, 
-              alignItems: 'center',
-              flexWrap: 'wrap'
-            }}
-          >
-            <div style={{ position: 'relative', flex: 1, minWidth: 300 }}>
+          <div style={{ 
+            display: 'flex', 
+            gap: 12, 
+            alignItems: 'center',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
               <Search 
-                size={20} 
+                size={18} 
                 style={{ 
                   position: 'absolute', 
-                  left: 20, 
+                  left: 12, 
                   top: '50%', 
                   transform: 'translateY(-50%)', 
-                  color: '#a855f7' 
+                  color: '#94a3b8' 
                 }} 
               />
               <input 
@@ -581,23 +467,12 @@ export default function StudySessionPage() {
                 placeholder="Search materials..." 
                 style={{ 
                   width: '100%', 
-                  padding: '16px 24px 16px 56px', 
-                  borderRadius: 20, 
-                  border: '2px solid #e9d5ff',
+                  padding: '10px 12px 10px 40px', 
+                  borderRadius: 8, 
+                  border: '1px solid #e2e8f0',
                   background: 'white',
-                  fontSize: 16,
-                  fontWeight: 500,
-                  outline: 'none',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: '0 4px 12px rgba(122, 18, 204, 0.1)'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#7a12cc'
-                  e.target.style.boxShadow = '0 8px 24px rgba(122, 18, 204, 0.2)'
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#e9d5ff'
-                  e.target.style.boxShadow = '0 4px 12px rgba(122, 18, 204, 0.1)'
+                  fontSize: 14,
+                  outline: 'none'
                 }}
               />
             </div>
@@ -607,404 +482,299 @@ export default function StudySessionPage() {
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               style={{
-                padding: '16px 20px',
-                borderRadius: 20,
-                border: '2px solid #e9d5ff',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: '1px solid #e2e8f0',
                 background: 'white',
                 fontSize: 14,
-                fontWeight: 600,
                 color: '#64748b',
                 outline: 'none',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(122, 18, 204, 0.1)'
+                cursor: 'pointer'
               }}
             >
-              <option value="name">Sort by Name</option>
-              <option value="date">Sort by Date</option>
-              <option value="type">Sort by Type</option>
+              <option value="name">Name</option>
+              <option value="date">Date</option>
+              <option value="type">Type</option>
             </select>
             
-            <motion.label 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <label 
               style={{
-                padding: '16px 24px',
-                background: 'linear-gradient(135deg, #7a12cc, #a855f7)',
+                padding: '10px 16px',
+                background: '#8b5cf6',
                 color: 'white',
                 border: 'none',
-                borderRadius: 20,
-                fontSize: 16,
-                fontWeight: 700,
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 500,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10,
-                boxShadow: '0 8px 24px rgba(122, 18, 204, 0.3)',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)'
-                e.currentTarget.style.boxShadow = '0 12px 32px rgba(122, 18, 204, 0.4)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(122, 18, 204, 0.3)'
+                gap: 8
               }}
             >
-              <Upload size={20} />
-              Add Materials
+              <Plus size={18} />
+              Add
               <input type="file" multiple onChange={handleFileSelect} hidden />
-            </motion.label>
+            </label>
 
             {(session?.items?.length || 0) > 0 && (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+              <button
                 onClick={handleStartStudying}
                 style={{
-                  padding: '16px 32px',
-                  background: 'linear-gradient(135deg, #10b981, #34d399)',
+                  padding: '10px 20px',
+                  background: '#10b981',
                   color: 'white',
                   border: 'none',
-                  borderRadius: 20,
-                  fontSize: 16,
-                  fontWeight: 700,
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 500,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 10,
-                  boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)'
-                  e.currentTarget.style.boxShadow = '0 12px 32px rgba(16, 185, 129, 0.4)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)'
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.3)'
+                  gap: 8
                 }}
               >
-                <Play size={20} />
-                Start Studying
-              </motion.button>
+                <Play size={18} />
+                Study
+              </button>
             )}
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
 
         {/* Materials Grid/List */}
-        <AnimatePresence mode="wait">
-          {filteredItems.length === 0 ? (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              style={{ 
-                textAlign: 'center', 
-                padding: 80, 
-                color: '#64748b',
-                background: 'white',
-                borderRadius: 32,
-                border: '3px dashed #e9d5ff',
-                boxShadow: '0 8px 32px rgba(122, 18, 204, 0.1)'
-              }}
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+        {filteredItems.length === 0 ? (
+          <div
+            style={{ 
+              textAlign: 'center', 
+              padding: 60, 
+              color: '#64748b',
+              background: 'white',
+              borderRadius: 16,
+              border: '2px dashed #e2e8f0'
+            }}
+          >
+            <Folder size={48} style={{ 
+              opacity: 0.3, 
+              marginBottom: 16,
+              color: '#8b5cf6'
+            }} />
+            <h3 style={{ 
+              fontSize: 18, 
+              fontWeight: 600, 
+              marginBottom: 8, 
+              color: '#111'
+            }}>
+              {searchQuery ? 'No materials found' : 'Your session is empty'}
+            </h3>
+            <p style={{ 
+              fontSize: 14, 
+              marginBottom: 24,
+              color: '#64748b'
+            }}>
+              {searchQuery 
+                ? 'Try adjusting your search terms' 
+                : 'Add materials to start studying'}
+            </p>
+            {!searchQuery && (
+              <label
+                style={{
+                  padding: '12px 24px',
+                  background: '#8b5cf6',
+                  color: 'white',
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8
+                }}
               >
-                <Folder size={64} style={{ 
-                  opacity: 0.4, 
-                  marginBottom: 24,
-                  color: '#a855f7'
-                }} />
-              </motion.div>
-              <h3 style={{ 
-                fontSize: 24, 
-                fontWeight: 800, 
-                marginBottom: 16, 
-                color: '#111',
-                letterSpacing: '-0.02em'
-              }}>
-                {searchQuery ? 'No materials found' : 'Your session is empty'}
-              </h3>
-              <p style={{ 
-                fontSize: 16, 
-                marginBottom: 32, 
-                maxWidth: 500, 
-                margin: '0 auto 32px',
-                lineHeight: 1.6
-              }}>
-                {searchQuery 
-                  ? 'Try adjusting your search terms to find what you\'re looking for' 
-                  : 'Add your first materials to this session to start your learning journey'}
-              </p>
-              {!searchQuery && (
-                <motion.label
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  style={{
-                    padding: '20px 40px',
-                    background: 'linear-gradient(135deg, #7a12cc, #a855f7)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 20,
-                    fontSize: 18,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    boxShadow: '0 12px 32px rgba(122, 18, 204, 0.4)',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)'
-                    e.currentTarget.style.boxShadow = '0 16px 40px rgba(122, 18, 204, 0.5)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.boxShadow = '0 12px 32px rgba(122, 18, 204, 0.4)'
-                  }}
-                >
-                  <Upload size={24} />
-                  Add Your First Material
-                  <input type="file" multiple onChange={handleFileSelect} hidden />
-                </motion.label>
-              )}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="materials"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={{ 
-                display: 'grid', 
-                gridTemplateColumns: viewMode === 'grid' ? 'repeat(auto-fill, minmax(300px, 1fr))' : '1fr',
-                gap: 20
-              }}
-            >
-              {filteredItems.map((item, index) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1, type: "spring", stiffness: 100 }}
-                  whileHover={{ 
-                    y: -4,
-                    boxShadow: '0 16px 40px rgba(122, 18, 204, 0.2)'
-                  }}
-                  style={{
-                    background: 'white',
-                    borderRadius: 24,
-                    padding: 24,
-                    border: '2px solid #f3f4f6',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}
-                  onClick={() => navigate(`/dashboard/workstation?materialId=${item.id}`)}
-                >
-                  {/* Gradient overlay on hover */}
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: '4px',
-                    background: 'linear-gradient(90deg, #7a12cc, #a855f7, #ec4899)',
-                    opacity: 0,
-                    transition: 'opacity 0.3s'
-                  }} />
+                <Plus size={18} />
+                Add Material
+                <input type="file" multiple onChange={handleFileSelect} hidden />
+              </label>
+            )}
+          </div>
+        ) : (
+          <div
+            style={{ 
+              display: 'grid', 
+              gridTemplateColumns: sidebarCollapsed 
+                ? 'repeat(auto-fill, minmax(320px, 1fr))' 
+                : 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: sidebarCollapsed ? '20px' : '16px',
+              maxWidth: '100%'
+            }}
+          >
+            {filteredItems.map((item) => (
+              <div
+                key={item.id}
+                style={{
+                  background: 'white',
+                  borderRadius: 12,
+                  padding: 16,
+                  border: '1px solid #e2e8f0',
+                  cursor: 'pointer',
+                  transition: 'box-shadow 0.2s'
+                }}
+                onClick={() => navigate(`/dashboard/workstation?materialId=${item.id}`)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              >
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 12,
+                  marginBottom: 12
+                }}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 8,
+                      background: '#f1f5f9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#64748b',
+                      flexShrink: 0
+                    }}
+                  >
+                    {getFileIcon(item.type)}
+                  </div>
                   
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 16,
-                    marginBottom: 16
-                  }}>
-                    <motion.div
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      style={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: 16,
-                        background: item.type === 'youtube' 
-                          ? 'linear-gradient(135deg, #ef4444, #f87171)' 
-                          : 'linear-gradient(135deg, #3b82f6, #60a5fa)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        flexShrink: 0,
-                        boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)'
-                      }}
-                    >
-                      {getFileIcon(item.type)}
-                    </motion.div>
-                    
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <h3 style={{ 
-                        fontSize: 18, 
-                        fontWeight: 700, 
-                        color: '#111', 
-                        margin: '0 0 8px',
-                        lineHeight: 1.3,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical'
-                      }}>
-                        {item.title}
-                      </h3>
-                      <div style={{ 
-                        fontSize: 13, 
-                        color: '#64748b', 
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
-                      }}>
-                        {item.type || 'DOCUMENT'}
-                      </div>
-                    </div>
-
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleRemoveItem(item.id)
-                      }}
-                      style={{
-                        padding: '10px',
-                        background: 'white',
-                        border: '2px solid #fecaca',
-                        borderRadius: 12,
-                        color: '#dc2626',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s',
-                        boxShadow: '0 2px 8px rgba(220, 38, 38, 0.1)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#dc2626'
-                        e.currentTarget.style.color = 'white'
-                        e.currentTarget.style.borderColor = '#dc2626'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'white'
-                        e.currentTarget.style.color = '#dc2626'
-                        e.currentTarget.style.borderColor = '#fecaca'
-                      }}
-                    >
-                      <Trash2 size={18} />
-                    </motion.button>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 style={{ 
+                      fontSize: 14, 
+                      fontWeight: 600, 
+                      color: '#111', 
+                      margin: '0 0 4px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {item.title}
+                    </h3>
+                    <span style={{ 
+                      fontSize: 12, 
+                      color: '#64748b'
+                    }}>
+                      {item.type || 'Document'}
+                    </span>
                   </div>
 
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    fontSize: 12,
-                    color: '#94a3b8',
-                    fontWeight: 500
-                  }}>
-                    <Clock size={14} />
-                    {new Date(item.created_at).toLocaleDateString()}
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleRemoveItem(item.id)
+                    }}
+                    style={{
+                      padding: '6px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                      borderRadius: 4
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = '#dc2626'
+                      e.currentTarget.style.background = '#fee2e2'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = '#94a3b8'
+                      e.currentTarget.style.background = 'transparent'
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 12,
+                  color: '#94a3b8'
+                }}>
+                  <Clock size={12} />
+                  {new Date(item.created_at).toLocaleDateString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Upload Progress Modal */}
-      <AnimatePresence>
-        {isUploading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+      {isUploading && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000
+          }}
+        >
+          <div
             style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(0, 0, 0, 0.6)',
-              backdropFilter: 'blur(8px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 2000
+              background: 'white',
+              padding: '32px',
+              borderRadius: 16,
+              textAlign: 'center',
+              minWidth: 320
             }}
           >
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
+            <div
               style={{
-                background: 'white',
-                padding: '40px',
-                borderRadius: 32,
-                textAlign: 'center',
-                minWidth: 400,
-                boxShadow: '0 24px 48px rgba(0, 0, 0, 0.2)'
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                background: '#8b5cf6',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+                color: 'white'
               }}
             >
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              <Upload size={24} />
+            </div>
+            <h3 style={{ fontSize: 18, fontWeight: 600, margin: '0 0 8px', color: '#111' }}>
+              Uploading...
+            </h3>
+            <div style={{ fontSize: 14, color: '#64748b', marginBottom: 20 }}>
+              {uploadProgress}%
+            </div>
+            
+            {/* Progress Bar */}
+            <div style={{
+              width: '100%',
+              height: 6,
+              background: '#e2e8f0',
+              borderRadius: 3,
+              overflow: 'hidden'
+            }}>
+              <div
                 style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #7a12cc, #a855f7)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 24px',
-                  color: 'white'
+                  height: '100%',
+                  width: `${uploadProgress}%`,
+                  background: '#8b5cf6',
+                  borderRadius: 3,
+                  transition: 'width 0.3s'
                 }}
-              >
-                <Upload size={32} />
-              </motion.div>
-              <h3 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 8px', color: '#111' }}>
-                Uploading materials...
-              </h3>
-              <div style={{ fontSize: 14, color: '#64748b', marginBottom: 24 }}>
-                {uploadProgress}% complete
-              </div>
-              
-              {/* Progress Bar */}
-              <div style={{
-                width: '100%',
-                height: 8,
-                background: '#f1f5f9',
-                borderRadius: 4,
-                overflow: 'hidden',
-                marginBottom: 16
-              }}>
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${uploadProgress}%` }}
-                  style={{
-                    height: '100%',
-                    background: 'linear-gradient(90deg, #7a12cc, #a855f7)',
-                    borderRadius: 4
-                  }}
-                />
-              </div>
-              
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                Please wait while we process your files
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

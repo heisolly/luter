@@ -14,6 +14,7 @@ import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS } from '../../groqClient'
 import canvasConfetti from 'canvas-confetti'
 import LuterLogo from '../shared/LuterLogo'
+import { FlashcardEngine as FlashcardEngineComponent } from './flashcards/FlashcardEngine'
 
 export function WorkstationNotes({ content, material, onRegenerate }) {
   if (!content) return <EmptyState icon={BookOpen} label="Notes are being drafted..." />
@@ -108,263 +109,52 @@ export function WorkstationSummary({ content, material }) {
   )
 }
 
-export function WorkstationFlashcards({ items = [], material, user }) {
-  const [idx, setIdx] = useState(0)
-  const [isFlipped, setIsFlipped] = useState(false)
-  const [mastered, setMastered] = useState(new Set())
-  const [direction, setDirection] = useState(0)
-  const [isFinished, setIsFinished] = useState(false)
-  const [isSharing, setIsSharing] = useState(false)
 
-  const safeItems = Array.isArray(items) ? items : []
-  if (safeItems.length === 0) return <EmptyState icon={Layers} label="Assembling your flashcard deck..." />
-
-  const card = safeItems[idx]
-  const progress = (mastered.size / safeItems.length) * 100
-
-  const triggerConfetti = () => {
-    const duration = 3 * 1000
-    const animationEnd = Date.now() + duration
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1000 }
-    const randomInRange = (min, max) => Math.random() * (max - min) + min
-
-    const interval = setInterval(() => {
-      const timeLeft = animationEnd - Date.now()
-      if (timeLeft <= 0) return clearInterval(interval)
-      const particleCount = 50 * (timeLeft / duration)
-      canvasConfetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } })
-      canvasConfetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } })
-    }, 250)
+export function WorkstationFlashcards({ flashcards = [], items = [], material, user, onRegenerate }) {
+  const getItems = () => {
+    if (Array.isArray(flashcards) && flashcards.length > 0) return flashcards
+    if (flashcards?.flashcards && Array.isArray(flashcards.flashcards)) return flashcards.flashcards
+    if (flashcards?.items && Array.isArray(flashcards.items)) return flashcards.items
+    if (Array.isArray(items) && items.length > 0) return items
+    return []
   }
-
-  const handleNext = () => {
-    if (idx < safeItems.length - 1) {
-      setDirection(1)
-      setIdx(idx + 1)
-      setIsFlipped(false)
-    } else {
-      setIsFinished(true)
-      triggerConfetti()
-    }
-  }
-
-  const handleMastered = () => {
-    setMastered(prev => new Set([...prev, idx]))
-    handleNext()
-  }
-
-  const handleShare = async () => {
-    if (isSharing) return
-    setIsSharing(true)
-    try {
-      const { data, error } = await supabase
-        .from('flashcard_bundles')
-        .insert({
-          user_id: user?.id,
-          material_id: material?.id,
-          title: `Flashcards: ${material?.title || 'Untitled'}`,
-          cards: safeItems
-        })
-        .select('id')
-        .single()
-      
-      if (data) {
-        const shareUrl = `${window.location.origin}/share/flashcards/${data.id}`
-        await navigator.clipboard.writeText(shareUrl)
-        alert('Flashcard Bundle Link copied to clipboard!')
-      } else {
-        throw error
-      }
-    } catch (err) {
-      console.error(err)
-      alert('Failed to create bundle link. Make sure you are logged in.')
-    } finally {
-      setIsSharing(false)
-    }
-  }
-
-  if (isFinished) {
-    return (
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }} 
-        animate={{ opacity: 1, scale: 1 }}
-        style={{ maxWidth: '640px', margin: '60px auto', textAlign: 'center', background: 'white', padding: '80px 48px', borderRadius: '48px', border: '1px solid #f1f5f9', boxShadow: '0 40px 100px -20px rgba(0,0,0,0.12)', fontFamily: "'Varela Round', sans-serif" }}
-      >
-        <div style={{ width: '120px', height: '120px', background: '#F5F3FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 40px', boxShadow: 'inset 0 4px 12px rgba(122, 18, 204, 0.1)' }}>
-          <Trophy weight="bold" size={64} color="#7a12cc" />
-        </div>
-        <h2 style={{ fontSize: '36px', fontWeight: 700, marginBottom: '16px', color: '#1A102D', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.02em' }}>Mastery achieved</h2>
-        <p style={{ color: '#64748B', fontSize: '18px', marginBottom: '48px', fontWeight: 400, lineHeight: 1.6 }}>You've reviewed the entire deck. Your retention is looking strong.</p>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '48px' }}>
-          <div style={{ padding: '32px 24px', background: '#ECFDF5', borderRadius: '32px', border: '1px solid #D1FAE5' }}>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#059669', marginBottom: '8px', letterSpacing: '0.03em' }}>Mastered</div>
-            <div style={{ fontSize: '32px', fontWeight: 700, color: '#064E3B' }}>{mastered.size}</div>
-          </div>
-          <div style={{ padding: '32px 24px', background: '#F8FAFC', borderRadius: '32px', border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px', letterSpacing: '0.03em' }}>Deck size</div>
-            <div style={{ fontSize: '32px', fontWeight: 700, color: '#1E293B' }}>{safeItems.length}</div>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '20px' }}>
-          <button 
-            onClick={() => { setIdx(0); setIsFinished(false); setMastered(new Set()); setIsFlipped(false); }}
-            style={{ flex: 1, padding: '20px', borderRadius: '22px', border: '2px solid #F1F5F9', background: 'white', fontWeight: 700, cursor: 'pointer', color: '#1A102D', fontSize: '15px' }}
-          >
-            Reset Deck
-          </button>
-          <button 
-            onClick={handleShare}
-            style={{ flex: 2, padding: '20px', borderRadius: '22px', background: '#6D28D9', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '15px', boxShadow: '0 10px 20px -5px rgba(109, 40, 217, 0.25)' }}
-          >
-            {isSharing ? 'Generating...' : <><Share2 weight="bold" size={20} /> Share Bundle</>}
-          </button>
-        </div>
-      </motion.div>
-    )
-  }
-
-  return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px', fontFamily: "var(--font-varela)" }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-        <div>
-           <div style={{ fontSize: '12px', fontWeight: 600, color: '#4B0082', letterSpacing: '0.04em', marginBottom: '4px', fontFamily: "var(--font-outfit)" }}>Active session</div>
-           <h2 style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: '#1A102D', fontFamily: "var(--font-outfit)", letterSpacing: '-0.02em' }}>{material?.title || 'Recall Training'}</h2>
-        </div>
-        <button 
-          onClick={handleShare}
-          style={{ padding: '12px 24px', borderRadius: '14px', background: 'white', color: '#4B0082', border: '1.5px solid #F1F5F9', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', fontFamily: 'var(--font-outfit)' }}
-        >
-          {isSharing ? <RefreshCw className="animate-spin" size={16} /> : <Share2 size={16} />} Share deck
-        </button>
-      </div>
-
-      {/* Progress Bar */}
-      <div style={{ marginBottom: '48px', padding: '24px', background: '#F8FAFC', borderRadius: '24px', border: '1px solid #F1F5F9' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '13px', fontWeight: 600, color: '#64748B', letterSpacing: '0.03em', fontFamily: 'var(--font-outfit)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Layers weight="bold" size={16} color="#4B0082" />
-            <span>PROGRESS: {idx + 1} OF {safeItems.length}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Star weight="fill" size={16} color="#F59E0B" />
-            <span>Mastery: {Math.round(progress)}%</span>
-          </div>
-        </div>
-        <div style={{ height: '10px', background: '#E2E8F0', borderRadius: '99px', overflow: 'hidden', position: 'relative' }}>
-          <motion.div 
-            animate={{ width: `${((idx + 1) / safeItems.length) * 100}%` }}
-            style={{ height: '100%', background: '#CBD5E1', borderRadius: '99px', position: 'absolute', top: 0, left: 0 }} 
-          />
-          <motion.div 
-            animate={{ width: `${progress}%` }}
-            style={{ height: '100%', background: '#10B981', borderRadius: '99px', position: 'absolute', top: 0, left: 0, boxShadow: '0 0 12px rgba(16, 185, 129, 0.4)' }} 
-          />
-        </div>
-      </div>
-
-      {/* Card UI */}
-      <div style={{ perspective: '2000px', height: '420px', marginBottom: '56px', position: 'relative' }}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={idx}
-            initial={{ x: direction * 50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1, rotateY: isFlipped ? 180 : 0 }}
-            exit={{ x: direction * -50, opacity: 0 }}
-            transition={{ duration: 0.6, type: 'spring', stiffness: 260, damping: 25 }}
-            onClick={() => setIsFlipped(!isFlipped)}
-            style={{ 
-              width: '100%', 
-              height: '100%', 
-              position: 'relative', 
-              transformStyle: 'preserve-3d', 
-              cursor: 'pointer' 
-            }}
-          >
-            {/* Front Side */}
-            <div style={{
-              position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
-              background: 'white', borderRadius: '40px', border: '1.5px solid #F1F5F9',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              padding: '64px', boxShadow: '0 30px 60px -15px rgba(0,0,0,0.06)'
-            }}>
-              <div style={{ position: 'absolute', top: '32px', left: '32px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#7a12cc' }} />
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.06em' }}>Recall challenge</span>
-              </div>
-              <p style={{ fontSize: '28px', fontWeight: 700, textAlign: 'center', color: '#1A102D', lineHeight: 1.4, fontFamily: "var(--font-outfit)", letterSpacing: '-0.02em' }}>
-                {card?.front || card?.question}
-              </p>
-              <div style={{ position: 'absolute', bottom: '40px', display: 'flex', alignItems: 'center', gap: '10px', color: '#4B0082', background: '#F5F3FF', padding: '10px 20px', borderRadius: '99px' }}>
-                <Eye size={16} /> <span style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-outfit)' }}>Click to reveal</span>
-              </div>
-            </div>
-
-            {/* Back Side */}
-            <div style={{
-              position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
-              background: '#1A102D', borderRadius: '40px', border: '2px solid #1A102D',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              padding: '64px', transform: 'rotateY(180deg)', boxShadow: '0 40px 80px -20px rgba(0,0,0,0.4)'
-            }}>
-              <div style={{ position: 'absolute', top: '32px', padding: '8px 16px', background: 'rgba(255,255,255,0.1)', borderRadius: '99px', fontSize: '12px', fontWeight: 600, color: 'white', letterSpacing: '0.06em' }}>Insight revealed</div>
-              <p style={{ fontSize: '22px', fontWeight: 600, textAlign: 'center', color: 'white', lineHeight: 1.6 }}>
-                {card?.back || card?.answer}
-              </p>
-              <div style={{ position: 'absolute', bottom: -20, right: -20, opacity: 0.05 }}><LuterLogo size={140} color="white" /></div>
-            </div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Control Buttons */}
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '32px' }}>
-        <button 
-          onClick={(e) => { e.stopPropagation(); setDirection(-1); setIdx(Math.max(0, idx - 1)); setIsFlipped(false); }}
-          disabled={idx === 0}
-          style={{ width: '72px', height: '72px', borderRadius: '24px', background: 'white', border: '2px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: idx === 0 ? '#CBD5E1' : '#1A102D', cursor: idx === 0 ? 'default' : 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
-        >
-          <ChevronLeft weight="bold" size={32} />
-        </button>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px, 1fr) minmax(160px, 1fr)', gap: '20px' }}>
-          <button 
-            onClick={(e) => { e.stopPropagation(); handleNext(); }}
-            style={{ padding: '24px 32px', borderRadius: '24px', background: '#F8FAFC', color: '#64748B', border: '2px solid #E2E8F0', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', fontSize: '15px' }}
-          >
-            Skip
-          </button>
-          <button 
-            onClick={(e) => { e.stopPropagation(); handleMastered(); }}
-            style={{ padding: '24px 32px', borderRadius: '24px', background: '#DCFCE7', color: '#16A34A', border: '2px solid #16A34A', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', fontSize: '15px', boxShadow: '0 10px 20px -5px rgba(22, 163, 74, 0.2)' }}
-          >
-            <CheckCircle weight="bold" size={20} /> Mastered
-          </button>
-        </div>
-
-        <button 
-          onClick={(e) => { e.stopPropagation(); setDirection(1); handleNext(); }}
-          style={{ width: '72px', height: '72px', borderRadius: '24px', background: '#1A102D', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 10px 30px rgba(26, 16, 45, 0.3)' }}
-        >
-          <ChevronRight weight="bold" size={32} />
-        </button>
-      </div>
-    </div>
-  )
+  const safeItems = getItems()
+  
+  return <FlashcardEngineComponent material={material} items={safeItems} user={user} />
 }
 
-export function WorkstationQuiz({ items = [], material, onComplete }) {
+
+export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, onRegenerate }) {
   const [idx, setIdx] = useState(0)
   const [selected, setSelected] = useState({})
   const [typeInAnswers, setTypeInAnswers] = useState({})
   const [isFinished, setIsFinished] = useState(false)
   const [showExplanation, setShowExplanation] = useState(false)
 
-  // Handle items being an object with a questions array or just an array
-  const safeQuestions = Array.isArray(items) ? items : (items?.questions || [])
+  const getQuestions = () => {
+    if (Array.isArray(quiz) && quiz.length > 0) return quiz
+    if (quiz?.questions && Array.isArray(quiz.questions)) return quiz.questions
+    if (quiz?.items && Array.isArray(quiz.items)) return quiz.items
+    if (Array.isArray(items) && items.length > 0) return items
+    if (items?.questions && Array.isArray(items.questions)) return items.questions
+    return []
+  }
+  const safeQuestions = getQuestions()
   
-  if (safeQuestions.length === 0) return <EmptyState icon={HelpCircle} label="Generating your practice quiz..." />
+  if (safeQuestions.length === 0) return (
+    <EmptyState 
+      icon={HelpCircle} 
+      label="No quiz generated yet." 
+      action={
+        <button 
+          onClick={onRegenerate}
+          style={{ padding: '12px 24px', background: '#6D28D9', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 10px 20px -5px rgba(109, 40, 217, 0.25)', fontFamily: 'var(--font-outfit)' }}
+        >
+          <Zap size={16} /> Generate Quiz
+        </button>
+      }
+    />
+  )
 
   const q = safeQuestions[idx]
   const progress = ((idx + 1) / safeQuestions.length) * 100
@@ -600,7 +390,7 @@ export function WorkstationQuiz({ items = [], material, onComplete }) {
   )
 }
 
-function EmptyState({ icon: Icon, label }) {
+function EmptyState({ icon: Icon, label, action }) {
   return (
     <div style={{ height: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
       <div style={{ position: 'relative', marginBottom: '32px' }}>
@@ -614,7 +404,8 @@ function EmptyState({ icon: Icon, label }) {
          />
       </div>
       <p style={{ fontSize: '20px', fontWeight: 700, color: '#1A102D', letterSpacing: '-0.02em', fontFamily: 'var(--font-outfit)', marginBottom: '8px' }}>{label}</p>
-      <div style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', fontFamily: 'var(--font-outfit)' }}>Luter is curating your space...</div>
+      <div style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', fontFamily: 'var(--font-outfit)', marginBottom: action ? '24px' : '0' }}>Luter is curating your space...</div>
+      {action && <div style={{ marginTop: '8px' }}>{action}</div>}
     </div>
   )
 }
@@ -661,7 +452,7 @@ function NavButton({ icon: Icon, onClick, disabled }) {
  * WorkstationSummaryEnhanced
  * Supports Full Summary and Page-by-Page Summary
  */
-export function WorkstationSummaryEnhanced({ content, material, pageSummaries = {}, onFetchPageSummaries }) {
+export function WorkstationSummaryEnhanced({ content, material, pageSummaries = {}, onFetchPageSummaries, onRegenerate }) {
   const [viewMode, setViewMode] = useState('full');
   const [isSummarizingPages, setIsSummarizingPages] = useState(false);
 
@@ -697,7 +488,18 @@ export function WorkstationSummaryEnhanced({ content, material, pageSummaries = 
       {viewMode === 'full' ? (
         <div style={{ background: 'white', padding: '60px', borderRadius: '32px', border: '1.5px solid #E2E8F0', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.05)' }}>
           <div className="markdown-body" style={{ fontSize: '17px', lineHeight: 1.8, color: '#2D3748' }}>
-            <ReactMarkdown>{content || "Summary is still being processed..."}</ReactMarkdown>
+            <ReactMarkdown>{content || ""}</ReactMarkdown>
+            {!content && (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '24px' }}>No summary has been generated for this material yet.</p>
+                <button 
+                  onClick={onRegenerate}
+                  style={{ padding: '12px 24px', background: '#6D28D9', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 auto', boxShadow: '0 10px 20px -5px rgba(109, 40, 217, 0.25)', fontFamily: 'var(--font-outfit)' }}
+                >
+                  <Zap size={16} /> Generate Summary
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : (
