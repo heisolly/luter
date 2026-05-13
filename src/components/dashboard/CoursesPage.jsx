@@ -1779,7 +1779,7 @@ export default function CoursesPage() {
                             border: isSelected ? '2px solid #3b82f6' : '2px solid transparent',
                             position: 'relative'
                           }}
-                          onClick={() => navigate(`/dashboard/workstation/${material.id}`)}
+                          onClick={() => navigate(`/dashboard/workstation?materialId=${material.id}`)}
                           onMouseEnter={(e) => {
                             if (!isSelected) {
                               e.currentTarget.style.borderColor = '#8b5cf6'
@@ -1934,7 +1934,7 @@ export default function CoursesPage() {
                             gap: 12,
                             border: isSelected ? '1px solid #3b82f6' : '1px solid #e5e7eb'
                           }}
-                          onClick={() => navigate(`/dashboard/workstation/${material.id}`)}
+                          onClick={() => navigate(`/dashboard/workstation?materialId=${material.id}`)}
                           onMouseEnter={(e) => {
                             if (!isSelected) {
                               e.currentTarget.style.borderColor = '#8b5cf6'
@@ -2319,7 +2319,7 @@ export default function CoursesPage() {
                             border: '2px solid transparent',
                             position: 'relative'
                           }}
-                          onClick={() => navigate(`/dashboard/workstation/${material.id}`)}
+                          onClick={() => navigate(`/dashboard/workstation?materialId=${material.id}`)}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.borderColor = '#8b5cf6'
                           }}
@@ -2423,7 +2423,7 @@ export default function CoursesPage() {
                             gap: 16,
                             border: '1px solid #e5e7eb'
                           }}
-                          onClick={() => navigate(`/dashboard/workstation/${material.id}`)}
+                          onClick={() => navigate(`/dashboard/workstation?materialId=${material.id}`)}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.borderColor = '#8b5cf6'
                             e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.1)'
@@ -2751,7 +2751,7 @@ export default function CoursesPage() {
                   <button
                     onClick={() => {
                       setShowPreviewModal(false)
-                      navigate(`/dashboard/workstation/${selectedMaterial.id}`)
+                      navigate(`/dashboard/workstation?materialId=${selectedMaterial.id}`)
                     }}
                     style={{
                       background: '#8b5cf6',

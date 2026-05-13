@@ -175,7 +175,24 @@ export default function VaultPage() {
       ) : (
         <div style={{ background: 'white', borderRadius: 24, border: '1.5px solid #f1f5f9', overflow: 'hidden' }}>
           {filteredFiles.map((file, i) => (
-            <div key={file.id} style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '16px 24px', borderBottom: i === filteredFiles.length - 1 ? 'none' : '1px solid #f1f5f9' }}>
+            <div 
+              key={file.id} 
+              onClick={() => navigate(`/dashboard/workstation?materialId=${file.id}`)}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 20, 
+                padding: '16px 24px', 
+                borderBottom: i === filteredFiles.length - 1 ? 'none' : '1px solid #f1f5f9',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#f8fafc'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'white'
+              }}
+            >
                <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
                  <FileText size={20} />
                </div>

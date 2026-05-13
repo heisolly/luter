@@ -12,7 +12,7 @@ import { Clock } from '@phosphor-icons/react';
 import LuterLogo from './shared/LuterLogo';
 import LanguageToggle from './LanguageToggle';
 import { PremiumButton } from './PageShared';
-import Ballpit from './ui/Ballpit';
+const Ballpit = React.lazy(() => import('./ui/Ballpit'));
 import { supabase } from '../supabaseClient';
 import { 
   universitySlugFromName, 
@@ -812,16 +812,18 @@ const Onboarding = () => {
     }}>
       {/* Dynamic Background */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-        <Ballpit 
-          count={40} 
-          gravity={0.7} 
-          friction={0.8} 
-          wallBounce={0.95} 
-          followCursor={true} 
-          colors={['#4338ca', '#6366f1', '#1e1b4b', '#ffffff', '#9ca3af']}
-          minSize={0.7}
-          maxSize={1.4}
-        />
+        <React.Suspense fallback={<div style={{ width: '100%', height: '100%', background: '#f8fafc' }} />}>
+          <Ballpit 
+            count={40} 
+            gravity={0.7} 
+            friction={0.8} 
+            wallBounce={0.95} 
+            followCursor={true} 
+            colors={['#4338ca', '#6366f1', '#1e1b4b', '#ffffff', '#9ca3af']}
+            minSize={0.7}
+            maxSize={1.4}
+          />
+        </React.Suspense>
       </div>
 
       {/* Custom Header */}

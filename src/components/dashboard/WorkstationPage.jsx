@@ -1200,7 +1200,9 @@ function WorkstationContent() {
                     user={user} 
                   />
                 ) : activeSideTab === 'voice' ? (
-                  <VoiceModeBlob onExit={() => setActiveSideTab('chat')} />
+                  <React.Suspense fallback={<div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>Initializing engine...</div>}>
+                    <VoiceModeBlob onExit={() => setActiveSideTab('chat')} />
+                  </React.Suspense>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                     <div className="ws-chat-messages" style={{ flex: 1 }}>

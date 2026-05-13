@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   RiCheckLine as Check,
@@ -12,7 +12,14 @@ import {
   RiArrowRightLine as ArrowRight,
   RiSettings4Fill as Settings,
   RiCheckboxCircleFill as CheckCircle,
+  RiGamepadFill as Gamepad,
+  RiTrendingUpFill as TrendingUp,
+  RiCalendarFill as Calendar,
+  RiGiftFill as Gift,
+  RiAlertFill as Alert,
+  RiMessage3Fill as Message,
 } from 'react-icons/ri'
+import { useNotificationStore, NotificationTypes } from '../../store/useNotificationStore'
 
 const MOCK_NOTIFICATIONS = [
   {
