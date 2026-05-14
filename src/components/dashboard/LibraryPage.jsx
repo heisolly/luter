@@ -86,7 +86,7 @@ export default function LibraryPage() {
   const showSessions = activeTab === 'all' || activeTab === 'practice'
 
   return (
-    <div className="dh-root" style={{ background: '#fbfbff', minHeight: '100vh', padding: '40px 60px' }}>
+    <div className="dhd-root" style={{ minHeight: '100vh' }}>
       <header id="tour-library-header" style={{ marginBottom: '40px' }}>
         <h1 style={{ fontSize: '32px', fontWeight: '800', color: '#111', marginBottom: '32px' }}>Your library</h1>
         

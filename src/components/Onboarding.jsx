@@ -381,12 +381,12 @@ const StepWrapper = ({ children, title, subtitle, t, maxWidth = '560px' }) => (
       margin: '0 auto',
       maxHeight: '80vh',
       overflowY: 'auto',
-      padding: '10px'
+      padding: '5px 0'
     }}
     className="custom-scrollbar"
   >
-    {title && <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#111', marginBottom: '8px', textAlign: 'center', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>{t(title)}</h1>}
-    {subtitle && <p style={{ fontSize: '15px', color: '#6B7280', marginBottom: '40px', textAlign: 'center', fontFamily: 'var(--font-varela)', fontWeight: 400 }}>{t(subtitle)}</p>}
+    {title && <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#111', marginBottom: '6px', textAlign: 'center', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>{t(title)}</h1>}
+    {subtitle && <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '24px', textAlign: 'center', fontFamily: 'var(--font-varela)', fontWeight: 400 }}>{t(subtitle)}</p>}
     <div style={{ width: '100%' }}>{children}</div>
   </motion.div>
 );
@@ -827,20 +827,20 @@ const Onboarding = () => {
       </div>
 
       {/* Custom Header */}
-      <header style={{ padding: '24px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1000 }}>
+      <header style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1000 }}>
         <LuterLogo />
         <LanguageToggle />
       </header>
 
       {/* Main Container */}
       <div className="onboarding-main-card" style={{ 
-        width: 'calc(100vw - 48px)', 
+        width: 'calc(100vw - 32px)', 
         height: 'calc(100vh - 120px)', 
         maxWidth: '1200px', 
         maxHeight: '900px', 
         background: 'white', 
-        borderRadius: '32px', 
-        padding: '48px', 
+        borderRadius: '24px', 
+        padding: '24px 20px', 
         boxShadow: '0 10px 40px rgba(0,0,0,0.04)', 
         position: 'relative', 
         zIndex: 10, 
@@ -880,18 +880,19 @@ const Onboarding = () => {
                   justifyContent: 'center',
                   textAlign: 'center', 
                   fontFamily: 'var(--font-outfit)',
-                  margin: '0 auto'
+                  margin: '0 auto',
+                  paddingTop: '10px'
                 }}
               >
                 <SpeechBubble text="Hi there! I'm Lute!" />
-                <div style={{ height: '20px' }} />
+                <div style={{ height: '16px' }} />
                 <motion.img 
                   src="/onboard-mascot.png" 
                   alt="Lute" 
                   style={{ 
-                    width: '240px', 
+                    width: '180px', 
                     height: 'auto', 
-                    marginBottom: '40px', 
+                    marginBottom: '32px', 
                     filter: 'drop-shadow(0 15px 30px rgba(0,0,0,0.1))',
                     display: 'block',
                     margin: '0 auto'

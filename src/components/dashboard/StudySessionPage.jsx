@@ -242,6 +242,13 @@ export default function StudySessionPage() {
       }
     })
 
+  const formatMaterialDate = (dateString) => {
+    if (!dateString) return 'Just now'
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return 'Recently'
+    return date.toLocaleDateString()
+  }
+
   if (loading) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -252,9 +259,9 @@ export default function StudySessionPage() {
 
   return (
     <div 
+      className="dhd-root"
       style={{ 
         minHeight: '100vh',
-        background: '#f8fafc',
       }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -290,13 +297,7 @@ export default function StudySessionPage() {
         </div>
       )}
 
-      <div style={{ 
-        padding: isMobile ? '20px' : '32px', 
-        paddingLeft: sidebarCollapsed ? (isMobile ? '20px' : '100px') : (isMobile ? '20px' : '280px'),
-        paddingRight: isMobile ? '20px' : '32px',
-        transition: 'padding 0.3s ease',
-        minHeight: 'calc(100vh - 80px)'
-      }}>
+      <div>
         {/* Back Button */}
         <button 
           onClick={() => navigate('/dashboard/sessions')}
@@ -332,7 +333,7 @@ export default function StudySessionPage() {
               width: 48,
               height: 48,
               borderRadius: 12,
-              background: '#8b5cf6',
+              background: '#7a12cc',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -372,7 +373,7 @@ export default function StudySessionPage() {
                     onClick={handleSaveName}
                     style={{
                       padding: '8px 16px',
-                      background: '#8b5cf6',
+                      background: '#7a12cc',
                       color: 'white',
                       border: 'none',
                       borderRadius: 8,
@@ -500,7 +501,7 @@ export default function StudySessionPage() {
             <label 
               style={{
                 padding: '10px 16px',
-                background: '#8b5cf6',
+                background: '#7a12cc',
                 color: 'white',
                 border: 'none',
                 borderRadius: 8,
@@ -556,7 +557,7 @@ export default function StudySessionPage() {
             <Folder size={48} style={{ 
               opacity: 0.3, 
               marginBottom: 16,
-              color: '#8b5cf6'
+              color: '#7a12cc'
             }} />
             <h3 style={{ 
               fontSize: 18, 
@@ -579,7 +580,7 @@ export default function StudySessionPage() {
               <label
                 style={{
                   padding: '12px 24px',
-                  background: '#8b5cf6',
+                  background: '#7a12cc',
                   color: 'white',
                   borderRadius: 8,
                   fontSize: 14,
@@ -600,11 +601,9 @@ export default function StudySessionPage() {
           <div
             style={{ 
               display: 'grid', 
-              gridTemplateColumns: sidebarCollapsed 
-                ? 'repeat(auto-fill, minmax(320px, 1fr))' 
-                : 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: sidebarCollapsed ? '20px' : '16px',
-              maxWidth: '100%'
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))',
+              gap: '24px',
+              width: '100%'
             }}
           >
             {filteredItems.map((item) => (
@@ -616,7 +615,8 @@ export default function StudySessionPage() {
                   padding: 16,
                   border: '1px solid #e2e8f0',
                   cursor: 'pointer',
-                  transition: 'box-shadow 0.2s'
+                  transition: 'box-shadow 0.2s',
+                  maxWidth: isMobile ? '100%' : '340px'
                 }}
                 onClick={() => navigate(`/dashboard/workstation?materialId=${item.id}`)}
                 onMouseEnter={(e) => {
@@ -660,12 +660,11 @@ export default function StudySessionPage() {
                     }}>
                       {item.title}
                     </h3>
-                    <span style={{ 
-                      fontSize: 12, 
-                      color: '#64748b'
-                    }}>
-                      {item.type || 'Document'}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#64748b' }}>
+                      <span>{item.type || 'Document'}</span>
+                      <span style={{ opacity: 0.5 }}>•</span>
+                      <span>{formatMaterialDate(item.created_at)}</span>
+                    </div>
                   </div>
 
                   <button
@@ -702,7 +701,7 @@ export default function StudySessionPage() {
                   color: '#94a3b8'
                 }}>
                   <Clock size={12} />
-                  {new Date(item.created_at).toLocaleDateString()}
+                  {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Just now'}
                 </div>
               </div>
             ))}

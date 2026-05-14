@@ -96,7 +96,10 @@ export default function SessionsPage() {
   }
 
   const formatSessionDate = (dateString) => {
+    if (!dateString) return 'Never'
     const date = new Date(dateString)
+    if (isNaN(date.getTime())) return 'Recently'
+    
     const now = new Date()
     const diffMs = now - date
     const diffMins = Math.floor(diffMs / 60000)
@@ -114,6 +117,13 @@ export default function SessionsPage() {
     session.session_name?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const formatMaterialDate = (dateString) => {
+    if (!dateString) return 'Just now'
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return 'Recently'
+    return date.toLocaleDateString()
+  }
+
   if (loading) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
@@ -123,10 +133,8 @@ export default function SessionsPage() {
   }
 
   return (
-    <div style={{ 
-      minHeight: '100vh',
-      background: '#f8fafc',
-      fontFamily: "'Outfit', 'Varela Round', sans-serif",
+    <div className="dhd-root" style={{ 
+      minHeight: '100vh'
     }}>
       <Header 
         showSearch={true}
@@ -134,15 +142,6 @@ export default function SessionsPage() {
         showCreateButton={true}
         createButtonPath="/dashboard/upload"
       />
-
-      {/* Main Content */}
-      <div style={{ 
-        padding: isMobile ? '20px' : '32px', 
-        paddingLeft: sidebarCollapsed ? (isMobile ? '20px' : '100px') : (isMobile ? '20px' : '280px'),
-        paddingRight: isMobile ? '20px' : '32px',
-        transition: 'padding 0.3s ease',
-        minHeight: 'calc(100vh - 80px)'
-      }}>
         
         {/* Classes-style Header Card */}
         <motion.div
@@ -342,20 +341,18 @@ export default function SessionsPage() {
             </motion.div>
           ) : (
             /* Sessions Grid */
-            <motion.div
-              key="grid"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : sidebarCollapsed 
-                  ? 'repeat(auto-fill, minmax(320px, 1fr))' 
-                  : 'repeat(auto-fill, minmax(300px, 1fr))',
-                gap: sidebarCollapsed ? '20px' : '16px',
-                maxWidth: '100%'
-              }}
-            >
+              <motion.div
+                key="grid"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))',
+                  gap: '24px',
+                  width: '100%'
+                }}
+              >
               {filteredSessions.map((session, index) => (
                 <motion.div
                   key={session.id}
@@ -374,7 +371,8 @@ export default function SessionsPage() {
                     border: '1px solid #e2e8f0',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
-                    position: 'relative'
+                    position: 'relative',
+                    maxWidth: isMobile ? '100%' : '380px'
                   }}
                   onClick={() => handleOpenSession(session)}
                 >
@@ -395,12 +393,12 @@ export default function SessionsPage() {
                         width: '40px',
                         height: '40px',
                         borderRadius: '10px',
-                        background: '#dcfce7',
+                        background: 'rgba(122, 18, 204, 0.1)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center'
                       }}>
-                        <SessionIcon color="#22c55e" />
+                        <SessionIcon color="#7a12cc" />
                       </div>
 
                       {/* Title */}
@@ -479,7 +477,6 @@ export default function SessionsPage() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
 
       {/* Create Session Modal */}
       {showCreateModal && (

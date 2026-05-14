@@ -103,15 +103,24 @@ export const PremiumButton = ({
 
   const Component = to ? Link : 'button';
   const componentProps = to ? { to } : { onClick, disabled, type };
+
+  const handleTouchStart = () => !disabled && setIsPressed(true);
+  const handleTouchEnd = () => setIsPressed(false);
+  const handleMouseEnter = () => !disabled && setIsHovered(true);
+  const handleMouseLeave = () => { setIsHovered(false); setIsPressed(false); };
+  const handleMouseDown = () => !disabled && setIsPressed(true);
+  const handleMouseUp = () => setIsPressed(false);
   
   return (
     <Component 
       {...componentProps}
       style={baseStyle}
-      onMouseEnter={() => !disabled && setIsHovered(true)}
-      onMouseLeave={() => { setIsHovered(false); setIsPressed(false); }}
-      onMouseDown={() => !disabled && setIsPressed(true)}
-      onMouseUp={() => setIsPressed(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         {children}

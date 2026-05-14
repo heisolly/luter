@@ -369,7 +369,7 @@ export default function FlashkaDocumentViewer({
               <ZoomOut size={16} />
             </button>
             <span className="text-xs font-medium text-gray-700 min-w-[42px] text-center tabular-nums">
-              {Math.round(scale * 100)}%
+              {typeof scale === 'number' ? Math.round(scale * 100) : '100'}%
             </span>
             <button onClick={zoomIn} className="p-1.5 rounded-md hover:bg-gray-100 transition-colors">
               <ZoomIn size={16} />

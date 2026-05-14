@@ -326,35 +326,53 @@ export function FlashcardEngine({ material, items = [], user }) {
 
           {/* Controls */}
           {activeMode === 'study' && (
-            <div style={{ marginTop: '48px', display: 'flex', alignItems: 'center', gap: '32px', zIndex: 10 }}>
+            <div style={{ marginTop: '48px', display: 'flex', alignItems: 'center', gap: '24px', zIndex: 10 }}>
               <button 
                 onClick={handlePrev}
                 disabled={currentIndex === 0}
-                style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'white', border: '1.5px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B', opacity: currentIndex === 0 ? 0.3 : 1 }}
+                style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'white', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B', opacity: currentIndex === 0 ? 0.3 : 1, transition: 'all 0.2s' }}
+                onMouseEnter={(e) => { if (currentIndex !== 0) e.currentTarget.style.borderColor = '#6D28D9'; }}
+                onMouseLeave={(e) => { if (currentIndex !== 0) e.currentTarget.style.borderColor = '#E2E8F0'; }}
               >
-                <ArrowLeft weight="bold" size={20} />
+                <ArrowLeft weight="bold" size={18} />
               </button>
               
-              <div style={{ display: 'flex', gap: '16px' }}>
+              <div style={{ display: 'flex', gap: '12px' }}>
                  <button 
                   onClick={() => { setMasteredIds(prev => new Set(prev).add(currentIndex)); handleNext(); }}
-                  style={{ padding: '14px 28px', borderRadius: '20px', background: '#10B981', color: 'white', border: 'none', fontWeight: 800, fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 8px 24px rgba(16, 185, 129, 0.25)', fontFamily: 'var(--font-outfit)' }}
+                  style={{ 
+                    padding: '14px 32px', borderRadius: '14px', background: '#A78BFA', color: 'white', 
+                    border: 'none', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', 
+                    alignItems: 'center', gap: '10px', boxShadow: '0 4px 12px rgba(167, 139, 250, 0.3)', 
+                    fontFamily: 'var(--font-outfit)', transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#8B5CF6'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#A78BFA'; e.currentTarget.style.transform = 'translateY(0)'; }}
                  >
-                   I Got It <CheckCircle weight="fill" size={20} />
+                   <CheckCircle weight="fill" size={20} /> I Got It 
                  </button>
                  <button 
                   onClick={handleNext}
-                  style={{ padding: '14px 28px', borderRadius: '20px', background: 'white', color: '#1A102D', border: '1.5px solid #E2E8F0', fontWeight: 800, fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', fontFamily: 'var(--font-outfit)' }}
+                  style={{ 
+                    padding: '14px 24px', borderRadius: '14px', background: 'white', color: '#64748B', 
+                    border: '1px solid #E2E8F0', fontWeight: 600, fontSize: '14px', cursor: 'pointer', 
+                    display: 'flex', alignItems: 'center', gap: '10px', transition: 'all 0.2s',
+                    fontFamily: 'var(--font-outfit)'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#64748B'; e.currentTarget.style.background = '#F8FAFC'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = 'white'; }}
                  >
-                   Still Learning <ArrowsClockwise weight="bold" size={20} />
+                   Skip Card <ArrowsClockwise weight="bold" size={20} />
                  </button>
               </div>
 
               <button 
                 onClick={handleNext}
-                style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'white', border: '1.5px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}
+                style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'white', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B', transition: 'all 0.2s' }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; }}
               >
-                <ArrowRight weight="bold" size={20} />
+                <ArrowRight weight="bold" size={18} />
               </button>
             </div>
           )}
@@ -366,11 +384,11 @@ export function FlashcardEngine({ material, items = [], user }) {
                <span>{Math.round(progress)}% Mastered</span>
              </div>
              <div style={{ height: '6px', background: '#E2E8F0', borderRadius: '10px', overflow: 'hidden' }}>
-               <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                style={{ height: '100%', background: '#10B981', borderRadius: '10px' }}
-               />
+                <motion.div 
+                 initial={{ width: 0 }}
+                 animate={{ width: `${progress}%` }}
+                 style={{ height: '100%', background: '#A78BFA', borderRadius: '10px' }}
+                />
              </div>
           </div>
         </div>

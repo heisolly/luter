@@ -49,7 +49,7 @@ function isNavActiveFixed(pathname, navPath) {
   return pathname === navPath || pathname.startsWith(`${navPath}/`)
 }
 
-export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobile, onClose, onNavigate, onNotificationsClick }) {
+export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobile, onClose, onNavigate, onNotificationsClick, hideToggle }) {
   const { t } = useTranslation(['sidebar'])
   const [streak, setStreak] = useState(0)
   const [expandedItems, setExpandedItems] = useState(['library', 'backpack'])
@@ -198,7 +198,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
           <button className="dsb-close-btn" onClick={onClose}>
             <X size={18} weight="regular" />
           </button>
-        ) : (
+        ) : !hideToggle && (
           <button
             className="dsb-close-btn"
             onClick={onClose}

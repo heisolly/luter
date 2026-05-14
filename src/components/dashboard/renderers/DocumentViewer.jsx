@@ -66,6 +66,15 @@ export default function DocumentViewer({ material, onScrollUpdate, onMaterialUpd
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
 
+  if (!material) return null
+
+  const type = (material.type || '').toLowerCase()
+  const status = material.processing_status
+  const isVideo = type === 'video' || type === 'youtube' || material.source_url?.includes('youtube.com') || material.source_url?.includes('youtu.be')
+  const isAudio = type === 'audio' || (!['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv'].includes(type) && material.source_url?.match(/\.(mp3|wav|ogg|m4a)$/))
+  const isWeb = type === 'web'
+  const isImage = type === 'image' || (!['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv'].includes(type) && material.source_url?.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/))
+
   // Sync to global context
   useEffect(() => {
     setViewportData(prev => ({
@@ -139,26 +148,14 @@ export default function DocumentViewer({ material, onScrollUpdate, onMaterialUpd
       window.removeEventListener('luter-jump-to-page', handleJump)
       window.removeEventListener('luter-highlight-text', handleHighlight)
     }
-  }, [material?.id, material?.extracted_text, material?.source_url])
+  }, [material?.id, material?.extracted_text, material?.source_url, type])
 
   const [signedUrl, setSignedUrl] = useState(null)
 
   const getProcessedText = () => {
     let text = material.extracted_text || ''
-    // If user sees literal ** in context, it might be artifacts from OCR/LLM cleaning
-    // but we still want to support it for Markdown rendering.
-    // However, if they specifically complained, we can do a light sanitization for the 'Context' view
     return text
   }
-
-  if (!material) return null
-
-  const type = (material.type || '').toLowerCase()
-  const status = material.processing_status
-  const isVideo = type === 'video' || type === 'youtube' || material.source_url?.includes('youtube.com') || material.source_url?.includes('youtu.be')
-  const isAudio = type === 'audio' || (!['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv'].includes(type) && material.source_url?.match(/\.(mp3|wav|ogg|m4a)$/))
-  const isWeb = type === 'web'
-  const isImage = type === 'image' || (!['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv'].includes(type) && material.source_url?.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/))
 
   /** Flashka-Style Property Grid for Metadata */
   const PropertyGridHeader = () => {

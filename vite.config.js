@@ -177,7 +177,14 @@ export default defineConfig(({ mode }) => {
       },
     },
     optimizeDeps: {
-      exclude: ['pdfjs-dist']
+      exclude: ['pdfjs-dist'],
+      include: [
+        '@react-pdf-viewer/search',
+        '@react-pdf-viewer/full-screen',
+        'docx-preview',
+        'react-player',
+        'react-quick-pinch-zoom'
+      ]
     },
     worker: {
       format: 'es'

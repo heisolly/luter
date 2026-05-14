@@ -47,7 +47,7 @@ const Header = ({
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        paddingInline: '4rem',
+        paddingInline: '0',
         paddingBlock: '0px',
         position: 'relative',
         marginTop: '-1px',
@@ -55,7 +55,7 @@ const Header = ({
         gap: '2rem',
         transition: 'box-shadow 0.5s',
         height: 'var(--navbar-height)',
-        backgroundColor: 'var(--color-bgPrimary)',
+        backgroundColor: 'transparent',
         marginBottom: '16px'
       }}>
         {/* Left Section */}

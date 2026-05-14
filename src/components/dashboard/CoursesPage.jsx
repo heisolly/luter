@@ -765,18 +765,12 @@ export default function CoursesPage() {
   }
 
   return (
-    <div style={{ 
-      maxWidth: 1400, 
-      margin: '0 auto', 
-      padding: isMobile ? '16px' : '48px',
-      fontFamily: "'Outfit', 'Varela Round', sans-serif",
-      minHeight: '100vh'
-    }}>
+    <div className="dhd-root" style={{ minHeight: '100vh' }}>
       {/* Header - Navbar Style */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        paddingInline: '4rem',
+        paddingInline: '0',
         paddingBlock: '0px',
         position: 'relative',
         marginTop: '-1px',

@@ -72,7 +72,7 @@ export default function VaultPage() {
   )
 
   return (
-    <div className="vault-page-root" style={{ padding: '40px 60px', background: '#fbfbff', minHeight: '100vh' }}>
+    <div className="dhd-root" style={{ minHeight: '100vh' }}>
       <header style={{ marginBottom: 48, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>

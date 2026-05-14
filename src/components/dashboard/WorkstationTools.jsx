@@ -23,7 +23,7 @@ export function WorkstationNotes({ content, material, onRegenerate }) {
     <motion.div 
       initial={{ opacity: 0, y: 20 }} 
       animate={{ opacity: 1, y: 0 }}
-      style={{ maxWidth: '900px', margin: '0 auto', padding: '40px', fontFamily: "var(--font-varela)" }}
+      style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', fontFamily: "var(--font-varela)" }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', padding: '24px 32px', borderRadius: '24px', border: '1.5px solid #F1F5F9', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.04)' }}>
         <div>
@@ -83,7 +83,7 @@ export function WorkstationSummary({ content, material }) {
     <motion.div 
       initial={{ opacity: 0, scale: 0.98 }} 
       animate={{ opacity: 1, scale: 1 }}
-      style={{ maxWidth: '800px', margin: '0 auto', padding: '40px', fontFamily: "var(--font-varela)" }}
+      style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', fontFamily: "var(--font-varela)" }}
     >
       <div style={{ textAlign: 'center', marginBottom: '48px' }}>
         <div style={{ display: 'inline-flex', padding: '10px 20px', background: 'rgba(75, 0, 130, 0.08)', borderRadius: '100px', color: '#4B0082', fontWeight: 600, fontSize: '12px', marginBottom: '20px', border: '1px solid rgba(75, 0, 130, 0.1)', fontFamily: "var(--font-outfit)", letterSpacing: '0.03em' }}>
@@ -148,7 +148,14 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
       action={
         <button 
           onClick={onRegenerate}
-          style={{ padding: '12px 24px', background: '#6D28D9', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 10px 20px -5px rgba(109, 40, 217, 0.25)', fontFamily: 'var(--font-outfit)' }}
+          style={{ 
+            padding: '12px 24px', background: '#A78BFA', color: 'white', border: 'none', borderRadius: '12px', 
+            fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', 
+            boxShadow: '0 4px 12px rgba(167, 139, 250, 0.3)', fontFamily: 'var(--font-outfit)',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#8B5CF6'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = '#A78BFA'; e.currentTarget.style.transform = 'translateY(0)'; }}
         >
           <Zap size={16} /> Generate Quiz
         </button>
@@ -197,8 +204,8 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
         animate={{ opacity: 1, scale: 1 }}
         style={{ maxWidth: '640px', margin: '60px auto', background: 'white', padding: '64px 48px', borderRadius: '48px', border: '1px solid #f1f5f9', boxShadow: '0 40px 100px -20px rgba(0,0,0,0.12)', textAlign: 'center', fontFamily: "'Varela Round', sans-serif" }}
       >
-        <div style={{ width: '100px', height: '100px', background: '#F5F3FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px', boxShadow: 'inset 0 4px 12px rgba(122, 18, 204, 0.1)' }}>
-          <Trophy weight="bold" size={48} color="#7a12cc" />
+        <div style={{ width: '100px', height: '100px', background: '#F5F3FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px' }}>
+          <Trophy weight="bold" size={48} color="#A78BFA" />
         </div>
         <h2 style={{ fontSize: '32px', fontWeight: 700, color: '#1A102D', marginBottom: '12px', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.02em' }}>Assessment complete</h2>
         <p style={{ color: '#64748B', fontSize: '17px', marginBottom: '40px', fontWeight: 500, lineHeight: 1.6 }}>Great focus! You've analyzed your understanding of {material?.title}.</p>
@@ -216,7 +223,14 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
 
         <button 
           onClick={() => { setIdx(0); setIsFinished(false); setSelected({}); setTypeInAnswers({}); setShowExplanation(false); }}
-          style={{ width: '100%', padding: '20px', borderRadius: '22px', background: '#6D28D9', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer', fontSize: '16px', boxShadow: '0 10px 20px -5px rgba(109, 40, 217, 0.25)', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em' }}
+          style={{ 
+            width: '100%', padding: '18px', borderRadius: '16px', background: '#A78BFA', color: 'white', 
+            fontWeight: 700, border: 'none', cursor: 'pointer', fontSize: '15px', 
+            boxShadow: '0 4px 12px rgba(167, 139, 250, 0.3)', fontFamily: 'var(--font-outfit)', 
+            transition: 'all 0.2s' 
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#8B5CF6'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = '#A78BFA'; e.currentTarget.style.transform = 'translateY(0)'; }}
         >
           Retake assessment
         </button>
@@ -225,13 +239,13 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
   }
 
   return (
-    <div style={{ maxWidth: '840px', margin: '0 auto', padding: '20px', fontFamily: "'Varela Round', sans-serif" }}>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', fontFamily: "'Varela Round', sans-serif" }}>
       {/* Quiz Progress Bar */}
-      <div style={{ height: '10px', background: '#E2E8F0', borderRadius: '99px', marginBottom: '48px', overflow: 'hidden', border: '1px solid #f1f5f9' }}>
+      <div style={{ height: '8px', background: '#E2E8F0', borderRadius: '99px', marginBottom: '48px', overflow: 'hidden' }}>
         <motion.div 
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
-          style={{ height: '100%', background: 'linear-gradient(90deg, #7a12cc 0%, #A855F7 100%)', borderRadius: '99px', boxShadow: '0 0 12px rgba(122, 18, 204, 0.4)' }}
+          style={{ height: '100%', background: '#A78BFA', borderRadius: '99px' }}
         />
       </div>
 
@@ -243,7 +257,7 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
       >
         <div style={{ alignSelf: 'flex-start', display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: '32px', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <HelpCircle weight="bold" size={20} color="#7a12cc" />
+            <HelpCircle weight="bold" size={20} color="#A78BFA" />
             <span style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.03em' }}>Question {idx + 1} of {safeQuestions.length}</span>
           </div>
           <span style={{ padding: '6px 16px', background: '#ECFDF5', color: '#059669', borderRadius: '99px', fontSize: '12px', fontWeight: 600, border: '1px solid #D1FAE5' }}>Practice mode</span>
@@ -463,7 +477,7 @@ export function WorkstationSummaryEnhanced({ content, material, pageSummaries = 
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ maxWidth: '900px', margin: '0 auto', padding: '40px', fontFamily: 'var(--font-varela)' }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', fontFamily: 'var(--font-varela)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
         <div>
           <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#1A102D', marginBottom: '8px', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>Course insights</h1>
