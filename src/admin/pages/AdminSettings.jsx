@@ -1,6 +1,7 @@
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { SignOut, House } from '@phosphor-icons/react'
+import { LANDING_URL } from '../../utils/urlUtils'
 
 export default function AdminSettings() {
   const { email, profile } = useOutletContext()
@@ -8,7 +9,7 @@ export default function AdminSettings() {
 
   const signOut = async () => {
     await supabase.auth.signOut()
-    navigate('/signin', { replace: true })
+    window.location.href = LANDING_URL
   }
 
   return (

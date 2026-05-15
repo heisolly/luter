@@ -53,6 +53,7 @@ function DocumentSkeleton() {
  */
 export default function FlashkaDocumentViewer({
   fileUrl,
+  initialPage = 1,
   title,
   type,
   onPageChange,
@@ -223,6 +224,19 @@ export default function FlashkaDocumentViewer({
     }
   }, [])
 
+  // Sync initialPage when it changes or on load
+  useEffect(() => {
+    if (initialPage > 1 && docLoaded) {
+      setTimeout(() => {
+        const target = document.querySelector(`[data-page-number="${initialPage}"]`)
+        if (target) {
+          target.scrollIntoView({ behavior: 'auto', block: 'start' })
+          setCurrentPage(initialPage)
+        }
+      }, 100)
+    }
+  }, [initialPage, docLoaded])
+
   const handleDocumentLoad = useCallback((e) => {
     setTotalPages(e.doc.numPages)
     setDocLoaded(true)
@@ -317,15 +331,14 @@ export default function FlashkaDocumentViewer({
         }}
       >
         <div style={{ maxWidth: '1000px', margin: '0 auto', height: '100%', padding: '0 24px' }}>
-          <Worker workerUrl={PDF_WORKER_URL}>
-            <Viewer
-              fileUrl={fileUrl}
-              plugins={[searchPluginInstance, pageNavigationPluginInstance, zoomPluginInstance]}
-              defaultScale={scale}
-              onDocumentLoad={handleDocumentLoad}
-              onPageChange={handlePageChange}
-            />
-          </Worker>
+          <Viewer
+            fileUrl={fileUrl}
+            plugins={[searchPluginInstance, pageNavigationPluginInstance, zoomPluginInstance]}
+            defaultScale={scale}
+            initialPage={initialPage > 0 ? initialPage - 1 : 0}
+            onDocumentLoad={handleDocumentLoad}
+            onPageChange={handlePageChange}
+          />
         </div>
       </div>
 

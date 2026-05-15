@@ -103,6 +103,7 @@ export default function UniversalViewer({ material, initialPage, onPageChange, o
       >
         <FlashkaDocumentViewer
           fileUrl={material.converted_url}
+          initialPage={initialPage}
           title={material.title}
           type={type}
           onPageChange={onPageChange}
@@ -117,6 +118,7 @@ export default function UniversalViewer({ material, initialPage, onPageChange, o
     return (
       <FlashkaDocumentViewer
         fileUrl={fileUrl}
+        initialPage={initialPage}
         title={material.title}
         type={type}
         onPageChange={onPageChange}

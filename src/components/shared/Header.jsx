@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
+import { SidebarSimple } from '@phosphor-icons/react'
+
 
 const Header = ({ 
   showSearch = true, 
@@ -10,7 +12,9 @@ const Header = ({
   onTabChange = null,
   pageTitle = null,
   showCreateButton = true,
-  createButtonPath = '/dashboard/upload'
+  createButtonPath = '/dashboard/upload',
+  sidebarCollapsed = false,
+  setSidebarCollapsed = null
 }) => {
   const navigate = useNavigate()
   const { bundle } = useDashboardPrefetch()
@@ -65,6 +69,30 @@ const Header = ({
           flex: '1 1 0%',
           gap: '1rem'
         }}>
+          {/* Sidebar Toggle Button (Desktop) */}
+          {!isMobile && setSidebarCollapsed && (
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '8px',
+                borderRadius: '8px',
+                color: '#64748B',
+                transition: 'all 0.2s',
+                marginLeft: '-8px'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <SidebarSimple size={20} weight={sidebarCollapsed ? "bold" : "regular"} />
+            </button>
+          )}
+
           {/* Mobile Menu Button */}
           <button 
             className="MuiBox-root knowt-1krzpqj"

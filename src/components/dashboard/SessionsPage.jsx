@@ -38,7 +38,7 @@ const SessionIcon = ({ color = '#22c55e' }) => (
 
 export default function SessionsPage() {
   const navigate = useNavigate()
-  const { user, isMobile, sidebarCollapsed } = useOutletContext()
+  const { user, isMobile } = useOutletContext()
   const { 
     sessions, 
     loadSessions, 
@@ -136,12 +136,6 @@ export default function SessionsPage() {
     <div className="dhd-root" style={{ 
       minHeight: '100vh'
     }}>
-      <Header 
-        showSearch={true}
-        pageTitle="Sessions"
-        showCreateButton={true}
-        createButtonPath="/dashboard/upload"
-      />
         
         {/* Classes-style Header Card */}
         <motion.div

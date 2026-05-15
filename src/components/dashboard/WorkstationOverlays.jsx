@@ -11,8 +11,8 @@ export function SelectionActionBar({ onAction }) {
 
   const actions = [
     { id: 'explain', label: 'Explain', icon: Brain, color: '#A78BFA' },
-    { id: 'summarize', label: 'Summarize', icon: Lightbulb, color: '#C4B5FD' },
-    { id: 'save', label: 'Add to Vault', icon: PlusCircle, color: '#F59E0B' },
+    { id: 'save_note', label: 'Save to Notes', icon: Note, color: '#C4B5FD' },
+    { id: 'flashcard', label: 'Create Flashcard', icon: Zap, color: '#F59E0B' },
   ]
 
   return (

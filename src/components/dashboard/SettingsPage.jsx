@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { 
@@ -6,7 +6,8 @@ import {
   Bell, 
   Shield, 
   Palette, 
-  Globe, 
+  Globe,
+
   CreditCard, 
   BookOpen,
   Download,
@@ -33,18 +34,17 @@ import {
   ChartBar,
   GearSix,
   CrownSimple,
-  Plus,
-  BookOpenText,
-  Student,
   GraduationCap,
   Backpack
 } from '@phosphor-icons/react';
+import { RiCameraLine } from 'react-icons/ri';
 import { supabase } from '../../supabaseClient';
 import { LuterPageLoader } from '../shared/LuterPageLoader';
 import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceStore';
 import { useSessionStore } from '../../store/useSessionStore';
+import { LANDING_URL } from '../../utils/urlUtils';
 
-const SettingsPage = () => {
+export default function SettingsPage() {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'profile');
   const [user, setUser] = useState(null);
@@ -59,6 +59,9 @@ const SettingsPage = () => {
     study: true,
     updates: false
   });
+  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Determine user type
   const isUniversityStudent = profile?.is_university_user !== false && profile?.role !== 'solo_learner';
@@ -88,6 +91,99 @@ const SettingsPage = () => {
     fetchUserProfile();
   }, []);
 
+  const loadAvatar = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('avatar_url')
+        .eq('id', user.id)
+        .single()
+      
+      if (!error && data?.avatar_url) {
+        setAvatarUrl(data.avatar_url)
+      }
+    } catch (error) {
+      console.error('Error loading avatar:', error)
+    }
+  }
+
+  const handleAvatarUpload = async (event) => {
+    try {
+      setUploading(true)
+      
+      const file = event.target.files[0]
+      if (!file) return
+
+      console.log('Selected file:', file.name, file.type, file.size)
+
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg']
+      if (!allowedTypes.includes(file.type)) {
+        alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)')
+        setUploading(false)
+        return
+      }
+
+      // Validate file size (20MB max)
+      if (file.size > 20 * 1024 * 1024) {
+        alert('Image size must be less than 20MB')
+        setUploading(false)
+        return
+      }
+
+      const fileExt = file.name.split('.').pop().toLowerCase()
+      const filePath = `${user.id}/avatar.${fileExt}`
+
+      console.log('Uploading to:', filePath)
+
+      // Upload to avatars bucket
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath)
+
+      // Update profile with direct URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id)
+
+      if (updateError) {
+        throw updateError
+      }
+
+      // Set avatar URL with cache bust
+      setAvatarUrl(`${publicUrl}?v=${Date.now()}`)
+      
+      // Refresh profile
+      fetchUserProfile()
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      
+    } catch (error) {
+      console.error('Error uploading avatar:', error)
+      alert(`Failed to upload image: ${error.message}. Please try again.`)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click()
+  }
+
   const fetchUserProfile = async () => {
     setLoading(true);
     try {
@@ -104,6 +200,9 @@ const SettingsPage = () => {
         
         if (profile) {
           setProfile(profile);
+          if (profile.avatar_url) {
+            setAvatarUrl(profile.avatar_url);
+          }
           setProfileData({
             fullName: profile.full_name || '',
             email: user.email || '',
@@ -120,6 +219,8 @@ const SettingsPage = () => {
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -193,7 +294,7 @@ const SettingsPage = () => {
       // 3. Clear all local storage as a scorched-earth fix for any other cached bundles
       localStorage.clear();
       
-      window.location.href = '/signin';
+      window.location.href = LANDING_URL;
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -206,7 +307,8 @@ const SettingsPage = () => {
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'appearance', label: 'Appearance', icon: Palette },
     { id: 'privacy', label: 'Privacy', icon: Shield },
-    { id: 'about', label: 'About', icon: Question }
+    { id: 'about', label: 'About', icon: Question },
+    { id: 'logout', label: 'Sign Out', icon: SignOut, isLogout: true }
   ];
 
   const containerVariants = {
@@ -230,22 +332,30 @@ const SettingsPage = () => {
       background: 'linear-gradient(135deg, #fafbff 0%, #f5f3ff 100%)',
       padding: '20px'
     }}>
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        style={{ marginBottom: '32px' }}
+        style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          marginBottom: '24px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+          border: '1px solid rgba(151, 24, 251, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '20px'
+        }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
+        <div style={{
+          width: '48px',
+          height: '48px',
+          borderRadius: '12px',
+          background: 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
             <Gear size={24} color="white" />
           </div>
           <div>
@@ -267,7 +377,6 @@ const SettingsPage = () => {
               Manage your account settings and preferences
             </p>
           </div>
-        </div>
       </motion.div>
 
       {/* Message Toast */}
@@ -318,6 +427,35 @@ const SettingsPage = () => {
           }}>
             {tabs.map((tab) => {
               const Icon = tab.icon;
+              if (tab.isLogout) {
+                return (
+                  <motion.button
+                    key={tab.id}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleSignOut}
+                    style={{
+                      width: '100%',
+                      padding: '14px 16px',
+                      border: 'none',
+                      borderRadius: '12px',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#ef4444',
+                      transition: 'all 0.2s ease',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    <Icon size={20} />
+                    <span>{tab.label}</span>
+                  </motion.button>
+                );
+              }
               return (
                 <motion.button
                   key={tab.id}
@@ -423,6 +561,98 @@ const SettingsPage = () => {
                       {isUniversityStudent ? 'Manage your academic profile and course information' : 'Manage your learning profile and interests'}
                     </p>
                   </div>
+                </div>
+
+                {/* Profile Picture Upload */}
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
+                  <div 
+                    onClick={triggerFileInput}
+                    style={{
+                      width: 120,
+                      height: 120,
+                      borderRadius: '50%',
+                      background: avatarUrl ? 'transparent' : 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 48,
+                      fontWeight: 700,
+                      color: 'white',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      border: '4px solid #e2e8f0',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#9718fb'
+                      e.currentTarget.style.transform = 'scale(1.05)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#e2e8f0'
+                      e.currentTarget.style.transform = 'scale(1)'
+                    }}
+                  >
+                    {avatarUrl ? (
+                      <img 
+                        src={avatarUrl} 
+                        alt="Profile" 
+                        style={{ 
+                          width: '100%', 
+                          height: '100%', 
+                          objectFit: 'cover',
+                          display: 'block'
+                        }}
+                      />
+                    ) : (
+                      <span>{user?.email?.charAt(0).toUpperCase() || 'U'}</span>
+                    )}
+                    
+                    {/* Upload Overlay */}
+                    <div style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: '35%',
+                      background: 'rgba(0,0,0,0.5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backdropFilter: 'blur(2px)'
+                    }}>
+                      <RiCameraLine size={28} color="white" />
+                    </div>
+                    
+                    {uploading && (
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.6)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <div style={{
+                          width: 40,
+                          height: 40,
+                          border: '4px solid rgba(255,255,255,0.3)',
+                          borderTopColor: 'white',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite'
+                        }} />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Hidden File Input */}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleAvatarUpload}
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                  />
                 </div>
 
                 <form onSubmit={handleProfileUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -1654,6 +1884,4 @@ const SettingsPage = () => {
       `}</style>
     </div>
   );
-};
-
-export default SettingsPage;
+}

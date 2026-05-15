@@ -29,7 +29,11 @@ import {
   Stack,
   ClipboardText,
   List,
-  ChatsCircle as ChatsCircleIcon
+  ChatsCircle as ChatsCircleIcon,
+  Users,
+  X,
+  PaperPlaneTilt as PaperPlaneIcon,
+  Clock
 } from '@phosphor-icons/react'
 import useTourStore from '../../store/useTourStore'
 import { 
@@ -86,9 +90,102 @@ function WorkstationContent() {
   const handleScrollUpdate = useCallback((data) => {
     if (data && setViewportData) setViewportData(data)
   }, [setViewportData])
+
+  const handleSelectionAction = async (actionId, text) => {
+    if (actionId === 'explain' || actionId === 'summarize') {
+      setActivePanelContext('explanation')
+      setActiveExplanation(actionId === 'explain' ? "Analyzing and explaining..." : "Summarizing selection...")
+      setActiveSideTab('chat')
+      if (isSidePanelCollapsed) setSidePanelCollapsed(false)
+      
+      try {
+        // Usage check
+        if (explanationsLeft <= 0 && !profile?.is_premium) {
+          setActiveExplanation("You've used your 3 free explanations. Upgrade to Luter Pro for unlimited access!")
+          return
+        }
+
+        const prompt = actionId === 'explain' 
+          ? `Explain this concept clearly for a student: "${text}"`
+          : `Provide a concise, high-impact summary of this section: "${text}"`
+
+        const response = await callGroqAPI(
+          GROQ_MODELS.LLAMA_3_70B,
+          [{ role: 'user', content: prompt }],
+          GROQ_PROMPTS.EXPLAINER
+        )
+        setActiveExplanation(response)
+
+        // Decrement logic
+        if (!profile?.is_premium) {
+          const { data: newCount } = await supabase.rpc('decrement_user_explanations', { user_id: user.id })
+          if (newCount !== undefined) setExplanationsLeft(newCount)
+        }
+      } catch (err) {
+        setActiveExplanation("Failed to generate response. Please try again.")
+      }
+    } else if (actionId === 'save_note' || actionId === 'save') {
+      const newNote = `> ${text}\n\n`
+      setUserJottings(prev => prev + newNote)
+      setActiveSideTab('write')
+      if (isSidePanelCollapsed) setSidePanelCollapsed(false)
+    } else if (actionId === 'flashcard') {
+      setActiveSideTab('flashcards')
+      if (isSidePanelCollapsed) setSidePanelCollapsed(false)
+    }
+  }
+
+  const handleExit = () => {
+    const xpEarned = Math.floor(elapsedTime / 10)
+    setSessionXP(xpEarned)
+    setShowExitSummary(true)
+  }
+
+  const confirmExit = () => {
+    navigate(-1)
+  }
   
   const [activeTab, setActiveTab] = useState('content')
   const [activeSideTab, setActiveSideTab] = useState('chat')
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [explanationsLeft, setExplanationsLeft] = useState(profile?.explanations_left ?? 3)
+  const [panelWidth, setPanelWidth] = useState(() => {
+    const saved = localStorage.getItem('ws-panel-width')
+    return saved ? parseInt(saved, 10) : 360
+  })
+  const isResizing = useRef(false)
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizing.current) return
+      const newWidth = window.innerWidth - e.clientX
+      if (newWidth >= 280 && newWidth <= 600) {
+        setPanelWidth(newWidth)
+        localStorage.setItem('ws-panel-width', String(newWidth))
+      }
+    }
+    const handleMouseUp = () => { isResizing.current = false }
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [])
+  
+  // Session Timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsedTime(prev => prev + 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')} elapsed`
+  }
   const { startTour, hasCompletedTour } = useTourStore()
 
   const [chatInput, setChatInput] = useState('')
@@ -96,6 +193,13 @@ function WorkstationContent() {
   const [isProcessingLoading, setIsProcessingLoading] = useState(false)
   const [courseMaterials, setCourseMaterials] = useState([])
   const [selectedMaterial, setSelectedMaterial] = useState(null)
+  const [sessionMaterials, setSessionMaterials] = useState([])
+  const [elapsedTime, setElapsedTime] = useState(0)
+  const [isGroupSession, setIsGroupSession] = useState(false)
+  const [isThumbnailsOpen, setIsThumbnailsOpen] = useState(false)
+  const [showExitSummary, setShowExitSummary] = useState(false)
+  const [activePanelContext, setActivePanelContext] = useState('default') // default, explanation, quiz, flashcard
+  const [activeExplanation, setActiveExplanation] = useState(null)
   const [courseInfo, setCourseInfo] = useState(null)
 
   // Tour effect — must come AFTER selectedMaterial declaration
@@ -117,6 +221,37 @@ function WorkstationContent() {
   const [pageSummaries, setPageSummaries] = useState({})
   const [loading, setLoading] = useState(false)
   const [showDashboard, setShowDashboard] = useState(true)
+  const [sessionXP, setSessionXP] = useState(0)
+  const [showFileSwitcher, setShowFileSwitcher] = useState(false)
+
+  useEffect(() => {
+    if (courseId) {
+      fetchCourseData()
+    }
+  }, [courseId])
+
+  async function fetchCourseData() {
+    try {
+      const { data: course, error: cErr } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('id', courseId)
+        .single()
+      
+      if (cErr) throw cErr
+      setCourseInfo(course)
+
+      const { data: materials, error: mErr } = await supabase
+        .from('study_materials')
+        .select('*')
+        .eq('course_id', courseId)
+      
+      if (mErr) throw mErr
+      setSessionMaterials(materials)
+    } catch (err) {
+      console.error('Error fetching course data:', err)
+    }
+  }
   const [userJottings, setUserJottings] = useState("")
   const [jottingNoteId, setJottingNoteId] = useState(null)
   const messagesEndRef = useRef(null)
@@ -482,35 +617,6 @@ function WorkstationContent() {
     if (selectedMaterial?.id) fetchAnalysis(selectedMaterial.id)
   }, [selectedMaterial?.id])
 
-  const handleSelectionAction = async (action, text) => {
-    let prompt;
-    switch(action) {
-      case 'explain': prompt = `User highlighted this text: "${text}". Please explain this specific part of the document in simple terms.`; break;
-      case 'summarize': prompt = `User highlighted this text: "${text}". Provide a concise summary of this specific section.`; break;
-      case 'save': prompt = `User highlighted this text: "${text}". I want to add this to my vault/summary. Can you rephrase it into a key learning point?`; break;
-      default: return;
-    }
-    const userMsg = { role: 'user', content: `[${action.toUpperCase()}] "${text.slice(0, 50)}..."` }
-    setMessages(prev => [...prev, userMsg])
-    setIsProcessingLoading(true)
-    try {
-      const docContext = (selectedMaterial?.extracted_text || "").replace(/\*\*/g, '').slice(0, 4000)
-      const response = await callGroqAPI(
-        [
-          { role: 'system', content: `You are Luter, a helpful tutor. Ground your answer in this document context: ${docContext}` },
-          { role: 'user', content: prompt }
-        ],
-        GROQ_MODELS.SPEEDSTER,
-        { systemPromptOverride: GROQ_PROMPTS.AI_TUTOR }
-      )
-      const aiMsg = { role: 'ai', content: response.choices[0].message.content }
-      setMessages(prev => [...prev, aiMsg])
-    } catch (err) {
-      setMessages(prev => [...prev, { role: 'ai', content: "Sorry, I couldn't process that selection. Please try again." }])
-    } finally {
-      setIsProcessingLoading(false)
-    }
-  }
 
   async function handleFetchPageSummaries() {
     if (!selectedMaterial) return
@@ -519,7 +625,7 @@ function WorkstationContent() {
         setPageSummaries(currentAnalysis.page_summaries)
         return
       }
-      const pageTextMap = await MaterialAnalysisService.getPageTextMap(selectedMaterial.id)
+      const pageTextMap = await MaterialAnalysisService.fetchMaterialPageMap(selectedMaterial.id, selectedMaterial)
       const summaries = await MaterialAnalysisService.generatePageByPageSummary(selectedMaterial.id, pageTextMap)
       setPageSummaries(summaries)
       
@@ -732,6 +838,15 @@ function WorkstationContent() {
     setChatInput('')
     setIsProcessingLoading(true)
     try {
+      // Usage check
+      if (explanationsLeft <= 0 && !profile?.is_premium) {
+        setMessages(prev => [...prev, { 
+          role: 'ai', 
+          content: "You've reached your limit of free explanations for today. 🚀 **Upgrade to Luter Pro** to unlock unlimited AI power and continue your study session without interruptions!" 
+        }])
+        return
+      }
+
       // Determine retrieval context: Specific material, or the whole deck?
       const materialContext = selectedMaterial?.id || activeDeckItems.map(i => i.content_id)
       
@@ -742,6 +857,12 @@ function WorkstationContent() {
         fallbackContext: (selectedMaterial?.extracted_text || "").replace(/\*\*/g, '').slice(0, 8000)
       })
       setMessages(prev => [...prev, { role: 'ai', content: aiResponse }])
+      
+      // Decrement logic
+      if (!profile?.is_premium) {
+        const { data: newCount } = await supabase.rpc('decrement_user_explanations', { user_id: user.id })
+        if (newCount !== undefined) setExplanationsLeft(newCount)
+      }
     } catch (err) {
       setMessages(prev => [...prev, { role: 'ai', content: 'Luter encountered an error.' }])
     } finally { setIsProcessingLoading(false) }
@@ -821,7 +942,26 @@ function WorkstationContent() {
             alignItems: 'center',
             justifyContent: 'space-between'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+              <button 
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '6px',
+                  borderRadius: '8px',
+                  color: '#64748B',
+                  transition: 'all 0.2s',
+                  marginLeft: '-6px'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <SidebarSimple size={20} weight={sidebarCollapsed ? "bold" : "regular"} />
+              </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#94A3B8', fontSize: '13px' }}>
                 <div 
                   onClick={() => navigate('/dashboard')} 
@@ -856,17 +996,109 @@ function WorkstationContent() {
                   {courseInfo?.code || 'Course'}
                 </span>
                 <CaretRight size={14} weight="bold" />
-                <span style={{ 
-                  color: '#111827', 
-                  fontWeight: 700, 
+                
+                {/* File Switcher Pill with Dropdown */}
+                <div style={{ position: 'relative' }}>
+                  <div 
+                    onClick={() => setShowFileSwitcher(!showFileSwitcher)}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '6px',
+                      background: '#F1F5F9',
+                      padding: '4px 10px',
+                      borderRadius: '10px',
+                      border: '1px solid #E2E8F0',
+                      cursor: 'pointer',
+                      transition: '0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#E2E8F0'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                  >
+                    <FileText size={16} color="#6D28D9" weight="fill" />
+                    <span style={{ 
+                      color: '#111827', 
+                      fontWeight: 700, 
+                      fontSize: '12px',
+                      fontFamily: 'var(--font-outfit)',
+                      maxWidth: '180px', 
+                      overflow: 'hidden', 
+                      textOverflow: 'ellipsis', 
+                      whiteSpace: 'nowrap' 
+                    }}>
+                      {selectedMaterial?.title || 'Material'}
+                    </span>
+                    <CaretRight size={12} weight="bold" style={{ transform: showFileSwitcher ? 'rotate(270deg)' : 'rotate(90deg)', transition: '0.2s', color: '#94A3B8' }} />
+                  </div>
+
+                  <AnimatePresence>
+                    {showFileSwitcher && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        style={{
+                          position: 'absolute', top: 'calc(100% + 8px)', left: 0, width: '280px',
+                          background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0',
+                          boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 100, overflow: 'hidden'
+                        }}
+                      >
+                        <div style={{ padding: '12px 16px', borderBottom: '1px solid #F1F5F9', fontSize: '11px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase' }}>
+                          Switch Material
+                        </div>
+                        <div style={{ maxHeight: '300px', overflowY: 'auto', padding: '8px' }}>
+                          {sessionMaterials.map((m) => (
+                            <button
+                              key={m.id}
+                              onClick={() => {
+                                setSelectedMaterial(m)
+                                setShowFileSwitcher(false)
+                              }}
+                              style={{
+                                width: '100%', padding: '10px 12px', border: 'none', borderRadius: '10px',
+                                background: selectedMaterial?.id === m.id ? '#F5F3FF' : 'transparent',
+                                color: selectedMaterial?.id === m.id ? '#6D28D9' : '#1E293B',
+                                textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px',
+                                transition: '0.2s', fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-outfit)'
+                              }}
+                              onMouseEnter={(e) => { if (selectedMaterial?.id !== m.id) e.currentTarget.style.background = '#F8FAFC' }}
+                              onMouseLeave={(e) => { if (selectedMaterial?.id !== m.id) e.currentTarget.style.background = 'transparent' }}
+                            >
+                              <FileText size={16} weight={selectedMaterial?.id === m.id ? 'fill' : 'bold'} />
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</span>
+                            </button>
+                          ))}
+                          <button style={{
+                            width: '100%', padding: '12px', marginTop: '4px', border: '1px dashed #E2E8F0', borderRadius: '10px',
+                            background: 'transparent', color: '#64748B', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                          }}>
+                            <Plus size={14} weight="bold" /> Add file to session
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                
+                {/* Timer Badge */}
+                <div style={{ 
+                  marginLeft: '8px',
+                  padding: '4px 10px',
+                  background: '#F5F3FF',
+                  borderRadius: '20px',
+                  color: '#6D28D9',
+                  fontSize: '11px',
+                  fontWeight: 800,
                   fontFamily: 'var(--font-outfit)',
-                  maxWidth: '240px', 
-                  overflow: 'hidden', 
-                  textOverflow: 'ellipsis', 
-                  whiteSpace: 'nowrap' 
+                  border: '1px solid rgba(109, 40, 217, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}>
-                  {selectedMaterial?.title || 'Material'}
-                </span>
+                  <Clock size={12} weight="bold" />
+                  {formatTime(elapsedTime)}
+                </div>
               </div>
             </div>
 
@@ -940,100 +1172,100 @@ function WorkstationContent() {
             </div>
 
           <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '8px', alignItems: 'center' }}>
-            <div style={{ 
-              display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', 
-              background: '#F1F5F9', borderRadius: '10px',
-              fontSize: '11px', fontWeight: 700, color: '#64748B',
-              fontFamily: 'var(--font-outfit)',
-              letterSpacing: '0.02em'
-            }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px rgba(16, 185, 129, 0.4)' }}></div>
-              PROGRESS: {(() => {
-                  let progress = 0;
-                  if (selectedMaterial?.extracted_text) progress += 25;
-                  if (currentAnalysis.summary && currentAnalysis.summary.length > 10) progress += 25;
-                  if (currentAnalysis.flashcards && Array.isArray(currentAnalysis.flashcards) && currentAnalysis.flashcards.length > 0) progress += 25;
-                  if (currentAnalysis.quiz && Array.isArray(currentAnalysis.quiz) && currentAnalysis.quiz.length > 0) progress += 25;
-                  return progress;
-              })()}%
+            <div style={{ position: 'relative' }}>
+              <button 
+                style={{ 
+                  display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 12px', 
+                  fontSize: '12px', fontWeight: 800, borderRadius: '10px', 
+                  border: 'none', background: profile?.is_premium ? 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)' : '#F5F3FF', 
+                  color: profile?.is_premium ? 'white' : '#6D28D9', 
+                  cursor: 'pointer', fontFamily: 'var(--font-outfit)',
+                  transition: '0.2s', position: 'relative'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                {profile?.is_premium ? 'Luter Pro' : 'Upgrade'}
+                {!profile?.is_premium && (
+                  <div style={{
+                    position: 'absolute', top: '-6px', right: '-6px',
+                    background: '#EF4444', color: 'white', fontSize: '9px',
+                    fontWeight: 900, padding: '2px 5px', borderRadius: '10px',
+                    border: '2px solid white', boxShadow: '0 2px 4px rgba(239, 68, 68, 0.2)'
+                  }}>
+                    {explanationsLeft} LEFT
+                  </div>
+                )}
+              </button>
             </div>
             <button 
               onClick={() => setFocusMode(!focusMode)}
               style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '8px', 
-                padding: '8px 14px', 
-                fontSize: '12px', 
-                fontWeight: 700, 
-                borderRadius: '10px', 
+                display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 13px', 
+                fontSize: '12px', fontWeight: 700, borderRadius: '10px', 
                 border: '1px solid #E2E8F0', 
                 background: focusMode ? '#6D28D9' : 'white', 
                 color: focusMode ? 'white' : '#1E293B', 
-                cursor: 'pointer', 
-                fontFamily: 'var(--font-outfit)',
-                transition: 'all 0.2s',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                cursor: 'pointer', fontFamily: 'var(--font-outfit)', transition: 'all 0.2s'
               }}
-              onMouseEnter={(e) => {
-                if (!focusMode) {
-                  e.currentTarget.style.borderColor = '#6D28D9';
-                  e.currentTarget.style.background = '#F5F3FF';
-                  e.currentTarget.style.color = '#6D28D9';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!focusMode) {
-                  e.currentTarget.style.borderColor = '#E2E8F0';
-                  e.currentTarget.style.background = 'white';
-                  e.currentTarget.style.color = '#1E293B';
-                }
-              }}
+              onMouseEnter={(e) => { if (!focusMode) { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.color = '#6D28D9'; e.currentTarget.style.background = '#F5F3FF'; }}}
+              onMouseLeave={(e) => { if (!focusMode) { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#1E293B'; e.currentTarget.style.background = 'white'; }}}
             >
-              {focusMode ? <RiEyeLine size={16} /> : <RiEyeOffLine size={16} />}
+              {focusMode ? <RiEyeLine size={15} /> : <RiEyeOffLine size={15} />}
               {focusMode ? 'Exit Focus' : 'Focus Mode'}
             </button>
-            <button 
-              style={{ 
-                display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', 
-                fontSize: '12px', fontWeight: 700, borderRadius: '10px', 
-                border: '1px solid #E2E8F0', background: 'white', color: '#1E293B', 
-                cursor: 'pointer', fontFamily: 'var(--font-outfit)',
-                transition: 'all 0.2s',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+            <button
+              onClick={handleExit}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 13px',
+                fontSize: '12px', fontWeight: 700, borderRadius: '10px',
+                border: '1px solid #FDA4AF', background: '#FFF1F2', color: '#E11D48',
+                cursor: 'pointer', fontFamily: 'var(--font-outfit)', transition: 'all 0.2s'
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.background = '#F5F3FF'; e.currentTarget.style.color = '#6D28D9'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#1E293B'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#FFE4E6'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#FFF1F2'; }}
             >
-              <ShareNetwork size={16} weight="bold" /> Share
+              Exit Session
             </button>
-            <button 
-              style={{ 
-                display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', 
-                fontSize: '12px', fontWeight: 700, borderRadius: '10px', 
-                border: 'none', background: '#A78BFA', color: 'white', 
-                cursor: 'pointer', fontFamily: 'var(--font-outfit)',
-                transition: 'all 0.2s',
-                boxShadow: '0 4px 12px rgba(167, 139, 250, 0.3)'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#8B5CF6'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = '#A78BFA'; e.currentTarget.style.transform = 'translateY(0)'; }}
-            >
-              <GraduationCap size={16} weight="fill" /> Study Deck
-            </button>
-            <button 
-              style={{ 
-                padding: '8px', borderRadius: '10px', border: '1px solid #E2E8F0', 
-                background: 'white', color: '#1E293B', cursor: 'pointer', 
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.2s',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.background = '#F5F3FF'; e.currentTarget.style.color = '#6D28D9'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#1E293B'; }}
-            >
-              <DotsThree size={20} weight="bold" />
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button
+                id="ws-more-menu-btn"
+                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                style={{
+                  padding: '7px 9px', borderRadius: '10px', border: '1px solid #E2E8F0',
+                  background: 'white', color: '#1E293B', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.color = '#6D28D9'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#1E293B'; }}
+              >
+                <DotsThree size={20} weight="bold" />
+              </button>
+              <AnimatePresence>
+                {showMoreMenu && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    style={{
+                      position: 'absolute', right: 0,
+                      top: 'calc(100% + 8px)', background: 'white', border: '1px solid #E2E8F0',
+                      borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', zIndex: 200,
+                      minWidth: '160px', overflow: 'hidden'
+                    }}
+                  >
+                    <button 
+                      onClick={() => setShowMoreMenu(false)}
+                      style={{ padding: '11px 16px', width: '100%', border: 'none', background: 'none', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#1E293B', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontFamily: 'var(--font-outfit)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                    >
+                      <ShareNetwork size={15} weight="bold" /> Share Session
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </header>
@@ -1041,566 +1273,619 @@ function WorkstationContent() {
 
 
       <main className="ws-main-layout" style={{ 
-        display: 'grid', 
-        gridTemplateColumns: isMobile ? '1fr' : (focusMode ? '1fr' : 'minmax(0, 5fr) minmax(360px, 420px)'), 
+        display: 'flex',
+        flexDirection: 'row',
         background: 'transparent', 
         overflow: 'hidden', 
         padding: '0', 
         flex: 1,
-        minHeight: 'calc(100vh - 72px)',
-        transition: 'grid-template-columns 0.3s ease'
+        height: 'calc(100vh - 60px)',
+        position: 'relative'
       }}>
-        <div ref={constraintsRef} className="ws-pane-left" style={{ 
+        {/* Left Zone - Slide Rail */}
+        {!isMobile && (
+          <aside 
+            className="ws-slide-rail"
+            style={{ 
+              background: 'white', 
+              borderRight: '1px solid #EBEBEB',
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              width: isThumbnailsOpen ? '200px' : '60px',
+              transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              position: 'relative',
+              zIndex: 20,
+              flexShrink: 0
+            }}
+          >
+            <div style={{ 
+              padding: '16px 0',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '20px',
+              flex: 1
+            }}>
+              <button 
+                onClick={() => setIsThumbnailsOpen(!isThumbnailsOpen)}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  cursor: 'pointer', 
+                  color: '#94A3B8',
+                  padding: '8px',
+                  borderRadius: '8px',
+                  transition: '0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+              >
+                {isThumbnailsOpen ? <CaretLeft size={20} weight="bold" /> : <SquaresFour size={22} weight="bold" />}
+              </button>
+
+              {isThumbnailsOpen ? (
+                <div style={{ width: '100%', padding: '0 16px' }}>
+                  <h3 style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '0.05em' }}>Slides</h3>
+                  <div style={{ display: 'grid', gap: '12px' }}>
+                    {(selectedMaterial?.slide_images || [...Array(12)]).map((img, i) => (
+                      <div 
+                        key={i} 
+                        style={{ 
+                          aspectRatio: '16/9', 
+                          background: '#F8FAFC', 
+                          borderRadius: '6px', 
+                          border: (viewportData?.currentPage === i + 1) ? '2px solid #6D28D9' : '1px solid #EBEBEB',
+                          cursor: 'pointer',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          transition: '0.2s',
+                          backgroundImage: img && typeof img === 'string' ? `url(${img})` : 'none',
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center'
+                        }}
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('luter-jump-to-page', { detail: { page: i + 1 } }));
+                        }}
+                        onMouseEnter={(e) => { if (viewportData?.currentPage !== i+1) e.currentTarget.style.borderColor = '#6D28D9' }}
+                        onMouseLeave={(e) => { if (viewportData?.currentPage !== i+1) e.currentTarget.style.borderColor = '#EBEBEB' }}
+                      >
+                        <div style={{ 
+                          position: 'absolute', bottom: '4px', right: '4px', 
+                          fontSize: '9px', fontWeight: 800, color: '#64748B',
+                          background: 'white', padding: '1px 3px', borderRadius: '3px',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                          zIndex: 2
+                        }}>
+                          {i + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {[...Array(8)].map((_, i) => (
+                    <div 
+                      key={i}
+                      onClick={() => window.dispatchEvent(new CustomEvent('luter-jump-to-page', { detail: { page: i + 1 } }))}
+                      style={{ 
+                        width: '32px', height: '24px', background: '#F8FAFC', borderRadius: '4px', border: '1px solid #EBEBEB',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 800, color: '#94A3B8',
+                        cursor: 'pointer'
+                      }}
+                    >
+                  {i + 1}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </aside>
+        )}
+
+
+
+        {/* Center Zone - Document Viewer */}
+        <div ref={constraintsRef} className="ws-center-viewer" style={{ 
           display: 'flex', 
           flexDirection: 'column', 
           overflow: 'hidden', 
           background: 'linear-gradient(180deg, #FAFBFC 0%, #F8FAFC 50%, #F1F5F9 100%)', 
           position: 'relative',
-          gridColumn: '1 / 2',
           height: '100%',
-          minHeight: 0,
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -1px 0 rgba(0,0,0,0.03)'
-        }}>            {activeTab === 'summary' ? (
-              <div style={{ flex: 1, overflowY: 'auto', background: '#F9FAFB' }}>
-                <WorkstationSummaryEnhanced 
-                  content={currentAnalysis.summary} 
-                  material={selectedMaterial} 
-                  pageSummaries={pageSummaries}
-                  onFetchPageSummaries={handleFetchPageSummaries}
-                  onRegenerate={() => runAnalysis('summary')}
-                />
-              </div>
-            ) : activeTab === 'flashcards' ? (
-              <div style={{ flex: 1, overflowY: 'auto', background: '#F9FAFB' }}>
-                <WorkstationFlashcards 
-                  flashcards={currentAnalysis.flashcards} 
-                  material={selectedMaterial} 
-                  onRegenerate={() => runAnalysis('flashcards')} 
-                />
-              </div>
-            ) : activeTab === 'quiz' ? (
-              <div style={{ flex: 1, overflowY: 'auto', background: '#F9FAFB' }}>
-                <WorkstationQuiz 
-                  quiz={currentAnalysis.quiz} 
-                  material={selectedMaterial} 
-                  onRegenerate={() => runAnalysis('quiz')} 
-                />
-              </div>
-            ) : !selectedMaterial ? (
-              <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px', flex: 1 }}>
-                <div style={{ textAlign: 'center', maxWidth: '400px' }}>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                    <BookOpen size={24} color="#6B7280" />
-                  </div>
-                  <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111', marginBottom: '8px' }}>No material selected</h3>
-                  <p style={{ color: '#6B7280', fontSize: '14px', lineHeight: '1.5', marginBottom: '20px' }}>
-                    Select a study material from the sidebar to begin.
-                  </p>
-                  <button 
-                    onClick={() => navigate('/dashboard/upload')}
-                    style={{ padding: '10px 20px', background: '#111', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    Upload Material
-                  </button>
+          flex: 1,
+          minWidth: 0,
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -1px 0 rgba(0,0,0,0.03)',
+          zIndex: 1
+        }}>
+          {activeTab === 'summary' ? (
+            <div style={{ flex: 1, overflowY: 'auto', background: '#F9FAFB', height: '100%' }}>
+              <WorkstationSummaryEnhanced 
+                content={currentAnalysis.summary} 
+                material={selectedMaterial} 
+                pageSummaries={pageSummaries}
+                onFetchPageSummaries={handleFetchPageSummaries}
+                onRegenerate={() => runAnalysis('summary')}
+              />
+            </div>
+          ) : activeTab === 'flashcards' ? (
+            <div style={{ flex: 1, overflowY: 'auto', background: '#F9FAFB', height: '100%' }}>
+              <WorkstationFlashcards 
+                flashcards={currentAnalysis.flashcards} 
+                material={selectedMaterial} 
+                onRegenerate={() => runAnalysis('flashcards')} 
+              />
+            </div>
+          ) : activeTab === 'quiz' ? (
+            <div style={{ flex: 1, overflowY: 'auto', background: '#F9FAFB', height: '100%' }}>
+              <WorkstationQuiz 
+                quiz={currentAnalysis.quiz} 
+                material={selectedMaterial} 
+                onRegenerate={() => runAnalysis('quiz')} 
+              />
+            </div>
+          ) : !selectedMaterial ? (
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px', flex: 1 }}>
+              <div style={{ textAlign: 'center', maxWidth: '400px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <BookOpen size={24} color="#6B7280" />
                 </div>
-              </div>
-            ) : (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
-                {/* Floating Source/Notes Toggle (Top Left) */}
-                {!isMobile && (activeTab === 'content' || activeTab === 'notes') && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '20px',
-                    left: '20px',
-                    zIndex: 100,
-                    background: 'rgba(255, 255, 255, 0.8)',
-                    backdropFilter: 'blur(10px)',
-                    padding: '4px',
-                    borderRadius: '12px',
-                    border: '1px solid #E2E8F0',
-                    display: 'flex',
-                    gap: '2px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
-                  }}>
-                    {['content', 'notes'].map((tab) => (
-                      <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        style={{
-                          padding: '6px 12px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          borderRadius: '8px',
-                          border: 'none',
-                          cursor: 'pointer',
-                          background: activeTab === tab ? 'white' : 'transparent',
-                          color: activeTab === tab ? '#6D28D9' : '#64748B',
-                          boxShadow: activeTab === tab ? '0 2px 6px rgba(0,0,0,0.05)' : 'none',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          fontFamily: 'var(--font-outfit)',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        {tab === 'content' ? <FileText size={14} weight={activeTab === tab ? 'fill' : 'bold'} /> : <PencilSimple size={14} weight={activeTab === tab ? 'fill' : 'bold'} />}
-                        {tab === 'content' ? 'Source' : 'Notes'}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {activeTab === 'notes' ? (
-                  <div className="ws-scroll-container" style={{ flex: 1, padding: '60px 40px', overflowY: 'auto' }}>
-                    <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-                      <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '32px', color: '#1A102D', fontFamily: 'var(--font-outfit)' }}>Extracted Text</h2>
-                      <div style={{ fontSize: '15px', lineHeight: '1.8', color: '#334155', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-outfit)' }}>
-                        {selectedMaterial?.extracted_text || (
-                          <div style={{ textAlign: 'center', padding: '60px' }}>
-                            <LuterPageLoader message="Extracting text..." minHeight="200px" />
-                            <button 
-                              onClick={async () => {
-                                setIsExtractingText(true)
-                                const res = await reprocessMaterial(selectedMaterial)
-                                if (res.success && res.fullText) {
-                                  setSelectedMaterial(prev => ({ ...prev, extracted_text: res.fullText }))
-                                }
-                                setIsExtractingText(false)
-                              }}
-                              style={{
-                                padding: '12px 24px', background: '#6D28D9', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 700,
-                                marginTop: '24px', boxShadow: '0 4px 12px rgba(109, 40, 217, 0.2)', fontFamily: 'var(--font-outfit)'
-                              }}
-                            >
-                              Extract now
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="ws-scroll-container" style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
-                    {/* Floating Selection Tool Pill */}
-                    {!isMobile && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        style={{
-                          position: 'absolute',
-                          bottom: '30px',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          zIndex: 100,
-                          display: 'flex',
-                          alignItems: 'center',
-                          background: 'rgba(255, 255, 255, 0.95)',
-                          backdropFilter: 'blur(10px)',
-                          padding: '6px',
-                          borderRadius: '16px',
-                          border: '1px solid #E2E8F0',
-                          boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
-                          gap: '4px'
-                        }}
-                      >
-                        <button style={{
-                          display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
-                          background: '#EDE9FE', color: '#6D28D9', border: 'none', borderRadius: '10px',
-                          fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-outfit)',
-                          transition: '0.2s'
-                        }}>
-                          <PencilSimple size={16} weight="fill" />
-                          Highlight <span style={{ opacity: 0.5, marginLeft: '4px', background: 'white', padding: '1px 5px', borderRadius: '4px', fontSize: '10px' }}>H</span>
-                        </button>
-                        <button style={{
-                          display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
-                          background: 'transparent', color: '#64748B', border: 'none', borderRadius: '10px',
-                          fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-outfit)',
-                          transition: '0.2s'
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = '#F8FAFC' }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-                        >
-                          <ClipboardText size={16} weight="bold" />
-                          Occlusion <span style={{ opacity: 0.5, marginLeft: '4px', background: '#F1F5F9', padding: '1px 5px', borderRadius: '4px', fontSize: '10px' }}>O</span>
-                        </button>
-                        <div style={{ width: '1px', height: '24px', background: '#E2E8F0', margin: '0 4px' }} />
-                        <button style={{ padding: '8px', background: 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <ArrowUp size={16} weight="bold" />
-                        </button>
-                        <button style={{ padding: '8px', background: 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <ArrowRight size={16} weight="bold" />
-                        </button>
-                      </motion.div>
-                    )}
-
-                     <MaterialRenderer 
-                        material={selectedMaterial} 
-                        activeTab={activeTab}
-                        onSparkUpdate={updateSpark}
-                        setViewportData={setViewportData}
-                        onScrollUpdate={handleScrollUpdate}
-                        onMaterialUpdate={(m) => setSelectedMaterial(m)}
-                     />
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* Magic Spark FAB */}
-            <motion.button 
-              onClick={() => {
-                if (activeSideTab === 'write') {
-                  setActiveSideTab('chat')
-                } else {
-                  setActiveSideTab('write')
-                  if (isSidePanelCollapsed) setSidePanelCollapsed(false)
-                }
-              }}
-              style={{ 
-                position: 'absolute',
-                bottom: '32px',
-                right: '32px',
-                width: '64px',
-                height: '64px',
-                borderRadius: '20px',
-                background: 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 20px 40px rgba(109, 40, 217, 0.25), 0 8px 16px rgba(109, 40, 217, 0.15)',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                zIndex: 40,
-                touchAction: 'none'
-              }}
-              whileHover={{ 
-                scale: 1.1, 
-                rotate: [0, -10, 10, 0],
-                boxShadow: '0 25px 50px rgba(109, 40, 217, 0.35), 0 10px 20px rgba(109, 40, 217, 0.2)'
-              }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Sparkle size={32} weight="fill" />
-            </motion.button>
-        </div>
-
-        {!isSidePanelCollapsed && !focusMode && (
-          <aside id="tour-ai-chat" style={{ 
-            display: isMobile ? (activeTab === 'chat' ? 'flex' : 'none') : 'flex', 
-            minWidth: '360px',
-            gridColumn: '2 / 3', 
-            borderLeft: '1px solid #E5E7EB', 
-            background: 'white',
-            flexDirection: 'column',
-            zIndex: 10,
-            position: isMobile ? 'fixed' : 'sticky',
-            top: isMobile ? '60px' : '72px',
-            height: isMobile ? 'calc(100dvh - 132px)' : 'calc(100vh - 72px)'
-          }}>
-            <div style={{ padding: '16px 20px 8px' }}>
-              <div style={{ 
-                display: 'flex', 
-                padding: '3px', 
-                background: '#F3F4F6', 
-                borderRadius: '10px'
-              }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111', marginBottom: '8px' }}>No material selected</h3>
+                <p style={{ color: '#6B7280', fontSize: '14px', lineHeight: '1.5', marginBottom: '20px' }}>
+                  Select a study material from the sidebar to begin.
+                </p>
                 <button 
-                  onClick={() => setActiveSideTab('chat')}
-                  style={{ 
-                    flex: 1, 
-                    padding: '8px 12px', 
-                    background: activeSideTab === 'chat' ? 'white' : 'transparent', 
-                    border: 'none', 
-                    borderRadius: '7px', 
-                    cursor: 'pointer', 
-                    fontSize: '12px', 
-                    fontWeight: 600, 
-                    color: activeSideTab === 'chat' ? '#111827' : '#6B7280',
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    gap: '6px'
-                  }}
+                  onClick={() => navigate('/dashboard/upload')}
+                  style={{ padding: '10px 20px', background: '#111', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
                 >
-                  <ChatsCircleIcon size={14} weight={activeSideTab === 'chat' ? 'bold' : 'regular'} />
-                  Chat
-                </button>
-                <button 
-                  onClick={() => setActiveSideTab('write')}
-                  style={{ 
-                    flex: 1, 
-                    padding: '8px 12px', 
-                    background: activeSideTab === 'write' ? 'white' : 'transparent', 
-                    border: 'none', 
-                    borderRadius: '7px', 
-                    cursor: 'pointer', 
-                    fontSize: '12px', 
-                    fontWeight: 600, 
-                    color: activeSideTab === 'write' ? '#111827' : '#6B7280',
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    gap: '6px'
-                  }}
-                >
-                  <PencilSimple size={14} weight={activeSideTab === 'write' ? 'bold' : 'regular'} />
-                  Write
+                  Upload Material
                 </button>
               </div>
             </div>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', height: '100%' }}>
+              {activeTab === 'notes' ? (
+                <div className="ws-scroll-container" style={{ flex: 1, padding: '60px 40px', overflowY: 'auto', height: '100%' }}>
+                  <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
+                       <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                         <FileText size={20} color="#6D28D9" />
+                       </div>
+                       <div>
+                         <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#1A102D', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>Personal Study Notes</h1>
+                         <p style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>Capture and organize your thoughts for {selectedMaterial.title}</p>
+                       </div>
+                    </div>
+                    <div className="ws-notion-card" style={{ padding: '40px', minHeight: '600px' }}>
+                       <textarea 
+                          placeholder="Start typing your notes here..."
+                          value={selectedMaterial.notes || ''}
+                          onChange={(e) => {
+                            const newNotes = e.target.value
+                            setSelectedMaterial(prev => ({ ...prev, notes: newNotes }))
+                            // Auto-save logic could go here
+                          }}
+                          style={{
+                            width: '100%', height: '100%', minHeight: '500px', border: 'none', outline: 'none',
+                            fontSize: '16px', lineHeight: '1.7', color: '#334155', fontFamily: 'var(--font-varela)',
+                            resize: 'none', background: 'transparent'
+                          }}
+                       />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="ws-visual-viewport" style={{ flex: 1, height: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                  {/* Floating Selection Tool Pill */}
+                  {!isMobile && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      style={{
+                        position: 'absolute',
+                        bottom: '30px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        zIndex: 100,
+                        display: 'flex',
+                        alignItems: 'center',
+                        background: 'rgba(255, 255, 255, 0.95)',
+                        backdropFilter: 'blur(10px)',
+                        padding: '6px',
+                        borderRadius: '16px',
+                        border: '1px solid #E2E8F0',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
+                        gap: '4px'
+                      }}
+                    >
+                      <button style={{
+                        display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
+                        background: '#EDE9FE', color: '#6D28D9', border: 'none', borderRadius: '10px',
+                        fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-outfit)',
+                        transition: '0.2s'
+                      }}>
+                        <PencilSimple size={16} weight="fill" />
+                        Highlight <span style={{ opacity: 0.5, marginLeft: '4px', background: 'white', padding: '1px 5px', borderRadius: '4px', fontSize: '10px' }}>H</span>
+                      </button>
+                      <button style={{
+                        display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
+                        background: 'transparent', color: '#64748B', border: 'none', borderRadius: '10px',
+                        fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-outfit)',
+                        transition: '0.2s'
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#F8FAFC' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                      >
+                        <ClipboardText size={16} weight="bold" />
+                        Occlusion <span style={{ opacity: 0.5, marginLeft: '4px', background: '#F1F5F9', padding: '1px 5px', borderRadius: '4px', fontSize: '10px' }}>O</span>
+                      </button>
+                      <div style={{ width: '1px', height: '24px', background: '#E2E8F0', margin: '0 4px' }} />
+                      <button style={{ padding: '8px', background: 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <ArrowUp size={16} weight="bold" />
+                      </button>
+                      <button style={{ padding: '8px', background: 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <ArrowRight size={16} weight="bold" />
+                      </button>
+                    </motion.div>
+                  )}
 
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-                {activeSideTab === 'write' ? (
-                  <WorkstationWrite 
-                    initialContent={userJottings} 
-                    onSave={handleSaveNote} 
+                  <MaterialRenderer 
+                    key={selectedMaterial.id}
                     material={selectedMaterial} 
-                    user={user} 
+                    activeTab={activeTab}
+                    onSparkUpdate={updateSpark}
+                    setViewportData={setViewportData}
+                    onScrollUpdate={handleScrollUpdate}
+                    onMaterialUpdate={(m) => setSelectedMaterial(m)}
                   />
-                ) : activeSideTab === 'voice' ? (
-                  <React.Suspense fallback={<div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>Initializing engine...</div>}>
-                    <VoiceModeBlob onExit={() => setActiveSideTab('chat')} />
-                  </React.Suspense>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <div className="ws-chat-messages" style={{ flex: 1 }}>
-                      {messages.length === 0 ? (
-                        <div className="ws-chat-empty-state" style={{ padding: '24px 24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
-                          <div className="ws-suggested-list" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {/* Resizer Handle */}
+        {!isSidePanelCollapsed && !focusMode && !isMobile && (
+          <div
+            onMouseDown={() => { isResizing.current = true; document.body.style.cursor = 'col-resize'; }}
+            style={{
+              width: '4px',
+              cursor: 'col-resize',
+              background: 'transparent',
+              transition: 'background 0.2s',
+              zIndex: 30,
+              position: 'relative',
+              flexShrink: 0
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(109,40,217,0.1)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          />
+        )}
+
+        {/* Right Zone - Side Panel */}
+        {!isSidePanelCollapsed && !focusMode && (
+          <aside 
+            id="tour-ai-chat" 
+            style={{
+              display: isMobile ? (activeTab === 'chat' ? 'flex' : 'none') : 'flex',
+              width: isMobile ? '100%' : `${panelWidth}px`,
+              borderLeft: '1px solid #EBEBEB',
+              background: '#FAFAFA',
+              flexDirection: 'column',
+              zIndex: 10,
+              position: isMobile ? 'fixed' : 'relative',
+              top: isMobile ? '60px' : '0',
+              height: isMobile ? 'calc(100dvh - 132px)' : '100%',
+              boxShadow: '-2px 0 12px rgba(0,0,0,0.03)',
+              flexShrink: 0
+            }}
+          >
+
+            {/* Drag handle */}
+            {!isMobile && (
+              <div
+                onMouseDown={() => { isResizing.current = true }}
+                style={{
+                  position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px',
+                  cursor: 'col-resize', zIndex: 20,
+                  background: 'transparent',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(109,40,217,0.25)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              />
+            )}
+
+            {/* Tabs row — 3 tabs only, underline active state */}
+            <div style={{
+              padding: '0 20px',
+              borderBottom: '1px solid #EBEBEB',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: '#FAFAFA',
+              flexShrink: 0
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                {[
+                  { id: 'chat', label: 'Chat', emoji: '💬' },
+                  { id: 'write', label: 'Notes', emoji: '✏️' },
+                  { id: 'flashcards', label: 'Cards', emoji: '🃏' },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveSideTab(tab.id)}
+                    style={{
+                      padding: '14px 16px',
+                      background: 'none',
+                      border: 'none',
+                      borderBottom: activeSideTab === tab.id ? '2px solid #6D28D9' : '2px solid transparent',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: activeSideTab === tab.id ? 700 : 500,
+                      color: activeSideTab === tab.id ? '#6D28D9' : '#94A3B8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontFamily: 'var(--font-outfit)',
+                      transition: 'all 0.18s',
+                      marginBottom: '-1px'
+                    }}
+                  >
+                    <span style={{ fontSize: '14px' }}>{tab.emoji}</span>
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setSidePanelCollapsed(true)}
+                style={{
+                  background: 'none', border: 'none', borderRadius: '8px', padding: '6px',
+                  cursor: 'pointer', color: '#CBD5E1', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', transition: '0.15s'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#EF4444'; e.currentTarget.style.background = '#FFF1F2'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#CBD5E1'; e.currentTarget.style.background = 'none'; }}
+              >
+                <X size={15} weight="bold" />
+              </button>
+            </div>
+
+            {/* Panel content — scrollable flex-1 */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+              {activeSideTab === 'write' ? (
+                <WorkstationWrite
+                  initialContent={userJottings}
+                  onSave={handleSaveNote}
+                  material={selectedMaterial}
+                  user={user}
+                />
+              ) : activeSideTab === 'flashcards' ? (
+                <div style={{ flex: 1, overflowY: 'auto', background: '#F9FAFB', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ padding: '16px 20px', borderBottom: '1px solid #EBEBEB', background: 'white', display: 'flex', justifyContent: 'center' }}>
+                    <button 
+                      style={{ 
+                        display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', 
+                        fontSize: '13px', fontWeight: 800, borderRadius: '12px', 
+                        border: 'none', background: 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)', color: 'white', 
+                        cursor: 'pointer', fontFamily: 'var(--font-outfit)',
+                        transition: 'all 0.2s',
+                        boxShadow: '0 4px 12px rgba(109, 40, 217, 0.2)'
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(109, 40, 217, 0.3)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(109, 40, 217, 0.2)'; }}
+                    >
+                      <GraduationCap size={18} weight="fill" /> Open Study Deck
+                    </button>
+                  </div>
+                  <WorkstationFlashcards
+                    flashcards={currentAnalysis.flashcards}
+                    material={selectedMaterial}
+                    onRegenerate={() => runAnalysis('flashcards')}
+                  />
+                </div>
+              ) : (
+                // Chat tab
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                  {activePanelContext === 'explanation' && activeExplanation ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      style={{ padding: '24px', flex: 1 }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                        <button
+                          onClick={() => setActivePanelContext('default')}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}
+                        >
+                          <CaretLeft size={18} weight="bold" />
+                        </button>
+                        <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B', margin: 0, fontFamily: 'var(--font-outfit)' }}>Explanation</h3>
+                      </div>
+                      <div style={{ background: '#F5F3FF', padding: '20px', borderRadius: '20px', border: '1px solid rgba(109, 40, 217, 0.1)' }}>
+                        <p style={{ fontSize: '15px', color: '#1E293B', lineHeight: '1.6', margin: 0 }}>{activeExplanation}</p>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <>
+                      {/* Chat messages — scrollable */}
+                      <div className="ws-chat-messages" style={{ flex: 1 }}>
+                        {messages.length === 0 ? (
+                          <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: '8px' }}>
+                            {/* Empty state chip prompts */}
+                            <p style={{ fontSize: '13px', color: '#94A3B8', fontWeight: 500, marginBottom: '8px', fontFamily: 'var(--font-outfit)' }}>Ask me anything about this material</p>
                             {SUGGESTED_QUESTIONS.map((q, idx) => (
-                              <motion.button 
-                                key={q.id} 
-                                initial={{ x: -10, opacity: 0 }}
+                              <motion.button
+                                key={q.id}
+                                initial={{ x: -8, opacity: 0 }}
                                 animate={{ x: 0, opacity: 1 }}
-                                transition={{ delay: 0.1 + (idx * 0.05) }}
-                                className="ws-suggested-item" 
-                                onClick={() => handleSend(q.text)} 
-                                style={{ 
-                                  width: '100%', background: 'white', border: '1px solid #F1F5F9', 
-                                  borderRadius: '16px', padding: '16px 20px', textAlign: 'left', 
-                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                                  transition: 'all 0.2s', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                                transition={{ delay: 0.06 * idx }}
+                                onClick={() => handleSend(q.text)}
+                                style={{
+                                  width: '100%', background: 'white', border: '1px solid #EBEBEB',
+                                  borderRadius: '12px', padding: '12px 16px', textAlign: 'left',
+                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                  cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', transition: 'all 0.18s'
                                 }}
-                                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.background = '#F8FAFC' }}
-                                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#F1F5F9'; e.currentTarget.style.background = 'white' }}
+                                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.background = '#F8F5FF'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#EBEBEB'; e.currentTarget.style.background = 'white'; }}
                               >
-                                <span style={{ fontSize: '14px', color: '#334155', fontWeight: 600, fontFamily: 'var(--font-outfit)' }}>{q.text}</span>
-                                <ArrowSquareOutIcon size={16} color="#6D28D9" weight="bold" />
+                                <span style={{ fontSize: '13px', color: '#334155', fontWeight: 600, fontFamily: 'var(--font-outfit)' }}>{q.text}</span>
+                                <ArrowSquareOutIcon size={14} color="#6D28D9" weight="bold" />
                               </motion.button>
                             ))}
                           </div>
-                        </div>
-                      ) : (
-                        <div className="ws-chat-scroll" style={{ padding: '24px' }}>
-                          {messages.map((msg, i) => {
-                            const isUser = msg.role === 'user'
-                            const [mainPart, suggestionPart] = msg.content.split('---SUGGESTIONS---')
-                            const suggestions = suggestionPart ? suggestionPart.split('|').map(s => s.trim()).filter(Boolean) : []
-
-                            return (
-                              <div key={i} style={{ 
-                                marginBottom: '40px', 
-                                display: 'flex', 
-                                gap: '16px',
-                                animation: 'fadeUp 0.3s ease-out'
-                              }}>
-                                <div style={{ 
-                                  width: '36px', 
-                                  height: '36px', 
-                                  borderRadius: '10px', 
-                                  background: isUser ? 'rgba(0,0,0,0.03)' : 'var(--primary-bg)', 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center', 
-                                  color: isUser ? 'var(--muted)' : 'var(--primary)',
-                                  flexShrink: 0,
-                                  marginTop: '4px'
-                                }}>
-                                   {isUser ? <UserIcon size={20} weight="bold" /> : <Sparkle size={20} weight="fill" />}
-                                </div>
-
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ 
-                                    fontSize: '12px', 
-                                    fontWeight: 800, 
-                                    color: isUser ? 'var(--muted)' : 'var(--primary)', 
-                                    marginBottom: '6px', 
-                                    textTransform: 'uppercase', 
-                                    letterSpacing: '0.08em',
-                                    fontFamily: 'var(--font-outfit)'
+                        ) : (
+                          <div className="ws-chat-scroll" style={{ padding: '20px' }}>
+                            {messages.map((msg, i) => {
+                              const isUser = msg.role === 'user'
+                              const [mainPart, suggestionPart] = msg.content.split('---SUGGESTIONS---')
+                              const suggestions = suggestionPart ? suggestionPart.split('|').map(s => s.trim()).filter(Boolean) : []
+                              return (
+                                <div key={i} style={{ marginBottom: '32px', display: 'flex', gap: '12px', animation: 'fadeUp 0.3s ease-out' }}>
+                                  <div style={{
+                                    width: '30px', height: '30px', borderRadius: '8px', flexShrink: 0, marginTop: '3px',
+                                    background: isUser ? '#F1F5F9' : '#EDE9FE',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: isUser ? '#64748B' : '#6D28D9'
                                   }}>
-                                     {isUser ? 'You' : 'Luter AI'}
+                                    {isUser ? <UserIcon size={16} weight="bold" /> : <Sparkle size={16} weight="fill" />}
                                   </div>
-
-                                  <div className="ws-plain-message" style={{ 
-                                    fontSize: '15px', 
-                                    color: 'var(--text)', 
-                                    lineHeight: '1.6', 
-                                    fontFamily: 'var(--font-outfit)'
-                                  }}>
-                                    {isUser ? (
-                                       <p style={{ margin: 0, fontWeight: 500 }}>{msg.content}</p>
-                                    ) : (
-                                      <div style={{ width: '100%' }}>
-                                         <div className="ws-ai-message-content">
-                                           <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
-                                             h1: ({ children }) => <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '12px', color: 'var(--text)', marginTop: '8px' }}>{children}</h3>,
-                                             h2: ({ children }) => <h3 style={{ fontSize: '17px', fontWeight: 700, marginBottom: '10px', color: 'var(--text)', marginTop: '8px' }}>{children}</h3>,
-                                             p: ({ children }) => <p style={{ marginBottom: '12px' }}>{children}</p>,
-                                             li: ({ children }) => <li style={{ marginBottom: '8px' }}>{children}</li>,
-                                             code: ({ children }) => <code style={{ background: 'rgba(0,0,0,0.05)', padding: '2px 6px', borderRadius: '4px', fontSize: '14px' }}>{children}</code>
-                                           }}>{mainPart}</ReactMarkdown>
-                                         </div>
-                                         <div style={{ display: 'flex', gap: '20px', marginTop: '16px', opacity: 0.6 }}>
-                                           <button style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, background: 'none', border: 'none', color: '#64748B' }}>
-                                             <ThumbsUp size={14} /> <span>Helpful</span>
-                                           </button>
-                                           <button style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, background: 'none', border: 'none', color: '#64748B' }}>
-                                             <CopySimple size={14} /> <span>Copy</span>
-                                           </button>
-                                         </div>
-                                         
-                                         {suggestions.length > 0 && (
-                                           <div style={{ marginTop: '32px', padding: '20px', background: 'rgba(0,0,0,0.02)', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.04)' }}>
-                                             <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Next Steps</div>
-                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                               {suggestions.map((s, idx) => (
-                                                 <button key={idx} onClick={() => handleSend(s)} style={{ width: '100%', background: 'white', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '10px', padding: '12px 14px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.borderColor = 'var(--primary)' }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.05)' }}>
-                                                   <span style={{ fontSize: '13px', color: 'var(--text)', fontWeight: 500 }}>{s}</span>
-                                                   <ArrowSquareOutIcon size={14} color="var(--primary)" />
-                                                 </button>
-                                               ))}
-                                             </div>
-                                           </div>
-                                         )}
-                                      </div>
-                                    )}
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: '11px', fontWeight: 800, color: isUser ? '#94A3B8' : '#6D28D9', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: 'var(--font-outfit)' }}>
+                                      {isUser ? 'You' : 'Luter AI'}
+                                    </div>
+                                    <div className="ws-plain-message" style={{ fontSize: '14px', color: '#1E293B', lineHeight: '1.65', fontFamily: 'var(--font-outfit)' }}>
+                                      {isUser ? (
+                                        <p style={{ margin: 0, fontWeight: 500 }}>{msg.content}</p>
+                                      ) : (
+                                        <div style={{ width: '100%' }}>
+                                          <div className="ws-ai-message-content">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                                              h1: ({ children }) => <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '10px', color: '#1E293B', marginTop: '8px' }}>{children}</h3>,
+                                              h2: ({ children }) => <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '8px', color: '#1E293B', marginTop: '8px' }}>{children}</h3>,
+                                              p: ({ children }) => <p style={{ marginBottom: '10px', margin: '0 0 10px 0' }}>{children}</p>,
+                                              li: ({ children }) => <li style={{ marginBottom: '6px' }}>{children}</li>,
+                                              code: ({ children }) => <code style={{ background: 'rgba(0,0,0,0.05)', padding: '2px 5px', borderRadius: '4px', fontSize: '13px' }}>{children}</code>
+                                            }}>{mainPart}</ReactMarkdown>
+                                          </div>
+                                          <div style={{ display: 'flex', gap: '16px', marginTop: '12px', opacity: 0.55 }}>
+                                            <button style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, background: 'none', border: 'none', color: '#64748B' }}>
+                                              <ThumbsUp size={12} /> Helpful
+                                            </button>
+                                            <button style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, background: 'none', border: 'none', color: '#64748B' }}>
+                                              <CopySimple size={12} /> Copy
+                                            </button>
+                                          </div>
+                                          {suggestions.length > 0 && (
+                                            <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(0,0,0,0.02)', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.04)' }}>
+                                              <div style={{ fontSize: '11px', fontWeight: 700, color: '#6D28D9', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Next Steps</div>
+                                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                {suggestions.map((s, idx) => (
+                                                  <button key={idx} onClick={() => handleSend(s)} style={{ width: '100%', background: 'white', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '8px', padding: '10px 12px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', transition: 'all 0.18s' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateX(3px)'; e.currentTarget.style.borderColor = '#6D28D9'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.05)'; }}>
+                                                    <span style={{ fontSize: '12px', color: '#1E293B', fontWeight: 500 }}>{s}</span>
+                                                    <ArrowSquareOutIcon size={13} color="#6D28D9" />
+                                                  </button>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
+                              )
+                            })}
+                            {isProcessingLoading && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: 'white', borderRadius: '12px', width: 'fit-content', border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                                <Typing dots={3} className="text-[var(--primary)]" />
                               </div>
-                            )
-                          })}
-                          {isProcessingLoading && (
-                            <div style={{ 
-                              display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px', 
-                              background: 'white', borderRadius: '16px', width: 'fit-content', 
-                              border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' 
-                            }}>
-                               <Typing dots={3} className="text-[var(--primary)]" />
-                            </div>
-                          )}
-                          <div ref={messagesEndRef} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="ws-chat-input-area" style={{ 
-                      padding: '24px 28px 40px', 
-                      borderTop: '1px solid rgba(241, 245, 249, 0.5)',
-                      background: 'rgba(255,255,255,0.7)',
-                      backdropFilter: 'blur(40px)',
-                      WebkitBackdropFilter: 'blur(40px)',
-                    }}>
-                      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
-                        <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }}></div>
-                          3 explanations left
-                        </div>
-                        <button style={{ fontSize: '11px', color: '#6D28D9', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', background: '#F5F3FF', padding: '4px 10px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>Upgrade <ArrowUpRight size={12} weight="bold" /></button>
+                            )}
+                            <div ref={messagesEndRef} />
+                          </div>
+                        )}
                       </div>
-                      
-                      <div style={{ 
-                        background: 'rgba(248, 250, 252, 0.8)', 
-                        border: '1.5px solid rgba(226, 232, 240, 0.8)', 
-                        borderRadius: '24px', 
-                        padding: '12px 18px',
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '14px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-                        transition: 'all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)',
-                        position: 'relative'
-                      }} onFocusCapture={(e) => { 
-                        e.currentTarget.style.borderColor = '#6D28D9'; 
-                        e.currentTarget.style.background = 'white'; 
-                        e.currentTarget.style.boxShadow = '0 12px 30px rgba(109, 40, 217, 0.15)';
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                      }} onBlurCapture={(e) => { 
-                        e.currentTarget.style.borderColor = 'rgba(226, 232, 240, 0.8)'; 
-                        e.currentTarget.style.background = 'rgba(248, 250, 252, 0.8)'; 
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.03)';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                      }}>
-                        <input 
-                          type="text" 
-                          placeholder="Ask Luter anything..." 
-                          value={chatInput} 
-                          onChange={(e) => setChatInput(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                          disabled={isProcessingLoading}
-                          style={{ 
-                            flex: 1, border: 'none', background: 'transparent', outline: 'none', 
-                            fontSize: '14px', color: '#1E293B', fontFamily: 'var(--font-outfit)',
-                            padding: '8px 4px', fontWeight: 500
-                          }}
-                        />
-                        <button style={{ color: '#94A3B8', background: 'none', border: 'none', cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#6D28D9'} onMouseLeave={(e) => e.currentTarget.style.color = '#94A3B8'}>
-                          <Microphone size={20} weight="bold" />
-                        </button>
-                        <button 
-                          onClick={() => handleSend()} 
-                          disabled={isProcessingLoading || !chatInput.trim()}
-                          style={{ 
-                            background: '#000', 
-                            color: 'white', border: 'none', borderRadius: '12px', width: '42px', height: '42px', 
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', cursor: 'pointer',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                            opacity: (!chatInput.trim() && !isProcessingLoading) ? 0.3 : 1
-                          }}
-                        >
-                          <PaperPlaneRight size={20} weight="bold" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
 
-            {activeSideTab === 'summary' && (
-              <div className="ws-side-tool-container" style={{ padding: '32px', height: '100%', overflowY: 'auto' }}>
-                <WorkstationSummary material={selectedMaterial} content={currentAnalysis.summary} />
-              </div>
-            )}
-            {activeSideTab === 'flashcards' && (
-              <div className="ws-side-tool-container" style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div style={{ flex: 1, overflow: 'hidden' }}>
-                  <WorkstationFlashcards material={selectedMaterial} items={currentAnalysis.flashcards} user={user} />
+                      {/* 3 chip prompts */}
+                      <div style={{ padding: '12px 16px 8px', display: 'flex', gap: '6px', borderTop: '1px solid #F1F5F9', flexWrap: 'wrap', background: '#FAFAFA' }}>
+                        {[
+                          { text: 'Summarize', prompt: 'Summarize the core concepts' },
+                          { text: 'Explain', prompt: "Explain this like I'm a student" },
+                          { text: 'Quick Quiz', prompt: 'Generate a quick practice quiz' },
+                        ].map(chip => (
+                          <button
+                            key={chip.text}
+                            onClick={() => handleSend(chip.prompt)}
+                            style={{
+                              padding: '5px 12px', borderRadius: '20px', border: '1px solid #E2E8F0',
+                              background: 'white', fontSize: '12px', fontWeight: 600,
+                              color: '#475569', cursor: 'pointer', fontFamily: 'var(--font-outfit)',
+                              transition: 'all 0.15s', whiteSpace: 'nowrap'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.color = '#6D28D9'; e.currentTarget.style.background = '#F5F3FF'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.background = 'white'; }}
+                          >
+                            {chip.text}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Input area — pinned bottom */}
+                      <div style={{ padding: '10px 16px 18px', background: '#FAFAFA', flexShrink: 0 }}>
+                        <div
+                          style={{
+                            background: 'white',
+                            border: '1.5px solid #E2E8F0',
+                            borderRadius: '28px',
+                            padding: '8px 12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                            transition: 'all 0.25s'
+                          }}
+                          onFocusCapture={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(109,40,217,0.12)'; }}
+                          onBlurCapture={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'; }}
+                        >
+                          <button style={{ color: '#CBD5E1', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', transition: 'color 0.2s', flexShrink: 0 }} onMouseEnter={(e) => e.currentTarget.style.color = '#6D28D9'} onMouseLeave={(e) => e.currentTarget.style.color = '#CBD5E1'}>
+                            <Microphone size={18} weight="bold" />
+                          </button>
+                          <input
+                            type="text"
+                            placeholder="Ask Luter anything..."
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                            disabled={isProcessingLoading}
+                            style={{
+                              flex: 1, border: 'none', background: 'transparent', outline: 'none',
+                              fontSize: '13px', color: '#1E293B', fontFamily: 'var(--font-outfit)',
+                              padding: '4px 0', fontWeight: 500
+                            }}
+                          />
+                          <button
+                            onClick={() => handleSend()}
+                            disabled={isProcessingLoading || !chatInput.trim()}
+                            style={{
+                              background: chatInput.trim() ? '#6D28D9' : '#E2E8F0',
+                              color: chatInput.trim() ? 'white' : '#94A3B8',
+                              border: 'none', borderRadius: '50%', width: '34px', height: '34px',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              cursor: chatInput.trim() ? 'pointer' : 'default', transition: 'all 0.2s',
+                              flexShrink: 0
+                            }}
+                          >
+                            <PaperPlaneRight size={16} weight="bold" />
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div style={{ padding: '20px 24px', borderTop: '1px solid rgba(0,0,0,0.05)', background: 'white' }}>
-                  <button 
-                    onClick={() => setActiveTab('flashcards')}
-                    style={{
-                      width: '100%', padding: '14px', background: '#A78BFA', color: 'white', border: 'none', borderRadius: '12px',
-                      fontSize: '14px', fontWeight: 700, fontFamily: 'var(--font-outfit)', display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', gap: '10px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(167, 139, 250, 0.3)', transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = '#8B5CF6'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = '#A78BFA'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                  >
-                    <GraduationCap size={20} weight="fill" />
-                    Study cards
-                  </button>
-                </div>
-              </div>
-            )}
-            {activeSideTab === 'quiz' && (
-              <div className="ws-side-tool-container" style={{ padding: '32px', height: '100%', overflowY: 'auto' }}>
-                <WorkstationQuiz material={selectedMaterial} items={currentAnalysis.quiz} />
-              </div>
-            )}
+              )}
+            </div>
           </aside>
         )}
       </main>
@@ -1653,6 +1938,81 @@ function WorkstationContent() {
           </button>
         </header>
       )}
+
+      {/* Session Exit Summary Modal */}
+      <AnimatePresence>
+        {showExitSummary && (
+          <div style={{ 
+            position: 'fixed', inset: 0, zIndex: 1000, 
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(10px)'
+          }}>
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              style={{ 
+                width: '100%', maxWidth: '440px', background: 'white', 
+                borderRadius: '32px', overflow: 'hidden', padding: '40px',
+                textAlign: 'center', boxShadow: '0 30px 60px rgba(0,0,0,0.15)'
+              }}
+            >
+              <div style={{ 
+                width: '80px', height: '80px', background: '#F5F3FF', 
+                borderRadius: '24px', margin: '0 auto 24px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#6D28D9'
+              }}>
+                <Sparkle size={40} weight="fill" />
+              </div>
+              
+              <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#111827', marginBottom: '12px', fontFamily: 'var(--font-outfit)' }}>
+                Amazing Study Session!
+              </h2>
+              <p style={{ color: '#64748B', fontSize: '15px', lineHeight: '1.6', marginBottom: '32px' }}>
+                You've made great progress today. Your consistency is building your future.
+              </p>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+                <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '4px' }}>TIME STUDIED</div>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#1E293B' }}>{formatTime(elapsedTime).replace(' elapsed', '')}</div>
+                </div>
+                <div style={{ padding: '20px', background: '#F5F3FF', borderRadius: '20px', border: '1px solid #E9D5FF' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#A78BFA', textTransform: 'uppercase', marginBottom: '4px' }}>XP EARNED</div>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#6D28D9' }}>+{sessionXP} XP</div>
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <button 
+                  onClick={confirmExit}
+                  style={{ 
+                    width: '100%', padding: '16px', background: '#000', color: 'white', 
+                    borderRadius: '16px', fontWeight: 700, border: 'none', cursor: 'pointer',
+                    transition: '0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  End Session
+                </button>
+                <button 
+                  onClick={() => setShowExitSummary(false)}
+                  style={{ 
+                    width: '100%', padding: '12px', background: 'none', color: '#64748B', 
+                    borderRadius: '16px', fontWeight: 600, border: 'none', cursor: 'pointer'
+                  }}
+                >
+                  Keep Studying
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <SelectionActionBar onAction={handleSelectionAction} />
     </div>
   )
 }

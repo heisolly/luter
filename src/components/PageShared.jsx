@@ -20,6 +20,7 @@ import {
 } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LuterLogo from './shared/LuterLogo';
+import { getAppUrl } from '../utils/urlUtils';
 
 export const PremiumButton = ({ 
   children, to, onClick, 
@@ -101,8 +102,8 @@ export const PremiumButton = ({
     ...style
   };
 
-  const Component = to ? Link : 'button';
-  const componentProps = to ? { to } : { onClick, disabled, type };
+  const Component = to ? (to.startsWith('http') ? 'a' : Link) : 'button';
+  const componentProps = to ? (to.startsWith('http') ? { href: to } : { to }) : { onClick, disabled, type };
 
   const handleTouchStart = () => !disabled && setIsPressed(true);
   const handleTouchEnd = () => setIsPressed(false);
@@ -140,7 +141,7 @@ export const AuthNavbar = ({ type = 'signin' }) => {
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       width: '100%', boxSizing: 'border-box'
     }}>
-      <Link to="/" style={{ textDecoration: 'none' }}>
+      <Link to={getAppUrl("/")} style={{ textDecoration: 'none' }}>
         <LuterLogo size={36} fontSize={28} />
       </Link>
       
@@ -149,7 +150,7 @@ export const AuthNavbar = ({ type = 'signin' }) => {
           {isSignIn ? "Don't have an account?" : "Already have an account?"}
         </span>
         <PremiumButton 
-          to={isSignIn ? "/signup" : "/signin"} 
+          to={getAppUrl(isSignIn ? "/signup" : "/signin")} 
           variant={isSignIn ? "primary" : "secondary"}
           style={!isSignIn ? {
             background: 'transparent',
@@ -376,13 +377,13 @@ export function SharedNavbar() {
           width: '100%',
           fontFamily: 'var(--font-varela)'
         }}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
+          <Link to={getAppUrl("/")} style={{ textDecoration: 'none' }}>
             <LuterLogo size={36} fontSize={28} />
           </Link>
 
           <div style={{ display: 'flex', gap: 32, fontSize: 15, fontWeight: 500, color: '#475569' }}>
             {[['Features','/features'],['How it works','/how-it-works'],['Pricing','/pricing'],['Path Calculator','/path-calculator'],['About','/about']].map(([l,h]) => (
-              <Link key={l} to={h} style={{ 
+              <Link key={l} to={getAppUrl(h)} style={{ 
                 transition: 'color 0.2s', 
                 color: location.pathname === h ? '#2E1065' : '#475569', 
                 textDecoration: 'none', 
@@ -396,7 +397,7 @@ export function SharedNavbar() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <Link 
-              to="/signin" 
+              to={getAppUrl("/signin")} 
               style={{ 
                 fontSize: '14px', 
                 fontWeight: 500,
@@ -424,7 +425,7 @@ export function SharedNavbar() {
             >
               Sign in
             </Link>
-            <PremiumButton to="/signup">
+            <PremiumButton to={getAppUrl("/signup")}>
               Sign up
             </PremiumButton>
           </div>
@@ -436,12 +437,12 @@ export function SharedNavbar() {
           justifyContent: 'space-between', 
           width: '100%'
         }}>
-          <Link to="/" style={{ textDecoration: 'none' }} onClick={() => setIsOpen(false)}>
+          <Link to={getAppUrl("/")} style={{ textDecoration: 'none' }} onClick={() => setIsOpen(false)}>
             <LuterLogo size={28} fontSize={22} />
           </Link>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <PremiumButton to="/signup">
+            <PremiumButton to={getAppUrl("/signup")}>
               Get Started
             </PremiumButton>
             <button 
@@ -503,7 +504,7 @@ export function SharedNavbar() {
                   transition={{ delay: 0.1 + idx * 0.05 }}
                 >
                   <Link 
-                    to={item.p} 
+                    to={getAppUrl(item.p)} 
                     onClick={() => setIsOpen(false)}
                     style={{ 
                       display: 'flex',
@@ -548,7 +549,7 @@ export function SharedNavbar() {
                 <h4 style={{ fontSize: 16, fontWeight: 800, color: '#111', marginBottom: 4, fontFamily: 'var(--font-outfit)' }}>Level Up Your Grades</h4>
                 <p style={{ fontSize: 13, color: '#111', opacity: 0.7, fontWeight: 500, fontFamily: 'var(--font-varela)' }}>Join 5M+ students using AI to master their curriculum.</p>
               </div>
-              <PremiumButton to="/signup" onClick={() => setIsOpen(false)} style={{ width: '100%', height: '56px' }}>
+              <PremiumButton to={getAppUrl("/signup")} onClick={() => setIsOpen(false)} style={{ width: '100%', height: '56px' }}>
                 Start Free Today
               </PremiumButton>
             </motion.div>
@@ -644,7 +645,7 @@ export function SharedFooter() {
               Get started with your personal AI tutor now
             </h3>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-              <PremiumButton to="/signup">
+              <PremiumButton to={getAppUrl("/signup")}>
                 Try Luter
               </PremiumButton>
               <Link to="/demo" style={{

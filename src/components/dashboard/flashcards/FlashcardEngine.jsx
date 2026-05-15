@@ -148,9 +148,30 @@ export function FlashcardEngine({ material, items = [], user }) {
   const [isMultiplayer, setIsMultiplayer] = useState(false)
   const socketRef = useRef(null)
 
-  const cards = items || []
+  const cards = React.useMemo(() => {
+    if (!items) return []
+    const baseItems = Array.isArray(items) ? items : (items.flashcards || items.items || [])
+    return baseItems.map(card => ({
+      ...card,
+      front: card.front || card.question || 'No content available',
+      back: card.back || card.answer || 'No content available'
+    }))
+  }, [items])
+
   const currentCard = cards[currentIndex] || { front: 'No content', back: 'No content' }
-  const progress = (masteredIds.size / cards.length) * 100
+  const progress = cards.length > 0 ? (masteredIds.size / cards.length) * 100 : 0
+
+  if (cards.length === 0) {
+    return (
+      <div style={{ height: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', background: '#F8FAFC' }}>
+        <div style={{ width: '80px', height: '80px', background: '#F5F3FF', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
+          <Layers size={40} color="#A78BFA" />
+        </div>
+        <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A102D', marginBottom: '8px', fontFamily: 'var(--font-outfit)' }}>Ready for recall?</h3>
+        <p style={{ color: '#64748B', fontSize: '14px', maxWidth: '300px', margin: '0 auto' }}>Generate your first study deck from the material analysis to begin.</p>
+      </div>
+    )
+  }
 
   // Multiplayer Logic
   useEffect(() => {

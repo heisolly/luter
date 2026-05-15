@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import LuterLogo from './shared/LuterLogo';
 import MagicRings from './MagicRings';
 import { SharedFooter, SharedFAQ, SharedNavbar, PremiumButton } from './PageShared';
+import { getAppUrl } from '../utils/urlUtils';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
@@ -534,7 +535,7 @@ export default function LandingPage() {
             transition={{ duration: 0.8, delay: 0.7 }}
             style={{ display: 'flex', justifyContent: 'center' }}
           >
-            <PremiumButton to="/signup" size="lg">
+            <PremiumButton to={getAppUrl("/signup")} size="lg">
               START LEARNING NOW
             </PremiumButton>
           </motion.div>

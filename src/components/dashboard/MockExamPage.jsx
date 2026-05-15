@@ -6,10 +6,11 @@ import {
   RiArrowRightLine as ArrowRight, RiArrowLeftLine as ArrowLeft, RiShuffleLine as Dices, RiShareFill as Share2, RiAwardFill as Award, RiTrophyFill as Trophy, 
   RiRefreshLine as RotateCcw, RiBarChartFill as BarChart3, RiFireFill as Flame, RiStarFill as Star, RiTeamFill as Users, RiThumbUpFill as ThumbsUp, 
   RiThumbDownFill as ThumbsDown, RiChat3Fill as MessageCircle, RiChat4Fill as MessageSquare, RiGiftFill as Gift, RiDeleteBin6Fill as Trash2, 
-  RiMoreFill as MoreHorizontal, RiCloseLine as X, RiBookOpenFill as BookOpen 
+  RiMoreFill as MoreHorizontal, RiCloseLine as X, RiBookOpenFill as BookOpen, RiMenuLine as Menu
 } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
+import { SidebarSimple } from '@phosphor-icons/react'
 import { toPng } from 'html-to-image'
 import confetti from 'canvas-confetti'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
@@ -61,7 +62,7 @@ const SAMPLE_COURSE_MATERIALS = {
 }
 
 export default function MockExamPage() {
-  const { user, isMobile, sidebarCollapsed } = useOutletContext()
+  const { user, isMobile, sidebarCollapsed, setSidebarCollapsed } = useOutletContext()
   const navigate = useNavigate()
   const { ready, bundle } = useDashboardPrefetch() || { ready: false, bundle: null }
   const location = useLocation()
@@ -1234,7 +1235,6 @@ Please explain where I went wrong and why the correct answer is the right choice
   }
 
   const renderConfigure = () => {
-    const isStepReady = configStep === 1 ? examCourses.length > 0 : true;
     return (
       <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Outfit', 'Varela Round', sans-serif" }}>
         
@@ -2245,13 +2245,37 @@ Please explain where I went wrong and why the correct answer is the right choice
       </div>
     )
   }
-
   // --- MAIN RENDER ---
 
   return (
-    <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Outfit', 'Varela Round', sans-serif" }}>
+    <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Outfit', 'Varela Round', sans-serif", position: 'relative' }}>
       
-      {/* Tabs - Only show in configure mode */}
+      {/* Sidebar Toggle (Desktop) */}
+      {!isMobile && setSidebarCollapsed && (
+        <div style={{ position: 'absolute', top: 24, left: 24, zIndex: 100 }}>
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            style={{
+              background: 'white',
+              border: '1px solid #e2e8f0',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '10px',
+              borderRadius: '12px',
+              color: '#64748B',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <SidebarSimple size={20} weight={sidebarCollapsed ? "bold" : "regular"} />
+          </button>
+        </div>
+      )}
+
       {mode === 'configure' && (
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 32, marginBottom: 8 }}>
           <div style={{

@@ -14,7 +14,7 @@ import './dhd.css'
 
 export default function DashboardHome() {
   const navigate = useNavigate()
-  const { user, isMobile } = useOutletContext()
+  const { user } = useOutletContext()
   const { ready, bundle } = useDashboardPrefetch()
   const { createSession, setActiveSession, sessions } = useSessionStore()
   const [showNewUserPrompt, setShowNewUserPrompt] = useState(false)
@@ -216,12 +216,6 @@ export default function DashboardHome() {
 
   return (
     <div className="dhd-root">
-      <Header 
-        showSearch={false}
-        pageTitle="Dashboard"
-        showCreateButton={true}
-        createButtonPath="/dashboard/upload"
-      />
       {/* ===== LARGE ENGAGING GREETING ===== */}
       <section className="dhd-hero-large">
         <motion.div 

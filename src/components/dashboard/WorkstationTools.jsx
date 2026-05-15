@@ -167,6 +167,41 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
   const progress = ((idx + 1) / safeQuestions.length) * 100
   const isAnswered = selected[idx] !== undefined || typeInAnswers[idx] !== undefined
 
+  const getCorrectIndex = (question) => {
+    const ans = question.correctAnswer ?? question.correct_answer ?? question.answer
+    if (ans === undefined || ans === null) return -1
+    
+    if (typeof ans === 'number') return ans
+    
+    if (typeof ans === 'string') {
+      const lower = ans.trim().toLowerCase()
+      // Handle letter keys (a, b, c, d)
+      if (lower === 'a') return 0
+      if (lower === 'b') return 1
+      if (lower === 'c') return 2
+      if (lower === 'd') return 3
+      
+      // Handle true/false
+      if (lower === 'true' || lower === 'yes') return 1
+      if (lower === 'false' || lower === 'no') return 0
+      
+      // Try parsing as int
+      const parsed = parseInt(lower)
+      if (!isNaN(parsed)) return parsed
+      
+      // Try to find the index in options text
+      if (question.options) {
+        const idx = question.options.findIndex(opt => {
+          const text = (typeof opt === 'object' ? (opt.text || opt.choice || "") : opt).toString().toLowerCase()
+          return text === lower
+        })
+        if (idx !== -1) return idx
+      }
+    }
+    
+    return ans
+  }
+
   const calculateScore = () => {
     return safeQuestions.reduce((acc, question, index) => {
       const userAns = selected[index]
@@ -175,7 +210,9 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
         const expected = (question.expected_answer || question.answer || '').trim().toLowerCase()
         return acc + (userText && userText === expected ? 1 : 0)
       }
-      return acc + (userAns == (question.correct_answer ?? question.answer) ? 1 : 0)
+      
+      const correctIdx = getCorrectIndex(question)
+      return acc + (userAns == correctIdx ? 1 : 0)
     }, 0)
   }
 
@@ -273,7 +310,7 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', marginBottom: '40px' }}>
           {(q.type === 'multiple' || !q.type) && q.options?.map((opt, i) => {
             const isUserSelected = selected[idx] === i
-            const correctAns = q.correct_answer ?? q.answer
+            const correctAns = getCorrectIndex(q)
             const isCorrect = isAnswered && i == correctAns
             const isWrong = isAnswered && isUserSelected && i != correctAns
 
@@ -320,7 +357,7 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
 
           {q.type === 'truefalse' && [1, 0].map((val) => {
             const isUserSelected = selected[idx] === val
-            const correctAns = q.correct_answer ?? q.answer
+            const correctAns = getCorrectIndex(q)
             const isCorrect = isAnswered && val == correctAns
             const isWrong = isAnswered && isUserSelected && val != correctAns
             const label = val === 1 ? 'True' : 'False'

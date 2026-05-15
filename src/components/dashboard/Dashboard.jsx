@@ -363,7 +363,7 @@ export default function Dashboard() {
         </div>
 
         {/* Floating sidebar toggle when closed on desktop */}
-        {!isMobile && sidebarCollapsed && (
+        {!isMobile && sidebarCollapsed && !isWorkstation && (
           <button
             onClick={() => setSidebarCollapsed(false)}
             className="dsb-floating-toggle"

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { RiDeleteBin6Fill as Trash2, RiRestartLine as RotateCcw, RiFileTextFill as FileText, RiYoutubeFill as Youtube, RiPenNibFill as PenTool, RiHashtag as Hash, RiLoader4Line as Loader2, RiSearchLine as Search, RiMore2Fill as MoreVertical, RiAlertFill as AlertCircle } from 'react-icons/ri'
-import { LuterPageLoader } from '../shared/LuterPageLoader'
 import { supabase } from '../../supabaseClient'
 import { useOutletContext } from 'react-router-dom'
+import { Search, PenTool, Youtube, FileText, RotateCcw, Trash2 } from 'lucide-react'
+import { LuterPageLoader } from '../shared/LuterPageLoader'
 
 export default function TrashPage() {
   const { user } = useOutletContext()
@@ -81,11 +81,6 @@ export default function TrashPage() {
 
   return (
     <div className="dh-root">
-      <div className="dh-topbar">
-        <div className="dh-topbar-left">
-          <h1>Trash</h1>
-          <p>Items in trash will be permanently deleted after 30 days</p>
-        </div>
         <div className="dh-topbar-right">
            <div style={{ position: 'relative', width: '300px' }}>
               <input 
@@ -98,7 +93,6 @@ export default function TrashPage() {
               <Search size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999' }} />
            </div>
         </div>
-      </div>
 
       <div className="trash-content">
         {loading ? (
@@ -181,7 +175,7 @@ export default function TrashPage() {
           </div>
         ) : (
           <div style={{ textAlign: 'center', padding: '120px 0' }}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#f8f8f8', display: 'flex', alignItems: 'center', justifyCenter: 'center', margin: '0 auto 16px' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#f8f8f8', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <Trash2 size={32} color="#ccc" />
             </div>
             <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#111' }}>Trash is empty</h2>

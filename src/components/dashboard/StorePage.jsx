@@ -6,7 +6,6 @@ import { supabase } from '../../supabaseClient'
 import Header from '../shared/Header'
 
 export default function StorePage() {
-  const { user, isMobile } = useOutletContext()
   
   const [userCoins, setUserCoins] = useState(0)
   const [storeItems, setStoreItems] = useState([])
@@ -241,12 +240,6 @@ export default function StorePage() {
       boxSizing: 'border-box',
       color: '#333'
     }}>
-      <Header 
-        showSearch={false}
-        pageTitle="Store"
-        showCreateButton={true}
-        createButtonPath="/dashboard/upload"
-      />
       
       {/* Store Header */}
       <motion.div

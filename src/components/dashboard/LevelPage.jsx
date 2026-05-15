@@ -8,7 +8,6 @@ import Header from '../shared/Header'
 import useTourStore from '../../store/useTourStore'
 
 export default function LevelPage() {
-  const { user, isMobile } = useOutletContext()
   const { ready, bundle, refresh } = useDashboardPrefetch()
   
   const [gamificationData, setGamificationData] = useState(null)
@@ -258,12 +257,6 @@ export default function LevelPage() {
       boxSizing: 'border-box',
       color: '#333'
     }}>
-      <Header 
-        showSearch={false}
-        pageTitle="My Profile"
-        showCreateButton={true}
-        createButtonPath="/dashboard/upload"
-      />
       
       {/* Profile Header */}
       <motion.div

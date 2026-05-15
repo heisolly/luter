@@ -212,13 +212,15 @@ export default function DocumentViewer({ material, onScrollUpdate, onMaterialUpd
           {/* VISUAL VIEW: CLEAN DOCUMENT MODE */}
           {viewMode === 'visuals' && (
             <div className="ws-visual-viewport" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-               <UniversalViewer
-                  material={{ ...material, source_url: signedUrl || material.source_url }}
-                  initialPage={currentPage}
-                  onPageChange={(e) => setCurrentPage(e.currentPage + 1)}
-                  onDocumentLoad={(e) => setTotalPages(e.doc.numPages)}
-                  onMaterialUpdate={onMaterialUpdate}
-               />
+               <Worker workerUrl={PDF_WORKER_URL}>
+                 <UniversalViewer
+                    material={{ ...material, source_url: signedUrl || material.source_url }}
+                    initialPage={currentPage}
+                    onPageChange={(e) => setCurrentPage(e.currentPage + 1)}
+                    onDocumentLoad={(e) => setTotalPages(e.doc.numPages)}
+                    onMaterialUpdate={onMaterialUpdate}
+                 />
+               </Worker>
             </div>
           )}
 
@@ -270,18 +272,16 @@ function HighFidelityPDF({ fileUrl, initialPage = 1, onPageChange, onDocumentLoa
   )
   return (
     <div className="luter-pdf-canvas" style={{ height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
-      <Worker workerUrl={PDF_WORKER_URL}>
-        <Viewer 
-          fileUrl={fileUrl} 
-          initialPage={initialPage > 0 ? initialPage - 1 : 0}
-          onPageChange={onPageChange}
-          onDocumentLoad={onDocumentLoad}
-          renderPage={renderPage}
-          theme={{ theme: 'light' }}
-          defaultScale={SpecialZoomLevel.PageWidth}
-          plugins={plugins}
-        />
-      </Worker>
+      <Viewer 
+        fileUrl={fileUrl} 
+        initialPage={initialPage > 0 ? initialPage - 1 : 0}
+        onPageChange={onPageChange}
+        onDocumentLoad={onDocumentLoad}
+        renderPage={renderPage}
+        theme={{ theme: 'light' }}
+        defaultScale={SpecialZoomLevel.PageWidth}
+        plugins={plugins}
+      />
     </div>
   )
 }

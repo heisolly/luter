@@ -431,13 +431,13 @@ Format:
         "id": "q_1",
         "question": "What is...?",
         "options": [
-          {"id": "a", "text": "Option A"},
-          {"id": "b", "text": "Option B"},
-          {"id": "c", "text": "Option C"},
-          {"id": "d", "text": "Option D"}
+          {"id": 0, "text": "Option A"},
+          {"id": 1, "text": "Option B"},
+          {"id": 2, "text": "Option C"},
+          {"id": 3, "text": "Option D"}
         ],
-        "correctAnswer": "a",
-        "explanation": "The correct answer is A because..."
+        "correctAnswer": 0,
+        "explanation": "The correct answer is Option A because..."
       }
     ]
   }
@@ -509,19 +509,22 @@ Create questions that test:
       if (i < topics.length) {
         flashcards.push({
           id: `fc_${i + 1}`,
-          question: `What is ${topics[i]}?`,
-          answer: `This is a key concept covered in the material.`,
+          front: `What is ${topics[i]}?`,
+          back: `This is a key concept covered in the material.`,
           difficulty: 'medium',
           topic: topics[i]
         })
       } else {
         const termIndex = i - topics.length
-        const term = Object.keys(terms)[termIndex]
-        if (term) {
+        const termItem = terms[termIndex]
+        if (termItem) {
+          const term = typeof termItem === 'object' ? Object.keys(termItem)[0] : termItem
+          const definition = typeof termItem === 'object' ? Object.values(termItem)[0] : 'Key term from the material.'
+          
           flashcards.push({
             id: `fc_${i + 1}`,
-            question: `Define: ${term}`,
-            answer: terms[term],
+            front: `Define: ${term}`,
+            back: definition,
             difficulty: 'easy',
             topic: 'Vocabulary'
           })
@@ -541,12 +544,12 @@ Create questions that test:
         id: `q_${i + 1}`,
         question: `What is the main concept of ${topics[i]}?`,
         options: [
-          { id: 'a', text: 'Correct answer about ' + topics[i] },
-          { id: 'b', text: 'Incorrect option 1' },
-          { id: 'c', text: 'Incorrect option 2' },
-          { id: 'd', text: 'Incorrect option 3' }
+          { id: 0, text: 'Correct answer about ' + topics[i] },
+          { id: 1, text: 'Incorrect option 1' },
+          { id: 2, text: 'Incorrect option 2' },
+          { id: 3, text: 'Incorrect option 3' }
         ],
-        correctAnswer: 'a',
+        correctAnswer: 0,
         explanation: `This question tests understanding of ${topics[i]}`
       })
     }
@@ -570,8 +573,8 @@ Create questions that test:
     for (let i = 0; i < count; i++) {
       flashcards.push({
         id: `fc_${i + 1}`,
-        question: `What is the key concept covered in this document? (Card ${i + 1})`,
-        answer: `This is an important concept from the material that you should study and understand thoroughly.`,
+        front: `What is the key concept covered in this document? (Card ${i + 1})`,
+        back: `This is an important concept from the material that you should study and understand thoroughly.`,
         difficulty: i % 3 === 0 ? 'easy' : i % 3 === 1 ? 'medium' : 'hard',
         topic: 'General Study'
       })
@@ -647,17 +650,10 @@ Focus on:
       let flashcardData
       try {
         const rawContent = response.choices[0].message.content
-        const cleanContent = stripJsonFence(rawContent)
-        flashcardData = JSON.parse(cleanContent)
+        flashcardData = this.cleanAndParseJson(rawContent)
       } catch (parseError) {
-        console.warn('Direct flashcard parse failed, trying regex fallback:', parseError)
-        try {
-           const deepMatch = response.choices[0].message.content.match(/\{[\s\S]*\}/)
-           flashcardData = JSON.parse(deepMatch[0])
-        } catch(e) {
-           console.error('Final direct flashcard parse failed:', e)
-           flashcardData = this.createBasicFlashcards(analysis, count)
-        }
+        console.warn('Direct flashcard parse failed, using fallback:', parseError)
+        flashcardData = this.createBasicFlashcards(analysis, count)
       }
       
       const result = {
@@ -711,13 +707,13 @@ Format:
         "id": "q_1",
         "question": "What is...?",
         "options": [
-          {"id": "a", "text": "Option A"},
-          {"id": "b", "text": "Option B"},
-          {"id": "c", "text": "Option C"},
-          {"id": "d", "text": "Option D"}
+          {"id": 0, "text": "Option A"},
+          {"id": 1, "text": "Option B"},
+          {"id": 2, "text": "Option C"},
+          {"id": 3, "text": "Option D"}
         ],
-        "correctAnswer": "a",
-        "explanation": "The correct answer is A because..."
+        "correctAnswer": 0,
+        "explanation": "The correct answer is Option A because..."
       }
     ]
   }
@@ -746,17 +742,10 @@ Create questions that test:
       let quizData
       try {
         const rawContent = response.choices[0].message.content
-        const cleanContent = stripJsonFence(rawContent)
-        quizData = JSON.parse(cleanContent)
+        quizData = this.cleanAndParseJson(rawContent)
       } catch (parseError) {
-        console.warn('Direct quiz parse failed, trying regex fallback:', parseError)
-        try {
-           const deepMatch = response.choices[0].message.content.match(/\{[\s\S]*\}/)
-           quizData = JSON.parse(deepMatch[0])
-        } catch(e) {
-           console.error('Final direct quiz parse failed:', e)
-           quizData = this.createBasicQuiz(analysis, questionCount, difficulty)
-        }
+        console.warn('Direct quiz parse failed, using fallback:', parseError)
+        quizData = this.createBasicQuiz(analysis, questionCount, difficulty)
       }
       
       return {
@@ -781,12 +770,12 @@ Create questions that test:
         id: `q_${i + 1}`,
         question: `What is the main topic covered in section ${i + 1} of this document?`,
         options: [
-          { id: 'a', text: 'The primary concept discussed in this section' },
-          { id: 'b', text: 'A related but secondary concept' },
-          { id: 'c', text: 'An unrelated concept' },
-          { id: 'd', text: 'A concept not mentioned in the material' }
+          { id: 0, text: 'The primary concept discussed in this section' },
+          { id: 1, text: 'A related but secondary concept' },
+          { id: 2, text: 'An unrelated concept' },
+          { id: 3, text: 'A concept not mentioned in the material' }
         ],
-        correctAnswer: 'a',
+        correctAnswer: 0,
         explanation: `This question tests your understanding of the main topics covered in the document.`
       })
     }
@@ -804,9 +793,8 @@ Create questions that test:
   /**
    * Retrieves all text chunks for a material and groups them by page number
    */
-  static async getPageTextMap(materialId) {
-    console.log('Fetching page text map for:', materialId);
-    const { data, error } = await supabase
+  static async fetchMaterialPageMap(materialId, material) {
+    let { data, error } = await supabase
       .from('study_vault')
       .select('content, metadata')
       .eq('material_id', materialId);
@@ -814,6 +802,21 @@ Create questions that test:
     if (error) {
       console.error('Error fetching page map:', error);
       return {};
+    }
+
+    // Fallback if study_vault is empty: use extracted_text
+    if ((!data || data.length === 0) && material?.extracted_text) {
+      console.log('study_vault empty, creating pseudo-pages from extracted_text');
+      const text = material.extracted_text;
+      const chunks = [];
+      const chunkSize = 2500;
+      for (let i = 0; i < text.length; i += chunkSize) {
+        chunks.push({ 
+          content: text.slice(i, i + chunkSize), 
+          metadata: { pageNumber: Math.floor(i / chunkSize) + 1 } 
+        });
+      }
+      data = chunks;
     }
 
     const pageMap = {};
@@ -930,18 +933,30 @@ MaterialAnalysisService.cleanAndParseJson = function(text) {
       // 1. Fix trailing commas in arrays/objects
       let repaired = cleaned.replace(/,\s*([\}\]])/g, '$1');
       
-      // 2. Fix unescaped newlines in strings (but not within already escaped content)
-      repaired = repaired.replace(/(?<!\\)\n/g, '\\n');
+      // 2. Fix unescaped newlines in strings - ONLY inside double quotes
+      // This is a common AI error where it puts a raw newline inside a JSON string
+      // We look for characters that are likely inside a string value
+      repaired = repaired.replace(/":\s*"([^"]*)\n([^"]*)"/g, '": "$1\\n$2"');
       
       // 3. Fix unescaped quotes in strings
       repaired = repaired.replace(/(?<!\\)"(?=[^,:}\]\s]*[,}\]])/g, '\\"');
       
+      // 3b. Fix double-double quotes (e.g., ""prop"": ""value"")
+      repaired = repaired.replace(/""/g, '"');
+      
       // 4. Fix missing quotes around property names
       repaired = repaired.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
       
-      // 5. Fix single quotes to double quotes
-      repaired = repaired.replace(/'/g, '"');
+      // 5. Fix single quotes to double quotes - ONLY if they seem to be delimiters
+      repaired = repaired.replace(/'([^']*)'/g, '"$1"');
       
+      // 6. Final cleanup: ensure no extra text before or after the JSON block
+      const start = repaired.indexOf('{');
+      const end = repaired.lastIndexOf('}');
+      if (start !== -1 && end !== -1) {
+        repaired = repaired.substring(start, end + 1);
+      }
+
       return JSON.parse(repaired);
     } catch (repairError) {
       // 6. Final attempt: Extract just the object using a more permissive regex
@@ -949,12 +964,9 @@ MaterialAnalysisService.cleanAndParseJson = function(text) {
       if (jsonMatch) {
         try {
           let finalTry = jsonMatch[0];
-          // Apply all repairs to the extracted JSON
+          // Apply basic repairs
           finalTry = finalTry.replace(/,\s*([\}\]])/g, '$1');
-          finalTry = finalTry.replace(/(?<!\\)\n/g, '\\n');
-          finalTry = finalTry.replace(/(?<!\\)"(?=[^,:}\]\s]*[,}\]])/g, '\\"');
-          finalTry = finalTry.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
-          finalTry = finalTry.replace(/'/g, '"');
+          finalTry = finalTry.replace(/":\s*"([^"]*)\n([^"]*)"/g, '": "$1\\n$2"');
           
           return JSON.parse(finalTry);
         } catch (e) {
