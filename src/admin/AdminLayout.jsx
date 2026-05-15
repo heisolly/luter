@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient'
 import { CircleNotch, List, X, ShieldWarning, SignOut } from '@phosphor-icons/react'
 import { isAdminUser } from './adminAuth'
 import AdminSidebar from './AdminSidebar'
+import AdminChatPanel from './AdminChatPanel'
 import { AdminPrefetchProvider } from '../context/AdminPrefetchContext'
 import './admin.css'
 
@@ -162,6 +163,9 @@ export default function AdminLayout() {
           <Outlet context={{ isAuthenticated }} />
         </div>
       </main>
+
+      {/* Global floating admin chat */}
+      <AdminChatPanel />
     </div>
   )
 }
