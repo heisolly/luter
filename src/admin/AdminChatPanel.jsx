@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
-import { PaperPlaneRight, UserCircle, CircleNotch, ChatCircleDots, X } from '@phosphor-icons/react';
+import { PaperPlaneRight, UserCircle, CircleNotch, ChatCircleDots, X, Microphone, StopCircle, ArrowBendUpLeft } from '@phosphor-icons/react';
 
 export default function AdminChatPanel() {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,6 +9,19 @@ export default function AdminChatPanel() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [tempName, setTempName] = useState('');
+  
+  // Dragging state
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef(null);
+
+  // Audio & Reply state
+  const [isRecording, setIsRecording] = useState(false);
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
+  
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -18,6 +31,42 @@ export default function AdminChatPanel() {
       }, 100);
     }
   };
+
+  // Drag handlers
+  const handleMouseDown = (e) => {
+    if (e.target.tagName.toLowerCase() === 'button' || e.target.closest('button')) return; // don't drag if clicking a button
+    setIsDragging(true);
+    dragRef.current = {
+      startX: e.clientX - position.x,
+      startY: e.clientY - position.y
+    };
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    setPosition({
+      x: e.clientX - dragRef.current.startX,
+      y: e.clientY - dragRef.current.startY
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    } else {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
 
   // Initialize device-based user
   useEffect(() => {
@@ -45,7 +94,7 @@ export default function AdminChatPanel() {
         .from('admin_chats')
         .select('*')
         .order('created_at', { ascending: true })
-        .limit(50);
+        .limit(100);
       
       if (!error && data) {
         setMessages(data);
@@ -90,17 +139,23 @@ export default function AdminChatPanel() {
     setUser(prev => ({ ...prev, full_name: tempName.trim() }));
   };
 
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !user?.full_name) return;
+  const handleSend = async (e, contentOverride = null, audioUrl = null) => {
+    if (e) e.preventDefault();
+    const content = contentOverride !== null ? contentOverride : newMessage.trim();
+    if (!content && !audioUrl || !user?.full_name) return;
 
     const messageToSend = {
       sender_id: user.id,
       sender_name: user.full_name,
-      content: newMessage.trim(),
+      content: content,
+      audio_url: audioUrl,
+      reply_to_id: replyingTo ? replyingTo.id : null,
+      reply_to_name: replyingTo ? replyingTo.sender_name : null,
+      reply_to_content: replyingTo ? (replyingTo.audio_url ? 'Voice message' : replyingTo.content) : null
     };
 
-    setNewMessage('');
+    if (!contentOverride) setNewMessage('');
+    setReplyingTo(null);
 
     const { error } = await supabase
       .from('admin_chats')
@@ -108,11 +163,69 @@ export default function AdminChatPanel() {
 
     if (error) {
       console.error('Error sending message:', error);
+      alert('Error sending message: ' + error.message);
+    }
+  };
+
+  // Audio Recording Handlers
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        
+        setIsUploadingAudio(true);
+        const fileName = `${Date.now()}-${user.id}.webm`;
+        
+        const { data, error } = await supabase.storage
+          .from('admin_audio')
+          .upload(fileName, audioBlob);
+          
+        if (!error && data) {
+          const { data: { publicUrl } } = supabase.storage.from('admin_audio').getPublicUrl(fileName);
+          await handleSend(null, 'Voice message', publicUrl);
+        } else {
+          console.error("Audio upload error:", error);
+          alert("Audio upload failed: " + error.message);
+        }
+        setIsUploadingAudio(false);
+      };
+      
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Error accessing mic", err);
+      alert("Could not access microphone. Please allow permissions.");
+    }
+  };
+  
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
     }
   };
 
   return (
-    <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+    <div style={{ 
+      position: 'fixed', 
+      bottom: '24px', 
+      right: '24px', 
+      zIndex: 9999, 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'flex-end',
+      transform: `translate(${position.x}px, ${position.y}px)`
+    }}>
       
       {/* Chat Window */}
       {isOpen && (
@@ -122,13 +235,29 @@ export default function AdminChatPanel() {
           display: 'flex', 
           flexDirection: 'column', 
           marginBottom: '16px',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-          overflow: 'hidden'
+          boxShadow: isDragging ? '0 15px 35px rgba(0,0,0,0.2)' : '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+          overflow: 'hidden',
+          transition: isDragging ? 'none' : 'box-shadow 0.2s ease',
+          pointerEvents: 'auto'
         }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#7a12cc', color: 'white' }}>
+          {/* Header (Draggable) */}
+          <div 
+            onMouseDown={handleMouseDown}
+            style={{ 
+              padding: '12px 16px', 
+              borderBottom: '1px solid #f3f4f6', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              background: '#7a12cc', 
+              color: 'white',
+              cursor: isDragging ? 'grabbing' : 'grab',
+              userSelect: 'none'
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Admin Chat</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#a7f3d0', fontWeight: 600 }}>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, pointerEvents: 'none' }}>Admin Chat</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#a7f3d0', fontWeight: 600, pointerEvents: 'none' }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399', animation: 'pulse 2s infinite' }} />
                 Live
               </div>
@@ -184,10 +313,20 @@ export default function AdminChatPanel() {
               messages.map((msg) => {
                 const isMe = user?.id === msg.sender_id;
                 return (
-                  <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
-                    <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 2, marginLeft: isMe ? 0 : 2, marginRight: isMe ? 2 : 0 }}>
-                      {msg.sender_name} • {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }} className="adm-chat-msg">
+                    <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 2, marginLeft: isMe ? 0 : 2, marginRight: isMe ? 2 : 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {!isMe && msg.sender_name} {!isMe && '•'} {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      
+                      {/* Reply button overlay on hover */}
+                      <button 
+                        onClick={() => setReplyingTo(msg)}
+                        style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', padding: 2, marginLeft: isMe ? 0 : 4, marginRight: isMe ? 4 : 0 }}
+                        title="Reply"
+                      >
+                        <ArrowBendUpLeft size={12} weight="bold" />
+                      </button>
                     </div>
+                    
                     <div style={{ 
                       background: isMe ? '#7a12cc' : '#ffffff', 
                       color: isMe ? '#ffffff' : '#334155',
@@ -199,54 +338,133 @@ export default function AdminChatPanel() {
                       fontSize: 13,
                       maxWidth: '85%',
                       boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                      lineHeight: 1.4
+                      lineHeight: 1.4,
+                      position: 'relative'
                     }}>
-                      {msg.content}
+                      {/* Replied Message Snippet */}
+                      {msg.reply_to_name && (
+                        <div style={{
+                          background: isMe ? 'rgba(255,255,255,0.2)' : '#f1f5f9',
+                          borderRadius: '8px',
+                          padding: '6px 10px',
+                          marginBottom: '6px',
+                          fontSize: 11,
+                          borderLeft: `3px solid ${isMe ? '#e9d5ff' : '#7a12cc'}`,
+                          color: isMe ? '#f3e8ff' : '#475569'
+                        }}>
+                          <div style={{ fontWeight: 700, marginBottom: 2 }}>{msg.reply_to_name}</div>
+                          <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>
+                            {msg.reply_to_content}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Main Message Content */}
+                      {msg.audio_url ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <span style={{ fontSize: 12, opacity: 0.8 }}>Voice message</span>
+                          <audio src={msg.audio_url} controls style={{ height: 30, width: 200 }} />
+                        </div>
+                      ) : (
+                        msg.content
+                      )}
                     </div>
                   </div>
                 );
               })
             )}
+            {isUploadingAudio && (
+               <div style={{ display: 'flex', justifyContent: 'center', padding: 8 }}>
+                 <CircleNotch className="animate-spin" size={20} color="#7a12cc" />
+               </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
           <div style={{ padding: '12px', borderTop: '1px solid #f3f4f6', background: '#ffffff', opacity: !user?.full_name ? 0.5 : 1, pointerEvents: !user?.full_name ? 'none' : 'auto' }}>
-            <form onSubmit={handleSend} style={{ display: 'flex', gap: '8px' }}>
+            
+            {/* Replying Indicator */}
+            {replyingTo && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '6px 10px', borderRadius: '8px', marginBottom: '8px', fontSize: 11 }}>
+                <div>
+                  <span style={{ fontWeight: 700, color: '#7a12cc' }}>Replying to {replyingTo.sender_name}</span>
+                  <div style={{ color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '220px' }}>
+                    {replyingTo.audio_url ? 'Voice message' : replyingTo.content}
+                  </div>
+                </div>
+                <button onClick={() => setReplyingTo(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 4 }}>
+                  <X size={14} weight="bold" />
+                </button>
+              </div>
+            )}
+
+            <form onSubmit={handleSend} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <input
                 type="text"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder={!user?.full_name ? "Set name to chat..." : "Type a message..."}
+                placeholder={!user?.full_name ? "Set name to chat..." : isRecording ? "Recording..." : "Type a message..."}
                 className="adm-input"
-                disabled={!user?.full_name}
-                style={{ flex: 1, padding: '8px 12px', borderRadius: '20px', border: '1px solid #e2e8f0', outline: 'none', fontSize: 13 }}
+                disabled={!user?.full_name || isRecording}
+                style={{ flex: 1, padding: '8px 12px', borderRadius: '20px', border: '1px solid #e2e8f0', outline: 'none', fontSize: 13, background: isRecording ? '#fef2f2' : 'white', color: isRecording ? '#dc2626' : 'inherit' }}
               />
-              <button 
-                type="submit" 
-                disabled={!newMessage.trim() || !user?.full_name}
-                style={{ 
-                  background: '#7a12cc', 
-                  color: 'white', 
-                  border: 'none', 
-                  borderRadius: '50%', 
-                  width: 36, 
-                  height: 36, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  cursor: newMessage.trim() && user?.full_name ? 'pointer' : 'not-allowed',
-                  opacity: newMessage.trim() && user?.full_name ? 1 : 0.5,
-                  flexShrink: 0
-                }}
-              >
-                <PaperPlaneRight size={16} weight="fill" />
-              </button>
+              
+              {newMessage.trim() ? (
+                <button 
+                  type="submit" 
+                  disabled={!user?.full_name}
+                  style={{ 
+                    background: '#7a12cc', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '50%', 
+                    width: 36, 
+                    height: 36, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    flexShrink: 0
+                  }}
+                >
+                  <PaperPlaneRight size={16} weight="fill" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isRecording) {
+                      stopRecording();
+                    } else {
+                      startRecording();
+                    }
+                  }}
+                  disabled={!user?.full_name}
+                  style={{
+                    background: isRecording ? '#dc2626' : '#f1f5f9',
+                    color: isRecording ? 'white' : '#64748b',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: 36,
+                    height: 36,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    animation: isRecording ? 'pulse 1.5s infinite' : 'none'
+                  }}
+                  title={isRecording ? "Click to stop and send" : "Click to record audio"}
+                >
+                  {isRecording ? <StopCircle size={20} weight="fill" /> : <Microphone size={18} weight="bold" />}
+                </button>
+              )}
             </form>
           </div>
         </div>
       )}
 
-      {/* Toggle Button */}
+      {/* Toggle Button (Not Draggable) */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
         style={{
@@ -261,7 +479,8 @@ export default function AdminChatPanel() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          transition: 'transform 0.2s, box-shadow 0.2s'
+          transition: 'transform 0.2s, box-shadow 0.2s',
+          pointerEvents: 'auto'
         }}
         onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)' }}
         onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
