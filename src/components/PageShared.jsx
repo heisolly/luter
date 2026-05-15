@@ -120,8 +120,6 @@ export const PremiumButton = ({
       onMouseLeave={handleMouseLeave}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
     >
       <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         {children}

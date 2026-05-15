@@ -348,7 +348,6 @@ function onPointerLeave() {
 
 function onTouchStart(e) {
   if (e.touches.length > 0) {
-    e.preventDefault();
     mousePosition.x = e.touches[0].clientX;
     mousePosition.y = e.touches[0].clientY;
 
@@ -369,7 +368,6 @@ function onTouchStart(e) {
 
 function onTouchMove(e) {
   if (e.touches.length > 0) {
-    e.preventDefault();
     mousePosition.x = e.touches[0].clientX;
     mousePosition.y = e.touches[0].clientY;
 

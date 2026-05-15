@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import {
   House,
@@ -33,7 +33,8 @@ import {
   Users,
   X,
   PaperPlaneTilt as PaperPlaneIcon,
-  Clock
+  Clock,
+  Crown
 } from '@phosphor-icons/react'
 import useTourStore from '../../store/useTourStore'
 import { 
@@ -71,6 +72,21 @@ import { useDeckStore } from '../../store/useDeckStore'
 import MaterialAnalysisService from '../../services/materialAnalysisService'
 import './workstation.css'
 
+// Collaboration
+import { CollaborationProvider } from './CollaborationProvider'
+import { Whiteboard } from './Whiteboard'
+import { GroupQuiz } from './GroupQuiz'
+import { PresenceBar, SyncControl, LiveReactionBar } from './CollaborationTools'
+import { useGroupChat } from '../../hooks/useGroupChat'
+import { useLiveBroadcast, useLiveEventListener } from '../../hooks/useLiveCollaboration'
+import { 
+  useStorage, 
+  useMutation, 
+  useOthers, 
+  useUpdateMyPresence,
+  useSelf
+} from '../../liveblocks.config'
+
 const SUGGESTED_QUESTIONS = [
   { id: 'summary', text: "Summarize the core concepts" },
   { id: 'explain', text: "Explain this like I'm a student" },
@@ -84,6 +100,8 @@ function WorkstationContent() {
   const { courseId } = useParams()
   const [searchParams] = useSearchParams()
   const materialIdParam = searchParams.get('materialId')
+  const [courseInfo, setCourseInfo] = useState(null)
+  const [sessionMaterials, setSessionMaterials] = useState([])
   const { user, isMobile, sidebarCollapsed, setSidebarCollapsed, profile, mobileSidebarOpen, setMobileSidebarOpen } = useOutletContext() || {}
   const { setViewportData, highlightText, updateSpark, clearHighlights, viewportData, updateSelection, isSidePanelCollapsed, setSidePanelCollapsed } = useReadingSpace()
 
@@ -186,29 +204,26 @@ function WorkstationContent() {
     const secs = seconds % 60
     return `${mins}:${secs.toString().padStart(2, '0')} elapsed`
   }
-  const { startTour, hasCompletedTour } = useTourStore()
+  const { startTour, hasCompletedTour, isLoadingTours } = useTourStore()
 
   const [chatInput, setChatInput] = useState('')
   const [messages, setMessages] = useState([])
   const [isProcessingLoading, setIsProcessingLoading] = useState(false)
   const [courseMaterials, setCourseMaterials] = useState([])
   const [selectedMaterial, setSelectedMaterial] = useState(null)
-  const [sessionMaterials, setSessionMaterials] = useState([])
   const [elapsedTime, setElapsedTime] = useState(0)
   const [isGroupSession, setIsGroupSession] = useState(false)
   const [isThumbnailsOpen, setIsThumbnailsOpen] = useState(false)
   const [showExitSummary, setShowExitSummary] = useState(false)
   const [activePanelContext, setActivePanelContext] = useState('default') // default, explanation, quiz, flashcard
   const [activeExplanation, setActiveExplanation] = useState(null)
-  const [courseInfo, setCourseInfo] = useState(null)
-
   // Tour effect — must come AFTER selectedMaterial declaration
   useEffect(() => {
-    if (user?.id && selectedMaterial && !hasCompletedTour('workstation')) {
+    if (user?.id && selectedMaterial && !isLoadingTours && !hasCompletedTour('workstation')) {
       const timer = setTimeout(() => startTour('workstation'), 2000)
       return () => clearTimeout(timer)
     }
-  }, [user?.id, selectedMaterial, hasCompletedTour, startTour])
+  }, [user?.id, selectedMaterial, hasCompletedTour, startTour, isLoadingTours])
   const [analysisCache, setAnalysisCache] = useState({})
   const [materialAnalysis, setMaterialAnalysis] = useState(null)
   const [showTools, setShowTools] = useState(false)
@@ -223,6 +238,12 @@ function WorkstationContent() {
   const [showDashboard, setShowDashboard] = useState(true)
   const [sessionXP, setSessionXP] = useState(0)
   const [showFileSwitcher, setShowFileSwitcher] = useState(false)
+  
+  // Collaboration Room ID
+  const roomId = useMemo(() => {
+    if (!materialIdParam) return null
+    return `luter-material-${materialIdParam}`
+  }, [materialIdParam])
 
   useEffect(() => {
     if (courseId) {
@@ -254,6 +275,75 @@ function WorkstationContent() {
   }
   const [userJottings, setUserJottings] = useState("")
   const [jottingNoteId, setJottingNoteId] = useState(null)
+  
+  // Liveblocks Hooks
+  const updatePresence  = useUpdateMyPresence()
+  const self            = useSelf()
+  const syncMode        = useStorage((root) => root.syncMode)
+  const presenterSlide  = useStorage((root) => root.presenterSlide)
+  const presenterId     = useStorage((root) => root.presenterId)
+  const others          = useOthers()
+
+  // Group chat
+  const { messages: groupMessages, sendMessage: sendGroupMessage, setTyping } = useGroupChat(user)
+  const [groupInput, setGroupInput] = useState('')
+
+  // Broadcast events
+  const { broadcastSyncJump } = useLiveBroadcast()
+
+  // Listen for broadcast events from others
+  useLiveEventListener({
+    onSyncJump: ({ slideNumber }) => {
+      if (syncMode && presenterId !== user?.id) {
+        // Jump MaterialRenderer to this page via existing CustomEvent bridge
+        window.dispatchEvent(new CustomEvent('luter-jump-to-page', { detail: { page: slideNumber } }))
+      }
+    },
+    onRaiseHand: ({ userName: who }) => {
+      // Simple DOM toast — avoids pulling in a full toast library
+      const el = document.createElement('div')
+      el.innerText = `✋ ${who} raised their hand`
+      Object.assign(el.style, {
+        position: 'fixed', bottom: '80px', left: '50%',
+        transform: 'translateX(-50%)',
+        background: '#1E293B', color: 'white',
+        padding: '10px 18px', borderRadius: '12px',
+        fontSize: '13px', fontWeight: 700,
+        zIndex: '9999', pointerEvents: 'none',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+        animation: 'fadeUp 0.3s ease-out'
+      })
+      document.body.appendChild(el)
+      setTimeout(() => el.remove(), 3000)
+    }
+  })
+
+  const setSyncMode = useMutation(({ storage }, val) => {
+    storage.set('syncMode', val)
+    if (val) {
+      storage.set('presenterId', user?.id)
+      // Set self as presenter role in presence
+      updatePresence({ role: 'presenter' })
+    } else {
+      updatePresence({ role: 'participant' })
+    }
+  }, [user?.id, updatePresence])
+
+  const setPresenterSlide = useMutation(({ storage }, page) => {
+    storage.set('presenterSlide', page)
+  }, [])
+
+  // Broadcast presence + sync slide
+  useEffect(() => {
+    if (viewportData?.currentPage) {
+      updatePresence({ currentPage: viewportData.currentPage })
+      if (syncMode && presenterId === user?.id) {
+        setPresenterSlide(viewportData.currentPage)
+        // Broadcast so others jump immediately without polling
+        broadcastSyncJump(viewportData.currentPage)
+      }
+    }
+  }, [viewportData?.currentPage, syncMode, presenterId, user?.id, updatePresence, setPresenterSlide, broadcastSyncJump])
   const messagesEndRef = useRef(null)
   
   // Deck Store integration
@@ -728,18 +818,36 @@ function WorkstationContent() {
     try {
       console.log(`[runAnalysis] Starting ${type} generation for material:`, selectedMaterial.id)
       
-      // FORCE REFRESH: Fetch the latest material data to ensure we have the extracted_text
+      // FORCE REFRESH & EXTRACTION GUARD: Ensure we have the extracted_text
+      let materialText = selectedMaterial.extracted_text
+      
       const { data: latestMaterial } = await supabase
         .from('materials')
-        .select('extracted_text')
+        .select('extracted_text, processing_status')
         .eq('id', selectedMaterial.id)
         .single()
       
       if (latestMaterial?.extracted_text) {
+        materialText = latestMaterial.extracted_text
         selectedMaterial.extracted_text = latestMaterial.extracted_text
-        console.log(`[runAnalysis] Found extracted_text, length:`, latestMaterial.extracted_text.length)
-      } else {
-        console.warn(`[runAnalysis] No extracted_text found for material:`, selectedMaterial.id)
+        console.log(`[runAnalysis] Found extracted_text, length:`, materialText.length)
+      }
+      
+      // If still no text, try one last emergency extraction
+      if (!materialText) {
+        console.log(`[runAnalysis] Text still missing, triggering emergency extraction...`)
+        const extractionRes = await MaterialAnalysisService.reprocessMaterial(selectedMaterial)
+        if (extractionRes.success && extractionRes.fullText) {
+          materialText = extractionRes.fullText
+          selectedMaterial.extracted_text = materialText
+          console.log(`[runAnalysis] Emergency extraction successful, length:`, materialText.length)
+        } else {
+          console.error(`[runAnalysis] All extraction attempts failed`)
+          // If we have a summary, we can still proceed, but flashcards will be poor
+          if (!currentAnalysisRow?.summary) {
+            throw new Error('Unable to extract text from this material. Please try re-uploading.')
+          }
+        }
       }
 
       // ALWAYS get fresh analysis if we don't have it or if it's incomplete
@@ -788,8 +896,22 @@ function WorkstationContent() {
       }
       setAnalysisCache(prev => ({ ...prev, [selectedMaterial.id]: { ...(prev[selectedMaterial.id] || {}), [type]: finalResult } }))
       const dbColumn = type === 'notes' ? 'smart_notes' : type === 'summary' ? 'summary' : type === 'flashcards' ? 'flashcards' : type === 'quiz' ? 'quiz' : null;
-      if (dbColumn) {
-        await supabase.from('material_analysis').upsert({ material_id: selectedMaterial.id, user_id: user?.id, [dbColumn]: finalResult, analysis: materialAnalysis || {}, updated_at: new Date().toISOString() }, { onConflict: 'material_id' });
+      
+      if (dbColumn && finalResult && (Array.isArray(finalResult) ? finalResult.length > 0 : true)) {
+        console.log(`[runAnalysis] Saving ${type} to DB...`)
+        const updateData = { 
+          material_id: selectedMaterial.id, 
+          user_id: user?.id, 
+          [dbColumn]: finalResult, 
+          updated_at: new Date().toISOString() 
+        }
+        
+        // Use currentAnalysisRow to avoid state race condition
+        if (currentAnalysisRow) {
+          updateData.analysis = currentAnalysisRow
+        }
+        
+        await supabase.from('material_analysis').upsert(updateData, { onConflict: 'material_id' });
       }
       if (type === 'notes' && typeof finalResult === 'string') {
         saveToVault({ materialId: selectedMaterial.id, userId: user.id, courseId, title: `${selectedMaterial.title} - Smart Notes`, content: finalResult, sourceType: 'ai' }).catch(() => {});
@@ -1168,10 +1290,44 @@ function WorkstationContent() {
                 >
                   <Checks size={16} weight={activeTab === 'quiz' ? 'fill' : 'bold'} /> Quiz
                 </button>
+                <button 
+                  onClick={() => setActiveTab('board')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, 
+                    borderRadius: '20px', border: 'none', cursor: 'pointer',
+                    background: activeTab === 'board' 
+                      ? 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)' 
+                      : 'linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 100%)',
+                    color: activeTab === 'board' ? 'white' : '#6D28D9',
+                    boxShadow: activeTab === 'board' 
+                      ? '0 4px 12px rgba(109, 40, 217, 0.35)' 
+                      : '0 1px 4px rgba(109, 40, 217, 0.15)',
+                    fontFamily: 'var(--font-outfit)',
+                    transition: 'all 0.2s',
+                    letterSpacing: '0.01em'
+                  }}
+                  onMouseEnter={(e) => { 
+                    if (activeTab !== 'board') {
+                      e.currentTarget.style.background = 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)';
+                      e.currentTarget.style.color = 'white';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(109, 40, 217, 0.35)';
+                    }
+                  }}
+                  onMouseLeave={(e) => { 
+                    if (activeTab !== 'board') {
+                      e.currentTarget.style.background = 'linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 100%)';
+                      e.currentTarget.style.color = '#6D28D9';
+                      e.currentTarget.style.boxShadow = '0 1px 4px rgba(109, 40, 217, 0.15)';
+                    }
+                  }}
+                >
+                  <PencilLine size={14} weight={activeTab === 'board' ? 'fill' : 'bold'} /> Board
+                </button>
               </div>
             </div>
 
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '8px', alignItems: 'center' }}>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '12px', alignItems: 'center' }}>
+            <PresenceBar />
             <div style={{ position: 'relative' }}>
               <button 
                 style={{ 
@@ -1282,111 +1438,7 @@ function WorkstationContent() {
         height: 'calc(100vh - 60px)',
         position: 'relative'
       }}>
-        {/* Left Zone - Slide Rail */}
-        {!isMobile && (
-          <aside 
-            className="ws-slide-rail"
-            style={{ 
-              background: 'white', 
-              borderRight: '1px solid #EBEBEB',
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              width: isThumbnailsOpen ? '200px' : '60px',
-              transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              position: 'relative',
-              zIndex: 20,
-              flexShrink: 0
-            }}
-          >
-            <div style={{ 
-              padding: '16px 0',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '20px',
-              flex: 1
-            }}>
-              <button 
-                onClick={() => setIsThumbnailsOpen(!isThumbnailsOpen)}
-                style={{ 
-                  background: 'none', 
-                  border: 'none', 
-                  cursor: 'pointer', 
-                  color: '#94A3B8',
-                  padding: '8px',
-                  borderRadius: '8px',
-                  transition: '0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
-              >
-                {isThumbnailsOpen ? <CaretLeft size={20} weight="bold" /> : <SquaresFour size={22} weight="bold" />}
-              </button>
-
-              {isThumbnailsOpen ? (
-                <div style={{ width: '100%', padding: '0 16px' }}>
-                  <h3 style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '0.05em' }}>Slides</h3>
-                  <div style={{ display: 'grid', gap: '12px' }}>
-                    {(selectedMaterial?.slide_images || [...Array(12)]).map((img, i) => (
-                      <div 
-                        key={i} 
-                        style={{ 
-                          aspectRatio: '16/9', 
-                          background: '#F8FAFC', 
-                          borderRadius: '6px', 
-                          border: (viewportData?.currentPage === i + 1) ? '2px solid #6D28D9' : '1px solid #EBEBEB',
-                          cursor: 'pointer',
-                          position: 'relative',
-                          overflow: 'hidden',
-                          transition: '0.2s',
-                          backgroundImage: img && typeof img === 'string' ? `url(${img})` : 'none',
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center'
-                        }}
-                        onClick={() => {
-                          window.dispatchEvent(new CustomEvent('luter-jump-to-page', { detail: { page: i + 1 } }));
-                        }}
-                        onMouseEnter={(e) => { if (viewportData?.currentPage !== i+1) e.currentTarget.style.borderColor = '#6D28D9' }}
-                        onMouseLeave={(e) => { if (viewportData?.currentPage !== i+1) e.currentTarget.style.borderColor = '#EBEBEB' }}
-                      >
-                        <div style={{ 
-                          position: 'absolute', bottom: '4px', right: '4px', 
-                          fontSize: '9px', fontWeight: 800, color: '#64748B',
-                          background: 'white', padding: '1px 3px', borderRadius: '3px',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                          zIndex: 2
-                        }}>
-                          {i + 1}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {[...Array(8)].map((_, i) => (
-                    <div 
-                      key={i}
-                      onClick={() => window.dispatchEvent(new CustomEvent('luter-jump-to-page', { detail: { page: i + 1 } }))}
-                      style={{ 
-                        width: '32px', height: '24px', background: '#F8FAFC', borderRadius: '4px', border: '1px solid #EBEBEB',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 800, color: '#94A3B8',
-                        cursor: 'pointer'
-                      }}
-                    >
-                  {i + 1}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </aside>
-        )}
-
-
-
-        {/* Center Zone - Document Viewer */}
+        {/* Main Workspace Area - Center Zone */}
         <div ref={constraintsRef} className="ws-center-viewer" style={{ 
           display: 'flex', 
           flexDirection: 'column', 
@@ -1399,34 +1451,44 @@ function WorkstationContent() {
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -1px 0 rgba(0,0,0,0.03)',
           zIndex: 1
         }}>
-          {activeTab === 'summary' ? (
-            <div style={{ flex: 1, overflowY: 'auto', background: '#F9FAFB', height: '100%' }}>
-              <WorkstationSummaryEnhanced 
-                content={currentAnalysis.summary} 
-                material={selectedMaterial} 
-                pageSummaries={pageSummaries}
-                onFetchPageSummaries={handleFetchPageSummaries}
-                onRegenerate={() => runAnalysis('summary')}
-              />
-            </div>
-          ) : activeTab === 'flashcards' ? (
-            <div style={{ flex: 1, overflowY: 'auto', background: '#F9FAFB', height: '100%' }}>
-              <WorkstationFlashcards 
-                flashcards={currentAnalysis.flashcards} 
-                material={selectedMaterial} 
-                onRegenerate={() => runAnalysis('flashcards')} 
-              />
-            </div>
-          ) : activeTab === 'quiz' ? (
-            <div style={{ flex: 1, overflowY: 'auto', background: '#F9FAFB', height: '100%' }}>
-              <WorkstationQuiz 
-                quiz={currentAnalysis.quiz} 
-                material={selectedMaterial} 
-                onRegenerate={() => runAnalysis('quiz')} 
-              />
-            </div>
-          ) : !selectedMaterial ? (
-            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px', flex: 1 }}>
+          {/* 1. Summary View */}
+          <div style={{ flex: 1, display: activeTab === 'summary' ? 'block' : 'none', overflowY: 'auto', background: '#F9FAFB', height: '100%' }}>
+            <WorkstationSummaryEnhanced 
+              content={currentAnalysis.summary} 
+              material={selectedMaterial} 
+              pageSummaries={pageSummaries}
+              onFetchPageSummaries={handleFetchPageSummaries}
+              onRegenerate={() => runAnalysis('summary')}
+              onJumpToPage={(p) => { handlePageJump(p); setActiveTab('content'); }}
+            />
+          </div>
+
+          {/* 2. Flashcards View */}
+          <div style={{ flex: 1, display: activeTab === 'flashcards' ? 'block' : 'none', overflowY: 'auto', background: '#F9FAFB', height: '100%' }}>
+            <WorkstationFlashcards 
+              flashcards={currentAnalysis.flashcards} 
+              material={selectedMaterial} 
+              onRegenerate={() => runAnalysis('flashcards')} 
+            />
+          </div>
+
+          {/* 3. Quiz View */}
+          <div style={{ flex: 1, display: activeTab === 'quiz' ? 'block' : 'none', overflowY: 'auto', background: '#F9FAFB', height: '100%' }}>
+            <WorkstationQuiz 
+              quiz={currentAnalysis.quiz} 
+              material={selectedMaterial} 
+              onRegenerate={() => runAnalysis('quiz')} 
+            />
+          </div>
+
+          {/* 4. Whiteboard View */}
+          <div style={{ flex: 1, display: activeTab === 'board' ? 'block' : 'none', height: '100%', background: 'white', position: 'relative' }}>
+            <Whiteboard roomId={roomId} />
+          </div>
+
+          {/* 5. Main Workspace (Document & Notes) */}
+          {!selectedMaterial ? (
+            <div style={{ height: '100%', display: (activeTab !== 'summary' && activeTab !== 'flashcards' && activeTab !== 'quiz' && activeTab !== 'board') ? 'flex' : 'none', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px', flex: 1 }}>
               <div style={{ textAlign: 'center', maxWidth: '400px' }}>
                 <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                   <BookOpen size={24} color="#6B7280" />
@@ -1444,103 +1506,146 @@ function WorkstationContent() {
               </div>
             </div>
           ) : (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', height: '100%' }}>
-              {activeTab === 'notes' ? (
-                <div className="ws-scroll-container" style={{ flex: 1, padding: '60px 40px', overflowY: 'auto', height: '100%' }}>
-                  <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
-                       <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                         <FileText size={20} color="#6D28D9" />
-                       </div>
-                       <div>
-                         <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#1A102D', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>Personal Study Notes</h1>
-                         <p style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>Capture and organize your thoughts for {selectedMaterial.title}</p>
-                       </div>
-                    </div>
-                    <div className="ws-notion-card" style={{ padding: '40px', minHeight: '600px' }}>
-                       <textarea 
-                          placeholder="Start typing your notes here..."
-                          value={selectedMaterial.notes || ''}
-                          onChange={(e) => {
-                            const newNotes = e.target.value
-                            setSelectedMaterial(prev => ({ ...prev, notes: newNotes }))
-                            // Auto-save logic could go here
-                          }}
-                          style={{
-                            width: '100%', height: '100%', minHeight: '500px', border: 'none', outline: 'none',
-                            fontSize: '16px', lineHeight: '1.7', color: '#334155', fontFamily: 'var(--font-varela)',
-                            resize: 'none', background: 'transparent'
-                          }}
-                       />
-                    </div>
+            <div style={{ 
+              flex: 1, 
+              display: (activeTab !== 'summary' && activeTab !== 'flashcards' && activeTab !== 'quiz' && activeTab !== 'board') ? 'flex' : 'none', 
+              flexDirection: 'column', 
+              position: 'relative', 
+              overflow: 'hidden', 
+              height: '100%' 
+            }}>
+              {/* Notes View */}
+              <div className="ws-scroll-container" style={{ 
+                flex: 1, 
+                display: activeTab === 'notes' ? 'block' : 'none',
+                padding: '60px 40px', 
+                overflowY: 'auto', 
+                height: '100%' 
+              }}>
+                <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
+                     <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                       <FileText size={20} color="#6D28D9" />
+                     </div>
+                     <div>
+                       <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#1A102D', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>Personal Study Notes</h1>
+                       <p style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>Capture and organize your thoughts for {selectedMaterial.title}</p>
+                     </div>
+                  </div>
+                  <div className="ws-notion-card" style={{ padding: '40px', minHeight: '600px' }}>
+                     <textarea 
+                        placeholder="Start typing your notes here..."
+                        value={selectedMaterial.notes || ''}
+                        onChange={(e) => {
+                          const newNotes = e.target.value
+                          setSelectedMaterial(prev => ({ ...prev, notes: newNotes }))
+                        }}
+                        style={{
+                          width: '100%', height: '100%', minHeight: '500px', border: 'none', outline: 'none',
+                          fontSize: '16px', lineHeight: '1.7', color: '#334155', fontFamily: 'var(--font-varela)',
+                          resize: 'none', background: 'transparent'
+                        }}
+                     />
                   </div>
                 </div>
-              ) : (
-                <div className="ws-visual-viewport" style={{ flex: 1, height: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                  {/* Floating Selection Tool Pill */}
-                  {!isMobile && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
+              </div>
+
+              {/* Document Viewer View */}
+              <div className="ws-visual-viewport" style={{ 
+                flex: 1, 
+                display: activeTab !== 'notes' ? 'flex' : 'none',
+                height: '100%', 
+                overflow: 'hidden', 
+                position: 'relative', 
+                flexDirection: 'column' 
+              }}>
+                {/* Floating Selection Tool Pill */}
+                {!isMobile && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{
+                      position: 'absolute',
+                      bottom: '30px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      zIndex: 100,
+                      display: 'flex',
+                      alignItems: 'center',
+                      background: 'rgba(255, 255, 255, 0.95)',
+                      backdropFilter: 'blur(10px)',
+                      padding: '6px',
+                      borderRadius: '16px',
+                      border: '1px solid #E2E8F0',
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
+                      gap: '4px'
+                    }}
+                  >
+                    <button 
+                      onClick={() => setActiveTab('board')}
                       style={{
-                        position: 'absolute',
-                        bottom: '30px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        zIndex: 100,
-                        display: 'flex',
-                        alignItems: 'center',
-                        background: 'rgba(255, 255, 255, 0.95)',
-                        backdropFilter: 'blur(10px)',
-                        padding: '6px',
-                        borderRadius: '16px',
-                        border: '1px solid #E2E8F0',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
-                        gap: '4px'
+                        display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
+                        background: activeTab === 'board' ? '#F5F3FF' : 'transparent',
+                        color: activeTab === 'board' ? '#6D28D9' : '#64748B',
+                        border: 'none', borderRadius: '12px',
+                        fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-outfit)',
+                        transition: '0.2s',
+                        boxShadow: activeTab === 'board' ? '0 2px 8px rgba(109, 40, 217, 0.1)' : 'none'
+                      }}
+                      onMouseEnter={(e) => { if (activeTab !== 'board') e.currentTarget.style.background = '#F8FAFC' }}
+                      onMouseLeave={(e) => { if (activeTab !== 'board') e.currentTarget.style.background = 'transparent' }}
+                    >
+                      <PencilSimple size={16} weight={activeTab === 'board' ? "fill" : "bold"} />
+                      Board <span style={{ opacity: 0.8, marginLeft: '4px', background: activeTab === 'board' ? 'white' : '#F1F5F9', padding: '1px 5px', borderRadius: '4px', fontSize: '10px', color: '#6D28D9' }}>B</span>
+                    </button>
+                    <button 
+                      onClick={() => {}} // Occlusion logic placeholder
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
+                        background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)',
+                        color: '#6D28D9',
+                        border: '1px solid #DDD6FE', borderRadius: '12px',
+                        fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-outfit)',
+                        transition: 'all 0.2s',
+                        boxShadow: '0 2px 8px rgba(109, 40, 217, 0.08)'
+                      }}
+                      onMouseEnter={(e) => { 
+                        e.currentTarget.style.background = 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)';
+                        e.currentTarget.style.color = 'white';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(109, 40, 217, 0.25)';
+                      }}
+                      onMouseLeave={(e) => { 
+                        e.currentTarget.style.background = 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)';
+                        e.currentTarget.style.color = '#6D28D9';
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(109, 40, 217, 0.08)';
                       }}
                     >
-                      <button style={{
-                        display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
-                        background: '#EDE9FE', color: '#6D28D9', border: 'none', borderRadius: '10px',
-                        fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-outfit)',
-                        transition: '0.2s'
-                      }}>
-                        <PencilSimple size={16} weight="fill" />
-                        Highlight <span style={{ opacity: 0.5, marginLeft: '4px', background: 'white', padding: '1px 5px', borderRadius: '4px', fontSize: '10px' }}>H</span>
-                      </button>
-                      <button style={{
-                        display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
-                        background: 'transparent', color: '#64748B', border: 'none', borderRadius: '10px',
-                        fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-outfit)',
-                        transition: '0.2s'
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = '#F8FAFC' }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-                      >
-                        <ClipboardText size={16} weight="bold" />
-                        Occlusion <span style={{ opacity: 0.5, marginLeft: '4px', background: '#F1F5F9', padding: '1px 5px', borderRadius: '4px', fontSize: '10px' }}>O</span>
-                      </button>
-                      <div style={{ width: '1px', height: '24px', background: '#E2E8F0', margin: '0 4px' }} />
-                      <button style={{ padding: '8px', background: 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <ArrowUp size={16} weight="bold" />
-                      </button>
-                      <button style={{ padding: '8px', background: 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <ArrowRight size={16} weight="bold" />
-                      </button>
-                    </motion.div>
-                  )}
+                      <ClipboardText size={16} weight="bold" />
+                      Occlusion <span style={{ opacity: 0.8, marginLeft: '4px', background: 'white', padding: '1px 5px', borderRadius: '4px', fontSize: '10px', color: '#6D28D9' }}>O</span>
+                    </button>
+                    <div style={{ width: '1px', height: '24px', background: '#E2E8F0', margin: '0 4px' }} />
+                    <button style={{ padding: '8px', background: 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <ArrowUp size={16} weight="bold" />
+                    </button>
+                    <button style={{ padding: '8px', background: 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <ArrowRight size={16} weight="bold" />
+                    </button>
+                  </motion.div>
+                )}
 
-                  <MaterialRenderer 
-                    key={selectedMaterial.id}
-                    material={selectedMaterial} 
-                    activeTab={activeTab}
-                    onSparkUpdate={updateSpark}
-                    setViewportData={setViewportData}
-                    onScrollUpdate={handleScrollUpdate}
-                    onMaterialUpdate={(m) => setSelectedMaterial(m)}
-                  />
-                </div>
-              )}
+                <MaterialRenderer 
+                  key={selectedMaterial.id}
+                  material={selectedMaterial} 
+                  activeTab={activeTab}
+                  onSparkUpdate={updateSpark}
+                  setViewportData={(data) => {
+                    setViewportData(data);
+                    if (data.currentPage) updatePresence({ currentPage: data.currentPage });
+                  }}
+                  onScrollUpdate={handleScrollUpdate}
+                  onMaterialUpdate={(m) => setSelectedMaterial(m)}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -1597,7 +1702,7 @@ function WorkstationContent() {
               />
             )}
 
-            {/* Tabs row — 3 tabs only, underline active state */}
+            {/* Tabs row */}
             <div style={{
               padding: '0 20px',
               borderBottom: '1px solid #EBEBEB',
@@ -1609,9 +1714,11 @@ function WorkstationContent() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 {[
-                  { id: 'chat', label: 'Chat', emoji: '💬' },
-                  { id: 'write', label: 'Notes', emoji: '✏️' },
-                  { id: 'flashcards', label: 'Cards', emoji: '🃏' },
+                  { id: 'chat',       label: 'Chat',    emoji: '💬' },
+                  { id: 'write',      label: 'Notes',   emoji: '✏️' },
+                  { id: 'flashcards', label: 'Cards',   emoji: '🃏' },
+                  { id: 'groupchat',  label: 'Group 💬', emoji: '👥' },
+                  { id: 'group',      label: 'Hub',     emoji: '🖥️' },
                 ].map(tab => (
                   <button
                     key={tab.id}
@@ -1652,7 +1759,7 @@ function WorkstationContent() {
               </button>
             </div>
 
-            {/* Panel content — scrollable flex-1 */}
+            {/* Panel content */}
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
               {activeSideTab === 'write' ? (
                 <WorkstationWrite
@@ -1682,10 +1789,142 @@ function WorkstationContent() {
                   <WorkstationFlashcards
                     flashcards={currentAnalysis.flashcards}
                     material={selectedMaterial}
+                    user={user}
                     onRegenerate={() => runAnalysis('flashcards')}
                   />
                 </div>
-              ) : (
+              ) : activeSideTab === 'groupchat' ? (
+                // ── Group Chat (Liveblocks-backed) ──────────────────────────
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                  {/* Messages */}
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {groupMessages.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94A3B8' }}>
+                        <ChatsCircleIcon size={32} style={{ marginBottom: '8px', opacity: 0.5 }} />
+                        <p style={{ fontSize: '13px', fontWeight: 600 }}>No messages yet</p>
+                        <p style={{ fontSize: '12px', marginTop: '4px' }}>Start the group conversation!</p>
+                      </div>
+                    ) : (
+                      groupMessages.map((msg) => {
+                        const isSelf = msg.userId === user?.id
+                        return (
+                          <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isSelf ? 'flex-end' : 'flex-start', gap: '3px' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', paddingLeft: '4px', paddingRight: '4px' }}>
+                              {isSelf ? 'You' : msg.userName}
+                            </span>
+                            <div style={{
+                              maxWidth: '85%', padding: '9px 13px', borderRadius: isSelf ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                              background: isSelf ? '#6D28D9' : 'white',
+                              color: isSelf ? 'white' : '#1E293B',
+                              fontSize: '13px', fontWeight: 500, lineHeight: 1.5,
+                              border: isSelf ? 'none' : '1px solid #EBEBEB',
+                              boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+                            }}>
+                              {msg.text}
+                            </div>
+                            <span style={{ fontSize: '10px', color: '#CBD5E1', paddingLeft: '4px', paddingRight: '4px' }}>
+                              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                  {/* Who's typing */}
+                  {others.some(o => o.presence?.isTyping) && (
+                    <div style={{ padding: '4px 20px', fontSize: '11px', color: '#94A3B8', fontWeight: 600 }}>
+                      Someone is typing…
+                    </div>
+                  )}
+                  {/* Input */}
+                  <div style={{ padding: '10px 14px 14px', borderTop: '1px solid #F1F5F9', background: '#FAFAFA', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'white', border: '1.5px solid #E2E8F0', borderRadius: '20px', padding: '6px 12px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+                      <input
+                        type="text"
+                        placeholder="Message the group…"
+                        value={groupInput}
+                        onChange={(e) => { setGroupInput(e.target.value); setTyping(true); }}
+                        onBlur={() => setTyping(false)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && groupInput.trim()) {
+                            sendGroupMessage(groupInput)
+                            setGroupInput('')
+                            setTyping(false)
+                          }
+                        }}
+                        style={{ flex: 1, border: 'none', outline: 'none', fontSize: '13px', color: '#1E293B', background: 'transparent', fontFamily: 'var(--font-outfit)', fontWeight: 500 }}
+                      />
+                      <button
+                        onClick={() => { if (groupInput.trim()) { sendGroupMessage(groupInput); setGroupInput(''); setTyping(false); } }}
+                        disabled={!groupInput.trim()}
+                        style={{ background: groupInput.trim() ? '#6D28D9' : '#E2E8F0', color: groupInput.trim() ? 'white' : '#94A3B8', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: groupInput.trim() ? 'pointer' : 'default', transition: '0.2s', flexShrink: 0 }}
+                      >
+                        <PaperPlaneIcon size={14} weight="fill" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : activeSideTab === 'group' ? (
+                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white' }}>
+                   <div style={{ padding: '16px 20px', borderBottom: '1px solid #EBEBEB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                      <div>
+                        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1E293B', margin: 0, fontFamily: 'var(--font-outfit)' }}>Group Hub</h3>
+                        <p style={{ fontSize: '11px', color: '#64748B', fontWeight: 500, margin: '2px 0 0' }}>Collaborative board & session sync</p>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <LiveReactionBar userId={user?.id} userName={profile?.full_name || user?.email?.split('@')[0] || 'You'} />
+                        <SyncControl 
+                          isPresenter={presenterId === user?.id} 
+                          syncEnabled={syncMode} 
+                          onToggleSync={() => setSyncMode(!syncMode)} 
+                        />
+                        <button
+                          onClick={() => window.open(`/board/${roomId}?name=${encodeURIComponent(selectedMaterial?.name || 'Board')}`, '_blank')}
+                          title="Open full-screen board"
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            width: 28, height: 28, borderRadius: '8px', border: 'none',
+                            background: '#F1F5F9', color: '#64748B',
+                            cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0,
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = '#6D28D9'; e.currentTarget.style.color = 'white' }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = '#64748B' }}
+                        >
+                          <ArrowSquareOutIcon size={16} weight="bold" />
+                        </button>
+                      </div>
+                   </div>
+                   <div style={{ flex: 1, minHeight: '400px', background: '#F8FAFC', position: 'relative', margin: '0 16px 16px', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ flex: 1, position: 'relative' }}>
+                        <Whiteboard isCollaborative={true} roomId={roomId} />
+                      </div>
+                      <div style={{ padding: '16px', borderTop: '1px solid #E2E8F0', background: 'white' }}>
+                        <GroupQuiz 
+                          materialText={selectedMaterial?.extracted_text} 
+                          isPresenter={presenterId === user?.id} 
+                        />
+                      </div>
+                   </div>
+                   <div style={{ padding: '20px', background: '#FAFAFA', borderTop: '1px solid #EBEBEB' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                        <h4 style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', margin: 0, letterSpacing: '0.04em' }}>Active Participants</h4>
+                        <div style={{ fontSize: '10px', fontWeight: 700, color: '#6D28D9', background: '#F5F3FF', padding: '2px 8px', borderRadius: '10px' }}>{others.length + 1} ONLINE</div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                         <ParticipantRow user={user} isSelf isPresenter={presenterId === user?.id} connectionId={self?.connectionId ?? 0} />
+                         {others.map(({ connectionId, presence, info }) => (
+                            <ParticipantRow 
+                              key={connectionId} 
+                              user={info} 
+                              presence={presence} 
+                              connectionId={connectionId}
+                              isPresenter={connectionId === presenterId} 
+                            />
+                         ))}
+                      </div>
+                   </div>
+                 </div>
+               ) : (
                 // Chat tab
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                   {activePanelContext === 'explanation' && activeExplanation ? (
@@ -2017,10 +2256,79 @@ function WorkstationContent() {
   )
 }
 
+const ParticipantRow = ({ user, isSelf, isPresenter, presence, connectionId }) => {
+  // user is a Supabase auth user when isSelf=true, or Liveblocks info object for others
+  const name = isSelf
+    ? (user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'You')
+    : (user?.name || `Peer`);
+
+  // Generate a stable colour from the name initial
+  const COLOURS = ['#6D28D9', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+  const colorIdx = name.charCodeAt(0) % COLOURS.length;
+  const color = COLOURS[colorIdx];
+
+  const currentPage = isSelf ? 'Active' : (presence?.currentPage ? `Page ${presence.currentPage}` : 'Idle');
+
+  // quizScores is serialized to a plain object by useStorage (LiveObject → plain obj)
+  const quizScores = useStorage((root) => root.quizScores);
+  const quizState  = useStorage((root) => root.quizState);
+  const score      = quizScores?.[String(connectionId)] ?? 0;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'white', borderRadius: '10px', border: '1px solid #EBEBEB' }}>
+       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: 'white', fontWeight: 700, flexShrink: 0 }}>
+             {name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+             <div style={{ fontSize: '13px', fontWeight: 700, color: '#1E293B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {name}
+                {isPresenter && <Crown size={12} weight="fill" color="#6D28D9" />}
+             </div>
+             <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>
+               {quizState !== 'idle' ? `Score: ${score}` : (
+                 <>
+                   {currentPage}
+                   {presence?.currentPage && (
+                     <span style={{ padding: '2px 5px', background: '#F1F5F9', borderRadius: '4px', fontSize: '9px', fontWeight: 700, color: '#475569' }}>
+                       PG {presence.currentPage}
+                     </span>
+                   )}
+                 </>
+               )}
+             </div>
+          </div>
+       </div>
+       {isPresenter && (
+          <div style={{ padding: '4px 8px', background: '#F5F3FF', borderRadius: '6px', fontSize: '10px', fontWeight: 800, color: '#6D28D9', textTransform: 'uppercase', flexShrink: 0 }}>
+             Presenter
+          </div>
+       )}
+    </div>
+  );
+};
+
 export default function WorkstationPage() {
+  const { materialId } = useParams()
+  const { user, profile } = useOutletContext() || {}
+  const [searchParams] = useSearchParams()
+  const matId   = searchParams.get('materialId') || materialId
+  const roomId  = matId ? `luter-material-${matId}` : `luter-empty-${user?.id || 'guest'}`
+
   return (
     <ReadingSpaceProvider>
-      <WorkstationContent />
+      <CollaborationProvider
+        roomId={roomId}
+        initialPresence={{
+          role: 'presenter', // Default to presenter so user can use whiteboard
+          currentPage: 1,
+          isTyping: false,
+          status: 'active',
+          cursor: null,
+        }}
+      >
+        <WorkstationContent />
+      </CollaborationProvider>
     </ReadingSpaceProvider>
   )
 }

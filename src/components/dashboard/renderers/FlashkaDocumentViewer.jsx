@@ -97,11 +97,12 @@ export default function FlashkaDocumentViewer({
     return () => { if (toolbarTimerRef.current) clearTimeout(toolbarTimerRef.current) }
   }, [scheduleToolbarHide])
 
-  // Timeout for loading
+  // Timeout for loading - increased for better resilience
   useEffect(() => {
+    setLoadingTimeout(false); // Reset timeout state on change
     const timer = setTimeout(() => {
       if (!docLoaded) setLoadingTimeout(true)
-    }, 15000)
+    }, 30000) // 30 seconds
     return () => clearTimeout(timer)
   }, [docLoaded, fileUrl])
 

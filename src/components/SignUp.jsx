@@ -6,6 +6,7 @@ import { clearLuterCaches } from '../utils/cacheUtils';
 
 import GoogleLoginButton from './auth/GoogleLoginButton';
 import { AuthNavbar, PremiumButton } from './PageShared';
+import { DASHBOARD_URL } from '../utils/urlUtils';
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -37,7 +38,14 @@ export default function SignUp() {
     if (err) { setError(err.message); return; }
     if (data?.session) { 
       clearLuterCaches();
-      navigate(redirectPath); 
+      // Redirect to onboarding or dashboard on the correct domain
+      const isAppPath = redirectPath.startsWith('/dashboard') || !['/onboarding', '/signin', '/signup'].includes(redirectPath);
+      if (isAppPath) {
+        const targetPath = redirectPath.startsWith('/dashboard') ? redirectPath : `/dashboard${redirectPath.startsWith('/') ? '' : '/'}${redirectPath}`;
+        window.location.href = `${DASHBOARD_URL}${targetPath}`;
+      } else {
+        navigate(redirectPath);
+      }
     }
     else { setSuccessEmail(email); setSuccess(true); }
   };

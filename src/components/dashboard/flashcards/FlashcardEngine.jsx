@@ -40,6 +40,7 @@ import {
   RiInformationFill as Info
 } from 'react-icons/ri'
 import canvasConfetti from 'canvas-confetti'
+import { io } from 'socket.io-client'
 
 // --- CONSTANTS & THEMES ---
 
@@ -132,7 +133,12 @@ export const FLASHCARD_LAYOUTS = [
 
 // --- COMPONENTS ---
 
-export function FlashcardEngine({ material, items = [], user }) {
+export function FlashcardEngine(props) {
+  const { material, items = [], user, onRegenerate } = props
+  
+  // Debug log for prop issues
+  console.log('[FlashcardEngine] Props:', { materialId: material?.id, itemCount: Array.isArray(items) ? items.length : 'not-array', hasUser: !!user, hasOnRegen: !!onRegenerate })
+
   const [activeMode, setActiveMode] = useState('study') // study | design
   const [selectedTheme, setSelectedTheme] = useState(FLASHCARD_THEMES.minimal[0])
   const [selectedLayout, setSelectedLayout] = useState('classic')
@@ -150,28 +156,25 @@ export function FlashcardEngine({ material, items = [], user }) {
 
   const cards = React.useMemo(() => {
     if (!items) return []
-    const baseItems = Array.isArray(items) ? items : (items.flashcards || items.items || [])
-    return baseItems.map(card => ({
-      ...card,
-      front: card.front || card.question || 'No content available',
-      back: card.back || card.answer || 'No content available'
-    }))
+    // Handle both array of objects and object with flashcards array
+    const baseItems = Array.isArray(items) ? items : (items.flashcards || items.items || items.cards || [])
+    
+    return baseItems.map((card, index) => {
+      // Robust normalization for various AI output formats
+      const front = card.front || card.question || card.term || card.q || (typeof card === 'string' ? card : null)
+      const back = card.back || card.answer || card.definition || card.a || (typeof card === 'object' ? Object.values(card)[1] : 'No content available')
+      
+      return {
+        id: card.id || `card_${index}`,
+        front: front || 'No content available',
+        back: back || 'No content available',
+        ...card
+      }
+    })
   }, [items])
 
   const currentCard = cards[currentIndex] || { front: 'No content', back: 'No content' }
   const progress = cards.length > 0 ? (masteredIds.size / cards.length) * 100 : 0
-
-  if (cards.length === 0) {
-    return (
-      <div style={{ height: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', background: '#F8FAFC' }}>
-        <div style={{ width: '80px', height: '80px', background: '#F5F3FF', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
-          <Layers size={40} color="#A78BFA" />
-        </div>
-        <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A102D', marginBottom: '8px', fontFamily: 'var(--font-outfit)' }}>Ready for recall?</h3>
-        <p style={{ color: '#64748B', fontSize: '14px', maxWidth: '300px', margin: '0 auto' }}>Generate your first study deck from the material analysis to begin.</p>
-      </div>
-    )
-  }
 
   // Multiplayer Logic
   useEffect(() => {
@@ -204,6 +207,40 @@ export function FlashcardEngine({ material, items = [], user }) {
     }
   }, [isMultiplayer, material?.id, user?.id])
 
+  if (cards.length === 0) {
+    return (
+      <div style={{ height: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', background: '#F8FAFC', padding: '24px' }}>
+        <div style={{ position: 'relative', marginBottom: '32px' }}>
+          <div style={{ width: '100px', height: '100px', background: '#F5F3FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 4px 12px rgba(75, 0, 130, 0.1)' }}>
+            <Layers size={48} weight="bold" color="#6D28D9" />
+          </div>
+          <motion.div
+            animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0.3, 0.1] }}
+            transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+            style={{ position: 'absolute', inset: -20, border: '2.5px solid #6D28D9', borderRadius: '50%' }}
+          />
+        </div>
+        <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#1A102D', marginBottom: '8px', fontFamily: 'var(--font-outfit)' }}>Ready for recall?</h3>
+        <p style={{ color: '#64748B', fontSize: '15px', maxWidth: '340px', margin: '0 auto 32px', lineHeight: 1.6 }}>Generate your first study deck from the material analysis to start your active recall session.</p>
+        
+        {onRegenerate && (
+          <button 
+            onClick={onRegenerate}
+            style={{ 
+              padding: '16px 32px', background: '#6D28D9', color: 'white', border: 'none', borderRadius: '16px', 
+              fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', 
+              boxShadow: '0 10px 25px -5px rgba(109, 40, 217, 0.4)', fontFamily: 'var(--font-outfit)',
+              fontSize: '15px', transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 15px 30px -5px rgba(109, 40, 217, 0.5)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(109, 40, 217, 0.4)'; }}
+          >
+            <Zap size={20} weight="fill" /> Generate Smart Cards
+          </button>
+        )}
+      </div>
+    )
+  }
   // Broadcaster for Multiplayer
   const broadcastUpdate = (updates) => {
     if (isMultiplayer && socketRef.current) {
@@ -358,32 +395,32 @@ export function FlashcardEngine({ material, items = [], user }) {
                 <ArrowLeft weight="bold" size={18} />
               </button>
               
-              <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ display: 'flex', gap: '16px' }}>
                  <button 
                   onClick={() => { setMasteredIds(prev => new Set(prev).add(currentIndex)); handleNext(); }}
                   style={{ 
-                    padding: '14px 32px', borderRadius: '14px', background: '#A78BFA', color: 'white', 
-                    border: 'none', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', 
-                    alignItems: 'center', gap: '10px', boxShadow: '0 4px 12px rgba(167, 139, 250, 0.3)', 
+                    padding: '16px 32px', borderRadius: '16px', background: '#6D28D9', color: 'white', 
+                    border: 'none', fontWeight: 800, fontSize: '16px', cursor: 'pointer', display: 'flex', 
+                    alignItems: 'center', gap: '10px', boxShadow: '0 8px 20px rgba(109, 40, 217, 0.25)', 
                     fontFamily: 'var(--font-outfit)', transition: 'all 0.2s'
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#8B5CF6'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = '#A78BFA'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#5B21B6'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#6D28D9'; e.currentTarget.style.transform = 'translateY(0)'; }}
                  >
-                   <CheckCircle weight="fill" size={20} /> I Got It 
+                   <CheckCircle weight="fill" size={22} /> Got it
                  </button>
                  <button 
                   onClick={handleNext}
                   style={{ 
-                    padding: '14px 24px', borderRadius: '14px', background: 'white', color: '#64748B', 
-                    border: '1px solid #E2E8F0', fontWeight: 600, fontSize: '14px', cursor: 'pointer', 
+                    padding: '16px 32px', borderRadius: '16px', background: 'white', color: '#64748B', 
+                    border: '2px solid #E2E8F0', fontWeight: 800, fontSize: '16px', cursor: 'pointer', 
                     display: 'flex', alignItems: 'center', gap: '10px', transition: 'all 0.2s',
                     fontFamily: 'var(--font-outfit)'
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#64748B'; e.currentTarget.style.background = '#F8FAFC'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = 'white'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#94A3B8'; e.currentTarget.style.color = '#1E293B'; e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#64748B'; e.currentTarget.style.background = 'white'; e.currentTarget.style.transform = 'translateY(0)'; }}
                  >
-                   Skip Card <ArrowsClockwise weight="bold" size={20} />
+                   Review again <ArrowsClockwise weight="bold" size={22} />
                  </button>
               </div>
 
@@ -567,7 +604,7 @@ function Flashcard({ card, isFlipped, onFlip, theme, layout, decorations, filter
 
   return (
     <motion.div
-      onClick={onFlip}
+      onClick={isDrawing ? undefined : onFlip}
       animate={{ rotateY: isFlipped ? 180 : 0 }}
       transition={{ duration: 0.6, type: 'spring', stiffness: 260, damping: 20 }}
       style={{ 
@@ -611,6 +648,41 @@ function Flashcard({ card, isFlipped, onFlip, theme, layout, decorations, filter
 function CardFace({ side, content, theme, isDark, isMinimal, layout, decorations, filter, isDrawing, style = {} }) {
   const canvasRef = useRef(null)
   const [isHoloHover, setIsHoloHover] = useState({ x: 0, y: 0 })
+  const [isDrawingPointerDown, setIsDrawingPointerDown] = useState(false)
+
+  useEffect(() => {
+    if (canvasRef.current) {
+      const parent = canvasRef.current.parentElement
+      if (parent) {
+        canvasRef.current.width = parent.clientWidth
+        canvasRef.current.height = parent.clientHeight
+      }
+    }
+  }, [isDrawing])
+
+  const startDrawing = (e) => {
+    if (!isDrawing || !canvasRef.current) return
+    const ctx = canvasRef.current.getContext('2d')
+    const rect = canvasRef.current.getBoundingClientRect()
+    ctx.beginPath()
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top)
+    setIsDrawingPointerDown(true)
+  }
+
+  const draw = (e) => {
+    if (!isDrawing || !isDrawingPointerDown || !canvasRef.current) return
+    const ctx = canvasRef.current.getContext('2d')
+    const rect = canvasRef.current.getBoundingClientRect()
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top)
+    ctx.strokeStyle = theme.accent || (isDark ? '#fff' : '#000')
+    ctx.lineWidth = 4
+    ctx.lineCap = 'round'
+    ctx.stroke()
+  }
+
+  const stopDrawing = () => {
+    setIsDrawingPointerDown(false)
+  }
 
   const handleMouseMove = (e) => {
     if (!theme.isHolo) return
@@ -684,12 +756,19 @@ function CardFace({ side, content, theme, isDark, isMinimal, layout, decorations
         </motion.div>
       ))}
 
-      {/* Doodle Layer (Phase 2 Simplified) */}
-      {isDrawing && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 15, background: 'rgba(255,255,255,0.05)' }}>
-          <p style={{ position: 'absolute', top: 10, right: 10, fontSize: '10px', background: '#000', color: '#fff', padding: '2px 6px', borderRadius: '4px' }}>Doodle Mode ON</p>
-        </div>
-      )}
+      {/* Doodle Layer */}
+      <canvas 
+        ref={canvasRef}
+        onPointerDown={startDrawing}
+        onPointerMove={draw}
+        onPointerUp={stopDrawing}
+        onPointerOut={stopDrawing}
+        style={{ 
+          position: 'absolute', inset: 0, zIndex: 15, 
+          pointerEvents: isDrawing ? 'auto' : 'none',
+          touchAction: 'none'
+        }} 
+      />
 
       {/* Texture Overlays */}
       {theme.id === 'black-glass' && <div style={{ position: 'absolute', inset: 0, background: 'url("https://www.transparenttextures.com/patterns/dark-matter.png")', opacity: 0.05, pointerEvents: 'none' }}></div>}

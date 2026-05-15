@@ -10,7 +10,13 @@ export const clearLuterCaches = () => {
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && (key.startsWith('luter:') || key.startsWith('luter-'))) {
-      keysToClear.push(key);
+      // Don't clear authentication, session tokens, or tour progress
+      const isAuth = key.toLowerCase().includes('auth') || key.toLowerCase().includes('session');
+      const isTour = key.toLowerCase().includes('tour');
+      
+      if (!isAuth && !isTour) {
+        keysToClear.push(key);
+      }
     }
   }
 

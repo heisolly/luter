@@ -13,13 +13,14 @@ import NotificationsOverlay from './NotificationsOverlay'
 import FloatingDock from './FloatingDock'
 import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceStore'
 import { preloadingService } from '../../services/preloadingService'
+import { LANDING_URL } from '../../utils/urlUtils'
 
 import { LuterTourGuide } from '../shared/tour/LuterTourGuide'
 import { useTourStore } from '../../store/useTourStore'
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const { isTourActive, currentTourId, startTour, hasCompletedTour, setUserId, completedTours, currentUserId } = useTourStore()
+  const { isTourActive, currentTourId, startTour, hasCompletedTour, setUserId, completedTours, currentUserId, isLoadingTours } = useTourStore()
   const { initializeWorkspaces } = useUniversalWorkspaceStore()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [user, setUser] = useState(null)
@@ -37,7 +38,7 @@ export default function Dashboard() {
   }, [user?.id, setUserId])
 
   useEffect(() => {
-    if (!loading && user && currentUserId === user.id && window.location.pathname === '/dashboard') {
+    if (!loading && !isLoadingTours && user && currentUserId === user.id && window.location.pathname === '/dashboard') {
       if (!hasCompletedTour('dashboard-home')) {
         const timer = setTimeout(() => startTour('dashboard-home'), 2000)
         return () => clearTimeout(timer)
@@ -49,7 +50,7 @@ export default function Dashboard() {
         return () => clearTimeout(timer)
       }
     }
-  }, [loading, user, currentUserId, completedTours, window.location.pathname, hasCompletedTour, startTour])
+  }, [loading, isLoadingTours, user, currentUserId, completedTours, window.location.pathname, hasCompletedTour, startTour])
 
   // Force sidebar open during nav tour
   useEffect(() => {
@@ -77,70 +78,115 @@ export default function Dashboard() {
 
     const fetchUser = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.user) {
-          setUser(session.user)
+        // Give Supabase a moment to recover session from storage
+        const { data: { session: initialSession } } = await supabase.auth.getSession()
+        
+        const handleSession = async (session) => {
+          if (session?.user) {
+            setUser(session.user)
+            setUserId(session.user.id)
+            // Pre-load tours even before profile is fetched to set currentUserId
+            useTourStore.getState().loadCompletedTours(session.user.id)
+            
+            const profileCacheKey = `luter:profile:${session.user.id}`
+            const offline = typeof navigator !== 'undefined' && !navigator.onLine
 
-          const profileCacheKey = `luter:profile:${session.user.id}`
-          const offline = typeof navigator !== 'undefined' && !navigator.onLine
-
-          // Load from cache when offline
-          if (offline) {
-            try {
-              const raw = localStorage.getItem(profileCacheKey)
-              if (raw) setProfile(JSON.parse(raw))
-            } catch {}
-          }
-
-          try {
-            // Fetch profile to get the most up-to-date name, role type, and subscription
-            const { data: p } = await supabase
-              .from('profiles')
-              .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at')
-              .eq('id', session.user.id)
-              .maybeSingle()
-            if (p) {
-              setProfile(p)
-              try { localStorage.setItem(profileCacheKey, JSON.stringify(p)) } catch {}
+            if (offline) {
+              try {
+                const raw = localStorage.getItem(profileCacheKey)
+                if (raw) setProfile(JSON.parse(raw))
+              } catch {}
             }
-          } catch (error) {
-            console.warn('Profile fetch failed:', error.message)
-            // Fallback to cache on error
-            try {
-              const raw = localStorage.getItem(profileCacheKey)
-              if (raw) setProfile(JSON.parse(raw))
-            } catch {}
-          }
 
-          try {
-            // Initialize workspaces to ensure backpack shows all courses
-            await initializeWorkspaces()
-          } catch (error) {
-            console.warn('Workspace initialization failed:', error.message)
-          }
-
-          const updateHeartbeat = async () => {
-            if (typeof navigator !== 'undefined' && !navigator.onLine) return
             try {
-              await supabase.from('profiles')
-                .update({ last_active_at: new Date().toISOString() })
+              const { data, error } = await supabase
+                .from('profiles')
+                .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, completed_tours')
                 .eq('id', session.user.id)
+                .maybeSingle()
+              
+              if (error) throw error
+              
+              if (data) {
+                setProfile(data)
+                try { localStorage.setItem(profileCacheKey, JSON.stringify(data)) } catch {}
+                
+                // Sync tour state immediately if data is present
+                useTourStore.getState().loadCompletedTours(session.user.id)
+              }
             } catch (error) {
-              console.warn('Heartbeat update failed:', error.message)
+              console.warn('Profile fetch failed:', error.message)
+              if (error.status === 401 || error.code === '401') {
+                console.log('🔄 Session appears stale (401), attempting refresh...')
+                const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession()
+                if (!refreshError && refreshedSession) {
+                  // Retry profile fetch once
+                  const { data: retryP } = await supabase
+                    .from('profiles')
+                    .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, completed_tours')
+                    .eq('id', refreshedSession.user.id)
+                    .maybeSingle()
+                  if (retryP) setProfile(retryP)
+                }
+              }
             }
+
+            try {
+              await initializeWorkspaces()
+            } catch {}
+
+            const updateHeartbeat = async () => {
+              if (typeof navigator !== 'undefined' && !navigator.onLine) return
+              try {
+                await supabase.from('profiles')
+                  .update({ last_active_at: new Date().toISOString() })
+                  .eq('id', session.user.id)
+              } catch {}
+            }
+            updateHeartbeat()
+            hb = setInterval(updateHeartbeat, 30000)
+            setLoading(false)
+          } else {
+            // Wait a bit longer before redirecting - Supabase might still be initializing
+            setTimeout(async () => {
+              const { data: { session: finalCheck } } = await supabase.auth.getSession()
+              if (!finalCheck) {
+                console.log('❌ No session found after wait, redirecting to signin')
+                const currentPath = window.location.pathname + window.location.search
+                window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(currentPath)}`
+              } else {
+                handleSession(finalCheck)
+              }
+            }, 1500)
           }
-          updateHeartbeat()
-          hb = setInterval(updateHeartbeat, 30000)
+        }
+
+        if (initialSession) {
+          await handleSession(initialSession)
         } else {
-          console.log('❌ No session found, redirecting to signin')
-          const currentPath = window.location.pathname + window.location.search
-          console.log('🔄 Redirect path:', currentPath)
-          navigate(`/signin?redirect=${encodeURIComponent(currentPath)}`)
+          // Listen for auth state change
+          const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (session) {
+              await handleSession(session)
+              subscription.unsubscribe()
+            } else if (event === 'INITIAL_SESSION' && !session) {
+              // Wait for the timeout in handleSession(null)
+              await handleSession(null)
+              subscription.unsubscribe()
+            }
+          })
+          
+          // Absolute safety timeout
+          setTimeout(() => {
+            if (loading && !user) {
+              setLoading(false)
+            }
+          }, 4000)
         }
       } catch (error) {
         console.warn('Dashboard session bootstrap failed:', error.message)
+        setLoading(false)
       }
-      setLoading(false)
     }
 
     const handleResize = () => {
@@ -192,7 +238,7 @@ export default function Dashboard() {
   }
 
   return (
-    <DashboardPrefetchProvider userId={user.id}>
+    <DashboardPrefetchProvider userId={user?.id}>
     <LuterTourGuide />
     <div className={`dash-root ${isMobile ? 'dash-root--mobile' : ''} ${isFocusPage ? 'ws-mode' : ''}`}>
       {isMobile && !isWorkstation && (

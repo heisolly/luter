@@ -71,7 +71,9 @@ import SessionsPage from './components/dashboard/SessionsPage'
 import LevelPage from './components/dashboard/LevelPage'
 import StorePage from './components/dashboard/StorePage'
 import SharedMaterialPreview from './components/shared/SharedMaterialPreview'
-
+import BoardPage from './components/board/BoardPage'
+import { DASHBOARD_URL, LANDING_URL } from './utils/urlUtils'
+import { supabase } from './supabaseClient'
 
 const OFFLINE_BAR_PT = '2.75rem'
 
@@ -97,10 +99,42 @@ const GuestPlayPage = lazy(() => import('./components/dashboard/playground/Guest
 
 export default function App() {
   const offline = useNavigatorOffline()
+  const isProduction = import.meta.env.PROD;
+  const hostname = window.location.hostname;
+  const isDashboardHost = isProduction ? hostname === 'dashboard.luter.app' : hostname.includes('localhost');
+  const isLandingHost = isProduction ? hostname === 'luter.app' : false;
+
+  useEffect(() => {
+    if (!isProduction || hostname.includes('localhost')) return;
+
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const path = window.location.pathname;
+      const landingPaths = ['/', '/features', '/how-it-works', '/pricing', '/about', '/path-calculator', '/signin', '/signup', '/onboarding'];
+      const isAppPath = !landingPaths.includes(path) && !path.startsWith('/checkout') && !path.startsWith('/share') && !path.startsWith('/play') && !path.startsWith('/join');
+
+      // 1. Force landing host for landing paths (and Auth)
+      if (isDashboardHost && landingPaths.includes(path)) {
+        window.location.href = `${LANDING_URL}${path}`;
+      }
+
+      // 2. If on dashboard subdomain and NOT logged in, redirect to luter.app/signin
+      if (isDashboardHost && !session && isAppPath) {
+        window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(path)}`;
+      }
+
+      // 3. Force dashboard host for app paths (if user is logged in)
+      if (isLandingHost && session && isAppPath) {
+        window.location.href = `${DASHBOARD_URL}${path}`;
+      }
+    };
+
+    checkSession();
+  }, [isDashboardHost, isLandingHost, isProduction]);
 
   return (
-    <>
-      {offline ? (
+    <div className="luter-app">
+      {offline && (
         <div
           role="status"
           className="fixed top-0 left-0 right-0 z-[10000] px-4 py-2.5 text-center text-sm text-white shadow-md"
@@ -108,20 +142,26 @@ export default function App() {
         >
           You are offline. The app will use cached pages and study data where possible; reconnect to sync.
         </div>
-      ) : null}
+      )}
       <div style={{ paddingTop: offline ? OFFLINE_BAR_PT : undefined }}>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/features" element={<Features />} />
-          <Route path="/how-it-works" element={<HowItWorks />} />
-          <Route path="/pricing" element={<StandalonePricingPage />} />
-          <Route path="/checkout" element={<PaystackCheckout />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/path-calculator" element={<PathCalculator />} />
-          <Route path="/signin" element={<SignIn />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route path="/onboarding" element={<Onboarding />} />
+          {/* LANDING & AUTH PAGES (Only on luter.app) */}
+          {(!isDashboardHost || !isProduction) && (
+            <>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/features" element={<Features />} />
+              <Route path="/how-it-works" element={<HowItWorks />} />
+              <Route path="/pricing" element={<StandalonePricingPage />} />
+              <Route path="/checkout" element={<PaystackCheckout />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/path-calculator" element={<PathCalculator />} />
+              <Route path="/signin" element={<SignIn />} />
+              <Route path="/signup" element={<SignUp />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+            </>
+          )}
 
+          {/* DASHBOARD ROUTES (Available on dashboard host) */}
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<DashboardHome />} />
             <Route path="courses/:courseId/materials/:weekId" element={<StudyMaterialsWeekPage />} />
@@ -156,18 +196,37 @@ export default function App() {
             <Route path="sessions" element={<SessionsPage />} />
             <Route path="session/:sessionId" element={<StudySessionPage />} />
             <Route path="exam-session/:sessionId" element={<ExamSessionPage />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
 
+          {/* ROOT LEVEL ALIASES (Only on dashboard host) */}
+          {isDashboardHost && (
+            <Route element={<Dashboard />}>
+              <Route path="/home" element={<DashboardHome />} />
+              <Route path="/compete" element={<PlaygroundPage />} />
+              <Route path="/sessions" element={<SessionsPage />} />
+              <Route path="/library" element={<LibraryPage />} />
+              <Route path="/store" element={<StorePage />} />
+              <Route path="/courses" element={<CoursesPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/profile" element={<LevelPage />} />
+              <Route path="/backpack" element={<Navigate to="/courses" replace />} />
+              <Route path="/vault" element={<VaultPage />} />
+            </Route>
+          )}
+
+          {/* SHARED ROUTES (Available on both) */}
           <Route path="/exam-session/:sessionId" element={<ExamSessionView />} />
           <Route path="/share/flashcards/:bundleId" element={<SharedFlashcardsView />} />
           <Route path="/shared/:shareToken" element={<SharedMaterialPreview />} />
-
           <Route path="/play/:roomId" element={<Suspense fallback={<div>Loading Arena...</div>}><GuestPlayPage /></Suspense>} />
           <Route path="/join/:inviteCode" element={<JoinGroupPage />} />
+          <Route path="/board/:roomId" element={<BoardPage />} />
+
+          {/* ADMIN ROUTES (Available on dashboard host) */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminOverview />} />
-                        <Route path="notes-manager" element={<AdminNotesManager />} />
+            <Route path="notes-manager" element={<AdminNotesManager />} />
             <Route path="requests" element={<NotesRequestsAdmin />} />
             <Route path="upload" element={<LuterAdminUploadPage />} />
             <Route path="users/:userId" element={<AdminUserDetail />} />
@@ -191,8 +250,12 @@ export default function App() {
             <Route path="controls" element={<AdminSystemControls />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Route>
+
+          {/* DEFAULT REDIRECTS */}
+          <Route path="/" element={<Navigate to={isDashboardHost ? "/dashboard" : "/"} replace />} />
+          <Route path="*" element={<Navigate to={isDashboardHost ? "/dashboard" : "/"} replace />} />
         </Routes>
       </div>
-    </>
+    </div>
   )
 }

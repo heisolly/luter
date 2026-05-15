@@ -8,6 +8,7 @@ import Header from '../shared/Header'
 import useTourStore from '../../store/useTourStore'
 
 export default function LevelPage() {
+  const { user, isMobile } = useOutletContext()
   const { ready, bundle, refresh } = useDashboardPrefetch()
   
   const [gamificationData, setGamificationData] = useState(null)
@@ -28,14 +29,14 @@ export default function LevelPage() {
     loadAvatar()
   }, [user])
 
-  const { startTour, hasCompletedTour } = useTourStore()
+  const { startTour, hasCompletedTour, isLoadingTours } = useTourStore()
 
   useEffect(() => {
-    if (user?.id && !loading && gamificationData && !hasCompletedTour('profile')) {
+    if (user?.id && !loading && !isLoadingTours && gamificationData && !hasCompletedTour('profile')) {
       const timer = setTimeout(() => startTour('profile'), 2000)
       return () => clearTimeout(timer)
     }
-  }, [user?.id, loading, gamificationData])
+  }, [user?.id, loading, isLoadingTours, gamificationData])
 
   const loadAvatar = async () => {
     try {

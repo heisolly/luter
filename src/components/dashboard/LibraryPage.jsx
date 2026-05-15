@@ -28,14 +28,14 @@ export default function LibraryPage() {
     }
   }, [user])
 
-  const { startTour, hasCompletedTour, completedTours, currentUserId } = useTourStore()
+  const { startTour, hasCompletedTour, completedTours, currentUserId, isLoadingTours } = useTourStore()
 
   useEffect(() => {
-    if (user?.id && currentUserId === user.id && !loading && !hasCompletedTour('library')) {
+    if (user?.id && currentUserId === user.id && !loading && !isLoadingTours && !hasCompletedTour('library')) {
       const timer = setTimeout(() => startTour('library'), 2000)
       return () => clearTimeout(timer)
     }
-  }, [user?.id, currentUserId, completedTours, loading, hasCompletedTour, startTour])
+  }, [user?.id, currentUserId, completedTours, loading, hasCompletedTour, startTour, isLoadingTours])
 
   async function fetchLibraryContent() {
     setLoading(true)

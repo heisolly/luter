@@ -25,14 +25,14 @@ export default function StreakPage() {
     getStreak()
   }, [user, ready, bundle])
 
-  const { startTour, hasCompletedTour } = useTourStore()
+  const { startTour, hasCompletedTour, isLoadingTours } = useTourStore()
 
   useEffect(() => {
-    if (user?.id && ready && !hasCompletedTour('streak')) {
+    if (user?.id && ready && !isLoadingTours && !hasCompletedTour('streak')) {
       const timer = setTimeout(() => startTour('streak'), 2000)
       return () => clearTimeout(timer)
     }
-  }, [user?.id, ready])
+  }, [user?.id, ready, isLoadingTours])
 
   const DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
   

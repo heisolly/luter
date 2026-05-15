@@ -54,7 +54,7 @@ export default function SessionsPage() {
   const [activeTab, setActiveTab] = useState('active')
   const [sortBy, setSortBy] = useState('lastUpdated')
 
-  const { startTour, hasCompletedTour, completedTours, currentUserId } = useTourStore()
+  const { startTour, hasCompletedTour, completedTours, currentUserId, isLoadingTours } = useTourStore()
 
   useEffect(() => {
     if (user?.id) {
@@ -64,11 +64,11 @@ export default function SessionsPage() {
   }, [user?.id, loadSessions])
 
   useEffect(() => {
-    if (user?.id && currentUserId === user.id && !loading && !hasCompletedTour('sessions')) {
+    if (user?.id && currentUserId === user.id && !loading && !isLoadingTours && !hasCompletedTour('sessions')) {
       const timer = setTimeout(() => startTour('sessions'), 2000)
       return () => clearTimeout(timer)
     }
-  }, [user?.id, currentUserId, completedTours, loading, hasCompletedTour, startTour])
+  }, [user?.id, currentUserId, completedTours, loading, hasCompletedTour, startTour, isLoadingTours])
 
   const handleCreateSession = async () => {
     if (!newSessionName.trim()) return

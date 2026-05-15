@@ -380,9 +380,20 @@ Focus on:
         flashcardData = this.createBasicFlashcards(analysis, count)
       }
       
+      // Final validation
+      const finalCards = flashcardData.flashcards || []
+      if (finalCards.length === 0) {
+        console.warn('AI returned empty flashcards, using basic cards fallback')
+        const fallback = this.createBasicFlashcards(analysis, count)
+        return {
+          success: true,
+          flashcards: fallback.flashcards
+        }
+      }
+
       return {
         success: true,
-        flashcards: flashcardData.flashcards || []
+        flashcards: finalCards
       }
       
     } catch (error) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import { SidebarSimple } from '@phosphor-icons/react'
 
@@ -17,6 +17,7 @@ const Header = ({
   setSidebarCollapsed = null
 }) => {
   const navigate = useNavigate()
+  const outletContext = useOutletContext() || {}
   const { bundle } = useDashboardPrefetch()
   const profile = bundle?.profile?.data || bundle?.profile
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -97,6 +98,13 @@ const Header = ({
           <button 
             className="MuiBox-root knowt-1krzpqj"
             aria-label="open menu"
+            onClick={() => {
+              if (outletContext?.setMobileSidebarOpen) {
+                outletContext.setMobileSidebarOpen(true)
+              } else if (setSidebarCollapsed) {
+                setSidebarCollapsed(!sidebarCollapsed)
+              }
+            }}
             style={{
               display: isMobile ? 'flex' : 'none',
               background: 'none',

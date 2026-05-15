@@ -20,8 +20,9 @@ const LoadingFallback = () => (
 export default function MaterialRenderer({ material, activeTab, onSparkUpdate, setViewportData, onScrollUpdate, onMaterialUpdate }) {
   if (!material) return null
 
-  // Only mount the viewer when we're on the content tab
-  if (activeTab !== 'content') return null
+  // Keep the viewer mounted even if not on content tab to prevent expensive reloads
+  // We handle the UI visibility in the parent WorkstationPage
+
 
   // If material is still processing, show the professional pending state
   if (material.processing_status === 'pending' || material.processing_status === 'processing') {

@@ -835,7 +835,7 @@ const Onboarding = () => {
       {/* Main Container */}
       <div className="onboarding-main-card" style={{ 
         width: 'calc(100vw - 32px)', 
-        height: 'calc(100vh - 120px)', 
+        minHeight: 'calc(100vh - 120px)', 
         maxWidth: '1200px', 
         maxHeight: '900px', 
         background: 'white', 
@@ -849,7 +849,7 @@ const Onboarding = () => {
         display: 'flex', 
         flexDirection: 'column', 
         alignItems: 'center',
-        overflow: 'visible'
+        overflow: 'hidden'
       }}>
         {step > 1 && <ProgressBar step={step} totalSteps={totalSteps} onBack={goToBack} />}
         

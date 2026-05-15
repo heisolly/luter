@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom'
 import { RiStackFill as Layers, RiLoader4Line as Loader2, RiFlashlightFill as Zap, RiRefreshLine as RotateCcw, RiArrowRightSLine as ChevronRight, RiArrowLeftSLine as ChevronLeft } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
+import MaterialAnalysisService from '../../services/materialAnalysisService'
 import LuterLogo from '../shared/LuterLogo'
 
 export default function FlashcardPage() {
@@ -24,22 +25,38 @@ export default function FlashcardPage() {
   }
 
   const generateCards = async () => {
-    if (!selectedMaterial?.extracted_text) return
+    if (!selectedMaterial) return
     setIsGenerating(true)
     setFlashcards([])
     try {
-      const response = await callGroqAPI(
-        [{ role: 'user', content: selectedMaterial.extracted_text }],
-        GROQ_MODELS.SPEEDSTER,
-        { systemPromptOverride: GROQ_PROMPTS.FLASHCARDS }
-      )
-      const content = response.choices[0].message.content
-      const jsonMatch = content.match(/\[[\s\S]*\]/)
-      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content)
-      setFlashcards(parsed)
-      setCurrentIndex(0)
+      // Ensure we have text
+      let text = selectedMaterial.extracted_text
+      if (!text) {
+        const { data: latest } = await supabase.from('materials').select('extracted_text').eq('id', selectedMaterial.id).single()
+        if (latest?.extracted_text) {
+          text = latest.extracted_text
+        } else {
+          // Trigger emergency extraction
+          const res = await MaterialAnalysisService.reprocessMaterial(selectedMaterial)
+          if (res.success) text = res.fullText
+        }
+      }
+
+      if (!text) throw new Error('No content available in this material')
+
+      const result = await MaterialAnalysisService.generateDirectFlashcards(text, 10)
+      if (result.success) {
+        // Normalize cards for the local display
+        const normalized = result.flashcards.map(c => ({
+          front: c.front || c.question || 'No content',
+          back: c.back || c.answer || 'No content'
+        }))
+        setFlashcards(normalized)
+        setCurrentIndex(0)
+      }
     } catch (err) {
       console.error(err)
+      alert(err.message || 'Generation failed')
     } finally {
       setIsGenerating(false)
     }

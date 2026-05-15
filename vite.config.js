@@ -179,6 +179,7 @@ export default defineConfig(({ mode }) => {
     optimizeDeps: {
       exclude: ['pdfjs-dist'],
       include: [
+        '@excalidraw/excalidraw',
         '@react-pdf-viewer/search',
         '@react-pdf-viewer/full-screen',
         'docx-preview',

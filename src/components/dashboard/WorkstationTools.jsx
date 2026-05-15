@@ -116,11 +116,12 @@ export function WorkstationFlashcards({ flashcards = [], items = [], material, u
     if (flashcards?.flashcards && Array.isArray(flashcards.flashcards)) return flashcards.flashcards
     if (flashcards?.items && Array.isArray(flashcards.items)) return flashcards.items
     if (Array.isArray(items) && items.length > 0) return items
+    if (items?.flashcards && Array.isArray(items.flashcards)) return items.flashcards
     return []
   }
   const safeItems = getItems()
   
-  return <FlashcardEngineComponent material={material} items={safeItems} user={user} />
+  return <FlashcardEngineComponent material={material} items={safeItems} user={user} onRegenerate={onRegenerate} />
 }
 
 

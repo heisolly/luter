@@ -3,6 +3,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { clearLuterCaches } from '../../utils/cacheUtils';
+import { DASHBOARD_URL } from '../../utils/urlUtils';
 
 const GoogleLoginButton = () => {
   const navigate = useNavigate();
@@ -67,7 +68,14 @@ const GoogleLoginButton = () => {
         navigate('/onboarding');
       } else {
         console.log('Onboarding complete, routing to', safeRedirect);
-        navigate(safeRedirect);
+        // Cross-subdomain redirect if needed
+        const isAppPath = safeRedirect.startsWith('/dashboard') || !['/onboarding', '/signin', '/signup'].includes(safeRedirect);
+        if (isAppPath) {
+          const targetPath = safeRedirect.startsWith('/dashboard') ? safeRedirect : `/dashboard${safeRedirect.startsWith('/') ? '' : '/'}${safeRedirect}`;
+          window.location.href = `${DASHBOARD_URL}${targetPath}`;
+        } else {
+          navigate(safeRedirect);
+        }
       }
     } catch (error) {
       console.error('Error during authentication:', error);
