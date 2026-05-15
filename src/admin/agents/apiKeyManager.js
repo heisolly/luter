@@ -198,29 +198,26 @@ export async function withKeyRotation(provider, fn, maxRetries = null) {
       const msg = err.message || ''
 
       // 413 = payload too large — rotating keys won't fix this
-      // 400 = bad request, 401 = unauthorized, 403 = forbidden
-      const isNonRetryable =
-        msg.includes('413') ||
-        msg.includes('Content Too Large') ||
-        msg.includes('400:') ||
-        msg.includes('401:') ||
-        msg.includes('403:')
+      const isNonRetryable = msg.includes('413') || msg.includes('Content Too Large')
 
       if (isNonRetryable) {
         console.error(`[KeyManager] Non-retryable error for ${provider}: ${msg.slice(0, 100)}`)
         throw err
       }
 
-      // Only rotate on actual rate limits
-      const isRateLimit =
+      // Rotate on rate limits or dead keys
+      const isRateLimitOrDeadKey =
         msg.includes('429') ||
+        msg.includes('401') ||
+        msg.includes('403') ||
+        (msg.includes('400') && msg.includes('restricted')) ||
         msg.toLowerCase().includes('rate limit') ||
         msg.toLowerCase().includes('quota') ||
         msg.toLowerCase().includes('too many requests') ||
         err.status === 429
 
-      if (isRateLimit && attempt < maxTries - 1) {
-        console.warn(`[KeyManager] Rate limit (429) for ${provider}, rotating key... (attempt ${attempt + 1}/${maxTries})`)
+      if (isRateLimitOrDeadKey && attempt < maxTries - 1) {
+        console.warn(`[KeyManager] Rate limit or dead key for ${provider}, rotating key... (attempt ${attempt + 1}/${maxTries})`)
         markKeyFailed(provider, key)
         // Wait 3s before trying next key to let rate limits cool down
         await new Promise(r => setTimeout(r, 3000))

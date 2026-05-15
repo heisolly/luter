@@ -400,7 +400,18 @@ export default function AdminSyllabusManager() {
         return
       }
       
-      // Check for duplicates
+      // Check for duplicates against existing rows
+      const checkDuplicates = (newList) => {
+        const dups = []
+        for (const nc of newList) {
+          const existing = rows.find(r => r.code === nc.code)
+          if (existing) {
+            dups.push({ course: nc, existing })
+          }
+        }
+        return dups
+      }
+      
       const duplicates = checkDuplicates(list)
       if (duplicates.length > 0) {
         const duplicateMessages = duplicates.map(d => 
@@ -1712,51 +1723,53 @@ const publishRow = async (id) => {
           </div>
 
           <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            display: 'flex', 
+            flexWrap: 'wrap',
             gap: 16,
             marginBottom: 24,
             padding: 16,
             background: '#f8fafc',
             borderRadius: 12,
-            border: '1px solid #e2e8f0'
+            border: '1px solid #e2e8f0',
+            alignItems: 'flex-end'
           }}>
-            <div>
+            <div style={{ flex: '1 1 200px' }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: '#4b5563', display: 'block', marginBottom: 6 }}>University</label>
               <input 
                 className="adm-input" 
+                style={{ width: '100%' }}
                 placeholder="e.g. University of Lagos"
                 value={univ} 
                 onChange={e => setUniv(e.target.value)} 
               />
             </div>
-            <div>
+            <div style={{ flex: '1 1 200px' }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: '#4b5563', display: 'block', marginBottom: 6 }}>Department</label>
               <input 
                 className="adm-input" 
+                style={{ width: '100%' }}
                 placeholder="e.g. Computer Science"
                 value={dept} 
                 onChange={e => setDept(e.target.value)} 
               />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#4b5563', display: 'block', marginBottom: 6 }}>Level</label>
-                <select className="adm-input" value={level} onChange={e => setLevel(e.target.value)}>
-                  {LEVELS.map(l => <option key={l} value={l}>{l}L</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#4b5563', display: 'block', marginBottom: 6 }}>Semester</label>
-                <select className="adm-input" value={semester} onChange={e => setSemester(e.target.value)}>
-                  {SEMESTERS.map(s => <option key={s.v} value={s.v}>{s.label}</option>)}
-                </select>
-              </div>
+            <div style={{ flex: '0 0 100px' }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#4b5563', display: 'block', marginBottom: 6 }}>Level</label>
+              <select className="adm-input" style={{ width: '100%' }} value={level} onChange={e => setLevel(e.target.value)}>
+                {LEVELS.map(l => <option key={l} value={l}>{l}L</option>)}
+              </select>
             </div>
-            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <div style={{ flex: '0 0 140px' }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#4b5563', display: 'block', marginBottom: 6 }}>Semester</label>
+              <select className="adm-input" style={{ width: '100%' }} value={semester} onChange={e => setSemester(e.target.value)}>
+                {SEMESTERS.map(s => <option key={s.v} value={s.v}>{s.label}</option>)}
+              </select>
+            </div>
+
+            <div style={{ flex: '1 1 100%', display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
               <button 
                 className="adm-btn adm-btn--primary" 
-                style={{ width: '100%', height: 42, gap: 8 }}
+                style={{ height: 42, gap: 8, padding: '0 24px' }}
                 onClick={runWebResearch}
                 disabled={isResearching || !univ || !dept}
               >
@@ -1767,11 +1780,9 @@ const publishRow = async (id) => {
                 )}
                 {isResearching ? 'Searching Web...' : 'Research Online'}
               </button>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
               <button 
                 className="adm-btn adm-btn--primary" 
-                style={{ width: '100%', height: 42, gap: 8, background: '#7a12cc', border: 'none' }}
+                style={{ height: 42, gap: 8, padding: '0 24px', background: '#7a12cc', border: 'none' }}
                 onClick={runAutonomousResearch}
                 disabled={isResearching}
               >

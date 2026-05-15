@@ -3,6 +3,7 @@
 // System Configuration
 export const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
 export const GROQ_BASE_URL = 'https://api.groq.com/openai/v1'
+import { getKey, markKeyFailed } from './admin/agents/apiKeyManager'
 
 // Model Configuration
 export const GROQ_MODELS = {
@@ -181,19 +182,26 @@ class RequestQueue {
         const result = await this.executeRequest(request)
         resolve(result)
         
-        // Anti-Burst Delay: Small cool-down to keep Rate Limits (TPD/RPM) healthy
+        // Anti-Burst Delay
         if (this.queue.length > 0) {
           await new Promise(resolve => setTimeout(resolve, 500))
         }
       } catch (error) {
-        // If rate limited, use exponential backoff and retry
-        if (error.status === 429 && retryCount < 3) {
-          const delay = Math.min(2000 * Math.pow(2, retryCount), 30000) // 2s, 4s, 8s max 30s
-          console.log(`Rate limited. Waiting ${delay/1000} seconds before retry... (attempt ${retryCount + 1}/3)`)
+        const isRotateableError = 
+          error.status === 429 || 
+          error.status === 401 || 
+          error.status === 403 || 
+          (error.status === 400 && error.message && error.message.includes('restricted'));
+
+        if (isRotateableError && retryCount < 8) {
+          if (error.apiKeyUsed) {
+            markKeyFailed('groq', error.apiKeyUsed)
+          }
+          const delay = Math.min(2000 * Math.pow(2, retryCount), 10000)
+          console.log(`Key Failed (HTTP ${error.status}). Rotating key and waiting ${delay/1000}s before retry... (attempt ${retryCount + 1}/8)`)
           await new Promise(resolve => setTimeout(resolve, delay))
-          // Add back to front of queue to retry with increased count
           this.queue.unshift({ request, resolve, reject, retryCount: retryCount + 1 })
-          continue // Skip to next iteration
+          continue
         } else {
           reject(error)
         }
@@ -205,10 +213,12 @@ class RequestQueue {
 
   async executeRequest(request) {
     const { messages, model, temperature = 0.7, responseFormat } = request
+    const apiKeyUsed = getKey('groq') || import.meta.env.VITE_GROQ_API_KEY
+    
     const response = await fetch(`${GROQ_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Authorization': `Bearer ${apiKeyUsed}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -225,6 +235,7 @@ class RequestQueue {
       const error = new Error(`HTTP error! status: ${response.status} - ${errorBody?.error?.message || 'Unknown error'}`)
       error.status = response.status
       error.details = errorBody
+      error.apiKeyUsed = apiKeyUsed
       throw error
     }
 
@@ -321,8 +332,34 @@ Generate a complete semester timetable-style list: at least 20 courses, ideally 
 
 export function stripJsonFence(raw) {
   let s = (raw || '').trim()
+  
+  // Try to find a markdown code block containing JSON
+  const match = s.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+  if (match) {
+    return match[1].trim()
+  }
+  
+  // If no code block, try to find the first { or [ and last } or ]
+  const firstBrace = s.indexOf('{')
+  const firstBracket = s.indexOf('[')
+  const lastBrace = s.lastIndexOf('}')
+  const lastBracket = s.lastIndexOf(']')
+  
+  const firstObj = firstBrace !== -1 ? firstBrace : Infinity
+  const firstArr = firstBracket !== -1 ? firstBracket : Infinity
+  const first = Math.min(firstObj, firstArr)
+  
+  if (first !== Infinity) {
+    const isObj = first === firstBrace
+    const last = isObj ? Math.max(lastBrace, s.lastIndexOf('}')) : Math.max(lastBracket, s.lastIndexOf(']'))
+    if (last !== -1 && last >= first) {
+      return s.substring(first, last + 1).trim()
+    }
+  }
+
+  // Fallback to original logic if above fails
   if (s.startsWith('```json')) s = s.slice(7)
-  if (s.startsWith('```')) s = s.slice(3)
+  else if (s.startsWith('```')) s = s.slice(3)
   if (s.endsWith('```')) s = s.slice(0, -3)
   return s.trim()
 }
@@ -356,24 +393,40 @@ export async function parseSyllabusPasteWithGroq(rawText) {
   }
 }
 
-/** "Fetch from web" (assistant): freeform query → suggested courses (no real browsing). */
+import tavilyService from './services/tavilyService'
+
+/** "Fetch from web" (assistant): freeform query → suggested courses. Now uses Tavily. */
 export async function suggestSyllabusFromAiQuery(query) {
   if (!GROQ_API_KEY || !query?.trim()) return []
   try {
+    let searchContext = ''
+    try {
+      const searchResults = await tavilyService.search(`${query} university syllabus courses nigeria`, {
+        search_depth: 'advanced',
+        include_answer: true,
+        max_results: 3
+      })
+      searchContext = `\n\nWEB SEARCH RESULTS FOR CONTEXT:\n${searchResults.answer || ''}\n` +
+        searchResults.results.map((r, i) => `Source [${i+1}]: ${r.title}\nContent: ${r.content}`).join('\n\n')
+    } catch(err) {
+      console.warn('Tavily search failed for suggestSyllabusFromAiQuery, falling back to pure AI', err)
+    }
+
     const data = await callGroqAPI(
       [
         {
           role: 'user',
-          content: `Admin query (infer university, faculty if mentioned, department, level, semester, and propose courses):\n${query.trim().slice(0, 2000)}`,
+          content: `Admin query (infer university, faculty if mentioned, department, level, semester, and propose courses):\n${query.trim().slice(0, 2000)}${searchContext.slice(0, 8000)}`,
         },
       ],
-      GROQ_MODELS.PROFESSOR,
+      GROQ_MODELS.SPEEDSTER,
       { temperature: 0.35, systemPromptOverride: GROQ_PROMPTS.ADMIN_WEB_ASSIST },
     )
     const raw = stripJsonFence(data?.choices?.[0]?.message?.content || '')
     const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    return parsed
+    const arr = Array.isArray(parsed) ? parsed : parsed?.courses
+    if (!Array.isArray(arr)) return []
+    return arr
       .map((c) => ({
         code: String(c.code || '')
           .replace(/\s+/g, '')
@@ -544,14 +597,16 @@ TASK:
 Based on these search results, identify the official or most plausible course list for this specific academic slot. If the results mention "handbook", "curriculum", or "official list", prioritize those.`
 
   try {
-    const data = await callGroqAPI([{ role: 'user', content: userMsg }], GROQ_MODELS.PROFESSOR, {
+    const data = await callGroqAPI([{ role: 'user', content: userMsg }], GROQ_MODELS.SPEEDSTER, {
       temperature: 0.2,
-      systemPromptOverride: GROQ_PROMPTS.ADMIN_WEB_RESEARCH_PARSE,
+      systemPromptOverride: GROQ_PROMPTS.ADMIN_WEB_RESEARCH_PARSE
     })
     const raw = stripJsonFence(data?.choices?.[0]?.message?.content || '')
     const parsed = JSON.parse(raw)
     const arr = Array.isArray(parsed) ? parsed : parsed?.courses
-    if (!Array.isArray(arr)) return []
+    if (!Array.isArray(arr)) {
+      throw new Error(`Parsed result is not an array. Raw JSON: ${raw.slice(0, 50)}...`);
+    }
     
     return arr.map((c) => ({
       code: String(c.code || '').replace(/\s+/g, '').toUpperCase().slice(0, 16),
@@ -562,6 +617,12 @@ Based on these search results, identify the official or most plausible course li
     })).filter(c => c.code && c.title)
   } catch (e) {
     console.warn('researchSyllabusOnline failed', e)
-    return []
+    return [{ 
+      code: 'ERR_FAIL', 
+      title: `Extraction Failed: ${e.message}`, 
+      is_elective: false, 
+      confidence: 0, 
+      source_snippet: 'Please check console for details.' 
+    }]
   }
 }
