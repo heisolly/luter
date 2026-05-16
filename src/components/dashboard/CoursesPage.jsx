@@ -142,13 +142,23 @@ export default function CoursesPage() {
   const navigate = useNavigate()
   const { bundle } = useDashboardPrefetch()
   const profile = bundle?.profile?.data || bundle?.profile
+  const isSoloLearner = profile?.is_university_user === false || profile?.role === 'solo_learner'
   const { workspace } = useUniversalWorkspaceStore()
   const { sessions } = useSessionStore()
   
   const [activeTab, setActiveTab] = useState(() => {
     // Load active tab from localStorage or default to 'courses'
-    return localStorage.getItem('coursesPageActiveTab') || 'courses'
+    const saved = localStorage.getItem('coursesPageActiveTab')
+    if (isSoloLearner && (!saved || saved === 'courses')) return 'materials'
+    return saved || 'courses'
   })
+
+  // Force materials tab for solo learners
+  useEffect(() => {
+    if (isSoloLearner && activeTab === 'courses') {
+      setActiveTab('materials')
+    }
+  }, [isSoloLearner, activeTab])
   const [courses, setCourses] = useState([])
   const [materials, setMaterials] = useState([])
   const [loading, setLoading] = useState(true)
@@ -1037,55 +1047,57 @@ export default function CoursesPage() {
       </div>
 
       {/* Pill Toggle Tabs - Centered */}
-      <div id="tour-backpack-tabs" style={{ 
-        display: 'flex', 
-        justifyContent: 'center',
-        marginBottom: 48,
-        marginTop: 32
-      }}>
-        <div style={{
-          display: 'flex',
-          background: '#f1f5f9', 
-          borderRadius: 12, 
-          padding: 4,
-          gap: 4
+      {!isSoloLearner && (
+        <div id="tour-backpack-tabs" style={{ 
+          display: 'flex', 
+          justifyContent: 'center',
+          marginBottom: 48,
+          marginTop: 32
         }}>
-          <button
-            onClick={() => setActiveTab('courses')}
-            style={{
-              padding: '10px 24px',
-              background: activeTab === 'courses' ? '#8b5cf6' : 'transparent',
-              color: activeTab === 'courses' ? '#fff' : '#64748b',
-              border: 'none',
-              borderRadius: 10,
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              fontFamily: "'Outfit', sans-serif"
-            }}
-          >
-            My Courses
-          </button>
-          <button
-            onClick={() => setActiveTab('materials')}
-            style={{
-              padding: '10px 24px',
-              background: activeTab === 'materials' ? '#fb923c' : 'transparent',
-              color: activeTab === 'materials' ? '#fff' : '#64748b',
-              border: 'none',
-              borderRadius: 10,
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              fontFamily: "'Outfit', sans-serif"
-            }}
-          >
-            Materials
-          </button>
+          <div style={{
+            display: 'flex',
+            background: '#f1f5f9', 
+            borderRadius: 12, 
+            padding: 4,
+            gap: 4
+          }}>
+            <button
+              onClick={() => setActiveTab('courses')}
+              style={{
+                padding: '10px 24px',
+                background: activeTab === 'courses' ? '#8b5cf6' : 'transparent',
+                color: activeTab === 'courses' ? '#fff' : '#64748b',
+                border: 'none',
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                fontFamily: "'Outfit', sans-serif"
+              }}
+            >
+              My Courses
+            </button>
+            <button
+              onClick={() => setActiveTab('materials')}
+              style={{
+                padding: '10px 24px',
+                background: activeTab === 'materials' ? '#fb923c' : 'transparent',
+                color: activeTab === 'materials' ? '#fff' : '#64748b',
+                border: 'none',
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                fontFamily: "'Outfit', sans-serif"
+              }}
+            >
+              Materials
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Content */}
       <AnimatePresence mode="wait">

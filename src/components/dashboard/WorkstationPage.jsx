@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import {
@@ -34,16 +35,19 @@ import {
   X,
   PaperPlaneTilt as PaperPlaneIcon,
   Clock,
-  Crown
+  Crown,
+  GridFour,
+  PenNib,
+  Layout
 } from '@phosphor-icons/react'
 import useTourStore from '../../store/useTourStore'
-import { 
-  RiBookOpenFill as BookOpen, RiStarFill as Star, RiFileTextFill as RiFileText, RiCheckboxCircleFill as CheckCircle, RiArrowRightSLine as RiCaretRight, RiArrowLeftLine as ArrowLeft, RiExternalLinkLine as ArrowSquareOut, RiStackFill as RiStack, 
-  RiQuestionFill as Question, RiAddLine as Plus, RiSearchLine as MagnifyingGlass, RiArrowLeftSLine as RiCaretLeft, RiBriefcaseFill as Briefcase, RiPlayCircleFill as PlayCircle, RiSettings4Fill as Settings, RiUserFill as User, RiLogoutBoxLine as SignOut, 
-  RiMore2Fill as DotsThreeVertical, RiLayoutMasonryFill as RiLayoutMasonry, RiBookmarkFill as Bookmark, RiFlashlightFill as Zap, 
-  RiErrorWarningFill as Warning, RiListCheck, RiShareFill as Share, 
-  RiGraduationCapFill as GraduationCap, RiShareForwardFill as RiShareNetwork, RiClipboardFill as RiClipboardText, RiUserSmileFill as Baby, RiCheckLine as Check, RiSubtractLine as Minus, 
-  RiLightbulbFill as Lightbulb, RiRefreshLine as ArrowClockwise, RiArrowRightLine as RiArrowRight, RiHome4Fill as RiHouse, RiCheckboxFill as CheckSquare, RiMoreFill as DotsThreeOutline, 
+import {
+  RiBookOpenFill as BookOpen, RiStarFill as Star, RiFileTextFill as RiFileText, RiCheckboxCircleFill as CheckCircle, RiArrowRightSLine as RiCaretRight, RiArrowLeftLine as ArrowLeft, RiExternalLinkLine as ArrowSquareOut, RiStackFill as RiStack,
+  RiQuestionFill as Question, RiAddLine as Plus, RiSearchLine as MagnifyingGlass, RiArrowLeftSLine as RiCaretLeft, RiBriefcaseFill as Briefcase, RiPlayCircleFill as PlayCircle, RiSettings4Fill as Settings, RiUserFill as User, RiLogoutBoxLine as SignOut,
+  RiMore2Fill as DotsThreeVertical, RiLayoutMasonryFill as RiLayoutMasonry, RiBookmarkFill as Bookmark, RiFlashlightFill as Zap,
+  RiErrorWarningFill as Warning, RiListCheck, RiShareFill as Share,
+  RiGraduationCapFill as GraduationCap, RiShareForwardFill as RiShareNetwork, RiClipboardFill as RiClipboardText, RiUserSmileFill as Baby, RiCheckLine as Check, RiSubtractLine as Minus,
+  RiLightbulbFill as Lightbulb, RiRefreshLine as ArrowClockwise, RiArrowRightLine as RiArrowRight, RiHome4Fill as RiHouse, RiCheckboxFill as CheckSquare, RiMoreFill as DotsThreeOutline,
   RiStickyNoteFill as Note, RiArrowUpLine as ArrowUp, RiBookFill as Book, RiStackFill as Library, RiPencilFill as PencilLine, RiLayoutColumnFill as Columns, RiFullscreenFill as CornersOut, RiZoomInLine as MagnifyingGlassPlus,
   RiThumbUpLine, RiThumbDownLine, RiFileCopyLine, RiArrowRightUpLine, RiMicLine, RiEyeOffLine, RiEyeLine
 } from "react-icons/ri"
@@ -79,10 +83,10 @@ import { GroupQuiz } from './GroupQuiz'
 import { PresenceBar, SyncControl, LiveReactionBar } from './CollaborationTools'
 import { useGroupChat } from '../../hooks/useGroupChat'
 import { useLiveBroadcast, useLiveEventListener } from '../../hooks/useLiveCollaboration'
-import { 
-  useStorage, 
-  useMutation, 
-  useOthers, 
+import {
+  useStorage,
+  useMutation,
+  useOthers,
   useUpdateMyPresence,
   useSelf
 } from '../../liveblocks.config'
@@ -115,7 +119,7 @@ function WorkstationContent() {
       setActiveExplanation(actionId === 'explain' ? "Analyzing and explaining..." : "Summarizing selection...")
       setActiveSideTab('chat')
       if (isSidePanelCollapsed) setSidePanelCollapsed(false)
-      
+
       try {
         // Usage check
         if (explanationsLeft <= 0 && !profile?.is_premium) {
@@ -123,7 +127,7 @@ function WorkstationContent() {
           return
         }
 
-        const prompt = actionId === 'explain' 
+        const prompt = actionId === 'explain'
           ? `Explain this concept clearly for a student: "${text}"`
           : `Provide a concise, high-impact summary of this section: "${text}"`
 
@@ -153,6 +157,10 @@ function WorkstationContent() {
     }
   }
 
+  const handlePageJump = useCallback((page) => {
+    window.dispatchEvent(new CustomEvent('luter-jump-to-page', { detail: { page } }))
+  }, [])
+
   const handleExit = () => {
     const xpEarned = Math.floor(elapsedTime / 10)
     setSessionXP(xpEarned)
@@ -162,7 +170,7 @@ function WorkstationContent() {
   const confirmExit = () => {
     navigate(-1)
   }
-  
+
   const [activeTab, setActiveTab] = useState('content')
   const [activeSideTab, setActiveSideTab] = useState('chat')
   const [showMoreMenu, setShowMoreMenu] = useState(false)
@@ -190,7 +198,7 @@ function WorkstationContent() {
       window.removeEventListener('mouseup', handleMouseUp)
     }
   }, [])
-  
+
   // Session Timer
   useEffect(() => {
     const timer = setInterval(() => {
@@ -238,7 +246,8 @@ function WorkstationContent() {
   const [showDashboard, setShowDashboard] = useState(true)
   const [sessionXP, setSessionXP] = useState(0)
   const [showFileSwitcher, setShowFileSwitcher] = useState(false)
-  
+  const [showMobileTools, setShowMobileTools] = useState(false)
+
   // Collaboration Room ID
   const roomId = useMemo(() => {
     if (!materialIdParam) return null
@@ -258,7 +267,7 @@ function WorkstationContent() {
         .select('*')
         .eq('id', courseId)
         .single()
-      
+
       if (cErr) throw cErr
       setCourseInfo(course)
 
@@ -266,7 +275,7 @@ function WorkstationContent() {
         .from('study_materials')
         .select('*')
         .eq('course_id', courseId)
-      
+
       if (mErr) throw mErr
       setSessionMaterials(materials)
     } catch (err) {
@@ -275,7 +284,7 @@ function WorkstationContent() {
   }
   const [userJottings, setUserJottings] = useState("")
   const [jottingNoteId, setJottingNoteId] = useState(null)
-  
+
   // Liveblocks Hooks
   const updatePresence  = useUpdateMyPresence()
   const self            = useSelf()
@@ -345,7 +354,7 @@ function WorkstationContent() {
     }
   }, [viewportData?.currentPage, syncMode, presenterId, user?.id, updatePresence, setPresenterSlide, broadcastSyncJump])
   const messagesEndRef = useRef(null)
-  
+
   // Deck Store integration
   const { activeDeckItems } = useDeckStore()
 
@@ -373,8 +382,8 @@ function WorkstationContent() {
   const isPlaceholderContent = (content) => {
     if (!content) return true
     if (typeof content !== 'string') return false
-    return content.includes('will be available shortly') || 
-           content.includes('analysis to complete') || 
+    return content.includes('will be available shortly') ||
+           content.includes('analysis to complete') ||
            content.includes('temporarily unavailable') ||
            content.startsWith('Error:')
   }
@@ -429,7 +438,7 @@ function WorkstationContent() {
 
       const sel = window.getSelection()
       const text = sel.toString().trim()
-      
+
       if (text && text.length > 2) {
         const range = sel.getRangeAt(0)
         const rect = range.getBoundingClientRect()
@@ -622,7 +631,7 @@ function WorkstationContent() {
     try {
       // Try to get preloaded data first
       const preloadedData = preloadingService.getCachedData(`course-${courseId}-${user?.id}`)
-      
+
       if (preloadedData) {
         console.log('[Workstation] Using preloaded materials data')
         setCourseMaterials(preloadedData)
@@ -718,7 +727,7 @@ function WorkstationContent() {
       const pageTextMap = await MaterialAnalysisService.fetchMaterialPageMap(selectedMaterial.id, selectedMaterial)
       const summaries = await MaterialAnalysisService.generatePageByPageSummary(selectedMaterial.id, pageTextMap)
       setPageSummaries(summaries)
-      
+
       // Cache it
       setAnalysisCache(prev => ({
         ...prev,
@@ -727,12 +736,12 @@ function WorkstationContent() {
           page_summaries: summaries
         }
       }))
-      
+
       // Sync to DB
       await supabase.from('material_analysis')
-        .upsert({ 
-          material_id: selectedMaterial.id, 
-          user_id: user.id, 
+        .upsert({
+          material_id: selectedMaterial.id,
+          user_id: user.id,
           analysis: { ...(currentAnalysis || {}), page_summaries: summaries },
           updated_at: new Date().toISOString()
         }, { onConflict: 'material_id' })
@@ -745,7 +754,7 @@ function WorkstationContent() {
   async function handleSaveNote(content) {
     if (!selectedMaterial || !user) return
     try {
-      // If we have an existing note ID, we should update it. 
+      // If we have an existing note ID, we should update it.
       // Current saveToVault always inserts. Let's update saveToVault or use a direct upsert here.
       const { data, error } = await supabase
         .from('user_notes')
@@ -761,7 +770,7 @@ function WorkstationContent() {
         })
         .select()
         .single()
-      
+
       if (data) {
         setJottingNoteId(data.id)
         setUserJottings(data.content)
@@ -781,7 +790,7 @@ function WorkstationContent() {
         .eq('material_id', selectedMaterial.id)
         .eq('source_type', 'jotting')
         .maybeSingle()
-      
+
       if (data) {
         setJottingNoteId(data.id)
         setUserJottings(data.content)
@@ -808,31 +817,31 @@ function WorkstationContent() {
   const runAnalysis = async (type) => {
     if (isExtractingText || isAnalysisLoading || !selectedMaterial) return
     setIsAnalysisLoading(true)
-    
+
     // Add timeout to prevent infinite loading
     const timeout = setTimeout(() => {
       console.error(`[runAnalysis] Timeout reached for ${type}`)
       setIsAnalysisLoading(false)
     }, 30000) // 30 second timeout
-    
+
     try {
       console.log(`[runAnalysis] Starting ${type} generation for material:`, selectedMaterial.id)
-      
+
       // FORCE REFRESH & EXTRACTION GUARD: Ensure we have the extracted_text
       let materialText = selectedMaterial.extracted_text
-      
+
       const { data: latestMaterial } = await supabase
         .from('materials')
         .select('extracted_text, processing_status')
         .eq('id', selectedMaterial.id)
         .single()
-      
+
       if (latestMaterial?.extracted_text) {
         materialText = latestMaterial.extracted_text
         selectedMaterial.extracted_text = latestMaterial.extracted_text
         console.log(`[runAnalysis] Found extracted_text, length:`, materialText.length)
       }
-      
+
       // If still no text, try one last emergency extraction
       if (!materialText) {
         console.log(`[runAnalysis] Text still missing, triggering emergency extraction...`)
@@ -874,43 +883,47 @@ function WorkstationContent() {
             const notesPrompt = `You are Luter Tutor. Provide academic notes for this material. Title: ${selectedMaterial.title}. Content: ${content}`
             const response = await callGroqAPI([{ role: 'user', content: notesPrompt }], GROQ_MODELS.SPEEDSTER, { systemPromptOverride: GROQ_PROMPTS.AI_NOTES })
             finalResult = response.choices[0].message.content
-          } catch (e) { finalResult = 'Notes generation failed.' }
+          } catch {
+            finalResult = 'Notes generation failed.'
+          }
           break;
         case 'summary': finalResult = currentAnalysisRow?.summary || 'No summary available.'; break;
-        case 'flashcards':
+        case 'flashcards': {
           console.log(`[runAnalysis] Generating flashcards...`)
           const fRes = await MaterialAnalysisService.generateFlashcards(currentAnalysisRow, 10, selectedMaterial);
           console.log(`[runAnalysis] Flashcards result:`, fRes)
           finalResult = fRes.success ? fRes.flashcards : [];
           break;
-        case 'quiz':
+        }
+        case 'quiz': {
           console.log(`[runAnalysis] Generating quiz...`)
           const qRes = await MaterialAnalysisService.generateQuiz(currentAnalysisRow, 5, 'medium', selectedMaterial);
           console.log(`[runAnalysis] Quiz result:`, qRes)
           finalResult = qRes.success ? qRes.quiz : [];
           break;
-        default: 
+        }
+        default:
           console.warn('runAnalysis called with unsupported tool type:', type);
           setIsAnalysisLoading(false);
           return;
       }
       setAnalysisCache(prev => ({ ...prev, [selectedMaterial.id]: { ...(prev[selectedMaterial.id] || {}), [type]: finalResult } }))
       const dbColumn = type === 'notes' ? 'smart_notes' : type === 'summary' ? 'summary' : type === 'flashcards' ? 'flashcards' : type === 'quiz' ? 'quiz' : null;
-      
+
       if (dbColumn && finalResult && (Array.isArray(finalResult) ? finalResult.length > 0 : true)) {
         console.log(`[runAnalysis] Saving ${type} to DB...`)
-        const updateData = { 
-          material_id: selectedMaterial.id, 
-          user_id: user?.id, 
-          [dbColumn]: finalResult, 
-          updated_at: new Date().toISOString() 
+        const updateData = {
+          material_id: selectedMaterial.id,
+          user_id: user?.id,
+          [dbColumn]: finalResult,
+          updated_at: new Date().toISOString()
         }
-        
+
         // Use currentAnalysisRow to avoid state race condition
         if (currentAnalysisRow) {
           updateData.analysis = currentAnalysisRow
         }
-        
+
         await supabase.from('material_analysis').upsert(updateData, { onConflict: 'material_id' });
       }
       if (type === 'notes' && typeof finalResult === 'string') {
@@ -939,9 +952,11 @@ function WorkstationContent() {
             setAnalysisCache(prev => ({ ...prev, [selectedMaterial.id]: { ...(prev[selectedMaterial.id] || {}), notes: existingNote.content } }))
             return
           }
-        } catch (err) {}
+        } catch (err) {
+          console.warn('Unable to fetch existing AI notes:', err)
+        }
       }
-      
+
       // REMOVED: Auto-run analysis on tab switch. Analysis is now user-initiated only.
       // Users must explicitly click 'Generate' buttons to create flashcards/quiz.
       // const content = currentAnalysis[toolToRun]
@@ -962,24 +977,24 @@ function WorkstationContent() {
     try {
       // Usage check
       if (explanationsLeft <= 0 && !profile?.is_premium) {
-        setMessages(prev => [...prev, { 
-          role: 'ai', 
-          content: "You've reached your limit of free explanations for today. 🚀 **Upgrade to Luter Pro** to unlock unlimited AI power and continue your study session without interruptions!" 
+        setMessages(prev => [...prev, {
+          role: 'ai',
+          content: "You've reached your limit of free explanations for today. 🚀 **Upgrade to Luter Pro** to unlock unlimited AI power and continue your study session without interruptions!"
         }])
         return
       }
 
       // Determine retrieval context: Specific material, or the whole deck?
       const materialContext = selectedMaterial?.id || activeDeckItems.map(i => i.content_id)
-      
-      const aiResponse = await queryStudyMaterials({ 
-        question: textToSend, 
-        courseId, 
-        materialId: materialContext, 
+
+      const aiResponse = await queryStudyMaterials({
+        question: textToSend,
+        courseId,
+        materialId: materialContext,
         fallbackContext: (selectedMaterial?.extracted_text || "").replace(/\*\*/g, '').slice(0, 8000)
       })
       setMessages(prev => [...prev, { role: 'ai', content: aiResponse }])
-      
+
       // Decrement logic
       if (!profile?.is_premium) {
         const { data: newCount } = await supabase.rpc('decrement_user_explanations', { user_id: user.id })
@@ -990,72 +1005,65 @@ function WorkstationContent() {
     } finally { setIsProcessingLoading(false) }
   }
 
-  // REMOVED: Auto-analysis on material load. Analysis should be user-initiated only.
-  // The PDF viewer should display immediately without waiting for any analysis.
-  // Users can click Summary/Flashcards/Quiz tabs when they want to generate content.
-
+  const mobileSectionLabel = { content: 'Source', chat: 'AI Chat', flashcards: 'Cards', summary: 'Summary', quiz: 'Quiz', board: 'Board', write: 'Notes', groupchat: 'Group', group: 'Hub' }
+  const mobileActiveLabel = mobileSectionLabel[activeTab] || mobileSectionLabel[activeSideTab] || 'Study'
 
   return (
     <div className="ws-root" style={{ background: '#F8F9FA' }}>
-      <SelectionActionBar onAction={handleSelectionAction} />
-      
       {isMobile && (
-        <div className="mobile-top-bar" style={{ 
-          padding: '12px 16px', 
-          background: 'rgba(255, 255, 255, 0.95)', 
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid #F1F5F9', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          position: 'sticky',
-          top: 0,
-          zIndex: 1000,
-          height: '60px'
+        <div className="mobile-top-bar" style={{
+            padding: '0 16px',
+            background: 'rgba(255, 255, 255, 0.97)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderBottom: '1px solid rgba(139, 92, 246, 0.08)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            position: 'sticky',
+            top: 0,
+            zIndex: 1000,
+            height: '60px',
+            boxShadow: '0 1px 8px rgba(0,0,0,0.04)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button 
-              onClick={() => setMobileSidebarOpen(true)} 
-              style={{ background: 'none', border: 'none', color: '#1E293B', display: 'flex', alignItems: 'center', padding: '8px' }}
-            >
-              <List size={22} weight="bold" />
-            </button>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {courseInfo?.code || 'Workstation'}
-              </span>
-              <span style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-outfit)' }}>
-                {selectedMaterial?.title || 'Study'}
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                onClick={() => setMobileSidebarOpen(true)}
+                style={{ background: 'none', border: 'none', color: '#1E293B', display: 'flex', alignItems: 'center', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+              >
+                <List size={22} weight="bold" />
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-outfit)' }}>
+                  {selectedMaterial?.title || courseInfo?.code || 'Workstation'}
+                </span>
+                <span style={{ fontSize: '9px', fontWeight: 800, color: '#8B5CF6', background: '#F5F3FF', padding: '2px 7px', borderRadius: '20px', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', border: '1px solid #EDE9FE', flexShrink: 0 }}>
+                  {mobileActiveLabel}
+                </span>
+              </div>
             </div>
-          </div>
-          <button 
-            onClick={() => navigate('/dashboard')} 
-            style={{ 
-              background: '#FEF2F2', border: '1px solid #FEE2E2', color: '#EF4444', 
-              fontWeight: 800, fontSize: '10px', padding: '8px 14px', borderRadius: '10px', 
-              textTransform: 'uppercase', letterSpacing: '0.02em',
-              display: 'flex', alignItems: 'center', gap: '6px'
-            }}
-          >
-            Exit
-          </button>
+            <button
+              onClick={handleExit}
+              style={{ background: '#FEF2F2', border: '1px solid #FEE2E2', color: '#EF4444', fontWeight: 800, fontSize: '10px', padding: '8px 14px', borderRadius: '10px', textTransform: 'uppercase', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+            >
+              Exit
+            </button>
         </div>
       )}
 
       {!isMobile && (
-        <header style={{ 
-          background: 'rgba(255, 255, 255, 0.8)', 
+        <header style={{
+          background: 'rgba(255, 255, 255, 0.8)',
           backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.05)', 
-          height: '60px', 
-          display: 'flex', 
+          borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
+          height: '60px',
+          display: 'flex',
           alignItems: 'center',
           position: 'sticky',
           top: 0,
           zIndex: 100,
         }}>
-          <div style={{ 
+          <div style={{
             width: '100%',
             maxWidth: focusMode ? '1200px' : 'none',
             margin: '0 auto',
@@ -1065,7 +1073,7 @@ function WorkstationContent() {
             justifyContent: 'space-between'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-              <button 
+              <button
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                 style={{
                   background: 'none',
@@ -1085,13 +1093,13 @@ function WorkstationContent() {
                 <SidebarSimple size={20} weight={sidebarCollapsed ? "bold" : "regular"} />
               </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#94A3B8', fontSize: '13px' }}>
-                <div 
-                  onClick={() => navigate('/dashboard')} 
-                  style={{ 
-                    cursor: 'pointer', 
-                    color: '#64748B', 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                <div
+                  onClick={() => navigate('/dashboard')}
+                  style={{
+                    cursor: 'pointer',
+                    color: '#64748B',
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'center',
                     padding: '6px',
                     borderRadius: '8px',
@@ -1103,11 +1111,11 @@ function WorkstationContent() {
                   <House size={18} weight="bold" />
                 </div>
                 <CaretRight size={14} weight="bold" />
-                <span 
-                  onClick={() => navigate(`/dashboard/courses/${courseId}`)} 
-                  style={{ 
-                    cursor: 'pointer', 
-                    color: '#64748B', 
+                <span
+                  onClick={() => navigate(`/dashboard/courses/${courseId}`)}
+                  style={{
+                    cursor: 'pointer',
+                    color: '#64748B',
                     fontWeight: 600,
                     fontFamily: 'var(--font-outfit)',
                     transition: 'color 0.2s'
@@ -1118,14 +1126,14 @@ function WorkstationContent() {
                   {courseInfo?.code || 'Course'}
                 </span>
                 <CaretRight size={14} weight="bold" />
-                
+
                 {/* File Switcher Pill with Dropdown */}
                 <div style={{ position: 'relative' }}>
-                  <div 
+                  <div
                     onClick={() => setShowFileSwitcher(!showFileSwitcher)}
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
                       gap: '6px',
                       background: '#F1F5F9',
                       padding: '4px 10px',
@@ -1138,15 +1146,15 @@ function WorkstationContent() {
                     onMouseLeave={(e) => e.currentTarget.style.background = '#F1F5F9'}
                   >
                     <FileText size={16} color="#6D28D9" weight="fill" />
-                    <span style={{ 
-                      color: '#111827', 
-                      fontWeight: 700, 
+                    <span style={{
+                      color: '#111827',
+                      fontWeight: 700,
                       fontSize: '12px',
                       fontFamily: 'var(--font-outfit)',
-                      maxWidth: '180px', 
-                      overflow: 'hidden', 
-                      textOverflow: 'ellipsis', 
-                      whiteSpace: 'nowrap' 
+                      maxWidth: '180px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
                     }}>
                       {selectedMaterial?.title || 'Material'}
                     </span>
@@ -1155,7 +1163,7 @@ function WorkstationContent() {
 
                   <AnimatePresence>
                     {showFileSwitcher && (
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
@@ -1202,9 +1210,9 @@ function WorkstationContent() {
                     )}
                   </AnimatePresence>
                 </div>
-                
+
                 {/* Timer Badge */}
-                <div style={{ 
+                <div style={{
                   marginLeft: '8px',
                   padding: '4px 10px',
                   background: '#F5F3FF',
@@ -1225,19 +1233,19 @@ function WorkstationContent() {
             </div>
 
             <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-              <div id="tour-ai-tools" style={{ 
-                display: 'flex', 
-                background: '#F8FAFC', 
-                padding: '3px', 
-                borderRadius: '12px', 
+              <div id="tour-ai-tools" style={{
+                display: 'flex',
+                background: '#F8FAFC',
+                padding: '3px',
+                borderRadius: '12px',
                 border: '1px solid #E2E8F0',
                 gap: '2px',
                 boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
               }}>
-                <button 
+                <button
                   onClick={() => { setActiveTab('content'); setActiveSideTab('chat'); }}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, 
+                    display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600,
                     borderRadius: '9px', border: 'none', cursor: 'pointer',
                     background: (activeTab === 'content' || activeTab === 'notes') ? 'white' : 'transparent',
                     color: (activeTab === 'content' || activeTab === 'notes') ? '#6D28D9' : '#64748B',
@@ -1248,10 +1256,10 @@ function WorkstationContent() {
                 >
                   <FileText size={16} weight={activeTab === 'content' ? 'fill' : 'bold'} /> Source
                 </button>
-                <button 
+                <button
                   onClick={() => { setActiveTab('summary'); }}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, 
+                    display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600,
                     borderRadius: '9px', border: 'none', cursor: 'pointer',
                     background: activeTab === 'summary' ? 'white' : 'transparent',
                     color: activeTab === 'summary' ? '#6D28D9' : '#64748B',
@@ -1262,10 +1270,10 @@ function WorkstationContent() {
                 >
                   <Sparkle size={16} weight={activeTab === 'summary' ? 'fill' : 'bold'} /> Summary
                 </button>
-                <button 
+                <button
                   onClick={() => { setActiveTab('flashcards'); setActiveSideTab('flashcards'); }}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, 
+                    display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600,
                     borderRadius: '9px', border: 'none', cursor: 'pointer',
                     background: activeTab === 'flashcards' ? 'white' : 'transparent',
                     color: activeTab === 'flashcards' ? '#6D28D9' : '#64748B',
@@ -1276,10 +1284,10 @@ function WorkstationContent() {
                 >
                   <Stack size={16} weight={activeTab === 'flashcards' ? 'fill' : 'bold'} /> Cards
                 </button>
-                <button 
+                <button
                   onClick={() => { setActiveTab('quiz'); setActiveSideTab('quiz'); }}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, 
+                    display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600,
                     borderRadius: '9px', border: 'none', cursor: 'pointer',
                     background: activeTab === 'quiz' ? 'white' : 'transparent',
                     color: activeTab === 'quiz' ? '#6D28D9' : '#64748B',
@@ -1290,30 +1298,30 @@ function WorkstationContent() {
                 >
                   <Checks size={16} weight={activeTab === 'quiz' ? 'fill' : 'bold'} /> Quiz
                 </button>
-                <button 
+                <button
                   onClick={() => setActiveTab('board')}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, 
+                    display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: 700,
                     borderRadius: '20px', border: 'none', cursor: 'pointer',
-                    background: activeTab === 'board' 
-                      ? 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)' 
+                    background: activeTab === 'board'
+                      ? 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)'
                       : 'linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 100%)',
                     color: activeTab === 'board' ? 'white' : '#6D28D9',
-                    boxShadow: activeTab === 'board' 
-                      ? '0 4px 12px rgba(109, 40, 217, 0.35)' 
+                    boxShadow: activeTab === 'board'
+                      ? '0 4px 12px rgba(109, 40, 217, 0.35)'
                       : '0 1px 4px rgba(109, 40, 217, 0.15)',
                     fontFamily: 'var(--font-outfit)',
                     transition: 'all 0.2s',
                     letterSpacing: '0.01em'
                   }}
-                  onMouseEnter={(e) => { 
+                  onMouseEnter={(e) => {
                     if (activeTab !== 'board') {
                       e.currentTarget.style.background = 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)';
                       e.currentTarget.style.color = 'white';
                       e.currentTarget.style.boxShadow = '0 4px 12px rgba(109, 40, 217, 0.35)';
                     }
                   }}
-                  onMouseLeave={(e) => { 
+                  onMouseLeave={(e) => {
                     if (activeTab !== 'board') {
                       e.currentTarget.style.background = 'linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 100%)';
                       e.currentTarget.style.color = '#6D28D9';
@@ -1329,12 +1337,12 @@ function WorkstationContent() {
           <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '12px', alignItems: 'center' }}>
             <PresenceBar />
             <div style={{ position: 'relative' }}>
-              <button 
-                style={{ 
-                  display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 12px', 
-                  fontSize: '12px', fontWeight: 800, borderRadius: '10px', 
-                  border: 'none', background: profile?.is_premium ? 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)' : '#F5F3FF', 
-                  color: profile?.is_premium ? 'white' : '#6D28D9', 
+              <button
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 12px',
+                  fontSize: '12px', fontWeight: 800, borderRadius: '10px',
+                  border: 'none', background: profile?.is_premium ? 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)' : '#F5F3FF',
+                  color: profile?.is_premium ? 'white' : '#6D28D9',
                   cursor: 'pointer', fontFamily: 'var(--font-outfit)',
                   transition: '0.2s', position: 'relative'
                 }}
@@ -1354,14 +1362,14 @@ function WorkstationContent() {
                 )}
               </button>
             </div>
-            <button 
+            <button
               onClick={() => setFocusMode(!focusMode)}
-              style={{ 
-                display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 13px', 
-                fontSize: '12px', fontWeight: 700, borderRadius: '10px', 
-                border: '1px solid #E2E8F0', 
-                background: focusMode ? '#6D28D9' : 'white', 
-                color: focusMode ? 'white' : '#1E293B', 
+              style={{
+                display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 13px',
+                fontSize: '12px', fontWeight: 700, borderRadius: '10px',
+                border: '1px solid #E2E8F0',
+                background: focusMode ? '#6D28D9' : 'white',
+                color: focusMode ? 'white' : '#1E293B',
                 cursor: 'pointer', fontFamily: 'var(--font-outfit)', transition: 'all 0.2s'
               }}
               onMouseEnter={(e) => { if (!focusMode) { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.color = '#6D28D9'; e.currentTarget.style.background = '#F5F3FF'; }}}
@@ -1399,7 +1407,7 @@ function WorkstationContent() {
               </button>
               <AnimatePresence>
                 {showMoreMenu && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
@@ -1410,7 +1418,7 @@ function WorkstationContent() {
                       minWidth: '160px', overflow: 'hidden'
                     }}
                   >
-                    <button 
+                    <button
                       onClick={() => setShowMoreMenu(false)}
                       style={{ padding: '11px 16px', width: '100%', border: 'none', background: 'none', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#1E293B', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontFamily: 'var(--font-outfit)' }}
                       onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
@@ -1428,24 +1436,28 @@ function WorkstationContent() {
       )}
 
 
-      <main className="ws-main-layout" style={{ 
+      <main className="ws-main-layout" style={{
         display: 'flex',
-        flexDirection: 'row',
-        background: 'transparent', 
-        overflow: 'hidden', 
-        padding: '0', 
+        flexDirection: isMobile ? 'column' : 'row',
+        background: 'transparent',
+        overflow: isMobile ? 'auto' : 'hidden',
+        padding: '0',
         flex: 1,
-        height: 'calc(100vh - 60px)',
-        position: 'relative'
+        height: isMobile ? 'auto' : 'calc(100vh - 60px)',
+        position: 'relative',
+        paddingBottom: isMobile ? 'calc(84px + env(safe-area-inset-bottom, 0px))' : '0'
       }}>
         {/* Main Workspace Area - Center Zone */}
-        <div ref={constraintsRef} className="ws-center-viewer" style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          overflow: 'hidden', 
-          background: 'linear-gradient(180deg, #FAFBFC 0%, #F8FAFC 50%, #F1F5F9 100%)', 
+        {/* On mobile: show for 'content', 'summary', 'quiz', 'board' tabs. Hide for side panel tabs. */}
+        <div ref={constraintsRef} className="ws-center-viewer" style={{
+          display: isMobile
+            ? (['content', 'summary', 'quiz', 'board'].includes(activeTab) ? 'flex' : 'none')
+            : 'flex',
+          flexDirection: 'column',
+          overflow: isMobile ? 'visible' : 'hidden',
+          background: 'linear-gradient(180deg, #FAFBFC 0%, #F8FAFC 50%, #F1F5F9 100%)',
           position: 'relative',
-          height: '100%',
+          height: isMobile ? 'auto' : '100%',
           flex: 1,
           minWidth: 0,
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -1px 0 rgba(0,0,0,0.03)',
@@ -1453,9 +1465,9 @@ function WorkstationContent() {
         }}>
           {/* 1. Summary View */}
           <div style={{ flex: 1, display: activeTab === 'summary' ? 'block' : 'none', overflowY: 'auto', background: '#F9FAFB', height: '100%' }}>
-            <WorkstationSummaryEnhanced 
-              content={currentAnalysis.summary} 
-              material={selectedMaterial} 
+            <WorkstationSummaryEnhanced
+              content={currentAnalysis.summary}
+              material={selectedMaterial}
               pageSummaries={pageSummaries}
               onFetchPageSummaries={handleFetchPageSummaries}
               onRegenerate={() => runAnalysis('summary')}
@@ -1465,19 +1477,19 @@ function WorkstationContent() {
 
           {/* 2. Flashcards View */}
           <div style={{ flex: 1, display: activeTab === 'flashcards' ? 'block' : 'none', overflowY: 'auto', background: '#F9FAFB', height: '100%' }}>
-            <WorkstationFlashcards 
-              flashcards={currentAnalysis.flashcards} 
-              material={selectedMaterial} 
-              onRegenerate={() => runAnalysis('flashcards')} 
+            <WorkstationFlashcards
+              flashcards={currentAnalysis.flashcards}
+              material={selectedMaterial}
+              onRegenerate={() => runAnalysis('flashcards')}
             />
           </div>
 
           {/* 3. Quiz View */}
           <div style={{ flex: 1, display: activeTab === 'quiz' ? 'block' : 'none', overflowY: 'auto', background: '#F9FAFB', height: '100%' }}>
-            <WorkstationQuiz 
-              quiz={currentAnalysis.quiz} 
-              material={selectedMaterial} 
-              onRegenerate={() => runAnalysis('quiz')} 
+            <WorkstationQuiz
+              quiz={currentAnalysis.quiz}
+              material={selectedMaterial}
+              onRegenerate={() => runAnalysis('quiz')}
             />
           </div>
 
@@ -1497,7 +1509,7 @@ function WorkstationContent() {
                 <p style={{ color: '#6B7280', fontSize: '14px', lineHeight: '1.5', marginBottom: '20px' }}>
                   Select a study material from the sidebar to begin.
                 </p>
-                <button 
+                <button
                   onClick={() => navigate('/dashboard/upload')}
                   style={{ padding: '10px 20px', background: '#111', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
                 >
@@ -1506,21 +1518,21 @@ function WorkstationContent() {
               </div>
             </div>
           ) : (
-            <div style={{ 
-              flex: 1, 
-              display: (activeTab !== 'summary' && activeTab !== 'flashcards' && activeTab !== 'quiz' && activeTab !== 'board') ? 'flex' : 'none', 
-              flexDirection: 'column', 
-              position: 'relative', 
-              overflow: 'hidden', 
-              height: '100%' 
+            <div style={{
+              flex: 1,
+              display: (activeTab !== 'summary' && activeTab !== 'flashcards' && activeTab !== 'quiz' && activeTab !== 'board') ? 'flex' : 'none',
+              flexDirection: 'column',
+              position: 'relative',
+              overflow: 'hidden',
+              height: '100%'
             }}>
               {/* Notes View */}
-              <div className="ws-scroll-container" style={{ 
-                flex: 1, 
+              <div className="ws-scroll-container" style={{
+                flex: 1,
                 display: activeTab === 'notes' ? 'block' : 'none',
-                padding: '60px 40px', 
-                overflowY: 'auto', 
-                height: '100%' 
+                padding: '60px 40px',
+                overflowY: 'auto',
+                height: '100%'
               }}>
                 <div style={{ maxWidth: '800px', margin: '0 auto' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
@@ -1533,7 +1545,7 @@ function WorkstationContent() {
                      </div>
                   </div>
                   <div className="ws-notion-card" style={{ padding: '40px', minHeight: '600px' }}>
-                     <textarea 
+                     <textarea
                         placeholder="Start typing your notes here..."
                         value={selectedMaterial.notes || ''}
                         onChange={(e) => {
@@ -1551,17 +1563,17 @@ function WorkstationContent() {
               </div>
 
               {/* Document Viewer View */}
-              <div className="ws-visual-viewport" style={{ 
-                flex: 1, 
+              <div className="ws-visual-viewport" style={{
+                flex: 1,
                 display: activeTab !== 'notes' ? 'flex' : 'none',
-                height: '100%', 
-                overflow: 'hidden', 
-                position: 'relative', 
-                flexDirection: 'column' 
+                height: '100%',
+                overflow: 'hidden',
+                position: 'relative',
+                flexDirection: 'column'
               }}>
                 {/* Floating Selection Tool Pill */}
                 {!isMobile && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     style={{
@@ -1581,7 +1593,7 @@ function WorkstationContent() {
                       gap: '4px'
                     }}
                   >
-                    <button 
+                    <button
                       onClick={() => setActiveTab('board')}
                       style={{
                         display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
@@ -1598,7 +1610,7 @@ function WorkstationContent() {
                       <PencilSimple size={16} weight={activeTab === 'board' ? "fill" : "bold"} />
                       Board <span style={{ opacity: 0.8, marginLeft: '4px', background: activeTab === 'board' ? 'white' : '#F1F5F9', padding: '1px 5px', borderRadius: '4px', fontSize: '10px', color: '#6D28D9' }}>B</span>
                     </button>
-                    <button 
+                    <button
                       onClick={() => {}} // Occlusion logic placeholder
                       style={{
                         display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
@@ -1609,12 +1621,12 @@ function WorkstationContent() {
                         transition: 'all 0.2s',
                         boxShadow: '0 2px 8px rgba(109, 40, 217, 0.08)'
                       }}
-                      onMouseEnter={(e) => { 
+                      onMouseEnter={(e) => {
                         e.currentTarget.style.background = 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)';
                         e.currentTarget.style.color = 'white';
                         e.currentTarget.style.boxShadow = '0 4px 12px rgba(109, 40, 217, 0.25)';
                       }}
-                      onMouseLeave={(e) => { 
+                      onMouseLeave={(e) => {
                         e.currentTarget.style.background = 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)';
                         e.currentTarget.style.color = '#6D28D9';
                         e.currentTarget.style.boxShadow = '0 2px 8px rgba(109, 40, 217, 0.08)';
@@ -1633,9 +1645,9 @@ function WorkstationContent() {
                   </motion.div>
                 )}
 
-                <MaterialRenderer 
+                <MaterialRenderer
                   key={selectedMaterial.id}
-                  material={selectedMaterial} 
+                  material={selectedMaterial}
                   activeTab={activeTab}
                   onSparkUpdate={updateSpark}
                   setViewportData={(data) => {
@@ -1670,19 +1682,25 @@ function WorkstationContent() {
 
         {/* Right Zone - Side Panel */}
         {!isSidePanelCollapsed && !focusMode && (
-          <aside 
-            id="tour-ai-chat" 
+          <aside
+            id="tour-ai-chat"
             style={{
-              display: isMobile ? (activeTab === 'chat' ? 'flex' : 'none') : 'flex',
+              // On mobile: show the side panel ONLY when a side-panel tool is active
+              // (chat, flashcards via side panel, write, hub, group)
+              // Hide it when the user is on content/summary/quiz/board (center-viewer tabs)
+              display: isMobile
+                ? (['content', 'summary', 'quiz', 'board'].includes(activeTab) ? 'none' : 'flex')
+                : 'flex',
               width: isMobile ? '100%' : `${panelWidth}px`,
-              borderLeft: '1px solid #EBEBEB',
+              borderLeft: isMobile ? 'none' : '1px solid #EBEBEB',
               background: '#FAFAFA',
               flexDirection: 'column',
               zIndex: 10,
-              position: isMobile ? 'fixed' : 'relative',
-              top: isMobile ? '60px' : '0',
-              height: isMobile ? 'calc(100dvh - 132px)' : '100%',
-              boxShadow: '-2px 0 12px rgba(0,0,0,0.03)',
+              position: 'relative',
+              top: 0,
+              height: isMobile ? 'calc(100dvh - 144px - env(safe-area-inset-bottom, 0px))' : '100%',
+              minHeight: 0,
+              boxShadow: isMobile ? 'none' : '-2px 0 12px rgba(0,0,0,0.03)',
               flexShrink: 0
             }}
           >
@@ -1771,11 +1789,11 @@ function WorkstationContent() {
               ) : activeSideTab === 'flashcards' ? (
                 <div style={{ flex: 1, overflowY: 'auto', background: '#F9FAFB', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ padding: '16px 20px', borderBottom: '1px solid #EBEBEB', background: 'white', display: 'flex', justifyContent: 'center' }}>
-                    <button 
-                      style={{ 
-                        display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', 
-                        fontSize: '13px', fontWeight: 800, borderRadius: '12px', 
-                        border: 'none', background: 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)', color: 'white', 
+                    <button
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
+                        fontSize: '13px', fontWeight: 800, borderRadius: '12px',
+                        border: 'none', background: 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)', color: 'white',
                         cursor: 'pointer', fontFamily: 'var(--font-outfit)',
                         transition: 'all 0.2s',
                         boxShadow: '0 4px 12px rgba(109, 40, 217, 0.2)'
@@ -1873,10 +1891,10 @@ function WorkstationContent() {
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <LiveReactionBar userId={user?.id} userName={profile?.full_name || user?.email?.split('@')[0] || 'You'} />
-                        <SyncControl 
-                          isPresenter={presenterId === user?.id} 
-                          syncEnabled={syncMode} 
-                          onToggleSync={() => setSyncMode(!syncMode)} 
+                        <SyncControl
+                          isPresenter={presenterId === user?.id}
+                          syncEnabled={syncMode}
+                          onToggleSync={() => setSyncMode(!syncMode)}
                         />
                         <button
                           onClick={() => window.open(`/board/${roomId}?name=${encodeURIComponent(selectedMaterial?.name || 'Board')}`, '_blank')}
@@ -1899,9 +1917,9 @@ function WorkstationContent() {
                         <Whiteboard isCollaborative={true} roomId={roomId} />
                       </div>
                       <div style={{ padding: '16px', borderTop: '1px solid #E2E8F0', background: 'white' }}>
-                        <GroupQuiz 
-                          materialText={selectedMaterial?.extracted_text} 
-                          isPresenter={presenterId === user?.id} 
+                        <GroupQuiz
+                          materialText={selectedMaterial?.extracted_text}
+                          isPresenter={presenterId === user?.id}
                         />
                       </div>
                    </div>
@@ -1913,12 +1931,12 @@ function WorkstationContent() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                          <ParticipantRow user={user} isSelf isPresenter={presenterId === user?.id} connectionId={self?.connectionId ?? 0} />
                          {others.map(({ connectionId, presence, info }) => (
-                            <ParticipantRow 
-                              key={connectionId} 
-                              user={info} 
-                              presence={presence} 
+                            <ParticipantRow
+                              key={connectionId}
+                              user={info}
+                              presence={presence}
                               connectionId={connectionId}
-                              isPresenter={connectionId === presenterId} 
+                              isPresenter={connectionId === presenterId}
                             />
                          ))}
                       </div>
@@ -2130,88 +2148,142 @@ function WorkstationContent() {
       </main>
 
       {isMobile && (
-        <header className="ws-header" style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '16px 28px',
-          background: 'rgba(255, 255, 255, 0.8)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          borderBottom: '1px solid rgba(229, 231, 235, 0.6)',
-          position: 'relative',
-          zIndex: 10,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-        }}>
-          <button 
-            className={`mobile-nav-item ${activeTab === 'content' ? 'mobile-nav-item--active' : ''}`} 
-            onClick={() => setActiveTab('content')}
-            style={{ color: activeTab === 'content' ? '#6D28D9' : '#64748B', transition: 'all 0.2s', background: 'none', border: 'none', cursor: 'pointer' }}
-          >
-            <SquaresFour size={22} weight={activeTab === 'content' ? 'bold' : 'regular'} />
-            <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Source</span>
-          </button>
-          <button 
-            className={`mobile-nav-item ${activeTab === 'chat' ? 'mobile-nav-item--active' : ''}`} 
-            onClick={() => { setActiveTab('chat'); setActiveSideTab('chat'); setSidePanelCollapsed(false); }}
-            style={{ color: activeTab === 'chat' ? '#6D28D9' : '#64748B', transition: 'all 0.2s', background: 'none', border: 'none', cursor: 'pointer' }}
-          >
-            <ChatCircleTextIcon size={22} weight={activeTab === 'chat' ? 'bold' : 'regular'} />
-            <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Chat</span>
-          </button>
-          <button 
-            className={`mobile-nav-item ${activeTab === 'flashcards' ? 'mobile-nav-item--active' : ''}`} 
-            onClick={() => { setActiveTab('flashcards'); setActiveSideTab('flashcards'); }}
-            style={{ color: activeTab === 'flashcards' ? '#6D28D9' : '#64748B', transition: 'all 0.2s', background: 'none', border: 'none', cursor: 'pointer' }}
-          >
-            <Stack size={22} weight={activeTab === 'flashcards' ? 'bold' : 'regular'} />
-            <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Cards</span>
-          </button>
-          <button 
-            className={`mobile-nav-item ${activeTab === 'quiz' ? 'mobile-nav-item--active' : ''}`} 
-            onClick={() => { setActiveTab('quiz'); setActiveSideTab('quiz'); }}
-            style={{ color: activeTab === 'quiz' ? '#6D28D9' : '#64748B', transition: 'all 0.2s', background: 'none', border: 'none', cursor: 'pointer' }}
-          >
-            <ClipboardText size={22} weight={activeTab === 'quiz' ? 'bold' : 'regular'} />
-            <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Quiz</span>
-          </button>
-        </header>
+        <>
+          <nav className="mobile-bottom-nav">
+            <button
+              className={`mobile-nav-item ${activeTab === 'content' ? 'mobile-nav-item--active' : ''}`}
+              onClick={() => { setActiveTab('content'); setSidePanelCollapsed(true); setShowMobileTools(false); }}
+            >
+              <SquaresFour size={24} weight={activeTab === 'content' ? 'fill' : 'regular'} />
+              <span>Source</span>
+            </button>
+            <button
+              className={`mobile-nav-item ${(activeTab === 'chat' && activeSideTab === 'chat') ? 'mobile-nav-item--active' : ''}`}
+              onClick={() => { setActiveTab('chat'); setActiveSideTab('chat'); setSidePanelCollapsed(false); setShowMobileTools(false); }}
+            >
+              <ChatCircleTextIcon size={24} weight={(activeTab === 'chat' && activeSideTab === 'chat') ? 'fill' : 'regular'} />
+              <span>Chat</span>
+            </button>
+            <button
+              className={`mobile-nav-item ${(activeTab === 'flashcards' || activeSideTab === 'flashcards') ? 'mobile-nav-item--active' : ''}`}
+              onClick={() => { setActiveTab('flashcards'); setActiveSideTab('flashcards'); setSidePanelCollapsed(false); setShowMobileTools(false); }}
+            >
+              <Stack size={24} weight={(activeTab === 'flashcards' || activeSideTab === 'flashcards') ? 'fill' : 'regular'} />
+              <span>Cards</span>
+            </button>
+            <button
+              className={`mobile-nav-item ${showMobileTools || activeTab === 'summary' || activeTab === 'quiz' || activeTab === 'board' || activeSideTab === 'write' || activeSideTab === 'groupchat' || activeSideTab === 'group' ? 'mobile-nav-item--active' : ''}`}
+              onClick={() => setShowMobileTools(!showMobileTools)}
+            >
+              <GridFour size={24} weight={showMobileTools ? 'fill' : 'regular'} />
+              <span>Tools</span>
+            </button>
+          </nav>
+
+          <AnimatePresence>
+            {showMobileTools && (
+              <div style={{
+                position: 'fixed', inset: 0, zIndex: 1200,
+                background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+                display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'
+              }} onClick={() => setShowMobileTools(false)}>
+                <motion.div
+                  initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    background: 'white', borderRadius: '32px 32px 0 0', padding: '32px 24px',
+                    paddingBottom: 'calc(32px + env(safe-area-inset-bottom))',
+                    boxShadow: '0 -10px 40px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1E293B', margin: 0, fontFamily: 'var(--font-outfit)' }}>Workspace Tools</h3>
+                    <button onClick={() => setShowMobileTools(false)} style={{ background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}>
+                      <X size={16} weight="bold" />
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                    {[
+                      { id: 'summary', icon: FileText, label: 'Summary', isMain: true },
+                      { id: 'quiz', icon: ClipboardText, label: 'Quiz', isMain: true },
+                      { id: 'board', icon: PencilLine, label: 'Board', isMain: true },
+                      { id: 'write', icon: PenNib, label: 'Notes', isSide: true },
+                      { id: 'groupchat', icon: Users, label: 'Group', isSide: true },
+                      { id: 'group', icon: Layout, label: 'Hub', isSide: true }
+                    ].map(tool => {
+                      const isActive = tool.isMain ? activeTab === tool.id : activeSideTab === tool.id;
+                      return (
+                        <button
+                          key={tool.id}
+                          onClick={() => {
+                            if (tool.isMain) {
+                              setActiveTab(tool.id)
+                              setSidePanelCollapsed(true)
+                            } else {
+                              setActiveTab('chat')
+                              setActiveSideTab(tool.id)
+                              setSidePanelCollapsed(false)
+                            }
+                            setShowMobileTools(false)
+                          }}
+                          style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+                            background: isActive ? '#F5F3FF' : '#F8FAFC',
+                            border: `1px solid ${isActive ? '#C4B5FD' : '#E2E8F0'}`,
+                            borderRadius: '16px', padding: '16px 8px',
+                            color: isActive ? '#6D28D9' : '#475569', cursor: 'pointer',
+                            transition: 'all 0.2s', boxShadow: isActive ? '0 4px 12px rgba(109, 40, 217, 0.1)' : 'none'
+                          }}
+                        >
+                          <tool.icon size={28} weight={isActive ? "fill" : "regular"} />
+                          <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'var(--font-outfit)' }}>{tool.label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+        </>
       )}
 
       {/* Session Exit Summary Modal */}
       <AnimatePresence>
         {showExitSummary && (
-          <div style={{ 
-            position: 'fixed', inset: 0, zIndex: 1000, 
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(10px)'
           }}>
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              style={{ 
-                width: '100%', maxWidth: '440px', background: 'white', 
+              style={{
+                width: '100%', maxWidth: '440px', background: 'white',
                 borderRadius: '32px', overflow: 'hidden', padding: '40px',
                 textAlign: 'center', boxShadow: '0 30px 60px rgba(0,0,0,0.15)'
               }}
             >
-              <div style={{ 
-                width: '80px', height: '80px', background: '#F5F3FF', 
+              <div style={{
+                width: '80px', height: '80px', background: '#F5F3FF',
                 borderRadius: '24px', margin: '0 auto 24px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: '#6D28D9'
               }}>
                 <Sparkle size={40} weight="fill" />
               </div>
-              
+
               <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#111827', marginBottom: '12px', fontFamily: 'var(--font-outfit)' }}>
                 Amazing Study Session!
               </h2>
               <p style={{ color: '#64748B', fontSize: '15px', lineHeight: '1.6', marginBottom: '32px' }}>
                 You've made great progress today. Your consistency is building your future.
               </p>
-              
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
                 <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '4px' }}>TIME STUDIED</div>
@@ -2222,12 +2294,12 @@ function WorkstationContent() {
                   <div style={{ fontSize: '20px', fontWeight: 800, color: '#6D28D9' }}>+{sessionXP} XP</div>
                 </div>
               </div>
-              
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <button 
+                <button
                   onClick={confirmExit}
-                  style={{ 
-                    width: '100%', padding: '16px', background: '#000', color: 'white', 
+                  style={{
+                    width: '100%', padding: '16px', background: '#000', color: 'white',
                     borderRadius: '16px', fontWeight: 700, border: 'none', cursor: 'pointer',
                     transition: '0.2s'
                   }}
@@ -2236,10 +2308,10 @@ function WorkstationContent() {
                 >
                   End Session
                 </button>
-                <button 
+                <button
                   onClick={() => setShowExitSummary(false)}
-                  style={{ 
-                    width: '100%', padding: '12px', background: 'none', color: '#64748B', 
+                  style={{
+                    width: '100%', padding: '12px', background: 'none', color: '#64748B',
                     borderRadius: '16px', fontWeight: 600, border: 'none', cursor: 'pointer'
                   }}
                 >

@@ -38,14 +38,8 @@ export default function SignUp() {
     if (err) { setError(err.message); return; }
     if (data?.session) { 
       clearLuterCaches();
-      // Redirect to onboarding or dashboard on the correct domain
-      const isAppPath = redirectPath.startsWith('/dashboard') || !['/onboarding', '/signin', '/signup'].includes(redirectPath);
-      if (isAppPath) {
-        const targetPath = redirectPath.startsWith('/dashboard') ? redirectPath : `/dashboard${redirectPath.startsWith('/') ? '' : '/'}${redirectPath}`;
-        window.location.href = `${DASHBOARD_URL}${targetPath}`;
-      } else {
-        navigate(redirectPath);
-      }
+      const targetPath = redirectPath.startsWith('/') ? redirectPath : `/${redirectPath}`;
+      navigate(targetPath);
     }
     else { setSuccessEmail(email); setSuccess(true); }
   };

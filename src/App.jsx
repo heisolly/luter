@@ -72,7 +72,8 @@ import LevelPage from './components/dashboard/LevelPage'
 import StorePage from './components/dashboard/StorePage'
 import SharedMaterialPreview from './components/shared/SharedMaterialPreview'
 import BoardPage from './components/board/BoardPage'
-import { DASHBOARD_URL, LANDING_URL } from './utils/urlUtils'
+import NotificationsPage from './components/dashboard/NotificationsPage'
+import { DASHBOARD_URL, LANDING_URL, ADMIN_URL } from './utils/urlUtils'
 import { supabase } from './supabaseClient'
 
 const OFFLINE_BAR_PT = '2.75rem'
@@ -99,38 +100,13 @@ const GuestPlayPage = lazy(() => import('./components/dashboard/playground/Guest
 
 export default function App() {
   const offline = useNavigatorOffline()
-  const isProduction = import.meta.env.PROD;
   const hostname = window.location.hostname;
-  const isDashboardHost = isProduction ? hostname === 'dashboard.luter.app' : hostname.includes('localhost');
-  const isLandingHost = isProduction ? hostname === 'luter.app' : false;
+  const isAdminHost = import.meta.env.PROD ? hostname === 'admin.luter.app' : false;
 
+  // Subdomain logic removed - everything now on luter.app except Admin
   useEffect(() => {
-    if (!isProduction || hostname.includes('localhost')) return;
-
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const path = window.location.pathname;
-      const landingPaths = ['/', '/features', '/how-it-works', '/pricing', '/about', '/path-calculator', '/signin', '/signup', '/onboarding'];
-      const isAppPath = !landingPaths.includes(path) && !path.startsWith('/checkout') && !path.startsWith('/share') && !path.startsWith('/play') && !path.startsWith('/join');
-
-      // 1. Force landing host for landing paths (and Auth)
-      if (isDashboardHost && landingPaths.includes(path)) {
-        window.location.href = `${LANDING_URL}${path}`;
-      }
-
-      // 2. If on dashboard subdomain and NOT logged in, redirect to luter.app/signin
-      if (isDashboardHost && !session && isAppPath) {
-        window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(path)}`;
-      }
-
-      // 3. Force dashboard host for app paths (if user is logged in)
-      if (isLandingHost && session && isAppPath) {
-        window.location.href = `${DASHBOARD_URL}${path}`;
-      }
-    };
-
-    checkSession();
-  }, [isDashboardHost, isLandingHost, isProduction]);
+    // Optional: Add global auth check or tracking here if needed
+  }, []);
 
   return (
     <div className="luter-app">
@@ -145,21 +121,50 @@ export default function App() {
       )}
       <div style={{ paddingTop: offline ? OFFLINE_BAR_PT : undefined }}>
         <Routes>
-          {/* LANDING & AUTH PAGES (Only on luter.app) */}
-          {(!isDashboardHost || !isProduction) && (
+          {/* ADMIN HOST SPECIFIC ROUTES */}
+          {isAdminHost && (
             <>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/features" element={<Features />} />
-              <Route path="/how-it-works" element={<HowItWorks />} />
-              <Route path="/pricing" element={<StandalonePricingPage />} />
-              <Route path="/checkout" element={<PaystackCheckout />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/path-calculator" element={<PathCalculator />} />
-              <Route path="/signin" element={<SignIn />} />
-              <Route path="/signup" element={<SignUp />} />
-              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminOverview />} />
+                <Route path="notes-manager" element={<AdminNotesManager />} />
+                <Route path="requests" element={<NotesRequestsAdmin />} />
+                <Route path="upload" element={<LuterAdminUploadPage />} />
+                <Route path="users/:userId" element={<AdminUserDetail />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="courses" element={<AdminCourses />} />
+                <Route path="enrollments" element={<AdminEnrollments />} />
+                <Route path="matches" element={<AdminMatches />} />
+                <Route path="notifications" element={<AdminNotifications />} />
+                <Route path="activity" element={<AdminActivity />} />
+                <Route path="system" element={<AdminSystem />} />
+                <Route path="payment-settings" element={<PaymentSettings />} />
+                <Route path="settings" element={<AdminSettings />} />
+                <Route path="syllabus" element={<AdminSyllabusManager />} />
+                <Route path="audit" element={<AdminAudit />} />
+                <Route path="agents" element={<AdminAgents />} />
+                <Route path="agents/new" element={<AdminAgentBuilder />} />
+                <Route path="agents/monitor" element={<AdminAgentMonitor />} />
+                <Route path="agents/factory" element={<AdminAgentFactory />} />
+                <Route path="agents/:id" element={<AdminAgentConsole />} />
+                <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="controls" element={<AdminSystemControls />} />
+                <Route path="*" element={<Navigate to="/admin" replace />} />
+              </Route>
+              <Route path="/" element={<Navigate to="/admin" replace />} />
             </>
           )}
+
+          {/* MAIN APP ROUTES */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/pricing" element={<StandalonePricingPage />} />
+          <Route path="/checkout" element={<PaystackCheckout />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/path-calculator" element={<PathCalculator />} />
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/onboarding" element={<Onboarding />} />
 
           {/* DASHBOARD ROUTES (Available on dashboard host) */}
           <Route path="/dashboard" element={<Dashboard />}>
@@ -198,22 +203,23 @@ export default function App() {
             <Route path="exam-session/:sessionId" element={<ExamSessionPage />} />
           </Route>
 
-          {/* ROOT LEVEL ALIASES (Only on dashboard host) */}
-          {isDashboardHost && (
-            <Route element={<Dashboard />}>
-              <Route path="/home" element={<DashboardHome />} />
-              <Route path="/compete" element={<PlaygroundPage />} />
-              <Route path="/sessions" element={<SessionsPage />} />
-              <Route path="/library" element={<LibraryPage />} />
-              <Route path="/store" element={<StorePage />} />
-              <Route path="/courses" element={<CoursesPage />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/profile" element={<LevelPage />} />
-              <Route path="/backpack" element={<Navigate to="/courses" replace />} />
-              <Route path="/vault" element={<VaultPage />} />
-            </Route>
-          )}
+          {/* ROOT LEVEL ALIASES */}
+          <Route element={<Dashboard />}>
+            <Route path="/home" element={<DashboardHome />} />
+            <Route path="/sessions" element={<SessionsPage />} />
+            <Route path="/library" element={<LibraryPage />} />
+            <Route path="/groups" element={<StudyGroupsPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/backpack" element={<Navigate to="/dashboard/courses" replace />} />
+            <Route path="/playground" element={<PlaygroundPage />} />
+            <Route path="/mock-exams" element={<MockExamPage />} />
+            <Route path="/progress" element={<AnalyticsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/upgrade" element={<UpgradePage />} />
+            <Route path="/store" element={<StorePage />} />
+            <Route path="/profile" element={<LevelPage />} />
+            <Route path="/vault" element={<VaultPage />} />
+          </Route>
 
           {/* SHARED ROUTES (Available on both) */}
           <Route path="/exam-session/:sessionId" element={<ExamSessionView />} />
@@ -223,37 +229,11 @@ export default function App() {
           <Route path="/join/:inviteCode" element={<JoinGroupPage />} />
           <Route path="/board/:roomId" element={<BoardPage />} />
 
-          {/* ADMIN ROUTES (Available on dashboard host) */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminOverview />} />
-            <Route path="notes-manager" element={<AdminNotesManager />} />
-            <Route path="requests" element={<NotesRequestsAdmin />} />
-            <Route path="upload" element={<LuterAdminUploadPage />} />
-            <Route path="users/:userId" element={<AdminUserDetail />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="courses" element={<AdminCourses />} />
-            <Route path="enrollments" element={<AdminEnrollments />} />
-            <Route path="matches" element={<AdminMatches />} />
-            <Route path="notifications" element={<AdminNotifications />} />
-            <Route path="activity" element={<AdminActivity />} />
-            <Route path="system" element={<AdminSystem />} />
-            <Route path="payment-settings" element={<PaymentSettings />} />
-            <Route path="settings" element={<AdminSettings />} />
-            <Route path="syllabus" element={<AdminSyllabusManager />} />
-            <Route path="audit" element={<AdminAudit />} />
-            <Route path="agents" element={<AdminAgents />} />
-            <Route path="agents/new" element={<AdminAgentBuilder />} />
-            <Route path="agents/monitor" element={<AdminAgentMonitor />} />
-            <Route path="agents/factory" element={<AdminAgentFactory />} />
-            <Route path="agents/:id" element={<AdminAgentConsole />} />
-            <Route path="analytics" element={<AdminAnalytics />} />
-            <Route path="controls" element={<AdminSystemControls />} />
-            <Route path="*" element={<Navigate to="/admin" replace />} />
-          </Route>
+          {/* REDIRECT LEGACY ADMIN TO SUBDOMAIN */}
+          <Route path="/admin/*" element={<Navigate to={ADMIN_URL} replace />} />
 
           {/* DEFAULT REDIRECTS */}
-          <Route path="/" element={<Navigate to={isDashboardHost ? "/dashboard" : "/"} replace />} />
-          <Route path="*" element={<Navigate to={isDashboardHost ? "/dashboard" : "/"} replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </div>

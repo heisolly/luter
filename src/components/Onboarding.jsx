@@ -6,7 +6,8 @@ import {
   RiFocusFill as Target, RiRocketFill as Rocket, RiCheckLine as Check, RiArrowRightLine as ArrowRight, RiArrowLeftLine as ArrowLeft,
   RiSearchLine as Search, RiBookFill as Book, RiTeamFill as Users, RiBriefcaseFill as Briefcase, RiGlobalFill as Globe, RiMagicFill as Sparkle,
   RiArrowRightSLine as ChevronRight, RiArrowDownSLine as ChevronDown, RiNotificationFill as Bell, RiCloseLine as X, RiRefreshLine as RefreshCw, RiAddLine as Plus,
-  RiYoutubeFill as Youtube, RiFileTextFill as FileText, RiMusicFill as Music, RiUploadFill as Upload, RiMicFill as Mic, RiLink as LinkIcon, RiCheckboxCircleFill as CheckCircle
+  RiYoutubeFill as Youtube, RiFileTextFill as FileText, RiMusicFill as Music, RiUploadFill as Upload, RiMicFill as Mic, RiLink as LinkIcon, RiCheckboxCircleFill as CheckCircle,
+  RiFireFill as Flame
 } from 'react-icons/ri';
 import { Clock } from '@phosphor-icons/react';
 import LuterLogo from './shared/LuterLogo';
@@ -53,7 +54,7 @@ const ProgressBar = ({ step, totalSteps, onBack }) => (
 // Constants
 const ROLES = [
   { id: 'student', labelKey: 'student', subKey: 'studentSub', icon: '🎓' },
-  { id: 'solo', labelKey: 'solo', subKey: 'soloSub', icon: '🚀' }
+  { id: 'others', labelKey: 'others', subKey: 'soloSub', icon: '🚀' }
 ];
 
 const INTERESTS = [
@@ -103,7 +104,7 @@ const GOALS_STUDENT = [
   { id: 'career', label: 'Prep for dream job', emoji: '💼' }
 ];
 
-const GOALS_SOLO = [
+const GOALS_OTHERS = [
   { id: 'productivity', label: 'Boost daily focus', emoji: '⚡' },
   { id: 'knowledge', label: 'Learn new subjects', emoji: '🧠' },
   { id: 'organization', label: 'Structure my life', emoji: '📅' }
@@ -379,9 +380,9 @@ const StepWrapper = ({ children, title, subtitle, t, maxWidth = '560px' }) => (
       flexDirection: 'column', 
       justifyContent: 'flex-start', 
       margin: '0 auto',
-      maxHeight: '80vh',
-      overflowY: 'auto',
-      padding: '5px 0'
+      maxHeight: 'none',
+      overflowY: 'visible',
+      padding: '5px 0 40px 0'
     }}
     className="custom-scrollbar"
   >
@@ -395,7 +396,7 @@ const Onboarding = () => {
   const { t } = useTranslation(['onboarding', 'common']);
   const [step, setStep] = useState(1);
   const [role, setRole] = useState('');
-  const totalSteps = role === 'solo' ? 7 : 6;
+  const totalSteps = role === 'others' ? 7 : 6;
   const [fullName, setFullName] = useState('');
   const [userName, setUserName] = useState('');
   const [birthday, setBirthday] = useState('');
@@ -412,6 +413,14 @@ const Onboarding = () => {
   const [studyTime, setStudyTime] = useState('20:00');
   const [reminders, setReminders] = useState(true);
   const [referralCode, setReferralCode] = useState('');
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
   
   // New Solo State
   const [hearAboutUs, setHearAboutUs] = useState('');
@@ -545,7 +554,7 @@ const Onboarding = () => {
     const fetchUnis = async () => {
       setFetchingUnis(true);
       try {
-        const res = await fetch(`http://universities.hipolabs.com/search?country=${encodeURIComponent(country)}`);
+        const res = await fetch(`https://universities.hipolabs.com/search?country=${encodeURIComponent(country)}`);
         const data = await res.json();
         let names = data.map(u => u.name);
         
@@ -557,10 +566,13 @@ const Onboarding = () => {
         const uniqueNames = Array.from(new Set(names)).sort();
         setUniversityList(uniqueNames);
       } catch (err) {
-        console.error("Failed to fetch universities", err);
+        console.warn("Failed to fetch universities, using fallback list:", err);
         // Fallback to static list if API fails and country is Nigeria
-        if (country === 'Nigeria') {
+        if (country === 'Nigeria' || !country) {
           setUniversityList(NIGERIAN_UNIVERSITIES);
+        } else {
+          // Empty list for other countries if API fails
+          setUniversityList([]);
         }
       } finally {
         setFetchingUnis(false);
@@ -666,7 +678,7 @@ const Onboarding = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      const normalizedRole = role === 'solo' ? 'solo_learner' : 'student';
+      const normalizedRole = role === 'others' ? 'solo_learner' : 'student';
       const isSoloLearner = normalizedRole === 'solo_learner';
       const normalizedSemester = semester === '1' ? '1st' : semester === '2' ? '2nd' : null;
       const profilePayload = {
@@ -784,8 +796,17 @@ const Onboarding = () => {
 
       await Promise.all(materialPromises);
 
-      // 4. Create initial stats if missing
-      await supabase.from('user_stats').upsert({ user_id: user.id }, { onConflict: 'user_id' });
+      // 4. Save Study Routine
+      const { error: statsError } = await supabase
+        .from('user_stats')
+        .upsert({ 
+          user_id: user.id,
+          reminder_time: studyTime + ':00',
+          reminders_enabled: reminders,
+          last_streak_update: null // Will be set on first study
+        }, { onConflict: 'user_id' });
+
+      if (statsError) console.error("Error saving stats:", statsError);
 
       // 5. Clear all dashboard and workspace caches to ensure fresh data after onboarding
       clearLuterCaches();
@@ -861,7 +882,7 @@ const Onboarding = () => {
           justifyContent: 'flex-start', 
           overflowY: 'auto',
           paddingRight: '8px',
-          paddingBottom: '20px'
+          paddingBottom: '80px'
         }} className="onboarding-step-content">
           <AnimatePresence mode="wait">
             {step === 1 && (
@@ -1038,29 +1059,32 @@ const Onboarding = () => {
                   </div>
                 </StepWrapper>
               ) : (
-                <StepWrapper key="step3-solo" title="How did you hear about us?" subtitle="We're curious! Help us reach more people like you." t={t}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-                    {['Google Search', 'Twitter / X', 'Instagram', 'Friend / Family', 'TikTok', 'University Ad', 'LinkedIn', 'Other'].map(source => (
+                <StepWrapper key="step3-others" title="What's your current grade?" subtitle="This helps us tailor the difficulty and content." t={t}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {['Secondary School', 'High School Graduate', 'Self-Taught / Enthusiast'].map(g => (
                       <motion.div 
-                        key={source} 
-                        onClick={() => { setHearAboutUs(source); goToNext(); }}
-                        whileHover={{ y: -2 }}
+                        key={g} 
+                        onClick={() => { setGrade(g); goToNext(); }}
+                        whileHover={{ y: -4, background: '#F3E8FF', borderColor: '#C7B9FF' }}
                         whileTap={{ scale: 0.98 }}
                         style={{ 
-                          padding: '16px', 
-                          borderRadius: '12px', 
+                          padding: '20px', 
+                          borderRadius: '16px', 
                           border: '2px solid', 
-                          borderColor: hearAboutUs === source ? '#C7B9FF' : '#F3F4F6', 
-                          background: hearAboutUs === source ? '#F3E8FF' : 'white', 
+                          borderColor: grade === g ? '#C7B9FF' : '#F3F4F6', 
+                          background: grade === g ? '#F3E8FF' : 'white', 
                           cursor: 'pointer',
-                          textAlign: 'center',
-                          fontSize: '14px',
-                          fontWeight: 500,
-                          color: hearAboutUs === source ? '#4B0082' : '#6B7280',
-                          transition: 'all 0.2s ease'
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '16px',
+                          transition: 'all 0.2s ease',
+                          boxShadow: grade === g ? '0 10px 20px rgba(168, 85, 247, 0.1)' : 'none'
                         }}
                       >
-                        {source}
+                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: grade === g ? 'linear-gradient(135deg, #A855F7, #C7B9FF)' : '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <GraduationCap size={22} weight="light" color={grade === g ? "white" : "#111"} />
+                        </div>
+                        <span style={{ fontSize: '16px', fontWeight: 500, color: grade === g ? '#4B0082' : '#111', fontFamily: 'var(--font-outfit)', textTransform: 'uppercase' }}>{g}</span>
                       </motion.div>
                     ))}
                   </div>
@@ -1123,14 +1147,95 @@ const Onboarding = () => {
                   </div>
                 </StepWrapper>
               ) : (
-                <StepWrapper key="step4-solo" title="Tell us about yourself" subtitle="This helps us personalize your learning experience." t={t}>
+                <StepWrapper key="step4-others" title="Tell us about yourself" subtitle="This helps us personalize your learning experience." t={t}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div style={{ position: 'relative' }}><User style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('fullName')} style={inputStyle} /></div>
-                    <div style={{ position: 'relative' }}><At style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} /><input value={userName} onChange={e => setUserName(e.target.value)} placeholder={t('username')} style={inputStyle} /></div>
+                    <div style={{ position: 'relative' }}>
+                      <At style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} color="#111" weight="light" size={18} />
+                      <input value={userName} onChange={e => setUserName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))} placeholder={t('username')} style={{ ...inputStyle, paddingRight: '48px' }} />
+                      <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+                        <AnimatePresence mode="wait">
+                          {checkingUsername ? (
+                            <motion.div
+                              key="checking"
+                              animate={{ rotate: 360 }}
+                              transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+                              style={{ width: '24px', height: '24px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                              {[0, 120, 240].map((deg) => (
+                                <div
+                                  key={deg}
+                                  style={{
+                                    position: 'absolute',
+                                    width: '5px',
+                                    height: '5px',
+                                    background: '#A855F7',
+                                    borderRadius: '50%',
+                                    transform: `rotate(${deg}deg) translateY(-8px)`
+                                  }}
+                                />
+                              ))}
+                            </motion.div>
+                          ) : userName.length >= 3 ? (
+                            <motion.div
+                              key={usernameAvailable ? 'available' : 'taken'}
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              exit={{ scale: 0, opacity: 0 }}
+                              transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                            >
+                              {usernameAvailable ? (
+                                <CheckCircle size={24} color="#C7B9FF" />
+                              ) : (
+                                <X size={24} color="#EF4444" />
+                              )}
+                            </motion.div>
+                          ) : (userName.length === 0 && fullName) ? (
+                            <motion.div
+                              key="suggestion"
+                              initial={{ opacity: 0, x: 10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: 10 }}
+                              onClick={() => setUserName(fullName.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                              style={{
+                                background: '#F5F3FF',
+                                border: '1px solid #DDD6FE',
+                                borderRadius: '20px',
+                                padding: '4px 12px',
+                                fontSize: '11px',
+                                color: '#7C3AED',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                fontWeight: 700,
+                                fontFamily: 'var(--font-outfit)',
+                                boxShadow: '0 2px 8px rgba(124, 58, 237, 0.1)'
+                              }}
+                            >
+                              <Sparkle size={12} /> {fullName.split(' ')[0].toLowerCase()}?
+                            </motion.div>
+                          ) : null}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+
+                    <AnimatePresence>
+                      {!usernameAvailable && !checkingUsername && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          style={{ color: '#EF4444', fontSize: '12px', paddingLeft: '16px', marginTop: '-8px', fontFamily: 'var(--font-varela)' }}
+                        >
+                          This username is already taken.
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                     <CustomDatePicker value={birthday} onChange={setBirthday} />
                     <div style={{ height: '12px' }} />
                     <PremiumButton 
-                      disabled={!fullName || !userName || !birthday} 
+                      disabled={!fullName || !userName || !birthday || !usernameAvailable || checkingUsername || userName.length < 3} 
+                      onClick={goToNext}
                       size="lg"
                       style={{ width: '100%' }}
                     >
@@ -1314,32 +1419,29 @@ const Onboarding = () => {
                   </div>
                 </StepWrapper>
               ) : (
-                <StepWrapper key="step5-solo" title="What's your current grade?" subtitle="This helps us tailor the difficulty and content." t={t}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {['Secondary School', 'High School Graduate', 'Undergraduate', 'Postgraduate', 'Self-Taught / Enthusiast'].map(g => (
+                <StepWrapper key="step5-others" title="How did you hear about us?" subtitle="We're curious! Help us reach more people like you." t={t}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                    {['Google Search', 'Twitter / X', 'Instagram', 'Friend / Family', 'TikTok', 'University Ad', 'LinkedIn', 'Other'].map(source => (
                       <motion.div 
-                        key={g} 
-                        onClick={() => { setGrade(g); goToNext(); }}
-                        whileHover={{ y: -4, background: '#F3E8FF', borderColor: '#C7B9FF' }}
+                        key={source} 
+                        onClick={() => { setHearAboutUs(source); goToNext(); }}
+                        whileHover={{ y: -2 }}
                         whileTap={{ scale: 0.98 }}
                         style={{ 
-                          padding: '20px', 
-                          borderRadius: '16px', 
+                          padding: '16px', 
+                          borderRadius: '12px', 
                           border: '2px solid', 
-                          borderColor: grade === g ? '#C7B9FF' : '#F3F4F6', 
-                          background: grade === g ? '#F3E8FF' : 'white', 
+                          borderColor: hearAboutUs === source ? '#C7B9FF' : '#F3F4F6', 
+                          background: hearAboutUs === source ? '#F3E8FF' : 'white', 
                           cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '16px',
-                          transition: 'all 0.2s ease',
-                          boxShadow: grade === g ? '0 10px 20px rgba(168, 85, 247, 0.1)' : 'none'
+                          textAlign: 'center',
+                          fontSize: '14px',
+                          fontWeight: 500,
+                          color: hearAboutUs === source ? '#4B0082' : '#6B7280',
+                          transition: 'all 0.2s ease'
                         }}
                       >
-                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: grade === g ? 'linear-gradient(135deg, #A855F7, #C7B9FF)' : '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <GraduationCap size={22} weight="light" color={grade === g ? "white" : "#111"} />
-                        </div>
-                        <span style={{ fontSize: '16px', fontWeight: 500, color: grade === g ? '#4B0082' : '#111', fontFamily: 'var(--font-outfit)', textTransform: 'uppercase' }}>{g}</span>
+                        {source}
                       </motion.div>
                     ))}
                   </div>
@@ -1347,175 +1449,159 @@ const Onboarding = () => {
               )
             )}
             {step === 6 && (
-              <StepWrapper key="step6" title="Your Study Atmosphere" subtitle="Set your prime time. Luter adapts to your rhythm." t={t} maxWidth="600px">
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '32px', padding: '12px 0' }}>
+              <StepWrapper key="step6" title="Study Rhythm" subtitle="Consistency is key. Set a daily nudge." t={t} maxWidth="500px">
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  gap: isMobile ? '16px' : '24px',
+                  padding: isMobile ? '0' : '10px 0'
+                }}>
                   
-                  {/* Minimal Central Card */}
+                  {/* Fun Mascot Illustration - Smaller on Mobile */}
                   <motion.div
-                    layout
-                    style={{
-                      width: '100%',
-                      background: 'white',
-                      borderRadius: '32px',
-                      padding: '48px 32px',
-                      textAlign: 'center',
-                      boxShadow: '0 20px 60px rgba(0,0,0,0.03)',
-                      border: '1px solid #F1F5F9',
-                      position: 'relative',
-                      overflow: 'hidden'
-                    }}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    style={{ position: 'relative', marginBottom: isMobile ? '0' : '10px' }}
                   >
-                    <motion.div 
-                      animate={{ background: focusProfile.sky, opacity: 0.1 }}
-                      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
+                    <img 
+                      src="/onboard-mascot.png" 
+                      alt="Mascot" 
+                      style={{ width: isMobile ? '120px' : '160px', height: 'auto', objectFit: 'contain' }} 
                     />
-
-                    <div style={{ position: 'relative', zIndex: 1 }}>
-                      <motion.div
-                        key={focusProfile.icon}
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        style={{ fontSize: '72px', marginBottom: '20px' }}
-                      >
-                        {focusProfile.icon}
-                      </motion.div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <input 
-                          type="time" 
-                          value={studyTime} 
-                          onChange={(e) => setStudyTime(e.target.value)}
-                          style={{ 
-                            fontSize: '88px', 
-                            fontWeight: 800, 
-                            color: '#111', 
-                            fontFamily: 'var(--font-outfit)', 
-                            border: 'none', 
-                            background: 'transparent',
-                            outline: 'none',
-                            textAlign: 'center',
-                            width: '100%',
-                            letterSpacing: '-5px',
-                            cursor: 'pointer'
-                          }}
-                        />
-                        
-                        <motion.div
-                          key={focusProfile.label}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          style={{ 
-                            background: focusProfile.surface,
-                            color: focusProfile.accent,
-                            padding: '8px 20px',
-                            borderRadius: '30px',
-                            fontSize: '14px',
-                            fontWeight: 800,
-                            fontFamily: 'var(--font-outfit)',
-                            marginTop: '4px',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.08em'
-                          }}
-                        >
-                          {focusProfile.label}
-                        </motion.div>
-                      </div>
-
-                      <div style={{ 
-                        marginTop: '40px', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        gap: '12px',
-                        padding: '16px',
-                        borderRadius: '20px',
-                        background: '#F9FAFB'
-                      }}>
-                        <Bell size={18} color={reminders ? focusProfile.accent : '#9CA3AF'} />
-                        <span style={{ fontSize: '14px', fontWeight: 600, color: '#374151', fontFamily: 'var(--font-outfit)' }}>
-                          Daily study nudge
-                        </span>
-                        <motion.button
-                          onClick={() => setReminders(!reminders)}
-                          whileTap={{ scale: 0.9 }}
-                          style={{
-                            width: '44px', height: '22px',
-                            borderRadius: '20px',
-                            background: reminders ? focusProfile.accent : '#E2E8F0',
-                            position: 'relative', cursor: 'pointer', border: 'none', transition: 'background 0.3s'
-                          }}
-                        >
-                          <motion.div 
-                            animate={{ x: reminders ? 22 : 0 }}
-                            style={{ 
-                              width: '16px', height: '16px', 
-                              background: 'white', borderRadius: '50%',
-                              position: 'absolute', top: '3px', left: '3px',
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                            }} 
-                          />
-                        </motion.button>
-                      </div>
-                    </div>
+                    <motion.div
+                      animate={{ 
+                        y: [0, -8, 0],
+                        rotate: [0, 8, -8, 0]
+                      }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                      style={{ 
+                        position: 'absolute', top: '-5px', right: '-5px',
+                        background: 'white', width: isMobile ? '36px' : '44px', height: isMobile ? '36px' : '44px', borderRadius: '12px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 10px 25px rgba(139, 92, 246, 0.15)', border: '1px solid #F5F3FF'
+                      }}
+                    >
+                      <Bell size={isMobile ? 18 : 22} color="#8B5CF6" weight="fill" />
+                    </motion.div>
                   </motion.div>
 
-                  {/* Minimal Quick Select Chips */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px' }}>
+                  {/* Minimal Reminder Control - More Compact on Mobile */}
+                  <div style={{ 
+                    width: '100%', background: '#F9FAFB', borderRadius: '24px', padding: isMobile ? '16px' : '20px',
+                    border: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: isMobile ? '12px' : '16px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: isMobile ? '15px' : '16px', fontWeight: 800, color: '#111', fontFamily: 'var(--font-outfit)' }}>Enable Nudges</h4>
+                        <p style={{ margin: 0, fontSize: '11px', color: '#6B7280', fontFamily: 'var(--font-varela)' }}>Build your habit daily</p>
+                      </div>
+                      <motion.button
+                        onClick={() => setReminders(!reminders)}
+                        whileTap={{ scale: 0.9 }}
+                        style={{
+                          width: '44px', height: '22px', borderRadius: '20px',
+                          background: reminders ? '#8B5CF6' : '#CBD5E1',
+                          position: 'relative', cursor: 'pointer', border: 'none', transition: 'all 0.3s'
+                        }}
+                      >
+                        <motion.div 
+                          animate={{ x: reminders ? 22 : 0 }}
+                          style={{ 
+                            width: '16px', height: '16px', background: 'white', borderRadius: '50%',
+                            position: 'absolute', top: '3px', left: '3px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                          }} 
+                        />
+                      </motion.button>
+                    </div>
+
+                    <AnimatePresence>
+                      {reminders && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          style={{ overflow: 'hidden' }}
+                        >
+                          <div style={{ paddingTop: '10px', borderTop: '1px dashed #E5E7EB', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '12px', fontWeight: 700, color: '#4B5563', fontFamily: 'var(--font-outfit)' }}>Notification Time</span>
+                              <input 
+                                type="time" 
+                                value={studyTime} 
+                                onChange={(e) => setStudyTime(e.target.value)}
+                                style={{ 
+                                  border: '1px solid #F1F5F9', background: 'white', padding: '4px 10px',
+                                  borderRadius: '8px', fontSize: '15px', fontWeight: 800, color: '#111',
+                                  outline: 'none', fontFamily: 'var(--font-outfit)', cursor: 'pointer'
+                                }}
+                              />
+                            </div>
+                            
+                            {!isMobile && (
+                              <motion.button
+                                whileHover={{ background: '#EDE9FE' }}
+                                onClick={async () => {
+                                  if ('Notification' in window) {
+                                    const res = await Notification.requestPermission();
+                                    if (res === 'granted') new Notification("Luter", { body: "Nudges active! 🔥" });
+                                  }
+                                }}
+                                style={{
+                                  width: '100%', padding: '10px', borderRadius: '12px', background: '#F5F3FF',
+                                  color: '#8B5CF6', fontSize: '12px', fontWeight: 800, border: 'none',
+                                  cursor: 'pointer', fontFamily: 'var(--font-outfit)', display: 'flex',
+                                  alignItems: 'center', justifyContent: 'center', gap: '6px'
+                                }}
+                              >
+                                <Bell size={14} /> Authorize Browser Alerts
+                              </motion.button>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Routine Presets (Minimal Chips) - Smaller on Mobile */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: isMobile ? '6px' : '8px' }}>
                     {routinePresets.map((preset) => (
                       <motion.button
                         key={preset.value}
-                        whileHover={{ y: -2, background: 'white' }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setStudyTime(preset.value)}
                         style={{
-                          padding: '10px 18px',
-                          borderRadius: '14px',
-                          background: studyTime === preset.value ? '#111' : '#F3F4F6',
-                          color: studyTime === preset.value ? '#FFF' : '#4B5563',
-                          border: studyTime === preset.value ? '2px solid #111' : '2px solid transparent',
-                          fontSize: '13px',
-                          fontWeight: 700,
-                          fontFamily: 'var(--font-outfit)',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px'
+                          padding: isMobile ? '6px 12px' : '8px 14px', borderRadius: '12px',
+                          background: studyTime === preset.value ? '#8B5CF6' : 'white',
+                          color: studyTime === preset.value ? 'white' : '#64748B',
+                          border: '1px solid', borderColor: studyTime === preset.value ? '#8B5CF6' : '#E5E7EB',
+                          fontSize: isMobile ? '11px' : '12px', fontWeight: 700, fontFamily: 'var(--font-outfit)', cursor: 'pointer'
                         }}
                       >
-                        <span>{preset.icon}</span> {preset.label}
+                        {preset.icon} {preset.label}
                       </motion.button>
                     ))}
                   </div>
 
-                  <div style={{ width: '100%', maxWidth: '320px', marginTop: '12px' }}>
+                  <div style={{ width: '100%', marginTop: isMobile ? '4px' : '8px' }}>
                     <PremiumButton 
                       onClick={role === 'student' ? finish : goToNext} 
-                      style={{ width: '100%', height: '64px', borderRadius: '24px', fontSize: '18px' }} 
-                      size="lg"
+                      style={{ width: '100%', height: isMobile ? '50px' : '56px', borderRadius: '18px', fontSize: '16px' }} 
                       disabled={saving}
                     >
-                      {saving ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <RefreshCw size={20} className="animate-spin" />
-                          <span>Setting up...</span>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      {saving ? <RefreshCw size={20} className="animate-spin" /> : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                           <span>{role === 'student' ? 'Launch Dashboard' : 'Continue'}</span>
-                          <ArrowRight size={20} />
+                          <ArrowRight size={18} />
                         </div>
                       )}
                     </PremiumButton>
-                    <p style={{ textAlign: 'center', fontSize: '12px', color: '#94A3B8', marginTop: '16px', fontFamily: 'var(--font-varela)' }}>
-                      You can change your study routine anytime in settings.
-                    </p>
                   </div>
                 </div>
               </StepWrapper>
             )}
 
-            {step === 7 && role === 'solo' && (
+            {step === 7 && role === 'others' && (
                 <StepWrapper key="step7-solo" title="Do you have your document for study?" subtitle="Upload your Document, Audio or paste a Link" t={t} maxWidth="1000px">
                   <DocumentUploadStep 
                     youtubeLink={youtubeLink} 
@@ -1582,189 +1668,168 @@ const DocumentUploadStep = ({
   onSkip, onContinue,
   saving = false
 }) => {
+  const isMobile = window.innerWidth <= 768;
   const hasYouTube = youtubeLink.trim().length > 0;
   const hasDocument = Boolean(selectedFile);
   const hasAudio = Boolean(selectedAudio);
   const hasAnySource = hasYouTube || hasDocument || hasAudio;
 
-  const panelStyle = {
-    background: 'white',
-    border: '1px solid #EAECEF',
-    borderRadius: '28px',
-    padding: '28px',
-    boxShadow: '0 14px 40px rgba(15, 23, 42, 0.06)'
-  };
-
-  const tileBaseStyle = {
-    background: '#FCFCFD',
-    border: '1px solid #EAECEF',
+  const cardStyle = (active) => ({
+    background: active ? '#F5F3FF' : 'white',
+    border: '2px solid',
+    borderColor: active ? '#8B5CF6' : '#F1F5F9',
     borderRadius: '24px',
-    padding: '24px',
+    padding: isMobile ? '16px' : '20px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '18px',
-    minHeight: '100%'
-  };
+    gap: '12px',
+    transition: 'all 0.3s ease',
+    boxShadow: active ? '0 10px 25px rgba(139, 92, 246, 0.1)' : 'none'
+  });
 
-  const iconFrameStyle = {
-    width: '56px',
-    height: '56px',
-    borderRadius: '18px',
-    background: '#F4F4F5',
-    border: '1px solid #E4E4E7',
+  const iconBox = (color) => ({
+    width: '44px',
+    height: '44px',
+    borderRadius: '14px',
+    background: `${color}15`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#111'
-  };
-
-  const actionButtonStyle = {
-    width: '100%',
-    height: '50px',
-    borderRadius: '16px',
-    border: '1px solid #D6D6DB',
-    background: '#111',
-    color: 'white',
-    fontSize: '14px',
-    fontWeight: 600,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '10px',
-    cursor: 'pointer',
-    fontFamily: 'var(--font-outfit)'
-  };
+    color: color
+  });
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
-        <div style={{ maxWidth: '620px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '8px 14px', borderRadius: '999px', background: '#F5F3FF', color: '#4B0082', fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-outfit)', marginBottom: '16px' }}>
-            <img src="/onboard-mascot.png" style={{ width: '24px', height: '24px', display: 'block' }} alt="Lute" />
-            Study Source
-          </div>
-          <h2 style={{ fontSize: 'clamp(1.8rem, 3vw, 2.5rem)', fontWeight: 700, color: '#111', margin: '0 0 10px 0', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>
-            Do you have your document ready to study?
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '20px' }}>
+      
+      {/* Header with Mascot */}
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: '16px', textAlign: isMobile ? 'center' : 'left' }}>
+        <img src="/onboard-mascot.png" style={{ width: isMobile ? '80px' : '100px', height: 'auto' }} alt="Mascot" />
+        <div>
+          <h2 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 800, color: '#111', margin: 0, fontFamily: 'var(--font-outfit)' }}>
+            Ready to Study?
           </h2>
-          <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#6B7280', margin: 0, fontFamily: 'var(--font-varela)', fontWeight: 400 }}>
-            Bring in a YouTube lesson, class document, or lecture audio. We will turn it into a study-ready workspace inside Luter.
+          <p style={{ fontSize: '14px', color: '#6B7280', margin: '4px 0 0 0', fontFamily: 'var(--font-varela)' }}>
+            Bring in your YouTube links, documents, or audio.
           </p>
         </div>
-
-        <button
-          onClick={onSkip}
-          disabled={saving}
-          style={{ background: 'transparent', border: 'none', color: saving ? '#A1A1AA' : '#6B7280', fontSize: '14px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', textDecoration: 'underline', fontFamily: 'var(--font-outfit)' }}
-        >
-          {saving ? 'Saving...' : 'Skip for now'}
-        </button>
       </div>
 
-      <div style={panelStyle}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px' }}>
-          <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }} style={tileBaseStyle}>
-            <div style={iconFrameStyle}>
-              <Youtube size={28} color="#111" weight="light" />
+      {/* Upload Options Stack */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        
+        {/* YouTube Card */}
+        <motion.div whileTap={{ scale: 0.98 }} style={cardStyle(hasYouTube)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={iconBox('#EF4444')}><Youtube size={24} weight="fill" /></div>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#111', fontFamily: 'var(--font-outfit)' }}>YouTube Video</h4>
+              {!hasYouTube && <p style={{ margin: 0, fontSize: '11px', color: '#6B7280', fontFamily: 'var(--font-varela)' }}>Ideal for tutorials & lessons</p>}
             </div>
-            <div>
-              <h4 style={{ fontSize: '18px', fontWeight: 600, color: '#111', margin: '0 0 6px 0', fontFamily: 'var(--font-outfit)' }}>Paste a YouTube link</h4>
-              <p style={{ fontSize: '13px', color: '#6B7280', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-varela)', fontWeight: 400 }}>Ideal for recorded lessons, tutorials, and explainers.</p>
-            </div>
-            <div style={{ width: '100%', position: 'relative', marginTop: 'auto' }}>
-              <LinkIcon style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} size={18} color="#111" weight="light" />
-              <input
-                value={youtubeLink}
-                onChange={e => setYoutubeLink(e.target.value)}
-                placeholder="https://youtu.be/..."
-                style={{ ...inputStyle, height: '50px', fontSize: '13px', background: 'white', border: '1px solid #E4E4E7', padding: '0 16px 0 48px' }}
-              />
-            </div>
-            <div style={{ minHeight: '22px', display: 'flex', alignItems: 'center' }}>
-              {hasYouTube ? (
-                <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#111', fontSize: '12px', fontWeight: 500, fontFamily: 'var(--font-varela)' }}>
-                  <CheckCircle size={16} weight="light" color="#111" /> Link ready
-                </motion.div>
-              ) : (
-                <span style={{ fontSize: '12px', color: '#A1A1AA', fontFamily: 'var(--font-varela)' }}>Paste one link to continue with video study.</span>
-              )}
-            </div>
-          </motion.div>
-
-          <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }} style={tileBaseStyle}>
-            <div style={iconFrameStyle}>
-              <FileText size={28} color="#111" weight="light" />
-            </div>
-            <div>
-              <h4 style={{ fontSize: '18px', fontWeight: 600, color: '#111', margin: '0 0 6px 0', fontFamily: 'var(--font-outfit)' }}>Upload a document</h4>
-              <p style={{ fontSize: '13px', color: '#6B7280', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-varela)', fontWeight: 400 }}>PDF, DOCX, PPTX, DOC, PPT, or TXT up to 50MB.</p>
-            </div>
+            {hasYouTube && <CheckCircle size={20} color="#10B981" weight="fill" />}
+          </div>
+          <div style={{ position: 'relative' }}>
+            <LinkIcon style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} size={16} color="#94A3B8" />
             <input
-              type="file"
-              ref={fileInputRef}
-              style={{ display: 'none' }}
-              onChange={(e) => e.target.files[0] && setSelectedFile(e.target.files[0])}
-              accept=".pdf,.docx,.doc,.pptx,.ppt,.txt"
+              value={youtubeLink}
+              onChange={e => setYoutubeLink(e.target.value)}
+              placeholder="Paste link here..."
+              style={{
+                width: '100%', height: '44px', background: 'white', border: '1px solid #E2E8F0',
+                borderRadius: '12px', padding: '0 12px 0 36px', fontSize: '14px', outline: 'none',
+                fontFamily: 'var(--font-outfit)'
+              }}
             />
-            <button onClick={() => fileInputRef.current.click()} style={{ ...actionButtonStyle, marginTop: 'auto' }}>
-              {hasDocument ? <CheckCircle size={18} weight="light" color="white" /> : <Upload size={18} weight="light" color="white" />}
-              {hasDocument ? 'Document attached' : 'Choose document'}
+          </div>
+        </motion.div>
+
+        {/* Document Card */}
+        <motion.div whileTap={{ scale: 0.98 }} style={cardStyle(hasDocument)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={iconBox('#3B82F6')}><FileText size={24} weight="fill" /></div>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#111', fontFamily: 'var(--font-outfit)' }}>Upload Document</h4>
+              {!hasDocument && <p style={{ margin: 0, fontSize: '11px', color: '#6B7280', fontFamily: 'var(--font-varela)' }}>PDF, DOCX, PPTX (Max 50MB)</p>}
+            </div>
+            {hasDocument && <CheckCircle size={20} color="#10B981" weight="fill" />}
+          </div>
+          <input
+            type="file"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={(e) => e.target.files[0] && setSelectedFile(e.target.files[0])}
+            accept=".pdf,.docx,.doc,.pptx,.ppt,.txt"
+          />
+          {!hasDocument ? (
+            <button 
+              onClick={() => fileInputRef.current.click()}
+              style={{
+                width: '100%', height: '40px', background: '#F8FAFC', border: '1px dashed #CBD5E1',
+                borderRadius: '12px', color: '#64748B', fontSize: '13px', fontWeight: 600, cursor: 'pointer'
+              }}
+            >
+              Choose a file
             </button>
-            <div style={{ minHeight: '22px', display: 'flex', alignItems: 'center' }}>
-              {hasDocument ? (
-                <span style={{ fontSize: '12px', color: '#111', fontFamily: 'var(--font-varela)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {selectedFile.name}
-                </span>
-              ) : (
-                <span style={{ fontSize: '12px', color: '#A1A1AA', fontFamily: 'var(--font-varela)' }}>Best for lecture slides, notes, and handouts.</span>
-              )}
+          ) : (
+            <div style={{ fontSize: '12px', color: '#111', fontWeight: 600, background: '#F1F5F9', padding: '8px 12px', borderRadius: '10px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {selectedFile.name}
             </div>
-          </motion.div>
+          )}
+        </motion.div>
 
-          <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }} style={tileBaseStyle}>
-            <div style={iconFrameStyle}>
-              <Music size={28} color="#111" weight="light" />
+        {/* Audio Card */}
+        <motion.div whileTap={{ scale: 0.98 }} style={cardStyle(hasAudio)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={iconBox('#F59E0B')}><Mic size={24} weight="fill" /></div>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#111', fontFamily: 'var(--font-outfit)' }}>Lecture Audio</h4>
+              {!hasAudio && <p style={{ margin: 0, fontSize: '11px', color: '#6B7280', fontFamily: 'var(--font-varela)' }}>Recordings or Voice Notes</p>}
             </div>
-            <div>
-              <h4 style={{ fontSize: '18px', fontWeight: 600, color: '#111', margin: '0 0 6px 0', fontFamily: 'var(--font-outfit)' }}>Upload lecture audio</h4>
-              <p style={{ fontSize: '13px', color: '#6B7280', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-varela)', fontWeight: 400 }}>MP3, WAV, and other audio files up to 200MB.</p>
-            </div>
-            <input
-              type="file"
-              ref={audioInputRef}
-              style={{ display: 'none' }}
-              onChange={(e) => e.target.files[0] && setSelectedAudio(e.target.files[0])}
-              accept="audio/*"
-            />
-            <button onClick={() => audioInputRef.current.click()} style={{ ...actionButtonStyle, marginTop: 'auto' }}>
-              {hasAudio ? <CheckCircle size={18} weight="light" color="white" /> : <Mic size={18} weight="light" color="white" />}
-              {hasAudio ? 'Audio attached' : 'Choose audio'}
+            {hasAudio && <CheckCircle size={20} color="#10B981" weight="fill" />}
+          </div>
+          <input
+            type="file"
+            ref={audioInputRef}
+            style={{ display: 'none' }}
+            onChange={(e) => e.target.files[0] && setSelectedAudio(e.target.files[0])}
+            accept="audio/*"
+          />
+          {!hasAudio ? (
+            <button 
+              onClick={() => audioInputRef.current.click()}
+              style={{
+                width: '100%', height: '40px', background: '#F8FAFC', border: '1px dashed #CBD5E1',
+                borderRadius: '12px', color: '#64748B', fontSize: '13px', fontWeight: 600, cursor: 'pointer'
+              }}
+            >
+              Choose audio
             </button>
-            <div style={{ minHeight: '22px', display: 'flex', alignItems: 'center' }}>
-              {hasAudio ? (
-                <span style={{ fontSize: '12px', color: '#111', fontFamily: 'var(--font-varela)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {selectedAudio.name}
-                </span>
-              ) : (
-                <span style={{ fontSize: '12px', color: '#A1A1AA', fontFamily: 'var(--font-varela)' }}>Great for tutorials, voice notes, and class recordings.</span>
-              )}
+          ) : (
+            <div style={{ fontSize: '12px', color: '#111', fontWeight: 600, background: '#F1F5F9', padding: '8px 12px', borderRadius: '10px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {selectedAudio.name}
             </div>
-          </motion.div>
-        </div>
+          )}
+        </motion.div>
+      </div>
 
-        <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #F0F1F3', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-          <p style={{ fontSize: '14px', color: '#6B7280', fontFamily: 'var(--font-varela)', fontWeight: 400, margin: 0 }}>
-            Prefer something else? <span style={{ color: '#111', fontWeight: 500, cursor: 'pointer', textDecoration: 'underline' }}>Anki import, text, describe, or manual mode</span>
-          </p>
-
-          <PremiumButton
-            onClick={onContinue}
-            size="lg"
-            disabled={saving}
-            style={{ width: '220px', opacity: hasAnySource ? 1 : 0.92 }}
-          >
-            {saving ? 'Saving...' : (hasAnySource ? "Continue with source" : "Continue anyway")}
-          </PremiumButton>
-        </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: 'auto' }}>
+        <PremiumButton 
+          onClick={onContinue} 
+          style={{ width: '100%', height: '56px', borderRadius: '20px', fontSize: '16px' }} 
+          disabled={saving}
+        >
+          {saving ? <RefreshCw size={20} className="animate-spin" /> : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+              <span>{hasAnySource ? 'Prepare My Study' : 'Go to Dashboard'}</span>
+              <ArrowRight size={18} />
+            </div>
+          )}
+        </PremiumButton>
+        <button
+          onClick={onSkip}
+          style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: '13px', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
+        >
+          Skip for now
+        </button>
       </div>
     </div>
   );

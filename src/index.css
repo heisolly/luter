@@ -1382,3 +1382,13 @@ h2, h3, h4 {
 .animate-spin-slow {
   animation: spin-slow 8s linear infinite;
 }
+
+/* Hide Liveblocks Watermark */
+[class*="lb-watermark"],
+[class*="lb-badge"],
+a[href*="liveblocks.io"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

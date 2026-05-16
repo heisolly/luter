@@ -202,6 +202,11 @@ class RequestQueue {
           await new Promise(resolve => setTimeout(resolve, delay))
           this.queue.unshift({ request, resolve, reject, retryCount: retryCount + 1 })
           continue
+        } else if (isRotateableError && request.model === GROQ_MODELS.PROFESSOR) {
+          console.warn(`[GroqAPI] All keys exhausted for ${GROQ_MODELS.PROFESSOR}. Falling back to ${GROQ_MODELS.SPEEDSTER} to bypass limit.`)
+          request.model = GROQ_MODELS.SPEEDSTER
+          this.queue.unshift({ request, resolve, reject, retryCount: 0 })
+          continue
         } else {
           reject(error)
         }
@@ -419,7 +424,7 @@ export async function suggestSyllabusFromAiQuery(query) {
           content: `Admin query (infer university, faculty if mentioned, department, level, semester, and propose courses):\n${query.trim().slice(0, 2000)}${searchContext.slice(0, 8000)}`,
         },
       ],
-      GROQ_MODELS.SPEEDSTER,
+      GROQ_MODELS.PROFESSOR,
       { temperature: 0.35, systemPromptOverride: GROQ_PROMPTS.ADMIN_WEB_ASSIST },
     )
     const raw = stripJsonFence(data?.choices?.[0]?.message?.content || '')
@@ -597,7 +602,7 @@ TASK:
 Based on these search results, identify the official or most plausible course list for this specific academic slot. If the results mention "handbook", "curriculum", or "official list", prioritize those.`
 
   try {
-    const data = await callGroqAPI([{ role: 'user', content: userMsg }], GROQ_MODELS.SPEEDSTER, {
+    const data = await callGroqAPI([{ role: 'user', content: userMsg }], GROQ_MODELS.PROFESSOR, {
       temperature: 0.2,
       systemPromptOverride: GROQ_PROMPTS.ADMIN_WEB_RESEARCH_PARSE
     })

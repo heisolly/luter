@@ -1,9 +1,10 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react'
-import { 
-  RiBookOpenFill as BookOpen, RiStarFill as Star, RiFlashlightFill as Zap, RiArrowLeftSLine as ChevronLeft, RiArrowRightSLine as ChevronRight, 
-  RiDownloadFill as Download, RiShareForwardFill as Share2, RiPrinterFill as Printer, 
-  RiCheckboxCircleFill as CheckCircle, RiErrorWarningFill as AlertCircle, RiBookmarkFill as Bookmark, RiRefreshLine as RefreshCw, 
-  RiTrophyFill as Trophy, RiMagicFill as Sparkle, RiStackFill as Layers, RiQuestionFill as HelpCircle, 
+import {
+  RiBookOpenFill as BookOpen, RiStarFill as Star, RiFlashlightFill as Zap, RiArrowLeftSLine as ChevronLeft, RiArrowRightSLine as ChevronRight,
+  RiDownloadFill as Download, RiShareForwardFill as Share2, RiPrinterFill as Printer,
+  RiCheckboxCircleFill as CheckCircle, RiErrorWarningFill as AlertCircle, RiBookmarkFill as Bookmark, RiRefreshLine as RefreshCw,
+  RiTrophyFill as Trophy, RiMagicFill as Sparkle, RiStackFill as Layers, RiQuestionFill as HelpCircle,
   RiPencilFill as PencilLine, RiMagicFill as Wand2, RiSaveFill as Save,
   RiCloseCircleFill as XCircle, RiListCheck as List, RiLayoutMasonryFill as Layout, RiEyeFill as Eye, RiTimeFill as Clock, RiBarChartFill as BarChart3, RiGraduationCapFill as GraduationCap,
   RiLoader4Line as CircleNotch, RiStickyNoteFill as NoteIcon
@@ -20,8 +21,8 @@ export function WorkstationNotes({ content, material, onRegenerate }) {
   if (!content) return <EmptyState icon={BookOpen} label="Notes are being drafted..." />
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }} 
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', fontFamily: "var(--font-varela)" }}
     >
@@ -36,7 +37,7 @@ export function WorkstationNotes({ content, material, onRegenerate }) {
           <ActionButton onClick={() => window.print()} icon={Printer} label="Print" />
           <ActionButton icon={Download} label="Export" />
           <ActionButton icon={Share2} label="Share" />
-          <button 
+          <button
             onClick={onRegenerate}
             style={{ padding: '12px 24px', borderRadius: '14px', background: '#6D28D9', color: 'white', border: 'none', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 10px 20px -5px rgba(109, 40, 217, 0.25)', fontFamily: 'var(--font-outfit)' }}
           >
@@ -45,13 +46,13 @@ export function WorkstationNotes({ content, material, onRegenerate }) {
         </div>
       </div>
 
-      <div 
-        className="markdown-body" 
-        style={{ 
-          background: 'white', 
-          padding: '60px', 
-          borderRadius: '40px', 
-          border: '1.5px solid #E2E8F0', 
+      <div
+        className="markdown-body"
+        style={{
+          background: 'white',
+          padding: '60px',
+          borderRadius: '40px',
+          border: '1.5px solid #E2E8F0',
           boxShadow: '0 40px 100px -20px rgba(0, 0, 0, 0.08)',
           fontSize: '18px',
           lineHeight: 1.8,
@@ -80,8 +81,8 @@ export function WorkstationSummary({ content, material }) {
   if (!content) return <EmptyState icon={Sparkle} label="Distilling key insights..." />
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.98 }} 
+    <motion.div
+      initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', fontFamily: "var(--font-varela)" }}
     >
@@ -120,7 +121,7 @@ export function WorkstationFlashcards({ flashcards = [], items = [], material, u
     return []
   }
   const safeItems = getItems()
-  
+
   return <FlashcardEngineComponent material={material} items={safeItems} user={user} onRegenerate={onRegenerate} />
 }
 
@@ -141,17 +142,17 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
     return []
   }
   const safeQuestions = getQuestions()
-  
+
   if (safeQuestions.length === 0) return (
-    <EmptyState 
-      icon={HelpCircle} 
-      label="No quiz generated yet." 
+    <EmptyState
+      icon={HelpCircle}
+      label="No quiz generated yet."
       action={
-        <button 
+        <button
           onClick={onRegenerate}
-          style={{ 
-            padding: '12px 24px', background: '#A78BFA', color: 'white', border: 'none', borderRadius: '12px', 
-            fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', 
+          style={{
+            padding: '12px 24px', background: '#A78BFA', color: 'white', border: 'none', borderRadius: '12px',
+            fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
             boxShadow: '0 4px 12px rgba(167, 139, 250, 0.3)', fontFamily: 'var(--font-outfit)',
             transition: 'all 0.2s'
           }}
@@ -171,9 +172,9 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
   const getCorrectIndex = (question) => {
     const ans = question.correctAnswer ?? question.correct_answer ?? question.answer
     if (ans === undefined || ans === null) return -1
-    
+
     if (typeof ans === 'number') return ans
-    
+
     if (typeof ans === 'string') {
       const lower = ans.trim().toLowerCase()
       // Handle letter keys (a, b, c, d)
@@ -181,15 +182,15 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
       if (lower === 'b') return 1
       if (lower === 'c') return 2
       if (lower === 'd') return 3
-      
+
       // Handle true/false
       if (lower === 'true' || lower === 'yes') return 1
       if (lower === 'false' || lower === 'no') return 0
-      
+
       // Try parsing as int
       const parsed = parseInt(lower)
       if (!isNaN(parsed)) return parsed
-      
+
       // Try to find the index in options text
       if (question.options) {
         const idx = question.options.findIndex(opt => {
@@ -199,7 +200,7 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
         if (idx !== -1) return idx
       }
     }
-    
+
     return ans
   }
 
@@ -211,7 +212,7 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
         const expected = (question.expected_answer || question.answer || '').trim().toLowerCase()
         return acc + (userText && userText === expected ? 1 : 0)
       }
-      
+
       const correctIdx = getCorrectIndex(question)
       return acc + (userAns == correctIdx ? 1 : 0)
     }, 0)
@@ -235,10 +236,10 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
   if (isFinished) {
     const score = calculateScore()
     const accuracy = Math.round((score / safeQuestions.length) * 100)
-    
+
     return (
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }} 
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         style={{ maxWidth: '640px', margin: '60px auto', background: 'white', padding: '64px 48px', borderRadius: '48px', border: '1px solid #f1f5f9', boxShadow: '0 40px 100px -20px rgba(0,0,0,0.12)', textAlign: 'center', fontFamily: "'Varela Round', sans-serif" }}
       >
@@ -247,7 +248,7 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
         </div>
         <h2 style={{ fontSize: '32px', fontWeight: 700, color: '#1A102D', marginBottom: '12px', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.02em' }}>Assessment complete</h2>
         <p style={{ color: '#64748B', fontSize: '17px', marginBottom: '40px', fontWeight: 500, lineHeight: 1.6 }}>Great focus! You've analyzed your understanding of {material?.title}.</p>
-        
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }}>
           <div style={{ padding: '24px', background: '#F8FAFC', borderRadius: '24px', border: '1.5px solid #E2E8F0' }}>
             <div style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px', letterSpacing: '0.03em' }}>Accuracy</div>
@@ -259,13 +260,13 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
           </div>
         </div>
 
-        <button 
+        <button
           onClick={() => { setIdx(0); setIsFinished(false); setSelected({}); setTypeInAnswers({}); setShowExplanation(false); }}
-          style={{ 
-            width: '100%', padding: '18px', borderRadius: '16px', background: '#A78BFA', color: 'white', 
-            fontWeight: 700, border: 'none', cursor: 'pointer', fontSize: '15px', 
-            boxShadow: '0 4px 12px rgba(167, 139, 250, 0.3)', fontFamily: 'var(--font-outfit)', 
-            transition: 'all 0.2s' 
+          style={{
+            width: '100%', padding: '18px', borderRadius: '16px', background: '#A78BFA', color: 'white',
+            fontWeight: 700, border: 'none', cursor: 'pointer', fontSize: '15px',
+            boxShadow: '0 4px 12px rgba(167, 139, 250, 0.3)', fontFamily: 'var(--font-outfit)',
+            transition: 'all 0.2s'
           }}
           onMouseEnter={(e) => { e.currentTarget.style.background = '#8B5CF6'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = '#A78BFA'; e.currentTarget.style.transform = 'translateY(0)'; }}
@@ -280,14 +281,14 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', fontFamily: "'Varela Round', sans-serif" }}>
       {/* Quiz Progress Bar */}
       <div style={{ height: '8px', background: '#E2E8F0', borderRadius: '99px', marginBottom: '48px', overflow: 'hidden' }}>
-        <motion.div 
+        <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
           style={{ height: '100%', background: '#A78BFA', borderRadius: '99px' }}
         />
       </div>
 
-      <motion.div 
+      <motion.div
         key={idx}
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -322,10 +323,10 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
                 whileTap={{ scale: isAnswered ? 1 : 0.99 }}
                 onClick={() => handleSelect(i)}
                 disabled={isAnswered}
-                style={{ 
-                  padding: '24px 32px', 
-                  borderRadius: '24px', 
-                  background: isCorrect ? '#ECFDF5' : isWrong ? '#FEF2F2' : (isUserSelected ? '#F5F3FF' : 'white'), 
+                style={{
+                  padding: '24px 32px',
+                  borderRadius: '24px',
+                  background: isCorrect ? '#ECFDF5' : isWrong ? '#FEF2F2' : (isUserSelected ? '#F5F3FF' : 'white'),
                   border: isCorrect ? '2px solid #059669' : isWrong ? '2px solid #EF4444' : (isUserSelected ? '2px solid #7a12cc' : '1.5px solid #E2E8F0'),
                   textAlign: 'left',
                   cursor: isAnswered ? 'default' : 'pointer',
@@ -337,9 +338,9 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                  <div style={{ 
-                    width: '32px', height: '32px', borderRadius: '10px', 
-                    background: isCorrect ? '#059669' : isWrong ? '#EF4444' : (isUserSelected ? '#7a12cc' : '#F1F5F9'), 
+                  <div style={{
+                    width: '32px', height: '32px', borderRadius: '10px',
+                    background: isCorrect ? '#059669' : isWrong ? '#EF4444' : (isUserSelected ? '#7a12cc' : '#F1F5F9'),
                     color: (isCorrect || isWrong || isUserSelected) ? 'white' : '#94A3B8',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '14px', fontWeight: 700
@@ -369,10 +370,10 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
                 whileHover={{ y: isAnswered ? 0 : -2 }}
                 onClick={() => handleSelect(val)}
                 disabled={isAnswered}
-                style={{ 
-                  padding: '18px 24px', 
-                  borderRadius: '16px', 
-                  background: isCorrect ? '#DCFCE7' : isWrong ? '#FEF2F2' : (isUserSelected ? '#F5F3FF' : 'white'), 
+                style={{
+                  padding: '18px 24px',
+                  borderRadius: '16px',
+                  background: isCorrect ? '#DCFCE7' : isWrong ? '#FEF2F2' : (isUserSelected ? '#F5F3FF' : 'white'),
                   border: isCorrect ? '2px solid #22C55E' : isWrong ? '2px solid #EF4444' : (isUserSelected ? '2px solid #4B0082' : '1.5px solid #E2E8F0'),
                   cursor: isAnswered ? 'default' : 'pointer',
                   display: 'flex',
@@ -389,7 +390,7 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
 
           {q.type === 'typein' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <textarea 
+              <textarea
                 placeholder="Type your answer here..."
                 value={typeInAnswers[idx] || ''}
                 onChange={(e) => setTypeInAnswers(prev => ({ ...prev, [idx]: e.target.value }))}
@@ -397,7 +398,7 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
                 style={{ width: '100%', minHeight: '120px', padding: '20px', borderRadius: '16px', background: 'white', border: '1.5px solid #E2E8F0', outline: 'none', fontSize: '16px', fontFamily: 'inherit', resize: 'none' }}
               />
               {!isAnswered && (
-                <button 
+                <button
                   onClick={() => setShowExplanation(true)}
                   style={{ alignSelf: 'flex-end', padding: '10px 24px', borderRadius: '12px', background: '#7a12cc', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer' }}
                 >
@@ -411,7 +412,7 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
         {/* Explanation Block */}
         <AnimatePresence>
           {showExplanation && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               style={{ width: '100%', background: '#F8F9FF', borderRadius: '20px', padding: '24px', border: '1.5px solid #E0E7FF', marginBottom: '32px' }}
@@ -430,7 +431,7 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
           )}
         </AnimatePresence>
 
-        <button 
+        <button
            onClick={handleNext}
            disabled={!isAnswered}
            style={{ alignSelf: 'flex-end', padding: '14px 32px', borderRadius: '14px', background: isAnswered ? '#1A102D' : '#E2E8F0', color: 'white', fontWeight: 800, border: 'none', cursor: isAnswered ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}
@@ -464,12 +465,12 @@ function EmptyState({ icon: Icon, label, action }) {
 
 function ActionButton({ icon: Icon, label, onClick }) {
   return (
-    <button 
-      onClick={onClick} 
-      style={{ 
-        width: '44px', height: '44px', borderRadius: '12px', background: 'white', border: '1.5px solid #F1F5F9', 
-        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', cursor: 'pointer', 
-        transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' 
+    <button
+      onClick={onClick}
+      style={{
+        width: '44px', height: '44px', borderRadius: '12px', background: 'white', border: '1.5px solid #F1F5F9',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', cursor: 'pointer',
+        transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
       }}
       title={label}
     >
@@ -522,13 +523,13 @@ export function WorkstationSummaryEnhanced({ content, material, pageSummaries = 
           <p style={{ color: '#64748B', fontSize: '14px', fontWeight: '500' }}>Distilled intelligence from your study material.</p>
         </div>
         <div style={{ display: 'flex', background: '#F1F5F9', padding: '4px', borderRadius: '12px', border: '1.5px solid #F1F5F9' }}>
-          <button 
+          <button
             onClick={() => setViewMode('full')}
             style={{ padding: '10px 20px', borderRadius: '10px', border: 'none', background: viewMode === 'full' ? 'white' : 'transparent', color: viewMode === 'full' ? '#4B0082' : '#64748B', fontWeight: 600, fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em', boxShadow: viewMode === 'full' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none' }}
           >
             Full Summary
           </button>
-          <button 
+          <button
             onClick={() => setViewMode('pages')}
             style={{ padding: '10px 20px', borderRadius: '10px', border: 'none', background: viewMode === 'pages' ? 'white' : 'transparent', color: viewMode === 'pages' ? '#4B0082' : '#64748B', fontWeight: 600, fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em', boxShadow: viewMode === 'pages' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none' }}
           >
@@ -544,7 +545,7 @@ export function WorkstationSummaryEnhanced({ content, material, pageSummaries = 
             {!content && (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>
                 <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '24px' }}>No summary has been generated for this material yet.</p>
-                <button 
+                <button
                   onClick={onRegenerate}
                   style={{ padding: '12px 24px', background: '#6D28D9', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 auto', boxShadow: '0 10px 20px -5px rgba(109, 40, 217, 0.25)', fontFamily: 'var(--font-outfit)' }}
                 >
@@ -563,7 +564,7 @@ export function WorkstationSummaryEnhanced({ content, material, pageSummaries = 
               </div>
               <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1A102D', marginBottom: '8px' }}>Page-by-Page Insights</h3>
               <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '24px', maxWidth: '300px', margin: '0 auto 24px' }}>Deep dive into every single page of your material with granular summaries.</p>
-              <button 
+              <button
                 onClick={handleFetchPages}
                 disabled={isSummarizingPages}
                 style={{ padding: '12px 24px', background: 'var(--luter-primary-dark)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 auto' }}
@@ -610,7 +611,7 @@ export function WorkstationWrite({ initialContent = "", onSave, material, user }
     if (isAssisting) return;
     setIsAssisting(true);
     try {
-      const prompt = `You are Luter AI. Assist the student with their study notes. 
+      const prompt = `You are Luter AI. Assist the student with their study notes.
 MATERIAL TITLE: ${material?.title}
 MATERIAL CONTEXT (Extracted): ${material?.extracted_text?.slice(0, 4000)}
 
@@ -648,7 +649,7 @@ Return the assistance in markdown format. Be concise.`;
             </div>
             <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#1A102D', margin: 0, fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>Study jottings</h1>
           </div>
-          <button 
+          <button
             onClick={handleManualSave}
             disabled={isSaving}
             style={{ padding: '10px 20px', borderRadius: '12px', background: '#4B0082', border: 'none', color: 'white', fontWeight: 600, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em', boxShadow: '0 4px 12px rgba(75, 0, 130, 0.2)' }}
@@ -657,16 +658,16 @@ Return the assistance in markdown format. Be concise.`;
             {isSaving ? 'Saving' : 'Save'}
           </button>
         </div>
-        
+
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button 
+          <button
             onClick={() => handleAiAssist('points')}
             disabled={isAssisting}
             style={{ flex: 1, padding: '10px', borderRadius: '12px', background: '#F5F3FF', border: '1.5px solid #DDD6FE', color: '#4B0082', fontWeight: 600, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em', transition: 'all 0.2s' }}
           >
             <Sparkle size={14} /> AI points
           </button>
-          <button 
+          <button
             onClick={() => handleAiAssist('formulas')}
             disabled={isAssisting}
             style={{ flex: 1, padding: '10px', borderRadius: '12px', background: '#FFF7ED', border: '1.5px solid #FFEDD5', color: '#EA580C', fontWeight: 600, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em', transition: 'all 0.2s' }}
@@ -677,7 +678,7 @@ Return the assistance in markdown format. Be concise.`;
       </header>
 
       <div style={{ flex: 1, position: 'relative', background: '#F9FAFB', borderRadius: '16px', border: '1px solid var(--luter-border)', padding: '20px' }}>
-        <textarea 
+        <textarea
           placeholder="Start jotting down what you're learning..."
           value={content}
           onChange={(e) => setContent(e.target.value)}

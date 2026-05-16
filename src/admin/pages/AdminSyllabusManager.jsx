@@ -121,6 +121,7 @@ export default function AdminSyllabusManager() {
   const [editId, setEditId] = useState(null)
   const [researchData, setResearchData] = useState(null)
   const [isResearching, setIsResearching] = useState(false)
+  const [isBulkResearching, setIsBulkResearching] = useState(false)
 
   const [bulkText, setBulkText] = useState('')
   const [bulkResult, setBulkResult] = useState(null)
@@ -177,6 +178,76 @@ export default function AdminSyllabusManager() {
       setError(`Research failed: ${err.message}`)
     } finally {
       setIsResearching(false)
+    }
+  }
+
+  const runBulkDepartmentResearch = async () => {
+    if (!window.confirm(`This will automatically search, generate, and save the full skeleton (100L-500L, 1st & 2nd Semester) for ${univ} - ${dept}. This may take 1-2 minutes. Proceed?`)) return;
+
+    setIsBulkResearching(true)
+    setError(null)
+    setBusy(true)
+
+    try {
+      const levelsToGen = ['100', '200', '300', '400', '500']
+      const semsToGen = ['1st', '2nd']
+      let totalGenerated = 0;
+
+      for (const l of levelsToGen) {
+        for (const s of semsToGen) {
+          console.log(`Bulk Researching ${l}L ${s} semester...`)
+          try {
+            const searchResults = await tavilyService.researchSyllabus(univ, dept, l, s)
+            if (!searchResults.results?.length) continue;
+            
+            const synthesized = await researchSyllabusOnline({
+              university: univ,
+              department: dept,
+              level: l,
+              semester: s,
+              searchResults
+            })
+
+            if (synthesized && synthesized.length > 0) {
+              const us = universitySlugFromName(univ)
+              const ds = departmentSlugFromLabel(dept)
+              const sid = buildSyllabusId(us, ds, l, s)
+              
+              const payload = {
+                id: sid,
+                university_slug: us,
+                department_slug: ds,
+                level: l,
+                semester: s,
+                university_name: univ,
+                department_name: dept,
+                course_codes: synthesized.map(c => c.code).join(';'),
+                course_titles: synthesized.map(c => c.title).join(';'),
+                course_electives: synthesized.map(c => c.is_elective ? '1' : '0').join(';'),
+                status: 'draft',
+                updated_at: new Date().toISOString(),
+                created_at: new Date().toISOString()
+              }
+
+              await supabase.from('curriculum_offers').upsert(payload, { onConflict: 'university_slug,department_slug,level,semester' })
+              totalGenerated += synthesized.length
+            }
+          } catch (err) {
+            console.error(`Error in bulk research for ${l} ${s}:`, err)
+          }
+        }
+      }
+
+      alert(`Successfully generated full skeleton! Saved ${totalGenerated} courses as drafts.`)
+      setView('table')
+      await reload()
+
+    } catch (err) {
+      console.error('Bulk research failed:', err)
+      setError(`Bulk Research failed: ${err.message}`)
+    } finally {
+      setIsBulkResearching(false)
+      setBusy(false)
     }
   }
 
@@ -1788,6 +1859,15 @@ const publishRow = async (id) => {
               >
                 <Robot size={18} weight="fill" />
                 Launch AI Researcher
+              </button>
+              <button 
+                className="adm-btn adm-btn--primary" 
+                style={{ height: 42, gap: 8, padding: '0 24px', background: '#059669', border: 'none' }}
+                onClick={runBulkDepartmentResearch}
+                disabled={isBulkResearching || isResearching || !univ || !dept}
+              >
+                {isBulkResearching ? <CircleNotch className="animate-spin" size={18} /> : <Robot size={18} weight="fill" />}
+                {isBulkResearching ? 'Generating...' : 'Auto-Generate Full Dept Skeleton'}
               </button>
             </div>
           </div>

@@ -1,7 +1,8 @@
+/* eslint-disable no-unused-vars */
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useReadingSpace } from './ReadingSpaceContext'
-import { RiMagicFill as Sparkles, RiChat3Fill as MessageSquare, RiBrainFill as Brain, RiLightbulbFill as Lightbulb, RiFlashlightFill as Zap, RiAddCircleFill as PlusCircle } from 'react-icons/ri'
+import { RiMagicFill as Sparkles, RiBrainFill as Brain, RiFlashlightFill as Zap, RiStickyNoteFill as Note } from 'react-icons/ri'
 import LuterLogo from '../shared/LuterLogo'
 
 export function SelectionActionBar({ onAction }) {
@@ -19,12 +20,12 @@ export function SelectionActionBar({ onAction }) {
     <motion.div
       className="selection-action-bar"
       initial={{ opacity: 0, y: 10, scale: 0.9 }}
-      animate={{ 
-        opacity: 1, 
-        y: 0, 
+      animate={{
+        opacity: 1,
+        y: 0,
         scale: 1,
         left: selection.rect.left + (selection.rect.width / 2),
-        top: Math.max(10, selection.rect.top - 70) 
+        top: Math.max(10, selection.rect.top - 70)
       }}
       exit={{ opacity: 0, scale: 0.9 }}
       style={{
@@ -84,7 +85,7 @@ export function SelectionActionBar({ onAction }) {
           {action.label}
         </button>
       ))}
-      
+
       {/* Arrow Down */}
       <div style={{
         position: 'absolute',
@@ -111,8 +112,8 @@ export function LuterSpark() {
         <motion.div
           className="ws-luter-spark"
           initial={{ opacity: 0, scale: 0 }}
-          animate={{ 
-            opacity: 1, 
+          animate={{
+            opacity: 1,
             scale: 1,
             x: sparkPosition.x - 12, // Offset to center
             y: sparkPosition.y - 12
@@ -135,7 +136,7 @@ export function SharedCanvasOverlay() {
     <svg className="ws-svg-overlay">
       <AnimatePresence>
         {drawCommands.map((cmd) => (
-          <motion.g 
+          <motion.g
             key={cmd.id}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -155,7 +156,7 @@ export function SharedCanvasOverlay() {
                 transition={{ duration: 0.5, delay: idx * 0.1 }}
               />
             ))}
-            
+
             {cmd.label && cmd.rects[0] && (
               <foreignObject
                 x={cmd.rects[0].x}
@@ -163,7 +164,7 @@ export function SharedCanvasOverlay() {
                 width="200"
                 height="40"
               >
-                <motion.div 
+                <motion.div
                   className="ws-live-tag"
                   initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}

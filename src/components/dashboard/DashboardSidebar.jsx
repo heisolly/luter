@@ -29,26 +29,28 @@ import { isAdminUser } from '../../admin/adminAuth'
 import LuterLogo from '../shared/LuterLogo'
 import { useTranslation } from 'react-i18next'
 
-const isProduction = import.meta.env.PROD;
-const isDashboardHostStatic = isProduction ? window.location.hostname === 'dashboard.luter.app' : true;
+// Subdomain logic removed
+// All paths are now top-level on luter.app
 
 const TOP_NAV = [
-  { id: 'home', labelKey: 'home', icon: House, path: isDashboardHostStatic ? '/dashboard' : '/dashboard' },
-  { id: 'sessions', labelKey: 'Sessions', icon: Clock, path: isDashboardHostStatic ? '/sessions' : '/dashboard/sessions' },
-  { id: 'library', labelKey: 'library', icon: Books, path: isDashboardHostStatic ? '/library' : '/dashboard/library' },
-  { id: 'study-groups', labelKey: 'studyGroups', icon: UsersThree, path: '/dashboard/study-groups', badge: 'New' },
-  { id: 'notifications', labelKey: 'notifications', icon: Bell, path: '/dashboard/notifications', count: 3 },
+  { id: 'home', labelKey: 'home', icon: House, path: '/dashboard' },
+  { id: 'sessions', labelKey: 'Sessions', icon: Clock, path: '/sessions' },
+  { id: 'library', labelKey: 'library', icon: Books, path: '/library' },
+  { id: 'study-groups', labelKey: 'studyGroups', icon: UsersThree, path: '/groups', badge: 'New' },
+  { id: 'notifications', labelKey: 'notifications', icon: Bell, path: '/notifications', count: 3 },
 ]
 
 const BOTTOM_NAV = [
-  { id: 'playground', labelKey: 'playground', icon: GameController, path: isDashboardHostStatic ? '/compete' : '/dashboard/compete', highlight: true },
+  { id: 'playground', labelKey: 'playground', icon: GameController, path: '/playground', highlight: true },
   { id: 'trash', labelKey: 'trash', icon: Trash, path: '/dashboard/trash' },
-  { id: 'mock-exam', labelKey: 'mockExam', icon: Flask, path: '/dashboard/mock-exam' },
+  { id: 'mock-exam', labelKey: 'mockExam', icon: Flask, path: '/mock-exams' },
 ]
 
 function isNavActiveFixed(pathname, navPath) {
-  if (navPath === '/dashboard') return pathname === '/dashboard' || pathname === '/dashboard/'
-  if (navPath === '/dashboard/courses') return pathname.startsWith('/dashboard/courses')
+  if (navPath === '/dashboard') return pathname === '/dashboard' || pathname === '/dashboard/' || pathname === '/home'
+  if (navPath === '/dashboard/courses') return pathname.startsWith('/dashboard/courses') || pathname.startsWith('/backpack')
+  if (navPath === '/groups') return pathname.startsWith('/groups') || pathname.startsWith('/dashboard/study-groups')
+  if (navPath === '/playground') return pathname.startsWith('/playground') || pathname.startsWith('/dashboard/compete')
   return pathname === navPath || pathname.startsWith(`${navPath}/`)
 }
 
@@ -240,7 +242,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
             <div id="nav-backpack" style={{ display: 'flex', alignItems: 'center', gap: 8 }} onClick={() => go('/dashboard/courses')}>
               <div style={{ width: 4, height: 16, background: '#7a12cc', borderRadius: 2 }} />
               <span style={{ fontWeight: 800, fontSize: 11, letterSpacing: '0.05em', color: '#111' }}>
-                {isSoloLearner ? t('myVault') : t('backpack')}
+                {t('backpack')}
               </span>
             </div>
             <button 
@@ -426,7 +428,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
           border: collapsed ? 'none' : '1px solid rgba(226, 232, 240, 0.6)',
           padding: collapsed ? 0 : '4px'
         }}>
-          <button id="nav-progress" className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go(isDashboardHostStatic ? '/analytics' : '/dashboard/analytics')} style={{
+          <button id="nav-progress" className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/progress')} style={{
             borderRadius: '8px',
             margin: collapsed ? 0 : '2px'
           }}>
@@ -434,7 +436,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
             {!collapsed && <span className="dsb-nav-label-text">{t('myProgress')}</span>}
           </button>
           
-          <button id="nav-settings" className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go(isDashboardHostStatic ? '/settings' : '/dashboard/settings')} style={{
+          <button id="nav-settings" className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/settings')} style={{
             borderRadius: '8px',
             margin: collapsed ? 0 : '2px'
           }}>
@@ -447,7 +449,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
             <button 
               id="nav-upgrade"
               className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} 
-              onClick={() => go(isDashboardHostStatic ? '/store' : '/dashboard/store')}
+              onClick={() => go('/store')}
               style={{
                 background: collapsed ? 'none' : 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(124, 58, 237, 0.06) 100%)',
                 border: collapsed ? '1px solid #8b5cf6' : '1px solid rgba(139, 92, 246, 0.2)',
@@ -526,7 +528,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
           <button 
             id="nav-profile-card"
             className={`dsb-user-compact ${collapsed ? 'dsb-user--collapsed' : ''}`}
-            onClick={() => go(isDashboardHostStatic ? '/profile' : '/dashboard/profile')}
+            onClick={() => go('/profile')}
             style={{
               background: collapsed ? 'none' : '#f8fafc',
               border: collapsed ? 'none' : '1px solid #e2e8f0',

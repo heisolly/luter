@@ -76,7 +76,7 @@ export default function VaultPage() {
       <header style={{ marginBottom: 48, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-             <h1 style={{ fontSize: 32, fontWeight: 800, color: '#111', margin: 0, letterSpacing: '-0.02em' }}>My Vault</h1>
+             <h1 style={{ fontSize: 32, fontWeight: 800, color: '#111', margin: 0, letterSpacing: '-0.02em' }}>Backpack</h1>
              <span style={{ padding: '4px 12px', background: 'var(--primary-bg)', color: 'var(--primary)', borderRadius: 99, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Beta</span>
           </div>
           <p style={{ color: '#64748b', fontSize: 15, fontWeight: 500 }}>Your secure, AI-powered personal study library.</p>

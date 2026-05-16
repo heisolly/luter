@@ -146,6 +146,14 @@ export function FlashcardEngine(props) {
   const [isFlipped, setIsFlipped] = useState(false)
   const [masteredIds, setMasteredIds] = useState(new Set())
   const [isFinished, setIsFinished] = useState(false)
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 1024)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
   
   // New States for Phase 2
   const [cardDecorations, setCardDecorations] = useState({}) // { cardIndex: { front: { stickers: [], image: null, doodles: [] }, back: {...} } }
@@ -318,12 +326,12 @@ export function FlashcardEngine(props) {
       transition: 'background 0.5s ease'
     }}>
       {/* Engine Header / Toolbar */}
-      <div style={{ padding: '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+      <div style={{ padding: isMobile ? '16px' : '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(0,0,0,0.05)', background: 'white' }}>
         <div>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#1A102D', margin: 0, fontFamily: 'var(--font-outfit)' }}>
+          <h2 style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: 800, color: '#1A102D', margin: 0, fontFamily: 'var(--font-outfit)' }}>
             {activeMode === 'study' ? 'Recall Master' : 'Designer Engine'}
           </h2>
-          <p style={{ fontSize: '13px', color: '#64748B', margin: 0 }}>{material?.title || 'Study Session'}</p>
+          <p style={{ fontSize: isMobile ? '11px' : '13px', color: '#64748B', margin: 0 }}>{material?.title || 'Study Session'}</p>
         </div>
         
         <div style={{ display: 'flex', background: '#F1F5F9', padding: '4px', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
@@ -352,9 +360,9 @@ export function FlashcardEngine(props) {
         </div>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', overflow: isMobile ? 'visible' : 'hidden' }}>
         {/* Main Canvas */}
-        <div style={{ flex: 1, padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC', position: 'relative' }}>
+        <div style={{ flex: 1, padding: isMobile ? '32px 20px' : '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC', position: 'relative', minHeight: isMobile ? 'calc(100vh - 120px)' : 'auto' }}>
           
           {/* Background Decorative Blobs */}
           <div style={{ position: 'absolute', top: '10%', left: '10%', width: '300px', height: '300px', background: 'rgba(109, 40, 217, 0.03)', filter: 'blur(80px)', borderRadius: '50%' }}></div>
@@ -367,7 +375,7 @@ export function FlashcardEngine(props) {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               transition={{ type: 'spring', damping: 20, stiffness: 100 }}
-              style={{ width: '100%', height: '400px', position: 'relative' }}
+              style={{ width: '100%', height: isMobile ? '320px' : '400px', position: 'relative' }}
             >
               <Flashcard 
                 card={currentCard} 
@@ -384,54 +392,72 @@ export function FlashcardEngine(props) {
 
           {/* Controls */}
           {activeMode === 'study' && (
-            <div style={{ marginTop: '48px', display: 'flex', alignItems: 'center', gap: '24px', zIndex: 10 }}>
-              <button 
-                onClick={handlePrev}
-                disabled={currentIndex === 0}
-                style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'white', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B', opacity: currentIndex === 0 ? 0.3 : 1, transition: 'all 0.2s' }}
-                onMouseEnter={(e) => { if (currentIndex !== 0) e.currentTarget.style.borderColor = '#6D28D9'; }}
-                onMouseLeave={(e) => { if (currentIndex !== 0) e.currentTarget.style.borderColor = '#E2E8F0'; }}
-              >
-                <ArrowLeft weight="bold" size={18} />
-              </button>
-              
-              <div style={{ display: 'flex', gap: '16px' }}>
-                 <button 
+            <div style={{ marginTop: isMobile ? '32px' : '56px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isMobile ? '20px' : '32px', zIndex: 10, width: isMobile ? '100%' : 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '12px' : '20px', alignItems: 'center', width: isMobile ? '100%' : 'auto' }}>
+                <button 
                   onClick={() => { setMasteredIds(prev => new Set(prev).add(currentIndex)); handleNext(); }}
                   style={{ 
-                    padding: '16px 32px', borderRadius: '16px', background: '#6D28D9', color: 'white', 
-                    border: 'none', fontWeight: 800, fontSize: '16px', cursor: 'pointer', display: 'flex', 
-                    alignItems: 'center', gap: '10px', boxShadow: '0 8px 20px rgba(109, 40, 217, 0.25)', 
-                    fontFamily: 'var(--font-outfit)', transition: 'all 0.2s'
+                    width: isMobile ? '100%' : 'auto',
+                    padding: isMobile ? '16px 32px' : '18px 48px', borderRadius: '24px', background: 'var(--primary, #6D28D9)', color: 'white', 
+                    border: 'none', fontWeight: 900, fontSize: isMobile ? '15px' : '18px', cursor: 'pointer', display: 'flex', 
+                    alignItems: 'center', justifyContent: 'center', gap: '12px', boxShadow: '0 12px 30px rgba(109, 40, 217, 0.3)', 
+                    fontFamily: 'var(--font-outfit)', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    textTransform: 'uppercase', letterSpacing: '0.05em'
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#5B21B6'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = '#6D28D9'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                 >
-                   <CheckCircle weight="fill" size={22} /> Got it
-                 </button>
-                 <button 
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#5B21B6'; e.currentTarget.style.transform = 'scale(1.05) translateY(-2px)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#6D28D9'; e.currentTarget.style.transform = 'scale(1) translateY(0)'; }}
+                >
+                  <CheckCircle weight="fill" size={24} /> Got it
+                </button>
+                <button 
                   onClick={handleNext}
                   style={{ 
-                    padding: '16px 32px', borderRadius: '16px', background: 'white', color: '#64748B', 
-                    border: '2px solid #E2E8F0', fontWeight: 800, fontSize: '16px', cursor: 'pointer', 
-                    display: 'flex', alignItems: 'center', gap: '10px', transition: 'all 0.2s',
-                    fontFamily: 'var(--font-outfit)'
+                    width: isMobile ? '100%' : 'auto',
+                    padding: isMobile ? '16px 32px' : '18px 48px', borderRadius: '24px', background: '#F8FAFC', color: '#475569', 
+                    border: '2px solid #E2E8F0', fontWeight: 900, fontSize: isMobile ? '15px' : '18px', cursor: 'pointer', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    fontFamily: 'var(--font-outfit)', textTransform: 'uppercase', letterSpacing: '0.05em'
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#94A3B8'; e.currentTarget.style.color = '#1E293B'; e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#64748B'; e.currentTarget.style.background = 'white'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                 >
-                   Review again <ArrowsClockwise weight="bold" size={22} />
-                 </button>
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.transform = 'scale(1.05) translateY(-2px)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.transform = 'scale(1) translateY(0)'; }}
+                >
+                  Review <ArrowsClockwise weight="bold" size={24} />
+                </button>
               </div>
 
-              <button 
-                onClick={handleNext}
-                style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'white', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B', transition: 'all 0.2s' }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; }}
-              >
-                <ArrowRight weight="bold" size={18} />
-              </button>
+              {/* Navigation Helpers */}
+              <div style={{ display: 'flex', gap: '24px', opacity: 0.6 }}>
+                <button 
+                  onClick={handlePrev}
+                  disabled={currentIndex === 0}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 700 }}
+                >
+                  <ArrowLeft size={16} weight="bold" /> PREVIOUS
+                </button>
+                <div style={{ width: '1px', height: '16px', background: '#E2E8F0' }} />
+                <button 
+                  onClick={handleNext}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 700 }}
+                >
+                  NEXT <ArrowRight size={16} weight="bold" />
+                </button>
+              </div>
+
+              {/* Doodle Tool Options */}
+              {activeTool === 'doodle' && (
+                <button 
+                  onClick={() => {
+                    const canvas = document.querySelectorAll('canvas');
+                    canvas.forEach(c => {
+                      const ctx = c.getContext('2d');
+                      ctx.clearRect(0, 0, c.width, c.height);
+                    });
+                  }}
+                  style={{ marginTop: '8px', padding: '10px 20px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444', border: 'none', fontWeight: 800, fontSize: '12px', cursor: 'pointer' }}
+                >
+                  CLEAR DOODLES
+                </button>
+              )}
             </div>
           )}
 
@@ -651,13 +677,18 @@ function CardFace({ side, content, theme, isDark, isMinimal, layout, decorations
   const [isDrawingPointerDown, setIsDrawingPointerDown] = useState(false)
 
   useEffect(() => {
-    if (canvasRef.current) {
-      const parent = canvasRef.current.parentElement
-      if (parent) {
-        canvasRef.current.width = parent.clientWidth
-        canvasRef.current.height = parent.clientHeight
+    const updateCanvasSize = () => {
+      if (canvasRef.current) {
+        const parent = canvasRef.current.parentElement
+        if (parent) {
+          canvasRef.current.width = parent.clientWidth
+          canvasRef.current.height = parent.clientHeight
+        }
       }
     }
+    updateCanvasSize()
+    window.addEventListener('resize', updateCanvasSize)
+    return () => window.removeEventListener('resize', updateCanvasSize)
   }, [isDrawing])
 
   const startDrawing = (e) => {

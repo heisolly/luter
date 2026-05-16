@@ -68,14 +68,9 @@ const GoogleLoginButton = () => {
         navigate('/onboarding');
       } else {
         console.log('Onboarding complete, routing to', safeRedirect);
-        // Cross-subdomain redirect if needed
-        const isAppPath = safeRedirect.startsWith('/dashboard') || !['/onboarding', '/signin', '/signup'].includes(safeRedirect);
-        if (isAppPath) {
-          const targetPath = safeRedirect.startsWith('/dashboard') ? safeRedirect : `/dashboard${safeRedirect.startsWith('/') ? '' : '/'}${safeRedirect}`;
-          window.location.href = `${DASHBOARD_URL}${targetPath}`;
-        } else {
-          navigate(safeRedirect);
-        }
+        // Simple navigation on the same domain
+        const targetPath = safeRedirect.startsWith('/') ? safeRedirect : `/${safeRedirect}`;
+        navigate(targetPath);
       }
     } catch (error) {
       console.error('Error during authentication:', error);

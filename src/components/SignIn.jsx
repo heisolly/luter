@@ -30,9 +30,8 @@ export default function SignIn() {
     if (err) { setError(err.message); return; }
     if (data?.session) { 
       clearLuterCaches();
-      // Force cross-subdomain redirect to the dashboard
-      const targetPath = redirectPath.startsWith('/dashboard') ? redirectPath : `/dashboard${redirectPath.startsWith('/') ? '' : '/'}${redirectPath}`;
-      window.location.href = `${DASHBOARD_URL}${targetPath}`; 
+      const targetPath = redirectPath.startsWith('/') ? redirectPath : `/${redirectPath}`;
+      navigate(targetPath);
     }
   };
 

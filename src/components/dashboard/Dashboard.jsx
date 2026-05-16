@@ -26,7 +26,7 @@ export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
 
@@ -190,7 +190,7 @@ export default function Dashboard() {
     }
 
     const handleResize = () => {
-      const mobile = window.innerWidth <= 768
+      const mobile = window.innerWidth <= 1024
       setIsMobile(mobile)
       if (!mobile) setMobileSidebarOpen(false)
     }

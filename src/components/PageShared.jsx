@@ -26,7 +26,8 @@ export const PremiumButton = ({
   children, to, onClick, 
   style = {}, variant = 'primary', size = 'md',
   disabled = false, icon: Icon = null, type = 'button',
-  isUpgradeButton = false 
+  isUpgradeButton = false,
+  ...rest
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
@@ -89,7 +90,7 @@ export const PremiumButton = ({
     boxSizing: 'border-box', gap: '10px',
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: 1,
-    transform: isPressed ? 'scale(0.98) translateY(1px)' : (isHovered ? 'translateY(-2px)' : 'translateY(0px)'),
+    transform: isPressed ? 'scale(0.96)' : (isHovered ? 'scale(1.02)' : 'scale(1)'),
     boxShadow: (isPrimary && isHovered && !disabled) ? '0 12px 24px -8px rgba(75, 0, 130, 0.15)' : 'none',
     width: '100%',
     maxWidth: style.width === '100%' ? '100%' : 'max-content',
@@ -105,16 +106,17 @@ export const PremiumButton = ({
   const Component = to ? (to.startsWith('http') ? 'a' : Link) : 'button';
   const componentProps = to ? (to.startsWith('http') ? { href: to } : { to }) : { onClick, disabled, type };
 
-  const handleTouchStart = () => !disabled && setIsPressed(true);
-  const handleTouchEnd = () => setIsPressed(false);
-  const handleMouseEnter = () => !disabled && setIsHovered(true);
+  const isTouchCapable = () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: hover)').matches === false;
+
+  const handleMouseEnter = () => { if (!disabled && !isTouchCapable()) setIsHovered(true); };
   const handleMouseLeave = () => { setIsHovered(false); setIsPressed(false); };
-  const handleMouseDown = () => !disabled && setIsPressed(true);
+  const handleMouseDown = () => { if (!disabled && !isTouchCapable()) setIsPressed(true); };
   const handleMouseUp = () => setIsPressed(false);
   
   return (
     <Component 
       {...componentProps}
+      {...rest}
       style={baseStyle}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}

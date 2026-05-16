@@ -24,6 +24,7 @@ import {
   Wrench,
 } from '@phosphor-icons/react'
 import LuterLogo from '../components/shared/LuterLogo'
+import { DASHBOARD_URL } from '../utils/urlUtils'
 
 const NAV = [
   { to: '/admin', end: true, icon: House, label: 'Overview' },
@@ -109,7 +110,7 @@ export default function AdminSidebar({ onNavigate }) {
 
       <div className="adm-sidebar-bottom">
         <a
-          href="/dashboard"
+          href={`${DASHBOARD_URL}/dashboard`}
           className="adm-nav-item"
           style={{ marginBottom: 8 }}
         >
