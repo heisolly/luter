@@ -119,7 +119,7 @@ Rules:
             <button className="adm-btn adm-btn--ghost" onClick={() => { setSaved(null); setPreview(null); setPrompt('') }}>
               Build Another
             </button>
-            <button className="adm-btn adm-btn--primary" onClick={() => navigate(`/admin/agents/${saved.id}`)}>
+            <button className="adm-btn adm-btn--primary" onClick={() => navigate(`/agents/${saved.id}`)}>
               Open Console <ArrowRight size={14} />
             </button>
           </div>

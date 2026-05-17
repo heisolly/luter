@@ -20,6 +20,7 @@ import {
   RiAddCircleFill as PlusCircle
 } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
+import { useSessionStore } from '../../store/useSessionStore'
 import './study-groups.css'
 
 export default function StudyGroupDetailsPage() {
@@ -32,6 +33,9 @@ export default function StudyGroupDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState('Materials') // Materials or Members
+  const [sessions, setSessions] = useState([])
+  const [startingSession, setStartingSession] = useState(false)
+  const { createSession } = useSessionStore()
 
   useEffect(() => {
     if (groupId && user) fetchGroupDetails()
@@ -77,6 +81,15 @@ export default function StudyGroupDetailsPage() {
         setMembers([])
       }
 
+      const { data: groupSessions, error: sErr } = await supabase
+        .from('deck_sessions')
+        .select('*')
+        .eq('group_id', groupId)
+        .eq('is_active', true)
+        .order('last_accessed', { ascending: false })
+
+      if (!sErr) setSessions(groupSessions || [])
+
     } catch (err) {
       console.error('Error fetching group details:', err)
       navigate('/dashboard/study-groups')
@@ -91,6 +104,26 @@ export default function StudyGroupDetailsPage() {
     navigator.clipboard.writeText(link)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleStartLiveSession = async () => {
+    if (!group || !user) return
+    setStartingSession(true)
+    try {
+      const result = await createSession(`${group.name} Live Study`, [], {
+        groupId: group.id,
+        sessionType: 'group',
+        isShared: true,
+      })
+
+      if (!result.success) throw new Error(result.error)
+      navigate(`/dashboard/workstation?sessionId=${result.session.id}&groupId=${group.id}&sessionType=group`)
+    } catch (error) {
+      console.error('Unable to start group session:', error)
+      alert('Could not start the group session yet. Make sure the session sharing SQL has been applied.')
+    } finally {
+      setStartingSession(false)
+    }
   }
 
   if (loading) return (
@@ -113,8 +146,8 @@ export default function StudyGroupDetailsPage() {
         </div>
         
         <div className="sg-olly-actions">
-           <button className="sg-olly-add-btn">
-             <span>Add a set</span>
+           <button className="sg-olly-add-btn" onClick={handleStartLiveSession} disabled={startingSession}>
+             <span>{startingSession ? 'Starting...' : 'Start live session'}</span>
            </button>
            <button className="sg-olly-more">
              <MoreHorizontal size={20} />
@@ -138,6 +171,22 @@ export default function StudyGroupDetailsPage() {
       <div className="sg-olly-content">
         {activeTab === 'Materials' ? (
           <div className="sg-materials-view">
+            {sessions.map((session) => (
+              <div key={session.id} className="sg-olly-list-card">
+                <div className="sg-list-icon"><Layout size={20} /></div>
+                <div className="sg-list-info">
+                  <h4>{session.session_name}</h4>
+                  <p>{(session.items || []).length} materials - shared live room</p>
+                </div>
+                <button
+                  className="sg-list-more"
+                  onClick={() => navigate(`/dashboard/workstation?sessionId=${session.id}&groupId=${group.id}&sessionType=group`)}
+                  title="Open live session"
+                >
+                  <MoreHorizontal size={18} />
+                </button>
+              </div>
+            ))}
             <div className="sg-olly-list-card">
               <div className="sg-list-icon"><Layout size={20} /></div>
               <div className="sg-list-info">
@@ -184,9 +233,9 @@ export default function StudyGroupDetailsPage() {
                <div className="sg-olly-empty-footer">
                   <p>Other members of the group can view your sets and create quizzes.<br />
                   When you edit your study sets, everyone sees the changes.</p>
-                  <button className="sg-olly-big-add-btn">
+                  <button className="sg-olly-big-add-btn" onClick={handleStartLiveSession} disabled={startingSession}>
                     <PlusCircle size={18} />
-                    <span>Add Deck</span>
+                    <span>{startingSession ? 'Starting...' : 'Start Live Session'}</span>
                   </button>
                </div>
             </div>

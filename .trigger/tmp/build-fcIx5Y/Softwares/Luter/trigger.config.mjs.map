@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../trigger.config.ts"],
+  "sourcesContent": ["import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  // Your project ref from trigger.dev dashboard\n  project: \"proj_cjdnvdvpcwgoespajimp\",\n\n  // Path to your task files, relative to this config file\n  dirs: [\"./src/trigger\"],\n\n  // Retry configuration\n  retries: {\n    // Enable retries in dev mode for testing\n    enabledInDev: false,\n    // Default retry settings used if you don't specify on a task\n    default: {\n      maxAttempts: 3,\n      minTimeoutInMs: 1000,\n      maxTimeoutInMs: 10000,\n      factor: 2,\n      randomize: true,\n    },\n  },\n\n  // Log level\n  logLevel: \"debug\",\n\n  // Max duration for tasks (in seconds) — AI tasks can be long-running\n  maxDuration: 300,\n\n  build: {},\n});\nexport const resolveEnvVars = undefined;"],
+  "mappings": ";;;;;;;;;AAAA;AAEA,IAAO,yBAAQ,aAAa;AAAA;AAAA,EAE1B,SAAS;AAAA;AAAA,EAGT,MAAM,CAAC,eAAe;AAAA;AAAA,EAGtB,SAAS;AAAA;AAAA,IAEP,cAAc;AAAA;AAAA,IAEd,SAAS;AAAA,MACP,aAAa;AAAA,MACb,gBAAgB;AAAA,MAChB,gBAAgB;AAAA,MAChB,QAAQ;AAAA,MACR,WAAW;AAAA,IACb;AAAA,EACF;AAAA;AAAA,EAGA,UAAU;AAAA;AAAA,EAGV,aAAa;AAAA,EAEb,OAAO,CAAC;AACV,CAAC;AACM,IAAM,iBAAiB;",
+  "names": []
+}

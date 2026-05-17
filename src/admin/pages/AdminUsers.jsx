@@ -133,7 +133,7 @@ export default function AdminUsers() {
                       <span className={`adm-pill ${r.role === 'admin' ? 'adm-pill--warn' : ''}`}>{r.role || 'user'}</span>
                     </td>
                     <td>
-                      <Link to={`/admin/users/${r.id}`} className="adm-link">
+                      <Link to={`/users/${r.id}`} className="adm-link">
                         Open
                       </Link>
                     </td>

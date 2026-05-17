@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../src/trigger/generateAINotes.ts"],
+  "sourcesContent": ["import { task, metadata } from \"@trigger.dev/sdk/v3\";\nimport { extractTextFromFile, generateNotesFromText, saveGeneratedArtifact } from \"./taskHelpers\";\n\nexport const generateAINotesTask = task({\n  id: \"generate-ai-notes\",\n  run: async (payload: { fileId: string; userId: string }) => {\n    await metadata.set(\"status\", \"Collecting material context...\");\n    await metadata.set(\"progress\", 15);\n    const text = await extractTextFromFile(payload.fileId);\n    await metadata.set(\"status\", \"Writing AI notes...\");\n    await metadata.set(\"progress\", 75);\n    const notes = await generateNotesFromText(text);\n    await saveGeneratedArtifact(\"ai-notes\", notes, payload.fileId);\n    await metadata.set(\"status\", \"Done!\");\n    await metadata.set(\"progress\", 100);\n    return { notes };\n  },\n});\n"],
+  "mappings": ";;;;;;;;;;;;;;;;AAAA;AAGO,IAAM,sBAAsB,KAAK;AAAA,EACtC,IAAI;AAAA,EACJ,KAAK,8BAAO,YAAgD;AAC1D,UAAM,SAAS,IAAI,UAAU,gCAAgC;AAC7D,UAAM,SAAS,IAAI,YAAY,EAAE;AACjC,UAAM,OAAO,MAAM,oBAAoB,QAAQ,MAAM;AACrD,UAAM,SAAS,IAAI,UAAU,qBAAqB;AAClD,UAAM,SAAS,IAAI,YAAY,EAAE;AACjC,UAAM,QAAQ,MAAM,sBAAsB,IAAI;AAC9C,UAAM,sBAAsB,YAAY,OAAO,QAAQ,MAAM;AAC7D,UAAM,SAAS,IAAI,UAAU,OAAO;AACpC,UAAM,SAAS,IAAI,YAAY,GAAG;AAClC,WAAO,EAAE,MAAM;AAAA,EACjB,GAXK;AAYP,CAAC;",
+  "names": []
+}

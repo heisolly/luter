@@ -27,29 +27,29 @@ import LuterLogo from '../components/shared/LuterLogo'
 import { DASHBOARD_URL } from '../utils/urlUtils'
 
 const NAV = [
-  { to: '/admin', end: true, icon: House, label: 'Overview' },
-  { to: '/admin/notes-manager', icon: Brain, label: 'Notes Manager' },
-  { to: '/admin/upload', icon: CloudArrowUp, label: 'Upload Content' },
-  { to: '/admin/users', icon: UsersThree, label: 'Users' },
-  { to: '/admin/requests', icon: ChatCircleDots, label: 'Study Requests' },
-  { to: '/admin/courses', icon: Books, label: 'Courses' },
-  { to: '/admin/syllabus', icon: GraduationCap, label: 'Syllabus manager' },
-  { to: '/admin/audit', icon: ChartBar, label: 'Health Audit' },
-  { to: '/admin/analytics', icon: ChartLineUp, label: 'Analytics & APIs' },
-  { to: '/admin/enrollments', icon: UserList, label: 'Enrollments' },
-  { to: '/admin/matches', icon: GameController, label: 'Matches' },
-  { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
-  { to: '/admin/activity', icon: Pulse, label: 'Live activity' },
-  { to: '/admin/system', icon: Cpu, label: 'System' },
-  { to: '/admin/payment-settings', icon: CreditCard, label: 'Payment Settings' },
-  { to: '/admin/settings', icon: GearSix, label: 'Admin settings' },
+  { to: '/', end: true, icon: House, label: 'Overview' },
+  { to: '/notes-manager', icon: Brain, label: 'Notes Manager' },
+  { to: '/upload', icon: CloudArrowUp, label: 'Upload Content' },
+  { to: '/users', icon: UsersThree, label: 'Users' },
+  { to: '/requests', icon: ChatCircleDots, label: 'Study Requests' },
+  { to: '/courses', icon: Books, label: 'Courses' },
+  { to: '/syllabus', icon: GraduationCap, label: 'Syllabus manager' },
+  { to: '/audit', icon: ChartBar, label: 'Health Audit' },
+  { to: '/analytics', icon: ChartLineUp, label: 'Analytics & APIs' },
+  { to: '/enrollments', icon: UserList, label: 'Enrollments' },
+  { to: '/matches', icon: GameController, label: 'Matches' },
+  { to: '/notifications', icon: Bell, label: 'Notifications' },
+  { to: '/activity', icon: Pulse, label: 'Live activity' },
+  { to: '/system', icon: Cpu, label: 'System' },
+  { to: '/payment-settings', icon: CreditCard, label: 'Payment Settings' },
+  { to: '/settings', icon: GearSix, label: 'Admin settings' },
 ]
 
 const AGENT_NAV = [
-  { to: '/admin/agents',         icon: Robot,       label: 'Agent Directory' },
-  { to: '/admin/agents/monitor', icon: MonitorPlay,  label: 'Control Room' },
-  { to: '/admin/agents/factory', icon: Factory,      label: 'Agent Factory' },
-  { to: '/admin/controls',       icon: Wrench,       label: 'System Controls' },
+  { to: '/agents',         icon: Robot,       label: 'Agent Directory' },
+  { to: '/agents/monitor', icon: MonitorPlay,  label: 'Control Room' },
+  { to: '/agents/factory', icon: Factory,      label: 'Agent Factory' },
+  { to: '/controls',       icon: Wrench,       label: 'System Controls' },
 ]
 
 export default function AdminSidebar({ onNavigate }) {

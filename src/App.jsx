@@ -124,7 +124,7 @@ export default function App() {
           {/* ADMIN HOST SPECIFIC ROUTES */}
           {isAdminHost && (
             <>
-              <Route path="/admin" element={<AdminLayout />}>
+              <Route path="/" element={<AdminLayout />}>
                 <Route index element={<AdminOverview />} />
                 <Route path="notes-manager" element={<AdminNotesManager />} />
                 <Route path="requests" element={<NotesRequestsAdmin />} />
@@ -148,9 +148,10 @@ export default function App() {
                 <Route path="agents/:id" element={<AdminAgentConsole />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
                 <Route path="controls" element={<AdminSystemControls />} />
-                <Route path="*" element={<Navigate to="/admin" replace />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
-              <Route path="/" element={<Navigate to="/admin" replace />} />
+              {/* If they somehow visit /admin/something, strip it */}
+              <Route path="/admin/*" element={<Navigate to="/" replace />} />
             </>
           )}
 

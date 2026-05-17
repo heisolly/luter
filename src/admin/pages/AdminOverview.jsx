@@ -94,35 +94,35 @@ export default function AdminOverview() {
         <div className="adm-kpi-card">
           <div className="adm-kpi-label">Total users</div>
           <div className="adm-kpi-value">{formatNum(stats.users)}</div>
-          <Link to="/admin/users" className="adm-link" style={{ fontSize: 13, marginTop: 8, display: 'inline-block' }}>
+          <Link to="/users" className="adm-link" style={{ fontSize: 13, marginTop: 8, display: 'inline-block' }}>
             Manage users →
           </Link>
         </div>
         <div className="adm-kpi-card">
           <div className="adm-kpi-label">Courses (catalog)</div>
           <div className="adm-kpi-value">{formatNum(stats.courses)}</div>
-          <Link to="/admin/courses" className="adm-link" style={{ fontSize: 13, marginTop: 8, display: 'inline-block' }}>
+          <Link to="/courses" className="adm-link" style={{ fontSize: 13, marginTop: 8, display: 'inline-block' }}>
             Catalog →
           </Link>
         </div>
         <div className="adm-kpi-card">
           <div className="adm-kpi-label">Enrollments</div>
           <div className="adm-kpi-value">{formatNum(stats.enrollments)}</div>
-          <Link to="/admin/enrollments" className="adm-link" style={{ fontSize: 13, marginTop: 8, display: 'inline-block' }}>
+          <Link to="/enrollments" className="adm-link" style={{ fontSize: 13, marginTop: 8, display: 'inline-block' }}>
             View links →
           </Link>
         </div>
         <div className="adm-kpi-card">
           <div className="adm-kpi-label">Arena matches</div>
           <div className="adm-kpi-value">{formatNum(stats.matches)}</div>
-          <Link to="/admin/matches" className="adm-link" style={{ fontSize: 13, marginTop: 8, display: 'inline-block' }}>
+          <Link to="/matches" className="adm-link" style={{ fontSize: 13, marginTop: 8, display: 'inline-block' }}>
             Matches →
           </Link>
         </div>
         <div className="adm-kpi-card">
           <div className="adm-kpi-label">Notifications sent</div>
           <div className="adm-kpi-value">{formatNum(stats.notifications)}</div>
-          <Link to="/admin/notifications" className="adm-link" style={{ fontSize: 13, marginTop: 8, display: 'inline-block' }}>
+          <Link to="/notifications" className="adm-link" style={{ fontSize: 13, marginTop: 8, display: 'inline-block' }}>
             Composer →
           </Link>
         </div>
@@ -131,7 +131,7 @@ export default function AdminOverview() {
             <ChartLineUp size={14} /> Active (5 min)
           </div>
           <div className="adm-kpi-value">{formatNum(stats.activeNow)}</div>
-          <Link to="/admin/activity" className="adm-link" style={{ fontSize: 13, marginTop: 8, display: 'inline-block' }}>
+          <Link to="/activity" className="adm-link" style={{ fontSize: 13, marginTop: 8, display: 'inline-block' }}>
             Live feed →
           </Link>
         </div>
@@ -143,13 +143,13 @@ export default function AdminOverview() {
           Use the sidebar to moderate users, catalog courses, inspect enrollments, and push notifications to the app.
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-          <Link to="/admin/notifications" className="adm-btn adm-btn--primary">
+          <Link to="/notifications" className="adm-btn adm-btn--primary">
             New notification
           </Link>
-          <Link to="/admin/courses" className="adm-btn adm-btn--ghost">
+          <Link to="/courses" className="adm-btn adm-btn--ghost">
             Add / edit course
           </Link>
-          <Link to="/admin/system" className="adm-btn adm-btn--ghost">
+          <Link to="/system" className="adm-btn adm-btn--ghost">
             System & RLS checklist
           </Link>
         </div>
@@ -170,7 +170,7 @@ export default function AdminOverview() {
                 </div>
               </div>
             ))}
-            <Link to="/admin/activity" className="adm-link" style={{ fontSize: 12, textAlign: 'center', marginTop: 8 }}>
+            <Link to="/activity" className="adm-link" style={{ fontSize: 12, textAlign: 'center', marginTop: 8 }}>
               View all activity →
             </Link>
           </div>

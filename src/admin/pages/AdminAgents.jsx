@@ -83,13 +83,13 @@ export default function AdminAgents() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <Link to="/admin/agents/monitor" className="adm-btn adm-btn--ghost">
+          <Link to="/agents/monitor" className="adm-btn adm-btn--ghost">
             <MonitorPlay size={16} /> Control Room
           </Link>
-          <Link to="/admin/agents/factory" className="adm-btn adm-btn--ghost">
+          <Link to="/agents/factory" className="adm-btn adm-btn--ghost">
             <Factory size={16} /> Agent Factory
           </Link>
-          <Link to="/admin/agents/new" className="adm-btn adm-btn--primary">
+          <Link to="/agents/new" className="adm-btn adm-btn--primary">
             <Plus size={16} /> New Agent
           </Link>
         </div>
@@ -123,7 +123,7 @@ export default function AdminAgents() {
           <p style={{ color: '#94a3b8', marginBottom: 24 }}>
             Create your first agent to start automating your admin workflow.
           </p>
-          <Link to="/admin/agents/new" className="adm-btn adm-btn--primary">
+          <Link to="/agents/new" className="adm-btn adm-btn--primary">
             <Plus size={16} /> Create First Agent
           </Link>
         </div>
@@ -196,7 +196,7 @@ export default function AdminAgents() {
                 {/* Footer actions */}
                 <div style={{ padding: '12px 16px', display: 'flex', gap: 6 }}>
                   <button
-                    onClick={() => navigate(`/admin/agents/${agent.id}`)}
+                    onClick={() => navigate(`/agents/${agent.id}`)}
                     className="adm-btn adm-btn--ghost"
                     style={{ flex: 1, justifyContent: 'center', fontSize: 12 }}
                   >

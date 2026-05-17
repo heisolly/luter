@@ -76,7 +76,7 @@ export default function AdminActivity() {
                 {rows.map((r) => (
                   <tr key={r.id}>
                     <td>
-                      <Link to={`/admin/users/${r.id}`} className="adm-link" style={{ fontWeight: 700 }}>
+                      <Link to={`/users/${r.id}`} className="adm-link" style={{ fontWeight: 700 }}>
                         {r.full_name || '—'}
                       </Link>
                     </td>

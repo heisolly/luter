@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks, react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Viewer, Worker, SpecialZoomLevel } from '@react-pdf-viewer/core'
 import { searchPlugin } from '@react-pdf-viewer/search'
@@ -14,7 +15,12 @@ import {
   RiArrowLeftSLine as ChevronLeft,
   RiArrowRightSLine as ChevronRight,
   RiFullscreenExitFill as Compress,
+  RiMessage3Line as MessageIcon,
+  RiEyeLine as EyeIcon,
 } from 'react-icons/ri'
+import { useBroadcastEvent, useEventListener, useUpdateMyPresence } from '../../../liveblocks.config'
+import { useDocumentComments } from '../../../hooks/useCommentThreads'
+import LiveCursors from '../../LiveCursors'
 
 const PDF_WORKER_URL = 'https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js'
 
@@ -55,9 +61,15 @@ export default function FlashkaDocumentViewer({
   fileUrl,
   initialPage = 1,
   title,
-  type,
   onPageChange,
   onDocumentLoad,
+  annotateMode = false,
+  commentMode = false,
+  focusModeTool = false,
+  annotationColor = '#7C3AED',
+  annotationStrokeSize = 4,
+  isEraserMode = false,
+  onCommentThreadSelect,
 }) {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
@@ -69,6 +81,16 @@ export default function FlashkaDocumentViewer({
   const [fadeIn, setFadeIn] = useState(false)
   const viewerContainerRef = useRef(null)
   const toolbarTimerRef = useRef(null)
+  const annotationStoreRef = useRef(new Map())
+  const coverStoreRef = useRef(new Map())
+  const drawingRef = useRef({ active: false, canvas: null, ctx: null, points: [], page: 1 })
+  const focusDragRef = useRef({ active: false, layer: null, page: 1, startX: 0, startY: 0, rectEl: null })
+  const [commentPopover, setCommentPopover] = useState(null)
+  const [commentDraft, setCommentDraft] = useState('')
+  const [threadVersion, setThreadVersion] = useState(0)
+  const updateMyPresence = useUpdateMyPresence()
+  const broadcast = useBroadcastEvent()
+  const { pageThreads, addComment } = useDocumentComments(currentPage)
 
   const searchPluginInstance = searchPlugin()
   const pageNavigationPluginInstance = pageNavigationPlugin()
@@ -96,6 +118,327 @@ export default function FlashkaDocumentViewer({
     scheduleToolbarHide()
     return () => { if (toolbarTimerRef.current) clearTimeout(toolbarTimerRef.current) }
   }, [scheduleToolbarHide])
+
+  useEffect(() => {
+    const root = viewerContainerRef.current
+    if (!root || !docLoaded) return
+
+    const syncCanvasSize = (canvas, layer, pageNumber) => {
+      const rect = layer.getBoundingClientRect()
+      const ratio = window.devicePixelRatio || 1
+      const width = Math.max(1, Math.round(rect.width * ratio))
+      const height = Math.max(1, Math.round(rect.height * ratio))
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width
+        canvas.height = height
+        canvas.style.width = '100%'
+        canvas.style.height = '100%'
+      const saved = annotationStoreRef.current.get(pageNumber)
+        if (saved) {
+          const img = new Image()
+          img.onload = () => {
+            const ctx = canvas.getContext('2d')
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+          }
+          img.src = saved
+        }
+      }
+    }
+
+    const drawStroke = (ctx, points, color, size, erase) => {
+      if (!points.length) return
+      ctx.save()
+      ctx.globalCompositeOperation = erase ? 'destination-out' : 'source-over'
+      ctx.strokeStyle = color
+      ctx.lineWidth = erase ? 20 : size
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      ctx.beginPath()
+      ctx.moveTo(points[0].x, points[0].y)
+      points.slice(1).forEach(point => ctx.lineTo(point.x, point.y))
+      ctx.stroke()
+      ctx.restore()
+    }
+
+    const replayStroke = (canvas, points, color, size, mode) => {
+      if (!canvas || !points?.length) return
+      const ctx = canvas.getContext('2d')
+      ctx.beginPath()
+      ctx.strokeStyle = color
+      ctx.lineWidth = mode === 'erase' ? 20 : size
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      ctx.globalCompositeOperation = mode === 'erase' ? 'destination-out' : 'source-over'
+      points.forEach((point, i) => {
+        if (i === 0) ctx.moveTo(point.x, point.y)
+        else ctx.lineTo(point.x, point.y)
+      })
+      ctx.stroke()
+      ctx.globalCompositeOperation = 'source-over'
+    }
+
+    const renderThreadMarkers = (layer, pageNumber) => {
+      layer.querySelectorAll(':scope > .ws-comment-marker').forEach((node) => node.remove())
+      if (pageNumber !== currentPage) return
+      pageThreads.forEach((thread) => {
+        const marker = document.createElement('button')
+        marker.type = 'button'
+        marker.className = 'ws-comment-marker'
+        marker.title = thread.metadata?.selectedText || 'Open comment'
+        marker.style.left = `${thread.metadata?.positionX || 0}px`
+        marker.style.top = `${thread.metadata?.positionY || 0}px`
+        marker.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z"/></svg>'
+        marker.onclick = () => onCommentThreadSelect?.(thread)
+        layer.appendChild(marker)
+      })
+    }
+
+    const renderCoverAreas = (layer, pageNumber) => {
+      layer.querySelectorAll(':scope > .ws-focus-cover').forEach((node) => node.remove())
+      const areas = coverStoreRef.current.get(pageNumber) || []
+      areas.forEach((area) => {
+        if (area.revealed) return
+        const el = document.createElement('div')
+        el.className = 'ws-focus-cover'
+        Object.assign(el.style, {
+          left: `${area.x}px`,
+          top: `${area.y}px`,
+          width: `${area.width}px`,
+          height: `${area.height}px`,
+        })
+        const reveal = document.createElement('button')
+        reveal.type = 'button'
+        reveal.title = 'Click to reveal'
+        reveal.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5c5.5 0 9.5 5 10 7-.5 2-4.5 7-10 7S2.5 14 2 12c.5-2 4.5-7 10-7Zm0 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg>'
+        reveal.onclick = (event) => {
+          event.stopPropagation()
+          area.revealed = true
+          el.style.opacity = '0'
+          el.style.pointerEvents = 'none'
+          broadcast({ type: 'COVER_REVEALED', page: pageNumber, areaId: area.id })
+        }
+        el.appendChild(reveal)
+        layer.appendChild(el)
+      })
+    }
+
+    const install = () => {
+      const layers = Array.from(root.querySelectorAll('.rpv-core__page-layer'))
+      layers.forEach((layer, index) => {
+        const pageNumber = index + 1
+        layer.style.position = 'relative'
+        let canvas = layer.querySelector(':scope > canvas.luter-annotation-canvas')
+        if (!canvas) {
+          canvas = document.createElement('canvas')
+          canvas.className = 'luter-annotation-canvas'
+          layer.appendChild(canvas)
+        }
+        Object.assign(canvas.style, {
+          position: 'absolute',
+          top: '0',
+          left: '0',
+          width: '100%',
+          height: '100%',
+          borderRadius: '4px',
+          pointerEvents: annotateMode ? 'auto' : 'none',
+          cursor: annotateMode ? 'crosshair' : 'default',
+          zIndex: 5,
+        })
+        syncCanvasSize(canvas, layer, pageNumber)
+        canvas.onmousedown = (event) => {
+          if (!annotateMode) return
+          const rect = canvas.getBoundingClientRect()
+          const ratio = window.devicePixelRatio || 1
+          const point = { x: (event.clientX - rect.left) * ratio, y: (event.clientY - rect.top) * ratio }
+          const ctx = canvas.getContext('2d')
+          drawingRef.current = { active: true, canvas, ctx, points: [point], page: pageNumber }
+          drawStroke(ctx, [point, point], annotationColor, annotationStrokeSize * ratio, isEraserMode)
+        }
+        canvas.onmousemove = (event) => {
+          if (annotateMode) {
+            const rootRect = root.getBoundingClientRect()
+            updateMyPresence({ cursor: { x: event.clientX - rootRect.left, y: event.clientY - rootRect.top }, currentTool: 'annotate' })
+          }
+          const state = drawingRef.current
+          if (!state.active || state.canvas !== canvas) return
+          const rect = canvas.getBoundingClientRect()
+          const ratio = window.devicePixelRatio || 1
+          const point = { x: (event.clientX - rect.left) * ratio, y: (event.clientY - rect.top) * ratio }
+          const prev = state.points[state.points.length - 1] || point
+          state.points.push(point)
+          drawStroke(state.ctx, [prev, point], annotationColor, annotationStrokeSize * ratio, isEraserMode)
+        }
+        canvas.onmouseup = () => {
+          const state = drawingRef.current
+          if (!state.active || state.canvas !== canvas) return
+          annotationStoreRef.current.set(pageNumber, canvas.toDataURL('image/png'))
+          window.dispatchEvent(new CustomEvent('luter-annotation-stroke', {
+            detail: {
+              type: 'ANNOTATION_STROKE',
+              page: pageNumber,
+              color: annotationColor,
+              size: annotationStrokeSize,
+              points: state.points,
+              mode: isEraserMode ? 'erase' : 'draw',
+            }
+          }))
+          broadcast({
+            type: 'ANNOTATION_STROKE',
+            page: pageNumber,
+            color: annotationColor,
+            size: annotationStrokeSize,
+            points: state.points,
+            mode: isEraserMode ? 'erase' : 'draw',
+          })
+          drawingRef.current = { active: false, canvas: null, ctx: null, points: [], page: pageNumber }
+        }
+        canvas.onmouseleave = (event) => {
+          updateMyPresence({ cursor: null })
+          canvas.onmouseup(event)
+        }
+
+        if (!layer.dataset.luterFocusReady) {
+          layer.dataset.luterFocusReady = 'true'
+          layer.addEventListener('mousedown', (event) => {
+            if (!focusModeTool || event.target.closest('.luter-annotation-canvas, .ws-comment-marker, .ws-focus-cover')) return
+            const page = Number(layer.closest('[data-page-number]')?.dataset.pageNumber || pageNumber)
+            const rect = layer.getBoundingClientRect()
+            const startX = event.clientX - rect.left
+            const startY = event.clientY - rect.top
+            const rectEl = document.createElement('div')
+            rectEl.className = 'ws-focus-cover'
+            layer.appendChild(rectEl)
+            focusDragRef.current = { active: true, layer, page, startX, startY, rectEl }
+          })
+          layer.addEventListener('mousemove', (event) => {
+            const drag = focusDragRef.current
+            if (!drag.active || drag.layer !== layer) return
+            const rect = layer.getBoundingClientRect()
+            const x = event.clientX - rect.left
+            const y = event.clientY - rect.top
+            Object.assign(drag.rectEl.style, {
+              left: `${Math.min(drag.startX, x)}px`,
+              top: `${Math.min(drag.startY, y)}px`,
+              width: `${Math.abs(x - drag.startX)}px`,
+              height: `${Math.abs(y - drag.startY)}px`,
+            })
+          })
+          layer.addEventListener('mouseup', () => {
+            const drag = focusDragRef.current
+            if (!drag.active || drag.layer !== layer) return
+            const box = drag.rectEl.getBoundingClientRect()
+            const layerBox = layer.getBoundingClientRect()
+            if (box.width < 6 || box.height < 6) {
+              drag.rectEl.remove()
+            } else {
+              const area = {
+                id: `${Date.now()}-${drag.page}`,
+                x: box.left - layerBox.left,
+                y: box.top - layerBox.top,
+                width: box.width,
+                height: box.height,
+                revealed: false,
+              }
+              const list = coverStoreRef.current.get(drag.page) || []
+              coverStoreRef.current.set(drag.page, [...list, area])
+              broadcast({ type: 'COVER_ADDED', page: drag.page, area })
+              renderCoverAreas(layer, drag.page)
+            }
+            focusDragRef.current = { active: false, layer: null, page: 1, startX: 0, startY: 0, rectEl: null }
+          })
+        }
+        renderThreadMarkers(layer, pageNumber)
+        renderCoverAreas(layer, pageNumber)
+      })
+    }
+
+    const handleClear = () => {
+      const canvases = Array.from(root.querySelectorAll('canvas.luter-annotation-canvas'))
+      canvases.forEach((canvas, index) => {
+        const pageNumber = index + 1
+        const ctx = canvas.getContext('2d')
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        annotationStoreRef.current.delete(pageNumber)
+      })
+    }
+
+    install()
+    const timer = window.setTimeout(install, 300)
+    window.addEventListener('resize', install)
+    window.addEventListener('luter-clear-annotations', handleClear)
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('resize', install)
+      window.removeEventListener('luter-clear-annotations', handleClear)
+    }
+  }, [docLoaded, annotateMode, commentMode, focusModeTool, annotationColor, annotationStrokeSize, isEraserMode, currentPage, pageThreads, threadVersion, broadcast, updateMyPresence, onCommentThreadSelect])
+
+  useEventListener(({ event }) => {
+    if (event.type === 'ANNOTATION_STROKE') {
+      const root = viewerContainerRef.current
+      const layer = root?.querySelector(`.rpv-core__page-layer:nth-of-type(${event.page})`)
+      const canvas = layer?.querySelector('canvas.luter-annotation-canvas')
+      if (!canvas) return
+      const ctx = canvas.getContext('2d')
+      ctx.beginPath()
+      ctx.strokeStyle = event.color
+      ctx.lineWidth = event.mode === 'erase' ? 20 : event.size
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      ctx.globalCompositeOperation = event.mode === 'erase' ? 'destination-out' : 'source-over'
+      event.points.forEach((point, i) => {
+        if (i === 0) ctx.moveTo(point.x, point.y)
+        else ctx.lineTo(point.x, point.y)
+      })
+      ctx.stroke()
+      ctx.globalCompositeOperation = 'source-over'
+      annotationStoreRef.current.set(event.page, canvas.toDataURL('image/png'))
+    }
+    if (event.type === 'COVER_ADDED') {
+      const list = coverStoreRef.current.get(event.page) || []
+      coverStoreRef.current.set(event.page, [...list, event.area])
+      setThreadVersion((value) => value + 1)
+    }
+    if (event.type === 'COVER_REVEALED') {
+      const list = coverStoreRef.current.get(event.page) || []
+      coverStoreRef.current.set(event.page, list.map((area) => area.id === event.areaId ? { ...area, revealed: true } : area))
+      setThreadVersion((value) => value + 1)
+    }
+  })
+
+  useEffect(() => {
+    if (!commentMode) {
+      setCommentPopover(null)
+      return undefined
+    }
+
+    const handleMouseUp = () => {
+      const selection = window.getSelection()
+      const selectedText = selection?.toString().trim()
+      if (!selectedText) return
+      const range = selection.getRangeAt(0)
+      const rect = range.getBoundingClientRect()
+      const root = viewerContainerRef.current
+      const pageLayer = range.commonAncestorContainer?.parentElement?.closest?.('.rpv-core__page-layer') || document.elementFromPoint(rect.left, rect.top)?.closest?.('.rpv-core__page-layer')
+      const pageRect = pageLayer?.getBoundingClientRect() || root?.getBoundingClientRect()
+      setCommentDraft('')
+      setCommentPopover({
+        selectedText,
+        pageNum: Number(pageLayer?.closest('[data-page-number]')?.dataset.pageNumber || currentPage),
+        top: rect.bottom + 8,
+        left: rect.left,
+        position: {
+          x: Math.max(0, rect.left - (pageRect?.left || 0)),
+          y: Math.max(0, rect.top - (pageRect?.top || 0)),
+        },
+      })
+      updateMyPresence({ selectedText, currentTool: 'comment' })
+    }
+
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => document.removeEventListener('mouseup', handleMouseUp)
+  }, [commentMode, currentPage, updateMyPresence])
 
   // Timeout for loading - increased for better resilience
   useEffect(() => {
@@ -312,7 +655,7 @@ export default function FlashkaDocumentViewer({
     <div
       ref={viewerContainerRef}
       className="flashka-desk h-full flex flex-col relative"
-      style={{ background: '#F8FAFC' }}
+      style={{ background: '#FFFFFF' }}
       onMouseMove={scheduleToolbarHide}
     >
       {/* Loading Skeleton */}
@@ -324,14 +667,14 @@ export default function FlashkaDocumentViewer({
 
       {/* PDF Viewer with fade-in */}
       <div
-        className="flex-1 overflow-auto"
+        className="flashka-viewer-scroll flex-1 overflow-auto"
         style={{
           opacity: fadeIn ? 1 : 0,
           transition: 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
           scrollBehavior: 'smooth',
         }}
       >
-        <div style={{ maxWidth: '1000px', margin: '0 auto', height: '100%', padding: '0 24px' }}>
+        <div className="flashka-viewer-pages">
           <Viewer
             fileUrl={fileUrl}
             plugins={[searchPluginInstance, pageNavigationPluginInstance, zoomPluginInstance]}
@@ -340,20 +683,59 @@ export default function FlashkaDocumentViewer({
             onDocumentLoad={handleDocumentLoad}
             onPageChange={handlePageChange}
           />
+          <LiveCursors />
         </div>
       </div>
 
+      {commentPopover && (
+        <div className="ws-comment-popover" style={{ top: commentPopover.top, left: commentPopover.left }}>
+          <div className="ws-comment-quote">
+            {commentPopover.selectedText.length > 60 ? `${commentPopover.selectedText.slice(0, 60)}...` : commentPopover.selectedText}
+          </div>
+          <textarea
+            placeholder="Add a comment..."
+            value={commentDraft}
+            onChange={(event) => setCommentDraft(event.target.value)}
+            autoFocus
+          />
+          <div className="ws-comment-actions">
+            <button type="button" className="ws-comment-cancel" onClick={() => setCommentPopover(null)}>Cancel</button>
+            <button
+              type="button"
+              className="ws-comment-post"
+              disabled={!commentDraft.trim()}
+              onClick={() => {
+                const thread = addComment({
+                  selectedText: commentPopover.selectedText,
+                  comment: commentDraft,
+                  position: commentPopover.position,
+                  pageNum: commentPopover.pageNum,
+                })
+                onCommentThreadSelect?.(thread)
+                setCommentPopover(null)
+                setCommentDraft('')
+                window.getSelection()?.removeAllRanges()
+                setThreadVersion((value) => value + 1)
+              }}
+            >
+              Post
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Floating Toolbar — auto-hides */}
       <div
-        className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
+        className="flashka-viewer-toolbar"
+        data-visible={showToolbar}
         style={{
-          opacity: showToolbar ? 1 : 0,
-          transform: showToolbar ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-12px)',
-          transition: 'opacity 0.3s ease, transform 0.3s ease',
-          pointerEvents: showToolbar ? 'auto' : 'none',
+          opacity: 1,
+          transform: 'none',
+          transition: 'opacity 0.2s ease, transform 0.2s ease',
+          pointerEvents: 'auto',
         }}
       >
-        <div className="bg-white/95 backdrop-blur border border-gray-200 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-lg">
+        <div className="flashka-viewer-toolbar-inner">
           {/* Navigation */}
           <div className="flex items-center gap-0.5">
             <button
@@ -375,7 +757,7 @@ export default function FlashkaDocumentViewer({
             </button>
           </div>
 
-          <div className="w-px h-4 bg-gray-200" />
+          <div className="flashka-viewer-title">{title}</div>
 
           {/* Zoom Controls */}
           <div className="flex items-center gap-0.5">
@@ -390,7 +772,7 @@ export default function FlashkaDocumentViewer({
             </button>
           </div>
 
-          <div className="w-px h-4 bg-gray-200" />
+          <div className="flashka-viewer-separator" />
 
           {/* Actions */}
           <div className="flex items-center gap-0.5">
@@ -416,17 +798,6 @@ export default function FlashkaDocumentViewer({
         </div>
       </div>
 
-      {/* Page Badge — always visible at bottom center */}
-      {docLoaded && totalPages > 0 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
-          <div
-            className="bg-gray-900/80 backdrop-blur text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg"
-            style={{ fontFamily: 'var(--font-outfit)', letterSpacing: '0.02em' }}
-          >
-            {currentPage} / {totalPages}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

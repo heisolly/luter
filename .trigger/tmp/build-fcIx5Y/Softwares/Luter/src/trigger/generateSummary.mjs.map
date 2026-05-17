@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../src/trigger/generateSummary.ts"],
+  "sourcesContent": ["import { task, metadata } from \"@trigger.dev/sdk/v3\";\nimport { extractTextFromFile, generateSummaryFromText, saveGeneratedArtifact } from \"./taskHelpers\";\n\nexport const generateSummaryTask = task({\n  id: \"generate-summary\",\n  run: async (payload: { fileId: string; userId: string }) => {\n    await metadata.set(\"status\", \"Reading document...\");\n    await metadata.set(\"progress\", 10);\n    const text = await extractTextFromFile(payload.fileId);\n    await metadata.set(\"status\", \"Writing summary...\");\n    await metadata.set(\"progress\", 70);\n    const summary = await generateSummaryFromText(text);\n    await saveGeneratedArtifact(\"summary\", summary, payload.fileId);\n    await metadata.set(\"status\", \"Done!\");\n    await metadata.set(\"progress\", 100);\n    return { summary };\n  },\n});\n"],
+  "mappings": ";;;;;;;;;;;;;;;;AAAA;AAGO,IAAM,sBAAsB,KAAK;AAAA,EACtC,IAAI;AAAA,EACJ,KAAK,8BAAO,YAAgD;AAC1D,UAAM,SAAS,IAAI,UAAU,qBAAqB;AAClD,UAAM,SAAS,IAAI,YAAY,EAAE;AACjC,UAAM,OAAO,MAAM,oBAAoB,QAAQ,MAAM;AACrD,UAAM,SAAS,IAAI,UAAU,oBAAoB;AACjD,UAAM,SAAS,IAAI,YAAY,EAAE;AACjC,UAAM,UAAU,MAAM,wBAAwB,IAAI;AAClD,UAAM,sBAAsB,WAAW,SAAS,QAAQ,MAAM;AAC9D,UAAM,SAAS,IAAI,UAAU,OAAO;AACpC,UAAM,SAAS,IAAI,YAAY,GAAG;AAClC,WAAO,EAAE,QAAQ;AAAA,EACnB,GAXK;AAYP,CAAC;",
+  "names": []
+}

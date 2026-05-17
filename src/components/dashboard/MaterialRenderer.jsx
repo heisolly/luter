@@ -17,7 +17,7 @@ const LoadingFallback = () => (
   <LuterPageLoader message="Preparing your workstation..." minHeight="100%" />
 )
 
-export default function MaterialRenderer({ material, activeTab, onSparkUpdate, setViewportData, onScrollUpdate, onMaterialUpdate }) {
+export default function MaterialRenderer({ material, onSparkUpdate, setViewportData, onScrollUpdate, onMaterialUpdate, annotateMode = false, commentMode = false, focusModeTool = false, annotationColor = '#7C3AED', annotationStrokeSize = 4, isEraserMode = false, onCommentThreadSelect }) {
   if (!material) return null
 
   // Keep the viewer mounted even if not on content tab to prevent expensive reloads
@@ -75,6 +75,13 @@ export default function MaterialRenderer({ material, activeTab, onSparkUpdate, s
           onSparkUpdate={onSparkUpdate}
           setViewportData={setViewportData}
           onMaterialUpdate={onMaterialUpdate}
+          annotateMode={annotateMode}
+          commentMode={commentMode}
+          focusModeTool={focusModeTool}
+          annotationColor={annotationColor}
+          annotationStrokeSize={annotationStrokeSize}
+          isEraserMode={isEraserMode}
+          onCommentThreadSelect={onCommentThreadSelect}
         />
       </Suspense>
     </div>

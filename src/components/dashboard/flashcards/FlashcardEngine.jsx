@@ -187,24 +187,32 @@ export function FlashcardEngine(props) {
   // Multiplayer Logic
   useEffect(() => {
     if (isMultiplayer && !socketRef.current) {
-      // Connect to the battle server (reusing existing infra)
-      socketRef.current = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001', {
-        query: { userId: user?.id, type: 'flashcards' }
-      })
+      try {
+        if (typeof io !== 'undefined') {
+          // Connect to the battle server (reusing existing infra)
+          socketRef.current = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001', {
+            query: { userId: user?.id, type: 'flashcards' }
+          })
 
-      const roomId = `flashcards_${material?.id}`
-      socketRef.current.emit('join_battle', { sessionId: roomId, userId: user?.id })
+          const roomId = `flashcards_${material?.id}`
+          socketRef.current.emit('join_battle', { sessionId: roomId, userId: user?.id })
 
-      socketRef.current.on('opponent_progress', (data) => {
-        if (data.currentIndex !== undefined) setCurrentIndex(data.currentIndex)
-        if (data.isFlipped !== undefined) setIsFlipped(data.isFlipped)
-        if (data.decorations) setCardDecorations(data.decorations)
-        if (data.themeId) {
-          const allThemes = Object.values(FLASHCARD_THEMES).flat()
-          const theme = allThemes.find(t => t.id === data.themeId)
-          if (theme) setSelectedTheme(theme)
+          socketRef.current.on('opponent_progress', (data) => {
+            if (data.currentIndex !== undefined) setCurrentIndex(data.currentIndex)
+            if (data.isFlipped !== undefined) setIsFlipped(data.isFlipped)
+            if (data.decorations) setCardDecorations(data.decorations)
+            if (data.themeId) {
+              const allThemes = Object.values(FLASHCARD_THEMES).flat()
+              const theme = allThemes.find(t => t.id === data.themeId)
+              if (theme) setSelectedTheme(theme)
+            }
+          })
+        } else {
+          console.warn("Socket.io not available for multiplayer flashcards");
         }
-      })
+      } catch (err) {
+        console.error("Multiplayer socket error:", err)
+      }
     }
 
     return () => {

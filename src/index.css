@@ -1383,12 +1383,21 @@ h2, h3, h4 {
   animation: spin-slow 8s linear infinite;
 }
 
-/* Hide Liveblocks Watermark */
+/* Hide Liveblocks Watermark - Aggressive */
 [class*="lb-watermark"],
 [class*="lb-badge"],
+[class*="liveblocks-badge"],
+[id*="liveblocks-watermark"],
+[id*="liveblocks-toast"],
+[data-liveblocks-logo],
+div > a[href*="liveblocks.io"],
 a[href*="liveblocks.io"] {
   display: none !important;
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  z-index: -9999 !important;
 }

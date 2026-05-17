@@ -72,7 +72,7 @@ export default function AdminEnrollments() {
                 {rows.map((r) => (
                   <tr key={r.id}>
                     <td>
-                      <Link to={`/admin/users/${r.user_id}`} className="adm-link adm-mono">
+                      <Link to={`/users/${r.user_id}`} className="adm-link adm-mono">
                         {r.user_id?.slice(0, 13)}…
                       </Link>
                     </td>
@@ -83,7 +83,7 @@ export default function AdminEnrollments() {
                     <td>{r.progress ?? 0}%</td>
                     <td>{r.target_score ?? '—'}</td>
                     <td>
-                      <Link to={`/admin/users/${r.user_id}`} className="adm-link">
+                      <Link to={`/users/${r.user_id}`} className="adm-link">
                         Profile
                       </Link>
                     </td>

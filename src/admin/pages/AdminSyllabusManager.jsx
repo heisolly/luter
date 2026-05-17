@@ -260,7 +260,7 @@ export default function AdminSyllabusManager() {
 
     if (!agents?.id) {
       alert('Syllabus Researcher agent not found. Please create one in the Agent Directory.')
-      navigate('/admin/agents')
+      navigate('/agents')
       return
     }
 
@@ -269,7 +269,7 @@ export default function AdminSyllabusManager() {
     Return the verified course list in the structured data field.`
 
     // Navigate to agent console with the prompt as a state or query param
-    navigate(`/admin/agents/${agents.id}`, { state: { autoPrompt: prompt } })
+    navigate(`/agents/${agents.id}`, { state: { autoPrompt: prompt } })
   }
 
   const reload = useCallback(async () => {

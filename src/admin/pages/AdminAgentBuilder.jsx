@@ -65,7 +65,7 @@ export default function AdminAgentBuilder() {
     })
     setSaving(false)
     if (e) { setError(e.message); return }
-    navigate('/admin/agents')
+    navigate('/agents')
   }
 
   return (
@@ -168,7 +168,7 @@ export default function AdminAgentBuilder() {
       </div>
 
       <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-        <button className="adm-btn adm-btn--ghost" onClick={() => navigate('/admin/agents')}>Cancel</button>
+        <button className="adm-btn adm-btn--ghost" onClick={() => navigate('/agents')}>Cancel</button>
         <button className="adm-btn adm-btn--primary" onClick={handleSave} disabled={saving}>
           {saving ? <><CircleNotch className="animate-spin" size={16} /> Saving...</> : <><FloppyDisk size={16} /> Create Agent</>}
         </button>

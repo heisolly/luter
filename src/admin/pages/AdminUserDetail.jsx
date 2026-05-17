@@ -110,7 +110,7 @@ export default function AdminUserDetail() {
     return (
       <>
         <div className="adm-error-banner">{error}</div>
-        <Link to="/admin/users" className="adm-link">
+        <Link to="/users" className="adm-link">
           ← Back to users
         </Link>
       </>

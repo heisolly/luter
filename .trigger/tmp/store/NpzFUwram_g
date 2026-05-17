@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../src/trigger/generateMockExam.ts"],
+  "sourcesContent": ["import { task, metadata } from \"@trigger.dev/sdk/v3\";\nimport { extractTextFromFile, generateExamFromText, saveGeneratedArtifact } from \"./taskHelpers\";\n\nexport const generateMockExamTask = task({\n  id: \"generate-mock-exam\",\n  run: async (payload: { fileId: string; userId: string }) => {\n    await metadata.set(\"status\", \"Reading exam scope...\");\n    await metadata.set(\"progress\", 15);\n    const text = await extractTextFromFile(payload.fileId);\n    await metadata.set(\"status\", \"Building your exam...\");\n    await metadata.set(\"progress\", 80);\n    const exam = await generateExamFromText(text);\n    await saveGeneratedArtifact(\"mock-exam\", exam, payload.fileId);\n    await metadata.set(\"status\", \"Done!\");\n    await metadata.set(\"progress\", 100);\n    return { exam };\n  },\n});\n"],
+  "mappings": ";;;;;;;;;;;;;;;;AAAA;AAGO,IAAM,uBAAuB,KAAK;AAAA,EACvC,IAAI;AAAA,EACJ,KAAK,8BAAO,YAAgD;AAC1D,UAAM,SAAS,IAAI,UAAU,uBAAuB;AACpD,UAAM,SAAS,IAAI,YAAY,EAAE;AACjC,UAAM,OAAO,MAAM,oBAAoB,QAAQ,MAAM;AACrD,UAAM,SAAS,IAAI,UAAU,uBAAuB;AACpD,UAAM,SAAS,IAAI,YAAY,EAAE;AACjC,UAAM,OAAO,MAAM,qBAAqB,IAAI;AAC5C,UAAM,sBAAsB,aAAa,MAAM,QAAQ,MAAM;AAC7D,UAAM,SAAS,IAAI,UAAU,OAAO;AACpC,UAAM,SAAS,IAAI,YAAY,GAAG;AAClC,WAAO,EAAE,KAAK;AAAA,EAChB,GAXK;AAYP,CAAC;",
+  "names": []
+}

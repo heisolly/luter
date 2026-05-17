@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../src/trigger/processUploadedFile.ts"],
+  "sourcesContent": ["import { task, metadata } from \"@trigger.dev/sdk/v3\";\nimport { extractTextFromFile, saveGeneratedArtifact } from \"./taskHelpers\";\n\nexport const processUploadedFileTask = task({\n  id: \"process-uploaded-file\",\n  run: async (payload: { fileId: string; userId: string; totalPages?: number }) => {\n    await metadata.set(\"status\", \"Uploading document...\");\n    await metadata.set(\"progress\", 5);\n    const text = await extractTextFromFile(payload.fileId);\n    await metadata.set(\"status\", \"Extracting searchable text...\");\n    await metadata.set(\"progress\", 65);\n    await saveGeneratedArtifact(\"processed-file\", { text, totalPages: payload.totalPages || 0 }, payload.fileId);\n    await metadata.set(\"status\", \"Done!\");\n    await metadata.set(\"progress\", 100);\n    return { textLength: text.length };\n  },\n});\n"],
+  "mappings": ";;;;;;;;;;;;;;;AAAA;AAGO,IAAM,0BAA0B,KAAK;AAAA,EAC1C,IAAI;AAAA,EACJ,KAAK,8BAAO,YAAqE;AAC/E,UAAM,SAAS,IAAI,UAAU,uBAAuB;AACpD,UAAM,SAAS,IAAI,YAAY,CAAC;AAChC,UAAM,OAAO,MAAM,oBAAoB,QAAQ,MAAM;AACrD,UAAM,SAAS,IAAI,UAAU,+BAA+B;AAC5D,UAAM,SAAS,IAAI,YAAY,EAAE;AACjC,UAAM,sBAAsB,kBAAkB,EAAE,MAAM,YAAY,QAAQ,cAAc,EAAE,GAAG,QAAQ,MAAM;AAC3G,UAAM,SAAS,IAAI,UAAU,OAAO;AACpC,UAAM,SAAS,IAAI,YAAY,GAAG;AAClC,WAAO,EAAE,YAAY,KAAK,OAAO;AAAA,EACnC,GAVK;AAWP,CAAC;",
+  "names": []
+}

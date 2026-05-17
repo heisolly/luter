@@ -144,7 +144,7 @@ export default function AdminNotifications() {
                   <tr key={r.id}>
                     <td className="adm-muted">{formatTs(r.created_at)}</td>
                     <td>
-                      <Link to={`/admin/users/${r.user_id}`} className="adm-link adm-mono">
+                      <Link to={`/users/${r.user_id}`} className="adm-link adm-mono">
                         {r.user_id?.slice(0, 8)}…
                       </Link>
                     </td>

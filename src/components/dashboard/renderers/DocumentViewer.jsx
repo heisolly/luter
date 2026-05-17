@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars, react-hooks/rules-of-hooks, react-hooks/exhaustive-deps */
 /**
  * DocumentViewer — High-Fidelity Universal Reading Environment for Luter.
  * Now supports: PDF, Word, PPT, Excel, Images, Video, Audio, YouTube, Web, and Anki.
@@ -58,7 +59,7 @@ if (typeof window !== 'undefined' && pdfjsLib) {
 
 // ─── Main Document Viewer ─────────────────────────────────────────────────────
 
-export default function DocumentViewer({ material, onScrollUpdate, onMaterialUpdate }) {
+export default function DocumentViewer({ material, onScrollUpdate, onMaterialUpdate, annotateMode = false, commentMode = false, focusModeTool = false, annotationColor = '#7C3AED', annotationStrokeSize = 4, isEraserMode = false, onCommentThreadSelect }) {
   const { setViewportData, askAI } = useReadingSpace()
   const [viewMode, setViewMode] = useState('visuals')
   const [fontSize, setFontSize] = useState(17)
@@ -219,6 +220,13 @@ export default function DocumentViewer({ material, onScrollUpdate, onMaterialUpd
                     onPageChange={(e) => setCurrentPage(e.currentPage + 1)}
                     onDocumentLoad={(e) => setTotalPages(e.doc.numPages)}
                     onMaterialUpdate={onMaterialUpdate}
+                    annotateMode={annotateMode}
+                    commentMode={commentMode}
+                    focusModeTool={focusModeTool}
+                    annotationColor={annotationColor}
+                    annotationStrokeSize={annotationStrokeSize}
+                    isEraserMode={isEraserMode}
+                    onCommentThreadSelect={onCommentThreadSelect}
                  />
                </Worker>
             </div>

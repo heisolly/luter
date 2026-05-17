@@ -156,7 +156,7 @@ export default function AdminAgentMonitor() {
 
               <div style={{ display: 'flex', gap: 6 }}>
                 <button className="adm-btn adm-btn--ghost" style={{ flex: 1, fontSize: 11, justifyContent: 'center' }}
-                  onClick={() => navigate(`/admin/agents/${agent.id}`)}>
+                  onClick={() => navigate(`/agents/${agent.id}`)}>
                   <Eye size={12} /> Console
                 </button>
                 {agent.status === 'paused'

@@ -1,0 +1,87 @@
+{
+  "configPath": "C:\\Softwares\\Luter\\.trigger\\tmp\\build-fcIx5Y\\Softwares\\Luter\\trigger.config.mjs",
+  "customConditions": [
+  ],
+  "prompts": [
+  ],
+  "queues": [
+  ],
+  "runtime": "node",
+  "runtimeVersion": "24.11.0",
+  "tasks": [
+    {
+      "entryPoint": "C:\\Softwares\\Luter\\.trigger\\tmp\\build-fcIx5Y\\Softwares\\Luter\\src\\trigger\\generateAINotes.mjs",
+      "filePath": "src/trigger/generateAINotes.ts",
+      "id": "generate-ai-notes",
+      "maxDuration": 300,
+      "retry": {
+        "factor": 2,
+        "maxAttempts": 3,
+        "maxTimeoutInMs": 10000,
+        "minTimeoutInMs": 1000,
+        "randomize": true
+      }
+    },
+    {
+      "entryPoint": "C:\\Softwares\\Luter\\.trigger\\tmp\\build-fcIx5Y\\Softwares\\Luter\\src\\trigger\\generateFlashcards.mjs",
+      "filePath": "src/trigger/generateFlashcards.ts",
+      "id": "generate-flashcards",
+      "maxDuration": 300,
+      "retry": {
+        "factor": 2,
+        "maxAttempts": 3,
+        "maxTimeoutInMs": 10000,
+        "minTimeoutInMs": 1000,
+        "randomize": true
+      }
+    },
+    {
+      "entryPoint": "C:\\Softwares\\Luter\\.trigger\\tmp\\build-fcIx5Y\\Softwares\\Luter\\src\\trigger\\generateMockExam.mjs",
+      "filePath": "src/trigger/generateMockExam.ts",
+      "id": "generate-mock-exam",
+      "maxDuration": 300,
+      "retry": {
+        "factor": 2,
+        "maxAttempts": 3,
+        "maxTimeoutInMs": 10000,
+        "minTimeoutInMs": 1000,
+        "randomize": true
+      }
+    },
+    {
+      "entryPoint": "C:\\Softwares\\Luter\\.trigger\\tmp\\build-fcIx5Y\\Softwares\\Luter\\src\\trigger\\generateSummary.mjs",
+      "filePath": "src/trigger/generateSummary.ts",
+      "id": "generate-summary",
+      "maxDuration": 300,
+      "retry": {
+        "factor": 2,
+        "maxAttempts": 3,
+        "maxTimeoutInMs": 10000,
+        "minTimeoutInMs": 1000,
+        "randomize": true
+      }
+    },
+    {
+      "entryPoint": "C:\\Softwares\\Luter\\.trigger\\tmp\\build-fcIx5Y\\Softwares\\Luter\\src\\trigger\\processUploadedFile.mjs",
+      "filePath": "src/trigger/processUploadedFile.ts",
+      "id": "process-uploaded-file",
+      "maxDuration": 300,
+      "retry": {
+        "factor": 2,
+        "maxAttempts": 3,
+        "maxTimeoutInMs": 10000,
+        "minTimeoutInMs": 1000,
+        "randomize": true
+      }
+    }
+  ],
+  "timings": {
+    "src/trigger/generateAINotes.ts": 8.1554000000001,
+    "src/trigger/generateFlashcards.ts": 5.178899999999885,
+    "src/trigger/generateMockExam.ts": 3.324700000000121,
+    "src/trigger/generateSummary.ts": 3.861499999999978,
+    "src/trigger/processUploadedFile.ts": 4.348999999999705,
+    "src/trigger/taskHelpers.ts": 7.340499999999793
+  },
+  "workerEntryPoint": "C:\\Softwares\\Luter\\.trigger\\tmp\\build-fcIx5Y\\Users\\HP\\AppData\\Local\\npm-cache\\_npx\\c685fe487f03c925\\node_modules\\trigger.dev\\dist\\esm\\entryPoints\\dev-run-worker.mjs"
+}

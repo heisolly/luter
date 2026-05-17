@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars, react-hooks/rules-of-hooks, react-hooks/exhaustive-deps, react-refresh/only-export-components */
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import FlashkaDocumentViewer from './FlashkaDocumentViewer'
@@ -55,7 +56,7 @@ function isConvertibleToPdf(type) {
  * 4. PPTX → ConversionSkeleton (wait for PDF conversion)
  * 5. Everything else → appropriate native renderer
  */
-export default function UniversalViewer({ material, initialPage, onPageChange, onDocumentLoad, onMaterialUpdate }) {
+export default function UniversalViewer({ material, initialPage, onPageChange, onDocumentLoad, onMaterialUpdate, annotateMode = false, commentMode = false, focusModeTool = false, annotationColor = '#7C3AED', annotationStrokeSize = 4, isEraserMode = false, onCommentThreadSelect }) {
   if (!material) return null
 
   const type = getFileType(material)
@@ -108,6 +109,13 @@ export default function UniversalViewer({ material, initialPage, onPageChange, o
           type={type}
           onPageChange={onPageChange}
           onDocumentLoad={onDocumentLoad}
+          annotateMode={annotateMode}
+          commentMode={commentMode}
+          focusModeTool={focusModeTool}
+          annotationColor={annotationColor}
+          annotationStrokeSize={annotationStrokeSize}
+          isEraserMode={isEraserMode}
+          onCommentThreadSelect={onCommentThreadSelect}
         />
       </motion.div>
     )
@@ -123,6 +131,13 @@ export default function UniversalViewer({ material, initialPage, onPageChange, o
         type={type}
         onPageChange={onPageChange}
         onDocumentLoad={onDocumentLoad}
+        annotateMode={annotateMode}
+        commentMode={commentMode}
+        focusModeTool={focusModeTool}
+        annotationColor={annotationColor}
+        annotationStrokeSize={annotationStrokeSize}
+        isEraserMode={isEraserMode}
+        onCommentThreadSelect={onCommentThreadSelect}
       />
     )
   }

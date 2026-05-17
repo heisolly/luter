@@ -2,6 +2,12 @@ import React from 'react';
 import { RoomProvider } from '../../liveblocks.config';
 import { LiveObject, LiveList } from '@liveblocks/client';
 
+const userColors = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#0891B2'];
+
+function colorFromId(id = 'peer') {
+  return userColors[String(id).split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % userColors.length];
+}
+
 /**
  * CollaborationProvider wraps the Workstation in a Liveblocks Room.
  * Room ID is derived from the materialId or a custom sessionId.
@@ -35,9 +41,19 @@ export const CollaborationProvider = ({ roomId, children, userInfo = {}, initial
       initialPresence={{
         cursor: null,
         currentPage: 1,
+        currentSlide: 0,
         isTyping: false,
         status: 'active',
+        selectedText: null,
+        currentTool: 'none',
         role: 'participant',
+        user: {
+          id: userInfo?.id || 'guest',
+          name: userInfo?.name || 'Peer',
+          avatar: userInfo?.avatar || null,
+          color: userInfo?.color || colorFromId(userInfo?.id),
+          role: userInfo?.role || 'peer',
+        },
         ...initialPresence,
       }}
       initialStorage={{
@@ -49,6 +65,11 @@ export const CollaborationProvider = ({ roomId, children, userInfo = {}, initial
         syncMode: false,
         presenterId: null,
         presenterSlide: 1,
+        syncState: new LiveObject({
+          isSynced: false,
+          leaderId: null,
+          currentSlide: 0,
+        }),
 
         // Group chat
         messages: new LiveList([]),
@@ -61,6 +82,20 @@ export const CollaborationProvider = ({ roomId, children, userInfo = {}, initial
         quizQuestions: new LiveList([]),
         quizCurrentIdx: 0,
         quizScores: new LiveObject({}),
+        quiz: new LiveObject({
+          status: 'idle',
+          question: null,
+          options: [],
+          correctAnswer: null,
+          answers: {},
+          scores: {},
+          startedAt: null,
+          timeLimit: 60,
+        }),
+        sessionFiles: new LiveList([]),
+        activeFileId: null,
+        coverAreas: new LiveObject({}),
+        raisedHands: new LiveObject({}),
       }}
     >
       {children}
