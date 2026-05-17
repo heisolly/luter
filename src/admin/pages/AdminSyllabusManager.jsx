@@ -479,14 +479,7 @@ export default function AdminSyllabusManager() {
       return
     }
     
-    if (!userId) {
-      // Try to refresh auth first
-      const authRefreshed = await refreshAuth()
-      if (!authRefreshed) {
-        setError('User not authenticated. Please log in again.')
-        return
-      }
-    }
+    // Admin uses entry password, so we bypass Supabase auth checks
     
     const university_slug = universitySlugFromName(univ)
     const department_slug = departmentSlugFromLabel(dept)
@@ -955,20 +948,7 @@ export default function AdminSyllabusManager() {
             <span className="adm-mono">status = live</span> during onboarding.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: userId ? '#059669' : '#dc2626' }}>
-            {userId ? `✓ Authenticated` : '✗ Not Authenticated'}
-          </span>
-          <button 
-            onClick={refreshAuth}
-            disabled={busy}
-            className="adm-btn adm-btn--ghost"
-            style={{ fontSize: 12, padding: '4px 8px' }}
-          >
-            <ArrowsClockwise size={12} />
-            Refresh Auth
-          </button>
-        </div>
+        {/* Auth display removed for admin entry password system */}
       </div>
 
       {error && (
