@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Excalidraw, WelcomeScreen } from '@excalidraw/excalidraw';
 import "@excalidraw/excalidraw/index.css";
 import { LiveList, LiveObject } from '@liveblocks/client';
-import { useStorage, useMutation, useSelf } from '../../liveblocks.config';
+import { useStorage, useMutation, useSelf, useStatus } from '../../liveblocks.config';
 
 // ─── tiny debounce hook ────────────────────────────────────────────
 function useDebounce(fn, delay) {
@@ -25,6 +25,10 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
   const storedElements = useStorage((root) => root.whiteboardData);
   const storedAppState = useStorage((root) => root.whiteboardAppState);
 
+  // Check room status
+  const status = useStatus();
+  const isStorageLoaded = status === 'connected';
+
   // Determine role for view-only mode
   const self        = useSelf();
   const userRole    = self?.presence?.role;
@@ -33,6 +37,7 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
   const canDraw = !isCollaborative || userRole === 'presenter' || (isWorkstationRoom && !userRole);
 
   const updateElements = useMutation(({ storage }, newElements) => {
+    if (!storage) return;
     const whiteboardData = storage.get('whiteboardData');
     if (!whiteboardData || typeof whiteboardData.clear !== 'function') {
       storage.set('whiteboardData', new LiveList(newElements));
@@ -45,6 +50,7 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
   }, []);
 
   const updateAppState = useMutation(({ storage }, newState) => {
+    if (!storage) return;
     const obj = storage.get('whiteboardAppState');
     if (obj instanceof LiveObject) {
       obj.update({
@@ -64,6 +70,7 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
   const debouncedUpdateElements = useDebounce(updateElements, 80);
   const debouncedUpdateAppState = useDebounce(updateAppState, 300);
   const lastSavedElements = useRef('[]');
+  const lastProcessedAppState = useRef(null);
 
   // Sync remote changes into Excalidraw
   useEffect(() => {
@@ -87,6 +94,7 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
   const onChange = useCallback((newElements, newAppState) => {
     if (isRemoteUpdate.current) return;
     if (!isCollaborative || !canDraw) return;
+    if (!isStorageLoaded) return;
     
     const elementsStr = JSON.stringify(newElements);
     if (elementsStr !== lastSavedElements.current) {
@@ -94,8 +102,12 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
       debouncedUpdateElements(newElements);
     }
     
-    debouncedUpdateAppState(newAppState);
-  }, [isCollaborative, canDraw, debouncedUpdateElements, debouncedUpdateAppState]);
+    const appStateStr = JSON.stringify(newAppState);
+    if (appStateStr !== lastProcessedAppState.current) {
+      lastProcessedAppState.current = appStateStr;
+      debouncedUpdateAppState(newAppState);
+    }
+  }, [isCollaborative, canDraw, debouncedUpdateElements, debouncedUpdateAppState, isStorageLoaded]);
 
   return (
     <div className="luter-whiteboard-container" style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '12px', background: '#F8FAFC' }}>

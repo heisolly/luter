@@ -12,8 +12,8 @@
   --luter-shadow: none; /* Removing soft shadows as per user request for "lines" */
   --luter-tactile-shadow: 0 4px 0px #4A5568;
   
-  --font-heading: 'Varela Round', sans-serif;
-  --font-body: 'Outfit', sans-serif;
+  --font-heading: 'Outfit', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-body: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 /* Workstation Lavender redesign layer */
@@ -45,8 +45,8 @@
   --luter-accent: var(--ws-lavender);
   --luter-border: var(--ws-border);
   --luter-text-body: var(--ws-body);
-  --font-heading: 'Inter', 'Outfit', sans-serif;
-  --font-body: 'Inter', 'Roboto', 'Segoe UI', sans-serif;
+  --font-heading: 'Outfit', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-body: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 @keyframes ws-spin {
@@ -1555,9 +1555,9 @@
 
 .ws-canvas-scroller {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 0; /* Clear padding for edge-to-edge look */
+  overflow-x: auto !important; /* allow horizontal scroll if needed */
+  overflow-y: auto !important;
+  padding: 20px 24px 80px 24px !important; /* 24px on sides so content never touches edge */
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -2356,18 +2356,18 @@
 .ws-minimal-doc-nav,
 .ws-pro-action-bubble,
 .selection-action-bar {
-  border-radius: 12px !important;
-  border: 1px solid rgba(230, 234, 240, 0.9) !important;
-  box-shadow: var(--ws-shadow-md) !important;
+  border-radius: 9999px !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.26) !important;
   backdrop-filter: blur(18px) saturate(150%) !important;
 }
 
 .selection-action-bar {
-  background: rgba(47, 58, 76, 0.94) !important;
+  background: rgba(17, 24, 39, 0.96) !important;
 }
 
 .selection-action-bar button:hover {
-  background: rgba(0, 191, 166, 0.18) !important;
+  background: rgba(255, 255, 255, 0.14) !important;
 }
 
 .ws-pro-action-bubble {
@@ -2945,10 +2945,10 @@
 .ws-pro-action-bubble,
 .selection-action-bar {
   border-radius: 9999px !important;
-  border: 1px solid #E5E7EB !important;
-  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06) !important;
-  background: #FFFFFF !important;
-  backdrop-filter: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.26) !important;
+  background: rgba(17, 24, 39, 0.96) !important;
+  backdrop-filter: blur(18px) saturate(150%) !important;
 }
 
 .ws-flashcard-front,
@@ -3583,7 +3583,7 @@
 }
 
 .flashka-viewer-pages .rpv-core__page-layer {
-  margin: 20px auto !important;
+  margin: 0 auto 16px auto !important;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
 }
 
@@ -3638,12 +3638,12 @@
 .ws-study-tool-btn--highlight.is-active {
   background: #FEF9C3 !important;
   border-color: #FDE68A !important;
-  color: #D97706 !important;
+  color: #92400E !important;
 }
 
 .ws-study-tool-btn--highlight.is-active span {
   background: #FEF3C7 !important;
-  color: #D97706 !important;
+  color: #92400E !important;
 }
 
 .ws-study-tool-btn--annotate.is-active {
@@ -3746,6 +3746,14 @@
 
 .luter-annotation-canvas {
   touch-action: none;
+}
+
+.luter-annotation-editor {
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.10);
+}
+
+.luter-annotation-editor:focus {
+  box-shadow: 0 10px 24px rgba(124, 58, 237, 0.18);
 }
 
 .ws-right-panel .ws-right-tab,

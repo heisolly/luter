@@ -5,8 +5,14 @@ import {
   House,
   CaretLeft,
   CaretRight,
+  CaretDown,
+  CaretUp,
   FileText,
+  FileDoc,
+  FilePdf,
+  FilePpt,
   Sparkle,
+  Cards,
   CardsThree,
   Checks,
   ShareNetwork,
@@ -23,6 +29,7 @@ import {
   CopySimple,
   ArrowUpRight,
   Microphone,
+  SpeakerHigh,
   PaperPlaneRight,
   CircleNotch,
   SidebarSimple,
@@ -38,17 +45,41 @@ import {
   Crown,
   GridFour,
   PenNib,
-  Layout
+  Layout,
+  ChatCircle,
+  ChatCircleText,
+  EyeSlash,
+  PencilLine,
+  Highlighter,
+  PaintBrush,
+  Timer,
+  ArrowsOut,
+  SignOut,
+  ArrowsLeftRight,
+  Trash,
+  Copy,
+  DownloadSimple,
+  MagnifyingGlassMinus,
+  MagnifyingGlassPlus,
+  FloppyDisk,
+  ArrowUp,
+  Pen,
+  TextT,
+  Function,
+  Eraser,
+  ArrowsIn,
+  CaretLineUp,
+  CaretLineDown
 } from '@phosphor-icons/react'
 import useTourStore from '../../store/useTourStore'
 import {
   RiBookOpenFill as BookOpen, RiStarFill as Star, RiFileTextFill as RiFileText, RiCheckboxCircleFill as CheckCircle, RiArrowRightSLine as RiCaretRight, RiArrowLeftLine as ArrowLeft, RiExternalLinkLine as ArrowSquareOut, RiStackFill as RiStack,
-  RiQuestionFill as Question, RiAddLine as Plus, RiSearchLine as MagnifyingGlass, RiArrowLeftSLine as RiCaretLeft, RiBriefcaseFill as Briefcase, RiPlayCircleFill as PlayCircle, RiSettings4Fill as Settings, RiUserFill as User, RiLogoutBoxLine as SignOut,
+  RiQuestionFill as Question, RiAddLine as Plus, RiSearchLine as MagnifyingGlass, RiArrowLeftSLine as RiCaretLeft, RiBriefcaseFill as Briefcase, RiPlayCircleFill as PlayCircle, RiSettings4Fill as Settings, RiUserFill as User, RiLogoutBoxLine as RiSignOut,
   RiMore2Fill as DotsThreeVertical, RiLayoutMasonryFill as RiLayoutMasonry, RiBookmarkFill as Bookmark, RiFlashlightFill as Zap,
   RiErrorWarningFill as Warning, RiListCheck, RiShareFill as Share,
   RiGraduationCapFill as GraduationCap, RiShareForwardFill as RiShareNetwork, RiClipboardFill as RiClipboardText, RiUserSmileFill as Baby, RiCheckLine as Check, RiSubtractLine as Minus,
   RiLightbulbFill as Lightbulb, RiRefreshLine as ArrowClockwise, RiArrowRightLine as RiArrowRight, RiHome4Fill as RiHouse, RiCheckboxFill as CheckSquare, RiMoreFill as DotsThreeOutline,
-  RiStickyNoteFill as Note, RiArrowUpLine as ArrowUp, RiBookFill as Book, RiStackFill as Library, RiPencilFill as PencilLine, RiLayoutColumnFill as Columns, RiFullscreenFill as CornersOut, RiZoomInLine as MagnifyingGlassPlus,
+  RiStickyNoteFill as Note, RiBookFill as Book, RiStackFill as Library, RiLayoutColumnFill as Columns, RiFullscreenFill as CornersOut,
   RiThumbUpLine, RiThumbDownLine, RiFileCopyLine, RiArrowRightUpLine, RiMicLine, RiEyeOffLine, RiEyeLine
 } from "react-icons/ri"
 import { Typing } from '../ui/Typing'
@@ -75,6 +106,8 @@ import { preloadingService } from '../../services/preloadingService'
 import { useDeckStore } from '../../store/useDeckStore'
 import MaterialAnalysisService from '../../services/materialAnalysisService'
 import './workstation.css'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
 
 // Collaboration
 import { CollaborationProvider } from './CollaborationProvider'
@@ -88,8 +121,10 @@ import {
   useMutation,
   useOthers,
   useUpdateMyPresence,
-  useSelf
+  useSelf,
+  useBroadcastEvent
 } from '../../liveblocks.config'
+import { Thread } from '@liveblocks/react-ui'
 
 const SUGGESTED_QUESTIONS = [
   { id: 'summary', text: "Summarize the core concepts" },
@@ -97,6 +132,85 @@ const SUGGESTED_QUESTIONS = [
   { id: 'analogy', text: "Give me an academic analogy" },
   { id: 'quiz', text: "Generate a quick practice quiz" },
 ]
+
+const WS_COLORS = {
+  purple: '#7C3AED',
+  purpleLight: '#F5F3FF',
+  purpleBorder: '#DDD6FE',
+  purpleHover: '#EDE9FE',
+  gray50: '#F9FAFB',
+  gray100: '#F3F4F6',
+  gray200: '#E5E7EB',
+  gray400: '#9CA3AF',
+  gray500: '#6B7280',
+  gray700: '#374151',
+  gray900: '#111827',
+  white: '#FFFFFF',
+  red: '#EF4444',
+}
+
+const WORKSTATION_FONT_STACK = '"Helvetica Neue", Helvetica, Arial, sans-serif'
+
+const ANNOTATION_TOOL_OPTIONS = [
+  { id: 'draw', label: 'Draw', icon: Pen, shortcut: 'D' },
+  { id: 'text', label: 'Text', icon: TextT, shortcut: 'T' },
+  { id: 'arrow', label: 'Arrow', icon: ArrowUpRight, shortcut: 'A' },
+  { id: 'line', label: 'Line', icon: Minus, shortcut: 'L' },
+]
+
+const ANNOTATION_COLOR_OPTIONS = ['#111827', '#7C3AED', '#EF4444', '#10B981', '#F59E0B']
+
+const ANNOTATION_STROKE_OPTIONS = [4, 7, 10]
+
+const BOTTOM_WORKSPACE_TOOLS = [
+  {
+    id: 'highlight',
+    label: 'Highlight Tool',
+    shortcut: 'H',
+    icon: Highlighter,
+    baseBg: '#FEF3C7',
+    baseBorder: '#FDE68A',
+    baseColor: '#D97706',
+    activeBg: '#FDE68A',
+    activeBorder: '#F59E0B',
+    activeColor: '#92400E',
+  },
+  {
+    id: 'board',
+    label: 'Board Tool',
+    shortcut: 'B',
+    icon: PencilLine,
+    baseBg: '#DBEAFE',
+    baseBorder: '#BFDBFE',
+    baseColor: '#2563EB',
+    activeBg: '#BFDBFE',
+    activeBorder: '#60A5FA',
+    activeColor: '#1D4ED8',
+  },
+  {
+    id: 'annotate',
+    label: 'Annotate Tool',
+    shortcut: 'A',
+    icon: PencilSimple,
+    baseBg: '#F5F3FF',
+    baseBorder: '#DDD6FE',
+    baseColor: '#7C3AED',
+    activeBg: '#EDE9FE',
+    activeBorder: '#A78BFA',
+    activeColor: '#6D28D9',
+  },
+]
+
+const truncateLabel = (value = '', max = 22) => (
+  value.length > max ? `${value.slice(0, max - 3)}...` : value
+)
+
+const getMaterialChipMeta = (material) => {
+  const type = (material?.type || '').toLowerCase()
+  if (type.includes('pdf')) return { Icon: FilePdf, color: WS_COLORS.purple, labelColor: '#6D28D9' }
+  if (type.includes('doc')) return { Icon: FileDoc, color: WS_COLORS.purple, labelColor: '#6D28D9' }
+  return { Icon: FilePpt, color: WS_COLORS.purple, labelColor: '#6D28D9' }
+}
 
 function WorkstationContent() {
   const { t } = useTranslation(['workspace'])
@@ -114,6 +228,37 @@ function WorkstationContent() {
   }, [setViewportData])
 
   const handleSelectionAction = async (actionId, text) => {
+    if (actionId === 'highlight') {
+      window.dispatchEvent(new CustomEvent('luter-highlight-selection'))
+      return 'Highlighted selection'
+    }
+
+    if (actionId === 'send_to_ai') {
+      setActivePanelContext('default')
+      setActiveSideTab('chat')
+      if (isSidePanelCollapsed) setSidePanelCollapsed(false)
+      await handleSend(`Use this selected text as the focus and help me study it:\n\n"${text}"`)
+      return 'Sent to chat'
+    }
+
+    if (actionId === 'comment') {
+      setActiveStudyTool('comment')
+      window.dispatchEvent(new CustomEvent('luter-open-comment-popover'))
+      return 'Comment mode ready'
+    }
+
+    if (actionId === 'copy') {
+      await navigator.clipboard?.writeText?.(text)
+      return 'Copied'
+    }
+
+    if (actionId === 'quiz') {
+      setActiveTab('quiz')
+      setActiveSideTab('chat')
+      await handleSend(`Generate a quick study quiz from this selected text:\n\n"${text}"`)
+      return 'Quiz generated'
+    }
+
     if (actionId === 'explain' || actionId === 'summarize') {
       setActivePanelContext('explanation')
       setActiveExplanation(actionId === 'explain' ? "Analyzing and explaining..." : "Summarizing selection...")
@@ -143,18 +288,24 @@ function WorkstationContent() {
           const { data: newCount } = await supabase.rpc('decrement_user_explanations', { user_id: user.id })
           if (newCount !== undefined) setExplanationsLeft(newCount)
         }
+        return response
       } catch (err) {
         setActiveExplanation("Failed to generate response. Please try again.")
+        return "Failed to generate response. Please try again."
       }
     } else if (actionId === 'save_note' || actionId === 'save') {
       const newNote = `> ${text}\n\n`
       setUserJottings(prev => prev + newNote)
       setActiveSideTab('write')
       if (isSidePanelCollapsed) setSidePanelCollapsed(false)
+      return 'Saved to notes'
     } else if (actionId === 'flashcard') {
       setActiveSideTab('flashcards')
       if (isSidePanelCollapsed) setSidePanelCollapsed(false)
+      return 'Opened flashcards'
     }
+
+    return null
   }
 
   const handlePageJump = useCallback((page) => {
@@ -176,21 +327,27 @@ function WorkstationContent() {
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   const [explanationsLeft, setExplanationsLeft] = useState(profile?.explanations_left ?? 3)
   const [panelWidth, setPanelWidth] = useState(() => {
-    const saved = localStorage.getItem('ws-panel-width')
+    const saved = localStorage.getItem('luter-panel-width') || localStorage.getItem('ws-panel-width')
     return saved ? parseInt(saved, 10) : 360
   })
+  const [isResizeHovered, setIsResizeHovered] = useState(false)
+  const [isResizeActive, setIsResizeActive] = useState(false)
   const isResizing = useRef(false)
 
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isResizing.current) return
-      const newWidth = window.innerWidth - e.clientX
+      const newWidth = window.innerWidth - e.clientX - 12
       if (newWidth >= 280 && newWidth <= 600) {
         setPanelWidth(newWidth)
-        localStorage.setItem('ws-panel-width', String(newWidth))
+        localStorage.setItem('luter-panel-width', String(newWidth))
       }
     }
-    const handleMouseUp = () => { isResizing.current = false }
+    const handleMouseUp = () => {
+      isResizing.current = false
+      setIsResizeActive(false)
+      document.body.style.cursor = ''
+    }
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
     return () => {
@@ -247,12 +404,41 @@ function WorkstationContent() {
   const [sessionXP, setSessionXP] = useState(0)
   const [showFileSwitcher, setShowFileSwitcher] = useState(false)
   const [showMobileTools, setShowMobileTools] = useState(false)
+  const [activeStudyTool, setActiveStudyTool] = useState('none')
+  const [annotationColor, setAnnotationColor] = useState('#7C3AED')
+  const [annotationStrokeSize, setAnnotationStrokeSize] = useState(4)
+  const [isEraserMode, setIsEraserMode] = useState(false)
+  const [selectedThread, setSelectedThread] = useState(null)
+  const [activeRun, setActiveRun] = useState(null)
+  const [voiceState, setVoiceState] = useState('idle')
+  const [voiceTranscript, setVoiceTranscript] = useState('')
+  const [voiceResponse, setVoiceResponse] = useState('')
+  const [showVoiceModal, setShowVoiceModal] = useState(false)
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false)
+  const [selectedVoiceTone, setSelectedVoiceTone] = useState('Natural')
+  const [annotationToolType, setAnnotationToolType] = useState('draw')
+  const [showEquationModal, setShowEquationModal] = useState(false)
+  const [equationInput, setEquationInput] = useState('\\frac{a}{b}')
+  const [pendingEquation, setPendingEquation] = useState('')
+  const recognitionRef = useRef(null)
+  const voiceFinalTranscriptRef = useRef('')
+
+  const sessionIdParam = searchParams.get('sessionId')
+  const shareCodeParam = searchParams.get('share')
+  const groupIdParam = searchParams.get('groupId')
+  const sessionType = searchParams.get('sessionType') || searchParams.get('mode') || (groupIdParam || sessionIdParam ? 'group' : 'solo')
+  const currentUserRole = profile?.role === 'teacher' || searchParams.get('role') === 'teacher' || sessionType === 'teacher'
+    ? 'teacher'
+    : (sessionType === 'solo' ? 'peer' : 'student')
 
   // Collaboration Room ID
   const roomId = useMemo(() => {
-    if (!materialIdParam) return null
-    return `luter-material-${materialIdParam}`
-  }, [materialIdParam])
+    if (sessionIdParam) return `luter-session-${sessionIdParam}`
+    if (shareCodeParam) return `luter-share-${shareCodeParam}`
+    if (groupIdParam) return `luter-group-${groupIdParam}`
+    if (materialIdParam) return `luter-material-${materialIdParam}`
+    return `luter-empty-${user?.id || 'guest'}`
+  }, [sessionIdParam, shareCodeParam, groupIdParam, materialIdParam, user?.id])
 
   useEffect(() => {
     if (courseId) {
@@ -292,13 +478,188 @@ function WorkstationContent() {
   const presenterSlide  = useStorage((root) => root.presenterSlide)
   const presenterId     = useStorage((root) => root.presenterId)
   const others          = useOthers()
+  const syncState       = useStorage((root) => root.syncState)
+  const raisedHands     = useStorage((root) => root.raisedHands) || {}
+  const broadcast       = useBroadcastEvent()
 
   // Group chat
   const { messages: groupMessages, sendMessage: sendGroupMessage, setTyping } = useGroupChat(user)
   const [groupInput, setGroupInput] = useState('')
+  const appendGroupMessage = useMutation(({ storage }, message) => {
+    const list = storage.get('messages')
+    list?.push?.(message)
+  }, [])
+  const removeGroupMessage = useMutation(({ storage }, messageId) => {
+    const list = storage.get('messages')
+    if (!list?.get || !list?.delete) return
+    for (let index = 0; index < list.length; index += 1) {
+      if (list.get(index)?.id === messageId) {
+        list.delete(index)
+        return
+      }
+    }
+  }, [])
 
   // Broadcast events
   const { broadcastSyncJump } = useLiveBroadcast()
+
+  const sendGroupMessageWithAI = async (text) => {
+    if (!text?.trim()) return
+    sendGroupMessage(text)
+    setGroupInput('')
+    setTyping(false)
+
+    if (!text.toLowerCase().includes('@luter')) return
+    const typingId = `ai-typing-${Date.now()}`
+    appendGroupMessage({
+      id: typingId,
+      userId: 'luter-ai',
+      userName: 'Luter AI',
+      userColor: '#7C3AED',
+      text: '...',
+      isAI: true,
+      isTyping: true,
+      timestamp: Date.now(),
+    })
+
+    try {
+      const question = text.replace(/@luter/ig, '').trim()
+      const prompt = `Question: ${question}\n\nCurrent material: ${selectedMaterial?.title || 'Study material'}\nCurrent page: ${viewportData?.currentPage || 1}\nSession: ${sessionType}\nContext:\n${(selectedMaterial?.extracted_text || '').slice(0, 5000)}`
+      const response = await callGroqAPI(
+        [{ role: 'user', content: prompt }],
+        GROQ_MODELS.SPEEDSTER,
+        { systemPromptOverride: 'You are Luter AI in a live group study chat. Answer clearly and concisely.' }
+      )
+      const aiResponse = response?.choices?.[0]?.message?.content || 'I could not generate a response right now.'
+      removeGroupMessage(typingId)
+      appendGroupMessage({
+        id: `ai-${Date.now()}`,
+        userId: 'luter-ai',
+        userName: 'Luter AI',
+        userColor: '#7C3AED',
+        text: aiResponse,
+        isAI: true,
+        timestamp: Date.now(),
+      })
+      broadcast({ type: 'AI_RESPONSE', question: text, response: aiResponse, timestamp: Date.now() })
+    } catch (error) {
+      removeGroupMessage(typingId)
+      appendGroupMessage({
+        id: `ai-error-${Date.now()}`,
+        userId: 'luter-ai',
+        userName: 'Luter AI',
+        userColor: '#7C3AED',
+        text: 'I hit an error while answering. Try again in a moment.',
+        isAI: true,
+        timestamp: Date.now(),
+      })
+    }
+  }
+
+  const processVoiceQuestion = async (question) => {
+    const cleanQuestion = question?.trim()
+    if (!cleanQuestion || !selectedMaterial) {
+      setVoiceState('idle')
+      return
+    }
+
+    setVoiceState('processing')
+    setMessages((prev) => [...prev, { role: 'user', content: cleanQuestion }])
+
+    try {
+      const answer = await askDograhVoiceAgent({
+        question: cleanQuestion,
+        fileName: selectedMaterial.title,
+        currentPage: viewportData?.currentPage || 1,
+        totalPages: viewportData?.totalPages,
+        materialContext: (selectedMaterial.extracted_text || '').slice(0, 5000),
+      })
+      const responseText = answer || 'I could not answer that right now.'
+      setVoiceResponse(responseText)
+      setMessages((prev) => [...prev, { role: 'ai', content: responseText }])
+
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel()
+        const utterance = new SpeechSynthesisUtterance(responseText)
+        utterance.onend = () => setVoiceState('idle')
+        utterance.onerror = () => setVoiceState('idle')
+        setVoiceState('speaking')
+        window.speechSynthesis.speak(utterance)
+      } else {
+        setVoiceState('idle')
+      }
+    } catch (error) {
+      console.error('Voice agent error:', error)
+      setVoiceResponse('Voice agent error. Try again.')
+      setVoiceState('idle')
+    }
+  }
+
+  const startVoiceListening = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      setShowVoiceModal(true)
+      setVoiceResponse('Voice input is not supported in this browser.')
+      return
+    }
+
+    setShowVoiceModal(true)
+    window.speechSynthesis?.cancel()
+    voiceFinalTranscriptRef.current = ''
+    setVoiceTranscript('')
+    setVoiceResponse('')
+    setVoiceState('listening')
+
+    const recognition = new SpeechRecognition()
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.lang = 'en-US'
+    recognitionRef.current = recognition
+
+    recognition.onresult = (event) => {
+      let interim = ''
+      let finalText = voiceFinalTranscriptRef.current
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const text = event.results[index][0].transcript
+        if (event.results[index].isFinal) finalText += ` ${text}`
+        else interim += text
+      }
+      voiceFinalTranscriptRef.current = finalText.trim()
+      setVoiceTranscript(`${voiceFinalTranscriptRef.current} ${interim}`.trim())
+    }
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error)
+      setVoiceState('idle')
+    }
+
+    recognition.onend = () => {
+      recognitionRef.current = null
+      const finalText = voiceFinalTranscriptRef.current || voiceTranscript
+      if (finalText?.trim()) processVoiceQuestion(finalText)
+      else setVoiceState('idle')
+    }
+
+    recognition.start()
+  }
+
+  const stopVoiceListening = () => {
+    if (voiceState === 'speaking') {
+      window.speechSynthesis?.cancel()
+      setVoiceState('idle')
+      return
+    }
+    if (recognitionRef.current) recognitionRef.current.stop()
+    else setVoiceState('idle')
+  }
+
+  const closeVoiceModal = () => {
+    recognitionRef.current?.stop?.()
+    window.speechSynthesis?.cancel()
+    setVoiceState('idle')
+    setShowVoiceModal(false)
+    setShowVoiceSettings(false)
+  }
 
   // Listen for broadcast events from others
   useLiveEventListener({
@@ -342,17 +703,71 @@ function WorkstationContent() {
     storage.set('presenterSlide', page)
   }, [])
 
+  const setSyncState = useMutation(({ storage }, enabled, slide) => {
+    const state = storage.get('syncState')
+    state?.set?.('isSynced', enabled)
+    state?.set?.('leaderId', enabled ? user?.id : null)
+    state?.set?.('currentSlide', slide || viewportData?.currentPage || 1)
+    storage.set('syncMode', enabled)
+    storage.set('presenterId', enabled ? user?.id : null)
+  }, [user?.id, viewportData?.currentPage])
+
+  const setRaisedHand = useMutation(({ storage }, raised) => {
+    const hands = storage.get('raisedHands')
+    if (!hands?.set || !hands?.delete || !user?.id) return
+    if (raised) {
+      hands.set(user.id, {
+        userId: user.id,
+        userName: profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'You',
+        raisedAt: Date.now(),
+      })
+    } else {
+      hands.delete(user.id)
+    }
+  }, [user, profile?.full_name])
+
+  const pushQuizToGroup = useMutation(({ storage }) => {
+    const quiz = storage.get('quiz')
+    quiz?.set?.('status', 'active')
+    quiz?.set?.('question', 'Quick check from this material')
+    quiz?.set?.('options', ['A', 'B', 'C', 'D'])
+    quiz?.set?.('startedAt', Date.now())
+  }, [])
+
   // Broadcast presence + sync slide
+  const lastPresenceRef = useRef({ currentPage: null, activeStudyTool: null, syncMode: null, presenterId: null })
+  
   useEffect(() => {
-    if (viewportData?.currentPage) {
-      updatePresence({ currentPage: viewportData.currentPage })
+    const currentPage = viewportData?.currentPage
+    const tool = activeStudyTool === 'cover' ? 'focus' : activeStudyTool
+    
+    if (currentPage && (
+      lastPresenceRef.current.currentPage !== currentPage || 
+      lastPresenceRef.current.activeStudyTool !== tool ||
+      lastPresenceRef.current.syncMode !== syncMode ||
+      lastPresenceRef.current.presenterId !== presenterId
+    )) {
+      lastPresenceRef.current = { currentPage, activeStudyTool: tool, syncMode, presenterId }
+      
+      updatePresence({
+        currentPage,
+        currentSlide: Math.max(0, currentPage - 1),
+        currentTool: tool,
+        user: {
+          id: user?.id || 'guest',
+          name: profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'You',
+          avatar: user?.user_metadata?.avatar_url || null,
+          color: user?.user_metadata?.color || '#7C3AED',
+          role: currentUserRole,
+        },
+      })
+      
       if (syncMode && presenterId === user?.id) {
-        setPresenterSlide(viewportData.currentPage)
-        // Broadcast so others jump immediately without polling
-        broadcastSyncJump(viewportData.currentPage)
+        setPresenterSlide(currentPage)
+        broadcastSyncJump(currentPage)
       }
     }
-  }, [viewportData?.currentPage, syncMode, presenterId, user?.id, updatePresence, setPresenterSlide, broadcastSyncJump])
+  }, [viewportData?.currentPage, syncMode, presenterId, user?.id, currentUserRole, activeStudyTool, updatePresence, setPresenterSlide, broadcastSyncJump])
   const messagesEndRef = useRef(null)
 
   // Deck Store integration
@@ -366,6 +781,34 @@ function WorkstationContent() {
     }, 150)
     return () => clearTimeout(timer)
   }, [messages, isProcessingLoading])
+
+  useEffect(() => {
+    const isTextInput = (target) => ['INPUT', 'TEXTAREA'].includes(target?.tagName) || target?.isContentEditable
+    const handleKeyDown = (event) => {
+      if (isTextInput(event.target)) return
+      const key = event.key.toLowerCase()
+      if (key === 'a') setActiveStudyTool((tool) => tool === 'annotate' ? 'none' : 'annotate')
+      if (key === 'c') setActiveStudyTool((tool) => tool === 'comment' ? 'none' : 'comment')
+      if (key === 'v') setActiveStudyTool((tool) => tool === 'cover' ? 'none' : 'cover')
+      if (event.code === 'Space' && voiceState === 'idle') {
+        event.preventDefault()
+        startVoiceListening()
+      }
+    }
+    const handleKeyUp = (event) => {
+      if (isTextInput(event.target)) return
+      if (event.code === 'Space' && voiceState === 'listening') {
+        event.preventDefault()
+        stopVoiceListening()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [voiceState, selectedMaterial, viewportData?.currentPage])
 
   const currentAnalysis = React.useMemo(() => {
     if (!selectedMaterial) return {}
@@ -427,30 +870,62 @@ function WorkstationContent() {
   }, [selectedMaterial?.id, selectedMaterial?.processing_status, selectedMaterial?.extracted_text])
 
   useEffect(() => {
-    const handleMouseUp = (e) => {
-      const readingPane = document.querySelector('.ws-pane-left')
-      if (!readingPane || !readingPane.contains(e.target)) {
-        if (!e.target.closest('.selection-action-bar')) {
-          updateSelection('', null, false)
+    let frameId = null
+
+    const syncSelection = (event) => {
+      if (frameId) cancelAnimationFrame(frameId)
+
+      frameId = requestAnimationFrame(() => {
+        const readingPane = document.querySelector('.ws-center-viewer') || document.querySelector('.ws-pane-left')
+        const selectionBar = event?.target?.closest?.('.selection-action-bar')
+        const sel = window.getSelection()
+
+        if (!readingPane || !sel || sel.rangeCount === 0 || sel.isCollapsed) {
+          if (!selectionBar) updateSelection('', null, false)
+          return
         }
-        return
-      }
 
-      const sel = window.getSelection()
-      const text = sel.toString().trim()
-
-      if (text && text.length > 2) {
+        const text = sel.toString().trim()
         const range = sel.getRangeAt(0)
+        const containerNode = range.commonAncestorContainer?.nodeType === Node.TEXT_NODE
+          ? range.commonAncestorContainer.parentElement
+          : range.commonAncestorContainer
+
+        if (!text || text.length < 2 || !containerNode || !readingPane.contains(containerNode)) {
+          if (!selectionBar) updateSelection('', null, false)
+          return
+        }
+
         const rect = range.getBoundingClientRect()
+        if (!rect || (!rect.width && !rect.height)) {
+          updateSelection('', null, false)
+          return
+        }
+
         updateSelection(text, rect, true)
-      } else {
-        updateSelection('', null, false)
-      }
+      })
     }
 
-    document.addEventListener('mouseup', handleMouseUp)
-    return () => document.removeEventListener('mouseup', handleMouseUp)
-  }, [])
+    document.addEventListener('mouseup', syncSelection)
+    document.addEventListener('selectionchange', syncSelection)
+    window.addEventListener('resize', syncSelection)
+    window.addEventListener('scroll', syncSelection, true)
+
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId)
+      document.removeEventListener('mouseup', syncSelection)
+      document.removeEventListener('selectionchange', syncSelection)
+      window.removeEventListener('resize', syncSelection)
+      window.removeEventListener('scroll', syncSelection, true)
+    }
+  }, [updateSelection])
+
+  useEffect(() => {
+    if (activeStudyTool !== 'annotate') {
+      setShowEquationModal(false)
+      setPendingEquation('')
+    }
+  }, [activeStudyTool])
 
   useEffect(() => {
     console.log('🔍 WorkstationPage useEffect triggered:', { materialIdParam, courseId, userId: user?.id })
@@ -1007,9 +1482,54 @@ function WorkstationContent() {
 
   const mobileSectionLabel = { content: 'Source', chat: 'AI Chat', flashcards: 'Cards', summary: 'Summary', quiz: 'Quiz', board: 'Board', write: 'Notes', groupchat: 'Group', group: 'Hub' }
   const mobileActiveLabel = mobileSectionLabel[activeTab] || mobileSectionLabel[activeSideTab] || 'Study'
+  const isCollaborativeSession = sessionType !== 'solo'
+  const fileName = selectedMaterial?.title || 'Material'
+  const elapsed = formatTime(elapsedTime)
+  const materialChipMeta = getMaterialChipMeta(selectedMaterial)
+  const topNavigationTabs = [
+    { id: 'content', label: 'Source', icon: FileText, onClick: () => { setActiveTab('content'); setActiveSideTab('chat') } },
+    { id: 'summary', label: 'Summary', icon: Sparkle, onClick: () => setActiveTab('summary') },
+    { id: 'flashcards', label: 'Cards', icon: Stack, onClick: () => { setActiveTab('flashcards'); setActiveSideTab('flashcards') } },
+    { id: 'quiz', label: 'Quiz', icon: Checks, onClick: () => { setActiveTab('quiz'); setActiveSideTab('quiz') } },
+  ]
+  const sidePanelTabs = [
+    { id: 'chat', label: 'Chat', icon: ChatCircle },
+    { id: 'write', label: 'Notes', icon: PencilLine },
+    { id: 'groupchat', label: 'Group', icon: ChatsCircleIcon },
+    { id: 'group', label: 'Hub', icon: Layout },
+  ].filter((tab) => {
+    if (!isCollaborativeSession) return ['chat', 'write'].includes(tab.id)
+    return tab.id !== 'groupchat'
+  })
+  const voiceToneOptions = ['Natural', 'Clear', 'Warm', 'Calm']
+  const activeBottomTool = activeStudyTool === 'cover' ? 'focus' : activeStudyTool
+  const equationPreviewMarkup = useMemo(() => {
+    try {
+      return katex.renderToString(equationInput || '\\frac{a}{b}', {
+        throwOnError: false,
+        displayMode: true,
+      })
+    } catch (error) {
+      return ''
+    }
+  }, [equationInput])
+  const isAnnotateActive = activeStudyTool === 'annotate'
+  const activeWorkspaceTool = activeTab === 'board'
+    ? 'board'
+    : (activeBottomTool === 'highlight' || activeBottomTool === 'annotate' ? activeBottomTool : null)
+
+  const handleWorkspaceToolSelect = (toolId) => {
+    if (toolId === 'board') {
+      setActiveTab('board')
+      return
+    }
+
+    if (activeTab === 'board') setActiveTab('content')
+    setActiveStudyTool(activeStudyTool === toolId ? 'none' : toolId)
+  }
 
   return (
-    <div className="ws-root" style={{ background: '#F8F9FA' }}>
+    <div className="ws-root" style={{ background: '#F9FAFB' }}>
       {isMobile && (
         <div className="mobile-top-bar" style={{
             padding: '0 16px',
@@ -1053,10 +1573,9 @@ function WorkstationContent() {
 
       {!isMobile && (
         <header style={{
-          background: 'rgba(255, 255, 255, 0.8)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
-          height: '60px',
+          background: '#FFFFFF',
+          borderBottom: '1px solid #E5E7EB',
+          height: '64px',
           display: 'flex',
           alignItems: 'center',
           position: 'sticky',
@@ -1067,99 +1586,76 @@ function WorkstationContent() {
             width: '100%',
             maxWidth: focusMode ? '1200px' : 'none',
             margin: '0 auto',
-            padding: '0 32px',
+            padding: '0 22px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
               <button
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                 style={{
-                  background: 'none',
-                  border: 'none',
+                  width: '42px',
+                  height: '42px',
+                  background: '#FFFFFF',
+                  border: '1px solid #E5E7EB',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  padding: '6px',
-                  borderRadius: '8px',
-                  color: '#64748B',
-                  transition: 'all 0.2s',
-                  marginLeft: '-6px'
+                  justifyContent: 'center',
+                  borderRadius: '12px',
+                  color: '#6B7280',
+                  transition: 'all 150ms ease'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#F1F5F9'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >
-                <SidebarSimple size={20} weight={sidebarCollapsed ? "bold" : "regular"} />
+                <SidebarSimple size={21} weight={sidebarCollapsed ? 'fill' : 'duotone'} />
               </button>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#94A3B8', fontSize: '13px' }}>
-                <div
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                <button
+                  type="button"
                   onClick={() => navigate('/dashboard')}
                   style={{
-                    cursor: 'pointer',
-                    color: '#64748B',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '6px',
-                    borderRadius: '8px',
-                    transition: 'all 0.2s'
+                    width: 34, height: 34, borderRadius: 10, border: 'none',
+                    background: 'transparent', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#F1F5F9'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <House size={18} weight="bold" />
-                </div>
-                <CaretRight size={14} weight="bold" />
-                <span
-                  onClick={() => navigate(`/dashboard/courses/${courseId}`)}
-                  style={{
-                    cursor: 'pointer',
-                    color: '#64748B',
-                    fontWeight: 600,
-                    fontFamily: 'var(--font-outfit)',
-                    transition: 'color 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = '#111827'}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#64748B'}
-                >
+                  <House size={19} color="#6B7280" weight="duotone" />
+                </button>
+
+                <CaretRight size={13} color="#D1D5DB" />
+                <span style={{ fontSize: 13, color: '#9CA3AF' }}>
                   {courseInfo?.code || 'Course'}
                 </span>
-                <CaretRight size={14} weight="bold" />
+                <CaretRight size={13} color="#D1D5DB" />
 
-                {/* File Switcher Pill with Dropdown */}
                 <div style={{ position: 'relative' }}>
-                  <div
+                  <button
+                    type="button"
                     onClick={() => setShowFileSwitcher(!showFileSwitcher)}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: '#F1F5F9',
-                      padding: '4px 10px',
-                      borderRadius: '10px',
-                      border: '1px solid #E2E8F0',
-                      cursor: 'pointer',
-                      transition: '0.2s'
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      background: '#F5F3FF', border: '1px solid #DDD6FE',
+                      borderRadius: 9999, padding: '8px 14px',
+                      cursor: 'pointer', transition: 'all 150ms',
+                      maxWidth: 220
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = '#E2E8F0'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                    onMouseEnter={e => e.currentTarget.style.background = '#EDE9FE'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#F5F3FF'}
                   >
-                    <FileText size={16} color="#6D28D9" weight="fill" />
+                    <materialChipMeta.Icon size={17} color={materialChipMeta.color} weight="fill" />
                     <span style={{
-                      color: '#111827',
-                      fontWeight: 700,
-                      fontSize: '12px',
-                      fontFamily: 'var(--font-outfit)',
-                      maxWidth: '180px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
+                      fontSize: 13, fontWeight: 700, color: '#6D28D9',
+                      fontFamily: WORKSTATION_FONT_STACK,
+                      maxWidth: 160, overflow: 'hidden',
+                      textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                     }}>
-                      {selectedMaterial?.title || 'Material'}
+                      {fileName}
                     </span>
-                    <CaretRight size={12} weight="bold" style={{ transform: showFileSwitcher ? 'rotate(270deg)' : 'rotate(90deg)', transition: '0.2s', color: '#94A3B8' }} />
-                  </div>
+                    <CaretDown size={13} color="#8B5CF6" weight="bold" />
+                  </button>
 
                   <AnimatePresence>
                     {showFileSwitcher && (
@@ -1168,12 +1664,12 @@ function WorkstationContent() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
                         style={{
-                          position: 'absolute', top: 'calc(100% + 8px)', left: 0, width: '280px',
-                          background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0',
-                          boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 100, overflow: 'hidden'
+                          position: 'absolute', top: 'calc(100% + 8px)', left: 0, width: '300px',
+                          background: 'white', borderRadius: '16px', border: '1px solid #E5E7EB',
+                          boxShadow: '0 12px 32px rgba(17,24,39,0.12)', zIndex: 100, overflow: 'hidden'
                         }}
                       >
-                        <div style={{ padding: '12px 16px', borderBottom: '1px solid #F1F5F9', fontSize: '11px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase' }}>
+                        <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6', fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                           Switch Material
                         </div>
                         <div style={{ maxHeight: '300px', overflowY: 'auto', padding: '8px' }}>
@@ -1185,22 +1681,20 @@ function WorkstationContent() {
                                 setShowFileSwitcher(false)
                               }}
                               style={{
-                                width: '100%', padding: '10px 12px', border: 'none', borderRadius: '10px',
+                                width: '100%', padding: '10px 12px', border: 'none', borderRadius: '12px',
                                 background: selectedMaterial?.id === m.id ? '#F5F3FF' : 'transparent',
-                                color: selectedMaterial?.id === m.id ? '#6D28D9' : '#1E293B',
+                                color: selectedMaterial?.id === m.id ? '#6D28D9' : '#374151',
                                 textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px',
-                                transition: '0.2s', fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-outfit)'
+                                transition: 'all 150ms ease', fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-body)'
                               }}
-                              onMouseEnter={(e) => { if (selectedMaterial?.id !== m.id) e.currentTarget.style.background = '#F8FAFC' }}
-                              onMouseLeave={(e) => { if (selectedMaterial?.id !== m.id) e.currentTarget.style.background = 'transparent' }}
                             >
-                              <FileText size={16} weight={selectedMaterial?.id === m.id ? 'fill' : 'bold'} />
+                              <FileText size={16} weight={selectedMaterial?.id === m.id ? 'fill' : 'regular'} />
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</span>
                             </button>
                           ))}
                           <button style={{
-                            width: '100%', padding: '12px', marginTop: '4px', border: '1px dashed #E2E8F0', borderRadius: '10px',
-                            background: 'transparent', color: '#64748B', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                            width: '100%', padding: '12px', marginTop: '4px', border: '1px dashed #E5E7EB', borderRadius: '12px',
+                            background: 'transparent', color: '#6B7280', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
                           }}>
                             <Plus size={14} weight="bold" /> Add file to session
@@ -1211,226 +1705,140 @@ function WorkstationContent() {
                   </AnimatePresence>
                 </div>
 
-                {/* Timer Badge */}
                 <div style={{
-                  marginLeft: '8px',
-                  padding: '4px 10px',
-                  background: '#F5F3FF',
-                  borderRadius: '20px',
-                  color: '#6D28D9',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  fontFamily: 'var(--font-outfit)',
-                  border: '1px solid rgba(109, 40, 217, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  background: '#F9FAFB', border: '1px solid #E5E7EB',
+                  borderRadius: 9999, padding: '8px 12px'
                 }}>
-                  <Clock size={12} weight="bold" />
-                  {formatTime(elapsedTime)}
+                  <Timer size={16} color="#9CA3AF" weight="duotone" />
+                  <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 700, fontFamily: WORKSTATION_FONT_STACK }}>
+                    {elapsed}
+                  </span>
                 </div>
               </div>
             </div>
 
             <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
               <div id="tour-ai-tools" style={{
-                display: 'flex',
-                background: '#F8FAFC',
-                padding: '3px',
-                borderRadius: '12px',
-                border: '1px solid #E2E8F0',
-                gap: '2px',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+                background: '#F3F4F6',
+                borderRadius: '9999px',
+                padding: 4,
+                display: 'inline-flex',
+                gap: '4px',
               }}>
-                <button
-                  onClick={() => { setActiveTab('content'); setActiveSideTab('chat'); }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600,
-                    borderRadius: '9px', border: 'none', cursor: 'pointer',
-                    background: (activeTab === 'content' || activeTab === 'notes') ? 'white' : 'transparent',
-                    color: (activeTab === 'content' || activeTab === 'notes') ? '#6D28D9' : '#64748B',
-                    boxShadow: (activeTab === 'content' || activeTab === 'notes') ? '0 2px 6px rgba(109, 40, 217, 0.1)' : 'none',
-                    fontFamily: 'var(--font-outfit)',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <FileText size={16} weight={activeTab === 'content' ? 'fill' : 'bold'} /> Source
-                </button>
-                <button
-                  onClick={() => { setActiveTab('summary'); }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600,
-                    borderRadius: '9px', border: 'none', cursor: 'pointer',
-                    background: activeTab === 'summary' ? 'white' : 'transparent',
-                    color: activeTab === 'summary' ? '#6D28D9' : '#64748B',
-                    boxShadow: activeTab === 'summary' ? '0 2px 6px rgba(109, 40, 217, 0.1)' : 'none',
-                    fontFamily: 'var(--font-outfit)',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <Sparkle size={16} weight={activeTab === 'summary' ? 'fill' : 'bold'} /> Summary
-                </button>
-                <button
-                  onClick={() => { setActiveTab('flashcards'); setActiveSideTab('flashcards'); }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600,
-                    borderRadius: '9px', border: 'none', cursor: 'pointer',
-                    background: activeTab === 'flashcards' ? 'white' : 'transparent',
-                    color: activeTab === 'flashcards' ? '#6D28D9' : '#64748B',
-                    boxShadow: activeTab === 'flashcards' ? '0 2px 6px rgba(109, 40, 217, 0.1)' : 'none',
-                    fontFamily: 'var(--font-outfit)',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <Stack size={16} weight={activeTab === 'flashcards' ? 'fill' : 'bold'} /> Cards
-                </button>
-                <button
-                  onClick={() => { setActiveTab('quiz'); setActiveSideTab('quiz'); }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600,
-                    borderRadius: '9px', border: 'none', cursor: 'pointer',
-                    background: activeTab === 'quiz' ? 'white' : 'transparent',
-                    color: activeTab === 'quiz' ? '#6D28D9' : '#64748B',
-                    boxShadow: activeTab === 'quiz' ? '0 2px 6px rgba(109, 40, 217, 0.1)' : 'none',
-                    fontFamily: 'var(--font-outfit)',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <Checks size={16} weight={activeTab === 'quiz' ? 'fill' : 'bold'} /> Quiz
-                </button>
-                <button
-                  onClick={() => setActiveTab('board')}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: 700,
-                    borderRadius: '20px', border: 'none', cursor: 'pointer',
-                    background: activeTab === 'board'
-                      ? 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)'
-                      : 'linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 100%)',
-                    color: activeTab === 'board' ? 'white' : '#6D28D9',
-                    boxShadow: activeTab === 'board'
-                      ? '0 4px 12px rgba(109, 40, 217, 0.35)'
-                      : '0 1px 4px rgba(109, 40, 217, 0.15)',
-                    fontFamily: 'var(--font-outfit)',
-                    transition: 'all 0.2s',
-                    letterSpacing: '0.01em'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (activeTab !== 'board') {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)';
-                      e.currentTarget.style.color = 'white';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(109, 40, 217, 0.35)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (activeTab !== 'board') {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 100%)';
-                      e.currentTarget.style.color = '#6D28D9';
-                      e.currentTarget.style.boxShadow = '0 1px 4px rgba(109, 40, 217, 0.15)';
-                    }
-                  }}
-                >
-                  <PencilLine size={14} weight={activeTab === 'board' ? 'fill' : 'bold'} /> Board
-                </button>
+                {topNavigationTabs.map((tab) => {
+                  const isActive = activeTab === tab.id || (tab.id === 'content' && activeTab === 'notes')
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={tab.onClick}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '8px 16px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        borderRadius: '9999px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 150ms ease',
+                        background: isActive ? '#7C3AED' : 'transparent',
+                        color: isActive ? 'white' : '#6B7280',
+                        boxShadow: isActive ? '0 1px 3px rgba(124,58,237,0.25)' : 'none',
+                        fontFamily: WORKSTATION_FONT_STACK,
+                      }}
+                    >
+                      <tab.icon size={18} weight={isActive ? 'fill' : 'duotone'} color={isActive ? 'white' : '#6B7280'} />
+                      {tab.label}
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '12px', alignItems: 'center' }}>
-            <PresenceBar />
-            <div style={{ position: 'relative' }}>
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '10px', alignItems: 'center' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: '#FEF3C7', border: '1px solid #FDE68A',
+                borderRadius: 9999, padding: '4px 12px',
+              }}>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, color: '#D97706'
+                }}>{explanationsLeft} LEFT</span>
+                <span style={{ color: '#FDE68A' }}>|</span>
+                <span style={{
+                  fontSize: 11, color: '#D97706', cursor: 'pointer'
+                }}>Upgrade</span>
+              </div>
               <button
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 12px',
-                  fontSize: '12px', fontWeight: 800, borderRadius: '10px',
-                  border: 'none', background: profile?.is_premium ? 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)' : '#F5F3FF',
-                  color: profile?.is_premium ? 'white' : '#6D28D9',
-                  cursor: 'pointer', fontFamily: 'var(--font-outfit)',
-                  transition: '0.2s', position: 'relative'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-              >
-                {profile?.is_premium ? 'Luter Pro' : 'Upgrade'}
-                {!profile?.is_premium && (
-                  <div style={{
-                    position: 'absolute', top: '-6px', right: '-6px',
-                    background: '#EF4444', color: 'white', fontSize: '9px',
-                    fontWeight: 900, padding: '2px 5px', borderRadius: '10px',
-                    border: '2px solid white', boxShadow: '0 2px 4px rgba(239, 68, 68, 0.2)'
-                  }}>
-                    {explanationsLeft} LEFT
-                  </div>
-                )}
+                onClick={() => setFocusMode(!focusMode)}
+                  style={{
+                  display:'flex',alignItems:'center',gap:5,
+                  border:'1px solid #E5E7EB',borderRadius:9999,
+                  padding:'8px 14px',fontSize:13,color:'#374151',fontWeight:700,
+                  background:'white',cursor:'pointer',
+                  transition:'all 150ms',
+                  fontFamily: WORKSTATION_FONT_STACK,
+                  }}
+                onMouseEnter={e=>e.currentTarget.style.background='#F9FAFB'}
+                onMouseLeave={e=>e.currentTarget.style.background='white'}
+                >
+                <ArrowsOut size={17} color="#6B7280" weight="duotone" />
+                Focus Mode
               </button>
-            </div>
-            <button
-              onClick={() => setFocusMode(!focusMode)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 13px',
-                fontSize: '12px', fontWeight: 700, borderRadius: '10px',
-                border: '1px solid #E2E8F0',
-                background: focusMode ? '#6D28D9' : 'white',
-                color: focusMode ? 'white' : '#1E293B',
-                cursor: 'pointer', fontFamily: 'var(--font-outfit)', transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => { if (!focusMode) { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.color = '#6D28D9'; e.currentTarget.style.background = '#F5F3FF'; }}}
-              onMouseLeave={(e) => { if (!focusMode) { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#1E293B'; e.currentTarget.style.background = 'white'; }}}
-            >
-              {focusMode ? <RiEyeLine size={15} /> : <RiEyeOffLine size={15} />}
-              {focusMode ? 'Exit Focus' : 'Focus Mode'}
-            </button>
-            <button
-              onClick={handleExit}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 13px',
-                fontSize: '12px', fontWeight: 700, borderRadius: '10px',
-                border: '1px solid #FDA4AF', background: '#FFF1F2', color: '#E11D48',
-                cursor: 'pointer', fontFamily: 'var(--font-outfit)', transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#FFE4E6'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = '#FFF1F2'; }}
-            >
-              Exit Session
-            </button>
-            <div style={{ position: 'relative' }}>
               <button
-                id="ws-more-menu-btn"
-                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                onClick={handleExit}
                 style={{
-                  padding: '7px 9px', borderRadius: '10px', border: '1px solid #E2E8F0',
-                  background: 'white', color: '#1E293B', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+                  display:'flex',alignItems:'center',gap:5,
+                  border:'1px solid #FECACA',borderRadius:9999,
+                  padding:'8px 14px',fontSize:13,fontWeight:700,
+                  color:'#EF4444',background:'white',cursor:'pointer',
+                  transition:'all 150ms',
+                  fontFamily: WORKSTATION_FONT_STACK,
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.color = '#6D28D9'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#1E293B'; }}
+                onMouseEnter={e=>e.currentTarget.style.background='#FEF2F2'}
+                onMouseLeave={e=>e.currentTarget.style.background='white'}
               >
-                <DotsThree size={20} weight="bold" />
+                <SignOut size={17} color="#EF4444" weight="duotone" />
+                Exit Session
               </button>
-              <AnimatePresence>
-                {showMoreMenu && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 8 }}
-                    style={{
-                      position: 'absolute', right: 0,
-                      top: 'calc(100% + 8px)', background: 'white', border: '1px solid #E2E8F0',
-                      borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', zIndex: 200,
-                      minWidth: '160px', overflow: 'hidden'
-                    }}
-                  >
-                    <button
-                      onClick={() => setShowMoreMenu(false)}
-                      style={{ padding: '11px 16px', width: '100%', border: 'none', background: 'none', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#1E293B', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontFamily: 'var(--font-outfit)' }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+              <div style={{ position: 'relative' }}>
+                <button
+                  id="ws-more-menu-btn"
+                  onClick={() => setShowMoreMenu(!showMoreMenu)}
+                  style={{
+                    width:36,height:36,borderRadius:10,border:'none',
+                    background:'transparent',cursor:'pointer',
+                    display:'flex',alignItems:'center',justifyContent:'center'
+                  }}
+                  onMouseEnter={e=>e.currentTarget.style.background='#F3F4F6'}
+                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+                >
+                  <DotsThree size={22} color="#6B7280" weight="duotone"/>
+                </button>
+                <AnimatePresence>
+                  {showMoreMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      style={{
+                        position: 'absolute', right: 0,
+                        top: 'calc(100% + 8px)', background: 'white', border: '1px solid #E5E7EB',
+                        borderRadius: '16px', boxShadow: '0 12px 32px rgba(17,24,39,0.12)', zIndex: 200,
+                        minWidth: '160px', overflow: 'hidden'
+                      }}
                     >
-                      <ShareNetwork size={15} weight="bold" /> Share Session
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                      <button
+                        onClick={() => setShowMoreMenu(false)}
+                        style={{ padding: '12px 16px', width: '100%', border: 'none', background: 'none', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontFamily: 'var(--font-body)' }}
+                      >
+                        <ShareNetwork size={15} weight="regular" /> Share Session
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
-          </div>
         </div>
       </header>
       )}
@@ -1439,13 +1847,14 @@ function WorkstationContent() {
       <main className="ws-main-layout" style={{
         display: 'flex',
         flexDirection: isMobile ? 'column' : 'row',
-        background: 'transparent',
-        overflow: isMobile ? 'auto' : 'hidden',
-        padding: '0',
+        background: '#F9FAFB',
+        overflow: 'hidden',
+        padding: '12px',
+        gap: 0,
         flex: 1,
-        height: isMobile ? 'auto' : 'calc(100vh - 60px)',
+        height: isMobile ? 'auto' : 'calc(100vh - 64px)',
         position: 'relative',
-        paddingBottom: isMobile ? 'calc(84px + env(safe-area-inset-bottom, 0px))' : '0'
+        paddingBottom: isMobile ? 'calc(84px + env(safe-area-inset-bottom, 0px))' : '12px'
       }}>
         {/* Main Workspace Area - Center Zone */}
         {/* On mobile: show for 'content', 'summary', 'quiz', 'board' tabs. Hide for side panel tabs. */}
@@ -1454,13 +1863,15 @@ function WorkstationContent() {
             ? (['content', 'summary', 'quiz', 'board'].includes(activeTab) ? 'flex' : 'none')
             : 'flex',
           flexDirection: 'column',
-          overflow: isMobile ? 'visible' : 'hidden',
-          background: 'linear-gradient(180deg, #FAFBFC 0%, #F8FAFC 50%, #F1F5F9 100%)',
+          overflow: 'hidden',
+          margin: '0',
+          borderRadius: '20px',
+          border: '1px solid #E5E7EB',
+          background: 'white',
           position: 'relative',
           height: isMobile ? 'auto' : '100%',
           flex: 1,
           minWidth: 0,
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -1px 0 rgba(0,0,0,0.03)',
           zIndex: 1
         }}>
           {/* 1. Summary View */}
@@ -1554,7 +1965,7 @@ function WorkstationContent() {
                         }}
                         style={{
                           width: '100%', height: '100%', minHeight: '500px', border: 'none', outline: 'none',
-                          fontSize: '16px', lineHeight: '1.7', color: '#334155', fontFamily: 'var(--font-varela)',
+                          fontSize: '16px', lineHeight: '1.7', color: '#334155', fontFamily: WORKSTATION_FONT_STACK,
                           resize: 'none', background: 'transparent'
                         }}
                      />
@@ -1578,85 +1989,244 @@ function WorkstationContent() {
                     animate={{ opacity: 1, y: 0 }}
                     style={{
                       position: 'absolute',
-                      bottom: '30px',
+                      bottom: '26px',
                       left: '50%',
                       transform: 'translateX(-50%)',
-                      zIndex: 100,
+                      zIndex: 140,
                       display: 'flex',
+                      flexDirection: 'column',
                       alignItems: 'center',
-                      background: 'rgba(255, 255, 255, 0.95)',
-                      backdropFilter: 'blur(10px)',
-                      padding: '6px',
-                      borderRadius: '16px',
-                      border: '1px solid #E2E8F0',
-                      boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
-                      gap: '4px'
+                      gap: '10px'
                     }}
                   >
-                    <button
-                      onClick={() => setActiveTab('board')}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
-                        background: activeTab === 'board' ? '#F5F3FF' : 'transparent',
-                        color: activeTab === 'board' ? '#6D28D9' : '#64748B',
-                        border: 'none', borderRadius: '12px',
-                        fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-outfit)',
-                        transition: '0.2s',
-                        boxShadow: activeTab === 'board' ? '0 2px 8px rgba(109, 40, 217, 0.1)' : 'none'
-                      }}
-                      onMouseEnter={(e) => { if (activeTab !== 'board') e.currentTarget.style.background = '#F8FAFC' }}
-                      onMouseLeave={(e) => { if (activeTab !== 'board') e.currentTarget.style.background = 'transparent' }}
-                    >
-                      <PencilSimple size={16} weight={activeTab === 'board' ? "fill" : "bold"} />
-                      Board <span style={{ opacity: 0.8, marginLeft: '4px', background: activeTab === 'board' ? 'white' : '#F1F5F9', padding: '1px 5px', borderRadius: '4px', fontSize: '10px', color: '#6D28D9' }}>B</span>
-                    </button>
-                    <button
-                      onClick={() => {}} // Occlusion logic placeholder
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
-                        background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)',
-                        color: '#6D28D9',
-                        border: '1px solid #DDD6FE', borderRadius: '12px',
-                        fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-outfit)',
-                        transition: 'all 0.2s',
-                        boxShadow: '0 2px 8px rgba(109, 40, 217, 0.08)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)';
-                        e.currentTarget.style.color = 'white';
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(109, 40, 217, 0.25)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)';
-                        e.currentTarget.style.color = '#6D28D9';
-                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(109, 40, 217, 0.08)';
-                      }}
-                    >
-                      <ClipboardText size={16} weight="bold" />
-                      Occlusion <span style={{ opacity: 0.8, marginLeft: '4px', background: 'white', padding: '1px 5px', borderRadius: '4px', fontSize: '10px', color: '#6D28D9' }}>O</span>
-                    </button>
-                    <div style={{ width: '1px', height: '24px', background: '#E2E8F0', margin: '0 4px' }} />
-                    <button style={{ padding: '8px', background: 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <ArrowUp size={16} weight="bold" />
-                    </button>
-                    <button style={{ padding: '8px', background: 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <ArrowRight size={16} weight="bold" />
-                    </button>
+                    <AnimatePresence>
+                      {isAnnotateActive && (
+                        <motion.div
+                          className="ws-annotate-subtoolbar"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          style={{ borderRadius: '20px', padding: '8px 12px', gap: '8px', bottom: 'calc(100% + 10px)' }}
+                        >
+                          <div style={{ background: '#F3F4F6', borderRadius: '9999px', padding: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {ANNOTATION_TOOL_OPTIONS.map((tool) => {
+                              const ToolIcon = tool.icon
+                              const isSelected = annotationToolType === tool.id
+                              return (
+                                <button
+                                  key={tool.id}
+                                  type="button"
+                                  className={`ws-annotate-action ${isSelected ? 'is-selected' : ''}`}
+                                  onClick={() => {
+                                    setAnnotationToolType(tool.id)
+                                    setIsEraserMode(false)
+                                  }}
+                                  title={tool.label}
+                                  style={{
+                                    width: 'auto',
+                                    minWidth: 'unset',
+                                    padding: isSelected ? '0 12px' : '0 10px',
+                                    gap: '6px',
+                                    background: isSelected ? '#FFFFFF' : 'transparent',
+                                    boxShadow: isSelected ? '0 1px 2px rgba(17,24,39,0.08)' : 'none',
+                                  }}
+                                >
+                                  <ToolIcon size={16} weight={isSelected ? 'fill' : 'bold'} />
+                                  <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: WORKSTATION_FONT_STACK }}>{tool.label}</span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                          <div className="ws-annotate-divider" style={{ height: '20px' }} />
+                          {ANNOTATION_COLOR_OPTIONS.map((color) => (
+                            <button
+                              key={color}
+                              type="button"
+                              className={`ws-annotate-color ${annotationColor === color ? 'is-selected' : ''}`}
+                              onClick={() => setAnnotationColor(color)}
+                              title={`Set color ${color}`}
+                              style={{ background: color, color }}
+                            />
+                          ))}
+                          <div className="ws-annotate-divider" style={{ height: '20px' }} />
+                          {ANNOTATION_STROKE_OPTIONS.map((size) => (
+                            <button
+                              key={size}
+                              type="button"
+                              className={`ws-annotate-size ${annotationStrokeSize === size ? 'is-selected' : ''}`}
+                              onClick={() => {
+                                setAnnotationStrokeSize(size)
+                                setIsEraserMode(false)
+                              }}
+                              title={`${size}px stroke`}
+                            >
+                              <span style={{ width: `${size}px`, height: `${size}px` }} />
+                            </button>
+                          ))}
+                          <div className="ws-annotate-divider" style={{ height: '20px' }} />
+                          <button
+                            type="button"
+                            className={`ws-annotate-action ${showEquationModal ? 'is-selected' : ''}`}
+                            onClick={() => setShowEquationModal(true)}
+                            title="Insert equation"
+                          >
+                            <Function size={16} weight="bold" />
+                          </button>
+                          <div className="ws-annotate-divider" style={{ height: '20px' }} />
+                          <button
+                            type="button"
+                            className={`ws-annotate-action ${isEraserMode ? 'is-selected' : ''}`}
+                            onClick={() => setIsEraserMode((value) => !value)}
+                            title="Eraser"
+                          >
+                            <Eraser size={16} weight="bold" />
+                          </button>
+                          <button
+                            type="button"
+                            className="ws-annotate-action ws-annotate-clear"
+                            onClick={() => window.dispatchEvent(new CustomEvent('luter-clear-annotations'))}
+                            title="Clear all annotations on this page"
+                          >
+                            <Trash size={16} weight="bold" />
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      background: '#FFFFFF',
+                      padding: '5px',
+                      borderRadius: '16px',
+                      border: '1px solid #E5E7EB',
+                      boxShadow: '0 14px 28px rgba(17,24,39,0.10)',
+                      gap: '5px'
+                    }}>
+                      {BOTTOM_WORKSPACE_TOOLS.map((tool, index) => {
+                        const ToolIcon = tool.icon
+                        const isActive = activeWorkspaceTool === tool.id
+                        return (
+                          <React.Fragment key={tool.id}>
+                            <button
+                              type="button"
+                              onClick={() => handleWorkspaceToolSelect(tool.id)}
+                              style={{
+                                display:'flex',alignItems:'center',gap:8,
+                                padding:'6px 12px',borderRadius:'12px',
+                                fontSize:13,fontWeight:800,
+                                cursor:'pointer',border:'1px solid',
+                                transition:'all 150ms ease',
+                                background: isActive ? tool.activeBg : tool.baseBg,
+                                borderColor: isActive ? tool.activeBorder : tool.baseBorder,
+                                color: isActive ? tool.activeColor : tool.baseColor,
+                                boxShadow: isActive ? '0 8px 18px rgba(17,24,39,0.08)' : 'none',
+                                fontFamily: WORKSTATION_FONT_STACK,
+                              }}
+                            >
+                              <ToolIcon size={16} weight={isActive ? 'fill' : 'duotone'} />
+                              <span>{tool.label}</span>
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                minWidth: 22,
+                                height: 22,
+                                padding: '0 6px',
+                                borderRadius: 8,
+                                border: '1px solid rgba(255,255,255,0.65)',
+                                background: 'rgba(255,255,255,0.35)',
+                                fontSize: 10,
+                                fontWeight: 800,
+                                lineHeight: 1,
+                                color: 'inherit'
+                              }}>
+                                {tool.shortcut}
+                              </span>
+                            </button>
+                            {index < BOTTOM_WORKSPACE_TOOLS.length - 1 && (
+                              <div style={{ width:1,height:20,background:'#E5E7EB',margin:'0 2px' }}/>
+                            )}
+                          </React.Fragment>
+                        )
+                      })}
+                      <div style={{ width:1,height:20,background:'#E5E7EB',margin:'0 2px' }}/>
+                      <button
+                        onClick={() => {
+                          const cur = viewportData?.currentPage || 1
+                          if (cur > 1) handlePageJump(cur - 1)
+                        }}
+                        disabled={(viewportData?.currentPage || 1) <= 1}
+                        style={{
+                          width:34,height:34,borderRadius:9999,
+                          border:'none',background:'transparent',
+                          display:'flex',alignItems:'center',justifyContent:'center',
+                          cursor: (viewportData?.currentPage || 1) <= 1 ? 'not-allowed' : 'pointer',
+                          color: (viewportData?.currentPage || 1) <= 1 ? '#CBD5E1' : '#64748B',
+                        }}
+                        onMouseEnter={(e) => { if ((viewportData?.currentPage || 1) > 1) e.currentTarget.style.background = '#F3F4F6' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                      >
+                        <CaretUp size={16} weight="bold" color={(viewportData?.currentPage || 1) <= 1 ? '#CBD5E1' : '#6B7280'} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          const cur = viewportData?.currentPage || 1
+                          const total = viewportData?.totalPages || 1
+                          if (cur < total) handlePageJump(cur + 1)
+                        }}
+                        disabled={(viewportData?.currentPage || 1) >= (viewportData?.totalPages || 1)}
+                        style={{
+                          width:34,height:34,borderRadius:9999,
+                          border:'none',background:'transparent',
+                          display:'flex',alignItems:'center',justifyContent:'center',
+                          cursor: (viewportData?.currentPage || 1) >= (viewportData?.totalPages || 1) ? 'not-allowed' : 'pointer',
+                          color: (viewportData?.currentPage || 1) >= (viewportData?.totalPages || 1) ? '#CBD5E1' : '#64748B',
+                        }}
+                        onMouseEnter={(e) => { if ((viewportData?.currentPage || 1) < (viewportData?.totalPages || 1)) e.currentTarget.style.background = '#F3F4F6' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                      >
+                        <CaretDown size={16} weight="bold" color={(viewportData?.currentPage || 1) >= (viewportData?.totalPages || 1) ? '#CBD5E1' : '#6B7280'} />
+                      </button>
+                    </div>
                   </motion.div>
                 )}
 
-                <MaterialRenderer
-                  key={selectedMaterial.id}
-                  material={selectedMaterial}
-                  activeTab={activeTab}
-                  onSparkUpdate={updateSpark}
-                  setViewportData={(data) => {
-                    setViewportData(data);
-                    if (data.currentPage) updatePresence({ currentPage: data.currentPage });
-                  }}
-                  onScrollUpdate={handleScrollUpdate}
-                  onMaterialUpdate={(m) => setSelectedMaterial(m)}
-                />
+                {/* Inner scrollable document area */}
+                <div style={{
+                  background: '#F9FAFB',
+                  flex: 1,
+                  overflowY: 'auto',
+                  overflowX: 'auto',
+                  borderRadius: '0 0 20px 20px',
+                  padding: '24px 36px 124px 36px'
+                }}>
+                  <MaterialRenderer
+                    key={selectedMaterial.id}
+                    material={selectedMaterial}
+                    activeTab={activeTab}
+                    onSparkUpdate={updateSpark}
+                    setViewportData={(data) => {
+                      setViewportData(data);
+                      if (data.currentPage) updatePresence({ currentPage: data.currentPage });
+                    }}
+                    onScrollUpdate={handleScrollUpdate}
+                    onMaterialUpdate={(m) => setSelectedMaterial(m)}
+                    annotateMode={activeStudyTool === 'annotate'}
+                    commentMode={activeStudyTool === 'comment'}
+                    focusModeTool={activeStudyTool === 'cover'}
+                    annotationColor={annotationColor}
+                    annotationStrokeSize={annotationStrokeSize}
+                    isEraserMode={isEraserMode}
+                    annotationToolType={annotationToolType}
+                    pendingEquation={pendingEquation}
+                    onEquationPlaced={() => setPendingEquation('')}
+                    onCommentThreadSelect={(thread) => {
+                      setSelectedThread(thread)
+                      setActiveSideTab('chat')
+                      if (isSidePanelCollapsed) setSidePanelCollapsed(false)
+                    }}
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -1665,25 +2235,96 @@ function WorkstationContent() {
         {/* Resizer Handle */}
         {!isSidePanelCollapsed && !focusMode && !isMobile && (
           <div
-            onMouseDown={() => { isResizing.current = true; document.body.style.cursor = 'col-resize'; }}
+            onMouseDown={() => {
+              isResizing.current = true
+              setIsResizeActive(true)
+              document.body.style.cursor = 'col-resize'
+            }}
+            onMouseEnter={() => setIsResizeHovered(true)}
+            onMouseLeave={() => setIsResizeHovered(false)}
             style={{
-              width: '4px',
+              width: '14px',
               cursor: 'col-resize',
               background: 'transparent',
-              transition: 'background 0.2s',
+              transition: 'all 150ms ease',
               zIndex: 30,
               position: 'relative',
               flexShrink: 0
             }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(109,40,217,0.1)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-          />
+          >
+            <div style={{
+              position: 'absolute',
+              top: '20px',
+              bottom: '20px',
+              left: '50%',
+              width: '2px',
+              transform: 'translateX(-50%)',
+              background: isResizeActive || isResizeHovered ? '#C4B5FD' : '#E5E7EB',
+              borderRadius: '9999px',
+              transition: 'all 150ms ease'
+            }} />
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              width: 28,
+              height: 28,
+              transform: 'translate(-50%, -50%)',
+              borderRadius: '9999px',
+              background: isResizeActive || isResizeHovered ? '#FFFFFF' : 'rgba(255,255,255,0.72)',
+              border: `1px solid ${isResizeActive || isResizeHovered ? '#C4B5FD' : '#E5E7EB'}`,
+              boxShadow: isResizeActive || isResizeHovered ? '0 10px 18px rgba(124,58,237,0.16)' : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: isResizeActive || isResizeHovered ? 1 : 0,
+              transition: 'all 150ms ease',
+              pointerEvents: 'none'
+            }}>
+              <ArrowsLeftRight size={14} weight="bold" color={isResizeActive || isResizeHovered ? '#7C3AED' : '#94A3B8'} />
+            </div>
+          </div>
+        )}
+
+        {isSidePanelCollapsed && !focusMode && !isMobile && (
+          <button
+            type="button"
+            onClick={() => setSidePanelCollapsed(false)}
+            style={{
+              position: 'absolute',
+              right: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              zIndex: 45,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 12px',
+              borderRadius: '16px',
+              border: '1px solid #DDD6FE',
+              background: '#FFFFFF',
+              color: '#7C3AED',
+              boxShadow: '0 12px 24px rgba(17,24,39,0.08)',
+              cursor: 'pointer',
+              transition: 'all 180ms ease',
+              fontFamily: WORKSTATION_FONT_STACK,
+              fontSize: '13px',
+              fontWeight: 800,
+            }}
+            onMouseEnter={(event) => { event.currentTarget.style.transform = 'translateY(-50%) translateX(-2px)' }}
+            onMouseLeave={(event) => { event.currentTarget.style.transform = 'translateY(-50%)' }}
+          >
+            <SidebarSimple size={18} weight="fill" />
+            <CaretLeft size={16} weight="bold" />
+            Open Panel
+          </button>
         )}
 
         {/* Right Zone - Side Panel */}
         {!isSidePanelCollapsed && !focusMode && (
           <aside
             id="tour-ai-chat"
+            className="ws-right-panel"
             style={{
               // On mobile: show the side panel ONLY when a side-panel tool is active
               // (chat, flashcards via side panel, write, hub, group)
@@ -1692,15 +2333,15 @@ function WorkstationContent() {
                 ? (['content', 'summary', 'quiz', 'board'].includes(activeTab) ? 'none' : 'flex')
                 : 'flex',
               width: isMobile ? '100%' : `${panelWidth}px`,
-              borderLeft: isMobile ? 'none' : '1px solid #EBEBEB',
-              background: '#FAFAFA',
+              margin: '0',
+              borderRadius: '20px',
+              border: '1px solid #E5E7EB',
+              background: 'white',
+              overflow: 'hidden',
               flexDirection: 'column',
-              zIndex: 10,
-              position: 'relative',
-              top: 0,
-              height: isMobile ? 'calc(100dvh - 144px - env(safe-area-inset-bottom, 0px))' : '100%',
+              height: isMobile ? 'calc(100dvh - 144px - env(safe-area-inset-bottom, 0px))' : 'calc(100vh - 64px - 24px)',
               minHeight: 0,
-              boxShadow: isMobile ? 'none' : '-2px 0 12px rgba(0,0,0,0.03)',
+              position: 'relative',
               flexShrink: 0
             }}
           >
@@ -1708,57 +2349,54 @@ function WorkstationContent() {
             {/* Drag handle */}
             {!isMobile && (
               <div
-                onMouseDown={() => { isResizing.current = true }}
+                onMouseDown={() => { isResizing.current = true; setIsResizeActive(true) }}
                 style={{
                   position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px',
                   cursor: 'col-resize', zIndex: 20,
                   background: 'transparent',
-                  transition: 'background 0.2s'
+                  transition: 'all 150ms ease'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(109,40,217,0.25)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                onMouseEnter={() => setIsResizeHovered(true)}
+                onMouseLeave={() => setIsResizeHovered(false)}
               />
             )}
 
             {/* Tabs row */}
-            <div style={{
-              padding: '0 20px',
-              borderBottom: '1px solid #EBEBEB',
+            <div className="ws-right-panel-header" style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              background: '#FAFAFA',
-              flexShrink: 0
+              height: '60px',
+              borderBottom: '1px solid #F3F4F6',
+              padding: '0 10px 0 14px',
+              gap: '8px',
+              background: 'white',
+              flexShrink: 0,
+              justifyContent: 'space-between'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                {[
-                  { id: 'chat',       label: 'Chat',    emoji: '💬' },
-                  { id: 'write',      label: 'Notes',   emoji: '✏️' },
-                  { id: 'flashcards', label: 'Cards',   emoji: '🃏' },
-                  { id: 'groupchat',  label: 'Group 💬', emoji: '👥' },
-                  { id: 'group',      label: 'Hub',     emoji: '🖥️' },
-                ].map(tab => (
+              <div className="ws-right-tabs" style={{ display: 'flex', alignItems: 'center', gap: '0px', minWidth: 0 }}>
+                {sidePanelTabs.map(tab => (
                   <button
                     key={tab.id}
+                    className={`ws-right-tab ${activeSideTab===tab.id ? 'is-active' : ''}`}
                     onClick={() => setActiveSideTab(tab.id)}
                     style={{
-                      padding: '14px 16px',
-                      background: 'none',
-                      border: 'none',
-                      borderBottom: activeSideTab === tab.id ? '2px solid #6D28D9' : '2px solid transparent',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: activeSideTab === tab.id ? 700 : 500,
-                      color: activeSideTab === tab.id ? '#6D28D9' : '#94A3B8',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      fontFamily: 'var(--font-outfit)',
-                      transition: 'all 0.18s',
-                      marginBottom: '-1px'
+                      height:58,
+                      padding:'0 16px',
+                      display:'flex',alignItems:'center',gap:5,
+                      fontSize:13,
+                      fontWeight: activeSideTab===tab.id ? 700 : 500,
+                      color: activeSideTab===tab.id ? '#7C3AED' : '#9CA3AF',
+                      background:'none',border:'none',
+                      cursor:'pointer',
+                      position: 'relative',
+                      transition:'color 150ms',
+                      whiteSpace:'nowrap',
+                      fontFamily: WORKSTATION_FONT_STACK,
                     }}
+                    onMouseEnter={e=>{ if(activeSideTab!==tab.id) e.currentTarget.style.color='#6B7280' }}
+                    onMouseLeave={e=>{ if(activeSideTab!==tab.id) e.currentTarget.style.color='#9CA3AF' }}
                   >
-                    <span style={{ fontSize: '14px' }}>{tab.emoji}</span>
+                    <tab.icon size={17} weight={activeSideTab===tab.id ? 'fill' : 'bold'} />
                     {tab.label}
                   </button>
                 ))}
@@ -1766,14 +2404,16 @@ function WorkstationContent() {
               <button
                 onClick={() => setSidePanelCollapsed(true)}
                 style={{
-                  background: 'none', border: 'none', borderRadius: '8px', padding: '6px',
-                  cursor: 'pointer', color: '#CBD5E1', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', transition: '0.15s'
+                  background: '#F8FAFC', border: '1px solid #E5E7EB', borderRadius: '12px', padding: '8px 10px',
+                  cursor: 'pointer', color: '#6B7280', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', transition: 'all 150ms ease', gap: '6px',
+                  fontFamily: WORKSTATION_FONT_STACK, fontSize: '12px', fontWeight: 700
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#EF4444'; e.currentTarget.style.background = '#FFF1F2'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#CBD5E1'; e.currentTarget.style.background = 'none'; }}
+                onMouseEnter={(event) => { event.currentTarget.style.background = '#F3F4F6' }}
+                onMouseLeave={(event) => { event.currentTarget.style.background = '#F8FAFC' }}
               >
-                <X size={15} weight="bold" />
+                <CaretRight size={15} weight="bold" />
+                <SidebarSimple size={16} weight="duotone" />
               </button>
             </div>
 
@@ -1792,16 +2432,13 @@ function WorkstationContent() {
                     <button
                       style={{
                         display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
-                        fontSize: '13px', fontWeight: 800, borderRadius: '12px',
-                        border: 'none', background: 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)', color: 'white',
-                        cursor: 'pointer', fontFamily: 'var(--font-outfit)',
-                        transition: 'all 0.2s',
-                        boxShadow: '0 4px 12px rgba(109, 40, 217, 0.2)'
+                        fontSize: '13px', fontWeight: 700, borderRadius: '9999px',
+                        border: '1px solid #DDD6FE', background: '#F5F3FF', color: '#6D28D9',
+                        cursor: 'pointer', fontFamily: 'var(--font-body)',
+                        transition: 'all 150ms ease'
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(109, 40, 217, 0.3)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(109, 40, 217, 0.2)'; }}
                     >
-                      <GraduationCap size={18} weight="fill" /> Open Study Deck
+                      <GraduationCap size={18} weight="regular" /> Open Study Deck
                     </button>
                   </div>
                   <WorkstationFlashcards
@@ -1883,6 +2520,27 @@ function WorkstationContent() {
                   </div>
                 </div>
               ) : activeSideTab === 'group' ? (
+                <GroupSessionPanel
+                  user={user}
+                  profile={profile}
+                  currentUserRole={currentUserRole}
+                  others={others}
+                  self={self}
+                  groupMessages={groupMessages}
+                  groupInput={groupInput}
+                  setGroupInput={setGroupInput}
+                  setTyping={setTyping}
+                  sendGroupMessage={sendGroupMessageWithAI}
+                  syncEnabled={!!(syncState?.isSynced || syncMode)}
+                  onToggleSync={() => setSyncState(!(syncState?.isSynced || syncMode), viewportData?.currentPage || 1)}
+                  onPushQuiz={() => {
+                    pushQuizToGroup()
+                    broadcast({ type: 'QUIZ_PUSHED', question: 'Quick check from this material', options: ['A', 'B', 'C', 'D'] })
+                  }}
+                  raisedHands={raisedHands}
+                  onToggleHand={() => setRaisedHand(!raisedHands[user?.id])}
+                />
+              ) : false ? (
                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white' }}>
                    <div style={{ padding: '16px 20px', borderBottom: '1px solid #EBEBEB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
                       <div>
@@ -1945,7 +2603,18 @@ function WorkstationContent() {
                ) : (
                 // Chat tab
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                  {activePanelContext === 'explanation' && activeExplanation ? (
+                  {selectedThread ? (
+                    <div style={{ padding: 16, flex: 1, overflowY: 'auto' }}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedThread(null)}
+                        style={{ marginBottom: 12, background: 'transparent', border: 0, color: '#6B7280', fontSize: 12, cursor: 'pointer' }}
+                      >
+                        Back to chat
+                      </button>
+                      <Thread thread={selectedThread} />
+                    </div>
+                  ) : activePanelContext === 'explanation' && activeExplanation ? (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -1969,29 +2638,88 @@ function WorkstationContent() {
                       {/* Chat messages — scrollable */}
                       <div className="ws-chat-messages" style={{ flex: 1 }}>
                         {messages.length === 0 ? (
-                          <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: '8px' }}>
+                          <div style={{ 
+                            padding: '24px 16px', 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            flex: 1,
+                            height: '100%', 
+                            gap: '8px' 
+                          }}>
+                            {/* Empty state icon */}
+                            <div style={{
+                              width: '56px',
+                              height: '56px',
+                              background: '#F5F3FF',
+                              borderRadius: '16px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              margin: '0 auto 12px auto'
+                            }}>
+                              <Sparkle size={28} color="#7C3AED" weight="fill" />
+                            </div>
+                            {/* Title and subtitle */}
+                            <h3 style={{
+                              fontSize: '15px',
+                              fontWeight: 600,
+                              color: '#111827',
+                              textAlign: 'center',
+                              margin: 0
+                            }}>
+                              Ask Luter anything
+                            </h3>
+                            <p style={{
+                              fontSize: '13px',
+                              color: '#9CA3AF',
+                              textAlign: 'center',
+                              marginTop: '4px',
+                              marginBottom: '16px'
+                            }}>
+                              Ask me anything about this material
+                            </p>
                             {/* Empty state chip prompts */}
-                            <p style={{ fontSize: '13px', color: '#94A3B8', fontWeight: 500, marginBottom: '8px', fontFamily: 'var(--font-outfit)' }}>Ask me anything about this material</p>
-                            {SUGGESTED_QUESTIONS.map((q, idx) => (
-                              <motion.button
-                                key={q.id}
-                                initial={{ x: -8, opacity: 0 }}
-                                animate={{ x: 0, opacity: 1 }}
-                                transition={{ delay: 0.06 * idx }}
-                                onClick={() => handleSend(q.text)}
-                                style={{
-                                  width: '100%', background: 'white', border: '1px solid #EBEBEB',
-                                  borderRadius: '12px', padding: '12px 16px', textAlign: 'left',
-                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                  cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', transition: 'all 0.18s'
-                                }}
-                                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.background = '#F8F5FF'; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#EBEBEB'; e.currentTarget.style.background = 'white'; }}
-                              >
-                                <span style={{ fontSize: '13px', color: '#334155', fontWeight: 600, fontFamily: 'var(--font-outfit)' }}>{q.text}</span>
-                                <ArrowSquareOutIcon size={14} color="#6D28D9" weight="bold" />
-                              </motion.button>
-                            ))}
+                            <div style={{
+                              padding: '0 16px', 
+                              display: 'flex', 
+                              flexDirection: 'column', 
+                              gap: '8px',
+                              width: '100%'
+                            }}>
+                              {SUGGESTED_QUESTIONS.map((q) => (
+                                <div
+                                  key={q.id}
+                                  onClick={() => handleSend(q.text)}
+                                  style={{
+                                    display:'flex',
+                                    alignItems:'center',
+                                    justifyContent:'space-between',
+                                    background:'#F9FAFB',
+                                    border:'1px solid #F3F4F6',
+                                    borderRadius:12,
+                                    padding:'11px 14px',
+                                    cursor:'pointer',
+                                    transition:'all 150ms ease',
+                                    marginBottom:8,
+                                  }}
+                                  onMouseEnter={e=>{ 
+                                    e.currentTarget.style.background='#F5F3FF'; 
+                                    e.currentTarget.style.borderColor='#DDD6FE'; 
+                                  }}
+                                  onMouseLeave={e=>{ 
+                                    e.currentTarget.style.background='#F9FAFB'; 
+                                    e.currentTarget.style.borderColor='#F3F4F6'; 
+                                  }}
+                                >
+                                  <span style={{fontSize:13,color:'#374151'}}>
+                                    {q.text}
+                                  </span>
+                                  <CaretRight size={14} color="#D1D5DB"/>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ) : (
                           <div className="ws-chat-scroll" style={{ padding: '20px' }}>
@@ -2076,13 +2804,11 @@ function WorkstationContent() {
                             key={chip.text}
                             onClick={() => handleSend(chip.prompt)}
                             style={{
-                              padding: '5px 12px', borderRadius: '20px', border: '1px solid #E2E8F0',
+                              padding: '6px 12px', borderRadius: '9999px', border: '1px solid #E5E7EB',
                               background: 'white', fontSize: '12px', fontWeight: 600,
-                              color: '#475569', cursor: 'pointer', fontFamily: 'var(--font-outfit)',
-                              transition: 'all 0.15s', whiteSpace: 'nowrap'
+                              color: '#374151', cursor: 'pointer', fontFamily: 'var(--font-body)',
+                              transition: 'all 150ms ease', whiteSpace: 'nowrap'
                             }}
-                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.color = '#6D28D9'; e.currentTarget.style.background = '#F5F3FF'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.background = 'white'; }}
                           >
                             {chip.text}
                           </button>
@@ -2094,20 +2820,23 @@ function WorkstationContent() {
                         <div
                           style={{
                             background: 'white',
-                            border: '1.5px solid #E2E8F0',
-                            borderRadius: '28px',
+                            border: '1px solid #E5E7EB',
+                            borderRadius: '24px',
                             padding: '8px 12px',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '10px',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                            transition: 'all 0.25s'
+                            boxShadow: '0 1px 2px rgba(17,24,39,0.04)',
+                            transition: 'all 150ms ease'
                           }}
-                          onFocusCapture={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(109,40,217,0.12)'; }}
-                          onBlurCapture={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'; }}
                         >
-                          <button style={{ color: '#CBD5E1', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', transition: 'color 0.2s', flexShrink: 0 }} onMouseEnter={(e) => e.currentTarget.style.color = '#6D28D9'} onMouseLeave={(e) => e.currentTarget.style.color = '#CBD5E1'}>
-                            <Microphone size={18} weight="bold" />
+                          <button
+                            className={`ws-voice-button ${voiceState === 'listening' ? 'is-listening' : ''}`}
+                            type="button"
+                            onClick={() => setShowVoiceModal(true)}
+                            style={{ color: voiceState === 'speaking' || voiceState === 'processing' ? '#7C3AED' : '#6B7280', background: voiceState === 'idle' ? 'transparent' : '#F5F3FF', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease', flexShrink: 0, width: 32, height: 32, borderRadius: '9999px' }}
+                          >
+                            {voiceState === 'speaking' ? <SpeakerHigh size={18} weight="bold" /> : <Microphone size={18} weight="bold" />}
                           </button>
                           <input
                             type="text"
@@ -2118,7 +2847,7 @@ function WorkstationContent() {
                             disabled={isProcessingLoading}
                             style={{
                               flex: 1, border: 'none', background: 'transparent', outline: 'none',
-                              fontSize: '13px', color: '#1E293B', fontFamily: 'var(--font-outfit)',
+                              fontSize: '13px', color: '#1E293B', fontFamily: 'var(--font-body)',
                               padding: '4px 0', fontWeight: 500
                             }}
                           />
@@ -2126,17 +2855,18 @@ function WorkstationContent() {
                             onClick={() => handleSend()}
                             disabled={isProcessingLoading || !chatInput.trim()}
                             style={{
-                              background: chatInput.trim() ? '#6D28D9' : '#E2E8F0',
-                              color: chatInput.trim() ? 'white' : '#94A3B8',
-                              border: 'none', borderRadius: '50%', width: '34px', height: '34px',
+                              background: chatInput.trim() ? '#111827' : '#E5E7EB',
+                              color: chatInput.trim() ? 'white' : '#9CA3AF',
+                              border: 'none', borderRadius: '9999px', width: '34px', height: '34px',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              cursor: chatInput.trim() ? 'pointer' : 'default', transition: 'all 0.2s',
+                              cursor: chatInput.trim() ? 'pointer' : 'default', transition: 'all 150ms ease',
                               flexShrink: 0
                             }}
                           >
                             <PaperPlaneRight size={16} weight="bold" />
                           </button>
                         </div>
+                        <div style={{ fontSize: 11, color: '#9CA3AF', textAlign: 'center', marginTop: 6 }}>Press `Space` to talk or open the mic modal</div>
                       </div>
                     </>
                   )}
@@ -2250,6 +2980,143 @@ function WorkstationContent() {
         </>
       )}
 
+      <AnimatePresence>
+        {showEquationModal && isAnnotateActive && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 1250,
+              background: 'rgba(17,24,39,0.20)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '24px'
+            }}
+            onClick={() => setShowEquationModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              transition={{ duration: 0.18 }}
+              onClick={(event) => event.stopPropagation()}
+              style={{
+                width: '100%',
+                maxWidth: '480px',
+                background: '#FFFFFF',
+                border: '1px solid #E5E7EB',
+                borderRadius: '24px',
+                boxShadow: '0 24px 50px rgba(17,24,39,0.16)',
+                padding: '22px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#111827', fontFamily: 'var(--font-outfit)' }}>Insert equation</h3>
+                  <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#6B7280', fontFamily: WORKSTATION_FONT_STACK }}>Write LaTeX and click insert, then place it on the page.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowEquationModal(false)}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '9999px',
+                    border: '1px solid #E5E7EB',
+                    background: '#FFFFFF',
+                    color: '#6B7280',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={16} weight="bold" />
+                </button>
+              </div>
+
+              <textarea
+                value={equationInput}
+                onChange={(event) => setEquationInput(event.target.value)}
+                placeholder="\\frac{a}{b}"
+                style={{
+                  width: '100%',
+                  minHeight: '112px',
+                  borderRadius: '18px',
+                  border: '1px solid #DDD6FE',
+                  background: '#FAF8FF',
+                  padding: '14px 16px',
+                  resize: 'vertical',
+                  outline: 'none',
+                  fontSize: '14px',
+                  lineHeight: 1.6,
+                  color: '#1F2937',
+                  fontFamily: '"JetBrains Mono", Consolas, monospace'
+                }}
+              />
+
+              <div style={{ marginTop: '14px', marginBottom: '18px', border: '1px solid #E5E7EB', borderRadius: '20px', background: '#FFFFFF', padding: '18px', minHeight: '92px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px', fontFamily: WORKSTATION_FONT_STACK }}>Preview</div>
+                {equationPreviewMarkup ? (
+                  <div dangerouslySetInnerHTML={{ __html: equationPreviewMarkup }} />
+                ) : (
+                  <div style={{ fontSize: '14px', color: '#6B7280', fontFamily: WORKSTATION_FONT_STACK }}>Preview unavailable</div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowEquationModal(false)}
+                  style={{
+                    borderRadius: '9999px',
+                    border: '1px solid #E5E7EB',
+                    background: '#FFFFFF',
+                    color: '#374151',
+                    padding: '10px 16px',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontFamily: WORKSTATION_FONT_STACK
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!equationInput.trim()) return
+                    setPendingEquation(equationInput.trim())
+                    setAnnotationToolType('text')
+                    setIsEraserMode(false)
+                    setShowEquationModal(false)
+                  }}
+                  style={{
+                    borderRadius: '9999px',
+                    border: '1px solid #8B5CF6',
+                    background: '#7C3AED',
+                    color: '#FFFFFF',
+                    padding: '10px 18px',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 10px 20px rgba(124,58,237,0.18)',
+                    fontFamily: WORKSTATION_FONT_STACK
+                  }}
+                >
+                  Insert
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Session Exit Summary Modal */}
       <AnimatePresence>
         {showExitSummary && (
@@ -2323,6 +3190,281 @@ function WorkstationContent() {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {showVoiceModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(17,24,39,0.22)',
+              backdropFilter: 'blur(8px)',
+              zIndex: 1300,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '24px'
+            }}
+            onClick={closeVoiceModal}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              transition={{ duration: 0.18 }}
+              style={{
+                width: '100%',
+                maxWidth: '420px',
+                background: '#FFFFFF',
+                border: '1px solid #E5E7EB',
+                borderRadius: '24px',
+                boxShadow: '0 20px 60px rgba(17,24,39,0.16)',
+                overflow: 'hidden'
+              }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px 16px 12px',
+                borderBottom: '1px solid #F3F4F6'
+              }}>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>Voice chat</div>
+                  <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '2px' }}>Speak with Luter about this material</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowVoiceSettings((current) => !current)}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '9999px',
+                      border: '1px solid #E5E7EB',
+                      background: showVoiceSettings ? '#F9FAFB' : '#FFFFFF',
+                      color: '#6B7280',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 150ms ease'
+                    }}
+                  >
+                    <DotsThreeVertical size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeVoiceModal}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '9999px',
+                      border: '1px solid #E5E7EB',
+                      background: '#FFFFFF',
+                      color: '#6B7280',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 150ms ease'
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {showVoiceSettings && (
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid #F3F4F6', background: '#FCFCFD' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#111827', marginBottom: '10px' }}>Voice</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    {voiceToneOptions.map((tone) => {
+                      const isSelected = selectedVoiceTone === tone
+                      return (
+                        <button
+                          key={tone}
+                          type="button"
+                          onClick={() => setSelectedVoiceTone(tone)}
+                          style={{
+                            padding: '12px',
+                            borderRadius: '10px',
+                            border: `1px solid ${isSelected ? '#111827' : '#E5E7EB'}`,
+                            background: isSelected ? '#111827' : '#FFFFFF',
+                            color: isSelected ? '#FFFFFF' : '#374151',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            transition: 'all 150ms ease'
+                          }}
+                        >
+                          {tone}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ padding: '24px 20px 20px', textAlign: 'center' }}>
+                <div style={{
+                  width: '112px',
+                  height: '112px',
+                  margin: '0 auto',
+                  borderRadius: '9999px',
+                  border: voiceState === 'listening' ? '2px solid #EF4444' : '2px solid #E5E7EB',
+                  background: voiceState === 'listening' ? '#FEF2F2' : '#F9FAFB',
+                  color: voiceState === 'listening' ? '#EF4444' : '#7C3AED',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: voiceState === 'listening' ? '0 0 0 8px rgba(239,68,68,0.08)' : 'none',
+                  transition: 'all 150ms ease'
+                }}>
+                  {voiceState === 'processing' ? (
+                    <CircleNotch size={32} className="ws-spin" />
+                  ) : voiceState === 'speaking' ? (
+                    <SpeakerHigh size={32} weight="regular" />
+                  ) : (
+                    <Microphone size={32} weight="regular" />
+                  )}
+                </div>
+
+                <div style={{ marginTop: '16px', fontSize: '15px', fontWeight: 600, color: '#374151' }}>
+                  {voiceState === 'listening'
+                    ? 'Listening...'
+                    : voiceState === 'processing'
+                      ? 'Thinking...'
+                      : voiceState === 'speaking'
+                        ? 'Speaking...'
+                        : 'Tap the mic to start'}
+                </div>
+
+                <div style={{ marginTop: '8px', fontSize: '12px', color: '#6B7280', lineHeight: 1.5, minHeight: '36px' }}>
+                  {voiceState === 'listening'
+                    ? (voiceTranscript || 'Ask anything about this material')
+                    : voiceState === 'speaking'
+                      ? (voiceResponse || 'Luter is replying...')
+                      : voiceState === 'processing'
+                        ? 'Luter is working on your answer.'
+                        : 'Use voice mode for quick questions, explanations, and follow-ups.'}
+                </div>
+
+                <div style={{ height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '12px' }}>
+                  {[14, 24, 18, 28].map((height, index) => (
+                    <span
+                      key={`${height}-${index}`}
+                      style={{
+                        width: '6px',
+                        height,
+                        borderRadius: '9999px',
+                        background: voiceState === 'listening' ? '#EF4444' : '#7C3AED',
+                        opacity: voiceState === 'idle' ? 0.22 : 0.7,
+                        animation: voiceState === 'idle' ? 'none' : `ws-dot-pulse 1s ${index * 0.16}s infinite`
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div style={{
+                padding: '0 16px 16px',
+                borderTop: '1px solid #F3F4F6',
+                paddingTop: '12px',
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '16px',
+                alignItems: 'center'
+              }}>
+                {voiceState === 'idle' ? (
+                  <button
+                    type="button"
+                    onClick={startVoiceListening}
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '9999px',
+                      border: 'none',
+                      background: '#7C3AED',
+                      color: '#FFFFFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 150ms ease'
+                    }}
+                  >
+                    <Microphone size={20} weight="bold" />
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={closeVoiceModal}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '9999px',
+                        border: 'none',
+                        background: '#F3F4F6',
+                        color: '#6B7280',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 150ms ease'
+                      }}
+                    >
+                      <X size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={stopVoiceListening}
+                      style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '9999px',
+                        border: 'none',
+                        background: voiceState === 'listening' ? '#EF4444' : '#111827',
+                        color: '#FFFFFF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 150ms ease'
+                      }}
+                    >
+                      {voiceState === 'processing' ? <CircleNotch size={20} className="ws-spin" /> : voiceState === 'speaking' ? <SpeakerHigh size={20} weight="bold" /> : <Microphone size={20} weight="bold" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={stopVoiceListening}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '9999px',
+                        border: 'none',
+                        background: '#F3F4F6',
+                        color: '#6B7280',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 150ms ease'
+                      }}
+                    >
+                      <CheckCircle size={18} />
+                    </button>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <SelectionActionBar onAction={handleSelectionAction} />
     </div>
   )
@@ -2380,23 +3522,198 @@ const ParticipantRow = ({ user, isSelf, isPresenter, presence, connectionId }) =
   );
 };
 
+function nameForUser(user, profile) {
+  return profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'You'
+}
+
+function colorFromText(text = 'user') {
+  const colors = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#0891B2']
+  return colors[String(text).split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % colors.length]
+}
+
+function GroupSessionPanel({
+  user,
+  profile,
+  currentUserRole,
+  others,
+  self,
+  groupMessages,
+  groupInput,
+  setGroupInput,
+  setTyping,
+  sendGroupMessage,
+  syncEnabled,
+  onToggleSync,
+  onPushQuiz,
+  raisedHands,
+  onToggleHand,
+}) {
+  const selfName = nameForUser(user, profile)
+  const members = [
+    {
+      id: user?.id || 'self',
+      name: selfName,
+      color: colorFromText(user?.id || selfName),
+      status: 'active',
+      currentSlide: self?.presence?.currentPage || 1,
+      role: currentUserRole,
+    },
+    ...others.map((other) => ({
+      id: other.presence?.user?.id || String(other.connectionId),
+      name: other.presence?.user?.name || other.info?.name || 'Peer',
+      color: other.presence?.user?.color || colorFromText(String(other.connectionId)),
+      status: other.presence?.status || 'active',
+      currentSlide: other.presence?.currentPage || other.presence?.currentSlide || 1,
+      role: other.presence?.user?.role || 'student',
+    })),
+  ]
+  const handCount = Object.keys(raisedHands || {}).length
+
+  return (
+    <div className="ws-group-panel">
+      <section className="ws-group-members">
+        <div className="ws-group-section-header">
+          <span>In this session</span>
+          <span>{members.length}</span>
+        </div>
+        <div className="ws-group-member-list">
+          {members.map((member) => (
+            <div key={member.id} className="ws-group-member">
+              <div className="ws-member-avatar" style={{ background: member.color }}>
+                {member.name.charAt(0).toUpperCase()}
+                <i style={{ background: member.status === 'idle' ? '#D1D5DB' : '#10B981' }} />
+              </div>
+              <div className="ws-member-info">
+                <div className="ws-member-name">{member.name}</div>
+                <div className="ws-member-slide">On slide {member.currentSlide} of 60</div>
+              </div>
+              {member.role === 'teacher' && <span className="ws-teacher-badge">Teacher</span>}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {currentUserRole === 'teacher' && (
+        <section className="ws-group-controls">
+          <h4>Controls</h4>
+          <div className="ws-group-control-grid">
+            <button type="button" onClick={onToggleSync} style={{ background: syncEnabled ? '#7C3AED' : '#F5F3FF', border: '1px solid #DDD6FE', color: syncEnabled ? 'white' : '#6D28D9' }}>
+              {syncEnabled ? 'Synced' : 'Sync Slides'}
+            </button>
+            <button type="button" onClick={onPushQuiz} style={{ background: '#F0FDF4', border: '1px solid #A7F3D0', color: '#059669' }}>Push Quiz</button>
+            <button type="button" onClick={onToggleHand} style={{ background: '#FFFBEB', border: '1px solid #FDE68A', color: '#D97706' }}>{handCount ? `Hands ${handCount}` : 'Raise Hands'}</button>
+            <button type="button" style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#EF4444' }}>End Session</button>
+          </div>
+        </section>
+      )}
+
+      <section className="ws-group-chat">
+        <div className="ws-group-messages">
+          {groupMessages.map((message) => {
+            if (message.isTyping) {
+              return (
+                <div key={message.id} className="ws-group-message ws-ai-message">
+                  <div className="ws-chat-avatar" style={{ background: '#7C3AED' }}>AI</div>
+                  <div className="ws-message-content">
+                    <div className="ws-message-header">Luter AI <time>typing</time></div>
+                    <div className="ws-message-bubble"><Typing dots={3} /></div>
+                  </div>
+                </div>
+              )
+            }
+            const isOwn = message.userId === user?.id
+            const color = message.userColor || colorFromText(message.userId)
+            return (
+              <div key={message.id} className={`ws-group-message ${isOwn ? 'is-own' : ''} ${message.isAI ? 'ws-ai-message' : ''}`}>
+                <div className="ws-chat-avatar" style={{ background: color }}>{message.isAI ? 'AI' : (message.userName?.[0]?.toUpperCase() || 'P')}</div>
+                <div className="ws-message-content">
+                  <div className="ws-message-header">
+                    {isOwn ? 'You' : message.userName}
+                    {message.isAI && <span className="ws-teacher-badge" style={{ marginLeft: 6 }}>AI</span>}
+                    <time>{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
+                  </div>
+                  <div className="ws-message-bubble">{message.text}</div>
+                </div>
+              </div>
+            )
+          })}
+          {others.some((other) => other.presence?.isTyping) && (
+            <div className="ws-group-message">
+              <div className="ws-chat-avatar" style={{ background: '#9CA3AF' }}>...</div>
+              <div className="ws-message-bubble"><Typing dots={3} /></div>
+            </div>
+          )}
+        </div>
+        <div className="ws-group-input">
+          <input
+            type="text"
+            placeholder="Message the group..."
+            value={groupInput}
+            onChange={(event) => { setGroupInput(event.target.value); setTyping(true) }}
+            onBlur={() => setTyping(false)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && groupInput.trim()) sendGroupMessage(groupInput)
+            }}
+          />
+          <button type="button" disabled={!groupInput.trim()} onClick={() => sendGroupMessage(groupInput)}>
+            <PaperPlaneIcon size={14} weight="fill" />
+          </button>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 export default function WorkstationPage() {
   const { materialId } = useParams()
   const { user, profile } = useOutletContext() || {}
   const [searchParams] = useSearchParams()
   const matId   = searchParams.get('materialId') || materialId
-  const roomId  = matId ? `luter-material-${matId}` : `luter-empty-${user?.id || 'guest'}`
+  const sessionId = searchParams.get('sessionId')
+  const shareCode = searchParams.get('share')
+  const groupId = searchParams.get('groupId')
+  const roomId  = sessionId
+    ? `luter-session-${sessionId}`
+    : shareCode
+      ? `luter-share-${shareCode}`
+      : groupId
+        ? `luter-group-${groupId}`
+        : matId
+          ? `luter-material-${matId}`
+          : `luter-empty-${user?.id || 'guest'}`
+  const sessionType = searchParams.get('sessionType') || searchParams.get('mode') || (sessionId || groupId ? 'group' : 'solo')
+  const role = profile?.role === 'teacher' || searchParams.get('role') === 'teacher'
+    ? 'teacher'
+    : (sessionType === 'solo' ? 'peer' : 'student')
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'You'
 
   return (
     <ReadingSpaceProvider>
       <CollaborationProvider
         roomId={roomId}
+        userInfo={{
+          id: user?.id || 'guest',
+          name: displayName,
+          avatar: user?.user_metadata?.avatar_url || null,
+          color: user?.user_metadata?.color || '#7C3AED',
+          role,
+        }}
         initialPresence={{
           role: 'presenter', // Default to presenter so user can use whiteboard
           currentPage: 1,
+          currentSlide: 0,
           isTyping: false,
           status: 'active',
           cursor: null,
+          selectedText: null,
+          currentTool: 'none',
+          user: {
+            id: user?.id || 'guest',
+            name: displayName,
+            avatar: user?.user_metadata?.avatar_url || null,
+            color: user?.user_metadata?.color || '#7C3AED',
+            role,
+          },
         }}
       >
         <WorkstationContent />

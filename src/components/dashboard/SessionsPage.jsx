@@ -61,7 +61,7 @@ export default function SessionsPage() {
       loadSessions()
     }
     setLoading(false)
-  }, [user?.id, loadSessions])
+  }, [user?.id])
 
   useEffect(() => {
     if (user?.id && currentUserId === user.id && !loading && !isLoadingTours && !hasCompletedTour('sessions')) {

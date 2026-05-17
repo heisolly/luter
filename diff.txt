@@ -1,0 +1,781 @@
+﻿diff --git a/src/components/dashboard/WorkstationPage.jsx b/src/components/dashboard/WorkstationPage.jsx
+index e6d4fa2..0e8198c 100644
+--- a/src/components/dashboard/WorkstationPage.jsx
++++ b/src/components/dashboard/WorkstationPage.jsx
+@@ -88,7 +88,8 @@ import {
+   useMutation,
+   useOthers,
+   useUpdateMyPresence,
+-  useSelf
++  useSelf,
++  useBroadcastEvent
+ } from '../../liveblocks.config'
+ 
+ const SUGGESTED_QUESTIONS = [
+@@ -247,12 +248,34 @@ function WorkstationContent() {
+   const [sessionXP, setSessionXP] = useState(0)
+   const [showFileSwitcher, setShowFileSwitcher] = useState(false)
+   const [showMobileTools, setShowMobileTools] = useState(false)
++  const [activeStudyTool, setActiveStudyTool] = useState('none')
++  const [annotationColor, setAnnotationColor] = useState('#7C3AED')
++  const [annotationStrokeSize, setAnnotationStrokeSize] = useState(4)
++  const [isEraserMode, setIsEraserMode] = useState(false)
++  const [selectedThread, setSelectedThread] = useState(null)
++  const [activeRun, setActiveRun] = useState(null)
++  const [voiceState, setVoiceState] = useState('idle')
++  const [voiceTranscript, setVoiceTranscript] = useState('')
++  const [voiceResponse, setVoiceResponse] = useState('')
++  const recognitionRef = useRef(null)
++  const voiceFinalTranscriptRef = useRef('')
++
++  const sessionIdParam = searchParams.get('sessionId')
++  const shareCodeParam = searchParams.get('share')
++  const groupIdParam = searchParams.get('groupId')
++  const sessionType = searchParams.get('sessionType') || searchParams.get('mode') || (groupIdParam || sessionIdParam ? 'group' : 'solo')
++  const currentUserRole = profile?.role === 'teacher' || searchParams.get('role') === 'teacher' || sessionType === 'teacher'
++    ? 'teacher'
++    : (sessionType === 'solo' ? 'peer' : 'student')
+ 
+   // Collaboration Room ID
+   const roomId = useMemo(() => {
+-    if (!materialIdParam) return null
+-    return `luter-material-${materialIdParam}`
+-  }, [materialIdParam])
++    if (sessionIdParam) return `luter-session-${sessionIdParam}`
++    if (shareCodeParam) return `luter-share-${shareCodeParam}`
++    if (groupIdParam) return `luter-group-${groupIdParam}`
++    if (materialIdParam) return `luter-material-${materialIdParam}`
++    return `luter-empty-${user?.id || 'guest'}`
++  }, [sessionIdParam, shareCodeParam, groupIdParam, materialIdParam, user?.id])
+ 
+   useEffect(() => {
+     if (courseId) {
+@@ -292,14 +315,179 @@ function WorkstationContent() {
+   const presenterSlide  = useStorage((root) => root.presenterSlide)
+   const presenterId     = useStorage((root) => root.presenterId)
+   const others          = useOthers()
++  const syncState       = useStorage((root) => root.syncState)
++  const raisedHands     = useStorage((root) => root.raisedHands) || {}
++  const broadcast       = useBroadcastEvent()
+ 
+   // Group chat
+   const { messages: groupMessages, sendMessage: sendGroupMessage, setTyping } = useGroupChat(user)
+   const [groupInput, setGroupInput] = useState('')
++  const appendGroupMessage = useMutation(({ storage }, message) => {
++    const list = storage.get('messages')
++    list?.push?.(message)
++  }, [])
++  const removeGroupMessage = useMutation(({ storage }, messageId) => {
++    const list = storage.get('messages')
++    if (!list?.get || !list?.delete) return
++    for (let index = 0; index < list.length; index += 1) {
++      if (list.get(index)?.id === messageId) {
++        list.delete(index)
++        return
++      }
++    }
++  }, [])
+ 
+   // Broadcast events
+   const { broadcastSyncJump } = useLiveBroadcast()
+ 
++  const sendGroupMessageWithAI = async (text) => {
++    if (!text?.trim()) return
++    sendGroupMessage(text)
++    setGroupInput('')
++    setTyping(false)
++
++    if (!text.toLowerCase().includes('@luter')) return
++    const typingId = `ai-typing-${Date.now()}`
++    appendGroupMessage({
++      id: typingId,
++      userId: 'luter-ai',
++      userName: 'Luter AI',
++      userColor: '#7C3AED',
++      text: '...',
++      isAI: true,
++      isTyping: true,
++      timestamp: Date.now(),
++    })
++
++    try {
++      const question = text.replace(/@luter/ig, '').trim()
++      const prompt = `Question: ${question}\n\nCurrent material: ${selectedMaterial?.title || 'Study material'}\nCurrent page: ${viewportData?.currentPage || 1}\nSession: ${sessionType}\nContext:\n${(selectedMaterial?.extracted_text || '').slice(0, 5000)}`
++      const response = await callGroqAPI(
++        [{ role: 'user', content: prompt }],
++        GROQ_MODELS.SPEEDSTER,
++        { systemPromptOverride: 'You are Luter AI in a live group study chat. Answer clearly and concisely.' }
++      )
++      const aiResponse = response?.choices?.[0]?.message?.content || 'I could not generate a response right now.'
++      removeGroupMessage(typingId)
++      appendGroupMessage({
++        id: `ai-${Date.now()}`,
++        userId: 'luter-ai',
++        userName: 'Luter AI',
++        userColor: '#7C3AED',
++        text: aiResponse,
++        isAI: true,
++        timestamp: Date.now(),
++      })
++      broadcast({ type: 'AI_RESPONSE', question: text, response: aiResponse, timestamp: Date.now() })
++    } catch (error) {
++      removeGroupMessage(typingId)
++      appendGroupMessage({
++        id: `ai-error-${Date.now()}`,
++        userId: 'luter-ai',
++        userName: 'Luter AI',
++        userColor: '#7C3AED',
++        text: 'I hit an error while answering. Try again in a moment.',
++        isAI: true,
++        timestamp: Date.now(),
++      })
++    }
++  }
++
++  const processVoiceQuestion = async (question) => {
++    const cleanQuestion = question?.trim()
++    if (!cleanQuestion || !selectedMaterial) {
++      setVoiceState('idle')
++      return
++    }
++
++    setVoiceState('processing')
++    setMessages((prev) => [...prev, { role: 'user', content: cleanQuestion }])
++
++    try {
++      const answer = await askDograhVoiceAgent({
++        question: cleanQuestion,
++        fileName: selectedMaterial.title,
++        currentPage: viewportData?.currentPage || 1,
++        totalPages: viewportData?.totalPages,
++        materialContext: (selectedMaterial.extracted_text || '').slice(0, 5000),
++      })
++      const responseText = answer || 'I could not answer that right now.'
++      setVoiceResponse(responseText)
++      setMessages((prev) => [...prev, { role: 'ai', content: responseText }])
++
++      if (window.speechSynthesis) {
++        window.speechSynthesis.cancel()
++        const utterance = new SpeechSynthesisUtterance(responseText)
++        utterance.onend = () => setVoiceState('idle')
++        utterance.onerror = () => setVoiceState('idle')
++        setVoiceState('speaking')
++        window.speechSynthesis.speak(utterance)
++      } else {
++        setVoiceState('idle')
++      }
++    } catch (error) {
++      console.error('Voice agent error:', error)
++      setVoiceResponse('Voice agent error. Try again.')
++      setVoiceState('idle')
++    }
++  }
++
++  const startVoiceListening = () => {
++    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
++    if (!SpeechRecognition) {
++      setVoiceResponse('Voice input is not supported in this browser.')
++      return
++    }
++
++    window.speechSynthesis?.cancel()
++    voiceFinalTranscriptRef.current = ''
++    setVoiceTranscript('')
++    setVoiceResponse('')
++    setVoiceState('listening')
++
++    const recognition = new SpeechRecognition()
++    recognition.continuous = true
++    recognition.interimResults = true
++    recognition.lang = 'en-US'
++    recognitionRef.current = recognition
++
++    recognition.onresult = (event) => {
++      let interim = ''
++      let finalText = voiceFinalTranscriptRef.current
++      for (let index = event.resultIndex; index < event.results.length; index += 1) {
++        const text = event.results[index][0].transcript
++        if (event.results[index].isFinal) finalText += ` ${text}`
++        else interim += text
++      }
++      voiceFinalTranscriptRef.current = finalText.trim()
++      setVoiceTranscript(`${voiceFinalTranscriptRef.current} ${interim}`.trim())
++    }
++
++    recognition.onerror = (event) => {
++      console.error('Speech recognition error:', event.error)
++      setVoiceState('idle')
++    }
++
++    recognition.onend = () => {
++      recognitionRef.current = null
++      const finalText = voiceFinalTranscriptRef.current || voiceTranscript
++      if (finalText?.trim()) processVoiceQuestion(finalText)
++      else setVoiceState('idle')
++    }
++
++    recognition.start()
++  }
++
++  const stopVoiceListening = () => {
++    if (voiceState === 'speaking') {
++      window.speechSynthesis?.cancel()
++      setVoiceState('idle')
++      return
++    }
++    if (recognitionRef.current) recognitionRef.current.stop()
++    else setVoiceState('idle')
++  }
++
+   // Listen for broadcast events from others
+   useLiveEventListener({
+     onSyncJump: ({ slideNumber }) => {
+@@ -342,17 +530,59 @@ function WorkstationContent() {
+     storage.set('presenterSlide', page)
+   }, [])
+ 
++  const setSyncState = useMutation(({ storage }, enabled, slide) => {
++    const state = storage.get('syncState')
++    state?.set?.('isSynced', enabled)
++    state?.set?.('leaderId', enabled ? user?.id : null)
++    state?.set?.('currentSlide', slide || viewportData?.currentPage || 1)
++    storage.set('syncMode', enabled)
++    storage.set('presenterId', enabled ? user?.id : null)
++  }, [user?.id, viewportData?.currentPage])
++
++  const setRaisedHand = useMutation(({ storage }, raised) => {
++    const hands = storage.get('raisedHands')
++    if (!hands?.set || !hands?.delete || !user?.id) return
++    if (raised) {
++      hands.set(user.id, {
++        userId: user.id,
++        userName: profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'You',
++        raisedAt: Date.now(),
++      })
++    } else {
++      hands.delete(user.id)
++    }
++  }, [user, profile?.full_name])
++
++  const pushQuizToGroup = useMutation(({ storage }) => {
++    const quiz = storage.get('quiz')
++    quiz?.set?.('status', 'active')
++    quiz?.set?.('question', 'Quick check from this material')
++    quiz?.set?.('options', ['A', 'B', 'C', 'D'])
++    quiz?.set?.('startedAt', Date.now())
++  }, [])
++
+   // Broadcast presence + sync slide
+   useEffect(() => {
+     if (viewportData?.currentPage) {
+-      updatePresence({ currentPage: viewportData.currentPage })
++      updatePresence({
++        currentPage: viewportData.currentPage,
++        currentSlide: Math.max(0, viewportData.currentPage - 1),
++        currentTool: activeStudyTool === 'cover' ? 'focus' : activeStudyTool,
++        user: {
++          id: user?.id || 'guest',
++          name: profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'You',
++          avatar: user?.user_metadata?.avatar_url || null,
++          color: user?.user_metadata?.color || '#7C3AED',
++          role: currentUserRole,
++        },
++      })
+       if (syncMode && presenterId === user?.id) {
+         setPresenterSlide(viewportData.currentPage)
+         // Broadcast so others jump immediately without polling
+         broadcastSyncJump(viewportData.currentPage)
+       }
+     }
+-  }, [viewportData?.currentPage, syncMode, presenterId, user?.id, updatePresence, setPresenterSlide, broadcastSyncJump])
++  }, [viewportData?.currentPage, syncMode, presenterId, user?.id, user?.email, user?.user_metadata?.full_name, user?.user_metadata?.avatar_url, user?.user_metadata?.color, profile?.full_name, currentUserRole, activeStudyTool, updatePresence, setPresenterSlide, broadcastSyncJump])
+   const messagesEndRef = useRef(null)
+ 
+   // Deck Store integration
+@@ -367,6 +597,34 @@ function WorkstationContent() {
+     return () => clearTimeout(timer)
+   }, [messages, isProcessingLoading])
+ 
++  useEffect(() => {
++    const isTextInput = (target) => ['INPUT', 'TEXTAREA'].includes(target?.tagName) || target?.isContentEditable
++    const handleKeyDown = (event) => {
++      if (isTextInput(event.target)) return
++      const key = event.key.toLowerCase()
++      if (key === 'a') setActiveStudyTool((tool) => tool === 'annotate' ? 'none' : 'annotate')
++      if (key === 'c') setActiveStudyTool((tool) => tool === 'comment' ? 'none' : 'comment')
++      if (key === 'v') setActiveStudyTool((tool) => tool === 'cover' ? 'none' : 'cover')
++      if (event.code === 'Space' && voiceState === 'idle') {
++        event.preventDefault()
++        startVoiceListening()
++      }
++    }
++    const handleKeyUp = (event) => {
++      if (isTextInput(event.target)) return
++      if (event.code === 'Space' && voiceState === 'listening') {
++        event.preventDefault()
++        stopVoiceListening()
++      }
++    }
++    window.addEventListener('keydown', handleKeyDown)
++    window.addEventListener('keyup', handleKeyUp)
++    return () => {
++      window.removeEventListener('keydown', handleKeyDown)
++      window.removeEventListener('keyup', handleKeyUp)
++    }
++  }, [voiceState, selectedMaterial, viewportData?.currentPage])
++
+   const currentAnalysis = React.useMemo(() => {
+     if (!selectedMaterial) return {}
+     const cached = analysisCache[selectedMaterial.id] || {}
+@@ -1594,48 +1852,62 @@ function WorkstationContent() {
+                     }}
+                   >
+                     <button
+-                      onClick={() => setActiveTab('board')}
++                      onClick={() => setActiveStudyTool(activeStudyTool === 'annotate' ? 'none' : 'annotate')}
+                       style={{
+                         display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
+-                        background: activeTab === 'board' ? '#F5F3FF' : 'transparent',
+-                        color: activeTab === 'board' ? '#6D28D9' : '#64748B',
+-                        border: 'none', borderRadius: '12px',
++                        background: activeStudyTool === 'annotate' ? '#F5F3FF' : 'transparent',
++                        color: activeStudyTool === 'annotate' ? '#7C3AED' : '#6B7280',
++                        border: activeStudyTool === 'annotate' ? '1px solid #DDD6FE' : '1px solid transparent',
++                        borderRadius: '12px',
+                         fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-outfit)',
+                         transition: '0.2s',
+-                        boxShadow: activeTab === 'board' ? '0 2px 8px rgba(109, 40, 217, 0.1)' : 'none'
++                        boxShadow: 'none'
+                       }}
+-                      onMouseEnter={(e) => { if (activeTab !== 'board') e.currentTarget.style.background = '#F8FAFC' }}
+-                      onMouseLeave={(e) => { if (activeTab !== 'board') e.currentTarget.style.background = 'transparent' }}
++                      onMouseEnter={(e) => { if (activeStudyTool !== 'annotate') e.currentTarget.style.background = '#F8FAFC' }}
++                      onMouseLeave={(e) => { if (activeStudyTool !== 'annotate') e.currentTarget.style.background = 'transparent' }}
+                     >
+-                      <PencilSimple size={16} weight={activeTab === 'board' ? "fill" : "bold"} />
+-                      Board <span style={{ opacity: 0.8, marginLeft: '4px', background: activeTab === 'board' ? 'white' : '#F1F5F9', padding: '1px 5px', borderRadius: '4px', fontSize: '10px', color: '#6D28D9' }}>B</span>
++                      <PencilLine size={16} weight="bold" />
++                      Annotate <span style={{ marginLeft: '2px', background: '#F5F3FF', padding: '1px 5px', borderRadius: '4px', fontSize: '10px', color: '#7C3AED', fontFamily: 'monospace' }}>A</span>
+                     </button>
++                    <div style={{ width: '1px', height: '18px', background: '#E5E7EB', margin: '0 4px' }} />
+                     <button
+-                      onClick={() => {}} // Occlusion logic placeholder
++                      onClick={() => setActiveStudyTool(activeStudyTool === 'comment' ? 'none' : 'comment')}
+                       style={{
+                         display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
+-                        background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)',
+-                        color: '#6D28D9',
+-                        border: '1px solid #DDD6FE', borderRadius: '12px',
++                        background: activeStudyTool === 'comment' ? '#EFF6FF' : 'transparent',
++                        color: activeStudyTool === 'comment' ? '#3B82F6' : '#6B7280',
++                        border: activeStudyTool === 'comment' ? '1px solid #BFDBFE' : '1px solid transparent',
++                        borderRadius: '12px',
+                         fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-outfit)',
+                         transition: 'all 0.2s',
+-                        boxShadow: '0 2px 8px rgba(109, 40, 217, 0.08)'
++                        boxShadow: 'none'
+                       }}
+-                      onMouseEnter={(e) => {
+-                        e.currentTarget.style.background = 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)';
+-                        e.currentTarget.style.color = 'white';
+-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(109, 40, 217, 0.25)';
+-                      }}
+-                      onMouseLeave={(e) => {
+-                        e.currentTarget.style.background = 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)';
+-                        e.currentTarget.style.color = '#6D28D9';
+-                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(109, 40, 217, 0.08)';
++                      onMouseEnter={(e) => { if (activeStudyTool !== 'comment') e.currentTarget.style.background = '#F8FAFC' }}
++                      onMouseLeave={(e) => { if (activeStudyTool !== 'comment') e.currentTarget.style.background = 'transparent' }}
++                    >
++                      <ChatCircle size={16} weight="bold" />
++                      Comment <span style={{ marginLeft: '2px', background: '#DBEAFE', padding: '1px 5px', borderRadius: '4px', fontSize: '10px', color: '#3B82F6', fontFamily: 'monospace' }}>C</span>
++                    </button>
++                    <div style={{ width: '1px', height: '18px', background: '#E5E7EB', margin: '0 4px' }} />
++                    <button
++                      onClick={() => setActiveStudyTool(activeStudyTool === 'cover' ? 'none' : 'cover')}
++                      style={{
++                        display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
++                        background: activeStudyTool === 'cover' ? '#F0FDF4' : 'transparent',
++                        color: activeStudyTool === 'cover' ? '#059669' : '#6B7280',
++                        border: activeStudyTool === 'cover' ? '1px solid #A7F3D0' : '1px solid transparent',
++                        borderRadius: '12px',
++                        fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-outfit)',
++                        transition: 'all 0.2s',
++                        boxShadow: 'none'
+                       }}
++                      onMouseEnter={(e) => { if (activeStudyTool !== 'cover') e.currentTarget.style.background = '#F8FAFC' }}
++                      onMouseLeave={(e) => { if (activeStudyTool !== 'cover') e.currentTarget.style.background = 'transparent' }}
+                     >
+-                      <ClipboardText size={16} weight="bold" />
+-                      Occlusion <span style={{ opacity: 0.8, marginLeft: '4px', background: 'white', padding: '1px 5px', borderRadius: '4px', fontSize: '10px', color: '#6D28D9' }}>O</span>
++                      <EyeSlash size={16} weight="bold" />
++                      Focus <span style={{ marginLeft: '2px', background: '#DCFCE7', padding: '1px 5px', borderRadius: '4px', fontSize: '10px', color: '#059669', fontFamily: 'monospace' }}>V</span>
+                     </button>
+-                    <div style={{ width: '1px', height: '24px', background: '#E2E8F0', margin: '0 4px' }} />
++                    <div style={{ width: '1px', height: '18px', background: '#E5E7EB', margin: '0 4px' }} />
+                     <button style={{ padding: '8px', background: 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                       <ArrowUp size={16} weight="bold" />
+                     </button>
+@@ -1656,6 +1928,17 @@ function WorkstationContent() {
+                   }}
+                   onScrollUpdate={handleScrollUpdate}
+                   onMaterialUpdate={(m) => setSelectedMaterial(m)}
++                  annotateMode={activeStudyTool === 'annotate'}
++                  commentMode={activeStudyTool === 'comment'}
++                  focusModeTool={activeStudyTool === 'cover'}
++                  annotationColor={annotationColor}
++                  annotationStrokeSize={annotationStrokeSize}
++                  isEraserMode={isEraserMode}
++                  onCommentThreadSelect={(thread) => {
++                    setSelectedThread(thread)
++                    setActiveSideTab('chat')
++                    if (isSidePanelCollapsed) setSidePanelCollapsed(false)
++                  }}
+                 />
+               </div>
+             </div>
+@@ -1737,7 +2020,7 @@ function WorkstationContent() {
+                   { id: 'flashcards', label: 'Cards',   emoji: '🃏' },
+                   { id: 'groupchat',  label: 'Group 💬', emoji: '👥' },
+                   { id: 'group',      label: 'Hub',     emoji: '🖥️' },
+-                ].map(tab => (
++                ].filter(tab => sessionType !== 'solo' ? tab.id !== 'groupchat' : ['chat', 'write', 'flashcards'].includes(tab.id)).map(tab => (
+                   <button
+                     key={tab.id}
+                     onClick={() => setActiveSideTab(tab.id)}
+@@ -1759,7 +2042,7 @@ function WorkstationContent() {
+                     }}
+                   >
+                     <span style={{ fontSize: '14px' }}>{tab.emoji}</span>
+-                    {tab.label}
++                    {tab.id === 'group' ? 'Group' : tab.label}
+                   </button>
+                 ))}
+               </div>
+@@ -1883,6 +2166,27 @@ function WorkstationContent() {
+                   </div>
+                 </div>
+               ) : activeSideTab === 'group' ? (
++                <GroupSessionPanel
++                  user={user}
++                  profile={profile}
++                  currentUserRole={currentUserRole}
++                  others={others}
++                  self={self}
++                  groupMessages={groupMessages}
++                  groupInput={groupInput}
++                  setGroupInput={setGroupInput}
++                  setTyping={setTyping}
++                  sendGroupMessage={sendGroupMessageWithAI}
++                  syncEnabled={!!(syncState?.isSynced || syncMode)}
++                  onToggleSync={() => setSyncState(!(syncState?.isSynced || syncMode), viewportData?.currentPage || 1)}
++                  onPushQuiz={() => {
++                    pushQuizToGroup()
++                    broadcast({ type: 'QUIZ_PUSHED', question: 'Quick check from this material', options: ['A', 'B', 'C', 'D'] })
++                  }}
++                  raisedHands={raisedHands}
++                  onToggleHand={() => setRaisedHand(!raisedHands[user?.id])}
++                />
++              ) : false ? (
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white' }}>
+                    <div style={{ padding: '16px 20px', borderBottom: '1px solid #EBEBEB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                       <div>
+@@ -1945,7 +2249,18 @@ function WorkstationContent() {
+                ) : (
+                 // Chat tab
+                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+-                  {activePanelContext === 'explanation' && activeExplanation ? (
++                  {selectedThread ? (
++                    <div style={{ padding: 16, flex: 1, overflowY: 'auto' }}>
++                      <button
++                        type="button"
++                        onClick={() => setSelectedThread(null)}
++                        style={{ marginBottom: 12, background: 'transparent', border: 0, color: '#6B7280', fontSize: 12, cursor: 'pointer' }}
++                      >
++                        Back to chat
++                      </button>
++                      <Thread thread={selectedThread} />
++                    </div>
++                  ) : activePanelContext === 'explanation' && activeExplanation ? (
+                     <motion.div
+                       initial={{ opacity: 0, y: 10 }}
+                       animate={{ opacity: 1, y: 0 }}
+@@ -2106,8 +2421,15 @@ function WorkstationContent() {
+                           onFocusCapture={(e) => { e.currentTarget.style.borderColor = '#6D28D9'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(109,40,217,0.12)'; }}
+                           onBlurCapture={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'; }}
+                         >
+-                          <button style={{ color: '#CBD5E1', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', transition: 'color 0.2s', flexShrink: 0 }} onMouseEnter={(e) => e.currentTarget.style.color = '#6D28D9'} onMouseLeave={(e) => e.currentTarget.style.color = '#CBD5E1'}>
+-                            <Microphone size={18} weight="bold" />
++                          <button
++                            className={`ws-voice-button ${voiceState === 'listening' ? 'is-listening' : ''}`}
++                            type="button"
++                            onClick={() => voiceState === 'idle' ? startVoiceListening() : stopVoiceListening()}
++                            style={{ color: voiceState === 'speaking' || voiceState === 'processing' ? '#7C3AED' : '#9CA3AF', background: voiceState === 'idle' ? 'transparent' : '#F5F3FF', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.2s', flexShrink: 0, width: 32, height: 32, borderRadius: '9999px' }}
++                            onMouseEnter={(e) => { if (voiceState === 'idle') { e.currentTarget.style.color = '#7C3AED'; e.currentTarget.style.background = '#F5F3FF' } }}
++                            onMouseLeave={(e) => { if (voiceState === 'idle') { e.currentTarget.style.color = '#9CA3AF'; e.currentTarget.style.background = 'transparent' } }}
++                          >
++                            {voiceState === 'speaking' ? <SpeakerHigh size={18} weight="bold" /> : <Microphone size={18} weight="bold" />}
+                           </button>
+                           <input
+                             type="text"
+@@ -2137,6 +2459,7 @@ function WorkstationContent() {
+                             <PaperPlaneRight size={16} weight="bold" />
+                           </button>
+                         </div>
++                        <div style={{ fontSize: 10, color: '#D1D5DB', textAlign: 'center', marginTop: 4 }}>Space to hold and speak</div>
+                       </div>
+                     </>
+                   )}
+@@ -2323,6 +2646,52 @@ function WorkstationContent() {
+         )}
+       </AnimatePresence>
+ 
++      <AnimatePresence>
++        {voiceState !== 'idle' && (
++          <motion.div
++            initial={{ opacity: 0, y: 16 }}
++            animate={{ opacity: 1, y: 0 }}
++            exit={{ opacity: 0, y: 16 }}
++            style={{
++              position: 'fixed',
++              bottom: 80,
++              left: '50%',
++              transform: 'translateX(-50%)',
++              background: 'white',
++              border: '1px solid #E5E7EB',
++              borderRadius: 24,
++              padding: '20px 24px',
++              boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
++              width: 360,
++              zIndex: 200,
++              textAlign: 'center',
++            }}
++          >
++            <div style={{ width: 80, height: 80, margin: '0 auto', borderRadius: '9999px', background: voiceState === 'listening' ? '#FEF2F2' : '#F5F3FF', color: voiceState === 'listening' ? '#EF4444' : '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: voiceState === 'listening' ? 'voicePulse 1.2s infinite' : 'none' }}>
++              {voiceState === 'speaking' ? <SpeakerHigh size={42} weight="bold" /> : <Microphone size={42} weight="bold" />}
++            </div>
++            <div style={{ fontSize: 15, fontWeight: 500, color: '#374151', marginTop: 12 }}>
++              {voiceState === 'listening' ? 'Listening...' : voiceState === 'processing' ? 'Processing...' : 'Speaking'}
++            </div>
++            <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4, lineHeight: 1.45 }}>
++              {voiceTranscript || voiceResponse || 'Ask anything about this material'}
++            </div>
++            <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 12 }}>
++              {[14, 24, 18].map((height, index) => (
++                <span key={height} style={{ width: 5, height, borderRadius: 9999, background: '#7C3AED', opacity: 0.65, animation: `ws-dot-pulse 1s ${index * 0.2}s infinite` }} />
++              ))}
++            </div>
++            <button
++              type="button"
++              onClick={stopVoiceListening}
++              style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#EF4444', borderRadius: 9999, padding: '8px 20px', fontSize: 13, marginTop: 16, cursor: 'pointer' }}
++            >
++              {voiceState === 'speaking' ? 'Stop' : 'Stop listening'}
++            </button>
++          </motion.div>
++        )}
++      </AnimatePresence>
++
+       <SelectionActionBar onAction={handleSelectionAction} />
+     </div>
+   )
+@@ -2380,23 +2749,198 @@ const ParticipantRow = ({ user, isSelf, isPresenter, presence, connectionId }) =
+   );
+ };
+ 
++function nameForUser(user, profile) {
++  return profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'You'
++}
++
++function colorFromText(text = 'user') {
++  const colors = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#0891B2']
++  return colors[String(text).split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % colors.length]
++}
++
++function GroupSessionPanel({
++  user,
++  profile,
++  currentUserRole,
++  others,
++  self,
++  groupMessages,
++  groupInput,
++  setGroupInput,
++  setTyping,
++  sendGroupMessage,
++  syncEnabled,
++  onToggleSync,
++  onPushQuiz,
++  raisedHands,
++  onToggleHand,
++}) {
++  const selfName = nameForUser(user, profile)
++  const members = [
++    {
++      id: user?.id || 'self',
++      name: selfName,
++      color: colorFromText(user?.id || selfName),
++      status: 'active',
++      currentSlide: self?.presence?.currentPage || 1,
++      role: currentUserRole,
++    },
++    ...others.map((other) => ({
++      id: other.presence?.user?.id || String(other.connectionId),
++      name: other.presence?.user?.name || other.info?.name || 'Peer',
++      color: other.presence?.user?.color || colorFromText(String(other.connectionId)),
++      status: other.presence?.status || 'active',
++      currentSlide: other.presence?.currentPage || other.presence?.currentSlide || 1,
++      role: other.presence?.user?.role || 'student',
++    })),
++  ]
++  const handCount = Object.keys(raisedHands || {}).length
++
++  return (
++    <div className="ws-group-panel">
++      <section className="ws-group-members">
++        <div className="ws-group-section-header">
++          <span>In this session</span>
++          <span>{members.length}</span>
++        </div>
++        <div className="ws-group-member-list">
++          {members.map((member) => (
++            <div key={member.id} className="ws-group-member">
++              <div className="ws-member-avatar" style={{ background: member.color }}>
++                {member.name.charAt(0).toUpperCase()}
++                <i style={{ background: member.status === 'idle' ? '#D1D5DB' : '#10B981' }} />
++              </div>
++              <div className="ws-member-info">
++                <div className="ws-member-name">{member.name}</div>
++                <div className="ws-member-slide">On slide {member.currentSlide} of 60</div>
++              </div>
++              {member.role === 'teacher' && <span className="ws-teacher-badge">Teacher</span>}
++            </div>
++          ))}
++        </div>
++      </section>
++
++      {currentUserRole === 'teacher' && (
++        <section className="ws-group-controls">
++          <h4>Controls</h4>
++          <div className="ws-group-control-grid">
++            <button type="button" onClick={onToggleSync} style={{ background: syncEnabled ? '#7C3AED' : '#F5F3FF', border: '1px solid #DDD6FE', color: syncEnabled ? 'white' : '#6D28D9' }}>
++              {syncEnabled ? 'Synced' : 'Sync Slides'}
++            </button>
++            <button type="button" onClick={onPushQuiz} style={{ background: '#F0FDF4', border: '1px solid #A7F3D0', color: '#059669' }}>Push Quiz</button>
++            <button type="button" onClick={onToggleHand} style={{ background: '#FFFBEB', border: '1px solid #FDE68A', color: '#D97706' }}>{handCount ? `Hands ${handCount}` : 'Raise Hands'}</button>
++            <button type="button" style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#EF4444' }}>End Session</button>
++          </div>
++        </section>
++      )}
++
++      <section className="ws-group-chat">
++        <div className="ws-group-messages">
++          {groupMessages.map((message) => {
++            if (message.isTyping) {
++              return (
++                <div key={message.id} className="ws-group-message ws-ai-message">
++                  <div className="ws-chat-avatar" style={{ background: '#7C3AED' }}>AI</div>
++                  <div className="ws-message-content">
++                    <div className="ws-message-header">Luter AI <time>typing</time></div>
++                    <div className="ws-message-bubble"><Typing dots={3} /></div>
++                  </div>
++                </div>
++              )
++            }
++            const isOwn = message.userId === user?.id
++            const color = message.userColor || colorFromText(message.userId)
++            return (
++              <div key={message.id} className={`ws-group-message ${isOwn ? 'is-own' : ''} ${message.isAI ? 'ws-ai-message' : ''}`}>
++                <div className="ws-chat-avatar" style={{ background: color }}>{message.isAI ? 'AI' : (message.userName?.[0]?.toUpperCase() || 'P')}</div>
++                <div className="ws-message-content">
++                  <div className="ws-message-header">
++                    {isOwn ? 'You' : message.userName}
++                    {message.isAI && <span className="ws-teacher-badge" style={{ marginLeft: 6 }}>AI</span>}
++                    <time>{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
++                  </div>
++                  <div className="ws-message-bubble">{message.text}</div>
++                </div>
++              </div>
++            )
++          })}
++          {others.some((other) => other.presence?.isTyping) && (
++            <div className="ws-group-message">
++              <div className="ws-chat-avatar" style={{ background: '#9CA3AF' }}>...</div>
++              <div className="ws-message-bubble"><Typing dots={3} /></div>
++            </div>
++          )}
++        </div>
++        <div className="ws-group-input">
++          <input
++            type="text"
++            placeholder="Message the group..."
++            value={groupInput}
++            onChange={(event) => { setGroupInput(event.target.value); setTyping(true) }}
++            onBlur={() => setTyping(false)}
++            onKeyDown={(event) => {
++              if (event.key === 'Enter' && groupInput.trim()) sendGroupMessage(groupInput)
++            }}
++          />
++          <button type="button" disabled={!groupInput.trim()} onClick={() => sendGroupMessage(groupInput)}>
++            <PaperPlaneIcon size={14} weight="fill" />
++          </button>
++        </div>
++      </section>
++    </div>
++  )
++}
++
+ export default function WorkstationPage() {
+   const { materialId } = useParams()
+   const { user, profile } = useOutletContext() || {}
+   const [searchParams] = useSearchParams()
+   const matId   = searchParams.get('materialId') || materialId
+-  const roomId  = matId ? `luter-material-${matId}` : `luter-empty-${user?.id || 'guest'}`
++  const sessionId = searchParams.get('sessionId')
++  const shareCode = searchParams.get('share')
++  const groupId = searchParams.get('groupId')
++  const roomId  = sessionId
++    ? `luter-session-${sessionId}`
++    : shareCode
++      ? `luter-share-${shareCode}`
++      : groupId
++        ? `luter-group-${groupId}`
++        : matId
++          ? `luter-material-${matId}`
++          : `luter-empty-${user?.id || 'guest'}`
++  const sessionType = searchParams.get('sessionType') || searchParams.get('mode') || (sessionId || groupId ? 'group' : 'solo')
++  const role = profile?.role === 'teacher' || searchParams.get('role') === 'teacher'
++    ? 'teacher'
++    : (sessionType === 'solo' ? 'peer' : 'student')
++  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'You'
+ 
+   return (
+     <ReadingSpaceProvider>
+       <CollaborationProvider
+         roomId={roomId}
++        userInfo={{
++          id: user?.id || 'guest',
++          name: displayName,
++          avatar: user?.user_metadata?.avatar_url || null,
++          color: user?.user_metadata?.color || '#7C3AED',
++          role,
++        }}
+         initialPresence={{
+           role: 'presenter', // Default to presenter so user can use whiteboard
+           currentPage: 1,
++          currentSlide: 0,
+           isTyping: false,
+           status: 'active',
+           cursor: null,
++          selectedText: null,
++          currentTool: 'none',
++          user: {
++            id: user?.id || 'guest',
++            name: displayName,
++            avatar: user?.user_metadata?.avatar_url || null,
++            color: user?.user_metadata?.color || '#7C3AED',
++            role,
++          },
+         }}
+       >
+         <WorkstationContent />

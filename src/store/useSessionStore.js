@@ -11,13 +11,24 @@ function buildShareCode() {
 }
 
 async function fetchSharedSessionIds(userId) {
-  const { data, error } = await supabase
-    .from('deck_session_members')
-    .select('session_id')
-    .eq('user_id', userId)
+  try {
+    const { data, error } = await supabase
+      .from('deck_session_members')
+      .select('session_id')
+      .eq('user_id', userId)
 
-  if (error) throw error
-  return (data || []).map((row) => row.session_id).filter(Boolean)
+    if (error) {
+      if (error.code === 'PGRST116' || error.message?.includes('does not exist') || error.message?.includes('Could not find')) {
+        console.warn('[SessionStore] deck_session_members table not found. Shared sessions disabled.');
+        return []
+      }
+      throw error
+    }
+    return (data || []).map((row) => row.session_id).filter(Boolean)
+  } catch (err) {
+    console.error('[SessionStore] Failed to fetch shared session IDs:', err)
+    return []
+  }
 }
 
 async function fetchSessionByShareCode(shareCode) {
@@ -58,6 +69,8 @@ export const useSessionStore = create(
       }),
 
       loadSessions: async () => {
+        if (get().loading) return
+
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
@@ -81,7 +94,14 @@ export const useSessionStore = create(
           }
 
           const { data, error } = await query
-          if (error) throw error
+          if (error) {
+            if (error.code === 'PGRST116' || error.message?.includes('does not exist') || error.message?.includes('Could not find')) {
+              console.warn('[SessionStore] deck_sessions table not found in database.');
+              set({ sessions: [] })
+              return
+            }
+            throw error
+          }
           set({ sessions: data || [] })
         } catch (error) {
           console.error('Error loading sessions:', error)

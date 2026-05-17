@@ -40,7 +40,7 @@ const FloatingDock = ({ user, isMobile }) => {
     if (user?.id) {
       loadSessions();
     }
-  }, [user?.id, loadSessions]);
+  }, [user?.id]);
 
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);

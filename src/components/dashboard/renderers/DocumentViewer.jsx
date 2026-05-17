@@ -59,7 +59,21 @@ if (typeof window !== 'undefined' && pdfjsLib) {
 
 // ─── Main Document Viewer ─────────────────────────────────────────────────────
 
-export default function DocumentViewer({ material, onScrollUpdate, onMaterialUpdate, annotateMode = false, commentMode = false, focusModeTool = false, annotationColor = '#7C3AED', annotationStrokeSize = 4, isEraserMode = false, onCommentThreadSelect }) {
+export default function DocumentViewer({
+  material,
+  onScrollUpdate,
+  onMaterialUpdate,
+  annotateMode = false,
+  commentMode = false,
+  focusModeTool = false,
+  annotationColor = '#7C3AED',
+  annotationStrokeSize = 4,
+  isEraserMode = false,
+  annotationToolType = 'draw',
+  pendingEquation = '',
+  onEquationPlaced,
+  onCommentThreadSelect,
+}) {
   const { setViewportData, askAI } = useReadingSpace()
   const [viewMode, setViewMode] = useState('visuals')
   const [fontSize, setFontSize] = useState(17)
@@ -226,6 +240,9 @@ export default function DocumentViewer({ material, onScrollUpdate, onMaterialUpd
                     annotationColor={annotationColor}
                     annotationStrokeSize={annotationStrokeSize}
                     isEraserMode={isEraserMode}
+                    annotationToolType={annotationToolType}
+                    pendingEquation={pendingEquation}
+                    onEquationPlaced={onEquationPlaced}
                     onCommentThreadSelect={onCommentThreadSelect}
                  />
                </Worker>

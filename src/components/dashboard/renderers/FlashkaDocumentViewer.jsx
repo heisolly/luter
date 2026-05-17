@@ -7,17 +7,17 @@ import { zoomPlugin } from '@react-pdf-viewer/zoom'
 import '@react-pdf-viewer/core/lib/styles/index.css'
 import '@react-pdf-viewer/search/lib/styles/index.css'
 import {
-  RiFileTextFill as FileText,
-  RiDownloadLine as Download,
-  RiZoomInLine as ZoomIn,
-  RiZoomOutLine as ZoomOut,
-  RiFullscreenFill as Fullscreen,
-  RiArrowLeftSLine as ChevronLeft,
-  RiArrowRightSLine as ChevronRight,
-  RiFullscreenExitFill as Compress,
-  RiMessage3Line as MessageIcon,
-  RiEyeLine as EyeIcon,
-} from 'react-icons/ri'
+  FileText,
+  DownloadSimple as Download,
+  MagnifyingGlassPlus as ZoomIn,
+  MagnifyingGlassMinus as ZoomOut,
+  CornersOut as Fullscreen,
+  CaretLeft as ChevronLeft,
+  CaretRight as ChevronRight,
+  CornersIn as Compress,
+  ChatCircleText as MessageIcon,
+  Eye as EyeIcon,
+} from '@phosphor-icons/react'
 import { useBroadcastEvent, useEventListener, useUpdateMyPresence } from '../../../liveblocks.config'
 import { useDocumentComments } from '../../../hooks/useCommentThreads'
 import LiveCursors from '../../LiveCursors'
@@ -69,6 +69,9 @@ export default function FlashkaDocumentViewer({
   annotationColor = '#7C3AED',
   annotationStrokeSize = 4,
   isEraserMode = false,
+  annotationToolType = 'draw',
+  pendingEquation = '',
+  onEquationPlaced,
   onCommentThreadSelect,
 }) {
   const [currentPage, setCurrentPage] = useState(1)
@@ -83,7 +86,7 @@ export default function FlashkaDocumentViewer({
   const toolbarTimerRef = useRef(null)
   const annotationStoreRef = useRef(new Map())
   const coverStoreRef = useRef(new Map())
-  const drawingRef = useRef({ active: false, canvas: null, ctx: null, points: [], page: 1 })
+  const drawingRef = useRef({ active: false, canvas: null, ctx: null, points: [], page: 1, mode: 'draw', startPoint: null, baseImage: null })
   const focusDragRef = useRef({ active: false, layer: null, page: 1, startX: 0, startY: 0, rectEl: null })
   const [commentPopover, setCommentPopover] = useState(null)
   const [commentDraft, setCommentDraft] = useState('')
@@ -123,6 +126,10 @@ export default function FlashkaDocumentViewer({
     const root = viewerContainerRef.current
     if (!root || !docLoaded) return
 
+    const persistCanvas = (pageNumber, canvas) => {
+      annotationStoreRef.current.set(pageNumber, canvas.toDataURL('image/png'))
+    }
+
     const syncCanvasSize = (canvas, layer, pageNumber) => {
       const rect = layer.getBoundingClientRect()
       const ratio = window.devicePixelRatio || 1
@@ -133,7 +140,7 @@ export default function FlashkaDocumentViewer({
         canvas.height = height
         canvas.style.width = '100%'
         canvas.style.height = '100%'
-      const saved = annotationStoreRef.current.get(pageNumber)
+        const saved = annotationStoreRef.current.get(pageNumber)
         if (saved) {
           const img = new Image()
           img.onload = () => {
@@ -143,6 +150,20 @@ export default function FlashkaDocumentViewer({
           }
           img.src = saved
         }
+      }
+    }
+
+    const getPoint = (canvas, event) => {
+      const rect = canvas.getBoundingClientRect()
+      const ratio = window.devicePixelRatio || 1
+      const cssX = event.clientX - rect.left
+      const cssY = event.clientY - rect.top
+      return {
+        x: cssX * ratio,
+        y: cssY * ratio,
+        cssX,
+        cssY,
+        ratio,
       }
     }
 
@@ -161,21 +182,126 @@ export default function FlashkaDocumentViewer({
       ctx.restore()
     }
 
-    const replayStroke = (canvas, points, color, size, mode) => {
-      if (!canvas || !points?.length) return
-      const ctx = canvas.getContext('2d')
-      ctx.beginPath()
+    const drawLine = (ctx, start, end, color, size) => {
+      ctx.save()
       ctx.strokeStyle = color
-      ctx.lineWidth = mode === 'erase' ? 20 : size
+      ctx.lineWidth = size
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
-      ctx.globalCompositeOperation = mode === 'erase' ? 'destination-out' : 'source-over'
-      points.forEach((point, i) => {
-        if (i === 0) ctx.moveTo(point.x, point.y)
-        else ctx.lineTo(point.x, point.y)
-      })
+      ctx.beginPath()
+      ctx.moveTo(start.x, start.y)
+      ctx.lineTo(end.x, end.y)
       ctx.stroke()
-      ctx.globalCompositeOperation = 'source-over'
+      ctx.restore()
+    }
+
+    const drawArrow = (ctx, start, end, color, size) => {
+      drawLine(ctx, start, end, color, size)
+      const angle = Math.atan2(end.y - start.y, end.x - start.x)
+      const headLength = Math.max(12, size * 3)
+      ctx.save()
+      ctx.fillStyle = color
+      ctx.beginPath()
+      ctx.moveTo(end.x, end.y)
+      ctx.lineTo(end.x - headLength * Math.cos(angle - Math.PI / 7), end.y - headLength * Math.sin(angle - Math.PI / 7))
+      ctx.lineTo(end.x - headLength * Math.cos(angle + Math.PI / 7), end.y - headLength * Math.sin(angle + Math.PI / 7))
+      ctx.closePath()
+      ctx.fill()
+      ctx.restore()
+    }
+
+    const drawTextAnnotation = (ctx, text, point, color, ratio, options = {}) => {
+      if (!text?.trim()) return
+      const fontSize = options.fontSize || 16
+      const fontFamily = options.fontFamily || 'Helvetica Neue, Arial, sans-serif'
+      const italic = options.italic ? 'italic ' : ''
+      ctx.save()
+      ctx.fillStyle = color
+      ctx.font = `${italic}${fontSize * ratio}px ${fontFamily}`
+      ctx.textBaseline = 'top'
+      const lines = text.split('\n')
+      lines.forEach((line, index) => {
+        ctx.fillText(line, point.x, point.y + ((fontSize * 1.35) * ratio * index))
+      })
+      ctx.restore()
+    }
+
+    const placeTextEditor = (layer, canvas, pageNumber, point, initialText = '') => {
+      layer.querySelectorAll(':scope > .luter-annotation-editor').forEach((node) => node.remove())
+      const editor = document.createElement('div')
+      editor.className = 'luter-annotation-editor'
+      editor.contentEditable = initialText ? 'false' : 'true'
+      editor.spellcheck = false
+      editor.dataset.page = String(pageNumber)
+      editor.dataset.x = String(point.x)
+      editor.dataset.y = String(point.y)
+      editor.dataset.ratio = String(point.ratio)
+      Object.assign(editor.style, {
+        position: 'absolute',
+        left: `${point.cssX}px`,
+        top: `${point.cssY}px`,
+        minWidth: initialText ? 'auto' : '100px',
+        maxWidth: '280px',
+        padding: initialText ? '4px 8px' : '2px 4px',
+        borderRadius: '8px',
+        background: initialText ? 'rgba(255,255,255,0.95)' : 'transparent',
+        borderBottom: `1px solid ${annotationColor}`,
+        outline: 'none',
+        color: annotationColor,
+        fontSize: initialText ? '18px' : '16px',
+        lineHeight: '1.4',
+        fontFamily: initialText ? '"Times New Roman", Georgia, serif' : '"Helvetica Neue", Helvetica, Arial, sans-serif',
+        fontStyle: initialText ? 'italic' : 'normal',
+        zIndex: 12,
+        whiteSpace: 'pre-wrap',
+      })
+      editor.textContent = initialText || ''
+      layer.appendChild(editor)
+
+      const commitEditor = () => {
+        const ctx = canvas.getContext('2d')
+        const text = (editor.textContent || '').trim()
+        if (text) {
+          drawTextAnnotation(ctx, text, point, annotationColor, point.ratio, {
+            fontSize: initialText ? 18 : 16,
+            fontFamily: initialText ? '"Times New Roman", Georgia, serif' : '"Helvetica Neue", Helvetica, Arial, sans-serif',
+            italic: Boolean(initialText),
+          })
+          persistCanvas(pageNumber, canvas)
+          broadcast({
+            type: 'ANNOTATION_TEXT',
+            page: pageNumber,
+            text,
+            point: { x: point.x, y: point.y },
+            color: annotationColor,
+            ratio: point.ratio,
+            fontSize: initialText ? 18 : 16,
+            italic: Boolean(initialText),
+          })
+        }
+        editor.remove()
+        if (initialText) onEquationPlaced?.()
+      }
+
+      if (initialText) {
+        window.setTimeout(commitEditor, 0)
+        return
+      }
+
+      editor.focus()
+      const selection = window.getSelection()
+      const range = document.createRange()
+      range.selectNodeContents(editor)
+      range.collapse(false)
+      selection?.removeAllRanges()
+      selection?.addRange(range)
+      editor.onblur = commitEditor
+      editor.onkeydown = (keyboardEvent) => {
+        if (keyboardEvent.key === 'Enter' && !keyboardEvent.shiftKey) {
+          keyboardEvent.preventDefault()
+          editor.blur()
+        }
+      }
     }
 
     const renderThreadMarkers = (layer, pageNumber) => {
@@ -248,12 +374,30 @@ export default function FlashkaDocumentViewer({
         syncCanvasSize(canvas, layer, pageNumber)
         canvas.onmousedown = (event) => {
           if (!annotateMode) return
-          const rect = canvas.getBoundingClientRect()
-          const ratio = window.devicePixelRatio || 1
-          const point = { x: (event.clientX - rect.left) * ratio, y: (event.clientY - rect.top) * ratio }
+          const point = getPoint(canvas, event)
           const ctx = canvas.getContext('2d')
-          drawingRef.current = { active: true, canvas, ctx, points: [point], page: pageNumber }
-          drawStroke(ctx, [point, point], annotationColor, annotationStrokeSize * ratio, isEraserMode)
+          if (pendingEquation) {
+            placeTextEditor(layer, canvas, pageNumber, point, pendingEquation)
+            return
+          }
+          if (annotationToolType === 'text' && !isEraserMode) {
+            placeTextEditor(layer, canvas, pageNumber, point)
+            return
+          }
+          const mode = isEraserMode ? 'erase' : annotationToolType
+          drawingRef.current = {
+            active: true,
+            canvas,
+            ctx,
+            points: [point],
+            page: pageNumber,
+            mode,
+            startPoint: point,
+            baseImage: mode === 'draw' || mode === 'erase' ? null : ctx.getImageData(0, 0, canvas.width, canvas.height),
+          }
+          if (mode === 'draw' || mode === 'erase') {
+            drawStroke(ctx, [point, point], annotationColor, annotationStrokeSize * point.ratio, isEraserMode)
+          }
         }
         canvas.onmousemove = (event) => {
           if (annotateMode) {
@@ -262,36 +406,53 @@ export default function FlashkaDocumentViewer({
           }
           const state = drawingRef.current
           if (!state.active || state.canvas !== canvas) return
-          const rect = canvas.getBoundingClientRect()
-          const ratio = window.devicePixelRatio || 1
-          const point = { x: (event.clientX - rect.left) * ratio, y: (event.clientY - rect.top) * ratio }
+          const point = getPoint(canvas, event)
+          if (state.mode === 'line' || state.mode === 'arrow') {
+            if (state.baseImage) state.ctx.putImageData(state.baseImage, 0, 0)
+            if (state.mode === 'arrow') drawArrow(state.ctx, state.startPoint, point, annotationColor, annotationStrokeSize * point.ratio)
+            else drawLine(state.ctx, state.startPoint, point, annotationColor, annotationStrokeSize * point.ratio)
+            state.points = [state.startPoint, point]
+            return
+          }
           const prev = state.points[state.points.length - 1] || point
           state.points.push(point)
-          drawStroke(state.ctx, [prev, point], annotationColor, annotationStrokeSize * ratio, isEraserMode)
+          drawStroke(state.ctx, [prev, point], annotationColor, annotationStrokeSize * point.ratio, state.mode === 'erase')
         }
         canvas.onmouseup = () => {
           const state = drawingRef.current
           if (!state.active || state.canvas !== canvas) return
-          annotationStoreRef.current.set(pageNumber, canvas.toDataURL('image/png'))
-          window.dispatchEvent(new CustomEvent('luter-annotation-stroke', {
-            detail: {
+          persistCanvas(pageNumber, canvas)
+          if (state.mode === 'line' || state.mode === 'arrow') {
+            broadcast({
+              type: 'ANNOTATION_SHAPE',
+              page: pageNumber,
+              shape: state.mode,
+              color: annotationColor,
+              size: annotationStrokeSize,
+              start: state.startPoint,
+              end: state.points[state.points.length - 1] || state.startPoint,
+            })
+          } else {
+            window.dispatchEvent(new CustomEvent('luter-annotation-stroke', {
+              detail: {
+                type: 'ANNOTATION_STROKE',
+                page: pageNumber,
+                color: annotationColor,
+                size: annotationStrokeSize,
+                points: state.points,
+                mode: state.mode,
+              }
+            }))
+            broadcast({
               type: 'ANNOTATION_STROKE',
               page: pageNumber,
               color: annotationColor,
               size: annotationStrokeSize,
               points: state.points,
-              mode: isEraserMode ? 'erase' : 'draw',
-            }
-          }))
-          broadcast({
-            type: 'ANNOTATION_STROKE',
-            page: pageNumber,
-            color: annotationColor,
-            size: annotationStrokeSize,
-            points: state.points,
-            mode: isEraserMode ? 'erase' : 'draw',
-          })
-          drawingRef.current = { active: false, canvas: null, ctx: null, points: [], page: pageNumber }
+              mode: state.mode,
+            })
+          }
+          drawingRef.current = { active: false, canvas: null, ctx: null, points: [], page: pageNumber, mode: 'draw', startPoint: null, baseImage: null }
         }
         canvas.onmouseleave = (event) => {
           updateMyPresence({ cursor: null })
@@ -372,13 +533,13 @@ export default function FlashkaDocumentViewer({
       window.removeEventListener('resize', install)
       window.removeEventListener('luter-clear-annotations', handleClear)
     }
-  }, [docLoaded, annotateMode, commentMode, focusModeTool, annotationColor, annotationStrokeSize, isEraserMode, currentPage, pageThreads, threadVersion, broadcast, updateMyPresence, onCommentThreadSelect])
+  }, [docLoaded, annotateMode, commentMode, focusModeTool, annotationColor, annotationStrokeSize, isEraserMode, annotationToolType, pendingEquation, currentPage, pageThreads, threadVersion, broadcast, updateMyPresence, onCommentThreadSelect, onEquationPlaced])
 
   useEventListener(({ event }) => {
+    const root = viewerContainerRef.current
+    const layer = root?.querySelector(`.rpv-core__page-layer:nth-of-type(${event.page})`)
+    const canvas = layer?.querySelector('canvas.luter-annotation-canvas')
     if (event.type === 'ANNOTATION_STROKE') {
-      const root = viewerContainerRef.current
-      const layer = root?.querySelector(`.rpv-core__page-layer:nth-of-type(${event.page})`)
-      const canvas = layer?.querySelector('canvas.luter-annotation-canvas')
       if (!canvas) return
       const ctx = canvas.getContext('2d')
       ctx.beginPath()
@@ -393,6 +554,55 @@ export default function FlashkaDocumentViewer({
       })
       ctx.stroke()
       ctx.globalCompositeOperation = 'source-over'
+      annotationStoreRef.current.set(event.page, canvas.toDataURL('image/png'))
+    }
+    if (event.type === 'ANNOTATION_SHAPE') {
+      if (!canvas) return
+      const ctx = canvas.getContext('2d')
+      if (event.shape === 'arrow') {
+        const angle = Math.atan2(event.end.y - event.start.y, event.end.x - event.start.x)
+        const headLength = Math.max(12, event.size * 3)
+        ctx.save()
+        ctx.strokeStyle = event.color
+        ctx.lineWidth = event.size
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        ctx.beginPath()
+        ctx.moveTo(event.start.x, event.start.y)
+        ctx.lineTo(event.end.x, event.end.y)
+        ctx.stroke()
+        ctx.fillStyle = event.color
+        ctx.beginPath()
+        ctx.moveTo(event.end.x, event.end.y)
+        ctx.lineTo(event.end.x - headLength * Math.cos(angle - Math.PI / 7), event.end.y - headLength * Math.sin(angle - Math.PI / 7))
+        ctx.lineTo(event.end.x - headLength * Math.cos(angle + Math.PI / 7), event.end.y - headLength * Math.sin(angle + Math.PI / 7))
+        ctx.closePath()
+        ctx.fill()
+        ctx.restore()
+      } else {
+        ctx.save()
+        ctx.strokeStyle = event.color
+        ctx.lineWidth = event.size
+        ctx.lineCap = 'round'
+        ctx.beginPath()
+        ctx.moveTo(event.start.x, event.start.y)
+        ctx.lineTo(event.end.x, event.end.y)
+        ctx.stroke()
+        ctx.restore()
+      }
+      annotationStoreRef.current.set(event.page, canvas.toDataURL('image/png'))
+    }
+    if (event.type === 'ANNOTATION_TEXT') {
+      if (!canvas) return
+      const ctx = canvas.getContext('2d')
+      ctx.save()
+      ctx.fillStyle = event.color
+      ctx.font = `${event.italic ? 'italic ' : ''}${event.fontSize * (event.ratio || 1)}px ${event.italic ? '"Times New Roman", Georgia, serif' : '"Helvetica Neue", Helvetica, Arial, sans-serif'}`
+      ctx.textBaseline = 'top'
+      event.text.split('\n').forEach((line, index) => {
+        ctx.fillText(line, event.point.x, event.point.y + ((event.fontSize * 1.35) * (event.ratio || 1) * index))
+      })
+      ctx.restore()
       annotationStoreRef.current.set(event.page, canvas.toDataURL('image/png'))
     }
     if (event.type === 'COVER_ADDED') {
@@ -509,17 +719,31 @@ export default function FlashkaDocumentViewer({
         .flashka-desk .rpv-core__viewer {
           background: transparent !important;
           border: none !important;
+          overflow-x: auto !important;
           overflow-y: auto !important;
+          padding: 20px 24px 80px 24px !important;
           scroll-behavior: smooth !important;
           height: 100% !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          -webkit-overflow-scrolling: touch !important;
         }
         .flashka-desk .rpv-core__inner-page {
           background: transparent !important;
-          padding: 16px 24px 32px !important;
+          padding: 0 !important;
           margin: 0 !important;
           will-change: transform !important;
+          display: flex !important;
+          justify-content: center !important;
+          width: 100% !important;
+          max-width: 100% !important;
         }
         .flashka-desk .rpv-core__page-layer {
+          width: fit-content !important;
+          min-width: calc(100% - 48px) !important;
+          max-width: 100% !important;
+          margin: 0 auto 16px auto !important;
+          display: block !important;
           box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
           border-radius: 12px !important;
           background: white !important;
@@ -541,23 +765,18 @@ export default function FlashkaDocumentViewer({
           background: transparent !important;
         }
         .flashka-desk .rpv-core__inner-pages {
-          padding: 24px 0 80px 0 !important;
+          padding: 0 !important;
           margin: 0 !important;
           display: flex !important;
           flex-direction: column !important;
           align-items: center !important;
           width: 100% !important;
         }
-        .flashka-desk .rpv-core__inner-page {
-          width: 100% !important;
+        .flashka-desk img,
+        .flashka-desk canvas {
           max-width: 100% !important;
-          display: flex !important;
-          justify-content: center !important;
-        }
-        .flashka-desk .rpv-core__viewer {
-          width: 100% !important;
-          max-width: 100% !important;
-          -webkit-overflow-scrolling: touch !important;
+          height: auto !important;
+          display: block !important;
         }
       `
       document.head.appendChild(style)

@@ -290,46 +290,8 @@ export default function AdminSyllabusManager() {
   }, [])
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession()
-        console.log('Auth session check:', { session, error })
-        
-        if (error) {
-          console.error('Auth session error:', error)
-          setError(`Authentication error: ${error.message}`)
-          return
-        }
-        
-        if (!session?.user?.id) {
-          console.warn('No active user session found')
-          setError('No active session. Please log in again.')
-          return
-        }
-        
-        setUserId(session.user.id)
-        console.log('User authenticated with ID:', session.user.id)
-      } catch (err) {
-        console.error('Unexpected auth error:', err)
-        setError(`Authentication check failed: ${err.message}`)
-      }
-    }
-    
-    checkAuth()
-    
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event, session?.user?.id)
-      if (event === 'SIGNED_IN' && session?.user?.id) {
-        setUserId(session.user.id)
-        setError(null)
-      } else if (event === 'SIGNED_OUT') {
-        setUserId(null)
-        setError('User signed out. Please log in again.')
-      }
-    })
-    
-    return () => subscription.unsubscribe()
+    // Admin uses a global entry password, so we bypass Supabase authentication here
+    setUserId('admin_user')
   }, [])
 
   useEffect(() => {
@@ -598,42 +560,9 @@ export default function AdminSyllabusManager() {
     }
   }
 
-  const refreshAuth = async () => {
-  try {
-    console.log('Refreshing authentication session...')
-    const { data: { session }, error } = await supabase.auth.refreshSession()
-    
-    if (error) {
-      console.error('Auth refresh error:', error)
-      setError(`Failed to refresh authentication: ${error.message}`)
-      return false
-    }
-    
-    if (session?.user?.id) {
-      setUserId(session.user.id)
-      setError(null)
-      console.log('Authentication refreshed successfully')
-      return true
-    } else {
-      setError('No valid session after refresh. Please log in again.')
-      return false
-    }
-  } catch (err) {
-    console.error('Unexpected auth refresh error:', err)
-    setError(`Auth refresh failed: ${err.message}`)
-    return false
-  }
-}
-
-const publishRow = async (id) => {
-    if (!userId) {
-      // Try to refresh auth first
-      const authRefreshed = await refreshAuth()
-      if (!authRefreshed) {
-        setError('User not authenticated. Please log in again.')
-        return
-      }
-    }
+  const publishRow = async (id) => {
+    // Admin user authenticated via entry password, bypass Supabase auth check
+    const currentUserId = userId || 'admin_user';
     
     setBusy(true)
     setError(null)
@@ -645,7 +574,7 @@ const publishRow = async (id) => {
         .from('curriculum_offers')
         .update({
           status: 'live',
-          reviewed_by: userId,
+          reviewed_by: currentUserId,
           reviewed_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })

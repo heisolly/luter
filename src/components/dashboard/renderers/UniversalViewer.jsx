@@ -56,7 +56,23 @@ function isConvertibleToPdf(type) {
  * 4. PPTX → ConversionSkeleton (wait for PDF conversion)
  * 5. Everything else → appropriate native renderer
  */
-export default function UniversalViewer({ material, initialPage, onPageChange, onDocumentLoad, onMaterialUpdate, annotateMode = false, commentMode = false, focusModeTool = false, annotationColor = '#7C3AED', annotationStrokeSize = 4, isEraserMode = false, onCommentThreadSelect }) {
+export default function UniversalViewer({
+  material,
+  initialPage,
+  onPageChange,
+  onDocumentLoad,
+  onMaterialUpdate,
+  annotateMode = false,
+  commentMode = false,
+  focusModeTool = false,
+  annotationColor = '#7C3AED',
+  annotationStrokeSize = 4,
+  isEraserMode = false,
+  annotationToolType = 'draw',
+  pendingEquation = '',
+  onEquationPlaced,
+  onCommentThreadSelect,
+}) {
   if (!material) return null
 
   const type = getFileType(material)
@@ -115,6 +131,9 @@ export default function UniversalViewer({ material, initialPage, onPageChange, o
           annotationColor={annotationColor}
           annotationStrokeSize={annotationStrokeSize}
           isEraserMode={isEraserMode}
+          annotationToolType={annotationToolType}
+          pendingEquation={pendingEquation}
+          onEquationPlaced={onEquationPlaced}
           onCommentThreadSelect={onCommentThreadSelect}
         />
       </motion.div>
@@ -137,6 +156,9 @@ export default function UniversalViewer({ material, initialPage, onPageChange, o
         annotationColor={annotationColor}
         annotationStrokeSize={annotationStrokeSize}
         isEraserMode={isEraserMode}
+        annotationToolType={annotationToolType}
+        pendingEquation={pendingEquation}
+        onEquationPlaced={onEquationPlaced}
         onCommentThreadSelect={onCommentThreadSelect}
       />
     )
