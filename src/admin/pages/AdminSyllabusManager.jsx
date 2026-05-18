@@ -891,10 +891,7 @@ export default function AdminSyllabusManager() {
       return
     }
     
-    if (!userId) {
-      setError('User not authenticated for publishing')
-      return
-    }
+    // Admin uses entry password, so bypass Supabase auth checks
     
     const action = status === 'live' ? 'publish' : 'unpublish'
     if (!window.confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} ${selectedIds.size} selected syllabi?`)) {
@@ -911,7 +908,7 @@ export default function AdminSyllabusManager() {
       }
       
       if (status === 'live') {
-        updateData.reviewed_by = userId
+        updateData.reviewed_by = null
         updateData.reviewed_at = new Date().toISOString()
       }
       
