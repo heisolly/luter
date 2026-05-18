@@ -214,7 +214,7 @@ export default function AdminSyllabusManager() {
               const sid = buildSyllabusId(us, ds, l, s)
               
               const payload = {
-                id: sid,
+                syllabus_id: sid,
                 university_slug: us,
                 department_slug: ds,
                 level: l,
@@ -229,7 +229,7 @@ export default function AdminSyllabusManager() {
                 created_at: new Date().toISOString()
               }
 
-              await supabase.from('curriculum_offers').upsert(payload, { onConflict: 'university_slug,department_slug,level,semester' })
+              await supabase.from('curriculum_offers').upsert(payload, { onConflict: 'syllabus_id' })
               totalGenerated += synthesized.length
             }
           } catch (err) {
@@ -527,7 +527,7 @@ export default function AdminSyllabusManager() {
       const { data, error: e } = await supabase
         .from('curriculum_offers')
         .upsert(base, {
-          onConflict: 'university_slug,department_slug,level,semester',
+          onConflict: 'syllabus_id',
         })
         .select()
         
