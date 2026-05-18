@@ -291,7 +291,7 @@ export default function AdminSyllabusManager() {
 
   useEffect(() => {
     // Admin uses a global entry password, so we bypass Supabase authentication here
-    setUserId('admin_user')
+    setUserId(null)
   }, [])
 
   useEffect(() => {
@@ -555,7 +555,6 @@ export default function AdminSyllabusManager() {
 
   const publishRow = async (id) => {
     // Admin user authenticated via entry password, bypass Supabase auth check
-    const currentUserId = userId || 'admin_user';
     
     setBusy(true)
     setError(null)
@@ -567,7 +566,7 @@ export default function AdminSyllabusManager() {
         .from('curriculum_offers')
         .update({
           status: 'live',
-          reviewed_by: currentUserId,
+          reviewed_by: null,
           reviewed_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })

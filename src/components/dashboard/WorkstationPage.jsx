@@ -1849,12 +1849,13 @@ function WorkstationContent() {
         flexDirection: isMobile ? 'column' : 'row',
         background: '#F9FAFB',
         overflow: 'hidden',
-        padding: '0',
-        gap: 0,
+        padding: isMobile ? '0' : '12px',
+        gap: isMobile ? 0 : '12px',
         flex: 1,
-        height: isMobile ? 'auto' : 'calc(100vh - 64px)',
+        height: isMobile ? 'auto' : 'calc(100vh - 52px)',
         position: 'relative',
-        paddingBottom: isMobile ? 'calc(84px + env(safe-area-inset-bottom, 0px))' : '0'
+        boxSizing: 'border-box',
+        paddingBottom: isMobile ? 'calc(84px + env(safe-area-inset-bottom, 0px))' : '12px'
       }}>
         {/* Main Workspace Area - Center Zone */}
         {/* On mobile: show for 'content', 'summary', 'quiz', 'board' tabs. Hide for side panel tabs. */}
@@ -1864,12 +1865,12 @@ function WorkstationContent() {
             : 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          margin: isMobile ? '0' : '12px 0 12px 12px',
+          margin: '0',
           borderRadius: '20px',
           border: '1px solid #E5E7EB',
           background: 'white',
           position: 'relative',
-          height: isMobile ? 'auto' : 'calc(100% - 24px)',
+          height: '100%',
           flex: 1,
           minWidth: 0,
           zIndex: 1
@@ -2095,12 +2096,15 @@ function WorkstationContent() {
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
-                      background: '#FFFFFF',
-                      padding: '5px',
-                      borderRadius: '16px',
+                      background: 'rgba(255,255,255,0.95)',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
+                      padding: '5px 8px',
+                      borderRadius: '9999px',
                       border: '1px solid #E5E7EB',
-                      boxShadow: '0 14px 28px rgba(17,24,39,0.10)',
-                      gap: '5px'
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.10)',
+                      gap: '2px',
+                      whiteSpace: 'nowrap'
                     }}>
                       {BOTTOM_WORKSPACE_TOOLS.map((tool, index) => {
                         const ToolIcon = tool.icon
@@ -2192,14 +2196,19 @@ function WorkstationContent() {
                 )}
 
                 {/* Inner scrollable document area */}
-                <div style={{
-                  background: '#EFEFEF',
-                  flex: 1,
-                  overflowY: 'auto',
-                  overflowX: 'auto',
-                  borderRadius: '0 0 20px 20px',
-                  padding: '24px 32px 120px 32px'
-                }}>
+                <div
+                  className="document-scroll-area"
+                  style={{
+                    background: '#EFEFEF',
+                    flex: 1,
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    borderRadius: '0 0 20px 20px',
+                    padding: '24px 24px 100px 24px',
+                    scrollBehavior: 'smooth',
+                    WebkitOverflowScrolling: 'touch'
+                  }}
+                >
                   <MaterialRenderer
                     key={selectedMaterial.id}
                     material={selectedMaterial}
@@ -2333,13 +2342,13 @@ function WorkstationContent() {
                 ? (['content', 'summary', 'quiz', 'board'].includes(activeTab) ? 'none' : 'flex')
                 : 'flex',
               width: isMobile ? '100%' : `${panelWidth}px`,
-              margin: isMobile ? '0' : '12px 12px 12px 0',
+              margin: '0',
               borderRadius: '20px',
               border: '1px solid #E5E7EB',
               background: 'white',
               overflow: 'hidden',
               flexDirection: 'column',
-              height: isMobile ? 'calc(100dvh - 144px - env(safe-area-inset-bottom, 0px))' : 'calc(100% - 24px)',
+              height: isMobile ? 'calc(100dvh - 144px - env(safe-area-inset-bottom, 0px))' : '100%',
               minHeight: 0,
               position: 'relative',
               flexShrink: 0

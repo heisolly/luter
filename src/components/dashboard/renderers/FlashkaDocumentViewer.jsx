@@ -714,14 +714,14 @@ export default function FlashkaDocumentViewer({
       style.id = styleId
       style.textContent = `
         .flashka-desk {
-          background: #F8FAFC !important;
+          background: transparent !important;
         }
         .flashka-desk .rpv-core__viewer {
           background: transparent !important;
           border: none !important;
           overflow-x: auto !important;
           overflow-y: auto !important;
-          padding: 20px 24px 80px 24px !important;
+          padding: 24px 24px 100px 24px !important;
           scroll-behavior: smooth !important;
           height: 100% !important;
           width: 100% !important;
@@ -744,15 +744,16 @@ export default function FlashkaDocumentViewer({
           max-width: 100% !important;
           margin: 0 auto 16px auto !important;
           display: block !important;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
-          border-radius: 12px !important;
+          box-shadow: 0 1px 6px rgba(0,0,0,0.08) !important;
+          border-radius: 10px !important;
           background: white !important;
+          overflow: hidden !important;
           transition: box-shadow 0.3s ease !important;
           transform: translateZ(0) !important;
           will-change: transform !important;
         }
         .flashka-desk .rpv-core__page-layer:hover {
-          box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.12) !important;
         }
         .flashka-desk .rpv-default-layout__toolbar,
         .flashka-desk .rpv-default-layout__sidebar {
@@ -874,7 +875,7 @@ export default function FlashkaDocumentViewer({
     <div
       ref={viewerContainerRef}
       className="flashka-desk h-full flex flex-col relative"
-      style={{ background: '#FFFFFF' }}
+      style={{ background: 'transparent' }}
       onMouseMove={scheduleToolbarHide}
     >
       {/* Loading Skeleton */}
@@ -948,13 +949,28 @@ export default function FlashkaDocumentViewer({
         className="flashka-viewer-toolbar"
         data-visible={showToolbar}
         style={{
-          opacity: 1,
-          transform: 'none',
-          transition: 'opacity 0.2s ease, transform 0.2s ease',
-          pointerEvents: 'auto',
+          position: 'absolute',
+          bottom: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 30,
+          opacity: showToolbar ? 1 : 0,
+          transition: 'opacity 0.2s ease',
+          pointerEvents: showToolbar ? 'auto' : 'none',
         }}
       >
-        <div className="flashka-viewer-toolbar-inner">
+        <div className="flashka-viewer-toolbar-inner" style={{
+          background: 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid #E5E7EB',
+          borderRadius: '9999px',
+          padding: '5px 8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '2px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.10)',
+          whiteSpace: 'nowrap'
+        }}>
           {/* Navigation */}
           <div className="flex items-center gap-0.5">
             <button

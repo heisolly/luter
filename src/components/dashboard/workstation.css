@@ -58,6 +58,31 @@
   animation: ws-spin 1s linear infinite;
 }
 
+/* ── Fix 5 — Document scroll area: custom scrollbar ── */
+.document-scroll-area::-webkit-scrollbar {
+  width: 5px;
+}
+.document-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+.document-scroll-area::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 9999px;
+}
+.document-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+/* ── Fix 6 — Purple text selection inside document viewer ── */
+.document-scroll-area ::selection {
+  background: rgba(124, 58, 237, 0.15);
+  color: inherit;
+}
+.document-scroll-area ::-moz-selection {
+  background: rgba(124, 58, 237, 0.15);
+  color: inherit;
+}
+
 /* ── Root & Background ── */
 .ws-root {
   background-color: var(--luter-bg);
