@@ -109,6 +109,10 @@ export default function AdminSyllabusManager() {
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
   const [userId, setUserId] = useState(null)
+  
+  const [q, setQ] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [levelFilter, setLevelFilter] = useState('all')
 
   const [univ, setUniv] = useState('University of Lagos')
   const [faculty, setFaculty] = useState('Science')
@@ -136,6 +140,24 @@ export default function AdminSyllabusManager() {
     const ds = departmentSlugFromLabel(dept)
     return buildSyllabusId(us, ds, level, semester)
   }, [univ, dept, level, semester])
+
+  const filteredRows = useMemo(() => {
+    return rows.filter((r) => {
+      const term = q.toLowerCase().trim()
+      const matchSearch = !term || (
+        r.syllabus_id?.toLowerCase().includes(term) ||
+        r.university_name?.toLowerCase().includes(term) ||
+        r.faculty?.toLowerCase().includes(term) ||
+        r.department_label?.toLowerCase().includes(term) ||
+        (r.courses && JSON.stringify(r.courses).toLowerCase().includes(term))
+      )
+      
+      const matchStatus = statusFilter === 'all' || r.status === statusFilter
+      const matchLevel = levelFilter === 'all' || String(r.level) === levelFilter
+      
+      return matchSearch && matchStatus && matchLevel
+    })
+  }, [rows, q, statusFilter, levelFilter])
 
   const runWebResearch = async () => {
     setIsResearching(true)
@@ -834,10 +856,10 @@ export default function AdminSyllabusManager() {
   }
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === rows.length) {
+    if (selectedIds.size === filteredRows.length) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(rows.map(r => r.id)))
+      setSelectedIds(new Set(filteredRows.map(r => r.id)))
     }
   }
 
@@ -979,93 +1001,160 @@ export default function AdminSyllabusManager() {
       </div>
 
       {view === 'table' && (
-        <div className="adm-card" style={{ padding: 0, overflow: 'auto' }}>
-          {selectedIds.size > 0 && (
-            <div style={{ 
-              padding: '16px', 
-              background: '#eff6ff', 
-              borderBottom: '1px solid #bfdbfe',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontWeight: 600, color: '#1e40af', fontSize: 14 }}>
-                  {selectedIds.size} item{selectedIds.size !== 1 ? 's' : ''} selected
-                </span>
-                <div style={{ display: 'flex', gap: 6, padding: '4px', background: 'white', borderRadius: 6, border: '1px solid #d1d5db' }}>
-                  <button
-                    type="button"
-                    className="adm-btn adm-btn--ghost"
-                    onClick={bulkDelete}
-                    disabled={busy}
-                    style={{ fontSize: '12px', padding: '4px 8px' }}
-                  >
-                    <Trash size={12} />
-                  </button>
-                  <button
-                    type="button"
-                    className="adm-btn adm-btn--ghost"
-                    onClick={() => bulkPublish('live')}
-                    disabled={busy}
-                    style={{ fontSize: '12px', padding: '4px 8px' }}
-                  >
-                    <RocketLaunch size={12} />
-                  </button>
-                  <button
-                    type="button"
-                    className="adm-btn adm-btn--ghost"
-                    onClick={() => bulkPublish('draft')}
-                    disabled={busy}
-                    style={{ fontSize: '12px', padding: '4px 8px' }}
-                  >
-                    <FloppyDisk size={12} />
-                  </button>
+        <>
+          <div className="adm-card" style={{ padding: 16, marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
+              <MagnifyingGlass size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+              <input
+                type="text"
+                className="adm-input"
+                placeholder="Search by Syllabus ID, University, Dept, Course..."
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                style={{ width: '100%', paddingLeft: 36, height: 38 }}
+              />
+            </div>
+            
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              <label style={{ fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, color: '#4b5563' }}>
+                Status:
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="adm-input"
+                  style={{ height: 38, padding: '0 12px', minWidth: '100px' }}
+                >
+                  <option value="all">All</option>
+                  <option value="live">Live</option>
+                  <option value="draft">Draft</option>
+                </select>
+              </label>
+
+              <label style={{ fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, color: '#4b5563' }}>
+                Level:
+                <select
+                  value={levelFilter}
+                  onChange={(e) => setLevelFilter(e.target.value)}
+                  className="adm-input"
+                  style={{ height: 38, padding: '0 12px', minWidth: '100px' }}
+                >
+                  <option value="all">All Levels</option>
+                  <option value="100">100L</option>
+                  <option value="200">200L</option>
+                  <option value="300">300L</option>
+                  <option value="400">400L</option>
+                  <option value="500">500L</option>
+                </select>
+              </label>
+
+              {(q || statusFilter !== 'all' || levelFilter !== 'all') && (
+                <button
+                  type="button"
+                  className="adm-btn adm-btn--ghost"
+                  onClick={() => {
+                    setQ('')
+                    setStatusFilter('all')
+                    setLevelFilter('all')
+                  }}
+                  style={{ fontSize: 12, height: 38 }}
+                >
+                  Reset Filters
+                </button>
+              )}
+            </div>
+
+            <div style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 600, color: '#6b7280' }}>
+              {filteredRows.length !== rows.length ? `${filteredRows.length} of ${rows.length} records` : `${rows.length} records`}
+            </div>
+          </div>
+
+          <div className="adm-card" style={{ padding: 0, overflow: 'auto' }}>
+            {selectedIds.size > 0 && (
+              <div style={{ 
+                padding: '16px', 
+                background: '#eff6ff', 
+                borderBottom: '1px solid #bfdbfe',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontWeight: 600, color: '#1e40af', fontSize: 14 }}>
+                    {selectedIds.size} item{selectedIds.size !== 1 ? 's' : ''} selected
+                  </span>
+                  <div style={{ display: 'flex', gap: 6, padding: '4px', background: 'white', borderRadius: 6, border: '1px solid #d1d5db' }}>
+                    <button
+                      type="button"
+                      className="adm-btn adm-btn--ghost"
+                      onClick={bulkDelete}
+                      disabled={busy}
+                      style={{ fontSize: '12px', padding: '4px 8px' }}
+                    >
+                      <Trash size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      className="adm-btn adm-btn--ghost"
+                      onClick={() => bulkPublish('live')}
+                      disabled={busy}
+                      style={{ fontSize: '12px', padding: '4px 8px' }}
+                    >
+                      <RocketLaunch size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      className="adm-btn adm-btn--ghost"
+                      onClick={() => bulkPublish('draft')}
+                      disabled={busy}
+                      style={{ fontSize: '12px', padding: '4px 8px' }}
+                    >
+                      <FloppyDisk size={12} />
+                    </button>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  className="adm-btn adm-btn--ghost"
+                  onClick={() => setSelectedIds(new Set())}
+                  style={{ fontSize: '12px', padding: '6px 12px' }}
+                >
+                  Clear All
+                </button>
               </div>
-              <button
-                type="button"
-                className="adm-btn adm-btn--ghost"
-                onClick={() => setSelectedIds(new Set())}
-                style={{ fontSize: '12px', padding: '6px 12px' }}
-              >
-                Clear All
-              </button>
-            </div>
-          )}
-          {loading ? (
-            <div style={{ padding: 48, textAlign: 'center' }}>
-              <CircleNotch className="animate-spin" style={{ display: 'inline-block' }} />
-            </div>
-          ) : (
-            <>
-              {rows.length > 0 ? (
-                <table style={{ 
-                  width: '100%', 
-                  borderCollapse: 'collapse', 
-                  fontSize: 13,
-                  background: 'white'
-                }}>
-                  <thead>
-                    <tr style={{ 
-                      background: '#f9fafb', 
-                      borderBottom: '2px solid #e5e7eb',
-                      textAlign: 'left' 
-                    }}>
-                      <th style={{ 
-                        padding: '14px 12px', 
-                        width: '40px', 
-                        fontWeight: 600, 
-                        fontSize: 12, 
-                        color: '#374151',
-                        borderRight: '1px solid #e5e7eb'
+            )}
+            {loading ? (
+              <div style={{ padding: 48, textAlign: 'center' }}>
+                <CircleNotch className="animate-spin" style={{ display: 'inline-block' }} />
+              </div>
+            ) : (
+              <>
+                {filteredRows.length > 0 ? (
+                  <table style={{ 
+                    width: '100%', 
+                    borderCollapse: 'collapse', 
+                    fontSize: 13,
+                    background: 'white'
+                  }}>
+                    <thead>
+                      <tr style={{ 
+                        background: '#f9fafb', 
+                        borderBottom: '2px solid #e5e7eb',
+                        textAlign: 'left' 
                       }}>
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.size === rows.length && rows.length > 0}
-                          onChange={toggleSelectAll}
-                          style={{ cursor: 'pointer' }}
-                        />
+                        <th style={{ 
+                          padding: '14px 12px', 
+                          width: '40px', 
+                          fontWeight: 600, 
+                          fontSize: 12, 
+                          color: '#374151',
+                          borderRight: '1px solid #e5e7eb'
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.size === filteredRows.length && filteredRows.length > 0}
+                            onChange={toggleSelectAll}
+                            style={{ cursor: 'pointer' }}
+                          />
                       </th>
                       <th style={{ 
                         padding: '14px 12px', 
@@ -1125,7 +1214,7 @@ export default function AdminSyllabusManager() {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((r, index) => (
+                    {filteredRows.map((r, index) => (
                       <tr key={r.id} style={{ 
                         borderBottom: '1px solid #f3f4f6',
                         background: selectedIds.has(r.id) ? '#eff6ff' : 'white',
@@ -1281,13 +1370,18 @@ export default function AdminSyllabusManager() {
                   fontSize: 14,
                   background: '#fafafa'
                 }}>
-                  <div style={{ marginBottom: 8 }}>No syllabi found</div>
-                  <div style={{ fontSize: 12 }}>Create your first syllabus using the Creation Wizard</div>
+                  <div style={{ marginBottom: 8 }}>{q || statusFilter !== 'all' || levelFilter !== 'all' ? 'No matching records found' : 'No syllabi found'}</div>
+                  <div style={{ fontSize: 12 }}>
+                    {q || statusFilter !== 'all' || levelFilter !== 'all' 
+                      ? 'Try modifying your search or filters' 
+                      : 'Create your first syllabus using the Creation Wizard'}
+                  </div>
                 </div>
               )}
             </>
           )}
         </div>
+        </>
       )}
 
       {view === 'wizard' && (

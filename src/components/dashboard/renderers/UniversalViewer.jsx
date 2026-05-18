@@ -72,6 +72,8 @@ export default function UniversalViewer({
   pendingEquation = '',
   onEquationPlaced,
   onCommentThreadSelect,
+  canvasRefs,
+  onCanvasSave,
 }) {
   if (!material) return null
 
@@ -135,6 +137,9 @@ export default function UniversalViewer({
           pendingEquation={pendingEquation}
           onEquationPlaced={onEquationPlaced}
           onCommentThreadSelect={onCommentThreadSelect}
+          canvasRefs={canvasRefs}
+          onCanvasSave={onCanvasSave}
+          material={material}
         />
       </motion.div>
     )
@@ -160,6 +165,9 @@ export default function UniversalViewer({
         pendingEquation={pendingEquation}
         onEquationPlaced={onEquationPlaced}
         onCommentThreadSelect={onCommentThreadSelect}
+        canvasRefs={canvasRefs}
+        onCanvasSave={onCanvasSave}
+        material={material}
       />
     )
   }

@@ -1,6 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@100..900&family=Varela+Round&display=swap');
 @import './highlight-styles.css';
 
+/* Excalidraw custom overrides for clean annotation layer overlays */
+.excalidraw .layer-ui__wrapper { display: none !important; }
+.excalidraw .App-toolbar { display: none !important; }
+.excalidraw .App-bottom-bar { display: none !important; }
+.excalidraw .App-menu { display: none !important; }
+.excalidraw footer { display: none !important; }
+.excalidraw .FixedSideContainer { display: none !important; }
+.excalidraw canvas { background: transparent !important; }
+.excalidraw .interactive { cursor: crosshair !important; }
+
 :root {
   --luter-bg: #FCFCFD;
   --luter-card-bg: #FFFFFF;

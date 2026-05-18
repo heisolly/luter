@@ -18,6 +18,8 @@
   "dependencies": {
     "@e2b/code-interpreter": "^2.4.2",
     "@excalidraw/excalidraw": "^0.18.1",
+    "@google/generative-ai": "^0.24.1",
+    "@huggingface/inference": "^4.13.15",
     "@langchain/community": "^1.1.27",
     "@langchain/core": "^1.1.39",
     "@langchain/google-genai": "^2.1.26",
@@ -27,6 +29,7 @@
     "@liveblocks/node": "^3.19.1",
     "@liveblocks/react": "^3.19.1",
     "@liveblocks/react-ui": "^3.19.1",
+    "@mistralai/mistralai": "^2.2.1",
     "@mozilla/readability": "^0.6.0",
     "@paystack/inline-js": "^2.22.8",
     "@phosphor-icons/react": "^2.1.10",

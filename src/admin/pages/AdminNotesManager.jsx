@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { 
@@ -29,6 +29,44 @@ export default function AdminNotesManager() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [courseSearch, setCourseSearch] = useState('')
+  const [materialSearch, setMaterialSearch] = useState('')
+
+  const filteredCoursesDropdown = useMemo(() => {
+    return courses.filter(c => 
+      c.code?.toLowerCase().includes(courseSearch.toLowerCase()) ||
+      c.name?.toLowerCase().includes(courseSearch.toLowerCase())
+    )
+  }, [courses, courseSearch])
+
+  const filteredRequests = useMemo(() => {
+    return requests.filter((r) => {
+      const term = searchTerm.toLowerCase().trim()
+      const matchSearch = !term || (
+        r.subject?.toLowerCase().includes(term) ||
+        r.topic?.toLowerCase().includes(term) ||
+        r.description?.toLowerCase().includes(term) ||
+        String(r.week_number).includes(term)
+      )
+      
+      const matchStatus = filterStatus === 'all' || r.status === filterStatus
+      const matchCourse = selectedCourse ? r.course_id === selectedCourse : true
+      
+      return matchSearch && matchStatus && matchCourse
+    })
+  }, [requests, searchTerm, filterStatus, selectedCourse])
+
+  const filteredMaterials = useMemo(() => {
+    return materials.filter(m => {
+      const term = materialSearch.toLowerCase().trim()
+      const matchSearch = !term || (
+        m.name?.toLowerCase().includes(term) ||
+        String(m.week_number).includes(term)
+      )
+      const matchCourse = selectedCourse ? m.course_id === selectedCourse : true
+      return matchSearch && matchCourse
+    })
+  }, [materials, materialSearch, selectedCourse])
 
   useEffect(() => {
     loadData()
@@ -359,7 +397,26 @@ export default function AdminNotesManager() {
         </div>
 
         {/* Course Selector */}
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative' }}>
+            <MagnifyingGlass size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input
+              type="text"
+              placeholder="Filter course select..."
+              value={courseSearch}
+              onChange={(e) => setCourseSearch(e.target.value)}
+              style={{
+                padding: '8px 12px 8px 32px',
+                border: `2px solid ${PALETTE[0]}20`,
+                borderRadius: '8px',
+                fontSize: '13px',
+                background: 'white',
+                width: '180px',
+                fontFamily: 'Varela Round',
+                height: '42px'
+              }}
+            />
+          </div>
           <select
             value={selectedCourse || ''}
             onChange={(e) => {
@@ -367,21 +424,25 @@ export default function AdminNotesManager() {
               loadCourseStats(e.target.value)
             }}
             style={{
-              padding: '12px 16px',
+              padding: '0 16px',
               border: `2px solid ${PALETTE[0]}30`,
               borderRadius: '8px',
               fontSize: '14px',
               fontWeight: 600,
               background: 'white',
               minWidth: '200px',
-              fontFamily: 'Varela Round'
+              fontFamily: 'Varela Round',
+              height: '42px'
             }}
           >
-            {courses.map(course => (
+            {filteredCoursesDropdown.map(course => (
               <option key={course.id} value={course.id}>
                 {course.code} - {course.name}
               </option>
             ))}
+            {filteredCoursesDropdown.length === 0 && (
+              <option disabled>No courses match filter</option>
+            )}
           </select>
           
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -490,10 +551,75 @@ export default function AdminNotesManager() {
             padding: '24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
           }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: '20px', fontWeight: 800, color: '#1A102D', fontFamily: 'Outfit' }}>
-              Course Materials
-            </h3>
-            {/* Materials table/list */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#1A102D', fontFamily: 'Outfit' }}>
+                Course Materials ({filteredMaterials.length} total)
+              </h3>
+              
+              <div style={{ position: 'relative' }}>
+                <MagnifyingGlass size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                <input
+                  type="text"
+                  placeholder="Search materials..."
+                  value={materialSearch}
+                  onChange={(e) => setMaterialSearch(e.target.value)}
+                  style={{
+                    padding: '8px 12px 8px 32px',
+                    border: `2px solid ${PALETTE[0]}30`,
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    width: '240px',
+                    fontFamily: 'Varela Round'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', fontFamily: 'Varela Round' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
+                    <th style={{ padding: '12px 16px', fontWeight: 700, color: '#475569' }}>Name</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 700, color: '#475569' }}>Week</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 700, color: '#475569' }}>Added</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 700, color: '#475569' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMaterials.map(m => (
+                    <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 16px', color: '#1e293b', fontWeight: 500 }}>{m.name}</td>
+                      <td style={{ padding: '12px 16px', color: '#64748b' }}>Week {m.week_number || m.metadata?.week_number || '—'}</td>
+                      <td style={{ padding: '12px 16px', color: '#64748b' }}>{new Date(m.created_at).toLocaleDateString()}</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        {m.url && (
+                          <a 
+                            href={m.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            style={{ 
+                              color: PALETTE[0], 
+                              textDecoration: 'none', 
+                              fontWeight: 600,
+                              fontSize: '13px'
+                            }}
+                          >
+                            Open Link
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredMaterials.length === 0 && (
+                    <tr>
+                      <td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+                        No study materials found for this course matching your search.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -507,13 +633,59 @@ export default function AdminNotesManager() {
             padding: '24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
           }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: '20px', fontWeight: 800, color: '#1A102D', fontFamily: 'Outfit' }}>
-              Student Notes Requests
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#1A102D', fontFamily: 'Outfit' }}>
+                Student Notes Requests ({filteredRequests.length} matching)
+              </h3>
+              
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative' }}>
+                  <MagnifyingGlass size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                  <input
+                    type="text"
+                    placeholder="Search requests..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{
+                      padding: '8px 12px 8px 32px',
+                      border: `2px solid ${PALETTE[0]}30`,
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      width: '200px',
+                      fontFamily: 'Varela Round'
+                    }}
+                  />
+                </div>
+                
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    border: `2px solid ${PALETTE[0]}30`,
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontFamily: 'Varela Round'
+                  }}
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+            </div>
+            
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '16px' }}>
-              {requests.map(request => (
+              {filteredRequests.map(request => (
                 <RequestCard key={request.id} request={request} />
               ))}
+              {filteredRequests.length === 0 && (
+                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '48px', color: '#64748b', fontFamily: 'Varela Round' }}>
+                  No note requests match your query.
+                </div>
+              )}
             </div>
           </div>
         </div>

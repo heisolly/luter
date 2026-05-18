@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../supabaseClient'
-import { CircleNotch, Plus, ArrowsClockwise } from '@phosphor-icons/react'
+import { CircleNotch, Plus, ArrowsClockwise, MagnifyingGlass } from '@phosphor-icons/react'
 
 export default function AdminCourses() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [q, setQ] = useState('')
   const [form, setForm] = useState({ code: '', name: '', faculty: '' })
 
   const load = async () => {
@@ -38,11 +39,20 @@ export default function AdminCourses() {
     if (err) setError(err.message)
     else {
       setForm({ code: '', name: '', faculty: '' })
-      await refresh()
       await load()
     }
     setSaving(false)
   }
+
+  const filtered = rows.filter((r) => {
+    const term = q.toLowerCase().trim()
+    if (!term) return true
+    return (
+      r.code?.toLowerCase().includes(term) ||
+      r.name?.toLowerCase().includes(term) ||
+      (r.faculty && r.faculty.toLowerCase().includes(term))
+    )
+  })
 
   return (
     <>
@@ -73,10 +83,23 @@ export default function AdminCourses() {
       </div>
 
       <div className="adm-card">
-        <div className="adm-toolbar">
-          <span className="adm-muted" style={{ fontWeight: 600 }}>
-            {rows.length} courses
-          </span>
+        <div className="adm-toolbar" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: '280px' }}>
+            <span className="adm-muted" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+              {filtered.length !== rows.length ? `${filtered.length} of ${rows.length} courses` : `${rows.length} courses`}
+            </span>
+            <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+              <MagnifyingGlass size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+              <input
+                type="text"
+                className="adm-input"
+                placeholder="Search code, name, faculty..."
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                style={{ width: '100%', paddingLeft: 36, height: 38 }}
+              />
+            </div>
+          </div>
           <button type="button" className="adm-btn adm-btn--ghost" onClick={load}>
             <ArrowsClockwise size={16} /> Refresh
           </button>
@@ -97,7 +120,7 @@ export default function AdminCourses() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {filtered.map((r) => (
                   <tr key={r.id}>
                     <td style={{ fontWeight: 700 }}>{r.code}</td>
                     <td>{r.name}</td>
@@ -105,6 +128,13 @@ export default function AdminCourses() {
                     <td className="adm-mono">{r.id?.slice(0, 8)}…</td>
                   </tr>
                 ))}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={4} style={{ textAlign: 'center', padding: 24, color: '#9ca3af' }}>
+                      No courses match your search.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           )}

@@ -171,7 +171,7 @@ RULES:
 - Mark courses as core, elective, or GST in your reasoning
 - Return ONLY JSON array: [{"code":"CSC301","name":"Design & Analysis of Algorithms","type":"core"}]`
 
-    const { data: specializedData } = await callGroqAPI(
+    const specializedData = await callGroqAPI(
       [{ role: 'user', content: specializedPrompt }],
       GROQ_MODELS.PROFESSOR,
       {
@@ -219,7 +219,7 @@ Consider:
 
 Return 8-12 courses as JSON: [{"code":"CSC301","name":"Course Name","reason":"Brief reason for popularity"}]`
 
-    const { data: trendingData } = await callGroqAPI(
+    const trendingData = await callGroqAPI(
       [{ role: 'user', content: trendingPrompt }],
       GROQ_MODELS.PROFESSOR,
       { temperature: 0.5 }

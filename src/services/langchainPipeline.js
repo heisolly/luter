@@ -9,6 +9,7 @@
  */
 
 import { ChatGroq } from '@langchain/groq'
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters'
 import { PromptTemplate } from '@langchain/core/prompts'
 import { StringOutputParser } from '@langchain/core/output_parsers'
@@ -16,6 +17,7 @@ import { RunnableSequence } from '@langchain/core/runnables'
 import { Document } from '@langchain/core/documents'
 import { supabase } from '../supabaseClient'
 import { GROQ_API_KEY, GROQ_MODELS, LUTER_SYSTEM_PROMPT } from '../groqClient'
+import { GEMINI_API_KEY, GEMINI_MODELS } from '../geminiClient'
 import { Readability } from '@mozilla/readability'
 
 import * as pdfjsLib from 'pdfjs-dist'
@@ -50,13 +52,27 @@ async function triggerConversion(material) {
 
 // ─── LangChain Groq Client ────────────────────────────────────────────────────
 
-export const getLLM = (model = GROQ_MODELS.PROFESSOR) =>
-  new ChatGroq({
+export const getLLM = (model = GROQ_MODELS.PROFESSOR) => {
+  const isGroqConfigured = import.meta.env.VITE_GROQ_API_KEY || GROQ_API_KEY
+  const isGeminiConfigured = import.meta.env.VITE_GEMINI_API_KEY || GEMINI_API_KEY
+
+  if (!isGroqConfigured && isGeminiConfigured) {
+    console.log('[LangChain] Groq API key is missing. Using Gemini model in the RAG pipeline...')
+    const geminiModel = model === GROQ_MODELS.PROFESSOR ? GEMINI_MODELS.PRO : GEMINI_MODELS.FLASH
+    return new ChatGoogleGenerativeAI({
+      apiKey: import.meta.env.VITE_GEMINI_API_KEY || GEMINI_API_KEY,
+      model: geminiModel,
+      temperature: 0.2
+    })
+  }
+
+  return new ChatGroq({
     apiKey: GROQ_API_KEY,
     model,
     temperature: 0.2,
     maxTokens: 3000,
   })
+}
 
 // ─── Text Splitter ────────────────────────────────────────────────────────────
 

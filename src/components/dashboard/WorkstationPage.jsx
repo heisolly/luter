@@ -65,11 +65,13 @@ import {
   ArrowUp,
   Pen,
   TextT,
-  Function,
+  Function as PhosphorFunction,
   Eraser,
   ArrowsIn,
   CaretLineUp,
-  CaretLineDown
+  CaretLineDown,
+  Minus,
+  Square
 } from '@phosphor-icons/react'
 import useTourStore from '../../store/useTourStore'
 import {
@@ -77,7 +79,7 @@ import {
   RiQuestionFill as Question, RiAddLine as Plus, RiSearchLine as MagnifyingGlass, RiArrowLeftSLine as RiCaretLeft, RiBriefcaseFill as Briefcase, RiPlayCircleFill as PlayCircle, RiSettings4Fill as Settings, RiUserFill as User, RiLogoutBoxLine as RiSignOut,
   RiMore2Fill as DotsThreeVertical, RiLayoutMasonryFill as RiLayoutMasonry, RiBookmarkFill as Bookmark, RiFlashlightFill as Zap,
   RiErrorWarningFill as Warning, RiListCheck, RiShareFill as Share,
-  RiGraduationCapFill as GraduationCap, RiShareForwardFill as RiShareNetwork, RiClipboardFill as RiClipboardText, RiUserSmileFill as Baby, RiCheckLine as Check, RiSubtractLine as Minus,
+  RiGraduationCapFill as GraduationCap, RiShareForwardFill as RiShareNetwork, RiClipboardFill as RiClipboardText, RiUserSmileFill as Baby, RiCheckLine as Check,
   RiLightbulbFill as Lightbulb, RiRefreshLine as ArrowClockwise, RiArrowRightLine as RiArrowRight, RiHome4Fill as RiHouse, RiCheckboxFill as CheckSquare, RiMoreFill as DotsThreeOutline,
   RiStickyNoteFill as Note, RiBookFill as Book, RiStackFill as Library, RiLayoutColumnFill as Columns, RiFullscreenFill as CornersOut,
   RiThumbUpLine, RiThumbDownLine, RiFileCopyLine, RiArrowRightUpLine, RiMicLine, RiEyeOffLine, RiEyeLine
@@ -106,6 +108,7 @@ import { preloadingService } from '../../services/preloadingService'
 import { useDeckStore } from '../../store/useDeckStore'
 import MaterialAnalysisService from '../../services/materialAnalysisService'
 import './workstation.css'
+import { useAnnotationPersistence } from '../../hooks/useAnnotationPersistence'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 
@@ -405,6 +408,20 @@ function WorkstationContent() {
   const [showFileSwitcher, setShowFileSwitcher] = useState(false)
   const [showMobileTools, setShowMobileTools] = useState(false)
   const [activeStudyTool, setActiveStudyTool] = useState('none')
+  const activeBottomTool = activeStudyTool === 'cover' ? 'focus' : activeStudyTool
+  const activeWorkspaceTool = activeTab === 'board'
+    ? 'board'
+    : (activeBottomTool === 'highlight' || activeBottomTool === 'annotate' ? activeBottomTool : null)
+
+  const handleWorkspaceToolSelect = (toolId) => {
+    if (toolId === 'board') {
+      setActiveTab('board')
+      return
+    }
+
+    if (activeTab === 'board') setActiveTab('content')
+    setActiveStudyTool(activeStudyTool === toolId ? 'none' : toolId)
+  }
   const [annotationColor, setAnnotationColor] = useState('#7C3AED')
   const [annotationStrokeSize, setAnnotationStrokeSize] = useState(4)
   const [isEraserMode, setIsEraserMode] = useState(false)
@@ -423,6 +440,112 @@ function WorkstationContent() {
   const recognitionRef = useRef(null)
   const voiceFinalTranscriptRef = useRef('')
 
+  const [selectionToolbox, setSelectionToolbox] = useState(null)
+  const [selectedHighlightColor, setSelectedHighlightColor] = useState('#FEF08A')
+  const [drawMode, setDrawMode] = useState('pen')
+  const [strokeSize, setStrokeSize] = useState(3)
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [currentPath, setCurrentPath] = useState([])
+  const [showFormulaModal, setShowFormulaModal] = useState(false)
+  const [formulaInput, setFormulaInput] = useState('')
+  const canvasRefs = useRef({})
+  const documentViewerRef = useRef(null)
+
+  // System 1 Highlight Text selection detection (Unified & Viewport-accurate)
+  useEffect(() => {
+    const handleTextSelection = () => {
+      const isToolActive = activeStudyTool === 'highlight' || activeWorkspaceTool === 'highlight';
+      if (!isToolActive) return;
+
+      const selection = window.getSelection();
+      if (!selection || selection.toString().trim() === '') {
+        setSelectionToolbox(null);
+        return;
+      }
+
+      try {
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        
+        // Use fixed coordinates relative to the screen (viewport space)
+        setSelectionToolbox({
+          text: selection.toString(),
+          range: range.cloneRange(),
+          x: rect.left + rect.width / 2,
+          y: rect.top - 8,
+        });
+      } catch (e) {
+        console.warn('Failed to resolve range bounding rect:', e);
+      }
+    };
+
+    document.addEventListener('mouseup', handleTextSelection);
+    return () => {
+      document.removeEventListener('mouseup', handleTextSelection);
+    };
+  }, [activeStudyTool, activeWorkspaceTool]);
+
+  // Dismiss selection toolbox on scroll
+  useEffect(() => {
+    const handleScrollDismiss = () => {
+      if (selectionToolbox) {
+        setSelectionToolbox(null);
+      }
+    };
+    window.addEventListener('scroll', handleScrollDismiss, true);
+    return () => window.removeEventListener('scroll', handleScrollDismiss, true);
+  }, [selectionToolbox]);
+
+  // Sync Excalidraw scene states with active toolbar choices
+  useEffect(() => {
+    const currentPage = viewportData?.currentPage || 1;
+    const api = canvasRefs.current[currentPage];
+    if (!api) return;
+
+    let excalTool = 'freedraw';
+    if (isEraserMode) {
+      excalTool = 'eraser';
+    } else {
+      switch (annotationToolType) {
+        case 'draw':
+          excalTool = 'freedraw';
+          break;
+        case 'line':
+          excalTool = 'line';
+          break;
+        case 'arrow':
+          excalTool = 'arrow';
+          break;
+        case 'text':
+          excalTool = 'text';
+          break;
+        case 'rect':
+          excalTool = 'rectangle';
+          break;
+        default:
+          excalTool = 'selection';
+      }
+    }
+
+    api.updateScene({
+      appState: {
+        currentItemStrokeColor: annotationColor,
+        currentItemStrokeWidth: annotationStrokeSize,
+      }
+    });
+
+    api.setActiveTool({ type: excalTool });
+  }, [
+    viewportData?.currentPage,
+    activeStudyTool,
+    annotationToolType,
+    annotationColor,
+    annotationStrokeSize,
+    isEraserMode
+  ]);
+
+  const nanoid = useCallback(() => Math.random().toString(36).substring(2, 15), [])
+
   const sessionIdParam = searchParams.get('sessionId')
   const shareCodeParam = searchParams.get('share')
   const groupIdParam = searchParams.get('groupId')
@@ -439,6 +562,48 @@ function WorkstationContent() {
     if (materialIdParam) return `luter-material-${materialIdParam}`
     return `luter-empty-${user?.id || 'guest'}`
   }, [sessionIdParam, shareCodeParam, groupIdParam, materialIdParam, user?.id])
+
+  const onLoadSnapshot = useCallback((pageNum, dataUrl) => {
+    window.dispatchEvent(new CustomEvent('luter-load-annotation-snapshot', {
+      detail: { pageNum, dataUrl }
+    }));
+  }, []);
+
+  const {
+    saveAnnotationStroke,
+    saveHighlight,
+    saveCanvasSnapshot,
+    loadAnnotations,
+    getXPath,
+  } = useAnnotationPersistence({
+    sessionId: sessionIdParam || roomId,
+    fileId: selectedMaterial?.id,
+    userId: user?.id,
+    canvasRefs,
+    pageCount: viewportData?.totalPages || 1,
+    onLoadSnapshot
+  });
+
+  // Load annotations when material or user changes
+  useEffect(() => {
+    if (selectedMaterial?.id && user?.id) {
+      loadAnnotations();
+    }
+  }, [selectedMaterial?.id, user?.id, loadAnnotations]);
+
+  // Click outside to close highlight toolbox
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (selectionToolbox && !e.target.closest('.highlight-toolbox')) {
+        setSelectionToolbox(null);
+        window.getSelection().removeAllRanges();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [selectionToolbox]);
+
+
 
   useEffect(() => {
     if (courseId) {
@@ -1502,7 +1667,6 @@ function WorkstationContent() {
     return tab.id !== 'groupchat'
   })
   const voiceToneOptions = ['Natural', 'Clear', 'Warm', 'Calm']
-  const activeBottomTool = activeStudyTool === 'cover' ? 'focus' : activeStudyTool
   const equationPreviewMarkup = useMemo(() => {
     try {
       return katex.renderToString(equationInput || '\\frac{a}{b}', {
@@ -1514,19 +1678,6 @@ function WorkstationContent() {
     }
   }, [equationInput])
   const isAnnotateActive = activeStudyTool === 'annotate'
-  const activeWorkspaceTool = activeTab === 'board'
-    ? 'board'
-    : (activeBottomTool === 'highlight' || activeBottomTool === 'annotate' ? activeBottomTool : null)
-
-  const handleWorkspaceToolSelect = (toolId) => {
-    if (toolId === 'board') {
-      setActiveTab('board')
-      return
-    }
-
-    if (activeTab === 'board') setActiveTab('content')
-    setActiveStudyTool(activeStudyTool === toolId ? 'none' : toolId)
-  }
 
   return (
     <div className="ws-root" style={{ background: '#F9FAFB' }}>
@@ -1866,9 +2017,9 @@ function WorkstationContent() {
           flexDirection: 'column',
           overflow: 'hidden',
           margin: '0',
-          borderRadius: '20px',
-          border: '1px solid #E5E7EB',
-          background: 'white',
+          borderRadius: '0',
+          border: 'none',
+          background: 'transparent',
           position: 'relative',
           height: '100%',
           flex: 1,
@@ -1990,103 +2141,219 @@ function WorkstationContent() {
                     animate={{ opacity: 1, y: 0 }}
                     style={{
                       position: 'absolute',
-                      bottom: '26px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
+                      bottom: '24px',
+                      left: '24px',
+                      transform: 'none',
                       zIndex: 140,
                       display: 'flex',
                       flexDirection: 'column',
-                      alignItems: 'center',
+                      alignItems: 'flex-start',
                       gap: '10px'
                     }}
                   >
                     <AnimatePresence>
-                      {isAnnotateActive && (
+                      {(activeWorkspaceTool === 'annotate' || activeStudyTool === 'annotate') && (
                         <motion.div
                           className="ws-annotate-subtoolbar"
-                          initial={{ opacity: 0, y: 10 }}
+                          initial={{ opacity: 0, y: 15 }}
                           animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          style={{ borderRadius: '20px', padding: '8px 12px', gap: '8px', bottom: 'calc(100% + 10px)' }}
+                          exit={{ opacity: 0, y: 15 }}
+                          style={{
+                            position: 'absolute',
+                            bottom: 'calc(100% + 14px)',
+                            left: '0px',
+                            transform: 'none',
+                            zIndex: 140,
+                            borderRadius: '24px',
+                            padding: '10px 16px',
+                            gap: '12px',
+                            background: 'rgba(255, 255, 255, 0.90)',
+                            backdropFilter: 'blur(16px)',
+                            WebkitBackdropFilter: 'blur(16px)',
+                            border: '1px solid rgba(139, 92, 246, 0.15)',
+                            boxShadow: '0 20px 40px rgba(139, 92, 246, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            whiteSpace: 'nowrap'
+                          }}
                         >
-                          <div style={{ background: '#F3F4F6', borderRadius: '9999px', padding: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            {ANNOTATION_TOOL_OPTIONS.map((tool) => {
-                              const ToolIcon = tool.icon
-                              const isSelected = annotationToolType === tool.id
+                          {/* Draw Switcher */}
+                          <div style={{ background: '#F3F4F6', borderRadius: '16px', padding: '3px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                            {[
+                              { id: 'draw', label: 'Pen', icon: Pen },
+                              { id: 'line', label: 'Line', icon: Minus },
+                              { id: 'arrow', label: 'Arrow', icon: ArrowUpRight },
+                              { id: 'text', label: 'Text', icon: TextT },
+                              { id: 'rect', label: 'Shape', icon: Square }
+                            ].map((tool) => {
+                              const ToolIcon = tool.icon;
+                              const isSelected = annotationToolType === tool.id && !isEraserMode;
                               return (
                                 <button
                                   key={tool.id}
                                   type="button"
-                                  className={`ws-annotate-action ${isSelected ? 'is-selected' : ''}`}
                                   onClick={() => {
-                                    setAnnotationToolType(tool.id)
-                                    setIsEraserMode(false)
+                                    setAnnotationToolType(tool.id);
+                                    setDrawMode(tool.id === 'draw' ? 'pen' : tool.id);
+                                    setIsEraserMode(false);
                                   }}
                                   title={tool.label}
                                   style={{
                                     width: 'auto',
                                     minWidth: 'unset',
-                                    padding: isSelected ? '0 12px' : '0 10px',
+                                    padding: '6px 12px',
                                     gap: '6px',
-                                    background: isSelected ? '#FFFFFF' : 'transparent',
-                                    boxShadow: isSelected ? '0 1px 2px rgba(17,24,39,0.08)' : 'none',
+                                    borderRadius: '12px',
+                                    border: 'none',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    cursor: 'pointer',
+                                    background: isSelected ? '#7C3AED' : 'transparent',
+                                    color: isSelected ? '#FFFFFF' : '#4B5563',
+                                    transition: 'all 150ms ease',
+                                    boxShadow: isSelected ? '0 4px 12px rgba(124, 58, 237, 0.25)' : 'none',
                                   }}
                                 >
-                                  <ToolIcon size={16} weight={isSelected ? 'fill' : 'bold'} />
-                                  <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: WORKSTATION_FONT_STACK }}>{tool.label}</span>
+                                  <ToolIcon size={14} weight={isSelected ? 'fill' : 'bold'} />
+                                  <span style={{ fontSize: '12px', fontWeight: 800, fontFamily: WORKSTATION_FONT_STACK }}>{tool.label}</span>
                                 </button>
-                              )
+                              );
                             })}
                           </div>
-                          <div className="ws-annotate-divider" style={{ height: '20px' }} />
-                          {ANNOTATION_COLOR_OPTIONS.map((color) => (
-                            <button
-                              key={color}
-                              type="button"
-                              className={`ws-annotate-color ${annotationColor === color ? 'is-selected' : ''}`}
-                              onClick={() => setAnnotationColor(color)}
-                              title={`Set color ${color}`}
-                              style={{ background: color, color }}
-                            />
-                          ))}
-                          <div className="ws-annotate-divider" style={{ height: '20px' }} />
-                          {ANNOTATION_STROKE_OPTIONS.map((size) => (
-                            <button
-                              key={size}
-                              type="button"
-                              className={`ws-annotate-size ${annotationStrokeSize === size ? 'is-selected' : ''}`}
-                              onClick={() => {
-                                setAnnotationStrokeSize(size)
-                                setIsEraserMode(false)
-                              }}
-                              title={`${size}px stroke`}
-                            >
-                              <span style={{ width: `${size}px`, height: `${size}px` }} />
-                            </button>
-                          ))}
-                          <div className="ws-annotate-divider" style={{ height: '20px' }} />
+
+                          <div style={{ width: '1px', height: '24px', background: '#E5E7EB' }} />
+
+                          {/* Color Dots */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {['#111827', '#7C3AED', '#EF4444', '#10B981', '#F59E0B', '#3B82F6'].map((color) => (
+                              <button
+                                key={color}
+                                type="button"
+                                onClick={() => setAnnotationColor(color)}
+                                title={`Set color ${color}`}
+                                style={{
+                                  width: '18px',
+                                  height: '18px',
+                                  borderRadius: '50%',
+                                  background: color,
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  transition: 'all 150ms ease',
+                                  transform: annotationColor === color ? 'scale(1.2)' : 'scale(1)',
+                                  boxShadow: annotationColor === color ? `0 0 0 2px white, 0 0 0 4px ${color}` : 'none'
+                                }}
+                              />
+                            ))}
+                          </div>
+
+                          <div style={{ width: '1px', height: '24px', background: '#E5E7EB' }} />
+
+                          {/* Stroke Sizes */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {[3, 5, 8].map((size) => {
+                              const isSelected = annotationStrokeSize === size;
+                              return (
+                                <button
+                                  key={size}
+                                  type="button"
+                                  onClick={() => {
+                                    setAnnotationStrokeSize(size);
+                                    setStrokeSize(size);
+                                    setIsEraserMode(false);
+                                  }}
+                                  title={`${size}px stroke`}
+                                  style={{
+                                    width: '24px',
+                                    height: '24px',
+                                    borderRadius: '50%',
+                                    border: isSelected ? '2px solid #7C3AED' : '1px solid #E5E7EB',
+                                    background: 'transparent',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'all 150ms ease'
+                                  }}
+                                >
+                                  <span style={{
+                                    width: `${size}px`,
+                                    height: `${size}px`,
+                                    borderRadius: '50%',
+                                    background: isSelected ? '#7C3AED' : '#4B5563',
+                                    transition: 'all 150ms ease'
+                                  }} />
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <div style={{ width: '1px', height: '24px', background: '#E5E7EB' }} />
+
+                          {/* LaTeX Formula */}
                           <button
                             type="button"
-                            className={`ws-annotate-action ${showEquationModal ? 'is-selected' : ''}`}
                             onClick={() => setShowEquationModal(true)}
                             title="Insert equation"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#4B5563',
+                              cursor: 'pointer',
+                              padding: '8px',
+                              borderRadius: '12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 150ms ease'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                           >
-                            <Function size={16} weight="bold" />
+                            <PhosphorFunction size={16} weight="bold" />
                           </button>
-                          <div className="ws-annotate-divider" style={{ height: '20px' }} />
+
+                          {/* Eraser */}
                           <button
                             type="button"
-                            className={`ws-annotate-action ${isEraserMode ? 'is-selected' : ''}`}
                             onClick={() => setIsEraserMode((value) => !value)}
                             title="Eraser"
+                            style={{
+                              background: isEraserMode ? '#FEF2F2' : 'transparent',
+                              border: 'none',
+                              color: isEraserMode ? '#EF4444' : '#4B5563',
+                              cursor: 'pointer',
+                              padding: '8px',
+                              borderRadius: '12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 150ms ease'
+                            }}
+                            onMouseEnter={e => { if (!isEraserMode) e.currentTarget.style.background = '#F3F4F6' }}
+                            onMouseLeave={e => { if (!isEraserMode) e.currentTarget.style.background = 'transparent' }}
                           >
                             <Eraser size={16} weight="bold" />
                           </button>
+
+                          {/* Trash / Clear */}
                           <button
                             type="button"
-                            className="ws-annotate-action ws-annotate-clear"
                             onClick={() => window.dispatchEvent(new CustomEvent('luter-clear-annotations'))}
                             title="Clear all annotations on this page"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#EF4444',
+                              cursor: 'pointer',
+                              padding: '8px',
+                              borderRadius: '12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 150ms ease'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#FEF2F2'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                           >
                             <Trash size={16} weight="bold" />
                           </button>
@@ -2198,15 +2465,14 @@ function WorkstationContent() {
                 {/* Inner scrollable document area */}
                 <div
                   className="document-scroll-area"
+                  ref={documentViewerRef}
                   style={{
-                    background: '#EFEFEF',
+                    background: 'transparent',
                     flex: 1,
-                    overflowY: 'auto',
-                    overflowX: 'hidden',
-                    borderRadius: '0 0 20px 20px',
-                    padding: '24px 24px 100px 24px',
-                    scrollBehavior: 'smooth',
-                    WebkitOverflowScrolling: 'touch'
+                    overflow: 'hidden',
+                    borderRadius: '0',
+                    padding: '0',
+                    position: 'relative',
                   }}
                 >
                   <MaterialRenderer
@@ -2235,6 +2501,278 @@ function WorkstationContent() {
                       if (isSidePanelCollapsed) setSidePanelCollapsed(false)
                     }}
                   />
+
+                  {/* SYSTEM 1 — HIGHLIGHT TOOLBOX */}
+                  {selectionToolbox && (
+                    <div
+                      className="highlight-toolbox-container"
+                      style={{
+                        position: 'fixed',
+                        left: `${selectionToolbox.x}px`,
+                        top: `${selectionToolbox.y}px`,
+                        transform: 'translate(-50%, -100%)',
+                        zIndex: 2000,
+                        background: 'white',
+                        border: '1px solid #E5E7EB',
+                        borderRadius: '16px',
+                        padding: '10px 12px',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px',
+                        minWidth: '240px',
+                      }}
+                    >
+                      <style>{`
+                        @keyframes toolboxAppear {
+                          from { opacity: 0; transform: translate(-50%, -95%); }
+                          to { opacity: 1; transform: translate(-50%, -100%); }
+                        }
+                        .highlight-toolbox-container {
+                          animation: toolboxAppear 150ms ease forwards;
+                        }
+                        .highlight-toolbox-container::after {
+                          content: '';
+                          position: absolute;
+                          bottom: -6px;
+                          left: 50%;
+                          width: 12px;
+                          height: 12px;
+                          background: white;
+                          border-right: 1px solid #E5E7EB;
+                          border-bottom: 1px solid #E5E7EB;
+                          transform: translateX(-50%) rotate(45deg);
+                        }
+                      `}</style>
+
+                      {/* ROW 1 — Color picker */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#9CA3AF', letterSpacing: '0.05em', marginRight: '4px' }}>
+                          Color
+                        </span>
+                        {[
+                          { id: 'yellow', color: '#FEF08A', border: '#FDE047' },
+                          { id: 'green',  color: '#BBF7D0', border: '#4ADE80' },
+                          { id: 'blue',   color: '#BFDBFE', border: '#60A5FA' },
+                          { id: 'pink',   color: '#FBCFE8', border: '#F472B6' },
+                          { id: 'orange', color: '#FED7AA', border: '#FB923C' },
+                          { id: 'purple', color: '#DDD6FE', border: '#A78BFA' },
+                        ].map(c => {
+                          const isSelected = selectedHighlightColor === c.color;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => setSelectedHighlightColor(c.color)}
+                              style={{
+                                width: '22px',
+                                height: '22px',
+                                borderRadius: '9999px',
+                                background: c.color,
+                                border: '2px solid transparent',
+                                cursor: 'pointer',
+                                transition: 'all 150ms',
+                                transform: isSelected ? 'scale(1.15)' : 'scale(1)',
+                                borderColor: isSelected ? c.border : 'transparent',
+                                boxShadow: isSelected ? `0 0 0 2px white, 0 0 0 3px ${c.border}` : 'none',
+                              }}
+                              title={`Select ${c.id}`}
+                            />
+                          );
+                        })}
+                      </div>
+
+                      {/* ROW 2 — Actions */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', borderTop: '1px solid #F3F4F6', paddingTop: '8px' }}>
+                        {/* Apply Highlight */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!selectionToolbox) return;
+                            const range = selectionToolbox.range;
+                            const mark = document.createElement('mark');
+                            const hId = nanoid();
+                            mark.dataset.highlightId = hId;
+                            mark.dataset.color = selectedHighlightColor;
+                            mark.dataset.page = viewportData?.currentPage || 1;
+                            mark.style.cssText = `
+                              background: ${selectedHighlightColor};
+                              border-radius: 3px;
+                              padding: 1px 2px;
+                              cursor: pointer;
+                              transition: opacity 150ms;
+                            `;
+                            
+                            try {
+                              range.surroundContents(mark);
+                            } catch (e) {
+                              const fragment = range.extractContents();
+                              mark.appendChild(fragment);
+                              range.insertNode(mark);
+                            }
+                            
+                            saveHighlight({
+                              id: hId,
+                              text: selectionToolbox.text,
+                              color: selectedHighlightColor,
+                              page: viewportData?.currentPage || 1,
+                              xpath: getXPath(mark),
+                            });
+                            
+                            setSelectionToolbox(null);
+                            window.getSelection().removeAllRanges();
+                          }}
+                          style={{
+                            flex: 1,
+                            background: selectedHighlightColor,
+                            border: 'none',
+                            borderRadius: '9999px',
+                            padding: '7px 0',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            color: '#374151',
+                            cursor: 'pointer',
+                            transition: 'opacity 150ms',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '5px',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.opacity = 0.85}
+                          onMouseLeave={e => e.currentTarget.style.opacity = 1}
+                        >
+                          <Highlighter size={13} />
+                          <span>Highlight</span>
+                        </button>
+
+                        {/* Cover text */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!selectionToolbox) return;
+                            const range = selectionToolbox.range;
+                            const mark = document.createElement('mark');
+                            const hId = nanoid();
+                            mark.dataset.highlightId = hId;
+                            mark.dataset.color = '#1F2937';
+                            mark.dataset.page = viewportData?.currentPage || 1;
+                            mark.style.cssText = `
+                              background: #1F2937;
+                              color: #1F2937;
+                              border-radius: 4px;
+                              padding: 1px 2px;
+                              cursor: pointer;
+                              transition: all 150ms;
+                            `;
+                            mark.title = "Click to reveal";
+                            
+                            mark.onclick = () => {
+                              if (mark.style.color === 'rgb(31, 41, 55)' || mark.style.color === '#1F2937') {
+                                mark.style.color = 'transparent';
+                              } else {
+                                mark.style.color = '#1F2937';
+                              }
+                            };
+
+                            try {
+                              range.surroundContents(mark);
+                            } catch (e) {
+                              const fragment = range.extractContents();
+                              mark.appendChild(fragment);
+                              range.insertNode(mark);
+                            }
+
+                            saveHighlight({
+                              id: hId,
+                              text: selectionToolbox.text,
+                              color: '#1F2937',
+                              page: viewportData?.currentPage || 1,
+                              xpath: getXPath(mark),
+                            });
+                            
+                            setSelectionToolbox(null);
+                            window.getSelection().removeAllRanges();
+                          }}
+                          style={{
+                            padding: '7px 12px',
+                            background: '#F3F4F6',
+                            border: 'none',
+                            borderRadius: '9999px',
+                            fontSize: '12px',
+                            color: '#374151',
+                            cursor: 'pointer',
+                            transition: 'all 150ms',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#E5E7EB'}
+                          onMouseLeave={e => e.currentTarget.style.background = '#F3F4F6'}
+                        >
+                          <EyeSlash size={13} color="#6B7280" />
+                          <span>Cover</span>
+                        </button>
+
+                        {/* Send to AI */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!selectionToolbox) return;
+                            const text = selectionToolbox.text;
+                            setSelectionToolbox(null);
+                            window.getSelection().removeAllRanges();
+                            setActiveSideTab('chat');
+                            if (isSidePanelCollapsed) setSidePanelCollapsed(false);
+                            handleSend(`Explain this selected text from the document: "${text}"`);
+                          }}
+                          style={{
+                            padding: '7px 12px',
+                            background: '#F5F3FF',
+                            border: 'none',
+                            borderRadius: '9999px',
+                            fontSize: '12px',
+                            color: '#6D28D9',
+                            cursor: 'pointer',
+                            transition: 'all 150ms',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#EDE9FE'}
+                          onMouseLeave={e => e.currentTarget.style.background = '#F5F3FF'}
+                        >
+                          <Sparkle size={13} color="#7C3AED" />
+                          <span>Ask AI</span>
+                        </button>
+
+                        {/* Copy */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectionToolbox.text);
+                            setSelectionToolbox(null);
+                          }}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '9999px',
+                            border: 'none',
+                            background: 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 150ms',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                          title="Copy to Clipboard"
+                        >
+                          <Copy size={14} color="#6B7280" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

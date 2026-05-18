@@ -8,6 +8,7 @@
 import { supabase } from '../../supabaseClient'
 import { withKeyRotation } from './apiKeyManager'
 import { Sandbox } from '@e2b/code-interpreter'
+import { callGroqAPI } from '../../groqClient'
 
 // ─────────────────────────────────────────────
 // 🗄️ DATABASE TOOLS
@@ -141,31 +142,29 @@ const webTools = {
   },
 }
 
-// ─────────────────────────────────────────────
-// 🧠 AI TOOLS (with Groq key rotation)
+// 🧠 AI TOOLS (with Groq key rotation & Multi-LLM Fallback)
 // ─────────────────────────────────────────────
 
 async function callGroq(messages, schema = null) {
-  return withKeyRotation('groq', async (key) => {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages,
-        temperature: 0.3,
-        response_format: schema ? { type: 'json_object' } : undefined,
-      }),
-    })
-    if (!res.ok) {
-      const err = await res.text()
-      throw new Error(`${res.status}: ${err}`)
+  const responseFormat = schema ? { type: 'json_object' } : null
+  const response = await callGroqAPI(
+    messages.filter(m => m.role !== 'system'),
+    'llama-3.3-70b-versatile',
+    {
+      temperature: 0.3,
+      responseFormat,
+      systemPromptOverride: messages.find(m => m.role === 'system')?.content || null
     }
-    const json = await res.json()
-    const content = json.choices[0]?.message?.content || ''
-    if (schema) { try { return JSON.parse(content) } catch { return content } }
-    return content
-  })
+  )
+  const content = response.choices[0]?.message?.content || ''
+  if (schema) {
+    try {
+      return JSON.parse(content)
+    } catch {
+      return content
+    }
+  }
+  return content
 }
 
 const aiTools = {

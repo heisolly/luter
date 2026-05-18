@@ -4,6 +4,9 @@
 export const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
 export const GROQ_BASE_URL = 'https://api.groq.com/openai/v1'
 import { getKey, markKeyFailed } from './admin/agents/apiKeyManager'
+import { callGeminiAPI, GEMINI_MODELS } from './geminiClient'
+import { callHuggingFaceAPI, HF_MODELS } from './huggingfaceClient'
+import { callMistralAPI, MISTRAL_MODELS } from './mistralClient'
 
 // Model Configuration
 export const GROQ_MODELS = {
@@ -258,6 +261,7 @@ export async function callGroqAPI(messages, model = GROQ_MODELS.PROFESSOR, optio
     useQueue = true,
     profile = null,
     systemPromptOverride = null,
+    provider = null, // Can explicitly specify 'gemini', 'huggingface', 'mistral', or 'groq'
   } = options
   let systemContent =
     systemPromptOverride ??
@@ -270,6 +274,7 @@ export async function callGroqAPI(messages, model = GROQ_MODELS.PROFESSOR, optio
     }
   } catch(e) {}
 
+  // Standardize message mapping to system instruction + user query
   const request = {
     messages: [
       { role: 'system', content: systemContent },
@@ -280,10 +285,92 @@ export async function callGroqAPI(messages, model = GROQ_MODELS.PROFESSOR, optio
     ...(responseFormat && { response_format: responseFormat })
   }
 
-  if (useQueue) {
-    return await groqQueue.add(request)
+  // Route to specific provider if explicitly requested
+  if (provider === 'gemini') {
+    const geminiModel = model === GROQ_MODELS.PROFESSOR ? GEMINI_MODELS.PRO : GEMINI_MODELS.FLASH
+    return await callGeminiAPI(messages, geminiModel, {
+      temperature,
+      responseFormat,
+      profile,
+      systemPromptOverride: systemContent
+    })
   }
-  return await groqQueue.executeRequest(request)
+
+  if (provider === 'huggingface') {
+    const hfModel = model === GROQ_MODELS.PROFESSOR ? HF_MODELS.QWEN : HF_MODELS.HERMES
+    return await callHuggingFaceAPI(messages, hfModel, {
+      temperature,
+      profile,
+      systemPromptOverride: systemContent
+    })
+  }
+
+  if (provider === 'mistral') {
+    const mistralModel = model === GROQ_MODELS.PROFESSOR ? MISTRAL_MODELS.LARGE : MISTRAL_MODELS.SMALL
+    return await callMistralAPI(messages, mistralModel, {
+      temperature,
+      responseFormat,
+      profile,
+      systemPromptOverride: systemContent
+    })
+  }
+
+  // Default: Try Groq with fallbacks to Gemini, HuggingFace, and Mistral
+  try {
+    const isGroqConfigured = import.meta.env.VITE_GROQ_API_KEY || getKey('groq')
+    if (!isGroqConfigured) {
+      throw new Error('Groq API Key is not configured')
+    }
+
+    if (useQueue) {
+      return await groqQueue.add(request)
+    }
+    return await groqQueue.executeRequest(request)
+  } catch (error) {
+    console.warn(`[GroqAPI] Groq API call failed: ${error.message || error}. Attempting dynamic fallback hierarchy...`)
+    
+    // Fallback 1: Try Gemini
+    try {
+      console.log('[GroqAPI] Falling back to Gemini...')
+      const geminiModel = model === GROQ_MODELS.PROFESSOR ? GEMINI_MODELS.PRO : GEMINI_MODELS.FLASH
+      return await callGeminiAPI(messages, geminiModel, {
+        temperature,
+        responseFormat,
+        profile,
+        systemPromptOverride: systemContent
+      })
+    } catch (geminiError) {
+      console.warn('[GroqAPI] Gemini fallback failed:', geminiError.message || geminiError)
+      
+      // Fallback 2: Try Hugging Face
+      try {
+        console.log('[GroqAPI] Falling back to Hugging Face...')
+        const hfModel = model === GROQ_MODELS.PROFESSOR ? HF_MODELS.QWEN : HF_MODELS.HERMES
+        return await callHuggingFaceAPI(messages, hfModel, {
+          temperature,
+          profile,
+          systemPromptOverride: systemContent
+        })
+      } catch (hfError) {
+        console.warn('[GroqAPI] Hugging Face fallback failed:', hfError.message || hfError)
+        
+        // Fallback 3: Try Mistral AI
+        try {
+          console.log('[GroqAPI] Falling back to Mistral...')
+          const mistralModel = model === GROQ_MODELS.PROFESSOR ? MISTRAL_MODELS.LARGE : MISTRAL_MODELS.SMALL
+          return await callMistralAPI(messages, mistralModel, {
+            temperature,
+            responseFormat,
+            profile,
+            systemPromptOverride: systemContent
+          })
+        } catch (mistralError) {
+          console.error('[GroqAPI] All AI fallbacks and providers exhausted!')
+          throw error // Throw original Groq error to retain stacktrace
+        }
+      }
+    }
+  }
 }
 
 /**

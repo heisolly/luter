@@ -33,6 +33,8 @@ export default function MaterialRenderer({
   pendingEquation = '',
   onEquationPlaced,
   onCommentThreadSelect,
+  canvasRefs,
+  onCanvasSave,
 }) {
   if (!material) return null
 
@@ -101,6 +103,8 @@ export default function MaterialRenderer({
           pendingEquation={pendingEquation}
           onEquationPlaced={onEquationPlaced}
           onCommentThreadSelect={onCommentThreadSelect}
+          canvasRefs={canvasRefs}
+          onCanvasSave={onCanvasSave}
         />
       </Suspense>
     </div>

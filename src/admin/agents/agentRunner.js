@@ -10,6 +10,7 @@
 import { supabase } from '../../supabaseClient'
 import { executeTool } from './toolRegistry'
 import { withKeyRotation } from './apiKeyManager'
+import { callGroqAPI } from '../../groqClient'
 
 const MAX_STEPS = 20
 const MAX_CONTEXT_CHARS = 48000 // ~12k tokens safe limit for Groq
@@ -138,31 +139,15 @@ Rules:
     try {
       // ── THINK: Ask Groq to reason and decide next action ──
       const thinkStart = Date.now()
-      const json = await withKeyRotation('groq', async (key) => {
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${key}`,
-          },
-          body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              ...trimConversation(conversationHistory),
-            ],
-            temperature: 0.2,
-            response_format: { type: 'json_object' },
-          }),
-        })
-
-        if (!res.ok) {
-          const err = await res.text()
-          throw new Error(`Groq API error ${res.status}: ${err}`)
+      const json = await callGroqAPI(
+        trimConversation(conversationHistory),
+        'llama-3.3-70b-versatile',
+        {
+          temperature: 0.2,
+          responseFormat: { type: 'json_object' },
+          systemPromptOverride: systemPrompt
         }
-
-        return await res.json()
-      })
+      )
       const raw = json.choices[0]?.message?.content || '{}'
       let parsed
 

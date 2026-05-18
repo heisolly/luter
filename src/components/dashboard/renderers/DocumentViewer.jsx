@@ -73,6 +73,8 @@ export default function DocumentViewer({
   pendingEquation = '',
   onEquationPlaced,
   onCommentThreadSelect,
+  canvasRefs,
+  onCanvasSave,
 }) {
   const { setViewportData, askAI } = useReadingSpace()
   const [viewMode, setViewMode] = useState('visuals')
@@ -244,6 +246,8 @@ export default function DocumentViewer({
                     pendingEquation={pendingEquation}
                     onEquationPlaced={onEquationPlaced}
                     onCommentThreadSelect={onCommentThreadSelect}
+                    canvasRefs={canvasRefs}
+                    onCanvasSave={onCanvasSave}
                  />
                </Worker>
             </div>

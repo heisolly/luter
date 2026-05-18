@@ -5,7 +5,7 @@ import { pauseAgent, resumeAgent } from '../agents/agentRunner'
 import {
   Robot, Plus, Play, Pause, Trash, Copy, CircleNotch,
   ArrowsClockwise, Warning, CheckCircle, Clock, Lightning,
-  Eye, Factory, MonitorPlay,
+  Eye, Factory, MonitorPlay, MagnifyingGlass,
 } from '@phosphor-icons/react'
 
 const STATUS_CONFIG = {
@@ -29,6 +29,17 @@ export default function AdminAgents() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [actionLoading, setActionLoading] = useState(null)
+  const [q, setQ] = useState('')
+
+  const filteredAgents = agents.filter(agent => {
+    const term = q.toLowerCase().trim()
+    if (!term) return true
+    return (
+      agent.name?.toLowerCase().includes(term) ||
+      agent.type?.toLowerCase().includes(term) ||
+      agent.instruction?.toLowerCase().includes(term)
+    )
+  })
 
   const load = async () => {
     setLoading(true)
@@ -112,24 +123,40 @@ export default function AdminAgents() {
         ))}
       </div>
 
+      <div style={{ position: 'relative', marginBottom: 20 }}>
+        <MagnifyingGlass size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+        <input
+          type="text"
+          className="adm-input"
+          placeholder="Search agents by name, type, instruction..."
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          style={{ width: '100%', paddingLeft: 36, height: 42 }}
+        />
+      </div>
+
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
           <CircleNotch className="animate-spin" size={36} color="#7a12cc" />
         </div>
-      ) : agents.length === 0 ? (
+      ) : filteredAgents.length === 0 ? (
         <div className="adm-card" style={{ padding: 80, textAlign: 'center' }}>
           <Robot size={64} color="#e2e8f0" style={{ marginBottom: 16 }} />
-          <h3 style={{ fontSize: 20, fontWeight: 800, color: '#1e293b', marginBottom: 8 }}>No agents yet</h3>
+          <h3 style={{ fontSize: 20, fontWeight: 800, color: '#1e293b', marginBottom: 8 }}>
+            {q ? 'No matching agents' : 'No agents yet'}
+          </h3>
           <p style={{ color: '#94a3b8', marginBottom: 24 }}>
-            Create your first agent to start automating your admin workflow.
+            {q ? 'Try updating your search query.' : 'Create your first agent to start automating your admin workflow.'}
           </p>
-          <Link to="/agents/new" className="adm-btn adm-btn--primary">
-            <Plus size={16} /> Create First Agent
-          </Link>
+          {!q && (
+            <Link to="/agents/new" className="adm-btn adm-btn--primary">
+              <Plus size={16} /> Create First Agent
+            </Link>
+          )}
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
-          {agents.map(agent => {
+          {filteredAgents.map(agent => {
             const sc = STATUS_CONFIG[agent.status] || STATUS_CONFIG.idle
             const taskCount = agent.agent_tasks?.[0]?.count ?? 0
             return (

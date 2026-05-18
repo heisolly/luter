@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { Factory, Sparkle, CircleNotch, CheckCircle, ArrowRight } from '@phosphor-icons/react'
 
+import { callGroqAPI } from '../../groqClient'
+
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY
 
 const ALL_TOOLS = [
@@ -36,17 +38,13 @@ export default function AdminAgentFactory() {
     setPreview(null)
 
     try {
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ_KEY}` },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+      const response = await callGroqAPI(
+        [{ role: 'user', content: `Build an agent for this task: ${prompt}` }],
+        'llama-3.3-70b-versatile',
+        {
           temperature: 0.3,
-          response_format: { type: 'json_object' },
-          messages: [
-            {
-              role: 'system',
-              content: `You are an Agent Factory. Given a description of an agent to build, generate a complete agent configuration.
+          responseFormat: { type: 'json_object' },
+          systemPromptOverride: `You are an Agent Factory. Given a description of an agent to build, generate a complete agent configuration.
 
 Available tools: ${ALL_TOOLS.join(', ')}
 
@@ -62,15 +60,10 @@ Rules:
 - Only include tools from the allowed list
 - The instruction must be detailed with numbered steps
 - type must be one of: curriculum, content, web, platform, meta`
-            },
-            { role: 'user', content: `Build an agent for this task: ${prompt}` }
-          ],
-        }),
-      })
+        }
+      )
 
-      if (!res.ok) throw new Error(`Groq error: ${res.status}`)
-      const json = await res.json()
-      const parsed = JSON.parse(json.choices[0].message.content)
+      const parsed = JSON.parse(response.choices[0].message.content)
       setPreview(parsed)
     } catch (e) {
       setError(e.message)
