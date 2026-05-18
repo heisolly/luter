@@ -1849,12 +1849,12 @@ function WorkstationContent() {
         flexDirection: isMobile ? 'column' : 'row',
         background: '#F9FAFB',
         overflow: 'hidden',
-        padding: '12px',
+        padding: '0',
         gap: 0,
         flex: 1,
         height: isMobile ? 'auto' : 'calc(100vh - 64px)',
         position: 'relative',
-        paddingBottom: isMobile ? 'calc(84px + env(safe-area-inset-bottom, 0px))' : '12px'
+        paddingBottom: isMobile ? 'calc(84px + env(safe-area-inset-bottom, 0px))' : '0'
       }}>
         {/* Main Workspace Area - Center Zone */}
         {/* On mobile: show for 'content', 'summary', 'quiz', 'board' tabs. Hide for side panel tabs. */}
@@ -1864,12 +1864,12 @@ function WorkstationContent() {
             : 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          margin: '0',
+          margin: isMobile ? '0' : '12px 0 12px 12px',
           borderRadius: '20px',
           border: '1px solid #E5E7EB',
           background: 'white',
           position: 'relative',
-          height: isMobile ? 'auto' : '100%',
+          height: isMobile ? 'auto' : 'calc(100% - 24px)',
           flex: 1,
           minWidth: 0,
           zIndex: 1
@@ -2193,12 +2193,12 @@ function WorkstationContent() {
 
                 {/* Inner scrollable document area */}
                 <div style={{
-                  background: '#F9FAFB',
+                  background: '#EFEFEF',
                   flex: 1,
                   overflowY: 'auto',
                   overflowX: 'auto',
                   borderRadius: '0 0 20px 20px',
-                  padding: '24px 36px 124px 36px'
+                  padding: '24px 32px 120px 32px'
                 }}>
                   <MaterialRenderer
                     key={selectedMaterial.id}
@@ -2333,13 +2333,13 @@ function WorkstationContent() {
                 ? (['content', 'summary', 'quiz', 'board'].includes(activeTab) ? 'none' : 'flex')
                 : 'flex',
               width: isMobile ? '100%' : `${panelWidth}px`,
-              margin: '0',
+              margin: isMobile ? '0' : '12px 12px 12px 0',
               borderRadius: '20px',
               border: '1px solid #E5E7EB',
               background: 'white',
               overflow: 'hidden',
               flexDirection: 'column',
-              height: isMobile ? 'calc(100dvh - 144px - env(safe-area-inset-bottom, 0px))' : 'calc(100vh - 64px - 24px)',
+              height: isMobile ? 'calc(100dvh - 144px - env(safe-area-inset-bottom, 0px))' : 'calc(100% - 24px)',
               minHeight: 0,
               position: 'relative',
               flexShrink: 0
