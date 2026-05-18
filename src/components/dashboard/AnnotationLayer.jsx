@@ -1,8 +1,11 @@
-import { Excalidraw } from "@excalidraw/excalidraw";
-import "@excalidraw/excalidraw/index.css";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "../../supabaseClient";
 
+/**
+ * AnnotationLayer — Lightweight HTML5 canvas drawing overlay per PDF page.
+ * No Excalidraw dependency. Supports pen, eraser, clear.
+ * pointerEvents: none when !isActive so document scrolls/selects normally.
+ */
 export default function AnnotationLayer({
   pageNum,
   isActive,
@@ -10,184 +13,193 @@ export default function AnnotationLayer({
   fileId,
   userId,
   readOnly = false,
+  color = "#7C3AED",
+  strokeWidth = 4,
+  isEraser = false,
   onAPIReady,
-  // Liveblocks (only in group/teacher sessions)
-  liveblocksStorage = null,
-  broadcastStroke = null,
-  onStrokeReceived = null,
 }) {
-  const [excalidrawAPI, setExcalidrawAPI] = useState(null);
-  const [elements, setElements] = useState([]);
+  const canvasRef = useRef(null);
+  const drawing = useRef(false);
+  const lastPos = useRef({ x: 0, y: 0 });
   const saveTimeout = useRef(null);
-  const lastSavedElementsRef = useRef("");
 
-  // LOAD saved annotations on mount
+  // --- Load saved annotations ---
   useEffect(() => {
-    const loadSaved = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !userId || !fileId) return;
+
+    const load = async () => {
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from("annotations")
           .select("data")
           .eq("user_id", userId)
           .eq("file_id", fileId)
           .eq("page_num", pageNum)
-          .eq("type", "excalidraw")
+          .eq("type", "canvas")
           .maybeSingle();
 
-        if (error) {
-          console.warn("Error loading annotations:", error);
-          return;
-        }
-
-        if (data?.data?.elements) {
-          const loadedElements = data.data.elements;
-          setElements(loadedElements);
-          lastSavedElementsRef.current = JSON.stringify(loadedElements);
-          excalidrawAPI?.updateScene({
-            elements: loadedElements,
-          });
+        if (data?.data?.dataUrl) {
+          const ctx = canvas.getContext("2d");
+          const img = new Image();
+          img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          };
+          img.src = data.data.dataUrl;
         }
       } catch (err) {
-        console.warn("Failed loading saved annotations:", err);
+        console.warn("Failed loading annotation:", err);
       }
     };
+    load();
+  }, [userId, fileId, pageNum]);
 
-    if (excalidrawAPI && userId && fileId) {
-      loadSaved();
-    }
-  }, [excalidrawAPI, userId, fileId, pageNum]);
-
-  // Pass excalidrawAPI up to parent once initialized
-  useEffect(() => {
-    if (excalidrawAPI && onAPIReady) {
-      onAPIReady(excalidrawAPI);
-    }
-  }, [excalidrawAPI, onAPIReady]);
-
-  // SAVE to Supabase (debounced 2 seconds)
-  const saveToSupabase = useCallback(
-    async (elementsToSave) => {
-      if (!userId || !fileId) return;
-
+  // --- Save to Supabase (debounced) ---
+  const save = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !userId || !fileId) return;
+    clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(async () => {
       try {
+        const dataUrl = canvas.toDataURL("image/png");
         await supabase.from("annotations").upsert({
           user_id: userId,
           file_id: fileId,
           session_id: sessionId || null,
           page_num: pageNum,
-          type: "excalidraw",
-          data: { elements: elementsToSave },
+          type: "canvas",
+          data: { dataUrl },
           updated_at: new Date().toISOString(),
-        }, {
-          onConflict: "user_id,file_id,page_num,type"
-        });
+        }, { onConflict: "user_id,file_id,page_num,type" });
       } catch (err) {
-        console.warn("Failed saving annotations to Supabase:", err);
+        console.warn("Failed saving annotation:", err);
       }
-    },
-    [userId, fileId, sessionId, pageNum]
-  );
+    }, 1500);
+  }, [userId, fileId, sessionId, pageNum]);
 
-  // ON CHANGE — save + broadcast
-  const handleChange = useCallback(
-    (newElements, appState) => {
-      // Avoid infinite rendering loops by ignoring unchanged elements
-      const elementsJson = JSON.stringify(newElements);
-      if (elementsJson === lastSavedElementsRef.current) return;
-      lastSavedElementsRef.current = elementsJson;
-
-      setElements(newElements);
-
-      // Debounced save to Supabase
-      if (saveTimeout.current) {
-        clearTimeout(saveTimeout.current);
-      }
-      saveTimeout.current = setTimeout(() => {
-        saveToSupabase(newElements);
-      }, 2000);
-
-      // Broadcast to Liveblocks (group sessions)
-      if (broadcastStroke && newElements.length > 0) {
-        broadcastStroke({
-          type: "ANNOTATION_UPDATE",
-          page: pageNum,
-          elements: newElements,
-        });
-      }
-    },
-    [saveToSupabase, broadcastStroke, pageNum]
-  );
-
-  // RECEIVE strokes from other users (Liveblocks)
+  // --- Expose a clear() API to parent via onAPIReady ---
   useEffect(() => {
-    if (!onStrokeReceived || !excalidrawAPI) return;
-
-    const unsubscribe = onStrokeReceived((event) => {
-      if (event.type !== "ANNOTATION_UPDATE") return;
-      if (event.page !== pageNum) return;
-
-      const elementsJson = JSON.stringify(event.elements);
-      if (elementsJson === lastSavedElementsRef.current) return;
-      lastSavedElementsRef.current = elementsJson;
-
-      excalidrawAPI.updateScene({
-        elements: event.elements,
-      });
+    if (!onAPIReady) return;
+    onAPIReady({
+      clear: () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        save();
+      },
     });
+  }, [onAPIReady, save]);
 
-    return unsubscribe;
-  }, [onStrokeReceived, excalidrawAPI, pageNum]);
+  // --- Drawing event handlers ---
+  const getPos = (e, canvas) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
+    };
+  };
+
+  const startDraw = useCallback((e) => {
+    if (!isActive || readOnly) return;
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    drawing.current = true;
+    lastPos.current = getPos(e, canvas);
+  }, [isActive, readOnly]);
+
+  const draw = useCallback((e) => {
+    if (!drawing.current || !isActive || readOnly) return;
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const pos = getPos(e, canvas);
+
+    ctx.beginPath();
+    ctx.moveTo(lastPos.current.x, lastPos.current.y);
+    ctx.lineTo(pos.x, pos.y);
+
+    if (isEraser) {
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.strokeStyle = "rgba(0,0,0,1)";
+      ctx.lineWidth = (strokeWidth || 4) * 4;
+    } else {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.strokeStyle = color || "#7C3AED";
+      ctx.lineWidth = strokeWidth || 4;
+    }
+
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
+    lastPos.current = pos;
+  }, [isActive, readOnly, isEraser, color, strokeWidth]);
+
+  const endDraw = useCallback(() => {
+    if (!drawing.current) return;
+    drawing.current = false;
+    save();
+  }, [save]);
+
+  // --- Resize canvas to match its CSS display size ---
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const observer = new ResizeObserver(() => {
+      // Save current drawing
+      const dataUrl = canvas.width > 0 && canvas.height > 0
+        ? canvas.toDataURL()
+        : null;
+
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+
+      if (dataUrl) {
+        const img = new Image();
+        img.onload = () => {
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        };
+        img.src = dataUrl;
+      }
+    });
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div style={{
-      position: "absolute",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      zIndex: 10,
-      // Only receive pointer events when annotating
-      pointerEvents: isActive ? "auto" : "none",
-      // Make background transparent
-      borderRadius: "10px",
-      overflow: "hidden",
-      background: "transparent",
-    }}>
-      <Excalidraw
-        ref={(api) => setExcalidrawAPI(api)}
-        initialData={{
-          elements,
-          appState: {
-            viewBackgroundColor: "transparent",
-            currentItemStrokeColor: "#7C3AED",
-            currentItemFillStyle: "solid",
-            currentItemStrokeWidth: 2,
-            theme: "light",
-          }
-        }}
-        onChange={handleChange}
-        // Read only when not annotating
-        viewModeEnabled={!isActive || readOnly}
-        // Hide Excalidraw UI — use our own toolbar
-        UIOptions={{
-          canvasActions: {
-            export: false,
-            loadScene: false,
-            saveAsImage: false,
-            saveToActiveFile: false,
-            changeViewBackgroundColor: false,
-            clearCanvas: false,
-            theme: false,
-          },
-          tools: {
-            image: false,
-          },
-        }}
-        // Transparent background
-        style={{
-          background: "transparent",
-        }}
-      />
-    </div>
+    <canvas
+      ref={canvasRef}
+      onMouseDown={startDraw}
+      onMouseMove={draw}
+      onMouseUp={endDraw}
+      onMouseLeave={endDraw}
+      onTouchStart={startDraw}
+      onTouchMove={draw}
+      onTouchEnd={endDraw}
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        zIndex: 10,
+        pointerEvents: isActive && !readOnly ? "auto" : "none",
+        cursor: isActive
+          ? isEraser
+            ? "cell"
+            : "crosshair"
+          : "default",
+        touchAction: "none",
+        background: "transparent",
+      }}
+    />
   );
 }

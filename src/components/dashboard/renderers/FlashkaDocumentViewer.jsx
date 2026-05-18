@@ -258,7 +258,7 @@ export default function FlashkaDocumentViewer({
         {props.textLayer.children}
         {props.annotationLayer.children}
 
-        {/* Excalidraw overlay */}
+        {/* Canvas annotation overlay */}
         <AnnotationLayer
           pageNum={pageNum}
           isActive={annotateMode}
@@ -266,15 +266,13 @@ export default function FlashkaDocumentViewer({
           fileId={material?.id || ''}
           userId={userId}
           readOnly={false}
+          color={annotationColor}
+          strokeWidth={annotationStrokeSize}
+          isEraser={isEraserMode}
           onAPIReady={(api) => {
             if (canvasRefs && canvasRefs.current) {
               canvasRefs.current[pageNum] = api
             }
-          }}
-          broadcastStroke={broadcast}
-          onStrokeReceived={(cb) => {
-            const unsubscribe = useEventListener(({ event }) => cb(event));
-            return unsubscribe;
           }}
         />
 

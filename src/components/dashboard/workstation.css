@@ -1,15 +1,33 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@100..900&family=Varela+Round&display=swap');
 @import './highlight-styles.css';
 
-/* Excalidraw custom overrides for clean annotation layer overlays */
-.excalidraw .layer-ui__wrapper { display: none !important; }
-.excalidraw .App-toolbar { display: none !important; }
-.excalidraw .App-bottom-bar { display: none !important; }
-.excalidraw .App-menu { display: none !important; }
-.excalidraw footer { display: none !important; }
-.excalidraw .FixedSideContainer { display: none !important; }
-.excalidraw canvas { background: transparent !important; }
-.excalidraw .interactive { cursor: crosshair !important; }
+/* Excalidraw custom overrides — scoped ONLY to annotation overlay layers */
+/* (The Board whiteboard must NOT be inside .annotation-canvas-layer) */
+.annotation-canvas-layer .excalidraw .layer-ui__wrapper { display: none !important; }
+.annotation-canvas-layer .excalidraw .App-toolbar { display: none !important; }
+.annotation-canvas-layer .excalidraw .App-bottom-bar { display: none !important; }
+.annotation-canvas-layer .excalidraw .App-menu { display: none !important; }
+.annotation-canvas-layer .excalidraw footer { display: none !important; }
+.annotation-canvas-layer .excalidraw .FixedSideContainer { display: none !important; }
+.annotation-canvas-layer .excalidraw canvas { background: transparent !important; }
+.annotation-canvas-layer .excalidraw .interactive { cursor: crosshair !important; }
+
+/* Luter Board whiteboard — full UI visible */
+.luter-whiteboard-root {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.luter-whiteboard-root > .excalidraw-wrapper,
+.luter-whiteboard-root > div {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
 
 :root {
   --luter-bg: #FCFCFD;

@@ -218,9 +218,9 @@ const getMaterialChipMeta = (material) => {
 function WorkstationContent() {
   const { t } = useTranslation(['workspace'])
   const navigate = useNavigate()
-  const { courseId } = useParams()
+  const { courseId, materialId: materialIdParam2 } = useParams()
   const [searchParams] = useSearchParams()
-  const materialIdParam = searchParams.get('materialId')
+  const materialIdParam = searchParams.get('materialId') || materialIdParam2
   const [courseInfo, setCourseInfo] = useState(null)
   const [sessionMaterials, setSessionMaterials] = useState([])
   const { user, isMobile, sidebarCollapsed, setSidebarCollapsed, profile, mobileSidebarOpen, setMobileSidebarOpen } = useOutletContext() || {}
@@ -2057,7 +2057,15 @@ function WorkstationContent() {
           </div>
 
           {/* 4. Whiteboard View */}
-          <div style={{ flex: 1, display: activeTab === 'board' ? 'block' : 'none', height: '100%', background: 'white', position: 'relative' }}>
+          <div style={{
+            flex: 1,
+            display: activeTab === 'board' ? 'flex' : 'none',
+            flexDirection: 'column',
+            height: '100%',
+            minHeight: 0,
+            background: 'white',
+            position: 'relative',
+          }}>
             <Whiteboard roomId={roomId} />
           </div>
 
@@ -2155,204 +2163,102 @@ function WorkstationContent() {
                       {(activeWorkspaceTool === 'annotate' || activeStudyTool === 'annotate') && (
                         <motion.div
                           className="ws-annotate-subtoolbar"
-                          initial={{ opacity: 0, y: 15 }}
+                          initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 15 }}
+                          exit={{ opacity: 0, y: 10 }}
                           style={{
                             position: 'absolute',
-                            bottom: 'calc(100% + 14px)',
+                            bottom: 'calc(100% + 12px)',
                             left: '0px',
-                            transform: 'none',
                             zIndex: 140,
-                            borderRadius: '24px',
-                            padding: '10px 16px',
-                            gap: '12px',
-                            background: 'rgba(255, 255, 255, 0.90)',
+                            borderRadius: '20px',
+                            padding: '8px 14px',
+                            gap: '10px',
+                            background: 'rgba(255,255,255,0.96)',
                             backdropFilter: 'blur(16px)',
                             WebkitBackdropFilter: 'blur(16px)',
-                            border: '1px solid rgba(139, 92, 246, 0.15)',
-                            boxShadow: '0 20px 40px rgba(139, 92, 246, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05)',
+                            border: '1px solid #E5E7EB',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
                             display: 'flex',
                             alignItems: 'center',
                             whiteSpace: 'nowrap'
                           }}
                         >
-                          {/* Draw Switcher */}
-                          <div style={{ background: '#F3F4F6', borderRadius: '16px', padding: '3px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                            {[
-                              { id: 'draw', label: 'Pen', icon: Pen },
-                              { id: 'line', label: 'Line', icon: Minus },
-                              { id: 'arrow', label: 'Arrow', icon: ArrowUpRight },
-                              { id: 'text', label: 'Text', icon: TextT },
-                              { id: 'rect', label: 'Shape', icon: Square }
-                            ].map((tool) => {
-                              const ToolIcon = tool.icon;
-                              const isSelected = annotationToolType === tool.id && !isEraserMode;
-                              return (
-                                <button
-                                  key={tool.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setAnnotationToolType(tool.id);
-                                    setDrawMode(tool.id === 'draw' ? 'pen' : tool.id);
-                                    setIsEraserMode(false);
-                                  }}
-                                  title={tool.label}
-                                  style={{
-                                    width: 'auto',
-                                    minWidth: 'unset',
-                                    padding: '6px 12px',
-                                    gap: '6px',
-                                    borderRadius: '12px',
-                                    border: 'none',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    cursor: 'pointer',
-                                    background: isSelected ? '#7C3AED' : 'transparent',
-                                    color: isSelected ? '#FFFFFF' : '#4B5563',
-                                    transition: 'all 150ms ease',
-                                    boxShadow: isSelected ? '0 4px 12px rgba(124, 58, 237, 0.25)' : 'none',
-                                  }}
-                                >
-                                  <ToolIcon size={14} weight={isSelected ? 'fill' : 'bold'} />
-                                  <span style={{ fontSize: '12px', fontWeight: 800, fontFamily: WORKSTATION_FONT_STACK }}>{tool.label}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
+                          {/* Colors */}
+                          {['#1F2937','#7C3AED','#EF4444','#10B981','#F59E0B'].map((c) => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => setAnnotationColor(c)}
+                              style={{
+                                width: 20, height: 20, borderRadius: '50%',
+                                background: c, border: 'none', cursor: 'pointer',
+                                transform: annotationColor === c ? 'scale(1.3)' : 'scale(1)',
+                                boxShadow: annotationColor === c ? `0 0 0 2px white, 0 0 0 3.5px ${c}` : 'none',
+                                transition: 'all 150ms ease',
+                              }}
+                            />
+                          ))}
 
-                          <div style={{ width: '1px', height: '24px', background: '#E5E7EB' }} />
+                          <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
 
-                          {/* Color Dots */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {['#111827', '#7C3AED', '#EF4444', '#10B981', '#F59E0B', '#3B82F6'].map((color) => (
-                              <button
-                                key={color}
-                                type="button"
-                                onClick={() => setAnnotationColor(color)}
-                                title={`Set color ${color}`}
-                                style={{
-                                  width: '18px',
-                                  height: '18px',
-                                  borderRadius: '50%',
-                                  background: color,
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  transition: 'all 150ms ease',
-                                  transform: annotationColor === color ? 'scale(1.2)' : 'scale(1)',
-                                  boxShadow: annotationColor === color ? `0 0 0 2px white, 0 0 0 4px ${color}` : 'none'
-                                }}
-                              />
-                            ))}
-                          </div>
+                          {/* Stroke size */}
+                          {[3, 7].map((size) => (
+                            <button
+                              key={size}
+                              type="button"
+                              onClick={() => { setAnnotationStrokeSize(size); setIsEraserMode(false); }}
+                              title={`${size}px`}
+                              style={{
+                                width: 28, height: 28, borderRadius: '50%',
+                                border: annotationStrokeSize === size && !isEraserMode ? '2px solid #7C3AED' : '1.5px solid #E5E7EB',
+                                background: 'transparent',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer', transition: 'all 150ms ease',
+                              }}
+                            >
+                              <span style={{
+                                width: size + 2, height: size + 2, borderRadius: '50%',
+                                background: annotationStrokeSize === size && !isEraserMode ? '#7C3AED' : '#9CA3AF',
+                                display: 'block', transition: 'all 150ms ease'
+                              }} />
+                            </button>
+                          ))}
 
-                          <div style={{ width: '1px', height: '24px', background: '#E5E7EB' }} />
-
-                          {/* Stroke Sizes */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {[3, 5, 8].map((size) => {
-                              const isSelected = annotationStrokeSize === size;
-                              return (
-                                <button
-                                  key={size}
-                                  type="button"
-                                  onClick={() => {
-                                    setAnnotationStrokeSize(size);
-                                    setStrokeSize(size);
-                                    setIsEraserMode(false);
-                                  }}
-                                  title={`${size}px stroke`}
-                                  style={{
-                                    width: '24px',
-                                    height: '24px',
-                                    borderRadius: '50%',
-                                    border: isSelected ? '2px solid #7C3AED' : '1px solid #E5E7EB',
-                                    background: 'transparent',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    cursor: 'pointer',
-                                    transition: 'all 150ms ease'
-                                  }}
-                                >
-                                  <span style={{
-                                    width: `${size}px`,
-                                    height: `${size}px`,
-                                    borderRadius: '50%',
-                                    background: isSelected ? '#7C3AED' : '#4B5563',
-                                    transition: 'all 150ms ease'
-                                  }} />
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          <div style={{ width: '1px', height: '24px', background: '#E5E7EB' }} />
-
-                          {/* LaTeX Formula */}
-                          <button
-                            type="button"
-                            onClick={() => setShowEquationModal(true)}
-                            title="Insert equation"
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              color: '#4B5563',
-                              cursor: 'pointer',
-                              padding: '8px',
-                              borderRadius: '12px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 150ms ease'
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                          >
-                            <PhosphorFunction size={16} weight="bold" />
-                          </button>
+                          <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
 
                           {/* Eraser */}
                           <button
                             type="button"
-                            onClick={() => setIsEraserMode((value) => !value)}
+                            onClick={() => setIsEraserMode(v => !v)}
                             title="Eraser"
                             style={{
-                              background: isEraserMode ? '#FEF2F2' : 'transparent',
-                              border: 'none',
-                              color: isEraserMode ? '#EF4444' : '#4B5563',
-                              cursor: 'pointer',
-                              padding: '8px',
-                              borderRadius: '12px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 150ms ease'
+                              width: 32, height: 32, borderRadius: '10px', border: 'none',
+                              background: isEraserMode ? '#FEE2E2' : 'transparent',
+                              color: isEraserMode ? '#EF4444' : '#6B7280',
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'all 150ms ease',
                             }}
-                            onMouseEnter={e => { if (!isEraserMode) e.currentTarget.style.background = '#F3F4F6' }}
-                            onMouseLeave={e => { if (!isEraserMode) e.currentTarget.style.background = 'transparent' }}
                           >
                             <Eraser size={16} weight="bold" />
                           </button>
 
-                          {/* Trash / Clear */}
+                          {/* Clear */}
                           <button
                             type="button"
-                            onClick={() => window.dispatchEvent(new CustomEvent('luter-clear-annotations'))}
-                            title="Clear all annotations on this page"
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              color: '#EF4444',
-                              cursor: 'pointer',
-                              padding: '8px',
-                              borderRadius: '12px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 150ms ease'
+                            onClick={() => {
+                              const page = viewportData?.currentPage || 1;
+                              const api = canvasRefs.current[page];
+                              if (api?.clear) api.clear();
                             }}
-                            onMouseEnter={e => e.currentTarget.style.background = '#FEF2F2'}
+                            title="Clear page annotations"
+                            style={{
+                              width: 32, height: 32, borderRadius: '10px', border: 'none',
+                              background: 'transparent', color: '#EF4444',
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'all 150ms ease',
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#FEE2E2'}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                           >
                             <Trash size={16} weight="bold" />

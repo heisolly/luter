@@ -176,10 +176,11 @@ export default function Dashboard() {
             }
           })
           
-          // Absolute safety timeout
+          // Absolute safety timeout - redirect if no user
           setTimeout(() => {
             if (loading && !user) {
-              setLoading(false)
+              const currentPath = window.location.pathname + window.location.search
+              window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(currentPath)}`
             }
           }, 4000)
         }
@@ -235,6 +236,13 @@ export default function Dashboard() {
 
   if (loading) {
     return <LuterPageLoader message="Resuming your session..." minHeight="100vh" />
+  }
+
+  // Redirect if no user after loading
+  if (!user) {
+    const currentPath = window.location.pathname + window.location.search
+    window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(currentPath)}`
+    return null
   }
 
   return (
