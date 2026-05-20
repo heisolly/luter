@@ -30,6 +30,7 @@ const FloatingDock = ({ user, isMobile }) => {
     createSession, 
     setActiveSession,
     deleteSession,
+    leaveSession,
     updateLastAccessed
   } = useSessionStore();
   const [isUploading, setIsUploading] = useState(false);
@@ -115,8 +116,20 @@ const FloatingDock = ({ user, isMobile }) => {
     }
   };
 
-  const handleDeleteSession = async (sessionId) => {
-    await deleteSession(sessionId);
+  const handleDeleteSession = async (sessionId, e) => {
+    if (e) e.stopPropagation();
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+
+    if (session.user_id === user?.id) {
+      if (window.confirm('Are you sure you want to delete this session?')) {
+        await deleteSession(sessionId);
+      }
+    } else {
+      if (window.confirm('Are you sure you want to leave this shared session?')) {
+        await leaveSession(sessionId);
+      }
+    }
   };
 
   const handleOpenSession = (session) => {
@@ -243,7 +256,7 @@ const FloatingDock = ({ user, isMobile }) => {
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteSession(session.id);
+                        handleDeleteSession(session.id, e);
                       }} 
                       className="orb-item-remove"
                     >

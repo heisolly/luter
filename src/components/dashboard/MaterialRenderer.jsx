@@ -24,6 +24,7 @@ export default function MaterialRenderer({
   onScrollUpdate,
   onMaterialUpdate,
   annotateMode = false,
+  highlightMode = false,
   commentMode = false,
   focusModeTool = false,
   annotationColor = '#7C3AED',
@@ -35,6 +36,15 @@ export default function MaterialRenderer({
   onCommentThreadSelect,
   canvasRefs,
   onCanvasSave,
+  scrollContainerRef,
+  highlights,
+  initCanvas,
+  startDrawing,
+  draw,
+  stopDrawing,
+  drawMode,
+  loadHighlights,
+  setHighlightToolbox,
 }) {
   if (!material) return null
 
@@ -94,6 +104,7 @@ export default function MaterialRenderer({
           setViewportData={setViewportData}
           onMaterialUpdate={onMaterialUpdate}
           annotateMode={annotateMode}
+          highlightMode={highlightMode}
           commentMode={commentMode}
           focusModeTool={focusModeTool}
           annotationColor={annotationColor}
@@ -105,6 +116,15 @@ export default function MaterialRenderer({
           onCommentThreadSelect={onCommentThreadSelect}
           canvasRefs={canvasRefs}
           onCanvasSave={onCanvasSave}
+          scrollContainerRef={scrollContainerRef}
+          highlights={highlights}
+          initCanvas={initCanvas}
+          startDrawing={startDrawing}
+          draw={draw}
+          stopDrawing={stopDrawing}
+          drawMode={drawMode}
+          loadHighlights={loadHighlights}
+          setHighlightToolbox={setHighlightToolbox}
         />
       </Suspense>
     </div>

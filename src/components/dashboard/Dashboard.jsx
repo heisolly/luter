@@ -72,6 +72,32 @@ export default function Dashboard() {
     }
   }, [location.pathname])
 
+  // Paywall check for non-paid/free users
+  useEffect(() => {
+    if (!loading && user) {
+      const allowedPaths = [
+        '/dashboard/pricing',
+        '/dashboard/upgrade',
+        '/dashboard/payment/success'
+      ]
+      const isAllowedPath = allowedPaths.includes(location.pathname)
+      
+      const hasAccess = 
+        profile?.role === 'admin' || 
+        profile?.is_premium === true || 
+        (
+          (profile?.subscription_tier === 'pro' || profile?.subscription_tier === 'premium') &&
+          (!profile?.subscription_expires_at || new Date(profile.subscription_expires_at) > new Date())
+        )
+      
+      if (!hasAccess && !isAllowedPath) {
+        console.log('🔒 Paywall Redirect: User lacks active premium subscription. Redirecting to pricing.')
+        navigate('/dashboard/pricing', { replace: true })
+      }
+    }
+  }, [loading, user, profile, location.pathname, navigate])
+
+
   useEffect(() => {
     let hb
     let channel
@@ -101,7 +127,7 @@ export default function Dashboard() {
             try {
               const { data, error } = await supabase
                 .from('profiles')
-                .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, completed_tours')
+                .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium, completed_tours')
                 .eq('id', session.user.id)
                 .maybeSingle()
               
@@ -123,7 +149,7 @@ export default function Dashboard() {
                   // Retry profile fetch once
                   const { data: retryP } = await supabase
                     .from('profiles')
-                    .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, completed_tours')
+                    .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium, completed_tours')
                     .eq('id', refreshedSession.user.id)
                     .maybeSingle()
                   if (retryP) setProfile(retryP)
@@ -417,7 +443,7 @@ export default function Dashboard() {
         </div>
 
         {/* Floating sidebar toggle when closed on desktop */}
-        {!isMobile && sidebarCollapsed && !isWorkstation && (
+        {!isMobile && sidebarCollapsed && !isWorkstation && !location.pathname.includes('/pricing') && (
           <button
             onClick={() => setSidebarCollapsed(false)}
             className="dsb-floating-toggle"

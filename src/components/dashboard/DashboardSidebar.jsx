@@ -449,7 +449,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
             <button 
               id="nav-upgrade"
               className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} 
-              onClick={() => go('/store')}
+              onClick={() => go('/upgrade')}
               style={{
                 background: collapsed ? 'none' : 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(124, 58, 237, 0.06) 100%)',
                 border: collapsed ? '1px solid #8b5cf6' : '1px solid rgba(139, 92, 246, 0.2)',

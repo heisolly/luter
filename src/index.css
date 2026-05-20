@@ -1383,15 +1383,15 @@ h2, h3, h4 {
   animation: spin-slow 8s linear infinite;
 }
 
-/* Hide Liveblocks Watermark - Aggressive */
-[class*="lb-watermark"],
-[class*="lb-badge"],
-[class*="liveblocks-badge"],
-[id*="liveblocks-watermark"],
-[id*="liveblocks-toast"],
-[data-liveblocks-logo],
-div > a[href*="liveblocks.io"],
-a[href*="liveblocks.io"] {
+/* Hide Liveblocks Watermark outside of the workspace */
+body:not(.in-workspace) [class*="lb-watermark"],
+body:not(.in-workspace) [class*="lb-badge"],
+body:not(.in-workspace) [class*="liveblocks-badge"],
+body:not(.in-workspace) [id*="liveblocks-watermark"],
+body:not(.in-workspace) [id*="liveblocks-toast"],
+body:not(.in-workspace) [data-liveblocks-logo],
+body:not(.in-workspace) div > a[href*="liveblocks.io"],
+body:not(.in-workspace) a[href*="liveblocks.io"] {
   display: none !important;
   opacity: 0 !important;
   visibility: hidden !important;

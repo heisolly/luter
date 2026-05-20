@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { RiMagicFill as Sparkles, RiLoader4Line as Loader2, RiDownloadFill as Download, RiShareFill as Share2, RiFileTextFill as FileText } from 'react-icons/ri'
+import { Sparkle, Loader2, FileText } from '@phosphor-icons/react'
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS } from '../../groqClient'
 import ReactMarkdown from 'react-markdown'
-import LuterLogo from '../shared/LuterLogo'
 
 export default function AISummaryPage() {
   const { user } = useOutletContext()
@@ -40,62 +39,70 @@ export default function AISummaryPage() {
   }
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'Outfit' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-        <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#1A3A32', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Sparkles color="#7a12cc" size={32} /> AI Quick Summary
-          </h1>
-          <p style={{ color: '#4A5568' }}>Get the core insights from any document instantly.</p>
-        </div>
-        <LuterLogo size={40} showText={false} />
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#F8FAFC' }}>
+      {/* Header */}
+      <div style={{ padding: '24px 32px', background: 'white', borderBottom: '1px solid #E2E8F0' }}>
+        <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#1A102D', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Sparkle weight="fill" color="#6D28D9" size={24} /> AI Summary
+        </h1>
+        <p style={{ fontSize: '13px', color: '#64748B', margin: '4px 0 0 0' }}>Generate concise summaries from your materials</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '24px' }}>
-        <div style={{ background: 'white', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', height: 'fit-content' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#4A5568', marginBottom: '16px', textTransform: 'uppercase' }}>Materials</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {/* Main Content */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        {/* Sidebar - Materials List */}
+        <div style={{ width: '300px', background: 'white', borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '20px', borderBottom: '1px solid #F1F5F9' }}>
+            <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Materials</h3>
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
             {materials.map(m => (
               <button 
                 key={m.id}
                 onClick={() => setSelectedMaterial(m)}
                 style={{ 
-                  textAlign: 'left', padding: '12px', borderRadius: '10px', border: '1px solid',
-                  borderColor: selectedMaterial?.id === m.id ? '#7a12cc' : '#F1F5F9',
+                  width: '100%', textAlign: 'left', padding: '12px 16px', borderRadius: '8px', border: '1px solid',
+                  borderColor: selectedMaterial?.id === m.id ? '#6D28D9' : '#F1F5F9',
                   background: selectedMaterial?.id === m.id ? '#F5F3FF' : 'white',
-                  fontSize: '13px', color: selectedMaterial?.id === m.id ? '#7a12cc' : '#4A5568'
+                  fontSize: '14px', color: selectedMaterial?.id === m.id ? '#6D28D9' : '#475569',
+                  fontWeight: 500, marginBottom: '8px', cursor: 'pointer', transition: 'all 0.2s'
                 }}
               >
                 {m.title}
               </button>
             ))}
           </div>
-          <button 
-            onClick={generateSummary}
-            disabled={!selectedMaterial || isGenerating}
-            style={{ 
-              width: '100%', marginTop: '24px', padding: '12px', borderRadius: '10px', 
-              background: '#7a12cc', color: 'white', fontWeight: 700, display: 'flex', 
-              alignItems: 'center', justifyContent: 'center', gap: '8px',
-              opacity: (!selectedMaterial || isGenerating) ? 0.6 : 1
-            }}
-          >
-            {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
-            Summarize Now
-          </button>
+          <div style={{ padding: '16px', borderTop: '1px solid #F1F5F9' }}>
+            <button 
+              onClick={generateSummary}
+              disabled={!selectedMaterial || isGenerating}
+              style={{ 
+                width: '100%', padding: '12px', borderRadius: '8px', 
+                background: '#6D28D9', color: 'white', fontWeight: 600, fontSize: '14px', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                opacity: (!selectedMaterial || isGenerating) ? 0.5 : 1, cursor: 'pointer', border: 'none'
+              }}
+            >
+              {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Sparkle weight="fill" size={18} />}
+              Generate Summary
+            </button>
+          </div>
         </div>
 
-        <div style={{ background: 'white', padding: '32px', borderRadius: '16px', border: '1px solid #E2E8F0', minHeight: '500px' }}>
-          {summary ? (
-            <div className="markdown-body">
-              <ReactMarkdown>{summary}</ReactMarkdown>
-            </div>
-          ) : (
-            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.4 }}>
-              <FileText size={48} style={{ marginBottom: '16px' }} />
-              <p>Select a document to generate an AI summary.</p>
-            </div>
-          )}
+        {/* Main Area - Summary Display */}
+        <div style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
+          <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '32px', minHeight: '400px' }}>
+            {summary ? (
+              <div className="markdown-body" style={{ fontSize: '15px', lineHeight: 1.7, color: '#334155' }}>
+                <ReactMarkdown>{summary}</ReactMarkdown>
+              </div>
+            ) : (
+              <div style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
+                <FileText size={48} weight="thin" color="#94A3B8" style={{ marginBottom: '16px' }} />
+                <p style={{ fontSize: '15px', color: '#64748B', textAlign: 'center' }}>Select a material and click "Generate Summary" to get started</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

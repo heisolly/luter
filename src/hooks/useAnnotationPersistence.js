@@ -74,7 +74,7 @@ export function useAnnotationPersistence({
     const { data, error } = await supabase
       .from('annotations')
       .select('*')
-      .eq('user_id', userId)
+      .eq('session_id', sessionId)
       .eq('file_id', fileId)
       .order('created_at', { ascending: true });
     
@@ -105,7 +105,7 @@ export function useAnnotationPersistence({
     }
     
     return data;
-  }, [userId, fileId, canvasRefs, onLoadSnapshot]);
+  }, [sessionId, fileId, canvasRefs, onLoadSnapshot]);
 
   // RESTORE highlight in DOM
   const restoreHighlight = (highlight) => {

@@ -1,0 +1,340 @@
+
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#F3F4F6;font-family:'Inter',system-ui,sans-serif}
+  .page-bg{background:#EFEFEF;padding:32px 16px;min-height:600px;display:flex;align-items:flex-start;justify-content:center}
+  .main-card{background:#FAFAFA;border:1px solid #E5E5E5;border-radius:24px;overflow:hidden;display:flex;width:100%;max-width:960px;position:relative}
+  .left{width:40%;border-right:1px solid #E5E5E5;display:flex;flex-direction:column;padding:0 0 24px 0;background:linear-gradient(to bottom,#FAFAFA,#F0EFFE)}
+  .right{width:60%;padding:20px 24px 24px;background:#FAFAFA;display:flex;flex-direction:column;gap:16px}
+  .back-btn{position:absolute;top:14px;left:16px;display:flex;align-items:center;gap:4px;padding:6px 12px;border:1px solid #E5E5E5;border-bottom:2px solid #E5E5E5;border-radius:12px;background:#FAFAFA;cursor:pointer;font-size:14px;color:#525252;z-index:10}
+  .back-btn:hover{background:#F0F0F0}
+  .left-header{text-align:center;padding:52px 24px 20px}
+  .left-header h1{font-size:26px;font-weight:700;color:#0A0A0A;line-height:1.2}
+  .left-header h1 span{color:#8B5CF6}
+  .left-header p{font-size:13px;color:#737373;margin-top:6px}
+  .toggle-wrap{display:flex;background:#F0F0F0;border:1px solid #E5E5E5;border-radius:16px;margin:0 20px;height:34px}
+  .toggle-btn{flex:1;border:none;background:transparent;border-radius:12px;font-size:13px;cursor:pointer;color:#525252;display:flex;align-items:center;justify-content:center;gap:4px;transition:all .15s}
+  .toggle-btn.active{background:#EDE9FE;border:1px solid #6D28D9;color:#1C0A4A;font-weight:500}
+  .badge-wrap{position:relative;display:inline-block;border-radius:8px;overflow:hidden;padding:2px}
+  .badge-bg{position:absolute;inset:0;background:conic-gradient(from 313deg,#A78BFA 0deg,#F472B6 53deg,#FBBF24 90deg,#22D3EE 126deg,#A78BFA 180deg,#A78BFA 360deg)}
+  .badge-inner{position:relative;background:#DDD6FE;border-radius:6px;padding:1px 5px;font-size:11px;font-weight:700;color:#1C0A4A}
+  .plans{display:flex;flex-direction:column;gap:8px;margin:12px 20px 0}
+  .plan-card{border:1px solid #E5E5E5;border-radius:12px;padding:14px;cursor:pointer;transition:all .15s;background:#FAFAFA;display:flex;align-items:center;justify-content:space-between}
+  .plan-card:hover{border-color:#C4B5FD}
+  .plan-card.selected{border-color:#8B5CF6;background:#EDE9FE}
+  .plan-left{display:flex;align-items:center;gap:10px}
+  .plan-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .beast-icon{background:#FEF3C7;border:2px solid #FACC15}
+  .wizard-icon{background:#C4B5FD;border:2px solid #8B5CF6}
+  .plan-name{font-weight:600;font-size:14px;color:#262626}
+  .plan-billing{font-size:11px;color:#737373}
+  .plan-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+  .plan-price{font-size:16px;font-weight:700;color:#0A0A0A}
+  .plan-price span{font-size:12px;font-weight:400;color:#737373}
+  .checkbox{width:18px;height:18px;border-radius:5px;border:1.5px solid #D4D4D4;background:#FAFAFA;display:flex;align-items:center;justify-content:center}
+  .checkbox.checked{background:#8B5CF6;border-color:#8B5CF6}
+  .cta-wrap{margin:16px 20px 0}
+  .cta-btn{width:100%;height:46px;border-radius:12px;border:none;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
+  .cta-beast{background:#FDE68A;color:#1C0A4A}
+  .cta-beast:hover{background:#FEF08A}
+  .cta-wizard{background:#C4B5FD;color:#1C0A4A}
+  .cta-wizard:hover{background:#DDD6FE}
+  .currency-row{display:flex;justify-content:flex-end}
+  .currency-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid #E5E5E5;border-radius:8px;background:white;font-size:13px;font-weight:500;cursor:pointer}
+  .currency-btn:hover{background:#F5F5F5}
+  .comp-table{border:1px solid #E5E5E5;border-radius:20px;padding:16px;overflow:hidden}
+  .comp-grid{display:grid;grid-template-columns:180px 1fr 1fr 1fr;gap:0}
+  .col-header{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:10px;gap:4px}
+  .col-icon{width:30px;height:30px;border-radius:8px;border:1px solid #E5E5E5;display:flex;align-items:center;justify-content:center;background:#FAFAFA}
+  .col-label{font-size:12px;font-weight:600;color:#0A0A0A}
+  .feature-row{display:grid;grid-template-columns:180px 1fr 1fr 1fr;border-top:1px solid #F0F0F0;align-items:center;padding:7px 0}
+  .feat-label{font-size:12px;font-weight:500;color:#404040;display:flex;align-items:center;gap:4px}
+  .feat-val{display:flex;justify-content:center;align-items:center;font-size:12px}
+  .unlimited{color:#22C55E;font-weight:600}
+  .check-icon{color:#22C55E}
+  .x-icon{color:#A3A3A3}
+  .info-btn{width:14px;height:14px;border-radius:50%;background:#E5E5E5;border:none;cursor:pointer;font-size:9px;color:#737373;display:inline-flex;align-items:center;justify-content:center}
+  .reviews-box{border:1px solid #E5E5E5;border-radius:20px;padding:16px;min-height:130px;display:flex;flex-direction:column;justify-content:space-between}
+  .stars{display:flex;gap:2px;margin-bottom:8px}
+  .star{color:#FBBF24;font-size:16px}
+  .review-text{font-size:12px;color:#525252;line-height:1.5;flex:1}
+  .review-footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+  .reviewer{font-size:12px;color:#737373;font-weight:500}
+  .nav-btns{display:flex;gap:6px}
+  .nav-btn{width:28px;height:28px;border:1px solid #E5E5E5;border-radius:6px;background:#FAFAFA;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px}
+  .nav-btn:hover{background:#F0F0F0}
+  .social-row{display:flex;align-items:center;gap:12px}
+  .avatar-stack{position:relative;width:56px;height:36px;flex-shrink:0}
+  .avatar{width:34px;height:34px;border-radius:6px;background:#D4D4D4;position:absolute;border:2px solid #FAFAFA;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+  .av1{left:0;background:#C4B5FD;color:#4C1D95;z-index:3}
+  .av2{left:12px;background:#FEF08A;color:#78350F;z-index:2}
+  .av3{left:24px;background:#86EFAC;color:#166534;z-index:1}
+  .social-text{font-size:12px;color:#525252;line-height:1.4}
+  .social-text strong{color:#0A0A0A;font-weight:600}
+  svg.plan-svg{width:36px;height:36px}
+</style>
+
+<div class="page-bg">
+<div class="main-card">
+
+  <button class="back-btn" onclick="this.blur()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    Back
+  </button>
+
+  <!-- LEFT PANEL -->
+  <div class="left">
+    <div class="left-header">
+      <h1>Unlock your <span>full potential</span></h1>
+      <p>Forget endless flashcards writing, focus on learning!</p>
+    </div>
+
+    <div class="toggle-wrap" id="toggleWrap">
+      <button class="toggle-btn active" id="btnYearly" onclick="setToggle('yearly')">
+        Yearly
+        <span class="badge-wrap"><span class="badge-bg"></span><span class="badge-inner">50% OFF</span></span>
+      </button>
+      <button class="toggle-btn" id="btnMonthly" onclick="setToggle('monthly')">Monthly</button>
+    </div>
+
+    <div class="plans">
+      <div class="plan-card" id="cardBeast" onclick="selectPlan('beast')">
+        <div class="plan-left">
+          <div class="plan-icon beast-icon">
+            <svg width="30" height="30" viewBox="0 0 36 36" fill="none">
+              <rect width="36" height="36" rx="8" fill="#FEF3C7"/>
+              <rect x="7" y="8" width="16" height="20" rx="3" fill="#FDE68A" stroke="#0A0A0A" stroke-width="1.2"/>
+              <rect x="7" y="20" width="16" height="8" rx="0" fill="#A78BFA" stroke="#0A0A0A" stroke-width="1.2"/>
+              <circle cx="13" cy="16" r="2" fill="#0A0A0A"/>
+              <circle cx="19" cy="16" r="2" fill="#0A0A0A"/>
+              <circle cx="12.5" cy="15.3" r="0.6" fill="#FEF08A"/>
+              <circle cx="18.5" cy="15.3" r="0.6" fill="#FEF08A"/>
+              <path d="M10 14 Q13 12 16 14" stroke="#0A0A0A" stroke-width="1" stroke-linecap="round" fill="none"/>
+              <rect x="25" y="12" width="5" height="10" rx="2" fill="#FDE68A" stroke="#0A0A0A" stroke-width="1"/>
+            </svg>
+          </div>
+          <div>
+            <div class="plan-name">Beast Plan</div>
+            <div class="plan-billing" id="beastBilling">billed at $48.00/year</div>
+          </div>
+        </div>
+        <div class="plan-right">
+          <div class="checkbox" id="cbBeast"></div>
+          <div class="plan-price" id="beastPrice">$4.00<span>/month</span></div>
+        </div>
+      </div>
+
+      <div class="plan-card selected" id="cardWizard" onclick="selectPlan('wizard')">
+        <div class="plan-left">
+          <div class="plan-icon wizard-icon">
+            <svg width="30" height="30" viewBox="0 0 36 36" fill="none">
+              <rect width="36" height="36" rx="8" fill="#C4B5FD"/>
+              <path d="M18 4 L14 18 L22 18 Z" fill="#A78BFA" stroke="#0A0A0A" stroke-width="1.2" stroke-linejoin="round"/>
+              <rect x="10" y="18" width="16" height="12" rx="3" fill="#FEF08A" stroke="#0A0A0A" stroke-width="1.2"/>
+              <rect x="10" y="26" width="16" height="4" rx="0" fill="#A78BFA" stroke="#0A0A0A" stroke-width="1.2"/>
+              <circle cx="15" cy="23" r="1.5" fill="#0A0A0A"/>
+              <circle cx="21" cy="23" r="1.5" fill="#0A0A0A"/>
+              <path d="M13 26 Q18 28 23 26" stroke="#0A0A0A" stroke-width="1" stroke-linecap="round" fill="none"/>
+              <circle cx="26" cy="8" r="3" fill="#FDE68A" stroke="#0A0A0A" stroke-width="1"/>
+            </svg>
+          </div>
+          <div>
+            <div class="plan-name">Wizard Plan</div>
+            <div class="plan-billing" id="wizardBilling">billed at $72.00/year</div>
+          </div>
+        </div>
+        <div class="plan-right">
+          <div class="checkbox checked" id="cbWizard">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
+          <div class="plan-price" id="wizardPrice">$6.00<span>/month</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cta-wrap">
+      <button class="cta-btn cta-wizard" id="ctaBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>
+        <span id="ctaText">Upgrade to Wizard Yearly</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right">
+    <div class="currency-row">
+      <button class="currency-btn">
+        🇺🇸 USD
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+    </div>
+
+    <div class="comp-table">
+      <div class="comp-grid">
+        <div></div>
+        <div class="col-header">
+          <div class="col-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#525252" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div class="col-label">Free</div>
+        </div>
+        <div class="col-header">
+          <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+            <rect width="36" height="36" rx="7" fill="#FEF3C7" stroke="#FACC15" stroke-width="1.5"/>
+            <rect x="7" y="8" width="14" height="16" rx="2.5" fill="#FDE68A" stroke="#0A0A0A" stroke-width="1"/>
+            <rect x="7" y="19" width="14" height="5" rx="0" fill="#A78BFA" stroke="#0A0A0A" stroke-width="1"/>
+            <circle cx="11.5" cy="15" r="1.6" fill="#0A0A0A"/><circle cx="16.5" cy="15" r="1.6" fill="#0A0A0A"/>
+            <circle cx="11.1" cy="14.4" r="0.5" fill="#FEF08A"/><circle cx="16.1" cy="14.4" r="0.5" fill="#FEF08A"/>
+            <rect x="23" y="11" width="4" height="8" rx="1.5" fill="#FDE68A" stroke="#0A0A0A" stroke-width="0.8"/>
+          </svg>
+          <div class="col-label">Beast</div>
+        </div>
+        <div class="col-header">
+          <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+            <rect width="36" height="36" rx="7" fill="#C4B5FD" stroke="#8B5CF6" stroke-width="1.5"/>
+            <path d="M18 5 L14 17 L22 17 Z" fill="#A78BFA" stroke="#0A0A0A" stroke-width="1" stroke-linejoin="round"/>
+            <rect x="11" y="17" width="14" height="10" rx="2.5" fill="#FEF08A" stroke="#0A0A0A" stroke-width="1"/>
+            <rect x="11" y="23" width="14" height="4" rx="0" fill="#A78BFA" stroke="#0A0A0A" stroke-width="1"/>
+            <circle cx="15.5" cy="21" r="1.4" fill="#0A0A0A"/><circle cx="20.5" cy="21" r="1.4" fill="#0A0A0A"/>
+            <circle cx="27" cy="8" r="2.5" fill="#FDE68A" stroke="#0A0A0A" stroke-width="0.8"/>
+          </svg>
+          <div class="col-label">Wizard</div>
+        </div>
+      </div>
+
+      <div class="feature-row">
+        <div class="feat-label">AI credits <button class="info-btn">i</button></div>
+        <div class="feat-val">50/day</div>
+        <div class="feat-val">3000/month</div>
+        <div class="feat-val unlimited">Unlimited</div>
+      </div>
+      <div class="feature-row">
+        <div class="feat-label">AI Transcripts <button class="info-btn">i</button></div>
+        <div class="feat-val">3/day</div>
+        <div class="feat-val unlimited">Unlimited</div>
+        <div class="feat-val unlimited">Unlimited</div>
+      </div>
+      <div class="feature-row">
+        <div class="feat-label">Full Mode PDF generation</div>
+        <div class="feat-val x-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </div>
+        <div class="feat-val check-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <div class="feat-val check-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+      </div>
+      <div class="feature-row">
+        <div class="feat-label">Export to Anki</div>
+        <div class="feat-val x-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </div>
+        <div class="feat-val check-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <div class="feat-val check-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+      </div>
+      <div class="feature-row">
+        <div class="feat-label">Unlimited Spaced Repetition</div>
+        <div class="feat-val check-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <div class="feat-val check-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <div class="feat-val check-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="reviews-box">
+      <div>
+        <div class="stars">
+          <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+        </div>
+        <div class="review-text" id="reviewText">Literally if Anki and ChatGPT had a baby and fed it steroids instead of milk</div>
+      </div>
+      <div class="review-footer">
+        <div class="reviewer" id="reviewAuthor">@grianghra</div>
+        <div class="nav-btns">
+          <button class="nav-btn" onclick="prevReview()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <button class="nav-btn" onclick="nextReview()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="social-row">
+      <div class="avatar-stack">
+        <div class="avatar av1" style="z-index:3">Y</div>
+        <div class="avatar av2" style="z-index:2">A</div>
+        <div class="avatar av3" style="z-index:1">N</div>
+      </div>
+      <div class="social-text">Join over <strong>950,000+ students</strong> that changed the way they make, study and test with flashcards</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+const reviews=[
+  {text:"Literally if Anki and ChatGPT had a baby and fed it steroids instead of milk",author:"@grianghra"},
+  {text:"NGL, the website is very good, user-friendly, and is affordable!",author:"@Abhipraya"},
+  {text:"i got 80s and 90s thanks to your website!!!! doesn't sound too good but I usually get 60 so 😂",author:"@aiden"},
+  {text:"This AI is just fantastic. It makes me enjoy studying, memorising and saving time at the same time. I really don't know how to thank you, you saved my life.",author:"@sarah"},
+  {text:"Now thanks to flashka I was able to score in the 90th percentile for dental school. Flashka is changing how fast I am able to absorb information.",author:"@Stayer"}
+];
+let ri=0;
+const prices={yearly:{beast:"$4.00",wizard:"$6.00",beastBill:"billed at $48.00/year",wizardBill:"billed at $72.00/year"},monthly:{beast:"$7.90",wizard:"$11.90",beastBill:"billed at $7.90/month",wizardBill:"billed at $11.90/month"}};
+let billing="yearly";
+let selected="wizard";
+
+function setToggle(b){
+  billing=b;
+  document.getElementById("btnYearly").classList.toggle("active",b==="yearly");
+  document.getElementById("btnMonthly").classList.toggle("active",b==="monthly");
+  const p=prices[b];
+  document.getElementById("beastPrice").innerHTML=p.beast+"<span>/month</span>";
+  document.getElementById("wizardPrice").innerHTML=p.wizard+"<span>/month</span>";
+  document.getElementById("beastBilling").textContent=p.beastBill;
+  document.getElementById("wizardBilling").textContent=p.wizardBill;
+  updateCTA();
+}
+
+function selectPlan(plan){
+  selected=plan;
+  const isBeast=plan==="beast";
+  document.getElementById("cardBeast").classList.toggle("selected",isBeast);
+  document.getElementById("cardWizard").classList.toggle("selected",!isBeast);
+  document.getElementById("cbBeast").className="checkbox"+(isBeast?" checked":"");
+  document.getElementById("cbBeast").innerHTML=isBeast?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>':"";
+  document.getElementById("cbWizard").className="checkbox"+(!isBeast?" checked":"");
+  document.getElementById("cbWizard").innerHTML=!isBeast?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>':"";
+  const btn=document.getElementById("ctaBtn");
+  btn.className="cta-btn "+(isBeast?"cta-beast":"cta-wizard");
+  updateCTA();
+}
+
+function updateCTA(){
+  const bLabel=billing==="yearly"?"Yearly":"Monthly";
+  const plan=selected==="beast"?"Beast":"Wizard";
+  document.getElementById("ctaText").textContent=`Upgrade to ${plan} ${bLabel}`;
+}
+
+function showReview(){
+  const r=reviews[ri];
+  document.getElementById("reviewText").textContent=r.text;
+  document.getElementById("reviewAuthor").textContent=r.author;
+}
+function nextReview(){ri=(ri+1)%reviews.length;showReview()}
+function prevReview(){ri=(ri-1+reviews.length)%reviews.length;showReview()}
+</script>

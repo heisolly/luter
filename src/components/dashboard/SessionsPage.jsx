@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useOutletContext } from 'react-router-dom'
+import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Users, Loader } from 'lucide-react'
 import { 
   RiFolderOpenFill as Folder, RiAddLine as Plus, RiDeleteBin6Fill as Trash2,
   RiPlayFill as Play, RiSearchLine as Search, RiTimeLine as Clock,
@@ -39,10 +40,12 @@ const SessionIcon = ({ color = '#22c55e' }) => (
 export default function SessionsPage() {
   const navigate = useNavigate()
   const { user, isMobile } = useOutletContext()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { 
     sessions, 
     loadSessions, 
     deleteSession,
+    leaveSession,
     setActiveSession,
     updateLastAccessed
   } = useSessionStore()
@@ -54,6 +57,22 @@ export default function SessionsPage() {
   const [activeTab, setActiveTab] = useState('active')
   const [sortBy, setSortBy] = useState('lastUpdated')
 
+  // Shared session joining states
+  const [showJoinModal, setShowJoinModal] = useState(false)
+  const [joinCode, setJoinCode] = useState('')
+  const [isJoining, setIsJoining] = useState(false)
+  const [joinError, setJoinError] = useState('')
+  const [joiningUrlCode, setJoiningUrlCode] = useState(false)
+  const [activeDropdownId, setActiveDropdownId] = useState(null)
+
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      setActiveDropdownId(null)
+    }
+    window.addEventListener('click', handleGlobalClick)
+    return () => window.removeEventListener('click', handleGlobalClick)
+  }, [])
+
   const { startTour, hasCompletedTour, completedTours, currentUserId, isLoadingTours } = useTourStore()
 
   useEffect(() => {
@@ -62,6 +81,57 @@ export default function SessionsPage() {
     }
     setLoading(false)
   }, [user?.id])
+
+  // Handle URL share code join
+  useEffect(() => {
+    const code = searchParams.get('join')
+    if (code && user?.id) {
+      handleAutoJoin(code)
+    }
+  }, [searchParams, user?.id])
+
+  const handleAutoJoin = async (code) => {
+    setJoiningUrlCode(true)
+    setJoinError('')
+    try {
+      const result = await useSessionStore.getState().joinSharedSession(code)
+      if (result.success && result.session) {
+        // Clear the join param from URL
+        setSearchParams({}, { replace: true })
+        navigate(`/dashboard/session/${result.session.id}`)
+      } else {
+        setJoinError(result.error || 'Failed to join shared session. Please verify the code.')
+        setJoiningUrlCode(false)
+        setShowJoinModal(true)
+        setJoinCode(code) // fill code so they see it
+      }
+    } catch (err) {
+      console.error('[SessionsPage] Error during auto-join:', err)
+      setJoinError('An error occurred while joining.')
+      setJoiningUrlCode(false)
+    }
+  }
+
+  const handleManualJoin = async () => {
+    if (!joinCode.trim()) return
+    setIsJoining(true)
+    setJoinError('')
+    try {
+      const result = await useSessionStore.getState().joinSharedSession(joinCode)
+      if (result.success && result.session) {
+        setShowJoinModal(false)
+        setJoinCode('')
+        navigate(`/dashboard/session/${result.session.id}`)
+      } else {
+        setJoinError(result.error || 'Invalid session code or session sharing is disabled.')
+      }
+    } catch (err) {
+      console.error('[SessionsPage] Error during manual join:', err)
+      setJoinError('An error occurred while joining.')
+    } finally {
+      setIsJoining(false)
+    }
+  }
 
   useEffect(() => {
     if (user?.id && currentUserId === user.id && !loading && !isLoadingTours && !hasCompletedTour('sessions')) {
@@ -86,6 +156,13 @@ export default function SessionsPage() {
     e.stopPropagation()
     if (window.confirm('Are you sure you want to delete this session?')) {
       await deleteSession(sessionId)
+    }
+  }
+
+  const handleLeaveSession = async (sessionId, e) => {
+    e.stopPropagation()
+    if (window.confirm('Are you sure you want to leave this shared session?')) {
+      await leaveSession(sessionId)
     }
   }
 
@@ -177,30 +254,65 @@ export default function SessionsPage() {
             </p>
           </div>
 
-          {/* Right: New Session Button */}
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setShowCreateModal(true)}
-            style={{
-              padding: '12px 20px',
-              background: '#14b8a6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '24px',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 2px 8px rgba(20, 184, 166, 0.25)',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <Plus size={18} />
-            New Session
-          </motion.button>
+          {/* Right: Action Buttons */}
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowJoinModal(true)}
+              style={{
+                padding: '12px 20px',
+                background: '#ffffff',
+                color: '#7C3AED',
+                border: '1px solid rgba(124, 58, 237, 0.2)',
+                borderRadius: '24px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 2px 8px rgba(124, 58, 237, 0.05)',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(124, 58, 237, 0.05)'
+                e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.4)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#ffffff'
+                e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.2)'
+              }}
+            >
+              <Users size={18} />
+              Join Session
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowCreateModal(true)}
+              style={{
+                padding: '12px 20px',
+                background: '#14b8a6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '24px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 2px 8px rgba(20, 184, 166, 0.25)',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <Plus size={18} />
+              New Session
+            </motion.button>
+          </div>
         </motion.div>
 
         {/* Filter Tabs */}
@@ -420,32 +532,149 @@ export default function SessionsPage() {
                       </div>
                     </div>
 
-                    {/* More Options */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        // Toggle dropdown
-                      }}
-                      style={{
-                        padding: '6px',
-                        background: 'transparent',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        color: '#94a3b8',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#f1f5f9'
-                        e.currentTarget.style.color = '#64748b'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent'
-                        e.currentTarget.style.color = '#94a3b8'
-                      }}
-                    >
-                      <MoreHorizontal size={18} />
-                    </button>
+                     {/* More Options */}
+                    <div style={{ position: 'relative' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setActiveDropdownId(activeDropdownId === session.id ? null : session.id)
+                        }}
+                        style={{
+                          padding: '6px',
+                          background: 'transparent',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          color: '#94a3b8',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#f1f5f9'
+                          e.currentTarget.style.color = '#64748b'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent'
+                          e.currentTarget.style.color = '#94a3b8'
+                        }}
+                      >
+                        <MoreHorizontal size={18} />
+                      </button>
+
+                      {/* More Options Dropdown */}
+                      <AnimatePresence>
+                        {activeDropdownId === session.id && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                            transition={{ duration: 0.15 }}
+                            style={{
+                              position: 'absolute',
+                              top: '32px',
+                              right: '0px',
+                              background: 'rgba(255, 255, 255, 0.95)',
+                              backdropFilter: 'blur(10px)',
+                              border: '1px solid rgba(226, 232, 240, 0.8)',
+                              borderRadius: '12px',
+                              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                              padding: '6px',
+                              zIndex: 100,
+                              minWidth: '150px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '2px'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={() => {
+                                setActiveDropdownId(null)
+                                handleOpenSession(session)
+                              }}
+                              style={{
+                                padding: '10px 12px',
+                                background: 'transparent',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                color: '#0f172a',
+                                fontSize: '13px',
+                                fontWeight: 500,
+                                textAlign: 'left',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                transition: 'all 0.2s',
+                                width: '100%'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                              Open Session
+                            </button>
+                            
+                            {session.user_id === user.id ? (
+                              <button
+                                onClick={(e) => {
+                                  setActiveDropdownId(null)
+                                  handleDeleteSession(session.id, e)
+                                }}
+                                style={{
+                                  padding: '10px 12px',
+                                  background: 'transparent',
+                                  border: 'none',
+                                  borderRadius: '8px',
+                                  cursor: 'pointer',
+                                  color: '#ef4444',
+                                  fontSize: '13px',
+                                  fontWeight: 500,
+                                  textAlign: 'left',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  transition: 'all 0.2s',
+                                  width: '100%'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
+                                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                              >
+                                <Trash2 size={14} />
+                                Delete Session
+                              </button>
+                            ) : (
+                              <button
+                                onClick={(e) => {
+                                  setActiveDropdownId(null)
+                                  handleLeaveSession(session.id, e)
+                                }}
+                                style={{
+                                  padding: '10px 12px',
+                                  background: 'transparent',
+                                  border: 'none',
+                                  borderRadius: '8px',
+                                  cursor: 'pointer',
+                                  color: '#ef4444',
+                                  fontSize: '13px',
+                                  fontWeight: 500,
+                                  textAlign: 'left',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  transition: 'all 0.2s',
+                                  width: '100%'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                                Leave Session
+                              </button>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
 
                   {/* Stats */}
@@ -460,6 +689,10 @@ export default function SessionsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <Book size={14} />
                       {session.items?.length || 0} materials
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Users size={14} />
+                      {session.member_count?.[0]?.count || 1} members
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <Clock size={14} />
@@ -649,6 +882,263 @@ export default function SessionsPage() {
               </motion.button>
             </div>
           </motion.div>
+        </div>
+      )}
+
+      {/* Join Session Modal */}
+      {showJoinModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000,
+          padding: 20
+        }}>
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0, y: 15 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 15 }}
+            transition={{ type: "spring", damping: 25, stiffness: 350 }}
+            style={{
+              background: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: '24px',
+              border: '1px solid rgba(109, 40, 217, 0.15)',
+              boxShadow: '0 20px 50px rgba(109, 40, 217, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.6)',
+              padding: isMobile ? '24px' : '32px',
+              width: '100%',
+              maxWidth: '420px',
+              position: 'relative',
+              fontFamily: 'var(--font-outfit, system-ui, sans-serif)',
+            }}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => {
+                setShowJoinModal(false)
+                setJoinCode('')
+                setJoinError('')
+              }}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                padding: '6px',
+                background: 'rgba(243, 244, 246, 0.6)',
+                border: '1px solid rgba(229, 231, 235, 0.8)',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                color: '#64748b',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#FEE2E2'
+                e.currentTarget.style.color = '#EF4444'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(243, 244, 246, 0.6)'
+                e.currentTarget.style.color = '#64748b'
+              }}
+            >
+              <X size={18} />
+            </button>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #7C3AED 0%, #C084FC 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.2)'
+              }}>
+                <Users size={20} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0, color: '#0F172A', letterSpacing: '-0.02em' }}>
+                  Join Shared Session
+                </h2>
+                <p style={{ fontSize: '13px', color: '#64748B', margin: 0, fontWeight: 500 }}>
+                  Enter code to join a collaborative study session
+                </p>
+              </div>
+            </div>
+            
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ 
+                display: 'block', 
+                fontSize: '12px', 
+                fontWeight: 700, 
+                color: '#475569',
+                marginBottom: '8px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>
+                Session Invite Code
+              </label>
+              <input
+                type="text"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value)}
+                placeholder="Enter 10-digit code (e.g. a1b2c3d4e5)"
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  border: '1.5px solid #E2E8F0',
+                  borderRadius: '14px',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  color: '#1E293B',
+                  outline: 'none',
+                  background: '#FFFFFF',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
+                  transition: 'all 0.2s ease',
+                  letterSpacing: '0.05em'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#7C3AED'
+                  e.target.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.15)'
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#E2E8F0'
+                  e.target.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.02)'
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleManualJoin()
+                  if (e.key === 'Escape') {
+                    setShowJoinModal(false)
+                    setJoinCode('')
+                    setJoinError('')
+                  }
+                }}
+              />
+              {joinError && (
+                <div style={{ 
+                  marginTop: '10px', 
+                  color: '#EF4444', 
+                  fontSize: '13px', 
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <span>⚠️</span> {joinError}
+                </div>
+              )}
+            </div>
+
+            <div style={{ 
+              display: 'flex', 
+              gap: 12, 
+              justifyContent: 'flex-end' 
+            }}>
+              <button
+                onClick={() => {
+                  setShowJoinModal(false)
+                  setJoinCode('')
+                  setJoinError('')
+                }}
+                style={{
+                  padding: '10px 20px',
+                  background: '#F1F5F9',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: 12,
+                  color: '#64748B',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#E2E8F0'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#F1F5F9'
+                }}
+              >
+                Cancel
+              </button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleManualJoin}
+                disabled={isJoining || !joinCode.trim()}
+                style={{
+                  padding: '10px 20px',
+                  background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+                  border: 'none',
+                  borderRadius: 12,
+                  color: 'white',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: (isJoining || !joinCode.trim()) ? 'not-allowed' : 'pointer',
+                  opacity: (isJoining || !joinCode.trim()) ? 0.6 : 1,
+                  boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                {isJoining && <Loader size={16} className="animate-spin" />}
+                {isJoining ? 'Joining...' : 'Join Session'}
+              </motion.button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Auto-join Loading Overlay */}
+      {joiningUrlCode && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 3000,
+          color: 'white',
+          fontFamily: 'var(--font-outfit, system-ui, sans-serif)',
+          gap: '16px'
+        }}>
+          <motion.div
+            animate={{ scale: [1, 1.08, 1] }}
+            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+            style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '20px',
+              background: 'linear-gradient(135deg, #8B5CF6 0%, #C084FC 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 8px 32px rgba(139, 92, 246, 0.4)',
+            }}
+          >
+            <Users size={32} />
+          </motion.div>
+          <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
+            Joining Shared Study Session
+          </h2>
+          <p style={{ fontSize: '14px', color: '#CBD5E1', margin: 0, fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Loader size={16} className="animate-spin text-purple-400" />
+            Resolving invitation and setting up collaboration...
+          </p>
         </div>
       )}
     </div>

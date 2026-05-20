@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import {
   House,
@@ -91,6 +92,7 @@ import { LuterPageLoader } from '../shared/LuterPageLoader'
 
 import LuterLogo from '../shared/LuterLogo'
 import { motion, AnimatePresence } from 'framer-motion'
+import ShareSessionModal from './ShareSessionModal'
 import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -108,7 +110,10 @@ import { preloadingService } from '../../services/preloadingService'
 import { useDeckStore } from '../../store/useDeckStore'
 import MaterialAnalysisService from '../../services/materialAnalysisService'
 import './workstation.css'
-import { useAnnotationPersistence } from '../../hooks/useAnnotationPersistence'
+import { useHighlight } from '../../hooks/useHighlight'
+import { useAnnotation } from '../../hooks/useAnnotation'
+import AnnotationToolbar from './AnnotationToolbar'
+import HighlightToolbox from './HighlightToolbox'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 
@@ -226,6 +231,23 @@ function WorkstationContent() {
   const { user, isMobile, sidebarCollapsed, setSidebarCollapsed, profile, mobileSidebarOpen, setMobileSidebarOpen } = useOutletContext() || {}
   const { setViewportData, highlightText, updateSpark, clearHighlights, viewportData, updateSelection, isSidePanelCollapsed, setSidePanelCollapsed } = useReadingSpace()
 
+  const sessionIdParam = searchParams.get('sessionId')
+  const shareCodeParam = searchParams.get('share')
+  const groupIdParam = searchParams.get('groupId')
+  const sessionType = searchParams.get('sessionType') || searchParams.get('mode') || (groupIdParam || sessionIdParam ? 'group' : 'solo')
+  const currentUserRole = profile?.role === 'teacher' || searchParams.get('role') === 'teacher' || sessionType === 'teacher'
+    ? 'teacher'
+    : (sessionType === 'solo' ? 'peer' : 'student')
+
+  // Collaboration Room ID
+  const roomId = useMemo(() => {
+    if (sessionIdParam) return `luter-session-${sessionIdParam}`
+    if (shareCodeParam) return `luter-share-${shareCodeParam}`
+    if (groupIdParam) return `luter-group-${groupIdParam}`
+    if (materialIdParam) return `luter-material-${materialIdParam}`
+    return `luter-empty-${user?.id || 'guest'}`
+  }, [sessionIdParam, shareCodeParam, groupIdParam, materialIdParam, user?.id])
+
   const handleScrollUpdate = useCallback((data) => {
     if (data && setViewportData) setViewportData(data)
   }, [setViewportData])
@@ -328,6 +350,8 @@ function WorkstationContent() {
   const [activeTab, setActiveTab] = useState('content')
   const [activeSideTab, setActiveSideTab] = useState('chat')
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [activeSessionId, setActiveSessionId] = useState(sessionIdParam || null)
   const [explanationsLeft, setExplanationsLeft] = useState(profile?.explanations_left ?? 3)
   const [panelWidth, setPanelWidth] = useState(() => {
     const saved = localStorage.getItem('luter-panel-width') || localStorage.getItem('ws-panel-width')
@@ -422,9 +446,6 @@ function WorkstationContent() {
     if (activeTab === 'board') setActiveTab('content')
     setActiveStudyTool(activeStudyTool === toolId ? 'none' : toolId)
   }
-  const [annotationColor, setAnnotationColor] = useState('#7C3AED')
-  const [annotationStrokeSize, setAnnotationStrokeSize] = useState(4)
-  const [isEraserMode, setIsEraserMode] = useState(false)
   const [selectedThread, setSelectedThread] = useState(null)
   const [activeRun, setActiveRun] = useState(null)
   const [voiceState, setVoiceState] = useState('idle')
@@ -433,175 +454,61 @@ function WorkstationContent() {
   const [showVoiceModal, setShowVoiceModal] = useState(false)
   const [showVoiceSettings, setShowVoiceSettings] = useState(false)
   const [selectedVoiceTone, setSelectedVoiceTone] = useState('Natural')
-  const [annotationToolType, setAnnotationToolType] = useState('draw')
   const [showEquationModal, setShowEquationModal] = useState(false)
   const [equationInput, setEquationInput] = useState('\\frac{a}{b}')
   const [pendingEquation, setPendingEquation] = useState('')
   const recognitionRef = useRef(null)
   const voiceFinalTranscriptRef = useRef('')
 
-  const [selectionToolbox, setSelectionToolbox] = useState(null)
-  const [selectedHighlightColor, setSelectedHighlightColor] = useState('#FEF08A')
-  const [drawMode, setDrawMode] = useState('pen')
-  const [strokeSize, setStrokeSize] = useState(3)
-  const [isDrawing, setIsDrawing] = useState(false)
-  const [currentPath, setCurrentPath] = useState([])
-  const [showFormulaModal, setShowFormulaModal] = useState(false)
-  const [formulaInput, setFormulaInput] = useState('')
-  const canvasRefs = useRef({})
-  const documentViewerRef = useRef(null)
-
-  // System 1 Highlight Text selection detection (Unified & Viewport-accurate)
-  useEffect(() => {
-    const handleTextSelection = () => {
-      const isToolActive = activeStudyTool === 'highlight' || activeWorkspaceTool === 'highlight';
-      if (!isToolActive) return;
-
-      const selection = window.getSelection();
-      if (!selection || selection.toString().trim() === '') {
-        setSelectionToolbox(null);
-        return;
-      }
-
-      try {
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-        
-        // Use fixed coordinates relative to the screen (viewport space)
-        setSelectionToolbox({
-          text: selection.toString(),
-          range: range.cloneRange(),
-          x: rect.left + rect.width / 2,
-          y: rect.top - 8,
-        });
-      } catch (e) {
-        console.warn('Failed to resolve range bounding rect:', e);
-      }
-    };
-
-    document.addEventListener('mouseup', handleTextSelection);
-    return () => {
-      document.removeEventListener('mouseup', handleTextSelection);
-    };
-  }, [activeStudyTool, activeWorkspaceTool]);
-
-  // Dismiss selection toolbox on scroll
-  useEffect(() => {
-    const handleScrollDismiss = () => {
-      if (selectionToolbox) {
-        setSelectionToolbox(null);
-      }
-    };
-    window.addEventListener('scroll', handleScrollDismiss, true);
-    return () => window.removeEventListener('scroll', handleScrollDismiss, true);
-  }, [selectionToolbox]);
-
-  // Sync Excalidraw scene states with active toolbar choices
-  useEffect(() => {
-    const currentPage = viewportData?.currentPage || 1;
-    const api = canvasRefs.current[currentPage];
-    if (!api) return;
-
-    let excalTool = 'freedraw';
-    if (isEraserMode) {
-      excalTool = 'eraser';
-    } else {
-      switch (annotationToolType) {
-        case 'draw':
-          excalTool = 'freedraw';
-          break;
-        case 'line':
-          excalTool = 'line';
-          break;
-        case 'arrow':
-          excalTool = 'arrow';
-          break;
-        case 'text':
-          excalTool = 'text';
-          break;
-        case 'rect':
-          excalTool = 'rectangle';
-          break;
-        default:
-          excalTool = 'selection';
-      }
-    }
-
-    api.updateScene({
-      appState: {
-        currentItemStrokeColor: annotationColor,
-        currentItemStrokeWidth: annotationStrokeSize,
-      }
-    });
-
-    api.setActiveTool({ type: excalTool });
-  }, [
-    viewportData?.currentPage,
-    activeStudyTool,
-    annotationToolType,
-    annotationColor,
-    annotationStrokeSize,
-    isEraserMode
-  ]);
-
-  const nanoid = useCallback(() => Math.random().toString(36).substring(2, 15), [])
-
-  const sessionIdParam = searchParams.get('sessionId')
-  const shareCodeParam = searchParams.get('share')
-  const groupIdParam = searchParams.get('groupId')
-  const sessionType = searchParams.get('sessionType') || searchParams.get('mode') || (groupIdParam || sessionIdParam ? 'group' : 'solo')
-  const currentUserRole = profile?.role === 'teacher' || searchParams.get('role') === 'teacher' || sessionType === 'teacher'
-    ? 'teacher'
-    : (sessionType === 'solo' ? 'peer' : 'student')
-
-  // Collaboration Room ID
-  const roomId = useMemo(() => {
-    if (sessionIdParam) return `luter-session-${sessionIdParam}`
-    if (shareCodeParam) return `luter-share-${shareCodeParam}`
-    if (groupIdParam) return `luter-group-${groupIdParam}`
-    if (materialIdParam) return `luter-material-${materialIdParam}`
-    return `luter-empty-${user?.id || 'guest'}`
-  }, [sessionIdParam, shareCodeParam, groupIdParam, materialIdParam, user?.id])
-
-  const onLoadSnapshot = useCallback((pageNum, dataUrl) => {
-    window.dispatchEvent(new CustomEvent('luter-load-annotation-snapshot', {
-      detail: { pageNum, dataUrl }
-    }));
-  }, []);
+  const scrollContainerRef = useRef(null)
 
   const {
-    saveAnnotationStroke,
-    saveHighlight,
-    saveCanvasSnapshot,
-    loadAnnotations,
-    getXPath,
-  } = useAnnotationPersistence({
-    sessionId: sessionIdParam || roomId,
+    toolbox: highlightToolbox,
+    setToolbox: setHighlightToolbox,
+    highlights,
+    selectedColor: selectedHighlightColor,
+    setSelectedColor: setSelectedHighlightColor,
+    COLORS: HIGHLIGHT_COLORS,
+    applyHighlight,
+    deleteHighlight,
+    loadHighlights,
+  } = useHighlight({
     fileId: selectedMaterial?.id,
     userId: user?.id,
-    canvasRefs,
-    pageCount: viewportData?.totalPages || 1,
-    onLoadSnapshot
+    isActive: activeStudyTool === 'highlight',
+    containerRef: scrollContainerRef,
   });
 
-  // Load annotations when material or user changes
+  const {
+    canvasRefs,
+    initCanvas,
+    startDrawing,
+    draw,
+    stopDrawing,
+    clearPage,
+    drawMode,
+    setDrawMode,
+    strokeColor: annotationColor,
+    setStrokeColor: setAnnotationColor,
+    strokeSize: annotationStrokeSize,
+    setStrokeSize: setAnnotationStrokeSize,
+    showAnnotationBar,
+    ANNOTATION_COLORS,
+    STROKE_SIZES,
+  } = useAnnotation({
+    fileId: selectedMaterial?.id,
+    userId: user?.id,
+    isActive: activeStudyTool === 'annotate',
+    currentPage: viewportData?.currentPage || 1,
+    totalPages: viewportData?.totalPages || 1,
+  });
+
+  // Load highlights when material or user changes
   useEffect(() => {
     if (selectedMaterial?.id && user?.id) {
-      loadAnnotations();
+      loadHighlights();
     }
-  }, [selectedMaterial?.id, user?.id, loadAnnotations]);
-
-  // Click outside to close highlight toolbox
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (selectionToolbox && !e.target.closest('.highlight-toolbox')) {
-        setSelectionToolbox(null);
-        window.getSelection().removeAllRanges();
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [selectionToolbox]);
+  }, [selectedMaterial?.id, user?.id, loadHighlights]);
 
 
 
@@ -983,7 +890,7 @@ function WorkstationContent() {
       flashcards: cached.flashcards || materialAnalysis?.flashcards || [],
       quiz: cached.quiz || materialAnalysis?.quiz || [],
       notes: cached.notes || materialAnalysis?.smart_notes || null,
-      page_summaries: cached.page_summaries || materialAnalysis?.analysis?.page_summaries || {}
+      page_summaries: cached.page_summaries || materialAnalysis?.page_summaries || materialAnalysis?.analysis?.page_summaries || {}
     }
   }, [selectedMaterial?.id, analysisCache, materialAnalysis])
 
@@ -1092,6 +999,72 @@ function WorkstationContent() {
     }
   }, [activeStudyTool])
 
+  async function fetchSessionMaterials(sessionId, shareCode) {
+    setLoading(true)
+    try {
+      let session = null
+      if (sessionId) {
+        const { data, error } = await supabase
+          .from('deck_sessions')
+          .select('*')
+          .eq('id', sessionId)
+          .single()
+        if (!error) session = data
+      } else if (shareCode) {
+        const { data, error } = await supabase
+          .from('deck_sessions')
+          .select('*')
+          .eq('share_code', shareCode)
+          .maybeSingle()
+        if (!error) session = data
+      }
+
+      if (!session) {
+        console.warn('❌ Session not found for workstation session loading')
+        setCourseMaterials([])
+        setLoading(false)
+        return
+      }
+
+      setActiveSessionId(session.id)
+      const itemIds = (session.items || []).map(item => item.id).filter(Boolean)
+      if (itemIds.length === 0) {
+        setCourseMaterials([])
+        setSessionMaterials([])
+        setLoading(false)
+        return
+      }
+
+      const { data: fullMaterials, error: mErr } = await supabase
+        .from('materials')
+        .select('*')
+        .in('id', itemIds)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+
+      if (mErr) throw mErr
+
+      if (fullMaterials && fullMaterials.length > 0) {
+        setCourseMaterials(fullMaterials)
+        setSessionMaterials(fullMaterials)
+        const initialMaterial = materialIdParam
+          ? fullMaterials.find(m => m.id === materialIdParam) || fullMaterials[0]
+          : fullMaterials[0]
+        setSelectedMaterial(initialMaterial)
+        setShowDashboard(false)
+      } else {
+        setCourseMaterials([])
+        setSessionMaterials([])
+      }
+    } catch (err) {
+      console.error('❌ fetchSessionMaterials error:', err)
+      setCourseMaterials([])
+      setSessionMaterials([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     console.log('🔍 WorkstationPage useEffect triggered:', { materialIdParam, courseId, userId: user?.id })
     if (!user?.id) {
@@ -1099,7 +1072,10 @@ function WorkstationContent() {
       return
     }
 
-    if (materialIdParam) {
+    if (sessionIdParam || shareCodeParam) {
+      console.log('👥 Loading shared session materials:', { sessionIdParam, shareCodeParam })
+      fetchSessionMaterials(sessionIdParam, shareCodeParam)
+    } else if (materialIdParam) {
       // If materialId is specified, load that specific material regardless of courseId
       console.log('📄 Loading standalone material:', materialIdParam)
       fetchStandaloneMaterial(materialIdParam)
@@ -1118,7 +1094,7 @@ function WorkstationContent() {
       console.log('🔄 Loading all user materials')
       fetchAllUserMaterials()
     }
-  }, [courseId, materialIdParam, activeDeckItems.length, user?.id])
+  }, [courseId, materialIdParam, sessionIdParam, shareCodeParam, activeDeckItems.length, user?.id])
 
   async function loadDeckMaterials() {
     setLoading(true)
@@ -1330,7 +1306,8 @@ function WorkstationContent() {
             notes: data.smart_notes || (data.analysis?.smart_notes || data.analysis?.notes) || null,
             summary: data.summary || data.analysis?.summary || null,
             flashcards: data.flashcards || data.analysis?.flashcards || null,
-            quiz: data.quiz || data.analysis?.quiz || null
+            quiz: data.quiz || data.analysis?.quiz || null,
+            page_summaries: data.page_summaries || data.analysis?.page_summaries || {}
           }
         }))
         setMaterialAnalysis(data.analysis || data)
@@ -1664,7 +1641,7 @@ function WorkstationContent() {
     { id: 'group', label: 'Hub', icon: Layout },
   ].filter((tab) => {
     if (!isCollaborativeSession) return ['chat', 'write'].includes(tab.id)
-    return tab.id !== 'groupchat'
+    return true
   })
   const voiceToneOptions = ['Natural', 'Clear', 'Warm', 'Calm']
   const equationPreviewMarkup = useMemo(() => {
@@ -1680,7 +1657,52 @@ function WorkstationContent() {
   const isAnnotateActive = activeStudyTool === 'annotate'
 
   return (
-    <div className="ws-root" style={{ background: '#F9FAFB' }}>
+    <div className="ws-root" style={{
+      background: 'radial-gradient(120% 120% at 50% 0%, #FAF5FF 0%, #F5F3FF 50%, #F9FAFB 100%)',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'relative',
+    }}>
+      <style>{`
+        /* Sleek custom scrollbars */
+        .ws-chat-scroll::-webkit-scrollbar,
+        .ws-right-panel-content::-webkit-scrollbar,
+        .ws-sidebar::-webkit-scrollbar,
+        .ws-plain-message::-webkit-scrollbar,
+        .ws-right-panel::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        .ws-chat-scroll::-webkit-scrollbar-track,
+        .ws-right-panel-content::-webkit-scrollbar-track,
+        .ws-sidebar::-webkit-scrollbar-track,
+        .ws-right-panel::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .ws-chat-scroll::-webkit-scrollbar-thumb,
+        .ws-right-panel-content::-webkit-scrollbar-thumb,
+        .ws-sidebar::-webkit-scrollbar-thumb,
+        .ws-right-panel::-webkit-scrollbar-thumb {
+          background: rgba(124, 58, 237, 0.15);
+          border-radius: 9999px;
+        }
+        .ws-chat-scroll::-webkit-scrollbar-thumb:hover,
+        .ws-right-panel-content::-webkit-scrollbar-thumb:hover,
+        .ws-sidebar::-webkit-scrollbar-thumb:hover,
+        .ws-right-panel::-webkit-scrollbar-thumb:hover {
+          background: rgba(124, 58, 237, 0.35);
+        }
+
+        /* Active Tool pulse effect */
+        @keyframes activeToolPulse {
+          0%, 100% { box-shadow: 0 4px 14px rgba(109, 40, 217, 0.15), 0 0 0 0px rgba(124, 58, 237, 0.2); }
+          50% { box-shadow: 0 6px 18px rgba(109, 40, 217, 0.25), 0 0 0 4px rgba(124, 58, 237, 0.3); }
+        }
+        .active-tool-glow {
+          animation: activeToolPulse 2s infinite ease-in-out;
+        }
+      `}</style>
       {isMobile && (
         <div className="mobile-top-bar" style={{
             padding: '0 16px',
@@ -1724,8 +1746,10 @@ function WorkstationContent() {
 
       {!isMobile && (
         <header style={{
-          background: '#FFFFFF',
-          borderBottom: '1px solid #E5E7EB',
+          background: 'rgba(255, 255, 255, 0.75)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(109, 40, 217, 0.08)',
           height: '64px',
           display: 'flex',
           alignItems: 'center',
@@ -1858,11 +1882,13 @@ function WorkstationContent() {
 
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 5,
-                  background: '#F9FAFB', border: '1px solid #E5E7EB',
-                  borderRadius: 9999, padding: '8px 12px'
+                  background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(124, 58, 237, 0.1)',
+                  borderRadius: 9999, padding: '8px 14px',
+                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.01)',
+                  backdropFilter: 'blur(8px)',
                 }}>
-                  <Timer size={16} color="#9CA3AF" weight="duotone" />
-                  <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 700, fontFamily: WORKSTATION_FONT_STACK }}>
+                  <Timer size={16} color="#7C3AED" weight="duotone" />
+                  <span style={{ fontSize: 12, color: '#4B5563', fontWeight: 800, fontFamily: WORKSTATION_FONT_STACK }}>
                     {elapsed}
                   </span>
                 </div>
@@ -1871,7 +1897,10 @@ function WorkstationContent() {
 
             <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
               <div id="tour-ai-tools" style={{
-                background: '#F3F4F6',
+                background: 'rgba(243, 244, 246, 0.6)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                border: '1px solid rgba(229, 231, 235, 0.5)',
                 borderRadius: '9999px',
                 padding: 4,
                 display: 'inline-flex',
@@ -1884,6 +1913,7 @@ function WorkstationContent() {
                       key={tab.id}
                       onClick={tab.onClick}
                       style={{
+                        position: 'relative',
                         display: 'flex', alignItems: 'center', gap: 6,
                         padding: '8px 16px',
                         fontSize: '13px',
@@ -1891,15 +1921,31 @@ function WorkstationContent() {
                         borderRadius: '9999px',
                         border: 'none',
                         cursor: 'pointer',
-                        transition: 'all 150ms ease',
-                        background: isActive ? '#7C3AED' : 'transparent',
-                        color: isActive ? 'white' : '#6B7280',
-                        boxShadow: isActive ? '0 1px 3px rgba(124,58,237,0.25)' : 'none',
+                        transition: 'color 200ms ease',
+                        background: 'transparent',
+                        color: isActive ? '#7C3AED' : '#6B7280',
                         fontFamily: WORKSTATION_FONT_STACK,
+                        zIndex: 1,
                       }}
+                      onMouseEnter={e => { if(!isActive) e.currentTarget.style.color = '#7C3AED' }}
+                      onMouseLeave={e => { if(!isActive) e.currentTarget.style.color = '#6B7280' }}
                     >
-                      <tab.icon size={18} weight={isActive ? 'fill' : 'duotone'} color={isActive ? 'white' : '#6B7280'} />
-                      {tab.label}
+                      {isActive && (
+                        <motion.div
+                          layoutId="activeTabIndicator"
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            background: '#FFFFFF',
+                            borderRadius: '9999px',
+                            boxShadow: '0 4px 12px rgba(124, 58, 237, 0.08), 0 1px 3px rgba(124, 58, 237, 0.04)',
+                            zIndex: -1,
+                          }}
+                          transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                        />
+                      )}
+                      <tab.icon size={18} weight={isActive ? 'fill' : 'duotone'} color={isActive ? '#7C3AED' : '#6B7280'} />
+                      <span>{tab.label}</span>
                     </button>
                   )
                 })}
@@ -1907,49 +1953,99 @@ function WorkstationContent() {
             </div>
 
             <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '10px', alignItems: 'center' }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: '#FEF3C7', border: '1px solid #FDE68A',
-                borderRadius: 9999, padding: '4px 12px',
-              }}>
+              {isCollaborativeSession && <PresenceBar />}
+
+              <div
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: 'linear-gradient(135deg, #FEF3C7 0%, #F5D0FE 100%)',
+                  border: '1px solid rgba(217, 119, 6, 0.15)',
+                  borderRadius: 9999, padding: '6px 14px',
+                  boxShadow: '0 4px 12px rgba(217, 119, 6, 0.06)',
+                  transition: 'all 200ms ease',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'scale(1.03)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(217, 119, 6, 0.12)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(217, 119, 6, 0.06)';
+                }}
+              >
+                <Crown size={14} color="#D97706" weight="fill" />
                 <span style={{
-                  fontSize: 11, fontWeight: 700, color: '#D97706'
+                  fontSize: 11, fontWeight: 700, color: '#B45309',
+                  letterSpacing: '0.02em',
+                  fontFamily: WORKSTATION_FONT_STACK,
                 }}>{explanationsLeft} LEFT</span>
-                <span style={{ color: '#FDE68A' }}>|</span>
+                <span style={{ color: 'rgba(180, 83, 9, 0.2)' }}>|</span>
                 <span style={{
-                  fontSize: 11, color: '#D97706', cursor: 'pointer'
+                  fontSize: 11, fontWeight: 800, color: '#7C3AED',
+                  letterSpacing: '0.02em',
+                  fontFamily: WORKSTATION_FONT_STACK,
                 }}>Upgrade</span>
               </div>
               <button
                 onClick={() => setFocusMode(!focusMode)}
-                  style={{
-                  display:'flex',alignItems:'center',gap:5,
-                  border:'1px solid #E5E7EB',borderRadius:9999,
-                  padding:'8px 14px',fontSize:13,color:'#374151',fontWeight:700,
-                  background:'white',cursor:'pointer',
-                  transition:'all 150ms',
+                style={{
+                  display:'flex',alignItems:'center',gap:6,
+                  border:'1px solid rgba(109, 40, 217, 0.12)',
+                  borderRadius:9999,
+                  padding:'8px 16px',fontSize:13,color:'#4B5563',fontWeight:700,
+                  background:'rgba(255, 255, 255, 0.7)',
+                  backdropFilter: 'blur(8px)',
+                  cursor:'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                  transition:'all 200ms ease',
                   fontFamily: WORKSTATION_FONT_STACK,
-                  }}
-                onMouseEnter={e=>e.currentTarget.style.background='#F9FAFB'}
-                onMouseLeave={e=>e.currentTarget.style.background='white'}
-                >
-                <ArrowsOut size={17} color="#6B7280" weight="duotone" />
+                }}
+                onMouseEnter={e=>{
+                  e.currentTarget.style.background='rgba(255, 255, 255, 1)';
+                  e.currentTarget.style.borderColor='rgba(109, 40, 217, 0.3)';
+                  e.currentTarget.style.boxShadow='0 4px 12px rgba(109, 40, 217, 0.08)';
+                  e.currentTarget.style.transform='translateY(-1px)';
+                }}
+                onMouseLeave={e=>{
+                  e.currentTarget.style.background='rgba(255, 255, 255, 0.7)';
+                  e.currentTarget.style.borderColor='rgba(109, 40, 217, 0.12)';
+                  e.currentTarget.style.boxShadow='0 2px 8px rgba(0,0,0,0.02)';
+                  e.currentTarget.style.transform='translateY(0)';
+                }}
+              >
+                <ArrowsOut size={16} color="#7C3AED" weight="duotone" />
                 Focus Mode
               </button>
               <button
                 onClick={handleExit}
                 style={{
-                  display:'flex',alignItems:'center',gap:5,
-                  border:'1px solid #FECACA',borderRadius:9999,
-                  padding:'8px 14px',fontSize:13,fontWeight:700,
-                  color:'#EF4444',background:'white',cursor:'pointer',
-                  transition:'all 150ms',
+                  display:'flex',alignItems:'center',gap:6,
+                  border:'1px solid rgba(239, 68, 68, 0.15)',
+                  borderRadius:9999,
+                  padding:'8px 16px',fontSize:13,fontWeight:700,
+                  color:'#EF4444',
+                  background:'rgba(255, 255, 255, 0.7)',
+                  backdropFilter: 'blur(8px)',
+                  cursor:'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                  transition:'all 200ms ease',
                   fontFamily: WORKSTATION_FONT_STACK,
                 }}
-                onMouseEnter={e=>e.currentTarget.style.background='#FEF2F2'}
-                onMouseLeave={e=>e.currentTarget.style.background='white'}
+                onMouseEnter={e=>{
+                  e.currentTarget.style.background='rgba(254, 242, 242, 0.8)';
+                  e.currentTarget.style.borderColor='rgba(239, 68, 68, 0.3)';
+                  e.currentTarget.style.boxShadow='0 4px 12px rgba(239, 68, 68, 0.08)';
+                  e.currentTarget.style.transform='translateY(-1px)';
+                }}
+                onMouseLeave={e=>{
+                  e.currentTarget.style.background='rgba(255, 255, 255, 0.7)';
+                  e.currentTarget.style.borderColor='rgba(239, 68, 68, 0.15)';
+                  e.currentTarget.style.boxShadow='0 2px 8px rgba(0,0,0,0.02)';
+                  e.currentTarget.style.transform='translateY(0)';
+                }}
               >
-                <SignOut size={17} color="#EF4444" weight="duotone" />
+                <SignOut size={16} color="#EF4444" weight="duotone" />
                 Exit Session
               </button>
               <div style={{ position: 'relative' }}>
@@ -1980,7 +2076,10 @@ function WorkstationContent() {
                       }}
                     >
                       <button
-                        onClick={() => setShowMoreMenu(false)}
+                        onClick={() => {
+                          setShowMoreMenu(false);
+                          setShowShareModal(true);
+                        }}
                         style={{ padding: '12px 16px', width: '100%', border: 'none', background: 'none', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontFamily: 'var(--font-body)' }}
                       >
                         <ShareNetwork size={15} weight="regular" /> Share Session
@@ -1998,7 +2097,7 @@ function WorkstationContent() {
       <main className="ws-main-layout" style={{
         display: 'flex',
         flexDirection: isMobile ? 'column' : 'row',
-        background: '#F9FAFB',
+        background: 'transparent',
         overflow: 'hidden',
         padding: isMobile ? '0' : '12px',
         gap: isMobile ? 0 : '12px',
@@ -2027,7 +2126,19 @@ function WorkstationContent() {
           zIndex: 1
         }}>
           {/* 1. Summary View */}
-          <div style={{ flex: 1, display: activeTab === 'summary' ? 'block' : 'none', overflowY: 'auto', background: '#F9FAFB', height: '100%' }}>
+          <div style={{
+            flex: 1,
+            display: activeTab === 'summary' ? 'flex' : 'none',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            background: 'rgba(255, 255, 255, 0.4)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderRadius: '24px',
+            border: '1px solid rgba(139, 92, 246, 0.08)',
+            boxShadow: '0 8px 32px rgba(109, 40, 217, 0.03)',
+            height: '100%'
+          }}>
             <WorkstationSummaryEnhanced
               content={currentAnalysis.summary}
               material={selectedMaterial}
@@ -2035,11 +2146,42 @@ function WorkstationContent() {
               onFetchPageSummaries={handleFetchPageSummaries}
               onRegenerate={() => runAnalysis('summary')}
               onJumpToPage={(p) => { handlePageJump(p); setActiveTab('content'); }}
+              isLoading={isAnalysisLoading}
+              user={user}
+              courseId={courseId}
+              numPages={viewportData?.numPages}
+              onAskQuestion={async (question) => {
+                setActiveSideTab('chat');
+                if (isSidePanelCollapsed) setSidePanelCollapsed(false);
+                handleSend(question);
+              }}
+              onSaveNotes={async (summaryText) => {
+                if (!selectedMaterial || !user) return;
+                await saveToVault({
+                  materialId: selectedMaterial.id,
+                  userId: user.id,
+                  courseId,
+                  title: `${selectedMaterial.title} - AI Summary`,
+                  content: summaryText,
+                  sourceType: 'ai'
+                });
+              }}
             />
           </div>
 
           {/* 2. Flashcards View */}
-          <div style={{ flex: 1, display: activeTab === 'flashcards' ? 'block' : 'none', overflowY: 'auto', background: '#F9FAFB', height: '100%' }}>
+          <div style={{
+            flex: 1,
+            display: activeTab === 'flashcards' ? 'block' : 'none',
+            overflowY: 'auto',
+            background: 'rgba(255, 255, 255, 0.4)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderRadius: '24px',
+            border: '1px solid rgba(139, 92, 246, 0.08)',
+            boxShadow: '0 8px 32px rgba(109, 40, 217, 0.03)',
+            height: '100%'
+          }}>
             <WorkstationFlashcards
               flashcards={currentAnalysis.flashcards}
               material={selectedMaterial}
@@ -2048,7 +2190,18 @@ function WorkstationContent() {
           </div>
 
           {/* 3. Quiz View */}
-          <div style={{ flex: 1, display: activeTab === 'quiz' ? 'block' : 'none', overflowY: 'auto', background: '#F9FAFB', height: '100%' }}>
+          <div style={{
+            flex: 1,
+            display: activeTab === 'quiz' ? 'block' : 'none',
+            overflowY: 'auto',
+            background: 'rgba(255, 255, 255, 0.4)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderRadius: '24px',
+            border: '1px solid rgba(139, 92, 246, 0.08)',
+            boxShadow: '0 8px 32px rgba(109, 40, 217, 0.03)',
+            height: '100%'
+          }}>
             <WorkstationQuiz
               quiz={currentAnalysis.quiz}
               material={selectedMaterial}
@@ -2142,236 +2295,12 @@ function WorkstationContent() {
                 position: 'relative',
                 flexDirection: 'column'
               }}>
-                {/* Floating Selection Tool Pill */}
-                {!isMobile && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    style={{
-                      position: 'absolute',
-                      bottom: '24px',
-                      left: '24px',
-                      transform: 'none',
-                      zIndex: 140,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-start',
-                      gap: '10px'
-                    }}
-                  >
-                    <AnimatePresence>
-                      {(activeWorkspaceTool === 'annotate' || activeStudyTool === 'annotate') && (
-                        <motion.div
-                          className="ws-annotate-subtoolbar"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          style={{
-                            position: 'absolute',
-                            bottom: 'calc(100% + 12px)',
-                            left: '0px',
-                            zIndex: 140,
-                            borderRadius: '20px',
-                            padding: '8px 14px',
-                            gap: '10px',
-                            background: 'rgba(255,255,255,0.96)',
-                            backdropFilter: 'blur(16px)',
-                            WebkitBackdropFilter: 'blur(16px)',
-                            border: '1px solid #E5E7EB',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {/* Colors */}
-                          {['#1F2937','#7C3AED','#EF4444','#10B981','#F59E0B'].map((c) => (
-                            <button
-                              key={c}
-                              type="button"
-                              onClick={() => setAnnotationColor(c)}
-                              style={{
-                                width: 20, height: 20, borderRadius: '50%',
-                                background: c, border: 'none', cursor: 'pointer',
-                                transform: annotationColor === c ? 'scale(1.3)' : 'scale(1)',
-                                boxShadow: annotationColor === c ? `0 0 0 2px white, 0 0 0 3.5px ${c}` : 'none',
-                                transition: 'all 150ms ease',
-                              }}
-                            />
-                          ))}
 
-                          <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
-
-                          {/* Stroke size */}
-                          {[3, 7].map((size) => (
-                            <button
-                              key={size}
-                              type="button"
-                              onClick={() => { setAnnotationStrokeSize(size); setIsEraserMode(false); }}
-                              title={`${size}px`}
-                              style={{
-                                width: 28, height: 28, borderRadius: '50%',
-                                border: annotationStrokeSize === size && !isEraserMode ? '2px solid #7C3AED' : '1.5px solid #E5E7EB',
-                                background: 'transparent',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                cursor: 'pointer', transition: 'all 150ms ease',
-                              }}
-                            >
-                              <span style={{
-                                width: size + 2, height: size + 2, borderRadius: '50%',
-                                background: annotationStrokeSize === size && !isEraserMode ? '#7C3AED' : '#9CA3AF',
-                                display: 'block', transition: 'all 150ms ease'
-                              }} />
-                            </button>
-                          ))}
-
-                          <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
-
-                          {/* Eraser */}
-                          <button
-                            type="button"
-                            onClick={() => setIsEraserMode(v => !v)}
-                            title="Eraser"
-                            style={{
-                              width: 32, height: 32, borderRadius: '10px', border: 'none',
-                              background: isEraserMode ? '#FEE2E2' : 'transparent',
-                              color: isEraserMode ? '#EF4444' : '#6B7280',
-                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              transition: 'all 150ms ease',
-                            }}
-                          >
-                            <Eraser size={16} weight="bold" />
-                          </button>
-
-                          {/* Clear */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const page = viewportData?.currentPage || 1;
-                              const api = canvasRefs.current[page];
-                              if (api?.clear) api.clear();
-                            }}
-                            title="Clear page annotations"
-                            style={{
-                              width: 32, height: 32, borderRadius: '10px', border: 'none',
-                              background: 'transparent', color: '#EF4444',
-                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              transition: 'all 150ms ease',
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.background = '#FEE2E2'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                          >
-                            <Trash size={16} weight="bold" />
-                          </button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      background: 'rgba(255,255,255,0.95)',
-                      backdropFilter: 'blur(8px)',
-                      WebkitBackdropFilter: 'blur(8px)',
-                      padding: '5px 8px',
-                      borderRadius: '9999px',
-                      border: '1px solid #E5E7EB',
-                      boxShadow: '0 4px 20px rgba(0,0,0,0.10)',
-                      gap: '2px',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {BOTTOM_WORKSPACE_TOOLS.map((tool, index) => {
-                        const ToolIcon = tool.icon
-                        const isActive = activeWorkspaceTool === tool.id
-                        return (
-                          <React.Fragment key={tool.id}>
-                            <button
-                              type="button"
-                              onClick={() => handleWorkspaceToolSelect(tool.id)}
-                              style={{
-                                display:'flex',alignItems:'center',gap:8,
-                                padding:'6px 12px',borderRadius:'12px',
-                                fontSize:13,fontWeight:800,
-                                cursor:'pointer',border:'1px solid',
-                                transition:'all 150ms ease',
-                                background: isActive ? tool.activeBg : tool.baseBg,
-                                borderColor: isActive ? tool.activeBorder : tool.baseBorder,
-                                color: isActive ? tool.activeColor : tool.baseColor,
-                                boxShadow: isActive ? '0 8px 18px rgba(17,24,39,0.08)' : 'none',
-                                fontFamily: WORKSTATION_FONT_STACK,
-                              }}
-                            >
-                              <ToolIcon size={16} weight={isActive ? 'fill' : 'duotone'} />
-                              <span>{tool.label}</span>
-                              <span style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                minWidth: 22,
-                                height: 22,
-                                padding: '0 6px',
-                                borderRadius: 8,
-                                border: '1px solid rgba(255,255,255,0.65)',
-                                background: 'rgba(255,255,255,0.35)',
-                                fontSize: 10,
-                                fontWeight: 800,
-                                lineHeight: 1,
-                                color: 'inherit'
-                              }}>
-                                {tool.shortcut}
-                              </span>
-                            </button>
-                            {index < BOTTOM_WORKSPACE_TOOLS.length - 1 && (
-                              <div style={{ width:1,height:20,background:'#E5E7EB',margin:'0 2px' }}/>
-                            )}
-                          </React.Fragment>
-                        )
-                      })}
-                      <div style={{ width:1,height:20,background:'#E5E7EB',margin:'0 2px' }}/>
-                      <button
-                        onClick={() => {
-                          const cur = viewportData?.currentPage || 1
-                          if (cur > 1) handlePageJump(cur - 1)
-                        }}
-                        disabled={(viewportData?.currentPage || 1) <= 1}
-                        style={{
-                          width:34,height:34,borderRadius:9999,
-                          border:'none',background:'transparent',
-                          display:'flex',alignItems:'center',justifyContent:'center',
-                          cursor: (viewportData?.currentPage || 1) <= 1 ? 'not-allowed' : 'pointer',
-                          color: (viewportData?.currentPage || 1) <= 1 ? '#CBD5E1' : '#64748B',
-                        }}
-                        onMouseEnter={(e) => { if ((viewportData?.currentPage || 1) > 1) e.currentTarget.style.background = '#F3F4F6' }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-                      >
-                        <CaretUp size={16} weight="bold" color={(viewportData?.currentPage || 1) <= 1 ? '#CBD5E1' : '#6B7280'} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          const cur = viewportData?.currentPage || 1
-                          const total = viewportData?.totalPages || 1
-                          if (cur < total) handlePageJump(cur + 1)
-                        }}
-                        disabled={(viewportData?.currentPage || 1) >= (viewportData?.totalPages || 1)}
-                        style={{
-                          width:34,height:34,borderRadius:9999,
-                          border:'none',background:'transparent',
-                          display:'flex',alignItems:'center',justifyContent:'center',
-                          cursor: (viewportData?.currentPage || 1) >= (viewportData?.totalPages || 1) ? 'not-allowed' : 'pointer',
-                          color: (viewportData?.currentPage || 1) >= (viewportData?.totalPages || 1) ? '#CBD5E1' : '#64748B',
-                        }}
-                        onMouseEnter={(e) => { if ((viewportData?.currentPage || 1) < (viewportData?.totalPages || 1)) e.currentTarget.style.background = '#F3F4F6' }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-                      >
-                        <CaretDown size={16} weight="bold" color={(viewportData?.currentPage || 1) >= (viewportData?.totalPages || 1) ? '#CBD5E1' : '#6B7280'} />
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
 
                 {/* Inner scrollable document area */}
                 <div
                   className="document-scroll-area"
-                  ref={documentViewerRef}
+                  ref={scrollContainerRef}
                   style={{
                     background: 'transparent',
                     flex: 1,
@@ -2393,12 +2322,13 @@ function WorkstationContent() {
                     onScrollUpdate={handleScrollUpdate}
                     onMaterialUpdate={(m) => setSelectedMaterial(m)}
                     annotateMode={activeStudyTool === 'annotate'}
+                    highlightMode={activeStudyTool === 'highlight'}
                     commentMode={activeStudyTool === 'comment'}
                     focusModeTool={activeStudyTool === 'cover'}
                     annotationColor={annotationColor}
                     annotationStrokeSize={annotationStrokeSize}
-                    isEraserMode={isEraserMode}
-                    annotationToolType={annotationToolType}
+                    isEraserMode={drawMode === 'eraser'}
+                    annotationToolType={drawMode}
                     pendingEquation={pendingEquation}
                     onEquationPlaced={() => setPendingEquation('')}
                     onCommentThreadSelect={(thread) => {
@@ -2406,282 +2336,196 @@ function WorkstationContent() {
                       setActiveSideTab('chat')
                       if (isSidePanelCollapsed) setSidePanelCollapsed(false)
                     }}
+                    canvasRefs={canvasRefs}
+                    scrollContainerRef={scrollContainerRef}
+                    highlights={highlights}
+                    initCanvas={initCanvas}
+                    startDrawing={startDrawing}
+                    draw={draw}
+                    stopDrawing={stopDrawing}
+                    drawMode={drawMode}
+                    loadHighlights={loadHighlights}
+                    setHighlightToolbox={setHighlightToolbox}
                   />
 
-                  {/* SYSTEM 1 — HIGHLIGHT TOOLBOX */}
-                  {selectionToolbox && (
-                    <div
-                      className="highlight-toolbox-container"
-                      style={{
-                        position: 'fixed',
-                        left: `${selectionToolbox.x}px`,
-                        top: `${selectionToolbox.y}px`,
-                        transform: 'translate(-50%, -100%)',
-                        zIndex: 2000,
-                        background: 'white',
-                        border: '1px solid #E5E7EB',
-                        borderRadius: '16px',
-                        padding: '10px 12px',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '10px',
-                        minWidth: '240px',
+                  {/* NEW FULLY WORKING HIGHLIGHT TOOLBOX */}
+                  {highlightToolbox && (
+                    <HighlightToolbox
+                      toolbox={highlightToolbox}
+                      COLORS={HIGHLIGHT_COLORS}
+                      selectedColor={highlightColor}
+                      setSelectedColor={setHighlightColor}
+                      onApply={applyHighlight}
+                      onDelete={deleteHighlight}
+                      onSendToAI={(text) => {
+                        setActiveSideTab('chat');
+                        if (isSidePanelCollapsed) setSidePanelCollapsed(false);
+                        handleSend(`Explain this selected text from the document: "${text}"`);
                       }}
-                    >
-                      <style>{`
-                        @keyframes toolboxAppear {
-                          from { opacity: 0; transform: translate(-50%, -95%); }
-                          to { opacity: 1; transform: translate(-50%, -100%); }
-                        }
-                        .highlight-toolbox-container {
-                          animation: toolboxAppear 150ms ease forwards;
-                        }
-                        .highlight-toolbox-container::after {
-                          content: '';
-                          position: absolute;
-                          bottom: -6px;
-                          left: 50%;
-                          width: 12px;
-                          height: 12px;
-                          background: white;
-                          border-right: 1px solid #E5E7EB;
-                          border-bottom: 1px solid #E5E7EB;
-                          transform: translateX(-50%) rotate(45deg);
-                        }
-                      `}</style>
-
-                      {/* ROW 1 — Color picker */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#9CA3AF', letterSpacing: '0.05em', marginRight: '4px' }}>
-                          Color
-                        </span>
-                        {[
-                          { id: 'yellow', color: '#FEF08A', border: '#FDE047' },
-                          { id: 'green',  color: '#BBF7D0', border: '#4ADE80' },
-                          { id: 'blue',   color: '#BFDBFE', border: '#60A5FA' },
-                          { id: 'pink',   color: '#FBCFE8', border: '#F472B6' },
-                          { id: 'orange', color: '#FED7AA', border: '#FB923C' },
-                          { id: 'purple', color: '#DDD6FE', border: '#A78BFA' },
-                        ].map(c => {
-                          const isSelected = selectedHighlightColor === c.color;
-                          return (
-                            <button
-                              key={c.id}
-                              type="button"
-                              onClick={() => setSelectedHighlightColor(c.color)}
-                              style={{
-                                width: '22px',
-                                height: '22px',
-                                borderRadius: '9999px',
-                                background: c.color,
-                                border: '2px solid transparent',
-                                cursor: 'pointer',
-                                transition: 'all 150ms',
-                                transform: isSelected ? 'scale(1.15)' : 'scale(1)',
-                                borderColor: isSelected ? c.border : 'transparent',
-                                boxShadow: isSelected ? `0 0 0 2px white, 0 0 0 3px ${c.border}` : 'none',
-                              }}
-                              title={`Select ${c.id}`}
-                            />
-                          );
-                        })}
-                      </div>
-
-                      {/* ROW 2 — Actions */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', borderTop: '1px solid #F3F4F6', paddingTop: '8px' }}>
-                        {/* Apply Highlight */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!selectionToolbox) return;
-                            const range = selectionToolbox.range;
-                            const mark = document.createElement('mark');
-                            const hId = nanoid();
-                            mark.dataset.highlightId = hId;
-                            mark.dataset.color = selectedHighlightColor;
-                            mark.dataset.page = viewportData?.currentPage || 1;
-                            mark.style.cssText = `
-                              background: ${selectedHighlightColor};
-                              border-radius: 3px;
-                              padding: 1px 2px;
-                              cursor: pointer;
-                              transition: opacity 150ms;
-                            `;
-                            
-                            try {
-                              range.surroundContents(mark);
-                            } catch (e) {
-                              const fragment = range.extractContents();
-                              mark.appendChild(fragment);
-                              range.insertNode(mark);
-                            }
-                            
-                            saveHighlight({
-                              id: hId,
-                              text: selectionToolbox.text,
-                              color: selectedHighlightColor,
-                              page: viewportData?.currentPage || 1,
-                              xpath: getXPath(mark),
-                            });
-                            
-                            setSelectionToolbox(null);
-                            window.getSelection().removeAllRanges();
-                          }}
-                          style={{
-                            flex: 1,
-                            background: selectedHighlightColor,
-                            border: 'none',
-                            borderRadius: '9999px',
-                            padding: '7px 0',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: '#374151',
-                            cursor: 'pointer',
-                            transition: 'opacity 150ms',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '5px',
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.opacity = 0.85}
-                          onMouseLeave={e => e.currentTarget.style.opacity = 1}
-                        >
-                          <Highlighter size={13} />
-                          <span>Highlight</span>
-                        </button>
-
-                        {/* Cover text */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!selectionToolbox) return;
-                            const range = selectionToolbox.range;
-                            const mark = document.createElement('mark');
-                            const hId = nanoid();
-                            mark.dataset.highlightId = hId;
-                            mark.dataset.color = '#1F2937';
-                            mark.dataset.page = viewportData?.currentPage || 1;
-                            mark.style.cssText = `
-                              background: #1F2937;
-                              color: #1F2937;
-                              border-radius: 4px;
-                              padding: 1px 2px;
-                              cursor: pointer;
-                              transition: all 150ms;
-                            `;
-                            mark.title = "Click to reveal";
-                            
-                            mark.onclick = () => {
-                              if (mark.style.color === 'rgb(31, 41, 55)' || mark.style.color === '#1F2937') {
-                                mark.style.color = 'transparent';
-                              } else {
-                                mark.style.color = '#1F2937';
-                              }
-                            };
-
-                            try {
-                              range.surroundContents(mark);
-                            } catch (e) {
-                              const fragment = range.extractContents();
-                              mark.appendChild(fragment);
-                              range.insertNode(mark);
-                            }
-
-                            saveHighlight({
-                              id: hId,
-                              text: selectionToolbox.text,
-                              color: '#1F2937',
-                              page: viewportData?.currentPage || 1,
-                              xpath: getXPath(mark),
-                            });
-                            
-                            setSelectionToolbox(null);
-                            window.getSelection().removeAllRanges();
-                          }}
-                          style={{
-                            padding: '7px 12px',
-                            background: '#F3F4F6',
-                            border: 'none',
-                            borderRadius: '9999px',
-                            fontSize: '12px',
-                            color: '#374151',
-                            cursor: 'pointer',
-                            transition: 'all 150ms',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.background = '#E5E7EB'}
-                          onMouseLeave={e => e.currentTarget.style.background = '#F3F4F6'}
-                        >
-                          <EyeSlash size={13} color="#6B7280" />
-                          <span>Cover</span>
-                        </button>
-
-                        {/* Send to AI */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!selectionToolbox) return;
-                            const text = selectionToolbox.text;
-                            setSelectionToolbox(null);
-                            window.getSelection().removeAllRanges();
-                            setActiveSideTab('chat');
-                            if (isSidePanelCollapsed) setSidePanelCollapsed(false);
-                            handleSend(`Explain this selected text from the document: "${text}"`);
-                          }}
-                          style={{
-                            padding: '7px 12px',
-                            background: '#F5F3FF',
-                            border: 'none',
-                            borderRadius: '9999px',
-                            fontSize: '12px',
-                            color: '#6D28D9',
-                            cursor: 'pointer',
-                            transition: 'all 150ms',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.background = '#EDE9FE'}
-                          onMouseLeave={e => e.currentTarget.style.background = '#F5F3FF'}
-                        >
-                          <Sparkle size={13} color="#7C3AED" />
-                          <span>Ask AI</span>
-                        </button>
-
-                        {/* Copy */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(selectionToolbox.text);
-                            setSelectionToolbox(null);
-                          }}
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '9999px',
-                            border: 'none',
-                            background: 'transparent',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            transition: 'all 150ms',
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                          title="Copy to Clipboard"
-                        >
-                          <Copy size={14} color="#6B7280" />
-                        </button>
-                      </div>
-                    </div>
+                      onClose={() => setHighlightToolbox(null)}
+                      containerRef={scrollContainerRef}
+                    />
                   )}
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Centered Study Tools Toolbar Dock */}
+          {!isMobile && ['content', 'board'].includes(activeTab) && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                position: 'absolute',
+                bottom: '24px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 9999,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '10px'
+              }}
+            >
+              <AnnotationToolbar
+                drawMode={drawMode}
+                setDrawMode={setDrawMode}
+                strokeColor={annotationColor}
+                setStrokeColor={setAnnotationColor}
+                strokeSize={annotationStrokeSize}
+                setStrokeSize={setAnnotationStrokeSize}
+                ANNOTATION_COLORS={ANNOTATION_COLORS}
+                STROKE_SIZES={STROKE_SIZES}
+                onClear={() => clearPage(viewportData?.currentPage || 1)}
+                visible={activeWorkspaceTool === 'annotate' || activeStudyTool === 'annotate'}
+              />
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                background: 'rgba(255, 255, 255, 0.8)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                padding: '6px 10px',
+                borderRadius: '9999px',
+                border: '1px solid rgba(124, 58, 237, 0.15)',
+                boxShadow: '0 12px 30px rgba(109, 40, 217, 0.12), 0 4px 10px rgba(0, 0, 0, 0.04)',
+                gap: '4px',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.3s ease',
+              }}>
+                {BOTTOM_WORKSPACE_TOOLS.map((tool, index) => {
+                  const ToolIcon = tool.icon
+                  const isActive = activeWorkspaceTool === tool.id || activeStudyTool === tool.id
+                  return (
+                    <React.Fragment key={tool.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleWorkspaceToolSelect(tool.id)}
+                        style={{
+                          display:'flex',alignItems:'center',gap:6,
+                          padding:'8px 14px',borderRadius:'9999px',
+                          fontSize:13,fontWeight:800,
+                          cursor:'pointer',
+                          border:'1px solid',
+                          transition:'all 200ms ease',
+                          background: isActive ? tool.activeBg : 'rgba(255, 255, 255, 0.6)',
+                          borderColor: isActive ? tool.activeBorder : 'rgba(229, 231, 235, 0.5)',
+                          color: isActive ? tool.activeColor : '#4B5563',
+                          boxShadow: isActive ? '0 6px 14px rgba(109, 40, 217, 0.15)' : '0 2px 6px rgba(0,0,0,0.02)',
+                          fontFamily: WORKSTATION_FONT_STACK,
+                          transform: isActive ? 'translateY(-2px)' : 'translateY(0)',
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          if (!isActive) {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 1)';
+                            e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.25)';
+                            e.currentTarget.style.boxShadow = '0 6px 14px rgba(124, 58, 237, 0.08)';
+                          }
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.transform = isActive ? 'translateY(-2px)' : 'translateY(0)';
+                          if (!isActive) {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.6)';
+                            e.currentTarget.style.borderColor = 'rgba(229, 231, 235, 0.5)';
+                            e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.02)';
+                          }
+                        }}
+                      >
+                        <ToolIcon size={16} weight={isActive ? 'fill' : 'duotone'} color={isActive ? tool.activeColor : '#7C3AED'} />
+                        <span>{tool.label}</span>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: 20,
+                          height: 20,
+                          padding: '0 4px',
+                          borderRadius: 6,
+                          background: isActive ? 'rgba(255, 255, 255, 0.25)' : 'rgba(109, 40, 217, 0.08)',
+                          border: isActive ? '1px solid rgba(255,255,255,0.4)' : '1px solid rgba(109, 40, 217, 0.15)',
+                          fontSize: 10,
+                          fontWeight: 800,
+                          lineHeight: 1,
+                          color: isActive ? 'inherit' : '#7C3AED',
+                          marginLeft: 4,
+                          transition: 'all 200ms ease',
+                        }}>
+                          {tool.shortcut}
+                        </span>
+                      </button>
+                      {index < BOTTOM_WORKSPACE_TOOLS.length - 1 && (
+                        <div style={{ width:1,height:20,background:'rgba(229, 231, 235, 0.5)',margin:'0 2px' }}/>
+                      )}
+                    </React.Fragment>
+                  )
+                })}
+                {activeTab !== 'board' && (
+                  <>
+                    <div style={{ width:1,height:20,background:'rgba(229, 231, 235, 0.5)',margin:'0 2px' }}/>
+                    <button
+                      onClick={() => {
+                        const cur = viewportData?.currentPage || 1
+                        if (cur > 1) handlePageJump(cur - 1)
+                      }}
+                      disabled={(viewportData?.currentPage || 1) <= 1}
+                      style={{
+                        width:34,height:34,borderRadius:9999,
+                        border:'none',background:'transparent',
+                        display:'flex',alignItems:'center',justifyContent:'center',
+                        cursor: (viewportData?.currentPage || 1) <= 1 ? 'not-allowed' : 'pointer',
+                        color: (viewportData?.currentPage || 1) <= 1 ? '#CBD5E1' : '#64748B',
+                        transition: 'all 200ms ease',
+                      }}
+                      onMouseEnter={(e) => { if ((viewportData?.currentPage || 1) > 1) { e.currentTarget.style.background = 'rgba(124, 58, 237, 0.08)'; e.currentTarget.style.color = '#7C3AED'; } }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; if ((viewportData?.currentPage || 1) > 1) e.currentTarget.style.color = '#64748B'; }}
+                    >
+                      <CaretUp size={16} weight="bold" color={(viewportData?.currentPage || 1) <= 1 ? '#CBD5E1' : '#7C3AED'} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        const cur = viewportData?.currentPage || 1
+                        const total = viewportData?.totalPages || 1
+                        if (cur < total) handlePageJump(cur + 1)
+                      }}
+                      disabled={(viewportData?.currentPage || 1) >= (viewportData?.totalPages || 1)}
+                      style={{
+                        width:34,height:34,borderRadius:9999,
+                        border:'none',background:'transparent',
+                        display:'flex',alignItems:'center',justifyContent:'center',
+                        cursor: (viewportData?.currentPage || 1) >= (viewportData?.totalPages || 1) ? 'not-allowed' : 'pointer',
+                        color: (viewportData?.currentPage || 1) >= (viewportData?.totalPages || 1) ? '#CBD5E1' : '#64748B',
+                      }}
+                      onMouseEnter={(e) => { if ((viewportData?.currentPage || 1) < (viewportData?.totalPages || 1)) e.currentTarget.style.background = '#F3F4F6' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                    >
+                      <CaretDown size={16} weight="bold" color={(viewportData?.currentPage || 1) >= (viewportData?.totalPages || 1) ? '#CBD5E1' : '#6B7280'} />
+                    </button>
+                  </>
+                )}
+              </div>
+            </motion.div>
           )}
         </div>
 
@@ -2787,9 +2631,12 @@ function WorkstationContent() {
                 : 'flex',
               width: isMobile ? '100%' : `${panelWidth}px`,
               margin: '0',
-              borderRadius: '20px',
-              border: '1px solid #E5E7EB',
-              background: 'white',
+              borderRadius: '24px',
+              border: '1px solid rgba(139, 92, 246, 0.1)',
+              background: 'rgba(255, 255, 255, 0.75)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              boxShadow: '0 8px 32px rgba(109, 40, 217, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
               overflow: 'hidden',
               flexDirection: 'column',
               height: isMobile ? 'calc(100dvh - 144px - env(safe-area-inset-bottom, 0px))' : '100%',
@@ -2814,15 +2661,20 @@ function WorkstationContent() {
               />
             )}
 
+            {/* Drag handle glow line if resizing */}
+            {!isMobile && isResizeHovered && (
+              <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '2px', background: '#7C3AED', zIndex: 25 }} />
+            )}
+
             {/* Tabs row */}
             <div className="ws-right-panel-header" style={{
               display: 'flex',
               alignItems: 'center',
               height: '60px',
-              borderBottom: '1px solid #F3F4F6',
+              borderBottom: '1px solid rgba(109, 40, 217, 0.08)',
               padding: '0 10px 0 14px',
               gap: '8px',
-              background: 'white',
+              background: 'transparent',
               flexShrink: 0,
               justifyContent: 'space-between'
             }}>
@@ -2835,35 +2687,50 @@ function WorkstationContent() {
                     style={{
                       height:58,
                       padding:'0 16px',
-                      display:'flex',alignItems:'center',gap:5,
+                      display:'flex',alignItems:'center',gap:6,
                       fontSize:13,
                       fontWeight: activeSideTab===tab.id ? 700 : 500,
                       color: activeSideTab===tab.id ? '#7C3AED' : '#9CA3AF',
                       background:'none',border:'none',
                       cursor:'pointer',
                       position: 'relative',
-                      transition:'color 150ms',
+                      transition:'color 200ms ease',
                       whiteSpace:'nowrap',
                       fontFamily: WORKSTATION_FONT_STACK,
                     }}
-                    onMouseEnter={e=>{ if(activeSideTab!==tab.id) e.currentTarget.style.color='#6B7280' }}
+                    onMouseEnter={e=>{ if(activeSideTab!==tab.id) e.currentTarget.style.color='#7C3AED' }}
                     onMouseLeave={e=>{ if(activeSideTab!==tab.id) e.currentTarget.style.color='#9CA3AF' }}
                   >
-                    <tab.icon size={17} weight={activeSideTab===tab.id ? 'fill' : 'bold'} />
-                    {tab.label}
+                    <tab.icon size={17} weight={activeSideTab===tab.id ? 'fill' : 'bold'} color={activeSideTab===tab.id ? '#7C3AED' : '#9CA3AF'} />
+                    <span>{tab.label}</span>
+                    {activeSideTab === tab.id && (
+                      <motion.div
+                        layoutId="activeSideTabIndicator"
+                        style={{
+                          position: 'absolute',
+                          bottom: 0,
+                          left: 12,
+                          right: 12,
+                          height: '3px',
+                          background: '#7C3AED',
+                          borderRadius: '9999px',
+                        }}
+                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      />
+                    )}
                   </button>
                 ))}
               </div>
               <button
                 onClick={() => setSidePanelCollapsed(true)}
                 style={{
-                  background: '#F8FAFC', border: '1px solid #E5E7EB', borderRadius: '12px', padding: '8px 10px',
+                  background: 'rgba(248, 250, 252, 0.8)', border: '1px solid rgba(229, 231, 235, 0.8)', borderRadius: '12px', padding: '8px 10px',
                   cursor: 'pointer', color: '#6B7280', display: 'flex', alignItems: 'center',
                   justifyContent: 'center', transition: 'all 150ms ease', gap: '6px',
                   fontFamily: WORKSTATION_FONT_STACK, fontSize: '12px', fontWeight: 700
                 }}
                 onMouseEnter={(event) => { event.currentTarget.style.background = '#F3F4F6' }}
-                onMouseLeave={(event) => { event.currentTarget.style.background = '#F8FAFC' }}
+                onMouseLeave={(event) => { event.currentTarget.style.background = 'rgba(248, 250, 252, 0.8)' }}
               >
                 <CaretRight size={15} weight="bold" />
                 <SidebarSimple size={16} weight="duotone" />
@@ -3149,27 +3016,32 @@ function WorkstationContent() {
                                     display:'flex',
                                     alignItems:'center',
                                     justifyContent:'space-between',
-                                    background:'#F9FAFB',
-                                    border:'1px solid #F3F4F6',
+                                    background:'rgba(255, 255, 255, 0.65)',
+                                    border:'1px solid rgba(109, 40, 217, 0.08)',
                                     borderRadius:12,
-                                    padding:'11px 14px',
+                                    padding:'12px 16px',
                                     cursor:'pointer',
-                                    transition:'all 150ms ease',
+                                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.01)',
+                                    transition:'all 200ms ease',
                                     marginBottom:8,
                                   }}
                                   onMouseEnter={e=>{ 
-                                    e.currentTarget.style.background='#F5F3FF'; 
-                                    e.currentTarget.style.borderColor='#DDD6FE'; 
+                                    e.currentTarget.style.background='rgba(255, 255, 255, 1)'; 
+                                    e.currentTarget.style.borderColor='rgba(109, 40, 217, 0.25)'; 
+                                    e.currentTarget.style.boxShadow='0 6px 16px rgba(109, 40, 217, 0.08)';
+                                    e.currentTarget.style.transform='translateY(-1px)';
                                   }}
                                   onMouseLeave={e=>{ 
-                                    e.currentTarget.style.background='#F9FAFB'; 
-                                    e.currentTarget.style.borderColor='#F3F4F6'; 
+                                    e.currentTarget.style.background='rgba(255, 255, 255, 0.65)'; 
+                                    e.currentTarget.style.borderColor='rgba(109, 40, 217, 0.08)'; 
+                                    e.currentTarget.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.01)';
+                                    e.currentTarget.style.transform='translateY(0)';
                                   }}
                                 >
-                                  <span style={{fontSize:13,color:'#374151'}}>
+                                  <span style={{fontSize:13,color:'#4B5563',fontWeight:600,fontFamily:'var(--font-body)'}}>
                                     {q.text}
                                   </span>
-                                  <CaretRight size={14} color="#D1D5DB"/>
+                                  <CaretRight size={14} color="#7C3AED" weight="bold"/>
                                 </div>
                               ))}
                             </div>
@@ -3181,7 +3053,13 @@ function WorkstationContent() {
                               const [mainPart, suggestionPart] = msg.content.split('---SUGGESTIONS---')
                               const suggestions = suggestionPart ? suggestionPart.split('|').map(s => s.trim()).filter(Boolean) : []
                               return (
-                                <div key={i} style={{ marginBottom: '32px', display: 'flex', gap: '12px', animation: 'fadeUp 0.3s ease-out' }}>
+                                <motion.div
+                                  key={i}
+                                  initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                                  style={{ marginBottom: '32px', display: 'flex', gap: '12px' }}
+                                >
                                   <div style={{
                                     width: '30px', height: '30px', borderRadius: '8px', flexShrink: 0, marginTop: '3px',
                                     background: isUser ? '#F1F5F9' : '#EDE9FE',
@@ -3233,7 +3111,7 @@ function WorkstationContent() {
                                       )}
                                     </div>
                                   </div>
-                                </div>
+                                </motion.div>
                               )
                             })}
                             {isProcessingLoading && (
@@ -3247,7 +3125,7 @@ function WorkstationContent() {
                       </div>
 
                       {/* 3 chip prompts */}
-                      <div style={{ padding: '12px 16px 8px', display: 'flex', gap: '6px', borderTop: '1px solid #F1F5F9', flexWrap: 'wrap', background: '#FAFAFA' }}>
+                      <div style={{ padding: '12px 16px 8px', display: 'flex', gap: '6px', borderTop: '1px solid rgba(229, 231, 235, 0.5)', flexWrap: 'wrap', background: 'rgba(250, 250, 250, 0.5)' }}>
                         {[
                           { text: 'Summarize', prompt: 'Summarize the core concepts' },
                           { text: 'Explain', prompt: "Explain this like I'm a student" },
@@ -3260,7 +3138,20 @@ function WorkstationContent() {
                               padding: '6px 12px', borderRadius: '9999px', border: '1px solid #E5E7EB',
                               background: 'white', fontSize: '12px', fontWeight: 600,
                               color: '#374151', cursor: 'pointer', fontFamily: 'var(--font-body)',
-                              transition: 'all 150ms ease', whiteSpace: 'nowrap'
+                              transition: 'all 150ms ease', whiteSpace: 'nowrap',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.transform = 'scale(1.05)';
+                              e.currentTarget.style.borderColor = '#7C3AED';
+                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(109, 40, 217, 0.1)';
+                              e.currentTarget.style.color = '#7C3AED';
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.transform = 'scale(1)';
+                              e.currentTarget.style.borderColor = '#E5E7EB';
+                              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.02)';
+                              e.currentTarget.style.color = '#374151';
                             }}
                           >
                             {chip.text}
@@ -3269,18 +3160,32 @@ function WorkstationContent() {
                       </div>
 
                       {/* Input area — pinned bottom */}
-                      <div style={{ padding: '10px 16px 18px', background: '#FAFAFA', flexShrink: 0 }}>
+                      <div style={{
+                        padding: '12px 16px 18px',
+                        background: 'rgba(250, 250, 250, 0.85)',
+                        backdropFilter: 'blur(20px)',
+                        borderTop: '1px solid rgba(229, 231, 235, 0.5)',
+                        flexShrink: 0
+                      }}>
                         <div
                           style={{
                             background: 'white',
-                            border: '1px solid #E5E7EB',
+                            border: '1px solid rgba(109, 40, 217, 0.1)',
                             borderRadius: '24px',
-                            padding: '8px 12px',
+                            padding: '8px 14px',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '10px',
-                            boxShadow: '0 1px 2px rgba(17,24,39,0.04)',
-                            transition: 'all 150ms ease'
+                            boxShadow: '0 4px 14px rgba(109, 40, 217, 0.03), 0 1px 2px rgba(17,24,39,0.02)',
+                            transition: 'all 200ms ease'
+                          }}
+                          onFocusCapture={(e) => {
+                            e.currentTarget.style.borderColor = '#7C3AED';
+                            e.currentTarget.style.boxShadow = '0 8px 24px rgba(109, 40, 217, 0.1)';
+                          }}
+                          onBlurCapture={(e) => {
+                            e.currentTarget.style.borderColor = 'rgba(109, 40, 217, 0.1)';
+                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(109, 40, 217, 0.03), 0 1px 2px rgba(17,24,39,0.02)';
                           }}
                         >
                           <button
@@ -4113,6 +4018,13 @@ function GroupSessionPanel({
           </button>
         </div>
       </section>
+
+      {/* Share Session Modal */}
+      <ShareSessionModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        sessionId={activeSessionId}
+      />
     </div>
   )
 }
@@ -4121,6 +4033,14 @@ export default function WorkstationPage() {
   const { materialId } = useParams()
   const { user, profile } = useOutletContext() || {}
   const [searchParams] = useSearchParams()
+
+  useEffect(() => {
+    document.body.classList.add('in-workspace')
+    return () => {
+      document.body.classList.remove('in-workspace')
+    }
+  }, [])
+
   const matId   = searchParams.get('materialId') || materialId
   const sessionId = searchParams.get('sessionId')
   const shareCode = searchParams.get('share')

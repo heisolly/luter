@@ -3,12 +3,14 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { 
   Folder, Plus, Trash2, Play, ArrowLeft, FileText, Video, Music, Image as ImageIcon, Search,
-  Upload, Clock, Edit2
+  Upload, Clock, Edit2, Share2, Users
 } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
 import { useSessionStore } from '../../store/useSessionStore'
 import { uploadMaterial } from '../../services/materialsService'
 import Header from '../shared/Header'
+import ShareSessionModal from './ShareSessionModal'
+import SessionMembersList from './SessionMembersList'
 
 export default function StudySessionPage() {
   const { sessionId } = useParams()
@@ -33,8 +35,10 @@ export default function StudySessionPage() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
-  const [viewMode, setViewMode] = useState('grid') // grid or list
-  const [sortBy, setSortBy] = useState('name') // name, date, type
+  const [viewMode, setViewMode] = useState('grid')
+  const [sortBy, setSortBy] = useState('name')
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [activeTab, setActiveTab] = useState('materials')
 
   useEffect(() => {
     if (sessionId) {
@@ -54,7 +58,6 @@ export default function StudySessionPage() {
     const offline = typeof navigator !== 'undefined' && !navigator.onLine
 
     if (offline) {
-      // Try localStorage cache first
       try {
         const raw = localStorage.getItem(cacheKey)
         if (raw) {
@@ -65,7 +68,6 @@ export default function StudySessionPage() {
           return
         }
       } catch {}
-      // Fallback to persisted sessions list from store
       const fromStore = sessions.find(s => s.id === sessionId)
       if (fromStore) {
         setSession(fromStore)
@@ -88,7 +90,6 @@ export default function StudySessionPage() {
       try { localStorage.setItem(cacheKey, JSON.stringify(data)) } catch {}
     } catch (error) {
       console.error('Error loading session:', error)
-      // Fallback to cache on any error
       try {
         const raw = localStorage.getItem(cacheKey)
         if (raw) {
@@ -168,7 +169,6 @@ export default function StudySessionPage() {
 
     setUploadProgress(100)
 
-    // Add uploaded items to session
     for (const item of uploadedItems) {
       await addItemToSession(sessionId, item)
     }
@@ -210,10 +210,8 @@ export default function StudySessionPage() {
   const handleStartStudying = () => {
     const items = session?.items || []
     if (items.length === 0) return
-    
-    // Navigate to workstation with the first material
     if (items[0].id) {
-      navigate(`/dashboard/workstation?materialId=${items[0].id}`)
+      navigate(`/dashboard/workstation?materialId=${items[0].id}&sessionId=${session.id}`)
     }
   }
 
@@ -260,9 +258,7 @@ export default function StudySessionPage() {
   return (
     <div 
       className="dhd-root"
-      style={{ 
-        minHeight: '100vh',
-      }}
+      style={{ minHeight: '100vh' }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -297,7 +293,7 @@ export default function StudySessionPage() {
         </div>
       )}
 
-      <div>
+      <div style={{ padding: '0 24px 24px' }}>
         {/* Back Button */}
         <button 
           onClick={() => navigate('/dashboard/sessions')}
@@ -322,12 +318,12 @@ export default function StudySessionPage() {
         </button>
 
         {/* Session Header */}
-        <div style={{ marginBottom: 32 }}>
+        <div style={{ marginBottom: 24 }}>
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
             gap: 16,
-            marginBottom: 24
+            marginBottom: 16
           }}>
             <div style={{
               width: 48,
@@ -425,7 +421,29 @@ export default function StudySessionPage() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button
+                onClick={() => setShowShareModal(true)}
+                style={{
+                  padding: '8px 16px',
+                  background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+                  border: 'none',
+                  borderRadius: 8,
+                  color: 'white',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 2px 8px rgba(124, 58, 237, 0.25)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Share2 size={14} />
+                Share
+              </button>
+
               <button
                 onClick={handleDeleteSession}
                 style={{
@@ -435,95 +453,120 @@ export default function StudySessionPage() {
                   borderRadius: 8,
                   color: '#64748b',
                   fontSize: 13,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
                 }}
               >
                 Delete
               </button>
             </div>
           </div>
+        </div>
 
-          {/* Search and Actions Bar */}
-          <div style={{ 
-            display: 'flex', 
-            gap: 12, 
-            alignItems: 'center',
-            flexWrap: 'wrap'
-          }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-              <Search 
-                size={18} 
-                style={{ 
-                  position: 'absolute', 
-                  left: 12, 
-                  top: '50%', 
-                  transform: 'translateY(-50%)', 
-                  color: '#94a3b8' 
-                }} 
-              />
-              <input 
-                type="text" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search materials..." 
-                style={{ 
-                  width: '100%', 
-                  padding: '10px 12px 10px 40px', 
-                  borderRadius: 8, 
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '24px', borderBottom: '1px solid #E2E8F0', marginBottom: '24px' }}>
+          <button
+            onClick={() => setActiveTab('materials')}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '12px 4px',
+              fontSize: '15px',
+              fontWeight: activeTab === 'materials' ? 600 : 500,
+              color: activeTab === 'materials' ? '#7C3AED' : '#64748B',
+              borderBottom: activeTab === 'materials' ? '2px solid #7C3AED' : '2px solid transparent',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <Folder size={18} />
+            Materials
+          </button>
+          <button
+            onClick={() => setActiveTab('members')}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '12px 4px',
+              fontSize: '15px',
+              fontWeight: activeTab === 'members' ? 600 : 500,
+              color: activeTab === 'members' ? '#7C3AED' : '#64748B',
+              borderBottom: activeTab === 'members' ? '2px solid #7C3AED' : '2px solid transparent',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <Users size={18} />
+            Members
+          </button>
+        </div>
+
+        {/* Materials Tab */}
+        {activeTab === 'materials' && (
+          <>
+            {/* Search and Actions Bar */}
+            <div style={{ 
+              display: 'flex', 
+              gap: 12, 
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              marginBottom: 24
+            }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+                <Search 
+                  size={18} 
+                  style={{ 
+                    position: 'absolute', 
+                    left: 12, 
+                    top: '50%', 
+                    transform: 'translateY(-50%)', 
+                    color: '#94a3b8' 
+                  }} 
+                />
+                <input 
+                  type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search materials..." 
+                  style={{ 
+                    width: '100%', 
+                    padding: '10px 12px 10px 40px', 
+                    borderRadius: 8, 
+                    border: '1px solid #e2e8f0',
+                    background: 'white',
+                    fontSize: 14,
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: 8,
                   border: '1px solid #e2e8f0',
                   background: 'white',
                   fontSize: 14,
-                  outline: 'none'
+                  color: '#64748b',
+                  outline: 'none',
+                  cursor: 'pointer'
                 }}
-              />
-            </div>
-
-            {/* Sort Dropdown */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              style={{
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '1px solid #e2e8f0',
-                background: 'white',
-                fontSize: 14,
-                color: '#64748b',
-                outline: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="name">Name</option>
-              <option value="date">Date</option>
-              <option value="type">Type</option>
-            </select>
-            
-            <label 
-              style={{
-                padding: '10px 16px',
-                background: '#7a12cc',
-                color: 'white',
-                border: 'none',
-                borderRadius: 8,
-                fontSize: 14,
-                fontWeight: 500,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8
-              }}
-            >
-              <Plus size={18} />
-              Add
-              <input type="file" multiple onChange={handleFileSelect} hidden />
-            </label>
-
-            {(session?.items?.length || 0) > 0 && (
-              <button
-                onClick={handleStartStudying}
+              >
+                <option value="name">Name</option>
+                <option value="date">Date</option>
+                <option value="type">Type</option>
+              </select>
+              
+              <label 
                 style={{
-                  padding: '10px 20px',
-                  background: '#10b981',
+                  padding: '10px 16px',
+                  background: '#7a12cc',
                   color: 'white',
                   border: 'none',
                   borderRadius: 8,
@@ -535,177 +578,177 @@ export default function StudySessionPage() {
                   gap: 8
                 }}
               >
-                <Play size={18} />
-                Study
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Materials Grid/List */}
-        {filteredItems.length === 0 ? (
-          <div
-            style={{ 
-              textAlign: 'center', 
-              padding: 60, 
-              color: '#64748b',
-              background: 'white',
-              borderRadius: 16,
-              border: '2px dashed #e2e8f0'
-            }}
-          >
-            <Folder size={48} style={{ 
-              opacity: 0.3, 
-              marginBottom: 16,
-              color: '#7a12cc'
-            }} />
-            <h3 style={{ 
-              fontSize: 18, 
-              fontWeight: 600, 
-              marginBottom: 8, 
-              color: '#111'
-            }}>
-              {searchQuery ? 'No materials found' : 'Your session is empty'}
-            </h3>
-            <p style={{ 
-              fontSize: 14, 
-              marginBottom: 24,
-              color: '#64748b'
-            }}>
-              {searchQuery 
-                ? 'Try adjusting your search terms' 
-                : 'Add materials to start studying'}
-            </p>
-            {!searchQuery && (
-              <label
-                style={{
-                  padding: '12px 24px',
-                  background: '#7a12cc',
-                  color: 'white',
-                  borderRadius: 8,
-                  fontSize: 14,
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8
-                }}
-              >
                 <Plus size={18} />
-                Add Material
+                Add
                 <input type="file" multiple onChange={handleFileSelect} hidden />
               </label>
-            )}
-          </div>
-        ) : (
-          <div
-            style={{ 
-              display: 'grid', 
-              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))',
-              gap: '24px',
-              width: '100%'
-            }}
-          >
-            {filteredItems.map((item) => (
+
+              {(session?.items?.length || 0) > 0 && (
+                <button
+                  onClick={handleStartStudying}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 8,
+                    fontSize: 14,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
+                  }}
+                >
+                  <Play size={18} />
+                  Study
+                </button>
+              )}
+            </div>
+
+            {/* Materials Grid */}
+            {filteredItems.length === 0 ? (
               <div
-                key={item.id}
-                style={{
+                style={{ 
+                  textAlign: 'center', 
+                  padding: 60, 
+                  color: '#64748b',
                   background: 'white',
-                  borderRadius: 12,
-                  padding: 16,
-                  border: '1px solid #e2e8f0',
-                  cursor: 'pointer',
-                  transition: 'box-shadow 0.2s',
-                  maxWidth: isMobile ? '100%' : '340px'
-                }}
-                onClick={() => navigate(`/dashboard/workstation?materialId=${item.id}`)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = 'none'
+                  borderRadius: 16,
+                  border: '2px dashed #e2e8f0'
                 }}
               >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 12,
-                  marginBottom: 12
-                }}>
-                  <div
+                <Folder size={48} style={{ opacity: 0.3, marginBottom: 16, color: '#7a12cc' }} />
+                <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, color: '#111' }}>
+                  {searchQuery ? 'No materials found' : 'Your session is empty'}
+                </h3>
+                <p style={{ fontSize: 14, marginBottom: 24, color: '#64748b' }}>
+                  {searchQuery 
+                    ? 'Try adjusting your search terms' 
+                    : 'Add materials to start studying'}
+                </p>
+                {!searchQuery && (
+                  <label
                     style={{
-                      width: 40,
-                      height: 40,
+                      padding: '12px 24px',
+                      background: '#7a12cc',
+                      color: 'white',
                       borderRadius: 8,
-                      background: '#f1f5f9',
-                      display: 'flex',
+                      fontSize: 14,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#64748b',
-                      flexShrink: 0
+                      gap: 8
                     }}
                   >
-                    {getFileIcon(item.type)}
-                  </div>
-                  
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ 
-                      fontSize: 14, 
-                      fontWeight: 600, 
-                      color: '#111', 
-                      margin: '0 0 4px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {item.title}
-                    </h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#64748b' }}>
-                      <span>{item.type || 'Document'}</span>
-                      <span style={{ opacity: 0.5 }}>•</span>
-                      <span>{formatMaterialDate(item.created_at)}</span>
+                    <Plus size={18} />
+                    Add Material
+                    <input type="file" multiple onChange={handleFileSelect} hidden />
+                  </label>
+                )}
+              </div>
+            ) : (
+              <div
+                style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))',
+                  gap: '24px',
+                  width: '100%'
+                }}
+              >
+                {filteredItems.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      background: 'white',
+                      borderRadius: 12,
+                      padding: 16,
+                      border: '1px solid #e2e8f0',
+                      cursor: 'pointer',
+                      transition: 'box-shadow 0.2s',
+                      maxWidth: isMobile ? '100%' : '340px'
+                    }}
+                    onClick={() => navigate(`/dashboard/workstation?materialId=${item.id}&sessionId=${session.id}`)}
+                    onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+                      <div
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 8,
+                          background: '#f1f5f9',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#64748b',
+                          flexShrink: 0
+                        }}
+                      >
+                        {getFileIcon(item.type)}
+                      </div>
+                      
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h3 style={{ 
+                          fontSize: 14, 
+                          fontWeight: 600, 
+                          color: '#111', 
+                          margin: '0 0 4px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {item.title}
+                        </h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#64748b' }}>
+                          <span>{item.type || 'Document'}</span>
+                          <span style={{ opacity: 0.5 }}>•</span>
+                          <span>{formatMaterialDate(item.created_at)}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleRemoveItem(item.id)
+                        }}
+                        style={{
+                          padding: '6px',
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#94a3b8',
+                          cursor: 'pointer',
+                          borderRadius: 4
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = '#dc2626'
+                          e.currentTarget.style.background = '#fee2e2'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = '#94a3b8'
+                          e.currentTarget.style.background = 'transparent'
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#94a3b8' }}>
+                      <Clock size={12} />
+                      {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Just now'}
                     </div>
                   </div>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleRemoveItem(item.id)
-                    }}
-                    style={{
-                      padding: '6px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#94a3b8',
-                      cursor: 'pointer',
-                      borderRadius: 4
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = '#dc2626'
-                      e.currentTarget.style.background = '#fee2e2'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = '#94a3b8'
-                      e.currentTarget.style.background = 'transparent'
-                    }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: 12,
-                  color: '#94a3b8'
-                }}>
-                  <Clock size={12} />
-                  {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Just now'}
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
+        )}
+
+        {/* Members Tab */}
+        {activeTab === 'members' && (
+          <SessionMembersList session={session} user={user} />
         )}
       </div>
 
@@ -752,15 +795,7 @@ export default function StudySessionPage() {
             <div style={{ fontSize: 14, color: '#64748b', marginBottom: 20 }}>
               {uploadProgress}%
             </div>
-            
-            {/* Progress Bar */}
-            <div style={{
-              width: '100%',
-              height: 6,
-              background: '#e2e8f0',
-              borderRadius: 3,
-              overflow: 'hidden'
-            }}>
+            <div style={{ width: '100%', height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
               <div
                 style={{
                   height: '100%',
@@ -774,6 +809,17 @@ export default function StudySessionPage() {
           </div>
         </div>
       )}
+
+      {/* Share Session Modal */}
+      <ShareSessionModal
+        isOpen={showShareModal}
+        onClose={() => {
+          setShowShareModal(false)
+          loadSession()
+        }}
+        sessionId={sessionId}
+        session={session}
+      />
     </div>
   )
 }

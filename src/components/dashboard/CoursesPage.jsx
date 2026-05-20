@@ -144,7 +144,7 @@ export default function CoursesPage() {
   const profile = bundle?.profile?.data || bundle?.profile
   const isSoloLearner = profile?.is_university_user === false || profile?.role === 'solo_learner'
   const { workspace } = useUniversalWorkspaceStore()
-  const { sessions } = useSessionStore()
+  const { sessions, addItemToSession, loadSessions } = useSessionStore()
   
   const [activeTab, setActiveTab] = useState(() => {
     // Load active tab from localStorage or default to 'courses'
@@ -172,7 +172,7 @@ export default function CoursesPage() {
   const [viewMode, setViewMode] = useState('grid') // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('updated') // 'updated' or 'type'
   const [filterType, setFilterType] = useState('all') // 'all' or specific type
-
+  
   // Courses tab materials controls
   const [coursesViewMode, setCoursesViewMode] = useState('grid') // 'grid' or 'list'
   const [coursesSortBy, setCoursesSortBy] = useState('updated') // 'updated', 'type', 'course'
@@ -201,6 +201,7 @@ export default function CoursesPage() {
       fetchCourses()
       fetchMaterials()
       loadGamificationData()
+      loadSessions()
     }
   }, [user?.id])
 
@@ -2916,15 +2917,19 @@ export default function CoursesPage() {
                       key={session.id}
                       onClick={async () => {
                         try {
-                          // Add material to session
-                          const { error } = await supabase
-                            .from('session_materials')
-                            .insert({
-                              session_id: session.id,
-                              material_id: selectedMaterial.id
-                            })
+                          // Add material to session via JSON items array
+                          const item = {
+                            id: selectedMaterial.id,
+                            title: selectedMaterial.title || selectedMaterial.file_name,
+                            type: selectedMaterial.type,
+                            url: selectedMaterial.source_url,
+                            courseId: selectedMaterial.course_id || null
+                          }
                           
-                          if (error) throw error
+                          const result = await addItemToSession(session.id, item)
+                          if (!result.success) {
+                            throw new Error(result.error || 'Failed to add to session')
+                          }
                           
                           setShowMoveToSessionModal(false)
                           setSelectedMaterial(null)
@@ -2932,7 +2937,7 @@ export default function CoursesPage() {
                           alert('Material moved to session successfully!')
                         } catch (error) {
                           console.error('Failed to move material to session:', error)
-                          alert('Failed to move material to session')
+                          alert('Failed to move material to session: ' + error.message)
                         }
                       }}
                       style={{
@@ -2969,14 +2974,14 @@ export default function CoursesPage() {
                         fontSize: 14,
                         fontWeight: 600
                       }}>
-                        {session.name?.charAt(0)?.toUpperCase() || 'S'}
+                        {session.session_name?.charAt(0)?.toUpperCase() || 'S'}
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 14, fontWeight: 600, color: '#111', marginBottom: '2px' }}>
-                          {session.name || 'Untitled Session'}
+                          {session.session_name || 'Untitled Session'}
                         </div>
                         <div style={{ fontSize: 12, color: '#64748b' }}>
-                          {session.material_count || 0} materials • {new Date(session.created_at).toLocaleDateString()}
+                          {session.items?.length || 0} materials • {new Date(session.created_at).toLocaleDateString()}
                         </div>
                       </div>
                     </button>

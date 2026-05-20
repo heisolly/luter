@@ -64,6 +64,7 @@ export default function DocumentViewer({
   onScrollUpdate,
   onMaterialUpdate,
   annotateMode = false,
+  highlightMode = false,
   commentMode = false,
   focusModeTool = false,
   annotationColor = '#7C3AED',
@@ -75,6 +76,15 @@ export default function DocumentViewer({
   onCommentThreadSelect,
   canvasRefs,
   onCanvasSave,
+  scrollContainerRef,
+  highlights,
+  initCanvas,
+  startDrawing,
+  draw,
+  stopDrawing,
+  drawMode,
+  loadHighlights,
+  setHighlightToolbox,
 }) {
   const { setViewportData, askAI } = useReadingSpace()
   const [viewMode, setViewMode] = useState('visuals')
@@ -237,6 +247,7 @@ export default function DocumentViewer({
                     onDocumentLoad={(e) => setTotalPages(e.doc.numPages)}
                     onMaterialUpdate={onMaterialUpdate}
                     annotateMode={annotateMode}
+                    highlightMode={highlightMode}
                     commentMode={commentMode}
                     focusModeTool={focusModeTool}
                     annotationColor={annotationColor}
@@ -248,6 +259,15 @@ export default function DocumentViewer({
                     onCommentThreadSelect={onCommentThreadSelect}
                     canvasRefs={canvasRefs}
                     onCanvasSave={onCanvasSave}
+                    scrollContainerRef={scrollContainerRef}
+                    highlights={highlights}
+                    initCanvas={initCanvas}
+                    startDrawing={startDrawing}
+                    draw={draw}
+                    stopDrawing={stopDrawing}
+                    drawMode={drawMode}
+                    loadHighlights={loadHighlights}
+                    setHighlightToolbox={setHighlightToolbox}
                  />
                </Worker>
             </div>
@@ -292,16 +312,17 @@ export default function DocumentViewer({
 
 function HighFidelityPDF({ fileUrl, initialPage = 1, onPageChange, onDocumentLoad, plugins = [] }) {
   const renderPage = (props) => (
-    <>
+    <div className="notranslate" translate="no" style={{ display: 'contents' }}>
       {props.canvasLayer.children}
       {props.textLayer.children}
       {props.annotationLayer.children}
       <div className="ws-annotation-overlay" />
-    </>
+    </div>
   )
   return (
-    <div className="luter-pdf-canvas" style={{ height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
+    <div className="luter-pdf-canvas notranslate" translate="no" style={{ height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
       <Viewer 
+        key={fileUrl}
         fileUrl={fileUrl} 
         initialPage={initialPage > 0 ? initialPage - 1 : 0}
         onPageChange={onPageChange}

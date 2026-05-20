@@ -190,13 +190,9 @@ export default function AnnotationLayer({
         left: 0,
         width: "100%",
         height: "100%",
-        zIndex: 10,
+        zIndex: isActive && !readOnly ? 100 : 10,
         pointerEvents: isActive && !readOnly ? "auto" : "none",
-        cursor: isActive
-          ? isEraser
-            ? "cell"
-            : "crosshair"
-          : "default",
+        cursor: isActive ? "inherit" : "default",
         touchAction: "none",
         background: "transparent",
       }}

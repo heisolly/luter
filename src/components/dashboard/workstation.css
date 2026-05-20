@@ -2513,10 +2513,10 @@
 @media (max-width: 1024px) {
   .ws-main-layout {
     background-size: 18px 18px, 18px 18px, auto !important;
-    height: auto !important;
+    height: calc(100dvh - 60px) !important;
     padding: 10px !important;
     gap: 10px !important;
-    overflow: visible !important;
+    overflow: hidden !important;
   }
 
   .ws-center-viewer {
@@ -3163,10 +3163,10 @@
 }
 
 .flashka-viewer-scroll {
-  flex: 1 1 auto !important;
+  flex: 1 !important;
   min-height: 0 !important;
-  background: #F5F5F5 !important;
-  padding: 20px 24px 80px 24px !important;
+  background: #F0F0F0 !important;
+  padding: 24px 32px 100px 32px !important;
   overflow-x: auto !important;
   overflow-y: auto !important;
   scroll-behavior: smooth !important;
@@ -3220,15 +3220,14 @@
 }
 
 .flashka-viewer-pages .rpv-core__page-layer {
-  width: fit-content !important;
-  min-width: calc(100% - 48px) !important;
+  background: white !important;
+  border-radius: 10px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07) !important;
+  margin-bottom: 20px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
   max-width: 100% !important;
-  margin: 0 auto 16px auto !important;
   display: block !important;
-  background: #FFFFFF !important;
-  border: 0 !important;
-  border-radius: 4px !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04) !important;
   overflow: hidden !important;
 }
 
@@ -3238,6 +3237,7 @@
 .flashka-viewer-pages canvas,
 .ws-page-image {
   max-width: 100% !important;
+  width: auto !important;
   height: auto !important;
   display: block !important;
 }
@@ -3632,12 +3632,12 @@
 }
 
 .flashka-viewer-scroll {
-  background: #F5F5F5 !important;
+  background: #F0F0F0 !important;
 }
 
 .flashka-viewer-pages .rpv-core__page-layer {
-  margin: 0 auto 16px auto !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
+  margin: 0 auto 20px auto !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07) !important;
 }
 
 .ws-chat-quick-prompts {
@@ -4547,4 +4547,53 @@
   text-align: center;
   z-index: 190;
   pointer-events: none;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -800px 0; }
+  100% { background-position: 800px 0; }
+}
+
+.summary-skeleton {
+  background: linear-gradient(
+    90deg,
+    #F3F4F6 25%,
+    #E9E9E9 50%,
+    #F3F4F6 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.summary-point {
+  animation: fadeSlideUp 250ms ease forwards;
+  opacity: 0;
+}
+
+.summary-card {
+  animation: fadeSlideUp 300ms ease forwards;
+  opacity: 0;
+}
+
+/* Custom scrollbar for summary tab */
+.summary-scroll-area::-webkit-scrollbar {
+  width: 5px;
+}
+.summary-scroll-area::-webkit-scrollbar-thumb {
+  background-color: #D1D5DB;
+  border-radius: 9999px;
+}
+.summary-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
 }

@@ -76,8 +76,8 @@ export class MaterialAnalysisService {
         .from('material_analysis')
         .select('*')
         .eq('material_id', materialId)
-        .eq('user_id', userId)
-        .maybeSingle() // Use maybeSingle instead of single to avoid errors
+        .limit(1)
+        .maybeSingle() // Fetch any existing analysis for this material (shared across session members)
       
       if (error) {
         console.error('Supabase error:', error)
@@ -178,28 +178,26 @@ export class MaterialAnalysisService {
       
       // Generate comprehensive analysis
       const analysisPrompt = `
-Analyze this educational material and provide a comprehensive analysis. Include:
+Create a comprehensive academic summary of this material. For the "summary" field of the JSON output, you must structure your response EXACTLY as follows:
 
-1. **Summary**: A detailed summary of the main topics and concepts
-2. **Key Topics**: List the main topics covered with brief descriptions
-3. **Learning Objectives**: What students should learn from this material
-4. **Difficulty Level**: Beginner, Intermediate, or Advanced with explanation
-5. **Study Time**: Estimated study time in hours
-6. **Prerequisites**: Any prior knowledge needed
-7. **Key Terms**: Important vocabulary and definitions
-8. **Concepts**: Core concepts explained simply
+## Key Points
+List 8-12 specific, detailed bullet points covering the most important concepts, definitions, and facts.
 
-Material Content:
-"""
-${content.substring(0, 6000)} ${content.length > 6000 ? '...' : ''}
-"""
+## Essential Concepts
+Provide a deep-dive description of 3-5 core concepts, using clear markdown headers (e.g. ### [Concept Name]) for each, with 2-3 explanatory paragraphs per concept.
 
-Material Title: ${material.title || 'Untitled'}
-Material Type: ${material.type || 'document'}
+## Detailed Summary
+A thorough, section-by-section or topic-by-topic breakdown of the material (at least 4-6 substantial paragraphs) explaining the thesis, arguments, methods, and conclusions.
+
+---
+Title: ${material.title || 'Untitled'}
+Type: ${material.type || 'document'}
+Content:
+${content.substring(0, 8000)} ${content.length > 8000 ? '...' : ''}
 
 Return the analysis in JSON format with the following structure:
 {
-  "summary": "detailed summary",
+  "summary": "The structured academic summary in Markdown format following the exact structure specified above",
   "keyTopics": ["topic1", "topic2", ...],
   "learningObjectives": ["objective1", "objective2", ...],
   "difficultyLevel": "Intermediate",
@@ -218,7 +216,10 @@ Return the analysis in JSON format with the following structure:
 
       const response = await callGroqAPI([
         { role: 'user', content: analysisPrompt }
-      ], GROQ_MODELS.PROFESSOR, 0.3)
+      ], GROQ_MODELS.PROFESSOR, {
+        temperature: 0.3,
+        systemPromptOverride: "You are an expert academic summarizer. You create comprehensive, detailed summaries that capture every important concept, formula, definition, and example from the material. Never give brief overviews — always give thorough, structured summaries that a student can study from directly without reading the original material."
+      })
       
       // Track usage
       window.groqDailyUsage = (window.groqDailyUsage || 0) + 5000 // Estimate

@@ -52,17 +52,52 @@ serve(async (req) => {
           'price_1TQBBcHPD8pnlRZImYqlm80o': { tier: 'pro', type: 'semester' },
           'price_1TQBBdHPD8pnlRZIp7HSWNQj': { tier: 'premium', type: 'monthly' },
           'price_1TQBBeHPD8pnlRZIeg7YvWbb': { tier: 'premium', type: 'semester' },
-          'ultimate': { tier: 'pro', type: 'monthly' }, // descriptive ID mapping
-          'premium': { tier: 'premium', type: 'monthly' }, // descriptive ID mapping
+          'ultimate': { tier: 'pro', type: 'monthly' },
+          'premium': { tier: 'premium', type: 'monthly' },
+          'starter': { tier: 'premium', type: 'starter' },
+          'beast_monthly': { tier: 'premium', type: 'monthly' },
+          'beast_quarterly': { tier: 'premium', type: 'quarterly' },
+          'beast_yearly': { tier: 'premium', type: 'yearly' },
+          'beast_annual': { tier: 'premium', type: 'yearly' },
+          'wizard_monthly': { tier: 'premium', type: 'monthly' },
+          'wizard_quarterly': { tier: 'premium', type: 'quarterly' },
+          'wizard_annual': { tier: 'premium', type: 'annual' },
+          'monthly': { tier: 'premium', type: 'monthly' },
+          'quarterly': { tier: 'premium', type: 'quarterly' },
+          'annual': { tier: 'premium', type: 'annual' },
         }
 
         const planInfo = planMap[transaction.plan_id]
         if (planInfo) {
-          // Calculate subscription expiry
+          // Fetch existing user profile to support credit preservation
+          const { data: profile } = await supabaseClient
+            .from('profiles')
+            .select('subscription_expires_at')
+            .eq('id', transaction.user_id)
+            .single()
+
           const now = new Date()
-          const expiryDate = new Date(now)
+          let baseDate = now
+
+          // If current subscription expires in the future, save their credit by starting from that expiry date!
+          if (profile && profile.subscription_expires_at) {
+            const currentExpiry = new Date(profile.subscription_expires_at)
+            if (currentExpiry > now) {
+              baseDate = currentExpiry
+            }
+          }
+
+          const expiryDate = new Date(baseDate)
             
-          if (planInfo.type === 'semester') {
+          if (planInfo.type === 'annual' || planInfo.type === 'yearly') {
+            expiryDate.setFullYear(expiryDate.getFullYear() + 1)
+          } else if (planInfo.type === 'quarterly') {
+            // Beast Quarterly plan duration is 4 months (Monthly * 4 - 20% discount)
+            expiryDate.setMonth(expiryDate.getMonth() + 4)
+          } else if (planInfo.type === 'starter') {
+            // Starter Plan has 2 weeks (14 days) duration
+            expiryDate.setDate(expiryDate.getDate() + 14)
+          } else if (planInfo.type === 'semester') {
             if (planInfo.tier === 'premium') {
               expiryDate.setFullYear(expiryDate.getFullYear() + 1) // 1 year for Executive long-term
             } else {
@@ -78,11 +113,12 @@ serve(async (req) => {
               subscription_tier: planInfo.tier,
               subscription_type: planInfo.type,
               subscription_expires_at: expiryDate.toISOString(),
+              is_premium: true,
               updated_at: new Date().toISOString()
             })
             .eq('id', transaction.user_id)
 
-          console.log(`Updated subscription for user ${transaction.user_id} to ${planInfo.tier}`)
+          console.log(`Updated subscription for user ${transaction.user_id} to ${planInfo.tier} (${planInfo.type}) expiring at ${expiryDate.toISOString()}`)
         }
       }
     }

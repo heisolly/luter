@@ -21,7 +21,8 @@ import {
 import { useBroadcastEvent, useEventListener, useUpdateMyPresence } from '../../../liveblocks.config'
 import { useDocumentComments } from '../../../hooks/useCommentThreads'
 import LiveCursors from '../../LiveCursors'
-import AnnotationLayer from '../AnnotationLayer'
+import AnnotationCanvas from '../AnnotationCanvas'
+import { supabase } from '../../../supabaseClient'
 
 const PDF_WORKER_URL = 'https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js'
 
@@ -65,6 +66,7 @@ export default function FlashkaDocumentViewer({
   onPageChange,
   onDocumentLoad,
   annotateMode = false,
+  highlightMode = false,
   commentMode = false,
   focusModeTool = false,
   annotationColor = '#7C3AED',
@@ -77,6 +79,15 @@ export default function FlashkaDocumentViewer({
   canvasRefs,
   onCanvasSave,
   material,
+  scrollContainerRef,
+  highlights,
+  initCanvas,
+  startDrawing,
+  draw,
+  stopDrawing,
+  drawMode,
+  loadHighlights,
+  setHighlightToolbox,
 }) {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
@@ -99,6 +110,23 @@ export default function FlashkaDocumentViewer({
   const broadcast = useBroadcastEvent()
   const { pageThreads, addComment } = useDocumentComments(currentPage)
 
+  // ─── Live cursor tracking ─────────────────────────────────────────────
+  const handlePointerMove = useCallback((e) => {
+    const container = scrollContainerRef?.current
+    if (!container) return
+    const rect = container.getBoundingClientRect()
+    updateMyPresence({
+      cursor: {
+        x: e.clientX - rect.left + container.scrollLeft,
+        y: e.clientY - rect.top + container.scrollTop,
+      },
+    })
+  }, [updateMyPresence, scrollContainerRef])
+
+  const handlePointerLeave = useCallback(() => {
+    updateMyPresence({ cursor: null })
+  }, [updateMyPresence])
+
   // Retrieve current user ID from Supabase
   const [userId, setUserId] = useState(null)
   useEffect(() => {
@@ -112,6 +140,13 @@ export default function FlashkaDocumentViewer({
     }
     fetchUser()
   }, [])
+
+  // Load highlights when user or file changes
+  useEffect(() => {
+    if (userId && fileUrl) {
+      loadHighlights?.();
+    }
+  }, [userId, fileUrl, loadHighlights])
 
   const searchPluginInstance = searchPlugin()
   const pageNavigationPluginInstance = pageNavigationPlugin()
@@ -253,28 +288,69 @@ export default function FlashkaDocumentViewer({
   const renderPage = (props) => {
     const pageNum = props.pageIndex + 1;
     return (
-      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-        {props.canvasLayer.children}
-        {props.textLayer.children}
-        {props.annotationLayer.children}
+      <div style={{ position: 'relative', width: '100%', height: '100%' }} className="notranslate" translate="no">
+        <div style={{
+          background: 'white',
+          borderRadius: '10px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
+          marginBottom: '20px',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          maxWidth: '100%',
+          display: 'block',
+          overflow: 'hidden',
+          position: 'relative',
+          width: '100%',
+          height: '100%'
+        }}>
+          {props.canvasLayer.children}
+          {props.textLayer.children}
+          {props.annotationLayer.children}
 
-        {/* Canvas annotation overlay */}
-        <AnnotationLayer
-          pageNum={pageNum}
-          isActive={annotateMode}
-          sessionId={material?.id || ''}
-          fileId={material?.id || ''}
-          userId={userId}
-          readOnly={false}
-          color={annotationColor}
-          strokeWidth={annotationStrokeSize}
-          isEraser={isEraserMode}
-          onAPIReady={(api) => {
-            if (canvasRefs && canvasRefs.current) {
-              canvasRefs.current[pageNum] = api
-            }
-          }}
-        />
+          {/* Canvas drawing overlay */}
+          <AnnotationCanvas
+            pageNum={pageNum}
+            isActive={annotateMode}
+            initCanvas={initCanvas}
+            startDrawing={startDrawing}
+            draw={draw}
+            stopDrawing={stopDrawing}
+            drawMode={drawMode}
+          />
+
+          {/* Page-relative Highlights Overlay */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              zIndex: 9,
+            }}
+          >
+            {(highlights || [])
+              .filter((h) => h.pageNum === pageNum)
+              .map((h) =>
+                h.rects?.map((r, idx) => (
+                  <div
+                    key={`${h.id}-${idx}`}
+                    style={{
+                      position: 'absolute',
+                      left: `${r.left * 100}%`,
+                      top: `${r.top * 100}%`,
+                      width: `${r.width * 100}%`,
+                      height: `${r.height * 100}%`,
+                      background: h.color,
+                      opacity: 0.4,
+                      mixBlendMode: 'multiply',
+                    }}
+                  />
+                ))
+              )}
+          </div>
+        </div>
 
         {/* Comment Thread Markers */}
         {pageThreads.map((thread) => {
@@ -461,21 +537,21 @@ export default function FlashkaDocumentViewer({
           max-width: 100% !important;
         }
         .flashka-desk .rpv-core__page-layer {
-          width: 100% !important;
-          min-width: 100% !important;
-          max-width: 100% !important;
-          margin: 0 auto 4px auto !important;
-          display: block !important;
-          box-shadow: none !important;
-          border-radius: 0 !important;
           background: white !important;
+          border-radius: 10px !important;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.07) !important;
+          margin-bottom: 20px !important;
+          margin-left: auto !important;
+          margin-right: auto !important;
+          max-width: 100% !important;
+          display: block !important;
           overflow: hidden !important;
           transition: none !important;
           transform: translateZ(0) !important;
           will-change: transform !important;
         }
         .flashka-desk .rpv-core__page-layer:hover {
-          box-shadow: none !important;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.07) !important;
         }
         .flashka-desk .rpv-default-layout__toolbar,
         .flashka-desk .rpv-default-layout__sidebar {
@@ -498,8 +574,30 @@ export default function FlashkaDocumentViewer({
         .flashka-desk img,
         .flashka-desk canvas {
           max-width: 100% !important;
+          width: auto !important;
           height: auto !important;
           display: block !important;
+        }
+
+        /* High-Fidelity Custom SVG Cursors & Text Interactivity */
+        .ws-highlight-active {
+          cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28' fill='none'><path d='M4 24L7.5 20.5L3.5 16.5L0 20L4 24Z' fill='%23F59E0B'/><path d='M7.5 20.5L20 8L16 4L3.5 16.5L7.5 20.5Z' fill='%23FDE68A' stroke='%23D97706' stroke-width='1.5'/><path d='M20 8L24 4.5C24.5 4 25.5 4 26 4.5C26.5 5 26.5 6 26 6.5L22.5 10.5L18.5 6.5' fill='%23D97706'/></svg>") 0 24, text !important;
+        }
+        .ws-annotate-active {
+          cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28' fill='none'><path d='M0 28L4 18L10 24L0 28Z' fill='%237C3AED'/><path d='M4 18L20 2L26 8L10 24L4 18Z' fill='%23ECE9FC' stroke='%237C3AED' stroke-width='1.5'/></svg>") 0 28, crosshair !important;
+        }
+        .ws-annotate-active.ws-eraser-active {
+          cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28' fill='none'><rect x='2' y='14' width='14' height='12' rx='2' fill='%23EF4444' stroke='%23DC2626' stroke-width='1.5'/><rect x='10' y='2' width='14' height='14' rx='2' fill='%23FCA5A5' stroke='%23EF4444' stroke-width='1.5' transform='rotate(15 10 2)'/></svg>") 4 20, pointer !important;
+        }
+
+        /* Force Selectable PDF Text Layer inside Highlight Mode */
+        .ws-highlight-active .rpv-core__text-layer,
+        .ws-highlight-active .rpv-core__text-layer *,
+        .ws-highlight-active .rpv-core__text-line,
+        .ws-highlight-active .rpv-core__text-line * {
+          pointer-events: auto !important;
+          user-select: text !important;
+          -webkit-user-select: text !important;
         }
       `
       document.head.appendChild(style)
@@ -593,10 +691,18 @@ export default function FlashkaDocumentViewer({
     )
   }
 
+  const deskClassName = `flashka-desk h-full flex flex-col relative ${
+    highlightMode ? 'ws-highlight-active' : ''
+  } ${
+    annotateMode ? 'ws-annotate-active' : ''
+  } ${
+    annotateMode && isEraserMode ? 'ws-eraser-active' : ''
+  }`.trim()
+
   return (
     <div
       ref={viewerContainerRef}
-      className="flashka-desk h-full flex flex-col relative"
+      className={deskClassName}
       style={{ background: 'transparent' }}
       onMouseMove={scheduleToolbarHide}
     >
@@ -609,15 +715,26 @@ export default function FlashkaDocumentViewer({
 
       {/* PDF Viewer with fade-in */}
       <div
-        className="flashka-viewer-scroll flex-1 overflow-auto"
+        className="flashka-viewer-scroll notranslate"
+        ref={scrollContainerRef}
+        translate="no"
+        onPointerMove={handlePointerMove}
+        onPointerLeave={handlePointerLeave}
         style={{
           opacity: fadeIn ? 1 : 0,
           transition: 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
           scrollBehavior: 'smooth',
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'auto',
+          background: '#F0F0F0',
+          padding: '24px 32px 100px 32px',
+          position: 'relative',
         }}
       >
-        <div className="flashka-viewer-pages">
+        <div className="flashka-viewer-pages notranslate" translate="no" style={{ position: 'relative' }}>
           <Viewer
+            key={fileUrl}
             fileUrl={fileUrl}
             plugins={[searchPluginInstance, pageNavigationPluginInstance, zoomPluginInstance]}
             defaultScale={scale}
@@ -626,8 +743,9 @@ export default function FlashkaDocumentViewer({
             onPageChange={handlePageChange}
             renderPage={renderPage}
           />
-          <LiveCursors />
         </div>
+        {/* Live cursors positioned relative to the scroll container */}
+        <LiveCursors />
       </div>
 
       {commentPopover && (

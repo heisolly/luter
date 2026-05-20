@@ -68,8 +68,8 @@ export const useSessionStore = create(
         currentUserId: null,
       }),
 
-      loadSessions: async () => {
-        if (get().loading) return
+      loadSessions: async (force = false) => {
+        if (get().loading && !force) return
 
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
@@ -83,7 +83,7 @@ export const useSessionStore = create(
           const sharedIds = await fetchSharedSessionIds(user.id)
           let query = supabase
             .from('deck_sessions')
-            .select('*')
+            .select('*, member_count:deck_session_members(count)')
             .eq('is_active', true)
             .order('last_accessed', { ascending: false })
 
@@ -159,7 +159,7 @@ export const useSessionStore = create(
             }, { onConflict: 'session_id,user_id' })
 
           const session = { ...data, collaboration_room_id: roomId }
-          await get().loadSessions()
+          await get().loadSessions(true)
           set({ activeSession: session })
 
           return { success: true, session }
@@ -183,7 +183,7 @@ export const useSessionStore = create(
             .eq('id', sessionId)
 
           if (error) throw error
-          await get().loadSessions()
+          await get().loadSessions(true)
           return { success: true }
         } catch (error) {
           console.error('Error updating session:', error)
@@ -232,7 +232,7 @@ export const useSessionStore = create(
 
           if (joinError) throw joinError
 
-          await get().loadSessions()
+          await get().loadSessions(true)
           set({ activeSession: session })
           return { success: true, session }
         } catch (error) {
@@ -272,10 +272,54 @@ export const useSessionStore = create(
             .eq('id', sessionId)
 
           if (error) throw error
-          await get().loadSessions()
+          await get().loadSessions(true)
           return { success: true }
         } catch (error) {
           console.error('Error deleting session:', error)
+          return { success: false, error: error.message }
+        } finally {
+          set({ loading: false })
+        }
+      },
+
+      leaveSession: async (sessionId) => {
+        set({ loading: true })
+        try {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user) throw new Error('User not authenticated')
+
+          const { error } = await supabase
+            .from('deck_session_members')
+            .delete()
+            .eq('session_id', sessionId)
+            .eq('user_id', user.id)
+
+          if (error) throw error
+          await get().loadSessions(true)
+          return { success: true }
+        } catch (error) {
+          console.error('Error leaving session:', error)
+          return { success: false, error: error.message }
+        } finally {
+          set({ loading: false })
+        }
+      },
+
+      removeMemberFromSession: async (sessionId, targetUserId) => {
+        set({ loading: true })
+        try {
+          const { error } = await supabase
+            .from('deck_session_members')
+            .delete()
+            .eq('session_id', sessionId)
+            .eq('user_id', targetUserId)
+
+          if (error) throw error
+          
+          await get().loadSessions(true)
+          return { success: true }
+        } catch (error) {
+          console.error('Error removing member from session:', error)
           return { success: false, error: error.message }
         } finally {
           set({ loading: false })

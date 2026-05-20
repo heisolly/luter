@@ -74,6 +74,13 @@ const LUTER_BRAND_STYLE = `
   .excalidraw .ToolIcon.is-selected svg {
     color: #7C3AED !important;
   }
+
+  /* ── Responsive spacing from bottom navigation on mobile/tablet ── */
+  @media (max-width: 1024px) {
+    .luter-whiteboard-root {
+      padding-bottom: 74px !important;
+    }
+  }
 `;
 
 let brandStyleInjected = false;
@@ -92,12 +99,28 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
   const isRemoteUpdate = useRef(false);
   const isInitialized = useRef(false);
 
+  // Dynamic WelcomeScreen & Footer subcomponent resolution to prevent Element type is invalid crashes
+  const WS = WelcomeScreen || (Excalidraw ? Excalidraw.WelcomeScreen : null);
+  const WSCenter = WS?.Center || WS?.default?.Center;
+  const WSHints = WS?.Hints || WS?.default?.Hints;
+
+  const Logo = WSCenter?.Logo || WSCenter?.default?.Logo;
+  const Heading = WSCenter?.Heading || WSCenter?.default?.Heading;
+  const Menu = WSCenter?.Menu || WSCenter?.default?.Menu;
+  const MenuItemLoadScene = WSCenter?.MenuItemLoadScene || WSCenter?.default?.MenuItemLoadScene;
+
+  const MenuHint = WSHints?.MenuHint || WSHints?.default?.MenuHint;
+  const ToolbarHint = WSHints?.ToolbarHint || WSHints?.default?.ToolbarHint;
+
+  const SafeFooter = Footer || (Excalidraw ? Excalidraw.Footer : null);
+
   // Inject brand CSS once
   useEffect(() => { injectBrandStyle(); }, []);
 
   // Liveblocks storage
   const storedElements  = useStorage((root) => root.whiteboardData);
   const storedAppState  = useStorage((root) => root.whiteboardAppState);
+  const storedFiles     = useStorage((root) => root.whiteboardFiles);
   const status          = useStatus();
   const isStorageLoaded = status === 'connected';
   const self            = useSelf();
@@ -132,24 +155,67 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
     }
   }, []);
 
+  const updateFiles = useMutation(({ storage }, newFiles) => {
+    if (!storage) return;
+    const obj = storage.get('whiteboardFiles');
+    if (obj instanceof LiveObject) {
+      obj.update(newFiles);
+    } else {
+      storage.set('whiteboardFiles', new LiveObject(newFiles));
+    }
+  }, []);
+
   const debouncedUpdateElements = useDebounce(updateElements, 80);
   const debouncedUpdateAppState = useDebounce(updateAppState, 300);
+  const debouncedUpdateFiles    = useDebounce(updateFiles, 150);
   const lastSavedElements  = useRef('[]');
   const lastSavedAppState  = useRef(null);
 
-  // ── Sync remote elements into Excalidraw ─────────────────────────
+  // Helper to load files synchronously for initialData
+  const getInitialFiles = () => {
+    let files = {};
+    try {
+      const localKey = `luter-board-files-${roomId}`;
+      files = JSON.parse(localStorage.getItem(localKey) || '{}');
+    } catch (e) {}
+    if (storedFiles) {
+      files = { ...files, ...storedFiles };
+    }
+    return Object.keys(files).length > 0 ? files : undefined;
+  };
+
+  // ── Sync remote elements and files into Excalidraw ─────────────────
   useEffect(() => {
-    if (!excalidrawAPI || !storedElements) return;
+    if (!excalidrawAPI) return;
+
+    let filesToLoad = {};
+    try {
+      const localKey = `luter-board-files-${roomId}`;
+      const localFiles = JSON.parse(localStorage.getItem(localKey) || '{}');
+      filesToLoad = { ...localFiles };
+    } catch (e) {
+      console.warn("Failed to read whiteboard files from localStorage:", e);
+    }
+
+    if (storedFiles) {
+      filesToLoad = { ...filesToLoad, ...storedFiles };
+    }
+
     isInitialized.current = true;
     isRemoteUpdate.current = true;
-    const str = JSON.stringify(storedElements);
+    const elementsToLoad = storedElements || [];
+    const str = JSON.stringify(elementsToLoad);
     lastSavedElements.current = str;
-    excalidrawAPI.updateScene({ elements: storedElements });
+
+    excalidrawAPI.updateScene({
+      elements: elementsToLoad,
+      files: Object.keys(filesToLoad).length > 0 ? filesToLoad : undefined,
+    });
     setTimeout(() => { isRemoteUpdate.current = false; }, 150);
-  }, [storedElements, excalidrawAPI]);
+  }, [storedElements, storedFiles, excalidrawAPI, roomId]);
 
   // ── onChange: push local changes to Liveblocks ───────────────────
-  const onChange = useCallback((newElements, newAppState) => {
+  const onChange = useCallback((newElements, newAppState, files) => {
     if (isRemoteUpdate.current) return;
     if (!isStorageLoaded) return;
 
@@ -164,7 +230,20 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
       lastSavedAppState.current = asStr;
       debouncedUpdateAppState(newAppState);
     }
-  }, [isStorageLoaded, debouncedUpdateElements, debouncedUpdateAppState]);
+
+    // Save newly uploaded image files
+    if (files && Object.keys(files).length > 0) {
+      try {
+        const localKey = `luter-board-files-${roomId}`;
+        const existingLocal = JSON.parse(localStorage.getItem(localKey) || '{}');
+        const updatedLocal = { ...existingLocal, ...files };
+        localStorage.setItem(localKey, JSON.stringify(updatedLocal));
+      } catch (e) {
+        console.warn("Failed to write whiteboard files to localStorage (quota exceeded?):", e);
+      }
+      debouncedUpdateFiles(files);
+    }
+  }, [roomId, isStorageLoaded, debouncedUpdateElements, debouncedUpdateAppState, debouncedUpdateFiles]);
 
   return (
     <div className="luter-whiteboard-root">
@@ -172,6 +251,7 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
         excalidrawAPI={(api) => setExcalidrawAPI(api)}
         initialData={{
           elements: storedElements || [],
+          files: getInitialFiles(),
           appState: {
             scrollX: storedAppState?.scrollX ?? 0,
             scrollY: storedAppState?.scrollY ?? 0,
@@ -204,53 +284,48 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
         }}
       >
         {/* Welcome screen with Luter branding (no external links) */}
-        <WelcomeScreen>
-          <WelcomeScreen.Hints.MenuHint />
-          <WelcomeScreen.Hints.ToolbarHint />
-          <WelcomeScreen.Hints.ZoomHint />
-          <WelcomeScreen.Center>
-            <WelcomeScreen.Center.Logo>
-              {/* Luter logo in place of Excalidraw logo */}
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '10px',
-                padding: '12px 20px', background: 'linear-gradient(135deg,#7C3AED,#4F46E5)',
-                borderRadius: '16px', color: 'white',
-              }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2Z" fill="rgba(255,255,255,0.25)" stroke="white" strokeWidth="1.5"/>
-                  <path d="M9 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span style={{ fontWeight: 800, fontSize: '20px', letterSpacing: '-0.02em' }}>Luter Board</span>
-              </div>
-            </WelcomeScreen.Center.Logo>
-            <WelcomeScreen.Center.Heading>
-              Your collaborative study canvas
-            </WelcomeScreen.Center.Heading>
-            <WelcomeScreen.Center.Menu>
-              {/* Only show safe menu items — no external links */}
-              <WelcomeScreen.Center.MenuItemLoadScene />
-            </WelcomeScreen.Center.Menu>
-          </WelcomeScreen.Center>
-        </WelcomeScreen>
+        {WS && WSCenter && (
+          <WS>
+            {MenuHint && <MenuHint />}
+            {ToolbarHint && <ToolbarHint />}
+            <WSCenter>
+              {Logo && (
+                <Logo>
+                  {/* Luter logo in place of Excalidraw logo */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '12px 20px', background: 'linear-gradient(135deg,#7C3AED,#4F46E5)',
+                    borderRadius: '16px', color: 'white',
+                  }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2Z" fill="rgba(255,255,255,0.25)" stroke="white" strokeWidth="1.5"/>
+                      <path d="M9 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span style={{ fontWeight: 800, fontSize: '20px', letterSpacing: '-0.02em' }}>Luter Board</span>
+                  </div>
+                </Logo>
+              )}
+              {Heading && (
+                <Heading>
+                  Your collaborative study canvas
+                </Heading>
+              )}
+              {Menu && (
+                <Menu>
+                  {/* Only show safe menu items — no external links */}
+                  {MenuItemLoadScene && <MenuItemLoadScene />}
+                </Menu>
+              )}
+            </WSCenter>
+          </WS>
+        )}
 
-        {/* Custom footer showing sync status, no external links */}
-        <Footer>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '4px 10px', borderRadius: '12px',
-            background: self ? 'rgba(16,185,129,0.1)' : 'rgba(148,163,184,0.1)',
-            border: `1px solid ${self ? 'rgba(16,185,129,0.3)' : 'rgba(148,163,184,0.3)'}`,
-            fontSize: '11px', fontWeight: 700,
-            color: self ? '#059669' : '#94A3B8',
-          }}>
-            <div style={{
-              width: 6, height: 6, borderRadius: '50%',
-              background: self ? '#10B981' : '#94A3B8',
-              boxShadow: self ? '0 0 0 2px rgba(16,185,129,0.25)' : 'none',
-            }} />
-            {self ? 'Real-time sync active' : 'Working locally…'}
-          </div>
-        </Footer>
+        {/* Empty footer override to hide real-time sync status completely */}
+        {SafeFooter && (
+          <SafeFooter>
+            <div style={{ display: 'none' }} />
+          </SafeFooter>
+        )}
       </Excalidraw>
     </div>
   );

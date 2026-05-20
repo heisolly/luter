@@ -14,6 +14,22 @@ if (typeof window !== 'undefined') {
     event.preventDefault()
     window.location.reload()
   })
+
+  // Aggressive trick to hide Liveblocks watermark everywhere
+  const observer = new MutationObserver(() => {
+    const watermarkEls = document.querySelectorAll('a[href*="liveblocks.io"], [class*="liveblocks-badge"], [id*="liveblocks-watermark"]');
+    watermarkEls.forEach(el => {
+      try {
+        if (el && el.style) {
+          el.style.setProperty('display', 'none', 'important');
+          el.style.setProperty('opacity', '0', 'important');
+          el.style.setProperty('visibility', 'hidden', 'important');
+          el.style.setProperty('pointer-events', 'none', 'important');
+        }
+      } catch (e) {}
+    });
+  });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
 }
 
 // Safe Boot Loader: Ensures PDF.js and crucial globals are ready before React mounts

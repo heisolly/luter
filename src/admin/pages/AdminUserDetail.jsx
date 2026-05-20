@@ -19,6 +19,10 @@ export default function AdminUserDetail() {
     faculty: '',
     level: '',
     role: 'user',
+    is_premium: false,
+    subscription_tier: 'free',
+    subscription_type: '',
+    subscription_expires_at: '',
   })
 
   useEffect(() => {
@@ -42,6 +46,10 @@ export default function AdminUserDetail() {
         faculty: p.faculty || '',
         level: p.level || '',
         role: p.role || 'user',
+        is_premium: p.is_premium || false,
+        subscription_tier: p.subscription_tier || 'free',
+        subscription_type: p.subscription_type || '',
+        subscription_expires_at: p.subscription_expires_at ? p.subscription_expires_at.slice(0, 16) : '',
       })
 
       const { data: st } = await supabase.from('user_stats').select('*').eq('user_id', userId).maybeSingle()
@@ -68,10 +76,29 @@ export default function AdminUserDetail() {
         faculty: form.faculty,
         level: form.level,
         role: form.role,
+        is_premium: form.is_premium,
+        subscription_tier: form.subscription_tier,
+        subscription_type: form.subscription_type,
+        subscription_expires_at: form.subscription_expires_at ? new Date(form.subscription_expires_at).toISOString() : null,
       })
       .eq('id', userId)
 
-    if (e) setError(e.message)
+    if (e) {
+      setError(e.message)
+    } else {
+      setProfile(prev => ({
+        ...prev,
+        full_name: form.full_name,
+        university: form.university,
+        faculty: form.faculty,
+        level: form.level,
+        role: form.role,
+        is_premium: form.is_premium,
+        subscription_tier: form.subscription_tier,
+        subscription_type: form.subscription_type,
+        subscription_expires_at: form.subscription_expires_at ? new Date(form.subscription_expires_at).toISOString() : null,
+      }))
+    }
     setSaving(false)
   }
 
@@ -197,7 +224,61 @@ export default function AdminUserDetail() {
                 <option value="admin">admin</option>
               </select>
             </label>
-            <button type="button" className="adm-btn adm-btn--primary" disabled={saving} onClick={saveProfile}>
+
+            <div style={{ margin: '12px 0', height: '1px', background: '#e5e7eb' }} />
+            <h4 style={{ margin: '0 0 8px 0', fontSize: 13, fontWeight: 800, color: '#4b5563' }}>Subscription Control</h4>
+
+            <label className="adm-muted" style={{ fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={form.is_premium}
+                onChange={(e) => setForm((f) => ({ ...f, is_premium: e.target.checked }))}
+                style={{ width: 16, height: 16, cursor: 'pointer' }}
+              />
+              Premium / Paid Access Active
+            </label>
+
+            <label className="adm-muted" style={{ fontSize: 12, fontWeight: 700, marginTop: 4 }}>
+              Subscription Tier
+              <select
+                className="adm-input"
+                style={{ width: '100%', marginTop: 6 }}
+                value={form.subscription_tier}
+                onChange={(e) => setForm((f) => ({ ...f, subscription_tier: e.target.value }))}
+              >
+                <option value="free">free</option>
+                <option value="pro">pro</option>
+                <option value="premium">premium</option>
+              </select>
+            </label>
+
+            <label className="adm-muted" style={{ fontSize: 12, fontWeight: 700 }}>
+              Billing Cycle
+              <select
+                className="adm-input"
+                style={{ width: '100%', marginTop: 6 }}
+                value={form.subscription_type}
+                onChange={(e) => setForm((f) => ({ ...f, subscription_type: e.target.value }))}
+              >
+                <option value="">None</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="annual">Annual / Yearly</option>
+              </select>
+            </label>
+
+            <label className="adm-muted" style={{ fontSize: 12, fontWeight: 700 }}>
+              Subscription Expiry
+              <input
+                type="datetime-local"
+                className="adm-input"
+                style={{ width: '100%', marginTop: 6 }}
+                value={form.subscription_expires_at}
+                onChange={(e) => setForm((f) => ({ ...f, subscription_expires_at: e.target.value }))}
+              />
+            </label>
+
+            <button type="button" className="adm-btn adm-btn--primary" style={{ marginTop: 8 }} disabled={saving} onClick={saveProfile}>
               <FloppyDisk size={16} /> Save profile
             </button>
           </div>

@@ -1,363 +1,1887 @@
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import { 
-  User, Bell, CreditCard, Shield, LogOut, 
-  Trash2, ChevronRight, Save, Loader2,
-  CheckCircle2, Sparkles
-} from 'lucide-react'
-import { supabase } from '../../supabaseClient'
-import { useNavigate, useOutletContext } from 'react-router-dom'
-import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
+  User, 
+  Bell, 
+  Shield, 
+  Palette, 
+  Globe,
 
-const TABS = [
-  { id: 'profile', icon: User, label: 'Profile & Academic' },
-  { id: 'notifications', icon: Bell, label: 'Notifications' },
-  { id: 'billing', icon: CreditCard, label: 'Plan & Billing' },
-  { id: 'security', icon: Shield, label: 'Security' },
-]
+  CreditCard, 
+  BookOpen,
+  Download,
+  Trash,
+  Eye,
+  EyeSlash,
+  Moon,
+  Sun,
+  DeviceMobile,
+  Monitor,
+  Question,
+  Envelope,
+  Lock,
+  Key,
+  SignOut,
+  Check,
+  X,
+  ArrowRight,
+  Sparkle,
+  Gear,
+  UserCircle,
+  Notification,
+  Books,
+  ChartBar,
+  GearSix,
+  CrownSimple,
+  GraduationCap,
+  Backpack
+} from '@phosphor-icons/react';
+import { RiCameraLine } from 'react-icons/ri';
+import { supabase } from '../../supabaseClient';
+import { LuterPageLoader } from '../shared/LuterPageLoader';
+import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceStore';
+import { useSessionStore } from '../../store/useSessionStore';
+import { LANDING_URL } from '../../utils/urlUtils';
 
 export default function SettingsPage() {
-  const { user, isMobile } = useOutletContext()
-  const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState('profile')
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'profile');
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [notifications, setNotifications] = useState({
+    email: true,
+    push: false,
+    study: true,
+    updates: false
+  });
+  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
-  // Profile Form State
-  const [profile, setProfile] = useState({
-    fullName: user?.user_metadata?.full_name || '',
-    email: user?.email || '',
+  // Determine user type
+  const isUniversityStudent = profile?.is_university_user !== false && profile?.role !== 'solo_learner';
+  const isSoloLearner = !isUniversityStudent;
+
+  // Form states
+  const [profileData, setProfileData] = useState({
+    fullName: '',
+    email: '',
     university: '',
     faculty: '',
     level: '',
-  })
+    bio: '',
+    interests: [],
+    institution: '',
+    program_name: '',
+    education_level: ''
+  });
+
+  const [passwordData, setPasswordData] = useState({
+    current: '',
+    new: '',
+    confirm: ''
+  });
 
   useEffect(() => {
-    if (!user) return
-    if (!ready) return
+    fetchUserProfile();
+  }, []);
 
-    const apply = (data) => {
-      if (data) {
-        setProfile((p) => ({
-          ...p,
-          university: data.university || '',
-          faculty: data.faculty || '',
-          level: data.level || '',
-        }))
-      }
-      setLoading(false)
-    }
-
-    if (bundle?.profile?.data && !bundle.profile.error) {
-      apply(bundle.profile.data)
-      return
-    }
-
-    const fetchProfile = async () => {
-      const { data } = await supabase
+  const loadAvatar = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('avatar_url')
         .eq('id', user.id)
         .single()
-      apply(data)
+      
+      if (!error && data?.avatar_url) {
+        setAvatarUrl(data.avatar_url)
+      }
+    } catch (error) {
+      console.error('Error loading avatar:', error)
     }
-    fetchProfile()
-  }, [user, ready, bundle])
-
-  const handleSaveProfile = async () => {
-    setSaving(true)
-    await supabase.auth.updateUser({
-      data: { full_name: profile.fullName }
-    })
-    
-    await supabase.from('profiles').upsert({
-      id: user.id,
-      full_name: profile.fullName,
-      university: profile.university,
-      faculty: profile.faculty,
-      level: profile.level
-    })
-
-    await refresh()
-
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
   }
+
+  const handleAvatarUpload = async (event) => {
+    try {
+      setUploading(true)
+      
+      const file = event.target.files[0]
+      if (!file) return
+
+      console.log('Selected file:', file.name, file.type, file.size)
+
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg']
+      if (!allowedTypes.includes(file.type)) {
+        alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)')
+        setUploading(false)
+        return
+      }
+
+      // Validate file size (20MB max)
+      if (file.size > 20 * 1024 * 1024) {
+        alert('Image size must be less than 20MB')
+        setUploading(false)
+        return
+      }
+
+      const fileExt = file.name.split('.').pop().toLowerCase()
+      const filePath = `${user.id}/avatar.${fileExt}`
+
+      console.log('Uploading to:', filePath)
+
+      // Upload to avatars bucket
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath)
+
+      // Update profile with direct URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id)
+
+      if (updateError) {
+        throw updateError
+      }
+
+      // Set avatar URL with cache bust
+      setAvatarUrl(`${publicUrl}?v=${Date.now()}`)
+      
+      // Refresh profile
+      fetchUserProfile()
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      
+    } catch (error) {
+      console.error('Error uploading avatar:', error)
+      alert(`Failed to upload image: ${error.message}. Please try again.`)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click()
+  }
+
+  const fetchUserProfile = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUser(user);
+        
+        // Fetch profile data
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile) {
+          setProfile(profile);
+          if (profile.avatar_url) {
+            setAvatarUrl(profile.avatar_url);
+          }
+          setProfileData({
+            fullName: profile.full_name || '',
+            email: user.email || '',
+            university: profile.university || '',
+            faculty: profile.faculty || '',
+            level: profile.level || '',
+            bio: profile.bio || '',
+            interests: profile.interests || [],
+            institution: profile.institution || '',
+            program_name: profile.program_name || '',
+            education_level: profile.education_level || ''
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showMessage = (type, text) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+  };
+
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: profileData.fullName,
+          university: profileData.university,
+          faculty: profileData.faculty,
+          level: profileData.level,
+          bio: profileData.bio,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      showMessage('success', 'Profile updated successfully!');
+    } catch (error) {
+      showMessage('error', 'Failed to update profile');
+      console.error('Error updating profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault();
+    
+    if (passwordData.new !== passwordData.confirm) {
+      showMessage('error', 'Passwords do not match');
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.new
+      });
+      
+      if (error) throw error;
+      showMessage('success', 'Password updated successfully!');
+      setPasswordData({ current: '', new: '', confirm: '' });
+    } catch (error) {
+      showMessage('error', 'Failed to update password');
+      console.error('Error updating password:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    navigate('/signin')
+    try {
+      // 1. Clear Supabase session
+      await supabase.auth.signOut();
+      
+      // 2. Clear stores (using state directly to avoid hook constraints if needed, but here we can just call them)
+      useUniversalWorkspaceStore.getState().resetStore();
+      useSessionStore.getState().resetStore();
+      
+      // 3. Clear all local storage as a scorched-earth fix for any other cached bundles
+      localStorage.clear();
+      
+      window.location.href = LANDING_URL;
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const tabs = [
+    { id: 'profile', label: 'Profile', icon: UserCircle },
+    { id: 'subscription', label: 'Subscription', icon: CrownSimple },
+    { id: 'account', label: 'Account', icon: Lock },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'appearance', label: 'Appearance', icon: Palette },
+    { id: 'privacy', label: 'Privacy', icon: Shield },
+    { id: 'about', label: 'About', icon: Question },
+    { id: 'logout', label: 'Sign Out', icon: SignOut, isLogout: true }
+  ];
+
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+  };
+
+  const tabVariants = {
+    inactive: { scale: 1, backgroundColor: 'transparent' },
+    active: { scale: 1.05, backgroundColor: 'rgba(151, 24, 251, 0.1)' }
+  };
+
+  if (loading && !profile) {
+    return <LuterPageLoader message="Loading settings..." minHeight="80vh" />;
   }
 
-  if (loading) return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-      <Loader2 size={28} className="animate-spin" color="#7a12cc" />
-    </div>
-  )
-
   return (
-    <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      
-      {/* ── Header ── */}
-      <div style={{ padding: isMobile ? '24px 20px 8px' : '40px 48px 0', background: '#fff' }}>
-         <h1 style={{ fontSize: isMobile ? 26 : 32, fontWeight: 800, color: '#111', margin: 0, letterSpacing: '-0.04em' }}>
-           {isMobile ? 'Account config' : 'Settings'}
-         </h1>
-         <p style={{ fontSize: isMobile ? 12 : 14, color: '#666', fontWeight: 700, margin: '4px 0 0' }}>
-           {isMobile ? 'Manage your scholarly profile.' : 'Manage your Luter workstation and preferences.'}
-         </p>
-      </div>
-
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: isMobile ? 'column' : 'row',
-        flex: 1, 
-        padding: isMobile ? '12px 16px 80px' : '40px 48px', 
-        gap: isMobile ? 20 : 48, 
-        maxWidth: 1200, 
-        margin: isMobile ? '0' : '0 auto', 
-        width: '100%',
-        boxSizing: 'border-box',
-        fontFamily: "'Outfit', 'Inter', sans-serif"
-      }}>
-        
-        {/* ── Sidebar / Navigation ── */}
-        <div style={{ width: isMobile ? '100%' : 260, flexShrink: 0 }}>
-          <div className="no-scrollbar" style={{ 
-            display: 'flex', 
-            flexDirection: isMobile ? 'row' : 'column', 
-            gap: isMobile ? 10 : 8,
-            overflowX: isMobile ? 'auto' : 'visible',
-            paddingBottom: isMobile ? 4 : 0,
-            whiteSpace: 'nowrap',
-            marginLeft: isMobile ? -16 : 0,
-            padding: isMobile ? '0 16px' : 0,
-            boxSizing: 'border-box'
-          }}>
-            {TABS.map(tab => {
-              const Icon = tab.icon
-              const active = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 12, padding: isMobile ? '10px 18px' : '14px 20px',
-                    borderRadius: 16, border: active ? '1.5px solid var(--primary)' : '1.5px solid #e5e7eb', background: active ? 'var(--primary-bg)' : 'white',
-                    color: active ? 'var(--primary)' : '#111', fontWeight: 900,
-                    fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
-                    boxShadow: active ? 'none' : '0 2px 8px rgba(0,0,0,0.02)',
-                    transform: 'none',
-                    transition: 'all 0.2s', textAlign: 'left',
-                    flexShrink: 0
-                  }}
-                >
-                  <Icon size={16} strokeWidth={2.5} fill={active ? 'var(--primary)' : 'transparent'} />
-                  {tab.label}
-                </button>
-              )
-            } )}
+    <div style={{ 
+      fontFamily: 'Outfit, sans-serif',
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #fafbff 0%, #f5f3ff 100%)',
+      padding: '20px'
+    }}>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          marginBottom: '24px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+          border: '1px solid rgba(151, 24, 251, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '20px'
+        }}
+      >
+        <div style={{
+          width: '48px',
+          height: '48px',
+          borderRadius: '12px',
+          background: 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+            <Gear size={24} color="white" />
           </div>
-          {isMobile && <div style={{ height: 1, background: '#eee', margin: '16px 0' }} />}
+          <div>
+            <h1 style={{ 
+              fontSize: '28px', 
+              fontWeight: '700', 
+              color: '#1a1a2e',
+              margin: 0,
+              letterSpacing: '-0.5px'
+            }}>
+              Settings
+            </h1>
+            <p style={{ 
+              fontSize: '14px', 
+              color: '#6b7280', 
+              margin: 0,
+              fontWeight: '400'
+            }}>
+              Manage your account settings and preferences
+            </p>
+          </div>
+      </motion.div>
 
-          {!isMobile && (
-            <div style={{ marginTop: 40, borderTop: '1.5px solid #e5e7eb', paddingTop: 32 }}>
-              <button
-                onClick={handleSignOut}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '16px 24px',
-                  width: '100%', borderRadius: 16, border: '1.5px solid #fee2e2', background: '#fef2f2',
-                  color: '#dc2626', fontWeight: 800, fontSize: 13, cursor: 'pointer',
-                  fontFamily: 'inherit', textAlign: 'left', transition: 'all 0.2s',
-                  boxShadow: '0 4px 12px rgba(220,38,38,0.05)'
-                }}
-              >
-                <LogOut size={18} /> SIGN OUT OF LUTER
-              </button>
+      {/* Message Toast */}
+      <AnimatePresence>
+        {message.text && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -50, scale: 0.95 }}
+            style={{
+              position: 'fixed',
+              top: '20px',
+              right: '20px',
+              zIndex: 1000,
+              padding: '16px 24px',
+              borderRadius: '12px',
+              background: message.type === 'success' ? '#10b981' : '#ef4444',
+              color: 'white',
+              fontWeight: '500',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {message.type === 'success' ? <Check size={20} /> : <X size={20} />}
+              {message.text}
             </div>
-          )}
-        </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        {/* ── Content Area ── */}
-        <div style={{ flex: 1 }}>
-          
-          {/* PROFILE TAB */}
-          {activeTab === 'profile' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-              <div style={{ 
-                background: '#fff', 
-                borderRadius: isMobile ? 28 : 40, 
-                border: '1.5px solid #e5e7eb', 
-                overflow: 'hidden', 
-                boxShadow: '0 20px 60px -12px rgba(0,0,0,0.06)' 
-              }}>
-                <div style={{ 
-                  padding: isMobile ? '24px' : '32px 40px', 
-                  borderBottom: '1.5px solid #e5e7eb', 
-                  background: 'linear-gradient(135deg, var(--primary-bg) 0%, #fff 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}>
-                  <div>
-                    <h2 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 800, margin: 0, color: '#111', letterSpacing: '-0.02em' }}>Personal Profile</h2>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', margin: '4px 0 0' }}>Update your scholar details</p>
-                  </div>
-                  <User size={isMobile ? 24 : 32} color="var(--primary)" strokeWidth={2.5} />
-                </div>
-                
-                <div style={{ padding: isMobile ? '24px' : '40px', display: 'flex', flexDirection: 'column', gap: 32 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <label style={{ fontSize: 10, fontWeight: 1000, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Full Name</label>
-                      <input 
-                        value={profile.fullName} onChange={e => setProfile({...profile, fullName: e.target.value})}
-                        style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <label style={{ fontSize: 10, fontWeight: 1000, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Email</label>
-                      <input 
-                        value={profile.email} disabled
-                        style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '2.5px solid #eee', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#f5f5f5', color: '#999', cursor: 'not-allowed', fontWeight: 700 }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <label style={{ fontSize: 10, fontWeight: 800, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>University</label>
-                      <input 
-                        value={profile.university} onChange={e => setProfile({...profile, university: e.target.value})}
-                        style={{ width: '100%', padding: '16px 20px', borderRadius: 16, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700 }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <label style={{ fontSize: 10, fontWeight: 1000, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Faculty & Level</label>
-                      <div style={{ display: 'flex', gap: 12 }}>
-                        <input 
-                          value={profile.faculty} onChange={e => setProfile({...profile, faculty: e.target.value})}
-                          placeholder="Faculty"
-                          style={{ flex: 2, padding: '16px 20px', borderRadius: 16, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700 }}
-                        />
-                         <input 
-                          value={profile.level} onChange={e => setProfile({...profile, level: e.target.value})}
-                          placeholder="Level"
-                          style={{ flex: 1, padding: '16px 20px', borderRadius: 16, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', fontWeight: 700, textAlign: 'center' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ 
-                  padding: isMobile ? '24px' : '32px 40px', 
-                  borderTop: '1.5px solid #e5e7eb', 
-                  background: '#fafafa', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: isMobile ? 'stretch' : 'flex-end', 
-                  gap: 16 
-                }}>
-                  <button 
-                    onClick={handleSaveProfile} 
-                    disabled={saving} 
-                    style={{ 
-                      flex: isMobile ? 1 : 'none',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, 
-                      padding: '16px 40px', borderRadius: 16, border: 'none', 
-                      background: '#111', color: 'white', fontSize: 14, fontWeight: 800, 
-                      cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.1s', 
-                      boxShadow: '0 8px 20px rgba(0,0,0,0.15)' 
-                    }}
-                  >
-                    {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={18} />} 
-                    SAVE CHANGES
-                  </button>
-                </div>
-              </div>
-
-              {isMobile && (
-                 <button
+      <div style={{ display: 'flex', gap: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+        {/* Sidebar */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          style={{
+            width: '280px',
+            flexShrink: 0
+          }}
+        >
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '8px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+            border: '1px solid rgba(151, 24, 251, 0.1)'
+          }}>
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              if (tab.isLogout) {
+                return (
+                  <motion.button
+                    key={tab.id}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={handleSignOut}
                     style={{
-                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, 
-                   padding: '18px',
-                   marginTop: 24, width: '100%', borderRadius: 20, border: '1.5px solid #fee2e2', 
-                   background: '#fef2f2',
-                   color: '#dc2626', fontWeight: 800, fontSize: 14, cursor: 'pointer',
-                   fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(220,38,38,0.1)'
-                 }}
-               >
-                 <LogOut size={18} strokeWidth={3} /> SIGN OUT
-               </button>
-              )}
-            </motion.div>
-          )}
+                      width: '100%',
+                      padding: '14px 16px',
+                      border: 'none',
+                      borderRadius: '12px',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#ef4444',
+                      transition: 'all 0.2s ease',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    <Icon size={20} />
+                    <span>{tab.label}</span>
+                  </motion.button>
+                );
+              }
+              return (
+                <motion.button
+                  key={tab.id}
+                  variants={tabVariants}
+                  animate={activeTab === tab.id ? 'active' : 'inactive'}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: 'none',
+                    borderRadius: '12px',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: activeTab === tab.id ? '#9718fb' : '#6b7280',
+                    transition: 'all 0.2s ease',
+                    marginBottom: '4px'
+                  }}
+                >
+                  <Icon 
+                    size={20} 
+                    weight={activeTab === tab.id ? 'fill' : 'regular'}
+                  />
+                  <span>{tab.label}</span>
+                  {activeTab === tab.id && (
+                    <motion.div
+                      layoutId="activeTab"
+                      style={{
+                        position: 'absolute',
+                        right: '16px',
+                        width: '4px',
+                        height: '20px',
+                        borderRadius: '2px',
+                        background: '#9718fb'
+                      }}
+                    />
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+        </motion.div>
 
-          {/* BILLING TAB */}
-          {activeTab === 'billing' && (
-            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}>
-              <div style={{ 
-                background: '#fff', 
-                borderRadius: isMobile ? 28 : 40, 
-                border: '1.5px solid #e5e7eb', 
-                overflow: 'hidden', 
-                boxShadow: '0 20px 60px -12px rgba(0,0,0,0.06)' 
-              }}>
-                <div style={{ padding: isMobile ? '24px' : '32px 40px', borderBottom: '1.5px solid #e5e7eb', background: '#f0fdf4' }}>
-                  <h2 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 800, margin: 0, color: '#111' }}>Plan & Subscription</h2>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: '#059669', margin: '4px 0 0' }}>Manage your scholarly benefits</p>
-                </div>
-                
-                <div style={{ padding: isMobile ? '24px' : '40px' }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    gap: 24,
-                    padding: isMobile ? '32px 24px' : '48px 40px', 
-                    borderRadius: 32, 
-                    background: 'linear-gradient(135deg, #fff 0%, var(--primary-bg) 100%)', 
-                    color: '#111', 
-                    border: '1.5px solid #e5e7eb',
-                    boxShadow: '0 10px 30px -10px rgba(0,0,0,0.05)',
-                    position: 'relative',
-                    overflow: 'hidden'
+        {/* Main Content */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          style={{ flex: 1 }}
+        >
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '32px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+            border: '1px solid rgba(151, 24, 251, 0.1)'
+          }}>
+            {/* Profile Tab */}
+            {activeTab === 'profile' && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {/* User Type Header */}
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '16px', 
+                  marginBottom: '24px',
+                  padding: '16px',
+                  background: isUniversityStudent ? 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)' : 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                  borderRadius: '12px',
+                  border: `1px solid ${isUniversityStudent ? '#0ea5e9' : '#f59e0b'}`
+                }}>
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '12px',
+                    background: '#f3f4f6',
+                    border: '2px solid #e5e7eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}>
-                    <div style={{ position: 'relative', zIndex: 1 }}>
-                      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--primary)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Sparkles size={16} fill="var(--primary)" /> CURRENT TIER
-                      </div>
-                      <div style={{ fontSize: isMobile ? 28 : 40, fontWeight: 800, marginBottom: 8, letterSpacing: '-0.03em' }}>Luter Scholar (Free)</div>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: '#666', maxWidth: 400, lineHeight: 1.6 }}>You're currently using the fundamental workstation. Upgrade for unlimited AI support and advanced tracking.</p>
-                    </div>
-
-                    <button style={{ 
-                      width: isMobile ? '100% ' : 'fit-content',
-                      padding: '18px 40px', 
-                      borderRadius: 16, 
-                      background: 'var(--primary)', 
-                      border: 'none', 
-                      color: 'white', 
-                      fontSize: 15, 
-                      fontWeight: 800, 
-                      cursor: 'pointer', 
-                      fontFamily: 'inherit', 
-                      boxShadow: '0 8px 24px -6px rgba(151,24,251,0.5)',
-                      transition: 'all 0.2s'
-                    }}>
-                      UPGRADE TO SCHOLAR+
-                    </button>
+                    {isUniversityStudent ? (
+                      <GraduationCap size={24} color="#1a1a2e" />
+                    ) : (
+                      <Backpack size={24} color="#1a1a2e" />
+                    )}
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1a1a2e', margin: '0 0 4px' }}>
+                      {isUniversityStudent ? 'University Student' : 'Solo Learner'}
+                    </h2>
+                    <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                      {isUniversityStudent ? 'Manage your academic profile and course information' : 'Manage your learning profile and interests'}
+                    </p>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
 
-        </div>
+                {/* Profile Picture Upload */}
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
+                  <div 
+                    onClick={triggerFileInput}
+                    style={{
+                      width: 120,
+                      height: 120,
+                      borderRadius: '50%',
+                      background: avatarUrl ? 'transparent' : 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 48,
+                      fontWeight: 700,
+                      color: 'white',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      border: '4px solid #e2e8f0',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#9718fb'
+                      e.currentTarget.style.transform = 'scale(1.05)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#e2e8f0'
+                      e.currentTarget.style.transform = 'scale(1)'
+                    }}
+                  >
+                    {avatarUrl ? (
+                      <img 
+                        src={avatarUrl} 
+                        alt="Profile" 
+                        style={{ 
+                          width: '100%', 
+                          height: '100%', 
+                          objectFit: 'cover',
+                          display: 'block'
+                        }}
+                      />
+                    ) : (
+                      <span>{user?.email?.charAt(0).toUpperCase() || 'U'}</span>
+                    )}
+                    
+                    {/* Upload Overlay */}
+                    <div style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: '35%',
+                      background: 'rgba(0,0,0,0.5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backdropFilter: 'blur(2px)'
+                    }}>
+                      <RiCameraLine size={28} color="white" />
+                    </div>
+                    
+                    {uploading && (
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.6)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <div style={{
+                          width: 40,
+                          height: 40,
+                          border: '4px solid rgba(255,255,255,0.3)',
+                          borderTopColor: 'white',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite'
+                        }} />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Hidden File Input */}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleAvatarUpload}
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                  />
+                </div>
+
+                <form onSubmit={handleProfileUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {/* Common Fields */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        value={profileData.fullName}
+                        onChange={(e) => setProfileData({ ...profileData, fullName: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          border: '2px solid #e5e7eb',
+                          borderRadius: '10px',
+                          fontSize: '14px',
+                          fontFamily: 'Outfit, sans-serif',
+                          transition: 'all 0.2s ease',
+                          outline: 'none'
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                        onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        value={profileData.email}
+                        disabled
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          border: '2px solid #e5e7eb',
+                          borderRadius: '10px',
+                          fontSize: '14px',
+                          fontFamily: 'Outfit, sans-serif',
+                          backgroundColor: '#f9fafb',
+                          color: '#6b7280',
+                          cursor: 'not-allowed'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* University Student Fields */}
+                  {isUniversityStudent && (
+                    <>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                            University
+                          </label>
+                          <input
+                            type="text"
+                            value={profileData.university}
+                            onChange={(e) => setProfileData({ ...profileData, university: e.target.value })}
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              border: '2px solid #e5e7eb',
+                              borderRadius: '10px',
+                              fontSize: '14px',
+                              fontFamily: 'Outfit, sans-serif',
+                              transition: 'all 0.2s ease',
+                              outline: 'none'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                            Faculty
+                          </label>
+                          <input
+                            type="text"
+                            value={profileData.faculty}
+                            onChange={(e) => setProfileData({ ...profileData, faculty: e.target.value })}
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              border: '2px solid #e5e7eb',
+                              borderRadius: '10px',
+                              fontSize: '14px',
+                              fontFamily: 'Outfit, sans-serif',
+                              transition: 'all 0.2s ease',
+                              outline: 'none'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                            Level
+                          </label>
+                          <input
+                            type="text"
+                            value={profileData.level}
+                            onChange={(e) => setProfileData({ ...profileData, level: e.target.value })}
+                            placeholder="e.g., 200 Level, 3rd Year"
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              border: '2px solid #e5e7eb',
+                              borderRadius: '10px',
+                              fontSize: '14px',
+                              fontFamily: 'Outfit, sans-serif',
+                              transition: 'all 0.2s ease',
+                              outline: 'none'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                            Program
+                          </label>
+                          <input
+                            type="text"
+                            value={profileData.program_name}
+                            onChange={(e) => setProfileData({ ...profileData, program_name: e.target.value })}
+                            placeholder="e.g., Computer Science, Medicine"
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              border: '2px solid #e5e7eb',
+                              borderRadius: '10px',
+                              fontSize: '14px',
+                              fontFamily: 'Outfit, sans-serif',
+                              transition: 'all 0.2s ease',
+                              outline: 'none'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Solo Learner Fields */}
+                  {isSoloLearner && (
+                    <>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                            Institution
+                          </label>
+                          <input
+                            type="text"
+                            value={profileData.institution}
+                            onChange={(e) => setProfileData({ ...profileData, institution: e.target.value })}
+                            placeholder="e.g., Self-taught, Online Course"
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              border: '2px solid #e5e7eb',
+                              borderRadius: '10px',
+                              fontSize: '14px',
+                              fontFamily: 'Outfit, sans-serif',
+                              transition: 'all 0.2s ease',
+                              outline: 'none'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                            Education Level
+                          </label>
+                          <select
+                            value={profileData.education_level}
+                            onChange={(e) => setProfileData({ ...profileData, education_level: e.target.value })}
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              border: '2px solid #e5e7eb',
+                              borderRadius: '10px',
+                              fontSize: '14px',
+                              fontFamily: 'Outfit, sans-serif',
+                              transition: 'all 0.2s ease',
+                              outline: 'none',
+                              backgroundColor: 'white'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                          >
+                            <option value="">Select Level</option>
+                            <option value="Primary">Primary</option>
+                            <option value="Secondary">Secondary</option>
+                            <option value="Tertiary">Tertiary</option>
+                            <option value="Professional">Professional</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                          Learning Interests
+                        </label>
+                        <input
+                          type="text"
+                          value={profileData.interests?.join(', ') || ''}
+                          onChange={(e) => setProfileData({ ...profileData, interests: e.target.value.split(',').map(i => i.trim()).filter(i => i) })}
+                          placeholder="e.g., Web Development, Data Science, Design"
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            border: '2px solid #e5e7eb',
+                            borderRadius: '10px',
+                            fontSize: '14px',
+                            fontFamily: 'Outfit, sans-serif',
+                            transition: 'all 0.2s ease',
+                            outline: 'none'
+                          }}
+                          onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                          onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                        />
+                        <p style={{ fontSize: '12px', color: '#9ca3af', margin: '4px 0 0 0' }}>
+                          Separate interests with commas
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Common Bio Field */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                      Bio
+                    </label>
+                    <textarea
+                      value={profileData.bio}
+                      onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                      rows={4}
+                      placeholder={isUniversityStudent ? "Tell us about your academic journey and goals..." : "Tell us about your learning journey and interests..."}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '10px',
+                        fontSize: '14px',
+                        fontFamily: 'Outfit, sans-serif',
+                        transition: 'all 0.2s ease',
+                        outline: 'none',
+                        resize: 'vertical'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                      onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                    />
+                  </div>
+
+                  <motion.button
+                    type="submit"
+                    disabled={loading}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    style={{
+                      padding: '14px 24px',
+                      background: 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '10px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 4px 12px rgba(151, 24, 251, 0.3)'
+                    }}
+                  >
+                    {loading ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ 
+                          width: '16px', 
+                          height: '16px', 
+                          border: '2px solid white', 
+                          borderTop: '2px solid transparent', 
+                          borderRadius: '50%', 
+                          animation: 'spin 1s linear infinite' 
+                        }} />
+                        Saving...
+                      </div>
+                    ) : (
+                      <>
+                        <Check size={18} />
+                        Save Changes
+                      </>
+                    )}
+                  </motion.button>
+                </form>
+              </motion.div>
+            )}
+
+            {/* Subscription Tab */}
+            {activeTab === 'subscription' && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div style={{ marginBottom: '24px' }}>
+                  <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937', marginBottom: '8px' }}>
+                    Your Subscription
+                  </h2>
+                  <p style={{ fontSize: '14px', color: '#6b7280' }}>
+                    Manage your plan and billing details
+                  </p>
+                </div>
+
+                {(() => {
+                  const subscriptionTier = profile?.subscription_tier?.toLowerCase() || 'free';
+                  const subscriptionType = profile?.subscription_type?.toLowerCase() || 'free';
+                  const expiryDate = profile?.subscription_expires_at;
+                  
+                  const getPlanDetails = () => {
+                    if (subscriptionTier === 'premium' || subscriptionType === 'premium') {
+                      return {
+                        name: 'Luter Executive',
+                        badge: 'Executive',
+                        color: '#0ea5e9',
+                        bg: 'rgba(14, 165, 233, 0.1)',
+                        features: [
+                          'Unlimited uploads',
+                          'Vision AI (Analyze Images)',
+                          'Multi-document Synthesis',
+                          'Custom AI Personas',
+                          'Early access to Luter Lab',
+                          'Dedicated Academic Concierge'
+                        ]
+                      };
+                    }
+                    if (subscriptionTier === 'pro' || subscriptionType === 'pro') {
+                      return {
+                        name: 'University Pro',
+                        badge: 'Pro',
+                        color: '#7a12cc',
+                        bg: 'rgba(122, 18, 204, 0.1)',
+                        features: [
+                          'Unlimited uploads',
+                          'Advanced AI Insights',
+                          'Smart Quizzes',
+                          'Spaced-repetition engine',
+                          'AI Math & Logic Expert',
+                          'Priority processing'
+                        ]
+                      };
+                    }
+                    return {
+                      name: 'Scholar Basic',
+                      badge: 'Free',
+                      color: '#64748b',
+                      bg: 'rgba(100, 116, 139, 0.1)',
+                      features: [
+                        '5 uploads per month',
+                        'AI Notes (Standard)',
+                        'Basic Summaries',
+                        'Flashcard generation',
+                        'Community access'
+                      ]
+                    };
+                  };
+                  
+                  const plan = getPlanDetails();
+                  const isPremium = subscriptionTier === 'premium' || subscriptionTier === 'pro';
+                  
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                      {/* Current Plan Card */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        style={{
+                          background: 'linear-gradient(135deg, #ffffff 0%, #fafafa 100%)',
+                          borderRadius: '16px',
+                          padding: '28px',
+                          border: `2px solid ${plan.color}30`,
+                          boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                          <div>
+                            <div style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '6px 14px',
+                              background: plan.bg,
+                              borderRadius: '20px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              color: plan.color,
+                              marginBottom: '12px'
+                            }}>
+                              <CrownSimple size={14} weight="fill" />
+                              {plan.badge} Plan
+                            </div>
+                            <h3 style={{ fontSize: '28px', fontWeight: 800, color: '#1f2937', margin: 0 }}>
+                              {plan.name}
+                            </h3>
+                          </div>
+                          
+                          {isPremium && (
+                            <div style={{
+                              padding: '10px 18px',
+                              background: '#f0fdf4',
+                              borderRadius: '10px',
+                              border: '1px solid #86efac'
+                            }}>
+                              <div style={{ fontSize: '11px', color: '#22c55e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Status
+                              </div>
+                              <div style={{ fontSize: '16px', fontWeight: 700, color: '#16a34a' }}>
+                                Active
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {expiryDate && isPremium && (
+                          <div style={{
+                            padding: '14px 18px',
+                            background: '#fefce8',
+                            borderRadius: '12px',
+                            border: '1px solid #fde047',
+                            marginBottom: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px'
+                          }}>
+                            <Sparkle size={20} weight="fill" color="#eab308" />
+                            <div>
+                              <div style={{ fontSize: '13px', fontWeight: 600, color: '#854d0e' }}>
+                                Subscription expires on
+                              </div>
+                              <div style={{ fontSize: '15px', fontWeight: 700, color: '#a16207' }}>
+                                {new Date(expiryDate).toLocaleDateString('en-US', { 
+                                  weekday: 'long', 
+                                  year: 'numeric', 
+                                  month: 'long', 
+                                  day: 'numeric' 
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Features List */}
+                        <div style={{ marginTop: '20px' }}>
+                          <h4 style={{ fontSize: '14px', fontWeight: 600, color: '#6b7280', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Included Features
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px' }}>
+                            {plan.features.map((feature, idx) => (
+                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{
+                                  width: '20px',
+                                  height: '20px',
+                                  borderRadius: '50%',
+                                  background: plan.bg,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}>
+                                  <Check size={12} weight="bold" color={plan.color} />
+                                </div>
+                                <span style={{ fontSize: '14px', color: '#374151' }}>{feature}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+
+                      {/* Action Buttons */}
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                        {!isPremium ? (
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => window.location.href = '/dashboard/pricing'}
+                            style={{
+                              padding: '14px 28px',
+                              background: 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '12px',
+                              fontSize: '15px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px'
+                            }}
+                          >
+                            <CrownSimple size={20} weight="fill" />
+                            Upgrade Now
+                          </motion.button>
+                        ) : (
+                          <>
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => window.location.href = '/dashboard/pricing'}
+                              style={{
+                                padding: '14px 28px',
+                                background: '#f3f4f6',
+                                color: '#374151',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '12px',
+                                fontSize: '15px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                              }}
+                            >
+                              <ArrowRight size={20} />
+                              Change Plan
+                            </motion.button>
+                            
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => window.location.href = '/dashboard/payment/history'}
+                              style={{
+                                padding: '14px 28px',
+                                background: 'white',
+                                color: '#6b7280',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '12px',
+                                fontSize: '15px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                              }}
+                            >
+                              <CreditCard size={20} />
+                              Payment History
+                            </motion.button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </motion.div>
+            )}
+
+            {/* Account Tab */}
+            {activeTab === 'account' && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#1a1a2e', marginBottom: '24px' }}>
+                  Account Security
+                </h2>
+                
+                <div style={{ marginBottom: '32px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#374151', marginBottom: '16px' }}>
+                    Change Password
+                  </h3>
+                  <form onSubmit={handlePasswordUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                        Current Password
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={passwordData.current}
+                          onChange={(e) => setPasswordData({ ...passwordData, current: e.target.value })}
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px 12px 44px',
+                            border: '2px solid #e5e7eb',
+                            borderRadius: '10px',
+                            fontSize: '14px',
+                            fontFamily: 'Outfit, sans-serif',
+                            transition: 'all 0.2s ease',
+                            outline: 'none'
+                          }}
+                          onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                          onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                        />
+                        <Lock 
+                          size={18} 
+                          style={{ 
+                            position: 'absolute', 
+                            left: '16px', 
+                            top: '50%', 
+                            transform: 'translateY(-50%)',
+                            color: '#9ca3af'
+                          }} 
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                        New Password
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={passwordData.new}
+                          onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value })}
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px 12px 44px',
+                            border: '2px solid #e5e7eb',
+                            borderRadius: '10px',
+                            fontSize: '14px',
+                            fontFamily: 'Outfit, sans-serif',
+                            transition: 'all 0.2s ease',
+                            outline: 'none'
+                          }}
+                          onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                          onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                        />
+                        <Key 
+                          size={18} 
+                          style={{ 
+                            position: 'absolute', 
+                            left: '16px', 
+                            top: '50%', 
+                            transform: 'translateY(-50%)',
+                            color: '#9ca3af'
+                          }} 
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                        Confirm New Password
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={passwordData.confirm}
+                          onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value })}
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px 12px 44px',
+                            border: '2px solid #e5e7eb',
+                            borderRadius: '10px',
+                            fontSize: '14px',
+                            fontFamily: 'Outfit, sans-serif',
+                            transition: 'all 0.2s ease',
+                            outline: 'none'
+                          }}
+                          onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                          onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                        />
+                        <Key 
+                          size={18} 
+                          style={{ 
+                            position: 'absolute', 
+                            left: '16px', 
+                            top: '50%', 
+                            transform: 'translateY(-50%)',
+                            color: '#9ca3af'
+                          }} 
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{
+                          padding: '8px 12px',
+                          background: '#f3f4f6',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          color: '#6b7280',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        {showPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                        {showPassword ? 'Hide' : 'Show'} Passwords
+                      </button>
+                    </div>
+
+                    <motion.button
+                      type="submit"
+                      disabled={loading}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      style={{
+                        padding: '14px 24px',
+                        background: 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '10px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s ease',
+                        boxShadow: '0 4px 12px rgba(151, 24, 251, 0.3)'
+                      }}
+                    >
+                      {loading ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ 
+                            width: '16px', 
+                            height: '16px', 
+                            border: '2px solid white', 
+                            borderTop: '2px solid transparent', 
+                            borderRadius: '50%', 
+                            animation: 'spin 1s linear infinite' 
+                          }} />
+                          Updating...
+                        </div>
+                      ) : (
+                        <>
+                          <Lock size={18} />
+                          Update Password
+                        </>
+                      )}
+                    </motion.button>
+                  </form>
+                </div>
+
+                <div style={{ 
+                  padding: '20px', 
+                  background: '#fef3c7', 
+                  borderRadius: '12px', 
+                  border: '1px solid #f59e0b',
+                  marginBottom: '24px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <Shield size={20} color="#d97706" />
+                    <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#92400e', margin: 0 }}>
+                      Two-Factor Authentication
+                    </h4>
+                  </div>
+                  <p style={{ fontSize: '14px', color: '#78350f', margin: '0 0 16px 0' }}>
+                    Add an extra layer of security to your account with 2FA.
+                  </p>
+                  <button
+                    style={{
+                      padding: '10px 16px',
+                      background: '#f59e0b',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Enable 2FA
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Notifications Tab */}
+            {activeTab === 'notifications' && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#1a1a2e', marginBottom: '24px' }}>
+                  Notification Preferences
+                </h2>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {[
+                    { key: 'email', label: 'Email Notifications', description: 'Receive updates and alerts via email' },
+                    { key: 'push', label: 'Push Notifications', description: 'Get instant notifications in your browser' },
+                    { key: 'study', label: 'Study Reminders', description: 'Remind me about study sessions and deadlines' },
+                    { key: 'updates', label: 'Product Updates', description: 'Stay informed about new features and improvements' }
+                  ].map((item) => (
+                    <motion.div
+                      key={item.key}
+                      whileHover={{ scale: 1.01 }}
+                      style={{
+                        padding: '20px',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onClick={() => setNotifications({ ...notifications, [item.key]: !notifications[item.key] })}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '10px',
+                          background: notifications[item.key] ? 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)' : '#f3f4f6',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <Bell size={20} color={notifications[item.key] ? 'white' : '#9ca3af'} />
+                        </div>
+                        <div>
+                          <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#1a1a2e', margin: '0 0 4px 0' }}>
+                            {item.label}
+                          </h4>
+                          <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                            {item.description}
+                          </p>
+                        </div>
+                      </div>
+                      <div style={{
+                        width: '48px',
+                        height: '24px',
+                        borderRadius: '12px',
+                        background: notifications[item.key] ? 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)' : '#e5e7eb',
+                        position: 'relative',
+                        transition: 'all 0.2s ease'
+                      }}>
+                        <div style={{
+                          position: 'absolute',
+                          top: '2px',
+                          left: notifications[item.key] ? '26px' : '2px',
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          background: 'white',
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        }} />
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Appearance Tab */}
+            {activeTab === 'appearance' && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#1a1a2e', marginBottom: '24px' }}>
+                  Appearance Settings
+                </h2>
+                
+                <div style={{ marginBottom: '32px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#374151', marginBottom: '16px' }}>
+                    Theme
+                  </h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setDarkMode(false)}
+                      style={{
+                        padding: '20px',
+                        border: darkMode ? '2px solid #e5e7eb' : '2px solid #9718fb',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        background: darkMode ? '#f9fafb' : 'white',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                        <Sun size={24} color={!darkMode ? '#9718fb' : '#9ca3af'} />
+                        <span style={{ fontSize: '16px', fontWeight: '600', color: '#1a1a2e' }}>
+                          Light Mode
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                        Clean and bright interface for daytime use
+                      </p>
+                    </motion.div>
+                    
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setDarkMode(true)}
+                      style={{
+                        padding: '20px',
+                        border: darkMode ? '2px solid #9718fb' : '2px solid #e5e7eb',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        background: darkMode ? '#1f2937' : '#f9fafb',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                        <Moon size={24} color={darkMode ? '#9718fb' : '#9ca3af'} />
+                        <span style={{ fontSize: '16px', fontWeight: '600', color: darkMode ? '#f3f4f6' : '#1a1a2e' }}>
+                          Dark Mode
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '14px', color: darkMode ? '#d1d5db' : '#6b7280', margin: 0 }}>
+                        Easy on the eyes for nighttime studying
+                      </p>
+                    </motion.div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#374151', marginBottom: '16px' }}>
+                    Accent Color
+                  </h3>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    {['#9718fb', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'].map((color) => (
+                      <motion.div
+                        key={color}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => {/* Handle color change */}}
+                        style={{
+                          width: '48px',
+                          height: '48px',
+                          borderRadius: '12px',
+                          background: color,
+                          cursor: 'pointer',
+                          border: color === '#9718fb' ? '3px solid #1a1a2e' : '3px solid transparent',
+                          transition: 'all 0.2s ease'
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Privacy Tab */}
+            {activeTab === 'privacy' && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#1a1a2e', marginBottom: '24px' }}>
+                  Privacy & Security
+                </h2>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    style={{
+                      padding: '20px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Eye size={20} color="white" />
+                      </div>
+                      <div>
+                        <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#1a1a2e', margin: '0 0 4px 0' }}>
+                          Profile Visibility
+                        </h4>
+                        <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                          Control who can see your profile information
+                        </p>
+                      </div>
+                    </div>
+                    <select style={{
+                      padding: '8px 12px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontFamily: 'Outfit, sans-serif',
+                      outline: 'none'
+                    }}>
+                      <option>Everyone</option>
+                      <option>Only Friends</option>
+                      <option>Private</option>
+                    </select>
+                  </motion.div>
+
+                  <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    style={{
+                      padding: '20px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Download size={20} color="white" />
+                      </div>
+                      <div>
+                        <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#1a1a2e', margin: '0 0 4px 0' }}>
+                          Data Export
+                        </h4>
+                        <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                          Download all your data in JSON format
+                        </p>
+                      </div>
+                    </div>
+                    <button style={{
+                      padding: '10px 16px',
+                      background: '#f59e0b',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer'
+                    }}>
+                      Export Data
+                    </button>
+                  </motion.div>
+
+                  <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    style={{
+                      padding: '20px',
+                      border: '2px solid #fecaca',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: '#fef2f2'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Trash size={20} color="white" />
+                      </div>
+                      <div>
+                        <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#991b1b', margin: '0 0 4px 0' }}>
+                          Delete Account
+                        </h4>
+                        <p style={{ fontSize: '14px', color: '#7f1d1d', margin: 0 }}>
+                          Permanently delete your account and all data
+                        </p>
+                      </div>
+                    </div>
+                    <button style={{
+                      padding: '10px 16px',
+                      background: '#ef4444',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer'
+                    }}>
+                      Delete Account
+                    </button>
+                  </motion.div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* About Tab */}
+            {activeTab === 'about' && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#1a1a2e', marginBottom: '24px' }}>
+                  About Luter
+                </h2>
+                
+                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                  <div style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '20px',
+                    background: 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 16px'
+                  }}>
+                    <Sparkle size={40} color="white" />
+                  </div>
+                  <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#1a1a2e', margin: '0 0 8px' }}>
+                    Luter
+                  </h3>
+                  <p style={{ fontSize: '16px', color: '#6b7280', margin: '0 0 8px' }}>
+                    Version 1.0.0
+                  </p>
+                  <p style={{ fontSize: '14px', color: '#9ca3af', margin: 0 }}>
+                    © 2024 Luter. All rights reserved.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{
+                    padding: '16px',
+                    background: '#f9fafb',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}>
+                    <Envelope size={20} color="#9718fb" />
+                    <div>
+                      <p style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a2e', margin: '0 0 4px' }}>
+                        Support
+                      </p>
+                      <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                        support@luter.app
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    padding: '16px',
+                    background: '#f9fafb',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}>
+                    <Globe2 size={20} color="#9718fb" />
+                    <div>
+                      <p style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a2e', margin: '0 0 4px' }}>
+                        Website
+                      </p>
+                      <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                        www.luter.app
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #e5e7eb' }}>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleSignOut}
+                    style={{
+                      width: '100%',
+                      padding: '14px 24px',
+                      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '10px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
+                    }}
+                  >
+                    <SignOut size={18} />
+                    Sign Out
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+          </div>
+        </motion.div>
       </div>
+
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
-  )
+  );
 }

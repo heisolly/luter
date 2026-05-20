@@ -1,583 +1,793 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  RiCheckLine as Check, RiMagicFill as Sparkles, RiStarFill as Star,
-  RiFlashlightFill as Zap, RiShieldFill as Shield, RiRocketFill as Rocket,
-  RiArrowRightLine as ArrowRight, RiCloseLine as X,
-  RiLoader4Line as Loader, RiVipCrownFill as Crown
-} from 'react-icons/ri';
 import { supabase } from '../../supabaseClient';
-
-const plans = [
-  {
-    id: 'free',
-    name: 'Scholar Basic',
-    tagline: 'Essential tools for every student',
-    priceMonthly: 0,
-    priceSemester: 0,
-    icon: Shield,
-    accentColor: '#94a3b8',
-    features: [
-      '5 uploads per month',
-      'AI Notes (Standard)',
-      'Basic Summaries',
-      'Flashcard generation',
-      'Community access',
-    ],
-    cta: 'Current Tier',
-    isPrimary: false,
-  },
-  {
-    id: 'ultimate',
-    name: 'University Pro',
-    tagline: 'The ultimate academic advantage',
-    priceMonthly: 3000,
-    priceSemester: 9000,
-    priceIdMonthly: 'price_1TQBBYHPD8pnlRZIniqKwUo0',
-    priceIdSemester: 'price_1TQBBcHPD8pnlRZImYqlm80o',
-    icon: Sparkles,
-    accentColor: '#7a12cc',
-    features: [
-      'Unlimited uploads',
-      'Advanced AI Insights',
-      'Smart Quizzes',
-      'Spaced-repetition engine',
-      'AI Math & Logic Expert',
-      'Priority processing',
-    ],
-    cta: 'Upgrade to Pro',
-    isPrimary: true,
-    badge: 'MOST CHOSEN',
-  },
-  {
-    id: 'premium',
-    name: 'Luter Executive',
-    tagline: 'For elite researchers & power users',
-    priceMonthly: 9000,
-    priceSemester: 16000,
-    priceIdMonthly: 'price_1TQBBdHPD8pnlRZIp7HSWNQj',
-    priceIdSemester: 'price_1TQBBeHPD8pnlRZIeg7YvWbb',
-    icon: Rocket,
-    accentColor: '#0ea5e9',
-    features: [
-      'Everything in Pro',
-      'Vision AI (Analyze Images)',
-      'Multi-document Synthesis',
-      'Custom AI Personas',
-      'Early access to Luter Lab',
-      'Dedicated Academic Concierge',
-    ],
-    cta: 'Go Executive',
-    isPrimary: false,
-  },
-];
+import PaystackPop from '@paystack/inline-js';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Sparkle, ShieldCheck, Check, ShieldWarning
+} from '@phosphor-icons/react';
+import GlareHover from '../ui/GlareHover';
 
 export default function PricingPage() {
-  const { isMobile, userProfile } = useOutletContext();
+  const context = useOutletContext();
+  const userProfile = context?.profile ?? null;
   const navigate = useNavigate();
-  const [isSemester, setIsSemester] = useState(true);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-    const [hoveredPlan, setHoveredPlan] = useState(null);
-  const [loadingCheckout, setLoadingCheckout] = useState(false);
-  const [hoveredButton, setHoveredButton] = useState(null);
 
-  // Load Paystack script
+  const [user, setUser] = useState(null);
+  const [loadingCheckout, setLoadingCheckout] = useState(null); // 'starter' or 'beast' depending on active checkout
+  const [errorMsg, setErrorMsg] = useState('');
+  const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly', 'quarterly', 'yearly'
+
+  // Check auth session
   useEffect(() => {
-    const loadPaystackScript = () => {
-      return new Promise((resolve, reject) => {
-        if (window.PaystackPop) {
-          resolve();
-          return;
-        }
-        const script = document.createElement('script');
-        script.src = 'https://js.paystack.co/v1/inline.js';
-        script.async = true;
-        script.onload = resolve;
-        script.onerror = reject;
-        document.body.appendChild(script);
-      });
-    };
-    
-    loadPaystackScript().catch(console.error);
-    
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) setUser(session.user);
-      setLoading(false);
     });
   }, []);
 
-  // Navigate to custom checkout page
-  const handleCheckout = (plan) => {
-    navigate(`/checkout?plan=${plan.id}&period=${isSemester ? 'semester' : 'monthly'}`);
+  const isCurrentPlanActive = userProfile?.subscription_tier === 'premium';
+
+  // Dynamic pricing settings for Beast Plan
+  const getBeastPlanDetails = () => {
+    switch (billingCycle) {
+      case 'quarterly':
+        return {
+          id: 'beast_quarterly',
+          priceText: '9,599.9',
+          periodText: '/4 months',
+          billingText: 'Billed quarterly at ₦9,599.9 (save 20%)',
+          amount: 9599.9,
+          badge: 'Save 20%'
+        };
+      case 'yearly':
+        return {
+          id: 'beast_yearly',
+          priceText: '28,800',
+          periodText: '/year',
+          billingText: 'Billed yearly at ₦28,800 (equivalent to ₦2,400/mo)',
+          amount: 28800,
+          badge: 'Save 20%'
+        };
+      case 'monthly':
+      default:
+        return {
+          id: 'beast_monthly',
+          priceText: '2,999.9',
+          periodText: '/month',
+          billingText: 'Billed monthly at ₦2,999.9/mo',
+          amount: 2999.9,
+          badge: null
+        };
+    }
   };
 
-  const isCurrentPlan = (planName) => {
-    const currentTier = userProfile?.subscription_tier?.toLowerCase() || 'free';
-    const planNormalized = planName.toLowerCase();
+  const beastPlan = getBeastPlanDetails();
+
+  const starterPlan = {
+    id: 'starter',
+    priceText: '999.9',
+    periodText: '/first 2 Weeks',
+    billingText: '₦2,999.9 auto-renewal subsequent months',
+    amount: 999.9,
+    badge: 'Save 70%'
+  };
+
+  const handleCheckout = async (plan, planTypeKey) => {
+    if (!user) {
+      navigate('/signin?redirect=' + encodeURIComponent(window.location.pathname));
+      return;
+    }
+    setLoadingCheckout(planTypeKey);
+    setErrorMsg('');
     
-    if (planNormalized.includes('basic') && currentTier === 'free') return true;
-    if (planNormalized.includes('pro') && currentTier === 'pro') return true;
-    if (planNormalized.includes('executive') && currentTier === 'premium') return true;
-    return currentTier === planNormalized;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        navigate('/signin?redirect=' + encodeURIComponent(window.location.pathname));
+        return;
+      }
+      
+      const amount = plan.amount;
+      const currency = 'NGN';
+      
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-paystack-checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          planId: plan.id,
+          amount: amount,
+          email: user.email,
+          currency: currency,
+          callback_url: `${window.location.origin}/dashboard/payment/success`,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Payment initialization failed');
+      }
+
+      const data = await response.json();
+      const paystack = new PaystackPop();
+      
+      paystack.newTransaction({
+        key: data.publicKey || import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+        email: user.email,
+        amount: Number(amount) * 100,
+        currency: currency,
+        ref: data.reference,
+        metadata: {
+          plan_id: plan.id,
+          user_id: user.id,
+          source: 'upgrade_page',
+          timestamp: new Date().toISOString(),
+        },
+        onSuccess: (transaction) => {
+          setLoadingCheckout(null);
+          navigate(`/dashboard/payment/success?reference=${transaction.reference}`);
+        },
+        onCancel: () => {
+          setLoadingCheckout(null);
+        },
+        onError: (error) => {
+          setLoadingCheckout(null);
+          setErrorMsg(error.message || 'Payment processing failed.');
+        },
+      });
+
+    } catch (err) {
+      setErrorMsg(err.message || 'Checkout failed. Please try again.');
+      setLoadingCheckout(null);
+    }
   };
 
-  if (loading) return (
-    <div style={fullLoaderStyles}>
-      <div style={spinnerStyles} />
-    </div>
-  );
+  const planFeatures = [
+    "Unlimited manual creation",
+    "Unlimited AI quiz maker",
+    "Unlimited AI flashcards maker",
+    "Unlimited study game auto generation",
+    "Unlimited AI Lesson auto generation",
+    "Unlimited AI quiz generator",
+    "Unlimited quiz participation",
+    "Unlimited study sets sharing",
+    "Study streak tracking",
+    "Study Group collaboration",
+    "Live Boards"
+  ];
 
   return (
-    <div style={pageStyles}>
-      {/* Background Layer */}
-      <div style={bgOverlayStyles} />
-      
-      {/* Content */}
-      <div style={contentWrapperStyles}>
-        
-        {/* Header Section */}
-        <header style={headerStyles}>
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={headerContentStyles}
-          >
-            <div style={badgeStyles}>
-              <Crown size={16} />
-              <span>PREMIUM ACADEMICS</span>
-            </div>
-            <h1 style={titleStyles}>
-              Elevate your <span style={highlightText}>Learning</span>
-            </h1>
-            <p style={subtitleStyles}>
-              Join 10,000+ students using AI to master their curriculum in half the time.
-            </p>
-          </motion.div>
+    <div className="luter-pricing-fullscreen-container">
+      <motion.div 
+        className="luter-pricing-root"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
+      >
+        {/* HEADER SECTION */}
+        <div className="pricing-title-wrap text-center">
+          <h1>Select Your Plan</h1>
+          <p>Get instant access to AI quiz creation, study guides, and shared workspaces.</p>
+        </div>
 
-          <div style={toggleContainerStyles}>
-            <div style={togglePillStyles}>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setIsSemester(false)}
-                style={{ ...toggleBtnStyles, background: !isSemester ? '#ffffff' : 'transparent', color: !isSemester ? '#1e293b' : '#94a3b8', border: !isSemester ? '1px solid #e2e8f0' : '1px solid transparent' }}
-              >
-                Monthly
-              </motion.button>
-                  <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setIsSemester(true)}
-                style={{ ...toggleBtnStyles, background: isSemester ? '#ffffff' : 'transparent', color: isSemester ? '#1e293b' : '#94a3b8', border: isSemester ? '1px solid #e2e8f0' : '1px solid transparent' }}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  Long Term
-                  <span style={discountBadgeStyles}>SAVINGS</span>
-                </span>
-              </motion.button>
-            </div>
+        {/* BILLING CYCLES SELECTOR */}
+        <div className="billing-cycle-selector-container">
+          <div className="billing-cycle-selector">
+            <button 
+              className={`cycle-btn ${billingCycle === 'monthly' ? 'active' : ''}`}
+              onClick={() => setBillingCycle('monthly')}
+            >
+              Monthly
+            </button>
+            <button 
+              className={`cycle-btn ${billingCycle === 'quarterly' ? 'active' : ''}`}
+              onClick={() => setBillingCycle('quarterly')}
+            >
+              Quarterly
+              <span className="save-mini">Save 20%</span>
+            </button>
+            <button 
+              className={`cycle-btn ${billingCycle === 'yearly' ? 'active' : ''}`}
+              onClick={() => setBillingCycle('yearly')}
+            >
+              Yearly
+              <span className="save-mini">Save 20%</span>
+            </button>
           </div>
-        </header>
+          <div className="cancel-policy-note">
+            <span>✓ Cancel Anytime</span>
+            <span>✓ Credit Rollover Enabled</span>
+          </div>
+        </div>
 
-        {/* Plans Grid */}
-        <div style={gridStyles(isMobile)}>
-          {plans.map((plan, idx) => {
-            const current = isCurrentPlan(plan.name);
-            const price = isSemester ? plan.priceSemester : plan.priceMonthly;
-            const PlanIcon = plan.icon;
+        <AnimatePresence>
+          {errorMsg && (
+            <motion.div 
+              className="checkout-error-banner"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <ShieldWarning size={16} weight="fill" />
+              <span>{errorMsg}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            return (
-              <motion.div
-                key={plan.id}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                onMouseEnter={() => setHoveredPlan(plan.id)}
-                onMouseLeave={() => setHoveredPlan(null)}
-                style={cardStyles(plan.isPrimary, hoveredPlan === plan.id)}
-              >
-                {plan.badge && <div style={planBadgeStyles}>{plan.badge}</div>}
-                
-                <div style={cardHeaderStyles}>
-                  <div style={iconBoxStyles(plan.accentColor, plan.isPrimary)}>
-                    <PlanIcon size={24} />
-                  </div>
-                  <div>
-                    <h3 style={planTitleStyles}>{plan.name}</h3>
-                    <p style={planTaglineStyles}>{plan.tagline}</p>
-                  </div>
+        {/* CARDS CONTAINER */}
+        <div className="pricing-cards-grid">
+          
+          {/* STARTER PLAN - Electric Border & Glare Hover Animation */}
+          <div className="starter-card-outer">
+            <div className="starter-card-glow-line"></div>
+            <GlareHover
+              width="100%"
+              height="100%"
+              background="#ffffff"
+              borderRadius="16px"
+              borderColor="transparent"
+              glareColor="#ffffff"
+              glareOpacity={0.25}
+              glareAngle={-30}
+              glareSize={250}
+              className="pricing-card-panel starter-card"
+            >
+              <div className="card-top-badge starter-badge">
+                {starterPlan.badge}
+              </div>
+
+              <div className="card-header-info">
+                <h3>Starter Plan</h3>
+                <div className="price-tag-wrap">
+                  <span className="currency">₦</span>
+                  <span className="amount">{starterPlan.priceText}</span>
+                  <span className="period">{starterPlan.periodText}</span>
                 </div>
+                <p className="renewal-subtext">{starterPlan.billingText}</p>
+              </div>
 
-                <div style={priceContainerStyles}>
-                  <div style={priceValueStyles}>
-                    <span style={currencyStyles}>₦</span>
-                    <span style={amountStyles}>{price.toLocaleString()}</span>
-                  </div>
-                  <div style={pricePeriodStyles}>
-                    / {isSemester ? (plan.id === 'premium' ? 'year' : '4 months') : 'month'}
-                  </div>
-                </div>
+              <div className="card-cta-section">
+                <motion.button 
+                  className="pricing-action-btn starter-btn"
+                  onClick={() => handleCheckout(starterPlan, 'starter')}
+                  disabled={loadingCheckout !== null || isCurrentPlanActive}
+                  whileHover={{ scale: (loadingCheckout || isCurrentPlanActive) ? 1 : 1.01 }}
+                  whileTap={{ scale: (loadingCheckout || isCurrentPlanActive) ? 1 : 0.99 }}
+                >
+                  {loadingCheckout === 'starter' ? (
+                    <div className="spinner-loader"></div>
+                  ) : isCurrentPlanActive ? (
+                    <span>Current Plan Active</span>
+                  ) : (
+                    <div className="btn-inner-flex">
+                      <span>Activate</span>
+                      <span className="slots-left">Only 163 Slots left</span>
+                    </div>
+                  )}
+                </motion.button>
+              </div>
 
-                {plan.id === 'free' ? (
-                  <button
-                    disabled={true}
-                    style={ctaStyles(plan.isPrimary, true, false)}
-                  >
-                    Current Plan
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => !current && handleCheckout(plan)}
-                    disabled={current}
-                    style={ctaStyles(plan.isPrimary, current, hoveredButton === plan.id)}
-                  >
-                    {current ? 'Active Plan' : plan.cta}
-                    {!current && <ArrowRight size={16} />}
-                  </button>
-                )}
-
-                <div style={dividerStyles} />
-
-                <ul style={featureListStyles}>
-                  {plan.features.map((f, i) => (
-                    <li key={i} style={featureItemStyles}>
-                      <div style={checkIconStyles}><Check size={12} strokeWidth={3} /></div>
-                      <span>{f}</span>
+              <div className="card-features-section">
+                <h4>WHAT'S INCLUDED:</h4>
+                <ul className="features-checklist">
+                  {planFeatures.map((feature, i) => (
+                    <li key={i}>
+                      <Check size={14} weight="bold" className="chk-icon" />
+                      <span>{feature}</span>
                     </li>
                   ))}
                 </ul>
-              </motion.div>
-            );
-          })}
+              </div>
+            </GlareHover>
+          </div>
+
+          {/* BEAST PLAN - Clean dynamic color accents & Lavender Pill button */}
+          <div className="beast-card-outer">
+            <motion.div 
+              className="pricing-card-panel beast-card premium-recommended"
+              whileHover={{ y: -3 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="card-top-badge beast-badge-glow">
+                ★ Recommended
+              </div>
+
+              <div className="card-header-info">
+                <div className="beast-icon-badge">
+                  <Sparkle size={14} weight="fill" />
+                  <span>BEAST MODE</span>
+                </div>
+                <h3>Beast Plan</h3>
+                <div className="price-tag-wrap">
+                  <span className="currency">₦</span>
+                  <span className="amount">{beastPlan.priceText}</span>
+                  <span className="period">{beastPlan.periodText}</span>
+                </div>
+                <p className="renewal-subtext">{beastPlan.billingText}</p>
+              </div>
+
+              <div className="card-cta-section">
+                <motion.button 
+                  className="pricing-action-btn beast-btn"
+                  onClick={() => handleCheckout(beastPlan, 'beast')}
+                  disabled={loadingCheckout !== null || isCurrentPlanActive}
+                  whileHover={{ scale: (loadingCheckout || isCurrentPlanActive) ? 1 : 1.01 }}
+                  whileTap={{ scale: (loadingCheckout || isCurrentPlanActive) ? 1 : 0.99 }}
+                >
+                  {loadingCheckout === 'beast' ? (
+                    <div className="spinner-loader"></div>
+                  ) : isCurrentPlanActive ? (
+                    <span>Current Plan Active</span>
+                  ) : (
+                    <span>Go Premium</span>
+                  )}
+                </motion.button>
+              </div>
+
+              <div className="card-features-section">
+                <h4>WHAT'S INCLUDED:</h4>
+                <ul className="features-checklist">
+                  {planFeatures.map((feature, i) => (
+                    <li key={i}>
+                      <Check size={14} weight="bold" className="chk-icon" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </motion.div>
+          </div>
+
         </div>
 
-        {/* Footer Trust Section */}
-        <footer style={footerStyles}>
-          <div style={trustItemStyles}><Shield size={18} /> Bank-grade Security</div>
-          <div style={trustItemStyles}><Star size={18} /> Cancel Anytime</div>
-          <div style={trustItemStyles}><Zap size={18} /> Instant Activation</div>
-        </footer>
-      </div>
-
+        <div className="secured-payment-footer">
+          <ShieldCheck size={14} weight="bold" />
+          <span>Payments secured via Paystack. Subscription credits preserve and roll over automatically upon renewals.</span>
+        </div>
+      </motion.div>
 
       <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .animate-spin { animation: spin 1s linear infinite; }
+        .luter-pricing-fullscreen-container {
+          width: 100%;
+          min-height: calc(100vh - 80px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px 24px;
+          background: #fcfbfe;
+          font-family: 'Outfit', 'Inter', sans-serif;
+        }
+
+        .luter-pricing-root {
+          width: 100%;
+          max-width: 960px;
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 20px;
+        }
+
+        /* HEADER */
+        .pricing-title-wrap {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .pricing-title-wrap h1 {
+          font-size: 32px;
+          font-weight: 800;
+          color: #1e1b4b;
+          letter-spacing: -0.02em;
+          margin: 0;
+        }
+
+        .pricing-title-wrap p {
+          font-size: 14px;
+          color: #64748b;
+          max-width: 580px;
+          line-height: 1.45;
+          margin: 0;
+          text-align: center;
+        }
+
+        /* TOGGLE SELECTOR */
+        .billing-cycle-selector-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .billing-cycle-selector {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px; /* Not too round! */
+          padding: 4px;
+          display: flex;
+          gap: 4px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+        }
+
+        .cycle-btn {
+          padding: 8px 18px;
+          border-radius: 8px; /* Not too round! */
+          border: none;
+          background: transparent;
+          font-size: 13.5px;
+          font-weight: 700;
+          color: #475569;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .cycle-btn.active {
+          background: #1e1b4b; /* Lavender dark */
+          color: #ffffff;
+        }
+
+        .save-mini {
+          font-size: 9px;
+          padding: 1px 5px;
+          border-radius: 4px;
+          background: #dcfce7;
+          color: #15803d;
+          font-weight: 800;
+        }
+
+        .cycle-btn.active .save-mini {
+          background: #15803d;
+          color: #ffffff;
+        }
+
+        .cancel-policy-note {
+          display: flex;
+          gap: 16px;
+          font-size: 12px;
+          color: #475569;
+          font-weight: 600;
+        }
+
+        /* GRID CARDS */
+        .pricing-cards-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 28px;
+          width: 100%;
+          max-width: 860px;
+        }
+
+        .pricing-card-panel {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px; /* Not too round! */
+          padding: 28px 24px;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          height: 100%;
+          background-clip: padding-box;
+        }
+
+        /* Override GlareHover layout inside panel */
+        .glare-hover.pricing-card-panel {
+          display: flex !important;
+          place-items: unset !important;
+          text-align: left;
+          width: 100% !important;
+          height: 100% !important;
+          border: none !important;
+        }
+
+        /* ELECTRIC BORDER - Conic Rotating Gradient */
+        .starter-card-outer {
+          position: relative;
+          padding: 2px;
+          border-radius: 16px; /* Not too round! */
+          overflow: hidden;
+          background: #e2e8f0;
+        }
+
+        .starter-card-outer::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: conic-gradient(
+            from 0deg,
+            transparent 15%,
+            #22c55e 35%, /* Beautiful Green */
+            #ef4444 55%, /* Bright Red */
+            #a5b4fc 75%, /* Lavender */
+            transparent 100%
+          );
+          animation: rotateElectric 4s linear infinite;
+          z-index: 0;
+        }
+
+        .starter-card-outer .pricing-card-panel {
+          position: relative;
+          z-index: 1;
+          border: none;
+          background: #ffffff;
+        }
+
+        @keyframes rotateElectric {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        /* BEAST CARD - Sleek gradient outline */
+        .beast-card-outer {
+          position: relative;
+          padding: 2px;
+          border-radius: 16px; /* Not too round! */
+          overflow: hidden;
+          background: linear-gradient(135deg, #a5b4fc, #ef4444, #22c55e); /* Lavender, Red, Green */
+        }
+
+        .beast-card-outer .pricing-card-panel {
+          position: relative;
+          z-index: 1;
+          border: none;
+          background: linear-gradient(180deg, #ffffff 0%, #fafbff 100%);
+        }
+
+        /* CARD LABELS & BADGES */
+        .card-top-badge {
+          position: absolute;
+          top: 18px;
+          right: 20px;
+          font-size: 11px;
+          font-weight: 800;
+          padding: 4px 10px;
+          border-radius: 6px; /* Not too round! */
+          z-index: 10;
+        }
+
+        .starter-badge {
+          background: #dcfce7;
+          color: #15803d;
+        }
+
+        .beast-badge-glow {
+          top: -12px;
+          left: 50%;
+          right: auto;
+          transform: translateX(-50%);
+          background: #ef4444; /* Premium red recommendation badge */
+          color: #ffffff;
+          font-size: 11.5px;
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+          letter-spacing: 0.02em;
+        }
+
+        .beast-icon-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          color: #4f46e5; /* Lavender icon theme */
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.05em;
+          margin-bottom: 2px;
+        }
+
+        .card-header-info h3 {
+          font-size: 22px;
+          font-weight: 800;
+          color: #1e1b4b;
+          margin: 0 0 4px 0;
+        }
+
+        .price-tag-wrap {
+          display: flex;
+          align-items: baseline;
+        }
+
+        .price-tag-wrap .currency {
+          font-size: 18px;
+          font-weight: 800;
+          color: #1e1b4b;
+          margin-right: 1px;
+        }
+
+        .price-tag-wrap .amount {
+          font-size: 38px;
+          font-weight: 900;
+          color: #1e1b4b;
+          letter-spacing: -0.02em;
+          line-height: 1;
+        }
+
+        .price-tag-wrap .period {
+          font-size: 13.5px;
+          font-weight: 600;
+          color: #64748b;
+          margin-left: 2px;
+        }
+
+        .renewal-subtext {
+          font-size: 12px;
+          color: #64748b;
+          font-weight: 500;
+          margin: 5px 0 0 0;
+          line-height: 1.35;
+        }
+
+        /* BUTTONS */
+        .pricing-action-btn {
+          width: 100%;
+          height: 46px;
+          border-radius: 8px; /* Not too round! */
+          border: none;
+          font-size: 14px;
+          font-weight: 800;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+
+        .starter-btn {
+          background: #1e1b4b;
+          color: #ffffff;
+        }
+
+        .starter-btn:hover {
+          background: #2e2a72;
+          box-shadow: 0 4px 12px rgba(30, 27, 75, 0.2);
+        }
+
+        /* Go Premium pill effect lavender button */
+        .beast-btn {
+          background: linear-gradient(90deg, #a78bfa, #6366f1); /* Exquisite Lavender/Indigo gradient */
+          color: #ffffff;
+          border-radius: 99px; /* Pill effect! */
+          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
+        }
+
+        .beast-btn:hover {
+          background: linear-gradient(90deg, #8b5cf6, #4f46e5);
+          box-shadow: 0 6px 16px rgba(139, 92, 246, 0.35);
+        }
+
+        .pricing-action-btn:disabled {
+          background: #cbd5e1;
+          color: #94a3b8;
+          cursor: not-allowed;
+          box-shadow: none;
+        }
+
+        .btn-inner-flex {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        .slots-left {
+          font-size: 10px;
+          background: rgba(255, 255, 255, 0.15);
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-weight: 700;
+        }
+
+        /* FEATURES SECTION */
+        .card-features-section {
+          border-top: 1px solid #f1f5f9;
+          padding-top: 16px;
+        }
+
+        .card-features-section h4 {
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.05em;
+          color: #64748b;
+          margin: 0 0 10px 0;
+        }
+
+        .features-checklist {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .features-checklist li {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          font-size: 12.5px;
+          font-weight: 500;
+          color: #334155;
+          line-height: 1.35;
+        }
+
+        .chk-icon {
+          color: #22c55e; /* Green checkmarks */
+          margin-top: 1px;
+          flex-shrink: 0;
+        }
+
+        /* FOOTER INFO */
+        .secured-payment-footer {
+          max-width: 600px;
+          margin-top: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          font-size: 11px;
+          color: #64748b;
+          text-align: center;
+          line-height: 1.4;
+          font-weight: 500;
+        }
+
+        .secured-payment-footer svg {
+          color: #22c55e; /* Green lock icon */
+          flex-shrink: 0;
+        }
+
+        .checkout-error-banner {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 14px;
+          background: #fef2f2;
+          border: 1px solid #fee2e2;
+          color: #ef4444;
+          border-radius: 8px;
+          font-size: 12.5px;
+          font-weight: 500;
+          width: 100%;
+          max-width: 860px;
+        }
+
+        .spinner-loader {
+          width: 18px;
+          height: 18px;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-radius: 50%;
+          border-top-color: #ffffff;
+          animation: spin 0.8s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+          .pricing-cards-grid {
+            grid-template-columns: 1fr;
+            max-width: 420px;
+          }
+          .luter-pricing-fullscreen-container {
+            min-height: auto;
+            padding: 40px 16px;
+          }
+          .pricing-title-wrap h1 {
+            font-size: 26px;
+          }
+        }
       `}</style>
     </div>
   );
 }
-
-// ── STYLES (Vanilla CSS in JS) ──
-
-const pageStyles = {
-  minHeight: '100vh',
-  background: '#f8fafc',
-  color: '#1e293b',
-  fontFamily: "'Outfit', sans-serif",
-  position: 'relative',
-  overflowX: 'hidden',
-};
-
-const bgOverlayStyles = {
-  position: 'absolute',
-  inset: 0,
-  background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-  zIndex: 0,
-};
-
-const contentWrapperStyles = {
-  position: 'relative',
-  zIndex: 1,
-  padding: '60px 24px',
-  maxWidth: 1200,
-  margin: '0 auto',
-};
-
-const headerStyles = {
-  textAlign: 'center',
-  marginBottom: 60,
-};
-
-const headerContentStyles = {
-  maxWidth: 700,
-  margin: '0 auto 40px',
-};
-
-const badgeStyles = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-  padding: '6px 12px',
-  background: '#f1f5f9',
-  border: '1px solid #e2e8f0',
-  borderRadius: 8,
-  fontSize: 11,
-  fontWeight: 700,
-  color: '#7a12cc',
-  letterSpacing: '0.05em',
-  marginBottom: 24,
-  textTransform: 'uppercase',
-};
-
-const titleStyles = {
-  fontSize: 'clamp(36px, 6vw, 56px)',
-  fontWeight: 800,
-  letterSpacing: '-0.02em',
-  lineHeight: 1.1,
-  marginBottom: 20,
-  color: '#1e293b',
-};
-
-const highlightText = {
-  background: 'linear-gradient(135deg, #7a12cc 0%, #8b5cf6 100%)',
-  WebkitBackgroundClip: 'text',
-  WebkitTextFillColor: 'transparent',
-  backgroundClip: 'text',
-  color: 'transparent',
-};
-
-const subtitleStyles = {
-  fontSize: 18,
-  color: '#64748b',
-  maxWidth: 500,
-  margin: '0 auto',
-  lineHeight: 1.6,
-  fontWeight: 400,
-};
-
-const toggleContainerStyles = {
-  display: 'flex',
-  justifyContent: 'center',
-  marginBottom: 40,
-};
-
-const togglePillStyles = {
-  display: 'inline-flex',
-  background: '#ffffff',
-  padding: 4,
-  borderRadius: 12,
-  border: '1px solid #e2e8f0',
-  gap: 2,
-  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-};
-
-const toggleBtnStyles = {
-  padding: '12px 24px',
-  borderRadius: 8,
-  fontSize: 14,
-  fontWeight: 600,
-  border: 'none',
-  cursor: 'pointer',
-  transition: 'all 0.2s ease',
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  fontFamily: 'inherit',
-};
-
-const discountBadgeStyles = {
-  fontSize: 10,
-  padding: '2px 6px',
-  background: '#10b981',
-  color: '#fff',
-  borderRadius: 6,
-  fontWeight: 700,
-};
-
-const gridStyles = (isMobile) => ({
-  display: 'grid',
-  gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
-  gap: 24,
-  alignItems: 'stretch',
-});
-
-const cardStyles = (isPrimary, isHovered) => ({
-  background: '#ffffff',
-  borderRadius: 16,
-  padding: 32,
-  border: isPrimary ? '2px solid #7a12cc' : (isHovered ? '1px solid #cbd5e1' : '1px solid #e2e8f0'),
-  position: 'relative',
-  transition: 'all 0.3s ease',
-  transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
-  boxShadow: isHovered ? '0 8px 24px rgba(0,0,0,0.08)' : '0 2px 8px rgba(0,0,0,0.04)',
-});
-
-const planBadgeStyles = {
-  position: 'absolute',
-  top: -8,
-  right: 20,
-  background: 'linear-gradient(135deg, #7a12cc, #8b5cf6)',
-  padding: '4px 12px',
-  borderRadius: 6,
-  fontSize: 10,
-  fontWeight: 700,
-  color: '#fff',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-};
-
-const cardHeaderStyles = {
-  display: 'flex',
-  alignItems: 'flex-start',
-  gap: 16,
-  marginBottom: 24,
-};
-
-const iconBoxStyles = (color, isPrimary) => ({
-  width: 48,
-  height: 48,
-  borderRadius: 12,
-  background: isPrimary ? `${color}15` : '#f8fafc',
-  color: color,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  border: isPrimary ? `1px solid ${color}30` : '1px solid #e2e8f0',
-});
-
-const planTitleStyles = {
-  fontSize: 20,
-  fontWeight: 700,
-  margin: 0,
-  color: '#1e293b',
-  lineHeight: 1.2,
-};
-
-const planTaglineStyles = {
-  fontSize: 13,
-  color: '#64748b',
-  margin: 0,
-  fontWeight: 400,
-  marginTop: 4,
-};
-
-const priceContainerStyles = {
-  marginBottom: 24,
-};
-
-const priceValueStyles = {
-  display: 'flex',
-  alignItems: 'flex-start',
-  gap: 4,
-};
-
-const currencyStyles = {
-  fontSize: 20,
-  fontWeight: 600,
-  color: '#64748b',
-  marginTop: 4,
-};
-
-const amountStyles = {
-  fontSize: 48,
-  fontWeight: 800,
-  letterSpacing: '-0.02em',
-  color: '#1e293b',
-};
-
-const pricePeriodStyles = {
-  fontSize: 14,
-  color: '#64748b',
-  fontWeight: 600,
-};
-
-const ctaStyles = (isPrimary, current, isHovered) => ({
-  width: '100%',
-  height: '48px',
-  borderRadius: 8,
-  fontSize: '14px',
-  fontWeight: 600,
-  fontFamily: 'inherit',
-  textTransform: 'none',
-  letterSpacing: 'normal',
-  cursor: current ? 'default' : 'pointer',
-  border: isPrimary && !current ? '1px solid #7a12cc' : '1px solid #e2e8f0',
-  background: current ? '#f8fafc' : (isPrimary && !current && isHovered ? '#7a12cc' : (isPrimary && !current ? '#ffffff' : '#ffffff')),
-  color: current ? '#94a3b8' : (isPrimary && !current && isHovered ? '#ffffff' : (isPrimary && !current ? '#7a12cc' : '#1e293b')),
-  transition: 'all 0.2s ease',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '8px',
-  marginBottom: 24,
-});
-
-const dividerStyles = {
-  height: 1,
-  background: '#f1f5f9',
-  marginBottom: 24,
-};
-
-const featureListStyles = {
-  listStyle: 'none',
-  padding: 0,
-  margin: 0,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 12,
-};
-
-const featureItemStyles = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 12,
-  fontSize: 14,
-  fontWeight: 400,
-  color: '#475569',
-  lineHeight: 1.4,
-};
-
-const checkIconStyles = {
-  width: 20,
-  height: 20,
-  borderRadius: 6,
-  background: '#dcfce7',
-  color: '#16a34a',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0,
-  border: '1px solid #bbf7d0',
-};
-
-const footerStyles = {
-  marginTop: 60,
-  display: 'flex',
-  justifyContent: 'center',
-  gap: 32,
-  flexWrap: 'wrap',
-};
-
-const trustItemStyles = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  fontSize: 13,
-  color: '#64748b',
-  fontWeight: 500,
-  padding: '12px 16px',
-  background: '#ffffff',
-  borderRadius: 8,
-  border: '1px solid #e2e8f0',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-};
-
-const fullLoaderStyles = {
-  minHeight: '100vh',
-  background: '#050505',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
-
-const spinnerStyles = {
-  width: 40,
-  height: 40,
-  border: '3px solid rgba(122,18,204,0.1)',
-  borderTopColor: '#7a12cc',
-  borderRadius: '50%',
-  animation: 'spin 1s linear infinite',
-};

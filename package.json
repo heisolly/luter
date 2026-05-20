@@ -70,6 +70,7 @@
     "lucide-react": "^0.475.0",
     "mammoth": "^1.12.0",
     "mark.js": "^8.11.1",
+    "nanoid": "^5.1.11",
     "ogl": "^1.0.11",
     "pdfjs-dist": "2.16.105",
     "postprocessing": "^6.39.1",

@@ -60,6 +60,7 @@ export const CollaborationProvider = ({ roomId, children, userInfo = {}, initial
         // Whiteboard
         whiteboardData: new LiveList([]),
         whiteboardAppState: new LiveObject({}),
+        whiteboardFiles: new LiveObject({}),
 
         // Slide sync
         syncMode: false,

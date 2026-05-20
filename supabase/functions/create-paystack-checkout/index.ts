@@ -37,18 +37,19 @@ serve(async (req) => {
       .select('paystack_enabled, paystack_mode')
       .single()
 
-    if (!settings?.paystack_enabled) {
+    const paystackEnabled = settings ? settings.paystack_enabled : true;
+    if (!paystackEnabled) {
       throw new Error('Payment gateway is currently disabled')
     }
 
-    // Determine which key to use based on mode
-    const isLiveMode = settings?.paystack_mode === 'live'
-    const secretKeyName = isLiveMode ? 'PAYSTACK_LIVE_SECRET_KEY' : 'PAYSTACK_TEST_SECRET_KEY'
+    // Determine which key to use based on mode (Forced to live mode by user request)
+    const isLiveMode = true
+    const secretKeyName = 'PAYSTACK_LIVE_SECRET_KEY'
     
     // Initialize Paystack with appropriate key
     const paystackSecretKey = Deno.env.get(secretKeyName)
     if (!paystackSecretKey) {
-      throw new Error(`Paystack ${settings?.paystack_mode || 'test'} secret key not configured`)
+      throw new Error(`Paystack live secret key not configured`)
     }
 
     // Create Paystack payment initialization
