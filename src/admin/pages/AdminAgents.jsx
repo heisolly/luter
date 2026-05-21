@@ -7,6 +7,7 @@ import {
   ArrowsClockwise, Warning, CheckCircle, Clock, Lightning,
   Eye, Factory, MonitorPlay, MagnifyingGlass,
 } from '@phosphor-icons/react'
+import { getAdminPath } from '../../utils/urlUtils'
 
 const STATUS_CONFIG = {
   idle:    { color: '#64748b', bg: '#f1f5f9', label: 'Idle' },
@@ -94,13 +95,13 @@ export default function AdminAgents() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <Link to="/agents/monitor" className="adm-btn adm-btn--ghost">
+          <Link to={getAdminPath('/agents/monitor')} className="adm-btn adm-btn--ghost">
             <MonitorPlay size={16} /> Control Room
           </Link>
-          <Link to="/agents/factory" className="adm-btn adm-btn--ghost">
+          <Link to={getAdminPath('/agents/factory')} className="adm-btn adm-btn--ghost">
             <Factory size={16} /> Agent Factory
           </Link>
-          <Link to="/agents/new" className="adm-btn adm-btn--primary">
+          <Link to={getAdminPath('/agents/new')} className="adm-btn adm-btn--primary">
             <Plus size={16} /> New Agent
           </Link>
         </div>
@@ -149,7 +150,7 @@ export default function AdminAgents() {
             {q ? 'Try updating your search query.' : 'Create your first agent to start automating your admin workflow.'}
           </p>
           {!q && (
-            <Link to="/agents/new" className="adm-btn adm-btn--primary">
+            <Link to={getAdminPath('/agents/new')} className="adm-btn adm-btn--primary">
               <Plus size={16} /> Create First Agent
             </Link>
           )}
@@ -223,7 +224,7 @@ export default function AdminAgents() {
                 {/* Footer actions */}
                 <div style={{ padding: '12px 16px', display: 'flex', gap: 6 }}>
                   <button
-                    onClick={() => navigate(`/agents/${agent.id}`)}
+                    onClick={() => navigate(getAdminPath(`/agents/${agent.id}`)) }
                     className="adm-btn adm-btn--ghost"
                     style={{ flex: 1, justifyContent: 'center', fontSize: 12 }}
                   >

@@ -9,6 +9,7 @@ import {
   ShieldCheck, Warning, Eye, PencilSimple, Trash,
   MagnifyingGlass, ListChecks,
 } from '@phosphor-icons/react'
+import { getAdminPath } from '../../utils/urlUtils'
 
 const STEP_COLORS = {
   think:  { bg: '#f5f3ff', border: '#a78bfa', icon: '💭', label: 'Thinking' },
@@ -169,7 +170,7 @@ export default function AdminAgentConsole() {
       {/* ── Sidebar: History ── */}
       <div style={{ background: 'white', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9' }}>
-          <button className="adm-btn adm-btn--ghost" style={{ marginBottom: 16, fontSize: 12, padding: '4px 0' }} onClick={() => navigate('/agents')}>
+          <button className="adm-btn adm-btn--ghost" style={{ marginBottom: 16, fontSize: 12, padding: '4px 0' }} onClick={() => navigate(getAdminPath('/agents'))}>
             <ArrowLeft size={14} /> Back to Directory
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

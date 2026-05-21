@@ -99,20 +99,10 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
   const isRemoteUpdate = useRef(false);
   const isInitialized = useRef(false);
 
-  // Dynamic WelcomeScreen & Footer subcomponent resolution to prevent Element type is invalid crashes
-  const WS = WelcomeScreen || (Excalidraw ? Excalidraw.WelcomeScreen : null);
-  const WSCenter = WS?.Center || WS?.default?.Center;
-  const WSHints = WS?.Hints || WS?.default?.Hints;
-
-  const Logo = WSCenter?.Logo || WSCenter?.default?.Logo;
-  const Heading = WSCenter?.Heading || WSCenter?.default?.Heading;
-  const Menu = WSCenter?.Menu || WSCenter?.default?.Menu;
-  const MenuItemLoadScene = WSCenter?.MenuItemLoadScene || WSCenter?.default?.MenuItemLoadScene;
-
-  const MenuHint = WSHints?.MenuHint || WSHints?.default?.MenuHint;
-  const ToolbarHint = WSHints?.ToolbarHint || WSHints?.default?.ToolbarHint;
-
+  // Simplify WelcomeScreen handling to avoid undefined component errors
+  const WS = null;
   const SafeFooter = Footer || (Excalidraw ? Excalidraw.Footer : null);
+
 
   // Inject brand CSS once
   useEffect(() => { injectBrandStyle(); }, []);

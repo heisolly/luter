@@ -33,6 +33,43 @@ export default function AdminUsers() {
   const [modalSaving, setModalSaving] = useState(false)
   const [modalError, setModalError] = useState(null)
 
+  // Live user search states in modal
+  const [modalSearchQ, setModalSearchQ] = useState('')
+  const [modalSearchResults, setModalSearchResults] = useState([])
+  const [modalSearching, setModalSearching] = useState(false)
+
+  useEffect(() => {
+    if (!modalSearchQ.trim()) {
+      setModalSearchResults([])
+      return
+    }
+    const handler = setTimeout(async () => {
+      setModalSearching(true)
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .or(`full_name.ilike.%${modalSearchQ}%,email.ilike.%${modalSearchQ}%`)
+          .limit(5)
+        if (!error && data) {
+          setModalSearchResults(data)
+        }
+      } catch (err) {
+        console.error('Error searching users in modal:', err)
+      } finally {
+        setModalSearching(false)
+      }
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [modalSearchQ])
+
+  const selectModalUser = (u) => {
+    setNewUserId(u.id)
+    setNewFullName(u.full_name || '')
+    setModalSearchQ('')
+    setModalSearchResults([])
+  }
+
   const fetchPage = async (pageIndex, currentSubFilter = subFilter) => {
     setLoading(true)
     setError(null)
@@ -92,7 +129,7 @@ export default function AdminUsers() {
       .update({
         is_premium: isNowPremium,
         subscription_tier: isNowPremium ? 'premium' : 'free',
-        subscription_type: isNowPremium ? 'monthly' : '',
+        subscription_type: isNowPremium ? 'monthly' : null,
         subscription_expires_at: expiry,
         updated_at: new Date().toISOString()
       })
@@ -105,7 +142,7 @@ export default function AdminUsers() {
         ...r,
         is_premium: isNowPremium,
         subscription_tier: isNowPremium ? 'premium' : 'free',
-        subscription_type: isNowPremium ? 'monthly' : '',
+        subscription_type: isNowPremium ? 'monthly' : null,
         subscription_expires_at: expiry
       } : r))
     }
@@ -135,7 +172,7 @@ export default function AdminUsers() {
         full_name: newFullName.trim() || 'Premium User',
         is_premium: true,
         subscription_tier: newTier,
-        subscription_type: newType,
+        subscription_type: newType || null,
         subscription_expires_at: expiresAt,
         onboarding_complete: true,
         updated_at: new Date().toISOString()
@@ -159,7 +196,8 @@ export default function AdminUsers() {
       const name = (r.full_name || '').toLowerCase()
       const uni = (r.university || '').toLowerCase()
       const id = (r.id || '').toLowerCase()
-      return name.includes(s) || uni.includes(s) || id.includes(s)
+      const email = (r.email || '').toLowerCase()
+      return name.includes(s) || uni.includes(s) || id.includes(s) || email.includes(s)
     })
   }, [rows, q])
 
@@ -246,7 +284,8 @@ export default function AdminUsers() {
                   <tr key={r.id}>
                     <td>
                       <div style={{ fontWeight: 700, color: '#111' }}>{r.full_name || '—'}</div>
-                      <div className="adm-mono">{r.id?.slice(0, 8)}…</div>
+                      {r.email && <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{r.email}</div>}
+                      <div className="adm-mono" style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>{r.id}</div>
                     </td>
                     <td>{r.university || '—'}</td>
                     <td>{r.level || '—'}</td>
@@ -339,6 +378,60 @@ export default function AdminUsers() {
             )}
 
             <form onSubmit={handleAddPaidUser} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ position: 'relative', marginBottom: 6 }}>
+                <label className="adm-muted" style={{ fontSize: 12, fontWeight: 700 }}>
+                  Search User (by Name or Email)
+                  <input
+                    type="text"
+                    className="adm-input"
+                    style={{ width: '100%', marginTop: 6 }}
+                    placeholder="Type name or email to search..."
+                    value={modalSearchQ}
+                    onChange={(e) => setModalSearchQ(e.target.value)}
+                  />
+                </label>
+                {modalSearching && (
+                  <div style={{ position: 'absolute', right: 12, bottom: 10 }}>
+                    <CircleNotch className="animate-spin" size={16} color="#7a12cc" />
+                  </div>
+                )}
+                {modalSearchResults.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 8,
+                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+                    zIndex: 10,
+                    maxHeight: 200,
+                    overflowY: 'auto',
+                    marginTop: 4
+                  }}>
+                    {modalSearchResults.map(u => (
+                      <div
+                        key={u.id}
+                        onClick={() => selectModalUser(u)}
+                        style={{
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid #f1f5f9',
+                          fontSize: 13,
+                          transition: 'background 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f8fafc'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        <div style={{ fontWeight: 600, color: '#1e293b' }}>{u.full_name || 'Anonymous'}</div>
+                        <div style={{ fontSize: 11, color: '#64748b' }}>{u.email || 'No email'} · <span className="adm-mono" style={{ fontSize: 10 }}>{u.id.slice(0, 8)}...</span></div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <label className="adm-muted" style={{ fontSize: 12, fontWeight: 700 }}>
                 Supabase User ID (UUID)
                 <input
@@ -386,7 +479,7 @@ export default function AdminUsers() {
                   >
                     <option value="monthly">Monthly</option>
                     <option value="quarterly">Quarterly</option>
-                    <option value="annual">Annual</option>
+                    <option value="yearly">Yearly</option>
                   </select>
                 </label>
               </div>

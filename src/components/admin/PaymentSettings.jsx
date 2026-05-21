@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { 
   Shield, 
@@ -21,7 +22,9 @@ import {
 } from 'lucide-react';
 
 export default function PaymentSettings() {
-  const [activeTab, setActiveTab] = useState('transactions'); // 'transactions' | 'settings' | 'analytics'
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'transactions';
+  const setActiveTab = (tab) => setSearchParams({ tab });
   const [settings, setSettings] = useState({
     paystack_enabled: true,
     stripe_enabled: false,

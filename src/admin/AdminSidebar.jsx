@@ -24,7 +24,7 @@ import {
   Wrench,
 } from '@phosphor-icons/react'
 import LuterLogo from '../components/shared/LuterLogo'
-import { DASHBOARD_URL } from '../utils/urlUtils'
+import { DASHBOARD_URL, getAdminPath } from '../utils/urlUtils'
 
 const NAV = [
   { to: '/', end: true, icon: House, label: 'Overview' },
@@ -69,7 +69,7 @@ export default function AdminSidebar({ onNavigate }) {
         {NAV.map(({ to, end, icon: Icon, label }) => (
           <NavLink
             key={to}
-            to={to}
+            to={getAdminPath(to)}
             end={end}
             onClick={onNavigate}
             className={({ isActive }) => `adm-nav-item ${isActive ? 'adm-nav-item--active' : ''}`}
@@ -92,7 +92,7 @@ export default function AdminSidebar({ onNavigate }) {
         {AGENT_NAV.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
-            to={to}
+            to={getAdminPath(to)}
             onClick={onNavigate}
             className={({ isActive }) => `adm-nav-item ${isActive ? 'adm-nav-item--active' : ''}`}
           >

@@ -47,24 +47,24 @@ serve(async (req) => {
 
       // Update user subscription
       if (transaction && transaction.user_id && transaction.plan_id) {
-        const planMap: { [key: string]: { tier: string; type: string } } = {
-          'price_1TQBBYHPD8pnlRZIniqKwUo0': { tier: 'pro', type: 'monthly' },
-          'price_1TQBBcHPD8pnlRZImYqlm80o': { tier: 'pro', type: 'semester' },
-          'price_1TQBBdHPD8pnlRZIp7HSWNQj': { tier: 'premium', type: 'monthly' },
-          'price_1TQBBeHPD8pnlRZIeg7YvWbb': { tier: 'premium', type: 'semester' },
-          'ultimate': { tier: 'pro', type: 'monthly' },
-          'premium': { tier: 'premium', type: 'monthly' },
-          'starter': { tier: 'premium', type: 'starter' },
-          'beast_monthly': { tier: 'premium', type: 'monthly' },
-          'beast_quarterly': { tier: 'premium', type: 'quarterly' },
-          'beast_yearly': { tier: 'premium', type: 'yearly' },
-          'beast_annual': { tier: 'premium', type: 'yearly' },
-          'wizard_monthly': { tier: 'premium', type: 'monthly' },
-          'wizard_quarterly': { tier: 'premium', type: 'quarterly' },
-          'wizard_annual': { tier: 'premium', type: 'annual' },
-          'monthly': { tier: 'premium', type: 'monthly' },
-          'quarterly': { tier: 'premium', type: 'quarterly' },
-          'annual': { tier: 'premium', type: 'annual' },
+        const planMap: { [key: string]: { tier: string; type: string; is_premium: boolean } } = {
+          'price_1TQBBYHPD8pnlRZIniqKwUo0': { tier: 'pro', type: 'monthly', is_premium: true },
+          'price_1TQBBcHPD8pnlRZImYqlm80o': { tier: 'pro', type: 'semester', is_premium: true },
+          'price_1TQBBdHPD8pnlRZIp7HSWNQj': { tier: 'premium', type: 'monthly', is_premium: true },
+          'price_1TQBBeHPD8pnlRZIeg7YvWbb': { tier: 'premium', type: 'semester', is_premium: true },
+          'ultimate': { tier: 'pro', type: 'monthly', is_premium: true },
+          'premium': { tier: 'premium', type: 'monthly', is_premium: true },
+          'starter': { tier: 'starter', type: 'starter', is_premium: false },
+          'beast_monthly': { tier: 'premium', type: 'monthly', is_premium: true },
+          'beast_quarterly': { tier: 'premium', type: 'quarterly', is_premium: true },
+          'beast_yearly': { tier: 'premium', type: 'yearly', is_premium: true },
+          'beast_annual': { tier: 'premium', type: 'yearly', is_premium: true },
+          'wizard_monthly': { tier: 'premium', type: 'monthly', is_premium: true },
+          'wizard_quarterly': { tier: 'premium', type: 'quarterly', is_premium: true },
+          'wizard_annual': { tier: 'premium', type: 'yearly', is_premium: true },
+          'monthly': { tier: 'premium', type: 'monthly', is_premium: true },
+          'quarterly': { tier: 'premium', type: 'quarterly', is_premium: true },
+          'annual': { tier: 'premium', type: 'yearly', is_premium: true },
         }
 
         const planInfo = planMap[transaction.plan_id]
@@ -89,7 +89,7 @@ serve(async (req) => {
 
           const expiryDate = new Date(baseDate)
             
-          if (planInfo.type === 'annual' || planInfo.type === 'yearly') {
+          if (planInfo.type === 'yearly') {
             expiryDate.setFullYear(expiryDate.getFullYear() + 1)
           } else if (planInfo.type === 'quarterly') {
             // Beast Quarterly plan duration is 4 months (Monthly * 4 - 20% discount)
@@ -113,7 +113,7 @@ serve(async (req) => {
               subscription_tier: planInfo.tier,
               subscription_type: planInfo.type,
               subscription_expires_at: expiryDate.toISOString(),
-              is_premium: true,
+              is_premium: planInfo.is_premium,
               updated_at: new Date().toISOString()
             })
             .eq('id', transaction.user_id)

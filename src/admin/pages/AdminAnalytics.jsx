@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { getAllPoolStats } from '../agents/apiKeyManager'
 import { ArrowsClockwise, CheckCircle, Warning, CircleNotch } from '@phosphor-icons/react'
+import { getAdminPath } from '../../utils/urlUtils'
 
 // Simple bar chart — no external library needed
 function MiniBarChart({ data, color = '#7a12cc' }) {
@@ -107,11 +109,12 @@ export default function AdminAnalytics() {
     setLoading(true)
 
     // Load platform stats
-    const [users, courses, tasks, agents] = await Promise.all([
+    const [users, courses, tasks, agents, payments] = await Promise.all([
       supabase.from('profiles').select('created_at, university').order('created_at', { ascending: false }).limit(200),
       supabase.from('courses').select('created_at').order('created_at', { ascending: false }).limit(100),
       supabase.from('agent_tasks').select('status, created_at').order('created_at', { ascending: false }).limit(500),
       supabase.from('admin_agents').select('status, type').limit(50),
+      supabase.from('payment_transactions').select('amount, status, created_at').order('created_at', { ascending: false }).limit(1000)
     ])
 
     // Users per day (last 7 days)
@@ -126,6 +129,22 @@ export default function AdminAnalytics() {
       label: day.slice(5),
       value: (users.data || []).filter(u => u.created_at?.startsWith(day)).length,
     }))
+
+    // Revenue per day (last 7 days)
+    const revenueByDay = last7.map(day => ({
+      label: day.slice(5),
+      value: (payments.data || [])
+        .filter(p => p.status === 'completed' && p.created_at?.startsWith(day))
+        .reduce((acc, curr) => acc + (curr.amount || 0), 0)
+    }))
+
+    // Payments summary calculations
+    const totalTransactions = (payments.data || []).length
+    const completedTransactions = (payments.data || []).filter(p => p.status === 'completed')
+    const totalRevenue = completedTransactions.reduce((acc, curr) => acc + (curr.amount || 0), 0)
+    const paymentSuccessRate = totalTransactions > 0
+      ? Math.round((completedTransactions.length / totalTransactions) * 100)
+      : 100
 
     // Tasks by status
     const tasksByStatus = ['queued', 'running', 'done', 'failed'].map(s => ({
@@ -146,7 +165,7 @@ export default function AdminAnalytics() {
     })
     const topUnis = Object.entries(uniCount).sort((a, b) => b[1] - a[1]).slice(0, 5)
 
-    setStats({ usersByDay, tasksByStatus, agentTypes, topUnis })
+    setStats({ usersByDay, tasksByStatus, agentTypes, topUnis, revenueByDay, totalRevenue, paymentSuccessRate })
     setAgentStats({
       total: (agents.data || []).length,
       running: (agents.data || []).filter(a => a.status === 'running').length,
@@ -185,29 +204,37 @@ export default function AdminAnalytics() {
       </div>
 
       {/* KPI row */}
-      <div className="adm-kpi-grid" style={{ gridTemplateColumns: 'repeat(4,1fr)', marginBottom: 24 }}>
+      <div className="adm-kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', marginBottom: 24 }}>
         {[
           { label: 'Total Agents', value: agentStats?.total ?? 0 },
           { label: 'Agents Running', value: agentStats?.running ?? 0 },
           { label: 'Tasks Completed', value: agentStats?.doneTasks ?? 0 },
-          { label: 'Success Rate', value: agentStats?.totalTasks ? `${Math.round((agentStats.doneTasks / agentStats.totalTasks) * 100)}%` : 'N/A' },
+          { label: 'Total Revenue', value: stats?.totalRevenue != null ? `₦${stats.totalRevenue.toLocaleString()}` : '—', color: '#059669' },
+          { label: 'Pay Success Rate', value: stats?.paymentSuccessRate != null ? `${stats.paymentSuccessRate}%` : '—', color: '#059669' },
         ].map(k => (
-          <div key={k.label} className="adm-kpi-card">
-            <div className="adm-kpi-label">{k.label}</div>
-            <div className="adm-kpi-value">{k.value}</div>
+          <div key={k.label} className="adm-kpi-card" style={k.color ? { borderLeft: `3px solid ${k.color}` } : undefined}>
+            <div className="adm-kpi-label" style={k.color ? { color: k.color } : undefined}>{k.label}</div>
+            <div className="adm-kpi-value" style={k.color ? { color: k.color } : undefined}>{k.value}</div>
           </div>
         ))}
       </div>
 
       {/* Charts row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginBottom: 24 }}>
         <div className="adm-card" style={{ padding: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 16 }}>New Users (Last 7 Days)</div>
           <MiniBarChart data={stats?.usersByDay} color="#7a12cc" />
         </div>
         <div className="adm-card" style={{ padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 800 }}>Revenue (Last 7 Days)</div>
+            <Link to={getAdminPath('/payment-settings?tab=analytics')} style={{ fontSize: 11, color: '#059669', fontWeight: 700, textDecoration: 'none' }}>View suite →</Link>
+          </div>
+          <MiniBarChart data={stats?.revenueByDay} color="#059669" />
+        </div>
+        <div className="adm-card" style={{ padding: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 16 }}>Agent Tasks by Status</div>
-          <MiniBarChart data={stats?.tasksByStatus} color="#059669" />
+          <MiniBarChart data={stats?.tasksByStatus} color="#3b82f6" />
         </div>
         <div className="adm-card" style={{ padding: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 16 }}>Agents by Type</div>

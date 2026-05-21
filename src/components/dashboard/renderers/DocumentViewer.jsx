@@ -146,23 +146,7 @@ export default function DocumentViewer({
     window.addEventListener('luter-jump-to-page', handleJump)
     window.addEventListener('luter-highlight-text', handleHighlight)
 
-    // Handle signed URL for Office documents
-    const fetchSignedUrl = async () => {
-      if (['docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv'].includes(type)) {
-        try {
-          const path = material.source_url.split('/storage/v1/object/public/materials/')[1] || 
-                       material.source_url.split('/storage/v1/object/authenticated/materials/')[1]
-          
-          if (path) {
-            const { data, error } = await supabase.storage.from('materials').createSignedUrl(path, 3600)
-            if (data?.signedUrl) setSignedUrl(data.signedUrl)
-          }
-        } catch (e) {
-          console.warn('Failed to get signed URL:', e)
-        }
-      }
-    }
-    fetchSignedUrl()
+    // Directly use material.source_url without signed URL fetching
 
     setViewportData({
       visibleText: (material.extracted_text || '').replace(/\*\*/g, '').slice(0, 3000),
@@ -176,8 +160,6 @@ export default function DocumentViewer({
       window.removeEventListener('luter-highlight-text', handleHighlight)
     }
   }, [material?.id, material?.extracted_text, material?.source_url, type])
-
-  const [signedUrl, setSignedUrl] = useState(null)
 
   const getProcessedText = () => {
     let text = material.extracted_text || ''
@@ -241,7 +223,7 @@ export default function DocumentViewer({
             <div className="ws-visual-viewport" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                <Worker workerUrl={PDF_WORKER_URL}>
                  <UniversalViewer
-                    material={{ ...material, source_url: signedUrl || material.source_url }}
+                    material={material}
                     initialPage={currentPage}
                     onPageChange={(e) => setCurrentPage(e.currentPage + 1)}
                     onDocumentLoad={(e) => setTotalPages(e.doc.numPages)}

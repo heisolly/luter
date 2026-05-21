@@ -101,7 +101,9 @@ const GuestPlayPage = lazy(() => import('./components/dashboard/playground/Guest
 export default function App() {
   const offline = useNavigatorOffline()
   const hostname = window.location.hostname;
-  const isAdminHost = import.meta.env.PROD ? hostname === 'admin.luter.app' : false;
+  const isAdminHost = import.meta.env.PROD 
+    ? hostname === 'admin.luter.app' 
+    : (hostname === 'admin.luter.app' || hostname.startsWith('admin.') || window.location.search.includes('admin=true') || localStorage.getItem('isAdmin') === 'true');
 
   // Subdomain logic removed - everything now on luter.app except Admin
   useEffect(() => {
@@ -122,7 +124,7 @@ export default function App() {
       <div style={{ paddingTop: offline ? OFFLINE_BAR_PT : undefined }}>
         <Routes>
           {/* ADMIN HOST SPECIFIC ROUTES */}
-          {isAdminHost && (
+          {isAdminHost ? (
             <>
               <Route path="/" element={<AdminLayout />}>
                 <Route index element={<AdminOverview />} />
@@ -150,8 +152,36 @@ export default function App() {
                 <Route path="controls" element={<AdminSystemControls />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
-              {/* If they somehow visit /admin/something, strip it */}
-              <Route path="/admin/*" element={<Navigate to="/" replace />} />
+            </>
+          ) : (
+            <>
+              {/* Path-based admin access on main domain and localhost */}
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminOverview />} />
+                <Route path="notes-manager" element={<AdminNotesManager />} />
+                <Route path="requests" element={<NotesRequestsAdmin />} />
+                <Route path="upload" element={<LuterAdminUploadPage />} />
+                <Route path="users/:userId" element={<AdminUserDetail />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="courses" element={<AdminCourses />} />
+                <Route path="enrollments" element={<AdminEnrollments />} />
+                <Route path="matches" element={<AdminMatches />} />
+                <Route path="notifications" element={<AdminNotifications />} />
+                <Route path="activity" element={<AdminActivity />} />
+                <Route path="system" element={<AdminSystem />} />
+                <Route path="payment-settings" element={<PaymentSettings />} />
+                <Route path="settings" element={<AdminSettings />} />
+                <Route path="syllabus" element={<AdminSyllabusManager />} />
+                <Route path="audit" element={<AdminAudit />} />
+                <Route path="agents" element={<AdminAgents />} />
+                <Route path="agents/new" element={<AdminAgentBuilder />} />
+                <Route path="agents/monitor" element={<AdminAgentMonitor />} />
+                <Route path="agents/factory" element={<AdminAgentFactory />} />
+                <Route path="agents/:id" element={<AdminAgentConsole />} />
+                <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="controls" element={<AdminSystemControls />} />
+                <Route path="*" element={<Navigate to="/admin" replace />} />
+              </Route>
             </>
           )}
 
@@ -230,8 +260,7 @@ export default function App() {
           <Route path="/join/:inviteCode" element={<JoinGroupPage />} />
           <Route path="/board/:roomId" element={<BoardPage />} />
 
-          {/* REDIRECT LEGACY ADMIN TO SUBDOMAIN */}
-          <Route path="/admin/*" element={<Navigate to={ADMIN_URL} replace />} />
+
 
           {/* DEFAULT REDIRECTS */}
           <Route path="*" element={<Navigate to="/" replace />} />

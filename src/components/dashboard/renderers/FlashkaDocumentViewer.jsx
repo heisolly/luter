@@ -733,6 +733,7 @@ export default function FlashkaDocumentViewer({
         }}
       >
         <div className="flashka-viewer-pages notranslate" translate="no" style={{ position: 'relative' }}>
+                  <Worker workerUrl={PDF_WORKER_URL}>
           <Viewer
             key={fileUrl}
             fileUrl={fileUrl}
@@ -743,6 +744,7 @@ export default function FlashkaDocumentViewer({
             onPageChange={handlePageChange}
             renderPage={renderPage}
           />
+        </Worker>
         </div>
         {/* Live cursors positioned relative to the scroll container */}
         <LiveCursors />

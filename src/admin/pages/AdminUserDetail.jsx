@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { CircleNotch, ArrowLeft, FloppyDisk } from '@phosphor-icons/react'
+import { getAdminPath } from '../../utils/urlUtils'
 
 export default function AdminUserDetail() {
   const { userId } = useParams()
@@ -78,7 +79,7 @@ export default function AdminUserDetail() {
         role: form.role,
         is_premium: form.is_premium,
         subscription_tier: form.subscription_tier,
-        subscription_type: form.subscription_type,
+        subscription_type: form.subscription_type || null,
         subscription_expires_at: form.subscription_expires_at ? new Date(form.subscription_expires_at).toISOString() : null,
       })
       .eq('id', userId)
@@ -95,7 +96,7 @@ export default function AdminUserDetail() {
         role: form.role,
         is_premium: form.is_premium,
         subscription_tier: form.subscription_tier,
-        subscription_type: form.subscription_type,
+        subscription_type: form.subscription_type || null,
         subscription_expires_at: form.subscription_expires_at ? new Date(form.subscription_expires_at).toISOString() : null,
       }))
     }
@@ -137,7 +138,7 @@ export default function AdminUserDetail() {
     return (
       <>
         <div className="adm-error-banner">{error}</div>
-        <Link to="/users" className="adm-link">
+        <Link to={getAdminPath('/users')} className="adm-link">
           ← Back to users
         </Link>
       </>
@@ -263,7 +264,7 @@ export default function AdminUserDetail() {
                 <option value="">None</option>
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>
-                <option value="annual">Annual / Yearly</option>
+                <option value="yearly">Yearly</option>
               </select>
             </label>
 

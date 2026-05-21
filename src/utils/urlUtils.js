@@ -11,3 +11,20 @@ export const getAppUrl = (path = '') => {
 
   return cleanPath;
 };
+
+export const getAdminPath = (path = '') => {
+  // If path has a query or hash, keep it clean
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  
+  // Detect if current host is admin subdomain
+  const isSubdomain = typeof window !== 'undefined' && 
+    (window.location.hostname === 'admin.luter.app' || window.location.hostname.startsWith('admin.'));
+
+  if (isSubdomain) {
+    return cleanPath;
+  }
+  
+  // Otherwise, prefix with /admin
+  return `/admin${cleanPath === '/' ? '' : cleanPath}`;
+};
+

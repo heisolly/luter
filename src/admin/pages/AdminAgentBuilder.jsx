@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { TOOL_CATEGORIES, TOOL_DESCRIPTIONS, DANGEROUS_TOOLS } from '../agents/toolRegistry'
 import { Robot, CheckSquare, Square, CircleNotch, FloppyDisk, Warning, Lightbulb } from '@phosphor-icons/react'
+import { getAdminPath } from '../../utils/urlUtils'
 
 const AGENT_TYPES = [
   { value: 'curriculum', label: '📚 Curriculum', desc: 'Research syllabi, create courses' },
@@ -65,7 +66,7 @@ export default function AdminAgentBuilder() {
     })
     setSaving(false)
     if (e) { setError(e.message); return }
-    navigate('/agents')
+    navigate(getAdminPath('/agents'))
   }
 
   return (
@@ -168,7 +169,7 @@ export default function AdminAgentBuilder() {
       </div>
 
       <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-        <button className="adm-btn adm-btn--ghost" onClick={() => navigate('/agents')}>Cancel</button>
+        <button className="adm-btn adm-btn--ghost" onClick={() => navigate(getAdminPath('/agents'))}>Cancel</button>
         <button className="adm-btn adm-btn--primary" onClick={handleSave} disabled={saving}>
           {saving ? <><CircleNotch className="animate-spin" size={16} /> Saving...</> : <><FloppyDisk size={16} /> Create Agent</>}
         </button>
