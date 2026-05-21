@@ -110,7 +110,7 @@ import { preloadingService } from '../../services/preloadingService'
 import { useDeckStore } from '../../store/useDeckStore'
 import MaterialAnalysisService from '../../services/materialAnalysisService'
 import './workstation.css'
-import { useHighlight } from '../../hooks/useHighlight'
+import { useHighlight } from '../../hooks/useHighlight.jsx'
 import { useAnnotation } from '../../hooks/useAnnotation'
 import AnnotationToolbar from './AnnotationToolbar'
 import HighlightToolbox from './HighlightToolbox'
@@ -2348,13 +2348,12 @@ function WorkstationContent() {
                     setHighlightToolbox={setHighlightToolbox}
                   />
 
-                  {/* NEW FULLY WORKING HIGHLIGHT TOOLBOX */}
                   {highlightToolbox && (
                     <HighlightToolbox
                       toolbox={highlightToolbox}
                       COLORS={HIGHLIGHT_COLORS}
-                      selectedColor={highlightColor}
-                      setSelectedColor={setHighlightColor}
+                      selectedColor={selectedHighlightColor}
+                      setSelectedColor={setSelectedHighlightColor}
                       onApply={applyHighlight}
                       onDelete={deleteHighlight}
                       onSendToAI={(text) => {

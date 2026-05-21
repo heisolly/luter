@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import ColourPicker from '../ui/ColourPicker';
 import { 
   Highlighter, ChatCircle, Copy, Trash, Sparkle, 
   ArrowSquareOut 
@@ -105,28 +105,10 @@ export default function HighlightToolbox({
           COLOR
         </span>
         <div style={{display:'flex', gap:5}}>
-          {COLORS.map(c => (
-            <div
-              key={c.id}
-              onClick={() => setSelectedColor(c.bg)}
-              title={c.label}
-              style={{
-                width: 20, height: 20,
-                borderRadius: '50%',
-                background: c.bg,
-                border: selectedColor === c.bg
-                  ? `2.5px solid ${c.border}`
-                  : '2px solid transparent',
-                cursor: 'pointer',
-                transition: 'all 150ms',
-                transform: selectedColor === c.bg 
-                  ? 'scale(1.2)' : 'scale(1)',
-                boxShadow: selectedColor === c.bg
-                  ? `0 0 0 2px white, 0 0 0 3.5px ${c.border}`
-                  : 'none',
-              }}
-            />
-          ))}
+          <ColourPicker
+            selectedColor={selectedColor}
+            onChange={setSelectedColor}
+          />
         </div>
       </div>
 

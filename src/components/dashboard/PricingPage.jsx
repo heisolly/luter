@@ -17,6 +17,9 @@ export default function PricingPage() {
   const [loadingCheckout, setLoadingCheckout] = useState(null); // 'starter' or 'beast' depending on active checkout
   const [errorMsg, setErrorMsg] = useState('');
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly', 'quarterly', 'yearly'
+  // ----- Admin entry code state -----
+  const [entryCode, setEntryCode] = useState('');
+  const [isAdminBypass, setIsAdminBypass] = useState(false);
 
   // Check auth session
   useEffect(() => {
@@ -73,13 +76,29 @@ export default function PricingPage() {
   };
 
   const handleCheckout = async (plan, planTypeKey) => {
+    // Admin bypass: if admin code activated, upgrade user to premium and reload dashboard
+    if (isAdminBypass) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const userId = session?.user?.id;
+        if (userId) {
+          await supabase.from('profiles').update({ subscription_tier: 'premium', is_premium: true }).eq('id', userId);
+        }
+      } catch (err) {
+        console.error('Admin bypass profile update failed', err);
+      }
+      // Reload dashboard to reflect premium status
+      window.location.href = '/dashboard';
+      return;
+    }
+
     if (!user) {
       navigate('/signin?redirect=' + encodeURIComponent(window.location.pathname));
       return;
     }
     setLoadingCheckout(planTypeKey);
     setErrorMsg('');
-    
+      
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.access_token;
@@ -201,6 +220,55 @@ export default function PricingPage() {
           <div className="cancel-policy-note">
             <span>✓ Cancel Anytime</span>
             <span>✓ Credit Rollover Enabled</span>
+          </div>
+          {/* ADMIN ENTRY CODE */}
+          <div className="admin-entry-code-wrapper" style={{marginTop: '16px', textAlign: 'center'}}>
+            <input
+              type="text"
+              placeholder="Enter admin code"
+              value={entryCode}
+              onChange={(e) => setEntryCode(e.target.value)}
+              className="admin-code-input"
+              style={{
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                marginRight: '8px',
+                minWidth: '180px',
+              }}
+            />
+            <button
+              className="admin-code-btn"
+              onClick={async () => {
+                  if (entryCode.trim() === 'LUDMIN') {
+                    try {
+                      const { data: { session } } = await supabase.auth.getSession();
+                      const userId = session?.user?.id;
+                      if (userId) {
+                        await supabase.from('profiles').update({ subscription_tier: 'premium', is_premium: true }).eq('id', userId);
+                      }
+                      // Reload dashboard to reflect premium status
+                      window.location.href = '/dashboard';
+                    } catch (err) {
+                      console.error('Admin bypass failed', err);
+                      setErrorMsg('Admin bypass failed.');
+                    }
+                  } else {
+                    setErrorMsg('Invalid admin code.');
+                  }
+                }}
+              disabled={loadingCheckout !== null}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                background: '#1e1b4b',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              Apply Coupon
+            </button>
           </div>
         </div>
 

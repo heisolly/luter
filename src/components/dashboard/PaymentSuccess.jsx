@@ -15,6 +15,21 @@ export default function PaymentSuccess() {
   const receiptRef = useRef(null);
 
   useEffect(() => {
+    const admin = searchParams.get('admin');
+    if (admin === 'true') {
+      // Admin bypass activated: set a simple payment status and stop loading
+      setPaymentStatus({
+        status: 'admin',
+        amount: '0',
+        plan: 'Admin Bypass',
+        date: new Date().toISOString(),
+        method: 'Admin',
+        customerName: null,
+        customerEmail: null,
+      });
+      setLoading(false);
+      return;
+    }
     if (reference) {
       const fetchPaymentDetails = async () => {
         try {
@@ -72,7 +87,7 @@ export default function PaymentSuccess() {
       };
       fetchPaymentDetails();
     }
-  }, [reference]);
+  }, [reference, searchParams]);
 
   const handleDownloadReceipt = async () => {
     if (!receiptRef.current) return;
