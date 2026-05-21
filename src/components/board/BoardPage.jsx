@@ -16,6 +16,7 @@ import {
   useOthers,
   useSelf,
   useStatus,
+  useUpdateMyPresence,
 } from '../../liveblocks.config'
 import { supabase } from '../../supabaseClient'
 
@@ -137,6 +138,8 @@ const BoardInner = ({ roomId, boardName, user }) => {
   const navigate   = useNavigate()
   const [excalidrawAPI, setExcalidrawAPI] = useState(null)
   const [copied, setCopied]               = useState(false)
+  const boardContainerRef = useRef(null)
+  const updateMyPresence = useUpdateMyPresence()
 
   // Liveblocks storage — serialized plain arrays/objects by useStorage
   const storedElements = useStorage((root) => root.whiteboardData)
@@ -191,7 +194,28 @@ const BoardInner = ({ roomId, boardName, user }) => {
     isRemoteUpdate.current = false
   }, [excalidrawAPI, storedElements])
 
-  const updateMyPresence = useUpdateMyPresence()
+  // ── Live cursor presence tracking ─────────────────────────────────────
+  useEffect(() => {
+    const el = boardContainerRef.current
+    if (!el) return
+    const handlePointerMove = (e) => {
+      const rect = el.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      updateMyPresence({ cursor: { x, y, isPresent: true } })
+    }
+    const handlePointerLeave = () => {
+      updateMyPresence({ cursor: null })
+    }
+    el.addEventListener('pointermove', handlePointerMove)
+    el.addEventListener('pointerleave', handlePointerLeave)
+    return () => {
+      el.removeEventListener('pointermove', handlePointerMove)
+      el.removeEventListener('pointerleave', handlePointerLeave)
+    }
+  }, [updateMyPresence])
+
+
   const self = useSelf()
 
   // ── onChange: local drawing → Liveblocks ─────────────────
@@ -212,7 +236,7 @@ const BoardInner = ({ roomId, boardName, user }) => {
   }
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', background: '#F8FAFC' }}>
+    <div ref={boardContainerRef} style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', background: '#F8FAFC' }}>
 
       {/* ── Glassmorphism top bar ───────────────────────────── */}
       <div style={{
@@ -259,7 +283,7 @@ const BoardInner = ({ roomId, boardName, user }) => {
         <div style={{ width: 1, height: 20, background: '#E2E8F0', flexShrink: 0 }} />
 
         {/* Presence avatars */}
-        <PresenceStrip user={user} />
+<LiveCursors />
 
         {/* Divider */}
         <div style={{ width: 1, height: 20, background: '#E2E8F0', flexShrink: 0 }} />

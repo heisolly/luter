@@ -15,79 +15,11 @@ export default function PaymentSuccess() {
   const receiptRef = useRef(null);
 
   useEffect(() => {
-    const admin = searchParams.get('admin');
-    if (admin === 'true') {
-      // Admin bypass activated: set a simple payment status and stop loading
-      setPaymentStatus({
-        status: 'admin',
-        amount: '0',
-        plan: 'Admin Bypass',
-        date: new Date().toISOString(),
-        method: 'Admin',
-        customerName: null,
-        customerEmail: null,
-      });
-      setLoading(false);
-      return;
+    if (!loading && paymentStatus && paymentStatus.status === 'completed') {
+      // Navigate to dashboard after successful payment
+      navigate('/dashboard');
     }
-    if (reference) {
-      const fetchPaymentDetails = async () => {
-        try {
-          // Fetch transaction
-          const { data: transaction, error: txError } = await supabase
-            .from('payment_transactions')
-            .select('*')
-            .eq('reference', reference)
-            .maybeSingle();
-
-          if (txError) throw txError;
-
-          let profileData = null;
-          if (transaction?.user_id) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('full_name, email')
-              .eq('id', transaction.user_id)
-              .maybeSingle();
-            profileData = profile;
-          }
-
-          if (transaction) {
-            setPaymentStatus({
-              status: transaction.status || 'completed',
-              amount: transaction.amount,
-              currency: transaction.currency || 'NGN',
-              plan: transaction.plan_id,
-              date: transaction.completed_at || transaction.created_at,
-              customerName: profileData?.full_name,
-              customerEmail: profileData?.email,
-              method: transaction.gateway || 'Paystack'
-            });
-          } else {
-            // Fallback for optimistic UI if record hasn't hit DB yet
-            setPaymentStatus({
-              status: 'completed',
-              amount: searchParams.get('amount') || '0',
-              plan: 'Pro Plan',
-              date: new Date().toISOString()
-            });
-          }
-        } catch (e) {
-          console.error('Error fetching details:', e);
-          // Fallback on error
-          setPaymentStatus({
-            status: 'completed',
-            amount: searchParams.get('amount') || '0',
-            plan: 'Pro Plan',
-            date: new Date().toISOString()
-          });
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchPaymentDetails();
-    }
-  }, [reference, searchParams]);
+  }, [loading, paymentStatus]);
 
   const handleDownloadReceipt = async () => {
     if (!receiptRef.current) return;
