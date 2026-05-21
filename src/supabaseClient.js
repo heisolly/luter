@@ -13,13 +13,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
     flowType: 'pkce',
-    storageKey: 'luter-auth-session',
-    cookieOptions: {
-      domain: import.meta.env.PROD ? '.luter.app' : undefined,
-      path: '/',
-      sameSite: 'Lax',
-      secure: import.meta.env.PROD
-    },
+
     lock: false,
     debug: false
   },
