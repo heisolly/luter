@@ -52,6 +52,16 @@ export default defineConfig(({ mode }) => {
           navigateFallbackDenylist: [/^\/api\//],
           navigateFallbackAllowlist: [/.*/],
           maximumFileSizeToCacheInBytes: 10485760, // 10MiB
+          runtimeCaching: [
+            {
+              urlPattern: /^\/assets\/.+\.js$/,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'js-chunks',
+                expiration: { maxEntries: 60, maxAgeSeconds: 3600 }
+              }
+            }
+          ]
         },
         devOptions: { enabled: true },
       }),

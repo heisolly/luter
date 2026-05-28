@@ -3,7 +3,6 @@ import { useEffect, useState, lazy, Suspense } from 'react'
 import LandingPage from './components/LandingPage'
 import Features from './components/Features'
 import HowItWorks from './components/HowItWorks'
-import Pricing from './components/Pricing'
 import About from './components/About'
 import PathCalculator from './components/PathCalculator'
 import SignIn from './components/SignIn'
@@ -22,9 +21,6 @@ import StreakPage from './components/dashboard/StreakPage'
 import ReferPage from './components/dashboard/ReferPage'
 import PlaygroundPage from './components/dashboard/PlaygroundPage'
 import PricingPage from './components/dashboard/PricingPage'
-import PaymentSuccess from './components/dashboard/PaymentSuccess'
-import PaystackCheckout from './components/PaystackCheckout'
-import StandalonePricingPage from './components/StandalonePricingPage'
 import ExamSessionView from './components/ExamSessionView'
 import SharedFlashcardsView from './components/SharedFlashcardsView'
 import AdminLayout from './admin/AdminLayout'
@@ -189,8 +185,6 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/features" element={<Features />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
-          <Route path="/pricing" element={<StandalonePricingPage />} />
-          <Route path="/checkout" element={<PaystackCheckout />} />
           <Route path="/about" element={<About />} />
           <Route path="/path-calculator" element={<PathCalculator />} />
           <Route path="/signin" element={<SignIn />} />
@@ -217,7 +211,6 @@ export default function App() {
             <Route path="settings" element={<SettingsPage />} />
             <Route path="upgrade" element={<UpgradePage />} />
             <Route path="pricing" element={<PricingPage />} />
-            <Route path="payment/success" element={<PaymentSuccess />} />
             <Route path="streak" element={<StreakPage />} />
             <Route path="profile" element={<LevelPage />} />
             <Route path="store" element={<StorePage />} />

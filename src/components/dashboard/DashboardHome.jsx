@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   UploadSimple, FolderOpen, Sparkle, Plus, Fire, Trophy, Play,
-  BookOpen, GameController, ArrowRight, Flame, Star, Target, Rocket
+  BookOpen, GameController, ArrowRight, Flame, Star, Target
 } from '@phosphor-icons/react'
 import { DotmCircular7 } from '../ui/dotm-circular-7'
 import { useNavigate, useOutletContext } from 'react-router-dom'
@@ -26,20 +26,6 @@ export default function DashboardHome() {
   const displayName = username || profile?.full_name?.split(' ')[0] || 'Scholar';
   const displayHandle = username ? `${username}` : displayName;
   
-  // Subscription tier display
-  const subscriptionTier = profile?.subscription_tier?.toLowerCase() || 'free'
-  const subscriptionType = profile?.subscription_type?.toLowerCase() || 'free'
-  const getTierBadge = () => {
-    if (subscriptionTier === 'premium' || subscriptionType === 'premium') {
-      return { label: 'Executive', icon: Rocket, color: '#0ea5e9', bg: 'rgba(14, 165, 233, 0.12)' }
-    }
-    if (subscriptionTier === 'pro' || subscriptionType === 'pro') {
-      return { label: 'Pro', icon: Sparkle, color: '#7a12cc', bg: 'rgba(122, 18, 204, 0.12)' }
-    }
-    return null
-  }
-  const tierBadge = getTierBadge()
-
   const [courses, setCourses] = useState([])   
   const [soloMaterials, setSoloMaterials] = useState([])
   const [stats, setStats] = useState(null)  
@@ -248,57 +234,6 @@ export default function DashboardHome() {
             </motion.div>
           )}
           
-          {tierBadge && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.4 }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                marginBottom: 16
-              }}
-            >
-              {/* Glow effect behind badge */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '5px 12px',
-                background: 'rgba(255, 255, 255, 0.8)',
-                borderRadius: 20,
-                border: `1px solid ${tierBadge.color}20`,
-                backdropFilter: 'blur(8px)',
-                boxShadow: `0 2px 12px ${tierBadge.color}15, 0 0 0 1px ${tierBadge.color}10`
-              }}>
-                <div style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  background: tierBadge.color,
-                  boxShadow: `0 0 8px ${tierBadge.color}`
-                }} />
-                <span style={{ 
-                  fontSize: 11, 
-                  fontWeight: 600, 
-                  color: '#374151',
-                  letterSpacing: '0.02em'
-                }}>
-                  {tierBadge.label}
-                </span>
-              </div>
-              
-              {/* XP indicator */}
-              <div style={{
-                fontSize: 12,
-                color: '#6b7280',
-                fontWeight: 500
-              }}>
-                {xp.toLocaleString()} XP
-              </div>
-            </motion.div>
-          )}
           <motion.h1 
             id="tour-welcome"
             className="dhd-hero-title"

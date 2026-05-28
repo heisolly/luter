@@ -16,7 +16,6 @@ import {
   CaretLeft,
   ChartBar,
   GearSix,
-  CrownSimple,
   HashStraight,
   Plus,
   BookOpenText,
@@ -444,86 +443,7 @@ export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobi
             {!collapsed && <span className="dsb-nav-label-text">{t('settings')}</span>}
           </button>
 
-        </div>  
-          {!tierBadge && (
-            <button 
-              id="nav-upgrade"
-              className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} 
-              onClick={() => go('/upgrade')}
-              style={{
-                background: collapsed ? 'none' : 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(124, 58, 237, 0.06) 100%)',
-                border: collapsed ? '1px solid #8b5cf6' : '1px solid rgba(139, 92, 246, 0.2)',
-                borderRadius: '10px',
-                padding: collapsed ? '8px' : '10px 16px',
-                margin: collapsed ? '0 0 12px 0' : '8px 12px 16px 12px',
-                color: '#8b5cf6',
-                fontWeight: 500,
-                fontSize: '14px',
-                transition: 'all 0.25s ease',
-                position: 'relative',
-                overflow: 'hidden',
-                width: collapsed ? 'auto' : 'calc(100% - 24px)'
-              }}
-              onMouseEnter={(e) => {
-                if (!collapsed) {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(124, 58, 237, 0.08) 100%)'
-                  e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.4)'
-                  e.currentTarget.style.transform = 'translateX(2px)'
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(139, 92, 246, 0.15)'
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!collapsed) {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(124, 58, 237, 0.06) 100%)'
-                  e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.2)'
-                  e.currentTarget.style.transform = 'translateX(0)'
-                  e.currentTarget.style.boxShadow = 'none'
-                }
-              }}
-            >
-              <div className="dsb-nav-icon-wrap" style={{ 
-                color: '#8b5cf6',
-                position: 'relative'
-              }}>
-                <CrownSimple size={18} weight="fill" />
-                {!collapsed && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '-2px',
-                    right: '-2px',
-                    width: '6px',
-                    height: '6px',
-                    background: '#f59e0b',
-                    borderRadius: '50%',
-                    border: '2px solid white'
-                  }} />
-                )}
-              </div>
-              {!collapsed && (
-                <span className="dsb-nav-label-text" style={{ 
-                  color: '#8b5cf6',
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '14px'
-                }}>
-                  {t('upgradePro')}
-                  <span style={{
-                    background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-                    color: 'white',
-                    padding: '1px 6px',
-                    borderRadius: '6px',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    letterSpacing: '0.5px'
-                  }}>
-                    PRO
-                  </span>
-                </span>
-              )}
-            </button>
-          )}
+        </div>
           {/* Gamified User Profile - Streak, Level, Coins */}
           <button 
             id="nav-profile-card"

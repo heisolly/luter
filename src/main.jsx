@@ -15,6 +15,16 @@ if (typeof window !== 'undefined') {
     window.location.reload()
   })
 
+  // Clear outdated service worker cache from stale builds
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      registrations.forEach(reg => {
+        // Force update check on every page load
+        reg.update().catch(() => {})
+      })
+    })
+  }
+
   // Aggressive trick to hide Liveblocks watermark everywhere
   const observer = new MutationObserver(() => {
     const watermarkEls = document.querySelectorAll('a[href*="liveblocks.io"], [class*="liveblocks-badge"], [id*="liveblocks-watermark"]');

@@ -72,32 +72,6 @@ export default function Dashboard() {
     }
   }, [location.pathname])
 
-  // Paywall check for non-paid/free users
-  useEffect(() => {
-    if (!loading && user) {
-      const allowedPaths = [
-        '/dashboard/pricing',
-        '/dashboard/upgrade',
-        '/dashboard/payment/success'
-      ]
-      const isAllowedPath = allowedPaths.includes(location.pathname)
-      
-      const hasAccess = 
-        profile?.role === 'admin' || 
-        profile?.is_premium === true || 
-        (
-          (profile?.subscription_tier === 'pro' || profile?.subscription_tier === 'premium') &&
-          (!profile?.subscription_expires_at || new Date(profile.subscription_expires_at) > new Date())
-        )
-      
-      if (!hasAccess && !isAllowedPath) {
-        console.log('🔒 Paywall Redirect: User lacks active premium subscription. Redirecting to pricing.')
-        navigate('/dashboard/pricing', { replace: true })
-      }
-    }
-  }, [loading, user, profile, location.pathname, navigate])
-
-
   useEffect(() => {
     let hb
     let channel

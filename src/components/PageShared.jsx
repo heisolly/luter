@@ -382,7 +382,7 @@ export function SharedNavbar() {
           </Link>
 
           <div style={{ display: 'flex', gap: 32, fontSize: 15, fontWeight: 500, color: '#475569' }}>
-            {[['Features','/features'],['How it works','/how-it-works'],['Pricing','/pricing'],['Path Calculator','/path-calculator'],['About','/about']].map(([l,h]) => (
+            {[['Features','/features'],['How it works','/how-it-works'],['Path Calculator','/path-calculator'],['About','/about']].map(([l,h]) => (
               <Link key={l} to={getAppUrl(h)} style={{ 
                 transition: 'color 0.2s', 
                 color: location.pathname === h ? '#2E1065' : '#475569', 
@@ -492,7 +492,6 @@ export function SharedNavbar() {
                 { [
                   { l: 'Features', p: '/features', i: <Stack size={22} weight="light" /> },
                   { l: 'How it works', p: '/how-it-works', i: <BookOpen size={22} weight="light" /> },
-                  { l: 'Pricing', p: '/pricing', i: <Lightning size={22} weight="light" /> },
                   { l: 'Path Calculator', p: '/path-calculator', i: <Calculator size={22} weight="light" /> },
                   { l: 'About', p: '/about', i: <Users size={22} weight="light" /> },
                   { l: 'Sign In', p: '/signin', i: <TrendingUp size={22} weight="light" /> }

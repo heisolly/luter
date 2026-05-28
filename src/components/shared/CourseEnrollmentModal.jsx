@@ -241,15 +241,6 @@ export default function CourseEnrollmentModal({
             throw insertError
           }
 
-          // Apply freemium locking
-          const { error: lockingError } = await supabase.rpc('apply_freemium_locking', {
-            p_user_id: user.id,
-            p_course_ids: globalCourses.map(c => c.id)
-          })
-          
-          if (lockingError) {
-            console.error('Error applying freemium locking:', lockingError)
-          }
         } else {
            alert('System Notice: No courses found in catalog after insertion.')
         }

@@ -12,7 +12,6 @@ import {
   Plus,
   ArrowRight,
   BookOpen,
-  Lightning,
   FileText,
   GraduationCap,
   Clock,
@@ -145,45 +144,6 @@ const UNIS = [
   { name: 'Harvard', icon: '🏅' }, { name: 'UNILAG', icon: '🇳🇬' },
 ];
 
-const plans = [
-  {
-    name: 'BASIC', 
-    trial: 'BASIC PLAN',
-    priceMonthly: 0, 
-    priceSemester: 0,
-    isPopular: false,
-    bg: 'white', 
-    color: '#111', 
-    border: '#e5e7eb',
-    buttonText: 'START FOR FREE',
-    features: ['5 UPLOADS PER MONTH', 'SMART NOTES (BASIC)', 'SUMMARY', 'FLASHCARD GENERATION', 'COMMUNITY SUPPORT']
-  },
-  {
-    name: 'UNIVERSITY PRO', 
-    trial: 'MOST POPULAR FOR STUDENTS',
-    priceMonthly: 4000, 
-    priceSemester: 9000,
-    isPopular: true,
-    bg: 'linear-gradient(135deg, #4B0082 0%, #A855F7 100%)', 
-    color: 'white', 
-    border: 'transparent',
-    buttonText: 'GET STARTED',
-    features: ['UNLIMITED UPLOADS', 'ADVANCED SMART NOTES', 'SUMMARY + QUIZZES', 'SPACED-REP FLASHCARDS', 'MATH EXPERT', 'LIVE LECTURE RECORDING', 'PRIORITY SUPPORT']
-  },
-  {
-    name: 'PREMIUM', 
-    trial: 'FOR POWER USERS',
-    priceMonthly: 7000, 
-    priceSemester: 16000,
-    isPopular: false,
-    bg: 'white', 
-    color: '#111', 
-    border: '#e5e7eb',
-    buttonText: 'GET STARTED',
-    features: ['EVERYTHING IN UNIVERSITY PRO', 'ANALYZE IMAGES', 'MULTI-FILE SESSIONS', 'TEAM COLLABORATION', 'DEDICATED SUPPORT', 'EARLY FEATURE ACCESS']
-  }
-];
-
 // Global Styles for interactive elements
 const GlobalStyles = () => (
   <style>{`
@@ -308,11 +268,8 @@ const InteractiveFeatureCard = ({ children, style = {} }) => {
 };
 
 const homeFaqs = [
-  { q: 'Is Luter free for students?', a: 'Yes! Luter has a generous free tier — 5 study sessions per month with AI notes and summaries included. Pro unlocks unlimited sessions, CBT exams, and the 24/7 AI Tutor.' },
-  { q: 'Does it work offline?', a: 'Your generated notes and flashcards are cached on mobile so you can study on the go without internet. AI Tutor and new generations require an active connection.' },
-  { q: 'How accurate is the mock exam feature?', a: 'Our AI is trained on actual university past questions across hundreds of institutions, delivering over 99% topical relevance to your specific curriculum.' },
-  { q: 'What file formats does Luter support?', a: 'Luter processes PDFs, PowerPoint files, Word docs, YouTube links, web article URLs, audio recordings (MP3/M4A), and even photos of handwritten notes.' },
-  { q: 'Is my data private?', a: 'Absolutely. All uploaded content is encrypted in transit and at rest. We never sell your data or use it to train our models without explicit consent.' },
+  { q: 'Is Luter free?', a: 'Yes, Luter has a generous free tier with 5 study sessions per month. Pro unlocks unlimited usage.' },
+  { q: 'What file formats are supported?', a: 'PDFs, PowerPoint, Word docs, YouTube links, audio files, and more.' },
 ];
 
 export default function LandingPage() {
@@ -365,7 +322,6 @@ export default function LandingPage() {
 
   /* mobile nav */
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isSemester, setIsSemester] = useState(true);
 
   // Placeholder for RevealDiv - assuming it's defined elsewhere or will be added.
   // For the purpose of this change, we'll just use a simple div.
@@ -1052,230 +1008,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══════════════ UPLOAD ANYTHING — FORMATS ═══════════════ */}
-      <section style={{ padding: '96px 0', background: '#F8F8F8' }} aria-labelledby="supported-formats-heading">
-        <div className="container-full" style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
 
-          {/* Header */}
-          <h2 id="supported-formats-heading" className="reveal-child" style={{ fontSize:'clamp(1.8rem, 3.5vw, 3rem)', textAlign:'center', maxWidth:650, margin:'0 auto 16px', color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'120%', letterSpacing: '-0.02em' }}>
-            Upload anything. <span style={{ color:'#4B0082', fontStyle:'italic' }}>Learn everything</span>
-          </h2>
-          <p className="reveal-child" style={{ fontSize:18, color:'#475569', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', textAlign:'center', maxWidth:640, marginBottom:56 }}>
-            Record live lectures or upload any file. Luter instantly turns them into notes, summaries, flashcards, quizzes, and a 24/7 AI tutor.
-          </p>
-
-          {/* Three-column layout */}
-          <div className="reveal-child" style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', gap:36, alignItems:'center', width:'100%', maxWidth:960 }}>
-
-            {/* Left icon grid */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, justifyItems:'end' }}>
-              {[
-                { emoji:'📄', label:'PDF', color:'#ede9fe', accent:'#7c3aed' },
-                { emoji:'🎙️', label:'Record', color:'#fce7f3', accent:'#db2777' },
-                { emoji:'🎧', label:'Audio', color:'#e0f2fe', accent:'#0284c7' },
-                { emoji:'🔗', label:'Links', color:'#fef3c7', accent:'#d97706' },
-              ].map(({ emoji, label, color, accent }, i) => (
-                <div key={label} style={{
-                  width: 88, height: 88,
-                  background: 'white',
-                  borderRadius: 16,
-                  border: '1px solid #e8e8ec',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-                  marginTop: i % 2 === 0 ? 24 : 0,
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  cursor: 'default',
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.transform='translateY(-4px)'; e.currentTarget.style.boxShadow='0 12px 28px rgba(0,0,0,0.1)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 4px 16px rgba(0,0,0,0.06)'; }}
-                >
-                  <div style={{ width:44, height:44, background:color, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>
-                    {emoji}
-                  </div>
-                  <span style={{ fontSize:11, fontWeight:700, color:'#aaa' }}>{label}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Center card */}
-            <article style={{ display:'flex', flexDirection:'column', alignItems:'center', background:'white', borderRadius:20, padding:'32px 24px', border:'1px solid #e8e8ec', maxWidth:240, width:'100%', boxShadow:'0 8px 32px rgba(0,0,0,0.08)' }}>
-              {/* Logo icon */}
-              <div style={{ width:80, height:80, background:'linear-gradient(135deg,#F8FAFC,#E2E8F0)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20, boxShadow:'0 8px 24px rgba(15,23,42,0.08)' }}>
-                <BookOpen style={{ width:38, height:38, color:'#111' }} weight="bold" />
-              </div>
-              <h4 style={{ color:'#111', textAlign:'center', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:18, padding:'0 8px', marginBottom:10 }}>
-                Any file. Any format. Any subject.
-              </h4>
-              <p style={{ color:'#475569', textAlign:'center', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', fontSize:14, padding:'0 8px', marginBottom:20 }}>
-                PDFs, slides, YouTube videos, audio, web links, and more
-              </p>
-              <PremiumButton size="lg" style={{ width: '100%' }}>
-                Start Now
-              </PremiumButton>
-            </article>
-
-            {/* Right icon grid */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, justifyItems:'start' }}>
-              {[
-                { emoji:'📝', label:'Docs', color:'#dcfce7', accent:'#16a34a' },
-                { emoji:'📚', label:'Books', color:'#fce7f3', accent:'#db2777' },
-                { emoji:'📊', label:'Slides', color:'#fff7ed', accent:'#ea580c' },
-                { emoji:'▶️', label:'YouTube', color:'#fee2e2', accent:'#dc2626' },
-              ].map(({ emoji, label, color, accent }, i) => (
-                <div key={label} style={{
-                  width: 88, height: 88,
-                  background: 'white',
-                  borderRadius: 16,
-                  border: '1px solid #e8e8ec',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-                  marginTop: i % 2 === 0 ? 24 : 0,
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  cursor: 'default',
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.transform='translateY(-4px)'; e.currentTarget.style.boxShadow='0 12px 28px rgba(0,0,0,0.1)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 4px 16px rgba(0,0,0,0.06)'; }}
-                >
-                  <div style={{ width:44, height:44, background:color, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>
-                    {emoji}
-                  </div>
-                  <span style={{ fontSize:11, fontWeight:700, color:'#aaa' }}>{label}</span>
-                </div>
-              ))}
-            </div>
-
-          </div>
-        </div>
-      </section>
 
       
-
-
-      {/* ═══════════════ COMPARISON ═══════════════ */}
-      <section style={{ padding: '80px 0', background: '#fafafa' }}>
-        <div className="container-custom">
-          <h2 className="reveal-child" style={{ textAlign:'center', fontSize:'clamp(1.8rem,3.5vw,3rem)', marginBottom:48, fontFamily: 'var(--font-outfit)', fontWeight: 800, color: '#111', letterSpacing: '-0.02em' }}>
-            The smarter way to study.
-          </h2>
-          <div className="reveal-child" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', border:'1px solid var(--border)', borderRadius:28, overflow:'hidden', boxShadow:'var(--card-shadow)' }}>
-            {/* Old way */}
-            <div style={{ padding:'48px 40px', background:'white' }}>
-              <h4 style={{ fontSize:13, fontWeight:800, letterSpacing:'0.1em', textTransform:'uppercase', color:'#94A3B8', marginBottom:32, fontFamily: 'var(--font-outfit)' }}>The Old Way</h4>
-              {['Scanning 50 slides one by one','Zero practice questions','Notes scattered everywhere','Zoning out during lectures','Cramming the night before'].map((item) => (
-                <div key={item} className="comparison-item-old" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, color: '#64748B', fontFamily: 'var(--font-varela)', fontWeight: 500 }}>
-                  <div style={{ width:18, height:18, borderRadius:'50%', background:'#f3f4f6', border:'1px solid #e5e7eb', flexShrink:0 }} />
-                  {item}
-                </div>
-              ))}
-            </div>
-            {/* Luter way */}
-            <div style={{ padding:'48px 40px', background:'#4B0082' }}>
-              <h4 style={{ fontSize:13, fontWeight:800, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:32, fontFamily: 'var(--font-outfit)' }}>The Luter Way</h4>
-              {['Instant AI-powered summaries','Auto-generated CBT exams','One unified study workspace','Focused, active learning sessions','Science-based retention system'].map((item) => (
-                <div key={item} className="comparison-item-new" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, color: 'white', fontFamily: 'var(--font-varela)', fontWeight: 600 }}>
-                  <div style={{ width:20, height:20, borderRadius:'50%', background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <Check style={{ width:12, height:12, color:'white' }} weight="light" />
-                  </div>
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      
-      {/* ═══════════════ PRICING TEASER ═══════════════ */}
-      <section id="pricing" style={{ padding:'80px 0', background:'white' }}>
-        <div style={{ position: 'relative', zIndex: 1, paddingBottom: 60 }}>
-          <div className="container-custom" style={{ textAlign: 'center', marginBottom: 60 }}>
-            <RevealDiv>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800, color: '#4B0082', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 20, background: 'rgba(75, 0, 130, 0.07)', padding: '8px 20px', borderRadius: 99, border: '1px solid rgba(75, 0, 130, 0.12)', fontFamily: 'var(--font-outfit)' }}>
-                <Lightning size={14} weight="light" color="#111" /> Upgrade anytime
-              </div>
-            </RevealDiv>
-            <RevealDiv delay={0.1}>
-              <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 4.5rem)', fontWeight: 800, fontFamily: 'var(--font-outfit)', color: '#111', marginBottom: 20, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
-                Simple pricing for{' '}
-                <span style={{ color:'#4B0082', fontStyle:'italic' }}>students</span>
-              </h2>
-            </RevealDiv>
-            <RevealDiv delay={0.15}>
-              <p style={{ fontSize: 18, color: '#475569', maxWidth: 560, margin: '0 auto 36px', fontWeight: 400, lineHeight: 1.7, fontFamily: 'var(--font-varela)' }}>
-                Start free. Upgrade when you're ready. No tricks, no hidden fees.
-              </p>
-            </RevealDiv>
-            <RevealDiv delay={0.2}>
-              <div style={{ display: 'inline-flex', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 99, padding: 6, gap: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <button onClick={() => setIsSemester(false)} style={{ padding: '10px 32px', borderRadius: 99, background: !isSemester ? '#4B0082' : 'transparent', color: !isSemester ? 'white' : '#64748B', fontWeight: 800, fontSize: 14, border: 'none', cursor: 'pointer', transition: 'all 0.25s', fontFamily: 'var(--font-outfit)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Monthly</button>
-                <button onClick={() => setIsSemester(true)} style={{ padding: '10px 32px', borderRadius: 99, background: isSemester ? '#4B0082' : 'transparent', color: isSemester ? 'white' : '#64748B', fontWeight: 800, fontSize: 14, border: 'none', cursor: 'pointer', transition: 'all 0.25s', display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-outfit)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Per Semester <span style={{ fontSize: 10, background: '#D1FAE5', color: '#059669', padding: '2px 8px', borderRadius: 99, fontWeight: 800 }}>Best Value</span>
-                </button>
-              </div>
-            </RevealDiv>
-          </div>
-
-          <div className="container-full">
-            <RevealDiv>
-              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 0, maxWidth: 1050, margin: '0 auto' }}>
-                {plans.map((plan) => (
-                  <div key={plan.name} style={{
-                    flex: '1 1 300px', maxWidth: 360,
-                    background: plan.bg, color: plan.color,
-                    borderRadius: 24, padding: plan.isPopular ? '44px 32px' : '36px 28px',
-                    border: plan.isPopular ? 'none' : `1px solid ${plan.border}`,
-                    boxShadow: plan.isPopular ? '0 32px 64px rgba(113,128,254,0.25)' : '0 4px 20px rgba(0,0,0,0.03)',
-                    transform: plan.isPopular ? 'scaleY(1.04)' : 'scaleY(1)',
-                    position: 'relative', zIndex: plan.isPopular ? 10 : 1,
-                    display: 'flex', flexDirection: 'column',
-                    margin: plan.isPopular ? '-8px 0' : '8px 0'
-                  }}>
-                    {plan.isPopular && (
-                      <div style={{ display: 'inline-flex', alignSelf: 'center', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.2)', color: 'white', padding: '6px 16px', borderRadius: 99, fontSize: 11, fontWeight: 800, marginBottom: 20, border: '1px solid rgba(255,255,255,0.3)', fontFamily: 'var(--font-outfit)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        <Lightning size={12} weight="light" color="white" /> MOST POPULAR
-                      </div>
-                    )}
-                    <div style={{ marginBottom: 24 }}>
-                      <h3 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 4px 0' }}>{plan.name}</h3>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: plan.isPopular ? 'rgba(255,255,255,0.8)' : '#888' }}>{plan.trial}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 28 }}>
-                      <span style={{ fontSize: 48, fontWeight: 900, lineHeight: 1 }}>{plan.priceMonthly === 0 ? '₦0' : `₦${isSemester ? plan.priceSemester.toLocaleString() : plan.priceMonthly.toLocaleString()}`}</span>
-                      {plan.priceMonthly > 0 && <span style={{ fontSize: 14, fontWeight: 600, color: plan.isPopular ? 'rgba(255,255,255,0.7)' : '#aaa', marginBottom: 8 }}>/{isSemester ? 'semester' : 'mo'}</span>}
-                    </div>
-                    <PremiumButton 
-                      to="/signup" 
-                      size="lg"
-                      variant={plan.isPopular ? 'primary' : 'outline'}
-                      style={{ width: '100%', marginBottom: 32 }}
-                    >
-                      {plan.buttonText}
-                    </PremiumButton>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
-                      {plan.features.map(f => (
-                        <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                          <div style={{ width: 18, height: 18, borderRadius: '50%', background: plan.isPopular ? 'rgba(255,255,255,0.2)' : 'rgba(75, 0, 130, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                            <Check size={10} color={plan.isPopular ? 'white' : '#111'} weight="light" />
-                          </div>
-                          <span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.5, color: plan.isPopular ? 'white' : '#475569', fontFamily: 'var(--font-varela)' }}>{f}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </RevealDiv>
-          </div>
-        </div>
-      </section>
 
       <SharedFAQ items={homeFaqs} />
 
