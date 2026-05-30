@@ -42,16 +42,20 @@ if (typeof window !== 'undefined') {
   observer.observe(document.documentElement, { childList: true, subtree: true });
 }
 
+import { ThemeProvider } from './contexts/ThemeContext.jsx'
+
 // Safe Boot Loader: Ensures PDF.js and crucial globals are ready before React mounts
 function mountApp() {
   createRoot(document.getElementById('root')).render(
     <StrictMode>
       <AppErrorBoundary>
-        <GoogleOAuthProvider clientId={clientId}>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </GoogleOAuthProvider>
+        <ThemeProvider>
+          <GoogleOAuthProvider clientId={clientId}>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </GoogleOAuthProvider>
+        </ThemeProvider>
       </AppErrorBoundary>
     </StrictMode>,
   )

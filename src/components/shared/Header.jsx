@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import { SidebarSimple } from '@phosphor-icons/react'
+import ThemeToggle from './ThemeToggle'
 
 
 const Header = ({ 
@@ -330,6 +331,9 @@ const Header = ({
             </div>
           </button>
 
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
           {/* Profile Avatar - Links to profile page */}
           <button
             onClick={() => navigate('/dashboard/profile')}
@@ -354,11 +358,11 @@ const Header = ({
               color: 'white',
               fontSize: 12,
               fontWeight: 700,
-              border: '2px solid #e2e8f0',
+              border: '2px solid var(--border)',
               transition: 'border-color 0.2s'
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#ff9b38' }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e2e8f0' }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--tt-brand-color-500)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
             >
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />

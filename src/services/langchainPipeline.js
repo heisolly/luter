@@ -649,6 +649,7 @@ export function pollMaterialUntilReady(
  */
 export async function reprocessMaterial(material) {
   if (!material?.source_url) return { success: false, error: 'No source URL' }
+  if (material?.type === 'youtube') return { success: false, error: 'YouTube videos have no downloadable content' }
   
   try {
     console.log(`[LangChain] Triggering emergency re-processing for: ${material.title}`)

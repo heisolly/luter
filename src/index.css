@@ -37,20 +37,29 @@
   --tt-radius-lg: 0.75rem;
   --tt-radius-xl: 1rem;
 
-  --primary: var(--tt-brand-color-600);
-  --primary-light: var(--tt-brand-color-400);
-  --primary-dark: var(--tt-brand-color-700);
-  --primary-glow: rgba(122, 82, 255, 0.2);
-  --primary-bg: var(--tt-brand-color-50);
-  --accent-gold: #fbbf24;
+  --primary: #98FF98;
+  --primary-light: #C4B5FD;
+  --primary-dark: #333333;
+  --primary-glow: rgba(152, 255, 152, 0.2);
+  --primary-bg: rgba(152, 255, 152, 0.1);
+  --accent-gold: #FFF917;
   --secondary: #666666;
-  --background: #ffffff;
-  --foreground: #0a0a0a;
+  --background: #F9FAFB;
+  --foreground: #333333;
+  --dark: #333333;
   --border: var(--tt-gray-light-a-200);
   --border-light: var(--tt-gray-light-a-100);
   
   --card-shadow: 0px 16px 48px 0px rgba(17, 24, 39, .04), 0px 12px 24px 0px rgba(17, 24, 39, .04);
   --card-shadow-hover: 0px 20px 60px -12px rgba(17, 24, 39, 0.1), 0 4px 16px rgba(17, 24, 39, 0.08);
+
+  /* Letter/Quote Section Styling */
+  --card-bg-light: #ffffff;
+  --card-shadow-letter: 0 25px 50px -12px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.02);
+  --card-border-letter: none;
+  --card-text-letter: #334155;
+  --card-quote-mark: #F8FAFC;
+  --card-gradient-fade: linear-gradient(to top, #ffffff 0%, rgba(255,255,255,0) 100%);
   
   --font-outfit: 'Outfit', sans-serif;
   --font-varela: 'Varela Round', sans-serif;
@@ -171,6 +180,131 @@
   --tt-brand-color-50: var(--color-purple-50);
 }
 
+.dark {
+  --background: #1a1a1a;
+  --foreground: #ffffff;
+  --border: #404040;
+  --border-light: #2a2a2a;
+  --card-shadow: 0px 16px 48px 0px rgba(0, 0, 0, .6), 0px 12px 24px 0px rgba(0, 0, 0, .5);
+  --card-shadow-hover: 0px 20px 60px -12px rgba(0, 0, 0, 0.8), 0 4px 16px rgba(0, 0, 0, 0.6);
+  --primary-bg: rgba(152, 255, 152, 0.2);
+  --tt-gray-light-a-600: rgba(200, 200, 200, 0.9);
+
+  --ob-card-bg: #222222;
+  --ob-input-bg: #1A1A1A;
+  --ob-text-main: #F9FAFB;
+  --ob-text-muted: #9CA3AF;
+
+  /* Enhanced dark mode card styling for letter/quote section */
+  --card-bg-dark: #242424;
+  --card-bg-elevated: #2a2a2a;
+  --card-text: #f5f5f5;
+  --card-text-muted: #b0b0b0;
+  --card-border: #3a3a3a;
+  --card-shadow-dark: 0px 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+
+  /* Dark mode letter/quote section variables */
+  --card-bg-light: #242424;
+  --card-shadow-letter: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --card-border-letter: 1px solid #3a3a3a;
+  --card-text-letter: #f5f5f5;
+  --card-quote-mark: #2a2a2a;
+  --card-gradient-fade: linear-gradient(to top, #242424 0%, rgba(36, 36, 36, 0) 100%);
+}
+
+/* Dark mode text fixes for better contrast */
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: #ffffff;
+}
+
+.dark p, .dark span, .dark div {
+  color: #ffffff;
+}
+
+.dark a {
+  color: #a78bfa;
+}
+
+.dark a:hover {
+  color: #c4b5fd;
+}
+
+.dark input, .dark textarea, .dark select {
+  background-color: #2a2a2a !important;
+  color: #ffffff !important;
+  border-color: #404040 !important;
+}
+
+.dark input::placeholder {
+  color: #888888 !important;
+}
+
+.dark button {
+  color: inherit;
+}
+
+/* Dark mode navbar fix */
+.dark nav {
+  background-color: rgba(26, 26, 26, 0.95) !important;
+}
+
+.dark .navbar {
+  background: transparent !important;
+}
+
+/* Dark mode card improvements */
+.dark .card {
+  background: #2a2a2a;
+  border-color: #404040;
+}
+
+.dark .floating-image {
+  background: #2a2a2a;
+  border-color: #404040;
+}
+
+/* Fix university logo text visibility */
+.dark span {
+  color: #ffffff;
+}
+
+/* Fix badge/tag colors in dark mode */
+.dark [style*="color: '#2E1065'"],
+.dark [style*="color: '#4B0082'"],
+.dark [style*="color: #2E1065"],
+.dark [style*="color: #4B0082"] {
+  color: #a78bfa !important;
+}
+
+/* Enhanced Letter/Quote Section Dark Mode Styling */
+.dark section > div[style*="background: '#ffffff'"] {
+  background: var(--card-bg-dark) !important;
+  color: var(--card-text) !important;
+  box-shadow: var(--card-shadow-dark) !important;
+  border: 1px solid var(--card-border) !important;
+}
+
+.dark section > div > div[style*="fontFamily: 'Caveat'"] {
+  background: var(--card-bg-dark) !important;
+  color: var(--card-text) !important;
+  box-shadow: var(--card-shadow-dark) !important;
+  border: 1px solid var(--card-border) !important;
+}
+
+/* Enhanced feature cards in dark mode */
+.dark article[style*="background: 'var(--background)'"] {
+  background: var(--card-bg-elevated) !important;
+  border-color: var(--card-border) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Improved gradient backgrounds for dark mode sections */
+.dark {
+  --gradient-dark-1: radial-gradient(ellipse 80% 60% at 0% 50%, rgba(151, 24, 251, 0.15) 0%, transparent 60%);
+  --gradient-dark-2: radial-gradient(ellipse 80% 60% at 100% 50%, rgba(113, 128, 254, 0.15) 0%, transparent 60%);
+  --gradient-dark-3: radial-gradient(ellipse 70% 70% at 50% 0%, rgba(196, 181, 253, 0.12) 0%, transparent 55%);
+}
+
 /* ===========================
    RESET & BASE
    =========================== */
@@ -197,6 +331,7 @@ body {
   color: var(--foreground);
   font-family: var(--font-outfit);
   line-height: 1.6;
+  transition: background-color var(--transition-base), color var(--transition-base);
   overflow-x: hidden;
 }
 

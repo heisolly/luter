@@ -8,6 +8,7 @@ import PathCalculator from './components/PathCalculator'
 import SignIn from './components/SignIn'
 import SignUp from './components/SignUp'
 import Onboarding from './components/Onboarding'
+import WallOfLove from './pages/WallOfLove'
 import Dashboard from './components/dashboard/Dashboard'
 import DashboardHome from './components/dashboard/DashboardHome'
 import CoursesPage from './components/dashboard/CoursesPage'
@@ -186,6 +187,7 @@ export default function App() {
           <Route path="/features" element={<Features />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="/about" element={<About />} />
+          <Route path="/wall-of-love" element={<WallOfLove />} />
           <Route path="/path-calculator" element={<PathCalculator />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />

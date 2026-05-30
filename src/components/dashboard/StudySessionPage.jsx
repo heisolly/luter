@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
-import { 
+import {
   Folder, Plus, Trash2, Play, ArrowLeft, FileText, Video, Music, Image as ImageIcon, Search,
   Upload, Clock, Edit2, Share2, Users
 } from 'lucide-react'

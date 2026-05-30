@@ -367,19 +367,11 @@ export async function addYoutubeMaterial({ url, title, courseId, userId }) {
       type: 'youtube',
       source_url: url,
       owner_role: 'user',
-      processing_status: 'pending',
+      processing_status: 'ready',
     })
     .select()
     .single()
   if (error) throw error
-
-  // YouTube: LangChain transcript ingestion
-  ingestMaterial({
-    file: null,
-    type: 'youtube',
-    url: url,
-    metadata: { materialId: data.id, courseId: courseId || null, userId, title: title || url }
-  }).catch(err => console.error('[LangChain] YouTube ingestion error:', err))
 
   return data
 }

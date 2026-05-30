@@ -30,7 +30,9 @@ import {
   CopySimple,
   ArrowUpRight,
   Microphone,
+  MicrophoneSlash,
   SpeakerHigh,
+  SpeakerSlash,
   PaperPlaneRight,
   CircleNotch,
   SidebarSimple,
@@ -46,7 +48,6 @@ import {
   Crown,
   GridFour,
   PenNib,
-  Layout,
   ChatCircle,
   ChatCircleText,
   EyeSlash,
@@ -133,6 +134,7 @@ import {
   useBroadcastEvent
 } from '../../liveblocks.config'
 import { Thread } from '@liveblocks/react-ui'
+import { useAudioSession } from '../../hooks/useAudioSession'
 
 const SUGGESTED_QUESTIONS = [
   { id: 'summary', text: "Summarize the core concepts" },
@@ -457,6 +459,11 @@ function WorkstationContent() {
   const [showEquationModal, setShowEquationModal] = useState(false)
   const [equationInput, setEquationInput] = useState('\\frac{a}{b}')
   const [pendingEquation, setPendingEquation] = useState('')
+
+  const audioRoomId = activeSessionId || sessionIdParam || groupIdParam || shareCodeParam || null
+  // Hidden audio session hook - auto-connects for collaborative workspaces.
+  const audioSession = useAudioSession(audioRoomId, user?.full_name || 'Guest')
+
   const recognitionRef = useRef(null)
   const voiceFinalTranscriptRef = useRef('')
 
@@ -1638,7 +1645,7 @@ function WorkstationContent() {
     { id: 'chat', label: 'Chat', icon: ChatCircle },
     { id: 'write', label: 'Notes', icon: PencilLine },
     { id: 'groupchat', label: 'Group', icon: ChatsCircleIcon },
-    { id: 'group', label: 'Hub', icon: Layout },
+
   ].filter((tab) => {
     if (!isCollaborativeSession) return ['chat', 'write'].includes(tab.id)
     return true
@@ -1954,6 +1961,56 @@ function WorkstationContent() {
 
             <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '10px', alignItems: 'center' }}>
               {isCollaborativeSession && <PresenceBar />}
+              {isCollaborativeSession && audioRoomId && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={audioSession.toggleMicrophone}
+                    disabled={!audioSession.isJoined}
+                    title={audioSession.isMicEnabled ? 'Mute microphone' : 'Unmute microphone'}
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 9999,
+                      border: `1px solid ${audioSession.isMicEnabled ? 'rgba(109, 40, 217, 0.14)' : 'rgba(239, 68, 68, 0.22)'}`,
+                      background: audioSession.isMicEnabled ? 'rgba(255,255,255,0.72)' : '#FEF2F2',
+                      color: audioSession.isMicEnabled ? '#6D28D9' : '#EF4444',
+                      cursor: audioSession.isJoined ? 'pointer' : 'not-allowed',
+                      opacity: audioSession.isJoined ? 1 : 0.5,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                      transition: 'all 160ms ease',
+                    }}
+                  >
+                    {audioSession.isMicEnabled ? <Microphone size={17} weight="duotone" /> : <MicrophoneSlash size={17} weight="duotone" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={audioSession.toggleSpeaker}
+                    disabled={!audioSession.isJoined}
+                    title={audioSession.isSpeakerEnabled ? 'Mute workspace audio' : 'Unmute workspace audio'}
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 9999,
+                      border: `1px solid ${audioSession.isSpeakerEnabled ? 'rgba(109, 40, 217, 0.14)' : 'rgba(239, 68, 68, 0.22)'}`,
+                      background: audioSession.isSpeakerEnabled ? 'rgba(255,255,255,0.72)' : '#FEF2F2',
+                      color: audioSession.isSpeakerEnabled ? '#6D28D9' : '#EF4444',
+                      cursor: audioSession.isJoined ? 'pointer' : 'not-allowed',
+                      opacity: audioSession.isJoined ? 1 : 0.5,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                      transition: 'all 160ms ease',
+                    }}
+                  >
+                    {audioSession.isSpeakerEnabled ? <SpeakerHigh size={17} weight="duotone" /> : <SpeakerSlash size={17} weight="duotone" />}
+                  </button>
+                </div>
+              )}
 
               <div
                 style={{
@@ -2092,7 +2149,6 @@ function WorkstationContent() {
         </div>
       </header>
       )}
-
 
       <main className="ws-main-layout" style={{
         display: 'flex',
@@ -2838,27 +2894,6 @@ function WorkstationContent() {
                     </div>
                   </div>
                 </div>
-              ) : activeSideTab === 'group' ? (
-                <GroupSessionPanel
-                  user={user}
-                  profile={profile}
-                  currentUserRole={currentUserRole}
-                  others={others}
-                  self={self}
-                  groupMessages={groupMessages}
-                  groupInput={groupInput}
-                  setGroupInput={setGroupInput}
-                  setTyping={setTyping}
-                  sendGroupMessage={sendGroupMessageWithAI}
-                  syncEnabled={!!(syncState?.isSynced || syncMode)}
-                  onToggleSync={() => setSyncState(!(syncState?.isSynced || syncMode), viewportData?.currentPage || 1)}
-                  onPushQuiz={() => {
-                    pushQuizToGroup()
-                    broadcast({ type: 'QUIZ_PUSHED', question: 'Quick check from this material', options: ['A', 'B', 'C', 'D'] })
-                  }}
-                  raisedHands={raisedHands}
-                  onToggleHand={() => setRaisedHand(!raisedHands[user?.id])}
-                />
               ) : false ? (
                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white' }}>
                    <div style={{ padding: '16px 20px', borderBottom: '1px solid #EBEBEB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
@@ -3259,7 +3294,7 @@ function WorkstationContent() {
               <span>Cards</span>
             </button>
             <button
-              className={`mobile-nav-item ${showMobileTools || activeTab === 'summary' || activeTab === 'quiz' || activeTab === 'board' || activeSideTab === 'write' || activeSideTab === 'groupchat' || activeSideTab === 'group' ? 'mobile-nav-item--active' : ''}`}
+              className={`mobile-nav-item ${showMobileTools || activeTab === 'summary' || activeTab === 'quiz' || activeTab === 'board' || activeSideTab === 'write' || activeSideTab === 'groupchat' ? 'mobile-nav-item--active' : ''}`}
               onClick={() => setShowMobileTools(!showMobileTools)}
             >
               <GridFour size={24} weight={showMobileTools ? 'fill' : 'regular'} />
@@ -3298,7 +3333,6 @@ function WorkstationContent() {
                       { id: 'board', icon: PencilLine, label: 'Board', isMain: true },
                       { id: 'write', icon: PenNib, label: 'Notes', isSide: true },
                       { id: 'groupchat', icon: Users, label: 'Group', isSide: true },
-                      { id: 'group', icon: Layout, label: 'Hub', isSide: true }
                     ].map(tool => {
                       const isActive = tool.isMain ? activeTab === tool.id : activeSideTab === tool.id;
                       return (
@@ -3886,146 +3920,6 @@ function nameForUser(user, profile) {
 function colorFromText(text = 'user') {
   const colors = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#0891B2']
   return colors[String(text).split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % colors.length]
-}
-
-function GroupSessionPanel({
-  user,
-  profile,
-  currentUserRole,
-  others,
-  self,
-  groupMessages,
-  groupInput,
-  setGroupInput,
-  setTyping,
-  sendGroupMessage,
-  syncEnabled,
-  onToggleSync,
-  onPushQuiz,
-  raisedHands,
-  onToggleHand,
-}) {
-  const selfName = nameForUser(user, profile)
-  const members = [
-    {
-      id: user?.id || 'self',
-      name: selfName,
-      color: colorFromText(user?.id || selfName),
-      status: 'active',
-      currentSlide: self?.presence?.currentPage || 1,
-      role: currentUserRole,
-    },
-    ...others.map((other) => ({
-      id: other.presence?.user?.id || String(other.connectionId),
-      name: other.presence?.user?.name || other.info?.name || 'Peer',
-      color: other.presence?.user?.color || colorFromText(String(other.connectionId)),
-      status: other.presence?.status || 'active',
-      currentSlide: other.presence?.currentPage || other.presence?.currentSlide || 1,
-      role: other.presence?.user?.role || 'student',
-    })),
-  ]
-  const handCount = Object.keys(raisedHands || {}).length
-
-  return (
-    <div className="ws-group-panel">
-      <section className="ws-group-members">
-        <div className="ws-group-section-header">
-          <span>In this session</span>
-          <span>{members.length}</span>
-        </div>
-        <div className="ws-group-member-list">
-          {members.map((member) => (
-            <div key={member.id} className="ws-group-member">
-              <div className="ws-member-avatar" style={{ background: member.color }}>
-                {member.name.charAt(0).toUpperCase()}
-                <i style={{ background: member.status === 'idle' ? '#D1D5DB' : '#10B981' }} />
-              </div>
-              <div className="ws-member-info">
-                <div className="ws-member-name">{member.name}</div>
-                <div className="ws-member-slide">On slide {member.currentSlide} of 60</div>
-              </div>
-              {member.role === 'teacher' && <span className="ws-teacher-badge">Teacher</span>}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {currentUserRole === 'teacher' && (
-        <section className="ws-group-controls">
-          <h4>Controls</h4>
-          <div className="ws-group-control-grid">
-            <button type="button" onClick={onToggleSync} style={{ background: syncEnabled ? '#7C3AED' : '#F5F3FF', border: '1px solid #DDD6FE', color: syncEnabled ? 'white' : '#6D28D9' }}>
-              {syncEnabled ? 'Synced' : 'Sync Slides'}
-            </button>
-            <button type="button" onClick={onPushQuiz} style={{ background: '#F0FDF4', border: '1px solid #A7F3D0', color: '#059669' }}>Push Quiz</button>
-            <button type="button" onClick={onToggleHand} style={{ background: '#FFFBEB', border: '1px solid #FDE68A', color: '#D97706' }}>{handCount ? `Hands ${handCount}` : 'Raise Hands'}</button>
-            <button type="button" style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#EF4444' }}>End Session</button>
-          </div>
-        </section>
-      )}
-
-      <section className="ws-group-chat">
-        <div className="ws-group-messages">
-          {groupMessages.map((message) => {
-            if (message.isTyping) {
-              return (
-                <div key={message.id} className="ws-group-message ws-ai-message">
-                  <div className="ws-chat-avatar" style={{ background: '#7C3AED' }}>AI</div>
-                  <div className="ws-message-content">
-                    <div className="ws-message-header">Luter AI <time>typing</time></div>
-                    <div className="ws-message-bubble"><Typing dots={3} /></div>
-                  </div>
-                </div>
-              )
-            }
-            const isOwn = message.userId === user?.id
-            const color = message.userColor || colorFromText(message.userId)
-            return (
-              <div key={message.id} className={`ws-group-message ${isOwn ? 'is-own' : ''} ${message.isAI ? 'ws-ai-message' : ''}`}>
-                <div className="ws-chat-avatar" style={{ background: color }}>{message.isAI ? 'AI' : (message.userName?.[0]?.toUpperCase() || 'P')}</div>
-                <div className="ws-message-content">
-                  <div className="ws-message-header">
-                    {isOwn ? 'You' : message.userName}
-                    {message.isAI && <span className="ws-teacher-badge" style={{ marginLeft: 6 }}>AI</span>}
-                    <time>{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
-                  </div>
-                  <div className="ws-message-bubble">{message.text}</div>
-                </div>
-              </div>
-            )
-          })}
-          {others.some((other) => other.presence?.isTyping) && (
-            <div className="ws-group-message">
-              <div className="ws-chat-avatar" style={{ background: '#9CA3AF' }}>...</div>
-              <div className="ws-message-bubble"><Typing dots={3} /></div>
-            </div>
-          )}
-        </div>
-        <div className="ws-group-input">
-          <input
-            type="text"
-            placeholder="Message the group..."
-            value={groupInput}
-            onChange={(event) => { setGroupInput(event.target.value); setTyping(true) }}
-            onBlur={() => setTyping(false)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && groupInput.trim()) sendGroupMessage(groupInput)
-            }}
-          />
-          <button type="button" disabled={!groupInput.trim()} onClick={() => sendGroupMessage(groupInput)}>
-            <PaperPlaneIcon size={14} weight="fill" />
-          </button>
-        </div>
-      </section>
-
-      {/* Share Session Modal */}
-      <ShareSessionModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        sessionId={activeSessionId}
-      />
-    </div>
-  )
 }
 
 export default function WorkstationPage() {

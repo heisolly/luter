@@ -148,7 +148,12 @@ export class MaterialAnalysisService {
       
       let content = material.extracted_text || ''
       
-      // EMERGENCY FIX: If content is missing, try to extract it now!
+      // Skip extraction for YouTube — no downloadable text content
+      if (material.type === 'youtube') {
+        return this.createFallbackAnalysis(material, userId)
+      }
+      
+      // If content is missing, try to extract it now
       if (!content || content.length < 100) {
         console.warn('[AnalysisService] Content missing or too short, attempting emergency extraction...')
         try {
@@ -164,7 +169,7 @@ export class MaterialAnalysisService {
               .select('extracted_text')
               .eq('id', material.id)
               .single()
-              
+               
             content = updatedMaterial?.extracted_text || ''
           }
         } catch (extractionError) {

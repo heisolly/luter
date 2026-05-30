@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import LuterLogo from './shared/LuterLogo';
 import MagicRings from './MagicRings';
-import { SharedFooter, SharedFAQ, SharedNavbar, PremiumButton } from './PageShared';
+import { SharedFooter, SharedFAQ, StyledFAQ, SharedNavbar, PremiumButton } from './PageShared';
 import { getAppUrl } from '../utils/urlUtils';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, useScroll } from 'framer-motion';
+import LogoLoop from './LogoLoop';
+import WallOfLove from '../pages/WallOfLove';
 import {
   Calculator,
   Plus,
@@ -29,7 +31,12 @@ import {
   Headphones,
   Folder,
   ArrowsClockwise as RefreshCw,
-  Question as MessageCircleQuestion
+  Question as MessageCircleQuestion,
+  CheckCircle,
+  Cards,
+  Brain,
+  MonitorPlay,
+  Lightning
 } from '@phosphor-icons/react';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -132,16 +139,87 @@ const FloatingImage = ({ src, alt, style, delay, opacity, rotate }) => {
   );
 };
 
-/* ── universities for scrolling strip ── */
+const UniversityLogoItem = ({ name, domain }) => {
+  const [hovered, setHovered] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  
+  const logoUrl = `https://logo.clearbit.com/${domain}`;
+  const fallbackUrl = `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${domain}&size=128`;
 
-/* ── universities for scrolling strip ── */
+  return (
+    <div 
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 12, 
+        padding: '10px 20px',
+        borderRadius: '16px',
+        background: hovered ? 'rgba(196, 181, 253, 0.08)' : 'transparent',
+        border: hovered ? '1px solid rgba(167, 139, 250, 0.15)' : '1px solid transparent',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        cursor: 'default'
+      }}
+    >
+      <div style={{
+        width: 36,
+        height: 36,
+        borderRadius: 8,
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--background)',
+        boxShadow: hovered ? '0 4px 8px rgba(0,0,0,0.05)' : 'none',
+        transition: 'all 0.3s ease',
+        border: '1px solid #F1F5F9'
+      }}>
+        <img 
+          src={imgError ? fallbackUrl : logoUrl} 
+          alt={`${name} logo`} 
+          onError={() => setImgError(true)}
+          style={{ 
+            width: '100%', 
+            height: '100%', 
+            objectFit: 'contain',
+            filter: hovered ? 'grayscale(0%)' : 'grayscale(100%) opacity(70%)',
+            transition: 'all 0.3s ease',
+            padding: 2
+          }} 
+        />
+      </div>
+      <span style={{ 
+        fontSize: '17px', 
+        fontWeight: 700, 
+        color: hovered ? '#2E1065' : '#64748B', 
+        fontFamily: 'var(--font-outfit)',
+        transition: 'color 0.3s ease',
+        letterSpacing: '-0.01em'
+      }}>
+        {name}
+      </span>
+    </div>
+  );
+};
+
 const UNIS = [
-  { name: 'Princeton', icon: '🏛️' }, { name: 'Stanford', icon: '🌲' },
-  { name: 'MIT', icon: '🤖' }, { name: 'Cambridge', icon: '🎓' },
-  { name: 'Yale', icon: '🐶' }, { name: 'Michigan', icon: '〽️' },
-  { name: 'NUS', icon: '🦁' }, { name: 'Toronto', icon: '🍁' },
-  { name: 'Oxford', icon: '📙' }, { name: 'Columbia', icon: '👑' },
-  { name: 'Harvard', icon: '🏅' }, { name: 'UNILAG', icon: '🇳🇬' },
+  { name: 'Stanford', domain: 'stanford.edu' },
+  { name: 'UNILAG', domain: 'unilag.edu.ng' },
+  { name: 'Harvard', domain: 'harvard.edu' },
+  { name: 'UI', domain: 'ui.edu.ng' },
+  { name: 'MIT', domain: 'mit.edu' },
+  { name: 'OAU', domain: 'oauife.edu.ng' },
+  { name: 'Yale', domain: 'yale.edu' },
+  { name: 'Covenant', domain: 'covenantuniversity.edu.ng' },
+  { name: 'Princeton', domain: 'princeton.edu' },
+  { name: 'ABU', domain: 'abu.edu.ng' },
+  { name: 'Oxford', domain: 'ox.ac.uk' },
+  { name: 'UCLA', domain: 'ucla.edu' },
+  { name: 'Columbia', domain: 'columbia.edu' },
+  { name: 'NYU', domain: 'nyu.edu' },
+  { name: 'Cambridge', domain: 'cam.ac.uk' },
+  { name: 'Imperial', domain: 'imperial.ac.uk' }
 ];
 
 // Global Styles for interactive elements
@@ -173,54 +251,21 @@ const GlobalStyles = () => (
 );
 
 // Draggable Doodle Component
-const DraggableDoodle = ({ children, initialX, initialY, delay = 0 }) => {
-  const [position, setPosition] = useState({ x: initialX, y: initialY });
+const DraggableDoodle = ({ children, hoverContent, className = '', delay = 0 }) => {
+  const [isHovered, setIsHovered] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const dragRef = useRef(null);
-  const dragStartPos = useRef({ x: 0, y: 0 });
-
-  const handleMouseDown = (e) => {
-    setIsDragging(true);
-    dragStartPos.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y
-    };
-    e.preventDefault();
-  };
-
-  const handleMouseMove = (e) => {
-    if (!isDragging) return;
-    
-    setPosition({
-      x: e.clientX - dragStartPos.current.x,
-      y: e.clientY - dragStartPos.current.y
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isDragging]);
 
   return (
     <motion.div
-      ref={dragRef}
+      drag
+      dragMomentum={false}
+      onDragStart={() => setIsDragging(true)}
+      onDragEnd={() => setIsDragging(false)}
+      className={className}
       style={{
         position: 'absolute',
-        left: position.x,
-        top: position.y,
         cursor: isDragging ? 'grabbing' : 'grab',
-        zIndex: isDragging ? 1000 : 15,
+        zIndex: isDragging ? 1000 : (isHovered ? 50 : 15),
         userSelect: 'none',
         touchAction: 'none'
       }}
@@ -228,14 +273,43 @@ const DraggableDoodle = ({ children, initialX, initialY, delay = 0 }) => {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5, delay: delay }}
       whileHover={{ 
-        scale: 1.1, 
-        rotate: 5,
-        filter: 'brightness(1.05)'
+        scale: 1.05, 
+        rotate: 3,
+        filter: 'brightness(1.02)'
       }}
-      onMouseDown={handleMouseDown}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div style={{ transition: 'all 0.3s ease' }}>
+      <div style={{ transition: 'all 0.3s ease', position: 'relative' }}>
         {children}
+        <AnimatePresence>
+          {isHovered && hoverContent && !isDragging && (
+            <motion.div
+              initial={{ opacity: 0, y: 15, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              transition={{ duration: 0.2, type: 'spring', damping: 25, stiffness: 300 }}
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                marginTop: 16,
+                background: 'var(--background)',
+                borderRadius: 20,
+                padding: 16,
+                boxShadow: '0 20px 40px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.05)',
+                border: '1px solid rgba(0,0,0,0.06)',
+                zIndex: 1001,
+                pointerEvents: 'none',
+                width: 260,
+                cursor: 'default',
+              }}
+            >
+              {hoverContent}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );
@@ -250,7 +324,7 @@ const InteractiveFeatureCard = ({ children, style = {} }) => {
       onMouseLeave={() => setIsHovered(false)}
       style={{ 
         display:'flex', flexDirection:'row', alignItems:'center', justifyContent:'space-between', 
-        background:'white', borderRadius:32, padding:'32px 40px', margin:'16px 0', 
+        background: 'var(--background)', borderRadius:32, padding:'32px 40px', margin:'16px 0', 
         gap:40, flexWrap:'wrap',
         border: '1px solid #F1F5F9',
         transform: isHovered ? 'translateY(-4px)' : 'translateY(0px)',
@@ -267,754 +341,736 @@ const InteractiveFeatureCard = ({ children, style = {} }) => {
   );
 };
 
-const homeFaqs = [
-  { q: 'Is Luter free?', a: 'Yes, Luter has a generous free tier with 5 study sessions per month. Pro unlocks unlimited usage.' },
-  { q: 'What file formats are supported?', a: 'PDFs, PowerPoint, Word docs, YouTube links, audio files, and more.' },
+/* ── Wave Badge: hover animates each letter with a staggered bounce ── */
+const WaveBadge = ({ text, badgeStyle = {}, color }) => {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <span
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'inline-block',
+        padding: '2px 20px',
+        borderRadius: '20px',
+        margin: '0 4px',
+        cursor: 'default',
+        ...badgeStyle,
+      }}
+    >
+      {text.split('').map((char, i) => (
+        <span
+          key={i}
+          style={{
+            display: 'inline-block',
+            transform: hovered ? 'translateY(-6px)' : 'translateY(0px)',
+            transition: `transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 0.04}s`,
+          }}
+        >
+          {char === ' ' ? '\u00A0' : char}
+        </span>
+      ))}
+    </span>
+  );
+};
+
+const ZIGZAG_FEATURES = [
+  {
+    id: 1,
+    title: "Generate quality flashcards",
+    description: "Upload your notes, and we'll turn them into smart, conceptual flashcards designed for maximum retention.",
+    tag: "free. fun. effective.",
+    tagColor: "#10B981", // green
+    reverse: false,
+    Visual: () => (
+      <div style={{ position: 'relative', width: '100%', maxWidth: 360, aspectRatio: '1', margin: '0 auto' }}>
+        <div style={{ position: 'absolute', top: 20, left: 10, width: '100%', height: '100%', background: '#A7F3D0', borderRadius: 24, transform: 'rotate(-6deg)', zIndex: 1, border: '1px solid #6EE7B7' }} />
+        <div style={{ position: 'absolute', top: 10, left: 5, width: '100%', height: '100%', background: '#6EE7B7', borderRadius: 24, transform: 'rotate(4deg)', zIndex: 2, border: '1px solid #34D399' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'var(--background)', borderRadius: 24, display: 'flex', flexDirection: 'column', padding: 32, boxShadow: '0 20px 40px rgba(0,0,0,0.08)', zIndex: 3, transform: 'rotate(-2deg)', border: '1px solid #F1F5F9' }}>
+           <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 16, color: 'var(--foreground)', fontFamily: 'var(--font-outfit)' }}>The Seat of Intelligence - Cerebrum</div>
+           <p style={{ fontSize: 13, color: 'var(--tt-gray-light-a-600)', lineHeight: 1.6, fontWeight: 600 }}>"Ever wondered how you think? That's your cerebrum — the boss of your brain. It handles your thoughts, memories, decisions — basically, you being you. No cerebrum? No thinking. No learning."</p>
+           <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--tt-gray-light-a-600)' }}>{'<'}</div>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                 <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F1F5F9', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'var(--tt-gray-light-a-600)' }}>▶</div>
+                 <div style={{ width: 100, height: 8, background: '#F1F5F9', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ width: '40%', height: '100%', background: '#94A3B8' }} />
+                 </div>
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--tt-gray-light-a-600)' }}>{'>'}</div>
+           </div>
+        </div>
+      </div>
+    )
+  },
+  {
+    id: 2,
+    title: "Study with Spaced Repetition",
+    description: "Our algorithm knows exactly when you're about to forget, showing you concepts right before they fade away.",
+    tag: "backed by science",
+    tagColor: "#65A30D", // lime green
+    reverse: true,
+    Visual: () => (
+      <div style={{ position: 'relative', width: '100%', maxWidth: 360, aspectRatio: '1', margin: '0 auto' }}>
+        <div style={{ position: 'absolute', top: 15, left: -10, width: '100%', height: '100%', background: '#FDE68A', borderRadius: 24, transform: 'rotate(8deg)', zIndex: 1, border: '1px solid #FCD34D' }} />
+        <div style={{ position: 'absolute', top: 5, left: -5, width: '100%', height: '100%', background: '#FCD34D', borderRadius: 24, transform: 'rotate(-3deg)', zIndex: 2, border: '1px solid #FBBF24' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'var(--background)', borderRadius: 24, display: 'flex', flexDirection: 'column', padding: 32, boxShadow: '0 20px 40px rgba(0,0,0,0.08)', zIndex: 3, transform: 'rotate(2deg)', border: '1px solid #F1F5F9' }}>
+           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+               <div style={{ width: 24, height: 24, background: '#EF4444', borderRadius: '50%', boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)' }} />
+               <div style={{ fontSize: 16, fontWeight: 800, color: '#EF4444' }}>Champion</div>
+             </div>
+             <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--tt-gray-light-a-600)' }}>⏱ 155/185 Study Set</div>
+           </div>
+           
+           <div style={{ width: '100%', height: 8, background: '#FEE2E2', borderRadius: 4, marginBottom: 32, overflow: 'hidden' }}>
+             <div style={{ width: '80%', height: '100%', background: '#EF4444', borderRadius: 4 }} />
+           </div>
+
+           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 32, position: 'relative' }}>
+             <div style={{ position: 'absolute', top: 14, left: 20, right: 20, height: 2, background: '#E2E8F0', zIndex: -1 }} />
+             {[30, 60, 90, 120].map((day, i) => (
+               <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                 <div style={{ width: 32, height: 32, borderRadius: 8, background: i === 0 ? '#F97316' : '#fff', border: i === 0 ? 'none' : '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: i === 0 ? '#fff' : '#94A3B8', boxShadow: i === 0 ? '0 4px 8px rgba(249, 115, 22, 0.3)' : 'none' }}>
+                   {i === 0 ? '✓' : '🔒'}
+                 </div>
+                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--tt-gray-light-a-600)' }}>{day} Days</div>
+               </div>
+             ))}
+           </div>
+
+           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
+             <div style={{ width: 80, height: 80, borderRadius: '50%', border: '4px solid #FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', boxShadow: 'inset 0 0 0 3px #EF4444' }}>
+               <span style={{ fontSize: 24, fontWeight: 900, color: '#F97316' }}>35</span>
+             </div>
+             <div>
+               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--foreground)' }}>Days Streak</div>
+               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--tt-gray-light-a-600)' }}>You are doing great!</div>
+             </div>
+           </div>
+        </div>
+      </div>
+    )
+  },
+  {
+    id: 3,
+    title: "Test your knowledge with quizzes",
+    description: "Take AI-generated quizzes to spot gaps in your understanding before the actual exam.",
+    tag: "Adapts to exactly where you are",
+    tagColor: "#3B82F6", // blue
+    reverse: false,
+    Visual: () => (
+      <div style={{ position: 'relative', width: '100%', maxWidth: 360, aspectRatio: '1', margin: '0 auto' }}>
+        <div style={{ position: 'absolute', top: 20, right: 10, width: '100%', height: '100%', background: '#BFDBFE', borderRadius: 24, transform: 'rotate(-4deg)', zIndex: 1, border: '1px solid #93C5FD' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'var(--background)', borderRadius: 24, display: 'flex', flexDirection: 'column', padding: 32, boxShadow: '0 20px 40px rgba(0,0,0,0.08)', zIndex: 2, transform: 'rotate(2deg)', border: '1px solid #F1F5F9' }}>
+           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--foreground)' }}>Quiz: Cerebrum</div>
+             <div style={{ width: 60, height: 6, background: '#E2E8F0', borderRadius: 3, overflow: 'hidden' }}>
+               <div style={{ width: '60%', height: '100%', background: '#3B82F6', borderRadius: 3 }} />
+             </div>
+           </div>
+           <div style={{ border: '1px solid #E2E8F0', borderRadius: 12, padding: 16, marginBottom: 12, background: '#F8FAFC', fontWeight: 600, display: 'flex', gap: 12, cursor: 'pointer', color: 'var(--tt-gray-light-a-600)', fontSize: 14 }}>
+             <div style={{ width: 20, height: 20, borderRadius: '50%', border: '1px solid #CBD5E1', flexShrink: 0 }} />
+             A. Controls involuntary actions
+           </div>
+           <div style={{ border: 'none', borderRadius: 12, padding: 16, marginBottom: 12, background: '#3B82F6', color: '#fff', fontWeight: 600, display: 'flex', gap: 12, boxShadow: '0 8px 16px rgba(59, 130, 246, 0.25)', transform: 'scale(1.02)', fontSize: 14 }}>
+             <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--background)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3B82F6', fontSize: 12, flexShrink: 0, fontWeight: 900 }}>✓</div>
+             B. The seat of intelligence
+           </div>
+           <div style={{ border: '1px solid #E2E8F0', borderRadius: 12, padding: 16, background: '#F8FAFC', fontWeight: 600, display: 'flex', gap: 12, cursor: 'pointer', color: 'var(--tt-gray-light-a-600)', fontSize: 14 }}>
+             <div style={{ width: 20, height: 20, borderRadius: '50%', border: '1px solid #CBD5E1', flexShrink: 0 }} />
+             C. Regulates heartbeat
+           </div>
+        </div>
+      </div>
+    )
+  }
 ];
 
 export default function LandingPage() {
   const containerRef = useRef(null);
 
-  // GSAP animations
+  const logoItems = UNIS.map(u => ({
+    node: <UniversityLogoItem name={u.name} domain={u.domain} />,
+    title: u.name
+  }));
+
   useEffect(() => {
     const ctx = gsap.context(() => {
-      const heroTargets = containerRef.current.querySelectorAll('.hero-content > *');
+      // hero animation
+      const heroTargets = containerRef.current.querySelectorAll('.hero-content > *, .hero-mockup');
       if (heroTargets.length > 0) {
         gsap.from(heroTargets, {
-          y: 48, opacity: 0, duration: 1, stagger: 0.14, ease: 'power3.out', delay: 0.1
+          y: 40, opacity: 0, duration: 1, stagger: 0.1, ease: 'power3.out', delay: 0.1
         });
       }
-
-      const dashWrapper = containerRef.current.querySelector('.dashboard-wrapper');
-      if (dashWrapper) {
-        gsap.from(dashWrapper, {
-          y: 60, opacity: 0, duration: 1.2, ease: 'power3.out', delay: 0.5
+      // scroll reveal
+      gsap.utils.toArray('.reveal-child').forEach(el => {
+        gsap.from(el, {
+          scrollTrigger: { trigger: el, start: 'top 85%' },
+          y: 40, opacity: 0, duration: 0.8, ease: 'power2.out'
         });
-      }
-
-      // Parallax effect for floating images
-      const floatingImages = containerRef.current.querySelectorAll('.floating-image');
-      floatingImages.forEach((img, index) => {
-        gsap.to(img, {
-          yPercent: -20,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: img,
-            start: 'top bottom',
-            end: 'bottom top',
-            scrub: 1 + (index * 0.2),
-          }
-        });
-      });
-
-      gsap.utils.toArray('section').forEach(sec => {
-        const children = sec.querySelectorAll('.reveal-child');
-        if (children.length > 0) {
-          gsap.from(children, {
-            scrollTrigger: { trigger: sec, start: 'top 82%' },
-            y: 40, opacity: 0, duration: 0.9, stagger: 0.12, ease: 'power2.out'
-          });
-        }
       });
     }, containerRef);
     return () => ctx.revert();
   }, []);
 
-  /* mobile nav */
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  // Placeholder for RevealDiv - assuming it's defined elsewhere or will be added.
-  // For the purpose of this change, we'll just use a simple div.
-  const RevealDiv = ({ children, delay = 0 }) => {
-    const ref = useRef(null);
-    useEffect(() => {
-      gsap.fromTo(ref.current, 
-        { y: 40, opacity: 0 }, 
-        { y: 0, opacity: 1, duration: 0.9, ease: 'power2.out', delay: delay }
-      );
-    }, [delay]);
-    return <div ref={ref}>{children}</div>;
-  };
-
-
   return (
-    <div ref={containerRef} style={{ background: '#fff', minHeight: '100vh' }}>
+    <div ref={containerRef} style={{ background: 'var(--background)', minHeight: '100vh', paddingTop: 72 }}>
       <GlobalStyles />
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap');
+        .doodle-quiz { top: 15%; left: max(2%, calc(50% - 480px)); }
+        .doodle-flashcards { top: 10%; right: max(2%, calc(50% - 480px)); }
+        .doodle-summary { top: 55%; left: max(2%, calc(50% - 500px)); }
+        .doodle-board { top: 60%; right: max(2%, calc(50% - 480px)); }
+        .doodle-games { top: 35%; right: max(2%, calc(50% - 600px)); }
 
-      {/* ═══════════════ NAVBAR ═══════════════ */}
+        @media (max-width: 1024px) {
+          .doodle-quiz { top: 8%; left: 5%; }
+          .doodle-flashcards { top: 6%; right: 5%; }
+          .doodle-summary { top: 75%; left: 5%; }
+          .doodle-board { top: 70%; right: 5%; }
+          .doodle-games { top: 38%; right: 2%; }
+        }
+
+        @media (max-width: 768px) {
+          .hero-section-inner { 
+            padding-top: 120px !important; 
+            padding-bottom: 120px !important; 
+          }
+          .doodle-quiz { top: 20px; left: 10px; }
+          .doodle-flashcards { top: 40px; right: 10px; }
+          .doodle-summary { top: auto; bottom: 20px; left: 10px; }
+          .doodle-board { top: auto; bottom: 40px; right: 10px; }
+          .doodle-games { display: none; }
+        }
+
+        .zigzag-row {
+          display: flex;
+          align-items: center;
+          gap: 100px;
+        }
+        @media (max-width: 900px) {
+          .zigzag-row {
+            flex-direction: column !important;
+            gap: 60px;
+            text-align: center;
+          }
+        }
+      `}</style>
       <SharedNavbar />
 
-      {/* ═══════════════ HERO ═══════════════ */}
-      <section style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-        background: 'linear-gradient(135deg, #ffffff 0%, #faf8ff 100%)'
+      {/* Hero Section */}
+      <section className="hero-section-inner" style={{ 
+        display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+        padding: '70px 24px 80px', position: 'relative', overflow: 'hidden',
+        background: 'radial-gradient(circle at 10% 20%, rgba(196, 181, 253, 0.08) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(152, 255, 152, 0.08) 0%, transparent 40%)'
       }}>
-        {/* MagicRings Background */}
-        <div style={{ 
-          position: 'absolute', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          zIndex: 1, 
-          background: 'transparent' 
-        }}>
-          <MagicRings
-            color="#4B0082"
-            colorTwo="#A855F7"
-            ringCount={8}
-            speed={0.6}
-            attenuation={15}
-            lineThickness={2}
-            baseRadius={0.2}
-            radiusStep={0.08}
-            scaleRate={0.12}
-            opacity={0.15}
-            blur={1}
-            noiseAmount={0.01}
-            rotation={10}
-            ringGap={1.6}
-            fadeIn={0.7}
-            fadeOut={0.3}
-            followMouse={true}
-            mouseInfluence={0.08}
-            hoverScale={1.02}
-            parallax={0.04}
-            clickBurst={false}
-          />
-        </div>
+        {/* Ambient Glows */}
+        <div style={{ position: 'absolute', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(196, 181, 253, 0.12) 0%, transparent 70%)', top: '-100px', left: '-50px', filter: 'blur(40px)', zIndex: 0 }} />
+        <div style={{ position: 'absolute', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(152, 255, 152, 0.1) 0%, transparent 70%)', bottom: '100px', right: '-100px', filter: 'blur(40px)', zIndex: 0 }} />
 
-        {/* Subtle Floating Elements */}
-        <div style={{ 
-          position: 'absolute', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          zIndex: 2,
-          pointerEvents: 'none'
-        }}>
-          {[...Array(6)].map((_, i) => (
-            <motion.div
-              key={i}
-              style={{
-                position: 'absolute',
-                width: Math.random() * 4 + 2,
-                height: Math.random() * 4 + 2,
-                borderRadius: '50%',
-                background: `rgba(75, 0, 130, ${Math.random() * 0.1 + 0.05})`,
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
+        {/* Floating Draggable Learning Cards / Badges */}
+        <DraggableDoodle 
+          className="doodle-quiz"
+          delay={0.2}
+          hoverContent={
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingBottom: 8, borderBottom: '1px solid #f0fdf4' }}>
+                <CheckCircle size={16} color="#16a34a" weight="fill" />
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#16a34a' }}>Interactive Quiz</span>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', lineHeight: 1.3 }}>What is the powerhouse of the cell?</div>
+              <div style={{ display: 'flex', gap: 6, flexDirection: 'column' }}>
+                <div style={{ padding: '8px 12px', borderRadius: 8, background: '#dcfce7', border: '1px solid #bbf7d0', fontSize: 13, color: '#166534', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600 }}>
+                  Mitochondria <CheckCircle weight="fill" color="#166534" size={16} />
+                </div>
+                <div style={{ padding: '8px 12px', borderRadius: 8, background: '#f3f4f6', border: '1px solid #e5e7eb', fontSize: 13, color: '#6b7280', fontWeight: 500 }}>Nucleus</div>
+              </div>
+            </div>
+          }
+        >
+          <div style={{ background: '#dcfce7', padding: '12px 20px', borderRadius: 16, border: '2px solid #166534', boxShadow: '0 6px 0 #166534', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-outfit)', fontWeight: 700, transform: 'rotate(-4deg)', fontSize: 14, color: '#166534' }}>
+            <CheckCircle size={20} weight="fill" /> Quiz
+          </div>
+        </DraggableDoodle>
+
+        <DraggableDoodle 
+          className="doodle-flashcards"
+          delay={0.4}
+          hoverContent={
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+              <div style={{ width: '100%', height: 110, background: '#fef3c7', border: '2px solid #fde68a', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.1)' }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: '#92400e', textAlign: 'center', padding: '0 12px' }}>Capital of France?</span>
+                <div style={{ position: 'absolute', bottom: 10, right: 10, width: 28, height: 28, borderRadius: '50%', background: '#fcd34d', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                   <ArrowRight color="#92400e" weight="bold" size={14} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ width: 40, height: 6, borderRadius: 3, background: '#ef4444' }} />
+                <div style={{ width: 40, height: 6, borderRadius: 3, background: '#10b981' }} />
+              </div>
+            </div>
+          }
+        >
+          <div style={{ background: '#fef3c7', padding: '12px 20px', borderRadius: 16, border: '2px solid #92400e', boxShadow: '0 6px 0 #92400e', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-outfit)', fontWeight: 700, transform: 'rotate(5deg)', fontSize: 14, color: '#92400e' }}>
+            <Cards size={20} weight="fill" /> Flashcards
+          </div>
+        </DraggableDoodle>
+
+        <DraggableDoodle 
+          className="doodle-summary"
+          delay={0.6}
+          hoverContent={
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingBottom: 8, borderBottom: '1px solid #e0f2fe' }}>
+                <Brain size={18} color="#0284c7" weight="duotone" />
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#0284c7' }}>AI Summary</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '4px 0' }}>
+                <div style={{ width: '100%', height: 8, background: '#bae6fd', borderRadius: 4 }} />
+                <div style={{ width: '85%', height: 8, background: '#bae6fd', borderRadius: 4 }} />
+                <div style={{ width: '92%', height: 8, background: '#bae6fd', borderRadius: 4 }} />
+                <div style={{ width: '65%', height: 8, background: '#bae6fd', borderRadius: 4 }} />
+              </div>
+            </div>
+          }
+        >
+          <div style={{ background: '#e0f2fe', padding: '12px 20px', borderRadius: 16, border: '2px solid #0369a1', boxShadow: '0 6px 0 #0369a1', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-outfit)', fontWeight: 700, transform: 'rotate(-6deg)', fontSize: 14, color: '#0369a1' }}>
+            <Brain size={20} weight="fill" /> Summary
+          </div>
+        </DraggableDoodle>
+
+        <DraggableDoodle 
+          className="doodle-board"
+          delay={0.8}
+          hoverContent={
+            <div style={{ display: 'flex', gap: 10, height: 120 }}>
+              <div style={{ flex: 1, background: '#f3f4f6', borderRadius: 12, padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#6b7280', paddingLeft: 4 }}>TODO</span>
+                <div style={{ background: 'var(--background)', height: 26, borderRadius: 6, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb' }} />
+                <div style={{ background: 'var(--background)', height: 26, borderRadius: 6, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb' }} />
+              </div>
+              <div style={{ flex: 1, background: '#f3e8ff', borderRadius: 12, padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#7e22ce', paddingLeft: 4 }}>DOING</span>
+                <div style={{ background: 'var(--background)', height: 32, borderRadius: 6, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #d8b4fe' }} />
+              </div>
+            </div>
+          }
+        >
+          <div style={{ background: '#f3e8ff', padding: '12px 20px', borderRadius: 16, border: '2px solid #6b21a8', boxShadow: '0 6px 0 #6b21a8', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-outfit)', fontWeight: 700, transform: 'rotate(8deg)', fontSize: 14, color: '#6b21a8' }}>
+            <MonitorPlay size={20} weight="fill" /> Board
+          </div>
+        </DraggableDoodle>
+
+        <DraggableDoodle 
+          className="doodle-games"
+          delay={0.5}
+          hoverContent={
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '8px 0' }}>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ width: 48, height: 48, background: '#fee2e2', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #fca5a5', boxShadow: '0 4px 8px rgba(239,68,68,0.15)' }}>
+                  <Lightning color="#ef4444" weight="fill" size={24} />
+                </div>
+                <div style={{ width: 48, height: 48, background: '#dcfce7', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #86efac', boxShadow: '0 4px 8px rgba(34,197,94,0.15)' }}>
+                  <Star color="#22c55e" weight="fill" size={24} />
+                </div>
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 800, color: '#4b5563' }}>Match the pairs!</span>
+            </div>
+          }
+        >
+          <div style={{ background: '#ffe4e6', padding: '12px 20px', borderRadius: 16, border: '2px solid #be123c', boxShadow: '0 6px 0 #be123c', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-outfit)', fontWeight: 700, transform: 'rotate(-10deg)', fontSize: 14, color: '#be123c' }}>
+            <Lightning size={20} weight="fill" /> Games
+          </div>
+        </DraggableDoodle>
+
+        <div className="hero-content" style={{ position: 'relative', zIndex: 10, maxWidth: 950 }}>
+          <h1 style={{ 
+            fontFamily: 'var(--font-outfit)', fontSize: 'clamp(2.5rem, 6.5vw, 4.8rem)', 
+            fontWeight: 800, color: 'var(--foreground)', lineHeight: 1.25, letterSpacing: '-0.03em', marginBottom: 28 
+          }}>
+            Read <WaveBadge
+              text="Smarter."
+              badgeStyle={{
+                background: '#C4B5FD',
+                color: '#2E1065',
+                border: '2px solid rgba(167, 139, 250, 0.8)',
+                borderBottom: '6px solid rgba(167, 139, 250, 1)',
+                transform: 'rotate(-1.5deg)',
+                boxShadow: '0 8px 16px rgba(167, 139, 250, 0.15)',
               }}
-              animate={{
-                y: [0, -20, 0],
-                opacity: [0.1, 0.3, 0.1],
+            /><br/>
+            Understand <WaveBadge
+              text="Deeper."
+              badgeStyle={{
+                background: '#98FF98',
+                color: '#065F46',
+                border: '2px solid #6EE7B7',
+                borderBottom: '6px solid #34D399',
+                transform: 'rotate(1.5deg)',
+                boxShadow: '0 8px 16px rgba(52, 211, 153, 0.15)',
               }}
-              transition={{
-                duration: Math.random() * 3 + 4,
-                repeat: Infinity,
-                delay: Math.random() * 2,
-                ease: 'easeInOut'
+            /><br/>
+            Excel <WaveBadge
+              text="Faster."
+              badgeStyle={{
+                background: '#FFF917',
+                color: '#854D0E',
+                border: '2px solid #FDE047',
+                borderBottom: '6px solid #FACC15',
+                transform: 'rotate(-1deg)',
+                boxShadow: '0 8px 16px rgba(250, 204, 21, 0.15)',
               }}
             />
-          ))}
-        </div>
-
-        {/* Main Content */}
-        <div style={{ 
-          position: 'relative', 
-          zIndex: 10, 
-          textAlign: 'center',
-          maxWidth: '900px',
-          padding: '0 24px',
-          width: '100%'
-        }}>
-
-
-          {/* Headline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            style={{
-              fontFamily: 'var(--font-outfit)',
-              fontSize: 'clamp(2.5rem, 8vw, 4.5rem)',
-              fontWeight: '800',
-              lineHeight: '1.1',
-              letterSpacing: '-0.03em',
-              color: '#111',
-              marginBottom: '24px'
-            }}
-          >
-            Read Smarter.
-            <br />
-            <span style={{ 
-              color: '#4B0082',
-              background: 'linear-gradient(135deg, #4B0082 0%, #A855F7 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}>
-              Understand Deeper.
-            </span>
-            <br />
-            Excel Faster.
-          </motion.h1>
-
-          {/* Description */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            style={{
-              fontFamily: 'var(--font-varela)',
-              fontSize: 'clamp(1rem, 2.5vw, 1.25rem)',
-              lineHeight: '1.6',
-              color: '#475569',
-              maxWidth: '600px',
-              margin: '0 auto 48px',
-              fontWeight: '400'
-            }}
-          >
+          </h1>
+          <p style={{ 
+            fontFamily: 'var(--font-varela)', fontSize: '1.25rem', color: 'var(--tt-gray-light-a-600)', 
+            maxWidth: 620, margin: '0 auto 48px', lineHeight: 1.7 
+          }}>
             Transform your academic journey with AI-powered tools that help you master your curriculum faster and remember longer. The intelligent way to excel.
-          </motion.p>
-
-          {/* CTA Button */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.7 }}
-            style={{ display: 'flex', justifyContent: 'center' }}
-          >
-            <PremiumButton to={getAppUrl("/signup")} size="lg">
-              START LEARNING NOW
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, flexWrap: 'wrap' }}>
+            <PremiumButton to={getAppUrl("/signup")} size="lg" style={{ width: 220, borderRadius: '16px' }}>
+              Get Started
             </PremiumButton>
-          </motion.div>
-        </div>
-
-        
-        {/* Draggable Doodles Around Hero */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, pointerEvents: 'none' }}>
-          {/* Desktop: Show all doodles */}
-          <div className="hidden md:block">
-            {/* Top Left Corner */}
-            <DraggableDoodle initialX={50} initialY={50} delay={1.0}>
-              <div 
-                className="doodle-item"
-                style={{
-                  width: 60,
-                  height: 60,
-                  backgroundColor: '#fef3c7',
-                  border: '2px dashed #f59e0b',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '24px',
-                  pointerEvents: 'auto'
-                }}
-              >
-                💡
-              </div>
-            </DraggableDoodle>
-
-            {/* Top Right Corner */}
-            <DraggableDoodle initialX={window.innerWidth - 150} initialY={80} delay={1.2}>
-              <div 
-                className="doodle-item"
-                style={{
-                  width: 80,
-                  height: 80,
-                  backgroundColor: '#dbeafe',
-                  border: '2px solid #3b82f6',
-                  borderRadius: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '32px',
-                  transform: 'rotate(15deg)',
-                  pointerEvents: 'auto'
-                }}
-              >
-                📚
-              </div>
-            </DraggableDoodle>
-
-            {/* Left Side */}
-            <DraggableDoodle initialX={30} initialY={300} delay={1.4}>
-              <div 
-                className="doodle-item"
-                style={{
-                  padding: '12px 16px',
-                  backgroundColor: '#f3e8ff',
-                  border: '2px solid #8b5cf6',
-                  borderRadius: '12px',
-                  fontFamily: 'var(--font-outfit)',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#6b21a8',
-                  transform: 'rotate(-5deg)',
-                  pointerEvents: 'auto'
-                }}
-              >
-                Study Smarter! 🎯
-              </div>
-            </DraggableDoodle>
-
-            {/* Right Side */}
-            <DraggableDoodle initialX={window.innerWidth - 200} initialY={250} delay={1.6}>
-              <div 
-                className="doodle-item"
-                style={{
-                  width: 70,
-                  height: 70,
-                  backgroundColor: '#dcfce7',
-                  border: '3px solid #22c55e',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '28px',
-                  pointerEvents: 'auto'
-                }}
-              >
-                ✨
-              </div>
-            </DraggableDoodle>
-
-            {/* Bottom Left */}
-            <DraggableDoodle initialX={80} initialY={window.innerHeight - 200} delay={1.8}>
-              <div 
-                className="doodle-item"
-                style={{
-                  padding: '16px 20px',
-                  backgroundColor: '#fff7ed',
-                  border: '2px dashed #ea580c',
-                  borderRadius: '20px',
-                  fontFamily: 'var(--font-outfit)',
-                  fontSize: '16px',
-                  fontWeight: '700',
-                  color: '#c2410c',
-                  transform: 'rotate(8deg)',
-                  pointerEvents: 'auto'
-                }}
-              >
-                AI-Powered 🤖
-              </div>
-            </DraggableDoodle>
-
-            {/* Bottom Right */}
-            <DraggableDoodle initialX={window.innerWidth - 180} initialY={window.innerHeight - 150} delay={2.0}>
-              <div 
-                className="doodle-item"
-                style={{
-                  width: 90,
-                  height: 90,
-                  backgroundColor: '#fce7f3',
-                  border: '2px solid #ec4899',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '36px',
-                  transform: 'rotate(-10deg)',
-                  pointerEvents: 'auto'
-                }}
-              >
-                🚀
-              </div>
-            </DraggableDoodle>
-
-            {/* Scattered Elements */}
-            <DraggableDoodle initialX={200} initialY={120} delay={2.2}>
-              <div style={{
-                width: 40,
-                height: 40,
-                backgroundColor: '#e0e7ff',
-                border: '2px solid #6366f1',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '20px',
-                pointerEvents: 'auto'
-              }}>
-                📝
-              </div>
-            </DraggableDoodle>
-
-            <DraggableDoodle initialX={window.innerWidth - 300} initialY={400} delay={2.4}>
-              <div style={{
-                padding: '8px 12px',
-                backgroundColor: '#f0fdf4',
-                border: '1px solid #86efac',
-                borderRadius: '8px',
-                fontFamily: 'Outfit, sans-serif',
-                fontSize: '12px',
-                fontWeight: '500',
-                color: '#166534',
-                pointerEvents: 'auto'
-              }}>
-                Learn Faster! ⚡
-              </div>
-            </DraggableDoodle>
-
-            <DraggableDoodle initialX={150} initialY={window.innerHeight - 300} delay={2.6}>
-              <div style={{
-                width: 50,
-                height: 50,
-                backgroundColor: '#fef2f2',
-                border: '2px dotted #ef4444',
-                borderRadius: '25px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '24px',
-                pointerEvents: 'auto'
-              }}>
-                🔥
-              </div>
-            </DraggableDoodle>
-          </div>
-
-          {/* Mobile: Show only 3 doodles */}
-          <div className="md:hidden">
-            <DraggableDoodle initialX={20} initialY={120} delay={1.0}>
-              <div style={{
-                width: 35,
-                height: 35,
-                backgroundColor: '#fef3c7',
-                border: '2px dashed #f59e0b',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '16px',
-                pointerEvents: 'auto'
-              }}>
-                💡
-              </div>
-            </DraggableDoodle>
-
-            <DraggableDoodle initialX={window.innerWidth - 70} initialY={180} delay={1.3}>
-              <div style={{
-                width: 45,
-                height: 45,
-                backgroundColor: '#dbeafe',
-                border: '2px solid #3b82f6',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '18px',
-                transform: 'rotate(10deg)',
-                pointerEvents: 'auto'
-              }}>
-                📚
-              </div>
-            </DraggableDoodle>
-
-            <DraggableDoodle initialX={30} initialY={window.innerHeight - 100} delay={1.6}>
-              <div style={{
-                padding: '6px 10px',
-                backgroundColor: '#f3e8ff',
-                border: '2px solid #8b5cf6',
-                borderRadius: '6px',
-                fontFamily: 'Outfit, sans-serif',
-                fontSize: '10px',
-                fontWeight: '600',
-                color: '#6b21a8',
-                transform: 'rotate(-3deg)',
-                pointerEvents: 'auto'
-              }}>
-                Study Smart! 🎯
-              </div>
-            </DraggableDoodle>
+            <PremiumButton to="/demo" variant="outline" size="lg" style={{ width: 220, borderRadius: '16px' }}>
+              Watch Demo
+            </PremiumButton>
           </div>
         </div>
 
-        <style>{`
-          @keyframes pulse {
-            0%, 100% {
-              opacity: 1;
-            }
-            50% {
-              opacity: 0.5;
-            }
-          }
-        `}</style>
-      </section>
-
-
-
-      
-
-
-      {/* ═══════════════ PROBLEM SECTION ═══════════════ */}
-      <section id="problem" style={{ padding: '96px 0', background: '#F8F8F8' }}>
-        <div className="container-custom">
-          {/* Header */}
-          <div style={{ textAlign:'center', marginBottom:48 }}>
-            <p className="reveal-child" style={{ fontSize:15, fontWeight:600, color:'#6B7280', fontFamily:'var(--font-varela)', marginBottom:12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              Sound familiar?
-            </p>
-            <h2 className="reveal-child" style={{ fontSize:'clamp(1.8rem, 3.5vw, 2.5rem)', maxWidth:640, margin:'0 auto', color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'130%', letterSpacing: '-0.02em' }}>
-              Studying feels <span style={{ color:'#4B0082', fontStyle:'italic' }}>harder than it should</span>
-            </h2>
+        {/* Dashboard Mockup under hero */}
+        <div className="hero-mockup" style={{
+          marginTop: 80, width: '100%', maxWidth: 1100, background: 'var(--background)', borderRadius: 24,
+          border: '2px solid #333333', boxShadow: '0 12px 0 #333333', overflow: 'hidden', zIndex: 10
+        }}>
+          {/* Mockup Header */}
+          <div style={{ height: 48, borderBottom: '2px solid #333333', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 8, background: 'var(--background)' }}>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#EF4444', border: '1.5px solid #333' }} />
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#F59E0B', border: '1.5px solid #333' }} />
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#98FF98', border: '1.5px solid #333' }} />
+            <div style={{ marginLeft: 20, height: 28, background: 'var(--background)', borderRadius: 8, flex: 1, maxWidth: 400, border: '1.5px solid #333', display: 'flex', alignItems: 'center', padding: '0 12px', fontSize: 12, color: 'var(--tt-gray-light-a-600)', fontFamily: 'var(--font-varela)' }}>luter.app/dashboard</div>
           </div>
-
-          {/* 4 Cards */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))', gap:24, marginBottom:32 }}>
-            {[
-              { icon:<Headphones style={{ width:40, height:40 }} weight="light" />, title:'Lost in long lectures', desc:'"I zoned out 20 minutes in… now I\'m completely lost"' },
-              { icon:<Folder style={{ width:40, height:40 }} weight="light" />, title:'Scattered notes', desc:'"Scattered across Google Docs, Notion, and random papers"' },
-              { icon:<RefreshCw style={{ width:40, height:40 }} weight="light" />, title:'Read it. Forgot it', desc:'"I read this chapter 3 times and still can\'t remember it"' },
-              { icon:<MessageCircleQuestion style={{ width:40, height:40 }} weight="light" />, title:'Stuck with no help', desc:'"It\'s midnight, I\'m confused, and there\'s no one to explain this to me"' },
-            ].map(({ icon, title, desc }) => (
-              <InteractiveFeatureCard key={title} style={{ padding:'32px 24px', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
-                <div style={{ color:'#111', marginBottom:20, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  {icon}
-                </div>
-                <h3 style={{ fontSize:17, fontWeight:700, fontFamily:'var(--font-outfit)', color:'#111', marginBottom:12, lineHeight:'140%' }}>
-                  {title}
-                </h3>
-                <p style={{ fontSize:15, color:'#64748B', fontStyle:'italic', lineHeight:'160%', fontFamily:'var(--font-outfit)', margin:0, fontWeight:500 }}>
-                  {desc}
-                </p>
-              </InteractiveFeatureCard>
-            ))}
-          </div>
-
-          {/* Bottom Banner */}
-          <div className="reveal-child">
-            <InteractiveFeatureCard style={{ padding:'28px 40px', display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:24 }}>
-              <p style={{ fontSize:18, fontWeight:500, color:'#475569', maxWidth:540, fontFamily:'var(--font-varela)', lineHeight:'160%', margin:0 }}>
-                <strong style={{ color:'#111', fontWeight:700, fontFamily: 'var(--font-outfit)' }}>There's a better way.</strong> Luter turns this chaos into a structured learning system automatically. Studying feels easier.
-              </p>
-              <PremiumButton style={{ height:'52px', padding:'0 32px' }}>
-                Start a Free Study Session <ArrowRight size={20} weight="light" style={{ marginLeft: 8 }} />
-              </PremiumButton>
-            </InteractiveFeatureCard>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════ INTRODUCING LUTER — FEATURE LIST ═══════════════ */}
-      <section style={{ padding: '96px 0', background: '#F8F8F8' }} aria-labelledby="features-heading">
-        <div className="container-full" style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
-
-          {/* Section Header */}
-          <p className="reveal-child" style={{ color:'#4B0082', fontFamily:'var(--font-outfit)', fontWeight:800, fontSize:18, lineHeight:'140%', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            Introducing Luter...
-          </p>
-          <h2 id="features-heading" className="reveal-child" style={{ fontSize:'clamp(1.8rem, 3.5vw, 3rem)', textAlign:'center', maxWidth:650, margin:'24px auto 16px', color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'120%', letterSpacing: '-0.02em' }}>
-            We turn your material into a <span style={{ color:'#4B0082', fontStyle:'italic' }}>complete study system</span>
-          </h2>
-          <p className="reveal-child" style={{ fontSize:18, color:'#475569', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', textAlign:'center', maxWidth:580, marginBottom:40 }}>
-            Luter takes your material and builds your entire study session — notes, flashcards, quizzes, summary, and tutor included.
-          </p>
-
-          {/* Feature Cards List */}
-          <ul style={{ width:'100%', listStyle:'none', padding:0, margin:0, display:'flex', flexDirection:'column', alignItems:'center', gap:0 }}>
-
-            {/* 1. AI Notes */}
-            <li style={{ width:'100%', maxWidth: 1000 }} className="reveal-child">
-              <InteractiveFeatureCard style={{ backgroundImage:'linear-gradient(to right, #FFF, #FFF3E3)' }}>
-                <div style={{ flex:'1 1 400px', minWidth:0 }}>
-                  <div style={{ display:'flex', flexDirection:'row', alignItems:'center', gap:28, marginBottom:28 }}>
-                    <div style={{ width:88, height:88, background:'linear-gradient(135deg,#F8FAFC,#E2E8F0)', borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)' }}>
-                      <BookOpen style={{ width:40, height:40, color:'#111' }} weight="light" />
-                    </div>
-                    <div>
-                      <h3 style={{ color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:28, marginBottom:4, letterSpacing: '-0.01em' }}>AI Notes</h3>
-                      <p style={{ color:'#4B0082', fontFamily:'var(--font-varela)', fontWeight:700, lineHeight:'140%', fontSize:16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Notes that write themselves</p>
-                    </div>
+          {/* Mockup Body */}
+          <div style={{ display: 'flex', height: 500, background: 'var(--background)' }}>
+            {/* Sidebar */}
+            <div className="hidden md:block" style={{ width: 220, borderRight: '2px solid #333333', padding: '32px 16px', background: 'var(--background)', textAlign: 'left', fontFamily: 'var(--font-outfit)' }}>
+              {/* Logo inside sidebar */}
+              <div style={{ padding: '0 8px 32px' }}>
+                <LuterLogo size={24} fontSize={18} />
+              </div>
+              {/* Navigation Links */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[
+                  { label: 'Curriculums', icon: '🗂️', active: true },
+                  { label: 'Flashcards', icon: '⚡' },
+                  { label: 'Smart Quizzes', icon: '📝' },
+                  { label: 'Progress Stats', icon: '📈' }
+                ].map((item, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10,
+                    background: item.active ? 'rgba(196, 181, 253, 0.15)' : 'transparent',
+                    border: item.active ? '1.5px solid rgba(167, 139, 250, 0.3)' : '1.5px solid transparent',
+                    color: item.active ? '#4B0082' : '#64748B',
+                    fontWeight: item.active ? 700 : 500,
+                    fontSize: 14, cursor: 'default'
+                  }}>
+                    <span>{item.icon}</span> {item.label}
                   </div>
-                  <p style={{ fontSize:17, color:'#475569', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', maxWidth:443 }}>
-                    Get structured notes in seconds — so you can focus on understanding, not typing. Less cognitive overload, more actual learning.
-                  </p>
+                ))}
+              </div>
+            </div>
+            {/* Main Content */}
+            <div style={{ flex: 1, padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: 24, textAlign: 'left', fontFamily: 'var(--font-varela)', overflow: 'hidden' }}>
+              {/* Path indicator */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 13, color: 'var(--tt-gray-light-a-600)', fontWeight: 700, fontFamily: 'var(--font-outfit)' }}>
+                  CURRICULUMS &gt; AP PSYCHOLOGY &gt; <span style={{ color: '#4B0082' }}>NEURAL SIGNALS</span>
                 </div>
-                {/* Mockup */}
-                <div style={{ width:320, flexShrink:0, background:'white', borderRadius:12, border:'1px solid #e8e8ec', padding:20, boxShadow:'0 4px 24px rgba(0,0,0,0.06)' }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, paddingBottom:12, borderBottom:'1px solid #f3f4f6' }}>
-                    <span style={{ fontSize:11, fontWeight:800, color:'#4B0082', textTransform: 'uppercase' }}>AI Notes</span>
-                    <div style={{ display:'flex', gap:6 }}>
-                      {['A','A+','◫'].map(c => <span key={c} style={{ fontSize:11, fontWeight:700, color:'#ccc' }}>{c}</span>)}
-                    </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, background: '#FEF3C7', color: '#B45309', padding: '4px 12px', borderRadius: 9999, fontWeight: 700, fontFamily: 'var(--font-outfit)', border: '1.5px solid #B45309' }}>
+                  🔥 5 DAY STREAK
+                </div>
+              </div>
+
+              {/* Split screen in main content */}
+              <div style={{ display: 'flex', gap: 24, flex: 1, flexDirection: 'row' }}>
+                
+                {/* Left Card: Active Flashcard */}
+                <div style={{
+                  flex: 1.3, background: 'var(--background)', borderRadius: 16, border: '2px solid #333333',
+                  boxShadow: '0 6px 0 #333333', padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                  position: 'relative'
+                }}>
+                  {/* Card Header tag */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <span style={{ fontSize: 11, background: '#E0D9FF', color: '#4B0082', padding: '2px 8px', borderRadius: 6, fontWeight: 700, fontFamily: 'var(--font-outfit)', border: '1px solid rgba(167, 139, 250, 0.4)' }}>CONCEPT CARD</span>
+                    <span style={{ fontSize: 12, color: 'var(--tt-gray-light-a-600)', fontWeight: 600 }}>Card 4 of 25</span>
                   </div>
-                  {[
-                    { heading:'Introduction to the Cell', lines:[85, 100, 70, 60] },
-                    { heading:'Historical Context', lines:[90, 75, 55] },
-                  ].map(({ heading, lines }) => (
-                    <div key={heading} style={{ marginBottom:16 }}>
-                      <div style={{ fontSize:12, fontWeight:800, color:'#111', marginBottom:8, fontFamily: 'var(--font-outfit)' }}>{heading}</div>
-                      {lines.map((w, i) => (
-                        <div key={i} style={{ height:7, background: i===0 ? 'rgba(75, 0, 130, 0.15)' : '#f3f4f6', borderRadius:99, marginBottom:5, width:`${w}%` }} />
-                      ))}
-                      <div style={{ display:'flex', justifyContent:'space-between', marginTop:8 }}>
-                        <span style={{ fontSize:10, color:'#4B0082', fontWeight:700, fontFamily: 'var(--font-varela)' }}>✦ Explore more</span>
-                        <span style={{ fontSize:10, color:'#ccc' }}>Page 1</span>
+
+                  {/* Card Body */}
+                  <div style={{ margin: '12px 0' }}>
+                    <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--tt-gray-light-a-600)', marginBottom: 6, fontFamily: 'var(--font-outfit)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Question:</h4>
+                    <p style={{ fontSize: 16, color: 'var(--foreground)', lineHeight: 1.5, fontWeight: 600 }}>
+                      What is the key biological function of the <span style={{ borderBottom: '3px solid #C4B5FD', fontWeight: 700 }}>myelin sheath</span> in neurons?
+                    </p>
+                  </div>
+
+                  {/* Typing simulator & Success badge */}
+                  <div>
+                    <div style={{ position: 'relative', marginBottom: 12 }}>
+                      <input 
+                        disabled 
+                        value="It is an insulating layer that speeds up electrical transmission"
+                        style={{
+                          width: '100%', height: 42, border: '2px solid #333333', borderRadius: 10,
+                          padding: '0 12px', fontSize: 13, background: '#F8FAFC', color: 'var(--foreground)',
+                          fontFamily: 'var(--font-varela)', boxSizing: 'border-box'
+                        }} 
+                      />
+                      <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#059669', fontSize: 16, fontWeight: 'bold' }}>✓</span>
+                    </div>
+
+                    <div style={{
+                      background: 'rgba(152, 255, 152, 0.15)', border: '2px solid #98FF98', borderRadius: 10,
+                      padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10
+                    }}>
+                      <span style={{ fontSize: 16 }}>🎉</span>
+                      <div style={{ fontSize: 12, color: '#065F46', fontWeight: 700, fontFamily: 'var(--font-outfit)' }}>
+                        Correct concept matched! +15 XP gained
                       </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
-              </InteractiveFeatureCard>
-            </li>
 
-            {/* 2. AI Summary */}
-            <li style={{ width:'100%', maxWidth: 1000 }} className="reveal-child">
-              <InteractiveFeatureCard style={{ backgroundImage:'linear-gradient(to right, #FFF, #E8FFF6)' }}>
-                <div style={{ flex:'1 1 400px', minWidth:0 }}>
-                  <div style={{ display:'flex', flexDirection:'row', alignItems:'center', gap:28, marginBottom:28 }}>
-                    <div style={{ width:88, height:88, background:'linear-gradient(135deg,#D1FAE5,#10B981)', borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow: '0 8px 24px rgba(16, 185, 129, 0.15)' }}>
-                      <FileText style={{ width:40, height:40, color:'white' }} weight="light" />
-                    </div>
-                    <div>
-                      <h3 style={{ color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:28, marginBottom:4, letterSpacing: '-0.01em' }}>AI Summary</h3>
-                      <p style={{ color:'#059669', fontFamily:'var(--font-varela)', fontWeight:700, lineHeight:'140%', fontSize:16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Review faster, anytime</p>
+                {/* Right Card: Quick stats */}
+                <div className="hidden lg:flex" style={{
+                  flex: 0.8, background: 'var(--background)', borderRadius: 16, border: '2px solid #333333',
+                  boxShadow: '0 6px 0 #333333', padding: 24, flexDirection: 'column', gap: 20
+                }}>
+                  {/* Streak Tracker */}
+                  <div>
+                    <h4 style={{ fontSize: 12, color: 'var(--tt-gray-light-a-600)', fontWeight: 700, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-outfit)' }}>Weekly Activity</h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
+                      {['M','T','W','T','F','S','S'].map((day, idx) => {
+                        const active = idx < 5;
+                        return (
+                          <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                            <div style={{
+                              width: 24, height: 24, borderRadius: '50%', background: active ? '#98FF98' : '#F1F5F9',
+                              border: '1.5px solid #333333',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800,
+                              color: active ? '#065F46' : '#94A3B8'
+                            }}>
+                              {active ? '✓' : ''}
+                            </div>
+                            <span style={{ fontSize: 10, color: 'var(--tt-gray-light-a-600)', fontWeight: 600 }}>{day}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                  <p style={{ fontSize:17, color:'#475569', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', maxWidth:443 }}>
-                    Turn lengthy lectures, articles, or textbooks into quick, scannable summaries so you understand the topic fast. Perfect before tests or quick revision.
-                  </p>
-                </div>
-                {/* Mockup */}
-                <div style={{ width:320, flexShrink:0, background:'white', borderRadius:12, border:'1px solid #e8e8ec', padding:20, boxShadow:'0 4px 24px rgba(0,0,0,0.06)' }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, paddingBottom:12, borderBottom:'1px solid #f3f4f6' }}>
-                    <span style={{ fontSize:11, fontWeight:700, color:'#059669' }}>AI Summary</span>
-                    <div style={{ display:'flex', gap:6 }}>
-                      {['A','A+','◫'].map(c => <span key={c} style={{ fontSize:11, fontWeight:700, color:'#ccc' }}>{c}</span>)}
-                    </div>
-                  </div>
-                  <div style={{ background:'#f0fdf4', borderRadius:10, padding:14, marginBottom:12 }}>
-                    <div style={{ fontSize:11, fontWeight:700, color:'#059669', marginBottom:8 }}>📋 Key Takeaways</div>
-                    {[95,80,70,60].map((w,i) => <div key={i} style={{ height:7, background:'rgba(5,150,105,0.15)', borderRadius:99, marginBottom:5, width:`${w}%` }} />)}
-                  </div>
-                  <div style={{ fontSize:11, fontWeight:700, color:'#333', marginBottom:8 }}>⚡ Quick Overview</div>
-                  {[100,85,65].map((w,i) => <div key={i} style={{ height:7, background:'#f3f4f6', borderRadius:99, marginBottom:5, width:`${w}%` }} />)}
-                </div>
-              </InteractiveFeatureCard>
-            </li>
 
-            {/* 3. AI Flashcards */}
-            <li style={{ width:'100%', maxWidth: 1000 }} className="reveal-child">
-              <InteractiveFeatureCard style={{ backgroundImage:'linear-gradient(to right, #FFF, #FEE)' }}>
-                <div style={{ flex:'1 1 400px', minWidth:0 }}>
-                  <div style={{ display:'flex', flexDirection:'row', alignItems:'center', gap:28, marginBottom:28 }}>
-                    <div style={{ width:88, height:88, background:'linear-gradient(135deg,#FEE2E2,#EF4444)', borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow: '0 8px 24px rgba(239, 68, 68, 0.15)' }}>
-                      <Stack style={{ width:40, height:40, color:'white' }} weight="light" />
+                  {/* Small Bar chart */}
+                  <div>
+                    <h4 style={{ fontSize: 12, color: 'var(--tt-gray-light-a-600)', fontWeight: 700, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-outfit)' }}>XP Streak</h4>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', height: 80, gap: 8, paddingTop: 10 }}>
+                      {[30, 45, 60, 20, 80, 0, 0].map((val, idx) => (
+                        <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                          <div style={{
+                            width: '100%', height: `${val}%`, background: idx === 4 ? '#C4B5FD' : '#DDD6FE',
+                            border: '1.5px solid #333',
+                            borderRadius: '4px 4px 0 0'
+                          }} />
+                        </div>
+                      ))}
                     </div>
-                    <div>
-                      <h3 style={{ color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:28, marginBottom:4, letterSpacing: '-0.01em' }}>AI Flashcards</h3>
-                      <p style={{ color:'#DC2626', fontFamily:'var(--font-varela)', fontWeight:700, lineHeight:'140%', fontSize:16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Make It Impossible to Forget</p>
-                    </div>
-                  </div>
-                  <p style={{ fontSize:17, color:'#475569', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', maxWidth:443 }}>
-                    Auto-generate flashcards from your material and practice active recall — the science-backed method that makes information stick.
-                  </p>
-                </div>
-                {/* Mockup */}
-                <div style={{ width:320, flexShrink:0 }}>
-                  <div style={{ background:'white', borderRadius:16, border:'1px solid #fecaca', padding:24, boxShadow:'0 4px 24px rgba(0,0,0,0.06)', marginBottom:10, minHeight:120, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8 }}>
-                    <span style={{ fontSize:10, fontWeight:800, color:'#dc2626', letterSpacing:'0.08em', textTransform:'uppercase' }}>Question</span>
-                    <p style={{ fontSize:13, fontWeight:600, color:'#333', textAlign:'center', lineHeight:1.5 }}>What is the powerhouse of the cell?</p>
-                    <div style={{ height:1, width:'60%', background:'#fee2e2', margin:'4px 0' }} />
-                    <p style={{ fontSize:12, fontWeight:500, color:'#aaa', textAlign:'center' }}>Tap to reveal answer →</p>
-                  </div>
-                  <div style={{ display:'flex', justifyContent:'center', gap:10 }}>
-                    {[{l:'✗ Again', c:'#fee2e2', t:'#dc2626'},{l:'~ Hard', c:'#fef3c7', t:'#d97706'},{l:'✓ Easy', c:'#d1fae5', t:'#059669'}].map(({l,c,t}) => (
-                      <div key={l} style={{ flex:1, background:c, borderRadius:8, padding:'7px 4px', textAlign:'center', fontSize:11, fontWeight:700, color:t }}>{l}</div>
-                    ))}
                   </div>
                 </div>
-              </InteractiveFeatureCard>
-            </li>
 
-            {/* 4. AI Quizzes */}
-            <li style={{ width:'100%', maxWidth: 1000 }} className="reveal-child">
-              <InteractiveFeatureCard style={{ backgroundImage:'linear-gradient(to right, #FFF, #ECE7FF)' }}>
-                <div style={{ flex:'1 1 400px', minWidth:0 }}>
-                  <div style={{ display:'flex', flexDirection:'row', alignItems:'center', gap:28, marginBottom:28 }}>
-                    <div style={{ width:88, height:88, background:'linear-gradient(135deg,#F8FAFC,#E2E8F0)', borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)' }}>
-                      <GraduationCap style={{ width:40, height:40, color:'#111' }} weight="light" />
-                    </div>
-                    <div>
-                      <h3 style={{ color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:28, marginBottom:4, letterSpacing: '-0.01em' }}>AI Quizzes</h3>
-                      <p style={{ color:'#4B0082', fontFamily:'var(--font-varela)', fontWeight:700, lineHeight:'140%', fontSize:16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Test yourself before exams do</p>
-                    </div>
-                  </div>
-                  <p style={{ fontSize:17, color:'#475569', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', maxWidth:443 }}>
-                    Auto-generate quizzes directly from your material. Check your understanding, spot gaps early, and find weak spots before the exam does.
-                  </p>
-                </div>
-                {/* Mockup */}
-                <div style={{ width:320, flexShrink:0, background:'white', borderRadius:12, border:'1px solid #e8e8ec', padding:20, boxShadow:'0 4px 24px rgba(0,0,0,0.06)' }}>
-                  <div style={{ fontSize:11, fontWeight:800, color:'#888', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:12 }}>Question 3 of 12</div>
-                  <p style={{ fontSize:13, fontWeight:600, color:'#333', lineHeight:1.6, marginBottom:14 }}>Which organelle is responsible for producing ATP?</p>
-                  {[
-                    { letter:'A', text:'Nucleus', correct:false },
-                    { letter:'B', text:'Mitochondria', correct:true },
-                    { letter:'C', text:'Ribosome', correct:false },
-                    { letter:'D', text:'Golgi apparatus', correct:false },
-                  ].map(({ letter, text, correct }) => (
-                    <div key={letter} style={{ display:'flex', gap:10, alignItems:'center', padding:'8px 12px', borderRadius:8, marginBottom:6, border:`1px solid ${correct ? 'rgba(75, 0, 130, 0.5)' : '#f3f4f6'}`, background: correct ? 'rgba(75, 0, 130, 0.06)' : '#fafafa' }}>
-                      <div style={{ width:22, height:22, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, flexShrink:0, background: correct ? '#4B0082' : '#e5e7eb', color: correct ? 'white' : '#aaa' }}>{letter}</div>
-                      <span style={{ fontSize:12, fontWeight: correct ? 700 : 400, color: correct ? '#4B0082' : '#666' }}>{text}</span>
-                      {correct && <Check style={{ width:12, height:12, color:'#111', marginLeft:'auto' }} weight="light" />}
-                    </div>
-                  ))}
-                </div>
-              </InteractiveFeatureCard>
-            </li>
-
-            {/* 5. AI Tutor */}
-            <li style={{ width:'100%', maxWidth: 1000 }} className="reveal-child">
-              <InteractiveFeatureCard style={{ backgroundImage:'linear-gradient(to right, #FFF, #E4FAFF)' }}>
-                <div style={{ flex:'1 1 400px', minWidth:0 }}>
-                  <div style={{ display:'flex', flexDirection:'row', alignItems:'center', gap:28, marginBottom:28 }}>
-                    <div style={{ width:88, height:88, background:'linear-gradient(135deg,#E0F2FE,#0284C7)', borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow: '0 8px 24px rgba(2, 132, 199, 0.15)' }}>
-                      <MessageSquare style={{ width:40, height:40, color:'white' }} weight="light" />
-                    </div>
-                    <div>
-                      <h3 style={{ color:'#111', fontFamily:'var(--font-outfit)', fontWeight:800, lineHeight:'140%', fontSize:28, marginBottom:4, letterSpacing: '-0.01em' }}>AI Tutor</h3>
-                      <p style={{ color:'#0284C7', fontFamily:'var(--font-varela)', fontWeight:700, lineHeight:'140%', fontSize:16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ask questions. Get clarity 24/7</p>
-                    </div>
-                  </div>
-                  <p style={{ fontSize:17, color:'#475569', fontFamily:'var(--font-varela)', fontWeight:400, lineHeight:'180%', maxWidth:443 }}>
-                    Chat with the AI Tutor, available 24/7, to explain concepts, clear confusion, and help you learn at your own pace. No more waiting for office hours.
-                  </p>
-                </div>
-                {/* Mockup — chat bubbles */}
-                <div style={{ width:320, flexShrink:0, background:'white', borderRadius:12, border:'1px solid #e8e8ec', padding:20, boxShadow:'0 4px 24px rgba(0,0,0,0.06)' }}>
-                  <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-                    <div style={{ alignSelf:'flex-end', maxWidth:'80%', background:'#f3f4f6', padding:'10px 14px', borderRadius:'12px 12px 0 12px', fontSize:12, fontWeight:600, color:'#555' }}>
-                      Can you explain osmosis simply?
-                    </div>
-                    <div style={{ maxWidth:'100%', background:'rgba(2,132,199,0.06)', border:'1px solid rgba(2,132,199,0.2)', padding:'12px 14px', borderRadius:'12px 12px 12px 0', fontSize:12, color:'#333' }}>
-                      <div style={{ fontWeight:700, color:'#0284c7', marginBottom:6, fontSize:11 }}>⚡ LUTER AI</div>
-                      <p style={{ lineHeight:1.7, fontWeight:400 }}>Osmosis is the movement of water molecules through a membrane from low to high concentration — like water trying to "balance itself out" across a barrier.</p>
-                    </div>
-                  </div>
-                </div>
-              </InteractiveFeatureCard>
-            </li>
-
-          </ul>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
+      {/* Logo Cloud */}
+      <section style={{ padding: '80px 0', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0', background: 'var(--background)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', marginBottom: 40, textAlign: 'center' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: '#F1F5F9', padding: '8px 16px', borderRadius: 999, border: '1px solid #E2E8F0', marginBottom: 16 }}>
+            <div style={{ display: 'flex' }}>
+              {[
+                'https://api.dicebear.com/7.x/avataaars/svg?seed=Nkechi&backgroundColor=b6e3f4',
+                'https://api.dicebear.com/7.x/avataaars/svg?seed=Tunde&backgroundColor=c0aede',
+                'https://api.dicebear.com/7.x/avataaars/svg?seed=Aisha&backgroundColor=ffdfbf',
+                'https://api.dicebear.com/7.x/avataaars/svg?seed=Chidi&backgroundColor=d1d4f9',
+                'https://api.dicebear.com/7.x/avataaars/svg?seed=Zainab&backgroundColor=b6e3f4'
+              ].map((avatar, i) => (
+                <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: `url(${avatar}) center/cover`, border: '2px solid #F1F5F9', marginLeft: i === 0 ? 0 : -10, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }} />
+              ))}
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--tt-gray-light-a-600)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Trusted by 100k+ Students</span>
+          </div>
+          <h3 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, color: 'var(--foreground)', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em', margin: 0 }}>
+            Empowering students at top universities worldwide.
+          </h3>
+        </div>
 
+        <LogoLoop
+          logos={logoItems.slice(0, 8)}
+          speed={60}
+          direction="left"
+          logoHeight={60}
+          gap={24}
+          hoverSpeed={0}
+          scaleOnHover={true}
+          fadeOut={true}
+          fadeOutColor="var(--background)"
+          ariaLabel="Partner universities row 1"
+        />
+        
+        <div style={{ marginTop: 24 }}>
+          <LogoLoop
+            logos={logoItems.slice(8, 16)}
+            speed={50}
+            direction="right"
+            logoHeight={60}
+            gap={24}
+            hoverSpeed={0}
+            scaleOnHover={true}
+            fadeOut={true}
+            fadeOutColor="var(--background)"
+            ariaLabel="Partner universities row 2"
+          />
+        </div>
+      </section>
 
-      
+      {/* ZigZag Features Section */}
+      <section style={{ padding: '120px 24px', background: 'var(--background)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 140 }}>
+          {ZIGZAG_FEATURES.map((feature, idx) => (
+            <div key={feature.id} className="zigzag-row" style={{ flexDirection: feature.reverse ? 'row-reverse' : 'row' }}>
+               {/* Text Content */}
+               <div style={{ flex: '1 1 400px' }}>
+                  <div style={{ display: 'inline-block', padding: '6px 16px', borderRadius: 999, background: `${feature.tagColor}15`, color: feature.tagColor, fontWeight: 800, textTransform: 'lowercase', fontSize: 14, marginBottom: 20, letterSpacing: '0.05em', border: `2px solid ${feature.tagColor}30` }}>
+                    {feature.tag}
+                  </div>
+                  <h2 style={{ fontSize: 'clamp(2.5rem, 4vw, 3.5rem)', fontWeight: 900, marginBottom: 24, fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em', color: 'var(--foreground)', lineHeight: 1.1 }}>
+                    {feature.title}
+                  </h2>
+                  <p style={{ fontSize: '1.25rem', color: 'var(--tt-gray-light-a-600)', lineHeight: 1.6, marginBottom: 40, fontWeight: 500 }}>
+                    {feature.description}
+                  </p>
+                  <PremiumButton>Try Luter - Full Access</PremiumButton>
+               </div>
+               
+               {/* Visual Side */}
+               <div style={{ flex: '1 1 400px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <feature.Visual />
+               </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-      <SharedFAQ items={homeFaqs} />
+      {/* Combined Background Wrapper for CEO Letter and Wall of Love */}
+      <div style={{
+        position: 'relative',
+        background: `
+          radial-gradient(ellipse 80% 60% at 0% 50%, rgba(151,24,251,0.12) 0%, transparent 60%),
+          radial-gradient(ellipse 80% 60% at 100% 50%, rgba(113,128,254,0.12) 0%, transparent 60%),
+          radial-gradient(ellipse 70% 70% at 50% 0%, rgba(196,181,253,0.16) 0%, transparent 55%),
+          var(--background)
+        `
+      }}>
+        {/* Top Fade from previous section */}
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '150px', background: 'linear-gradient(to bottom, var(--background) 0%, transparent 100%)', zIndex: 1, pointerEvents: 'none' }} />
 
-      
+        {/* CEO Letter Section */}
+        <section style={{ 
+          padding: '140px 24px 60px 24px', 
+          position: 'relative', 
+          overflow: 'hidden', 
+          display: 'flex', 
+          justifyContent: 'center',
+          zIndex: 2
+        }}>
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            maxWidth: 850,
+            background: 'var(--card-bg-light, #ffffff)',
+            padding: '80px 40px',
+            borderRadius: 32,
+            boxShadow: 'var(--card-shadow-letter, 0 25px 50px -12px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.02))',
+            border: 'var(--card-border-letter, none)',
+            fontFamily: "'Caveat', cursive",
+            color: 'var(--card-text-letter, #334155)',
+            fontSize: '2.4rem',
+            lineHeight: '1.5',
+            fontWeight: 600,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center'
+          }}>
+            {/* Floating Stickers */}
+            <div style={{ position: 'absolute', top: -30, right: 60, fontSize: '4rem', transform: 'rotate(15deg)', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.1))', zIndex: 3 }}>🚀</div>
+            <div style={{ position: 'absolute', bottom: 80, left: -20, fontSize: '4rem', transform: 'rotate(-15deg)', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.1))', zIndex: 3 }}>🧠</div>
+            <div style={{ position: 'absolute', top: 60, left: -20, fontSize: '3rem', transform: 'rotate(-25deg)', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.1))', zIndex: 3 }}>✨</div>
+            <div style={{ position: 'absolute', bottom: -20, right: 100, fontSize: '3.5rem', transform: 'rotate(10deg)', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.1))', zIndex: 3 }}>🎓</div>
+
+            {/* Decorative Quote Mark */}
+            <div style={{
+              position: 'absolute',
+              top: 20,
+              left: 40,
+              fontSize: '14rem',
+              color: 'var(--card-quote-mark)',
+              fontFamily: 'Georgia, serif',
+              lineHeight: 1,
+              zIndex: 1
+            }}>
+              "
+            </div>
+
+            <div style={{ position: 'relative', zIndex: 2, maxWidth: 700 }}>
+              <div style={{ marginBottom: 30, color: 'var(--foreground)', fontSize: '3.2rem', fontWeight: 700 }}>
+                They say studying is hard...
+              </div>
+              <div style={{ letterSpacing: '0.01em', marginBottom: 20 }}>
+                But we believe it's just a puzzle waiting to be solved. We built Luter because every student deserves to experience that "Aha!" moment.
+              </div>
+              <div style={{ letterSpacing: '0.01em', marginBottom: 40 }}>
+                Don't let exams intimidate you—turn your confusion into confidence and your hard work into top grades. Start learning today, and soon you'll realize...
+              </div>
+              <div style={{ fontSize: '3.6rem', color: '#2563EB', transform: 'rotate(-2deg)', marginBottom: 50 }}>
+                "You were always capable of brilliance."
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 40 }}>
+                <img src="/signature.png" alt="Michael Oluwayanmi Signature" style={{ height: 110, objectFit: 'contain', opacity: 0.9, mixBlendMode: 'multiply' }} />
+                <div style={{ fontSize: '1.2rem', color: 'var(--tt-gray-light-a-600)', marginTop: 4, fontFamily: "'Inter', sans-serif", fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  Michael Oluwayanmi
+                </div>
+                <div style={{ fontSize: '1rem', color: 'var(--tt-gray-light-a-600)', marginTop: 4, fontFamily: "'Inter', sans-serif" }}>
+                  CEO & Co-Founder
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Wall of Love Section */}
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          
+          <WallOfLove transparentBg={true} />
+
+          {/* Bottom Fade */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '200px', background: 'var(--card-gradient-fade)', zIndex: 10, pointerEvents: 'none' }} />
+        </div>
+      </div>
+
       <SharedFooter />
     </div>
   );

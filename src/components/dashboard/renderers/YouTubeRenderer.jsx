@@ -57,23 +57,23 @@ export default function YouTubeRenderer({ url }) {
   const embedUrl = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&autohide=1&showinfo=0`
 
   return (
-    <div className="w-full bg-gray-900 rounded-2xl overflow-hidden shadow-xl">
-      <div className="aspect-w-16 aspect-h-9">
+    <div className="w-full bg-gray-900 rounded-2xl overflow-hidden shadow-xl" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
         <iframe
           src={embedUrl}
-          className="w-full h-96 md:h-[500px] lg:h-[600px]"
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
           title="YouTube video player"
         />
       </div>
-      <div className="bg-gray-800 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Youtube size={20} className="text-red-500" />
-          <span className="text-white text-sm font-medium">YouTube Video</span>
+      <div style={{ background: '#1f2937', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Youtube size={20} color="#ef4444" />
+          <span style={{ color: 'white', fontSize: 14, fontWeight: 500 }}>YouTube Video</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
             onClick={() => {
               const iframe = document.querySelector('iframe')
@@ -81,8 +81,10 @@ export default function YouTubeRenderer({ url }) {
                 iframe.requestFullscreen()
               }
             }}
-            className="text-gray-400 hover:text-white transition-colors"
+            style={{ color: '#9ca3af', border: 'none', background: 'none', cursor: 'pointer', transition: 'color 150ms' }}
             title="Fullscreen"
+            onMouseEnter={e => e.currentTarget.style.color = 'white'}
+            onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
           >
             <Fullscreen size={18} />
           </button>

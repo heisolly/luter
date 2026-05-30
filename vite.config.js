@@ -160,6 +160,110 @@ export default defineConfig(({ mode }) => {
               });
               return;
             }
+            if (rawPath === '/api/daily-room' && req.method === 'POST') {
+              let body = '';
+              req.on('data', chunk => { body += chunk; });
+              req.on('end', async () => {
+                try {
+                  const { sessionId } = JSON.parse(body);
+                  const DAILY_API_KEY = env.DAILY_API_KEY;
+                  const DAILY_API_URL = 'https://api.daily.co/v1';
+
+                  if (!DAILY_API_KEY || !sessionId) {
+                    res.statusCode = 400;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify({ error: 'Missing DAILY_API_KEY or sessionId' }));
+                    return;
+                  }
+
+                  const roomName = `luter-session-${sessionId}`;
+                  const audioRoomProperties = {
+                    exp: Math.floor(Date.now() / 1000) + 86400,
+                    max_participants: 100,
+                    audio_only: true,
+                    start_video_off: true,
+                    enable_prejoin_ui: false,
+                    enable_screenshare: false,
+                  };
+
+                  // Check if room exists
+                  const existingRes = await fetch(`${DAILY_API_URL}/rooms/${roomName}`, {
+                    method: 'GET',
+                    headers: {
+                      'Authorization': `Bearer ${DAILY_API_KEY}`,
+                      'Content-Type': 'application/json',
+                    },
+                  });
+
+                  let roomUrl;
+                  if (existingRes.ok) {
+                    let room = await existingRes.json();
+                    const config = room.config || {};
+                    const needsAudioOnlyUpdate =
+                      config.audio_only !== true ||
+                      config.start_video_off !== true ||
+                      config.enable_prejoin_ui !== false ||
+                      config.enable_screenshare !== false;
+
+                    if (needsAudioOnlyUpdate) {
+                      const updateRes = await fetch(`${DAILY_API_URL}/rooms/${roomName}`, {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${DAILY_API_KEY}`,
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ properties: audioRoomProperties }),
+                      });
+
+                      if (!updateRes.ok) {
+                        throw new Error(`Failed to update room: ${updateRes.status}`);
+                      }
+
+                      room = await updateRes.json();
+                    }
+
+                    roomUrl = room.url;
+                  } else if (existingRes.status === 404) {
+                    // Create room
+                    const createRes = await fetch(`${DAILY_API_URL}/rooms`, {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${DAILY_API_KEY}`,
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        name: roomName,
+                        properties: audioRoomProperties,
+                      }),
+                    });
+
+                    if (!createRes.ok) {
+                      throw new Error(`Failed to create room: ${createRes.status}`);
+                    }
+
+                    const room = await createRes.json();
+                    roomUrl = room.url;
+                  } else {
+                    throw new Error(`Daily API error: ${existingRes.status}`);
+                  }
+
+                  res.statusCode = 200;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({
+                    success: true,
+                    roomUrl,
+                    roomName,
+                    sessionId,
+                  }));
+                } catch (e) {
+                  console.error('Daily API error:', e);
+                  res.statusCode = 500;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: e.message }));
+                }
+              });
+              return;
+            }
             next();
           });
         }
@@ -174,7 +278,7 @@ export default defineConfig(({ mode }) => {
             'vendor-excel': ['xlsx'],
             'vendor-langchain': ['langchain', '@langchain/core', '@langchain/community', '@langchain/google-genai'],
             'vendor-utils': ['jspdf', 'mammoth', 'jszip', 'docx-preview'],
-            'vendor-ui': ['framer-motion', 'gsap', 'lucide-react', '@phosphor-icons/react'],
+            'vendor-ui': ['framer-motion', 'gsap', '@phosphor-icons/react'],
           }
         }
       },
@@ -194,7 +298,8 @@ export default defineConfig(({ mode }) => {
         '@react-pdf-viewer/full-screen',
         'docx-preview',
         'react-player',
-        'react-quick-pinch-zoom'
+        'react-quick-pinch-zoom',
+        '@phosphor-icons/react'
       ]
     },
     worker: {
