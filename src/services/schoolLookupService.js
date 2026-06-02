@@ -1,5 +1,5 @@
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiaGVpc29sbHkiLCJhIjoiY21wc3Z0ang5MG5ybzJxcjF6djk0MDZiayJ9.SmwYAfMPqsJnD8snIKMz1Q';
-const EDUCATION_RE = /(university|college|school|polytechnic|campus|institute|academy|faculty)/i;
+const EDUCATION_RE = /(university|college|school|polytechnic|campus|institute|academy|faculty|univ)/i;
 
 export function getBrowserPosition() {
   return new Promise((resolve, reject) => {
@@ -48,7 +48,9 @@ function cleanFeature(feature, origin) {
   const name = feature.text || feature.place_name?.split(',')[0] || '';
   const placeName = feature.place_name || name;
   const haystack = `${name} ${placeName} ${feature.properties?.category || ''}`;
-  if (!name || !EDUCATION_RE.test(haystack)) return null;
+  
+  // Don't filter by education regex - show all results and let user choose
+  if (!name) return null;
 
   const distance = origin?.latitude && origin?.longitude && lat && lng
     ? distanceKm(origin.latitude, origin.longitude, lat, lng)
@@ -70,7 +72,7 @@ async function fetchGeocode({ query, latitude, longitude, radiusKm, limit = 8 })
     access_token: MAPBOX_TOKEN,
     autocomplete: 'true',
     limit: String(limit),
-    types: 'poi',
+    types: 'poi,place',
   });
 
   if (latitude != null && longitude != null) {
@@ -85,13 +87,13 @@ async function fetchGeocode({ query, latitude, longitude, radiusKm, limit = 8 })
   return response.json();
 }
 
-export async function searchSchools({ query = '', latitude, longitude, radiusKm = 120 } = {}) {
+export async function searchSchools({ query = '', latitude, longitude, radiusKm = 200 } = {}) {
   const origin = latitude != null && longitude != null ? { latitude, longitude } : null;
   const term = query.trim();
 
   const queries = term
-    ? [term, `${term} university`, `${term} college`, `${term} school`]
-    : ['university', 'college', 'polytechnic', 'campus'];
+    ? [term, `${term} university`, `${term} college`, `${term} school`, `${term} polytechnic`]
+    : ['university', 'college', 'polytechnic', 'campus', 'institute', 'academy'];
 
   // Use allSettled so a single Mapbox failure doesn't break the whole flow.
   const settled = await Promise.allSettled(
@@ -100,7 +102,7 @@ export async function searchSchools({ query = '', latitude, longitude, radiusKm 
       latitude,
       longitude,
       radiusKm: term ? null : radiusKm,
-      limit: term ? 10 : 7,
+      limit: term ? 15 : 10,
     }))
   );
 
@@ -127,7 +129,7 @@ export async function searchSchools({ query = '', latitude, longitude, radiusKm 
       if (b.distanceKm == null) return -1;
       return a.distanceKm - b.distanceKm;
     })
-    .slice(0, 12);
+    .slice(0, 15);
 
   return schools;
 }
