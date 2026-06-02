@@ -655,7 +655,7 @@ Focus on:
       try {
         response = await callGroqAPI([
           { role: 'user', content: flashcardPrompt }
-        ], GROQ_MODELS.SPEEDSTER, 0.3)
+        ], GROQ_MODELS.SPEEDSTER, { temperature: 0.3 })
       } catch (rateLimitError) {
         if (rateLimitError.message?.includes('429') || rateLimitError.message?.includes('rate limit')) {
           console.warn('Rate limit hit for flashcards, using fallback method')

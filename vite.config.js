@@ -14,6 +14,7 @@ import {
 } from './src/lib/curriculumSlugs.js'
 import { runSyllabusWebLayer } from './api/lib/syllabusWeb.js'
 import { readJsonBody } from './api/lib/readJsonBody.js'
+import { runMapboxSchoolSearch } from './api/lib/mapboxSchools.js'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -70,6 +71,25 @@ export default defineConfig(({ mode }) => {
         configureServer(server) {
           server.middlewares.use(async (req, res, next) => {
             const rawPath = req.url?.split('?')[0] || ''
+            if (req.method === 'GET' && rawPath === '/api/v1/mapbox/schools') {
+              try {
+                const url = new URL(req.url || '/', 'http://vite.local')
+                const out = await runMapboxSchoolSearch({
+                  query: url.searchParams.get('q') || '',
+                  latitude: url.searchParams.get('lat'),
+                  longitude: url.searchParams.get('lng'),
+                  radiusKm: url.searchParams.get('radiusKm'),
+                }, env)
+                res.statusCode = 200
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify(out))
+              } catch (e) {
+                res.statusCode = 500
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({ ok: false, error: String(e?.message || e), schools: [] }))
+              }
+              return
+            }
             if (req.method === 'GET' && rawPath === '/api/v1/curriculum') {
               const url = new URL(req.url || '/', 'http://vite.local')
               const uni = url.searchParams.get('uni') || ''

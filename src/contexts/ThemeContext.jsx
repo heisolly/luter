@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 const ThemeContext = createContext({
   theme: 'system',
   setTheme: () => null,
+  isDark: false,
 });
 
 export const ThemeProvider = ({ children }) => {
@@ -10,35 +11,21 @@ export const ThemeProvider = ({ children }) => {
     return localStorage.getItem('theme') || 'system';
   });
 
-  useEffect(() => {
-    const root = window.document.documentElement;
-    
-    // Remove both classes to start fresh
-    root.classList.remove('light', 'dark');
-
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      root.classList.add(systemTheme);
-      return;
+  const [systemDark, setSystemDark] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
+    return false;
+  });
 
-    root.classList.add(theme);
-  }, [theme]);
-
-  // Listen for system preference changes when in system mode
   useEffect(() => {
-    if (theme !== 'system') return;
-    
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e) => {
-      const root = window.document.documentElement;
-      root.classList.remove('light', 'dark');
-      root.classList.add(e.matches ? 'dark' : 'light');
-    };
-    
+    const handleChange = (e) => setSystemDark(e.matches);
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [theme]);
+  }, []);
+
+  const isDark = theme === 'dark' || (theme === 'system' && systemDark);
 
   const value = {
     theme,
@@ -46,6 +33,7 @@ export const ThemeProvider = ({ children }) => {
       localStorage.setItem('theme', newTheme);
       setTheme(newTheme);
     },
+    isDark,
   };
 
   return (

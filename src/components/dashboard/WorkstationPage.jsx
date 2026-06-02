@@ -106,10 +106,10 @@ import { WorkstationNotes, WorkstationSummary, WorkstationFlashcards, Workstatio
 import { saveToVault, fetchUserNotes, deleteUserNote } from '../../services/materialsService'
 import { queryStudyMaterials, reprocessMaterial } from '../../services/langchainPipeline'
 import { pollMaterialUntilReady } from '../../services/materialsService'
-const VoiceModeBlob = React.lazy(() => import('./voice/VoiceModeBlob'))
 import { preloadingService } from '../../services/preloadingService'
 import { useDeckStore } from '../../store/useDeckStore'
 import MaterialAnalysisService from '../../services/materialAnalysisService'
+import { askDograhVoiceAgent } from '../../services/dograhVoiceAgent'
 import './workstation.css'
 import { useHighlight } from '../../hooks/useHighlight.jsx'
 import { useAnnotation } from '../../hooks/useAnnotation'
@@ -304,9 +304,9 @@ function WorkstationContent() {
           : `Provide a concise, high-impact summary of this section: "${text}"`
 
         const response = await callGroqAPI(
-          GROQ_MODELS.LLAMA_3_70B,
           [{ role: 'user', content: prompt }],
-          GROQ_PROMPTS.EXPLAINER
+          GROQ_MODELS.PROFESSOR,
+          { systemPromptOverride: GROQ_PROMPTS.TUTOR }
         )
         setActiveExplanation(response)
 
@@ -660,6 +660,15 @@ function WorkstationContent() {
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel()
         const utterance = new SpeechSynthesisUtterance(responseText)
+        const toneSettings = {
+          'Natural': { rate: 1.0, pitch: 1.0 },
+          'Clear': { rate: 0.85, pitch: 1.1 },
+          'Warm': { rate: 0.9, pitch: 0.85 },
+          'Calm': { rate: 0.75, pitch: 0.9 },
+        }
+        const settings = toneSettings[selectedVoiceTone] || toneSettings['Natural']
+        utterance.rate = settings.rate
+        utterance.pitch = settings.pitch
         utterance.onend = () => setVoiceState('idle')
         utterance.onerror = () => setVoiceState('idle')
         setVoiceState('speaking')
@@ -674,12 +683,22 @@ function WorkstationContent() {
     }
   }
 
-  const startVoiceListening = () => {
+  const startVoiceListening = async () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SpeechRecognition) {
       setShowVoiceModal(true)
       setVoiceResponse('Voice input is not supported in this browser.')
       return
+    }
+    if (navigator.mediaDevices?.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        stream.getTracks().forEach(t => t.stop())
+      } catch {
+        setShowVoiceModal(true)
+        setVoiceResponse('Microphone access denied. Please allow microphone permissions in your browser settings.')
+        return
+      }
     }
 
     setShowVoiceModal(true)
@@ -881,11 +900,19 @@ function WorkstationContent() {
         stopVoiceListening()
       }
     }
+    const handleVisibilityChange = () => {
+      if (document.hidden && voiceState === 'speaking') {
+        window.speechSynthesis?.cancel()
+        setVoiceState('idle')
+      }
+    }
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [voiceState, selectedMaterial, viewportData?.currentPage])
 
@@ -1511,7 +1538,18 @@ function WorkstationContent() {
             finalResult = 'Notes generation failed.'
           }
           break;
-        case 'summary': finalResult = currentAnalysisRow?.summary || 'No summary available.'; break;
+        case 'summary': {
+          try {
+            const content = (selectedMaterial.extracted_text || '').replace(/\*\*/g, '').slice(0, 6000)
+            if (!content) { finalResult = 'No content available.'; break; }
+            const summaryPrompt = `You are Luter Tutor. Provide a concise executive summary of this material. Title: ${selectedMaterial.title}. Content: ${content}`
+            const response = await callGroqAPI([{ role: 'user', content: summaryPrompt }], GROQ_MODELS.SPEEDSTER, { systemPromptOverride: GROQ_PROMPTS.SUMMARY })
+            finalResult = response.choices[0].message.content
+          } catch {
+            finalResult = 'Summary generation failed.'
+          }
+          break;
+        }
         case 'flashcards': {
           console.log(`[runAnalysis] Generating flashcards...`)
           const fRes = await MaterialAnalysisService.generateFlashcards(currentAnalysisRow, 10, selectedMaterial);
@@ -3483,7 +3521,7 @@ function WorkstationContent() {
                   onClick={() => {
                     if (!equationInput.trim()) return
                     setPendingEquation(equationInput.trim())
-                    setAnnotationToolType('text')
+                    setDrawMode('text')
                     setIsEraserMode(false)
                     setShowEquationModal(false)
                   }}

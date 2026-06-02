@@ -1883,11 +1883,6 @@
   animation: ws-bubble-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes ws-bubble-pop {
-  from { opacity: 0; transform: translateX(-50%) translateY(-90%) scale(0.95); }
-  to { opacity: 1; transform: translateX(-50%) translateY(-110%) scale(1); }
-}
-
 .ws-glass-action {
   background: white;
   border: 1px solid #f1f1f1;
@@ -4560,7 +4555,7 @@
   }
 }
 
-@keyframes shimmer {
+@keyframes shimmer-skeleton {
   0% { background-position: -800px 0; }
   100% { background-position: 800px 0; }
 }
@@ -4573,7 +4568,7 @@
     #F3F4F6 75%
   );
   background-size: 800px 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  animation: shimmer-skeleton 1.5s ease-in-out infinite;
 }
 
 .summary-point {

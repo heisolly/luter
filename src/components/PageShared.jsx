@@ -29,9 +29,9 @@ import {
 } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import FallingElements from './shared/FallingElements';
-import LuterLogo from './shared/LuterLogo';
 import { getAppUrl } from '../utils/urlUtils';
 import ThemeToggle from './shared/ThemeToggle';
+import { useTheme } from '../contexts/ThemeContext';
 
 export const PremiumButton = ({ 
   children, to, onClick, 
@@ -179,16 +179,61 @@ export const AuthNavbar = ({ type = 'signin' }) => {
   const isSignIn = type === 'signin';
   
   return (
-    <div style={{ 
-      position: 'relative', zIndex: 100, padding: '24px 80px', 
+    <div className="auth-navbar" style={{
+      position: 'relative', zIndex: 100,
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       width: '100%', boxSizing: 'border-box'
     }}>
+      <style>{`
+        .auth-navbar {
+          padding: 24px 80px;
+        }
+
+        .auth-navbar-logo {
+          height: 44px;
+          width: auto;
+          display: block;
+        }
+
+        .auth-navbar-side {
+          display: flex;
+          align-items: center;
+          gap: 24px;
+        }
+
+        @media (max-width: 860px) {
+          .auth-navbar {
+            padding: 20px 28px;
+          }
+
+          .auth-navbar-logo {
+            height: 38px;
+          }
+
+          .auth-navbar-side {
+            gap: 12px;
+          }
+
+          .auth-navbar-side span {
+            display: none;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .auth-navbar {
+            padding: 18px 18px;
+          }
+
+          .auth-navbar-logo {
+            height: 34px;
+          }
+        }
+      `}</style>
       <Link to={getAppUrl("/")} style={{ textDecoration: 'none' }}>
-        <LuterLogo size={36} fontSize={28} />
+        <img src="/Header logo.png" alt="Luter" className="auth-navbar-logo" />
       </Link>
       
-      <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+      <div className="auth-navbar-side">
         <span style={{ fontSize: 14, fontWeight: 500, color: '#64748B', fontFamily: 'var(--font-outfit)' }}>
           {isSignIn ? "Don't have an account?" : "Already have an account?"}
         </span>
@@ -391,10 +436,9 @@ export function SharedFAQ({ items = [], title = "Frequently Asked Questions", su
   );
 }
 /* ── Animated nav link with sliding underline ── */
-const NavLink = ({ label, to: href, isActive, onMouseEnter, onMouseLeave }) => {
+const NavLink = ({ label, to: href, isActive, onMouseEnter, onMouseLeave, isDark }) => {
   const [hovered, setHovered] = useState(false);
   const active = isActive || hovered;
-  const isDark = document.documentElement.classList.contains('dark');
 
   return (
     <Link
@@ -456,6 +500,7 @@ export function SharedNavbar() {
   const [showLang, setShowLang] = useState(false);
   const [langSearch, setLangSearch] = useState('');
   const location = useLocation();
+  const { isDark } = useTheme();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -481,9 +526,9 @@ export function SharedNavbar() {
           animate={{
             width: scrolled ? 'min(100% - 48px, 940px)' : '100%',
             borderRadius: scrolled ? 100 : 0,
-            background: scrolled ? (document.documentElement.classList.contains('dark') ? 'rgba(26,26,26,0.95)' : 'rgba(255,255,255,0.95)') : 'rgba(255,255,255,0)',
-            border: scrolled ? (document.documentElement.classList.contains('dark') ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.08)') : '1px solid rgba(0,0,0,0)',
-            boxShadow: scrolled ? (document.documentElement.classList.contains('dark') ? '0 4px 24px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2)' : '0 4px 24px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)') : 'none',
+            background: scrolled ? (isDark ? 'rgba(26,26,26,0.95)' : 'rgba(255,255,255,0.95)') : 'rgba(255,255,255,0)',
+            border: scrolled ? (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.08)') : '1px solid rgba(0,0,0,0)',
+            boxShadow: scrolled ? (isDark ? '0 4px 24px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2)' : '0 4px 24px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)') : 'none',
             padding: scrolled ? '0 12px 0 28px' : '0 48px',
             height: scrolled ? 58 : 76,
           }}
@@ -522,7 +567,7 @@ export function SharedNavbar() {
               onMouseLeave={() => setShowFeatures(false)}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
-                <NavLink label="Features" to={getAppUrl('/features')} isActive={location.pathname === '/features' || showFeatures} />
+                <NavLink label="Features" to={getAppUrl('/features')} isActive={location.pathname === '/features' || showFeatures} isDark={isDark} />
                 <motion.div animate={{ rotate: showFeatures ? 180 : 0 }} transition={{ duration: 0.2 }}>
                   <ChevronDown size={14} weight="bold" color="#2e1065" style={{ marginTop: 2 }} />
                 </motion.div>
@@ -582,7 +627,7 @@ export function SharedNavbar() {
                 )}
               </AnimatePresence>
             </div>
-            <NavLink label="About us" to={getAppUrl('/about')} isActive={location.pathname === '/about'} />
+            <NavLink label="About us" to={getAppUrl('/about')} isActive={location.pathname === '/about'} isDark={isDark} />
           </div>
 
           {/* Desktop right buttons */}

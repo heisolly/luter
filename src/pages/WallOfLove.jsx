@@ -285,7 +285,7 @@ const Card = ({ card, paletteIndex, onClick }) => {
             boxShadow:"0 2px 8px rgba(0,0,0,0.06)",
             overflow:"hidden", flexShrink:0,
           }}>
-            <img src={avatarUrl(card.seed)} alt={card.name} width={56} height={56} loading="lazy"/>
+            <img src={avatarUrl(card.seed)} alt={card.name} width={56} height={56} decoding="async" fetchPriority="low" />
           </div>
           <div>
             <div style={{ fontSize:18, fontWeight:800, color:"#111827" }}>{card.name}</div>
@@ -335,12 +335,23 @@ const Row = ({ items, direction, speed, onCardClick, paletteOffset }) => {
   const doubled = [...items, ...items];
   const anim = direction === "left" ? "wol-left" : "wol-right";
   return (
-    <div style={{ overflow:"hidden", padding:"16px 0" }}>
-      <div style={{
-        display:"flex", gap:24, width:"max-content",
-        animation:`${anim} ${speed}s linear infinite`,
-        paddingLeft:12,
-      }}>
+    <div style={{
+      overflow:"hidden",
+      padding:"16px 0",
+      /* Force own GPU compositing layer on the clipping container */
+      transform: "translateZ(0)",
+      WebkitTransform: "translateZ(0)",
+      isolation: "isolate",
+    }}>
+      <div
+        className="wol-row-container"
+        style={{
+          display:"flex", gap:24, width:"max-content",
+          animation:`${anim} ${speed}s linear infinite`,
+          paddingLeft:12,
+          backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
+        }}>
         {doubled.map((card, i) => (
           <Card
             key={i}
@@ -368,12 +379,26 @@ export default function WallOfLove({ transparentBg = false }) {
   return (
     <>
       <style>{`
-        @keyframes wol-left    { 0%{transform:translateX(0)}    100%{transform:translateX(-50%)} }
-        @keyframes wol-right   { 0%{transform:translateX(-50%)} 100%{transform:translateX(0)}   }
+        @keyframes wol-left  { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
+        @keyframes wol-right { from { transform: translate3d(-50%,0,0); } to { transform: translate3d(0,0,0); } }
         @keyframes wol-fade-in { from{opacity:0} to{opacity:1} }
         @keyframes wol-pop-in  { from{opacity:0;transform:scale(0.88) translateY(24px)} to{opacity:1;transform:scale(1) translateY(0)} }
 
+        .wol-card { transition: transform 0.2s ease, filter 0.2s ease; }
         .wol-card:hover { filter: brightness(0.97); }
+
+        /* GPU layer: compositor-only transform animation, no layout/paint triggers */
+        .wol-row-container {
+          will-change: transform;
+          contain: layout style;
+          transform: translate3d(0,0,0);
+          -webkit-transform: translate3d(0,0,0);
+        }
+
+        /* Prevent animation from pausing when tab is hidden / browser throttles */
+        @media (prefers-reduced-motion: reduce) {
+          .wol-row-container { animation-play-state: paused !important; }
+        }
       `}</style>
 
       {/* ── Wall ── */}

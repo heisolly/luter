@@ -79,23 +79,25 @@ const GoogleLoginButton = () => {
     }
   };
 
-  const handleError = () => {
-    console.error('Google Login Failed');
+  const handleError = (error) => {
+    console.error('Google Login Failed', error);
+    // Silent fail - users can use email/password instead
+    // This handles cases where origin is not whitelisted in Google Cloud Console
   };
 
   return (
-    <div className="w-full flex flex-col items-center" style={{ marginBottom: '44px' }}>
+    <div className="w-full flex flex-col items-center" style={{ marginBottom: '16px' }}>
       {/* The Refined Custom Button Container */}
       <div className={`relative w-full h-[52px] group active:scale-[0.99] transition-all duration-200 ${isAuthenticating ? 'pointer-events-none opacity-75' : ''}`}>
         
         {/* Styled Layer: Premium Sleek Design */}
-        <div className="absolute inset-0 flex items-center justify-center gap-3 bg-white border-[1px] border-[#e8e8ec] rounded-xl transition-all duration-300 
-          group-hover:border-[var(--primary)] group-hover:shadow-[0_4px_16px_rgba(151,24,251,0.08)] pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center gap-3 bg-[#F9FAFB] border-[1px] border-[#C4B5FD]/70 rounded-full transition-all duration-300 
+          group-hover:border-[#FFD2A6] group-hover:shadow-[0_6px_18px_rgba(196,181,253,0.22)] pointer-events-none">
           
           {/* Custom Modern Google Icon or Loading Spinner */}
           <div className="w-5 h-5 flex items-center justify-center">
             {isAuthenticating ? (
-              <div className="w-[18px] h-[18px] border-2 border-gray-300 border-t-[var(--primary)] rounded-full animate-spin"></div>
+              <div className="w-[18px] h-[18px] border-2 border-[#FFD2A6] border-t-[#C4B5FD] rounded-full animate-spin"></div>
             ) : (
               <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -106,7 +108,7 @@ const GoogleLoginButton = () => {
             )}
           </div>
           
-          <span className="text-[14px] font-bold text-[#111] font-outfit uppercase tracking-wider">
+          <span className="text-[14px] font-bold text-[#333333] font-outfit uppercase tracking-wider">
             {isAuthenticating ? 'Signing in...' : 'Continue with Google'}
           </span>
         </div>

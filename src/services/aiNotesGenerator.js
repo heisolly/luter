@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient'
-import { callGroqAPI } from './groqClient'
+import { callGroqAPI } from '../groqClient'
 
 // ==================== NOTES GENERATION ====================
 

@@ -4,6 +4,7 @@ import { RiStackFill as Layers, RiLoader4Line as Loader2, RiFlashlightFill as Za
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
 import MaterialAnalysisService from '../../services/materialAnalysisService'
+import { reprocessMaterial } from '../../services/langchainPipeline'
 import LuterLogo from '../shared/LuterLogo'
 
 export default function FlashcardPage() {
@@ -37,14 +38,14 @@ export default function FlashcardPage() {
           text = latest.extracted_text
         } else {
           // Trigger emergency extraction
-          const res = await MaterialAnalysisService.reprocessMaterial(selectedMaterial)
+          const res = await reprocessMaterial(selectedMaterial)
           if (res.success) text = res.fullText
         }
       }
 
       if (!text) throw new Error('No content available in this material')
 
-      const result = await MaterialAnalysisService.generateDirectFlashcards(text, 10)
+      const result = await MaterialAnalysisService.generateDirectFlashcards({ extracted_text: text }, 10)
       if (result.success) {
         // Normalize cards for the local display
         const normalized = result.flashcards.map(c => ({

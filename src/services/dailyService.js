@@ -7,10 +7,14 @@ const dailyState = globalThis.__luterDailyAudioState || {
   logs: [],
   lastError: null,
   debugListenersAttached: false,
+  audioElements: new Map(),
+  speakerEnabled: true,
 }
 dailyState.logs ||= []
 dailyState.lastError ||= null
 dailyState.debugListenersAttached ||= false
+dailyState.audioElements ||= new Map()
+dailyState.speakerEnabled ??= true
 globalThis.__luterDailyAudioState = dailyState
 globalThis.__luterAudioDebug = dailyState
 
@@ -66,6 +70,95 @@ const offDailyEvent = (eventName, callback) => {
   if (typeof dailyState.callObject.removeEventListener === 'function') {
     dailyState.callObject.removeEventListener(eventName, callback)
   }
+}
+
+const getParticipantAudioTrack = (participant) => {
+  return participant?.tracks?.audio?.persistentTrack || participant?.tracks?.audio?.track || participant?.audioTrack || null
+}
+
+const removeRemoteAudioElement = (participantId) => {
+  const audio = dailyState.audioElements.get(participantId)
+  if (!audio) return
+
+  audio.pause()
+  audio.srcObject = null
+  audio.remove()
+  dailyState.audioElements.delete(participantId)
+  logDaily('info', 'Removed remote audio sink', { participantId })
+}
+
+const syncRemoteAudioElement = (participant) => {
+  if (!participant || participant.local) return
+
+  const participantId = participant.session_id || participant.user_id
+  const track = getParticipantAudioTrack(participant)
+  if (!participantId || !track || track.readyState === 'ended') {
+    if (participantId) removeRemoteAudioElement(participantId)
+    return
+  }
+
+  let audio = dailyState.audioElements.get(participantId)
+  if (!audio) {
+    audio = document.createElement('audio')
+    audio.autoplay = true
+    audio.playsInline = true
+    audio.dataset.luterDailyAudio = participantId
+    audio.style.display = 'none'
+    document.body.appendChild(audio)
+    dailyState.audioElements.set(participantId, audio)
+    logDaily('info', 'Created remote audio sink', { participantId })
+  }
+
+  const currentTrack = audio.srcObject?.getAudioTracks?.()[0]
+  if (currentTrack !== track) {
+    audio.srcObject = new MediaStream([track])
+    logDaily('info', 'Attached remote audio track', {
+      participantId,
+      trackState: participant.tracks?.audio?.state,
+      trackReadyState: track.readyState,
+      trackEnabled: track.enabled,
+    })
+  }
+
+  audio.muted = !dailyState.speakerEnabled
+  audio.volume = dailyState.speakerEnabled ? 1 : 0
+
+  audio.play().catch((error) => {
+    logDaily('warn', 'Remote audio autoplay is blocked or delayed', {
+      participantId,
+      message: error?.message,
+    })
+    const retryPlay = () => {
+      audio.play().catch(() => null)
+      document.removeEventListener('click', retryPlay, true)
+      document.removeEventListener('touchstart', retryPlay, true)
+    }
+    document.addEventListener('click', retryPlay, true)
+    document.addEventListener('touchstart', retryPlay, true)
+  })
+}
+
+const syncRemoteAudioElements = () => {
+  if (!dailyState.callObject) return
+
+  const participants = Object.values(dailyState.callObject.participants())
+  const activeRemoteIds = new Set()
+
+  participants.forEach((participant) => {
+    if (!participant?.local && (participant.session_id || participant.user_id)) {
+      activeRemoteIds.add(participant.session_id || participant.user_id)
+      syncRemoteAudioElement(participant)
+    }
+  })
+
+  dailyState.audioElements.forEach((_, participantId) => {
+    if (!activeRemoteIds.has(participantId)) removeRemoteAudioElement(participantId)
+  })
+
+  logDaily('info', 'Synced remote audio sinks', {
+    remoteParticipants: activeRemoteIds.size,
+    audioSinks: dailyState.audioElements.size,
+  })
 }
 
 const audioOnlyCallOptions = {
@@ -163,9 +256,32 @@ export const dailyService = {
         })
         onDailyEvent('joined-meeting', (event) => {
           logDaily('info', 'Daily joined meeting', event)
+          syncRemoteAudioElements()
         })
         onDailyEvent('left-meeting', (event) => {
           logDaily('info', 'Daily left meeting', event)
+        })
+        onDailyEvent('participant-joined', (event) => {
+          logDaily('info', 'Daily participant joined', { participant: event?.participant?.session_id })
+          syncRemoteAudioElements()
+        })
+        onDailyEvent('participant-updated', (event) => {
+          syncRemoteAudioElement(event?.participant)
+        })
+        onDailyEvent('participant-left', (event) => {
+          removeRemoteAudioElement(event?.participant?.session_id || event?.participant?.user_id)
+        })
+        onDailyEvent('track-started', (event) => {
+          if (event?.type === 'audio') {
+            logDaily('info', 'Daily remote audio track started', { participant: event?.participant?.session_id })
+            syncRemoteAudioElement(event?.participant)
+          }
+        })
+        onDailyEvent('track-stopped', (event) => {
+          if (event?.type === 'audio') {
+            logDaily('info', 'Daily remote audio track stopped', { participant: event?.participant?.session_id })
+            syncRemoteAudioElements()
+          }
         })
         dailyState.debugListenersAttached = true
       }
@@ -188,6 +304,7 @@ export const dailyService = {
           meetingState: dailyState.callObject.meetingState(),
           participants: dailyState.callObject.participantCounts?.(),
         })
+        syncRemoteAudioElements()
         return dailyState.callObject
       }).finally(() => {
         dailyState.joinPromise = null
@@ -223,6 +340,7 @@ export const dailyService = {
           await dailyState.callObject.destroy().catch(() => null)
           dailyState.callObject = null
           dailyState.debugListenersAttached = false
+          dailyState.audioElements.forEach((_, participantId) => removeRemoteAudioElement(participantId))
         }
 
         dailyState.leaveTimer = null
@@ -253,6 +371,7 @@ export const dailyService = {
         await dailyState.callObject.destroy().catch(() => null)
         dailyState.callObject = null
         dailyState.debugListenersAttached = false
+        dailyState.audioElements.forEach((_, participantId) => removeRemoteAudioElement(participantId))
       }
     } catch (error) {
       setLastError(error, 'Failed to destroy Daily room')
@@ -278,18 +397,16 @@ export const dailyService = {
    */
   async setSpeakerEnabled(enabled) {
     try {
-      if (dailyState.callObject) {
-        const participants = dailyState.callObject.participants()
-        await Promise.all(
-          Object.values(participants)
-            .filter((participant) => participant?.session_id && participant.session_id !== 'local')
-            .map((participant) =>
-              dailyState.callObject.updateParticipant(participant.session_id, {
-                setSubscribedTracks: { audio: enabled },
-              }),
-            ),
-        )
-      }
+      dailyState.speakerEnabled = enabled
+      dailyState.audioElements.forEach((audio) => {
+        audio.muted = !enabled
+        audio.volume = enabled ? 1 : 0
+        if (enabled) audio.play().catch(() => null)
+      })
+      logDaily('info', 'Updated speaker playback state', {
+        enabled,
+        audioSinks: dailyState.audioElements.size,
+      })
     } catch (error) {
       setLastError(error, 'Failed to toggle speaker')
       throw error
@@ -357,6 +474,8 @@ export const dailyService = {
       participantCounts: dailyState.callObject?.participantCounts?.(),
       lastError: dailyState.lastError,
       logs: dailyState.logs,
+      audioSinks: dailyState.audioElements.size,
+      speakerEnabled: dailyState.speakerEnabled,
     }
   },
 }
