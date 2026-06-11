@@ -113,15 +113,14 @@ const GoogleLoginButton = () => {
           </span>
         </div>
 
-        {/* Hidden Interactive Google Component Layer */}
-        <div className={`absolute inset-0 ${isAuthenticating ? 'pointer-events-none' : 'opacity-0 cursor-pointer'} overflow-hidden z-10`}>
+        {/* Invisible Google iframe layer — covers the styled button exactly for click capture */}
+        <div className="absolute inset-0 z-10" style={{ opacity: 0.01, overflow: 'visible' }}>
           <GoogleLogin
             onSuccess={handleSuccess}
             onError={handleError}
             useOneTap={false}
             theme="outline"
             shape="rectangular"
-            width="400px" 
             text="continue_with"
             disabled={isAuthenticating}
           />
