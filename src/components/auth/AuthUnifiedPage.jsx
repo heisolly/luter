@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   RiCheckboxCircleFill as CheckCircle,
@@ -39,6 +39,17 @@ export default function AuthUnifiedPage({ initialMode = 'signin' }) {
 
   const queryParams = new URLSearchParams(window.location.search);
   const redirectPath = queryParams.get('redirect') || (mode === 'signup' ? '/onboarding' : '/dashboard');
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
+        clearLuterCaches();
+        const targetPath = redirectPath.startsWith('/') ? redirectPath : `/${redirectPath}`;
+        navigate(targetPath);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const switchMode = (nextMode, path) => {
     setMode(nextMode);

@@ -20,7 +20,7 @@ import { useTourStore } from '../../store/useTourStore'
 function DashboardMobileBottomNav({ pathname, navigate, onMore }) {
   const isActive = (target) => {
     if (target === '/dashboard') return pathname === '/dashboard' || pathname === '/dashboard/' || pathname === '/home'
-    if (target === '/dashboard/courses') return pathname.startsWith('/dashboard/courses') || pathname.startsWith('/backpack')
+    if (target === '/dashboard/backpack') return pathname.startsWith('/dashboard/backpack') || pathname.startsWith('/backpack')
     if (target === '/sessions') return pathname.startsWith('/sessions') || pathname.startsWith('/dashboard/sessions')
     if (target === '/dashboard/notes') return pathname.startsWith('/dashboard/notes') || pathname.startsWith('/notes')
     return pathname === target || pathname.startsWith(`${target}/`)
@@ -28,7 +28,7 @@ function DashboardMobileBottomNav({ pathname, navigate, onMore }) {
 
   const items = [
     { label: 'Home', path: '/dashboard', icon: House },
-    { label: 'Backpack', path: '/dashboard/courses', icon: Backpack },
+    { label: 'Backpack', path: '/dashboard/backpack', icon: Backpack },
     { label: 'Sessions', path: '/sessions', icon: UsersThree },
     { label: 'Notes', path: '/dashboard/notes', icon: NotePencil },
   ]

@@ -1323,7 +1323,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                     <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px', color: '#111' }}>No courses available</h3>
                     <p style={{ margin: 0, lineHeight: 1.6 }}>Please add courses to your backpack first to create mock exams.</p>
                     <button 
-                      onClick={() => navigate('/dashboard/courses')}
+                      onClick={() => navigate('/dashboard/backpack')}
                       style={{ 
                         marginTop: 24, 
                         padding: '12px 24px', 

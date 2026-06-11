@@ -274,7 +274,7 @@ export default function App() {
             <Route path="/library" element={<LibraryPage />} />
             <Route path="/groups" element={<StudyGroupsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/backpack" element={<Navigate to="/dashboard/courses" replace />} />
+            <Route path="/backpack" element={<Navigate to="/dashboard/backpack" replace />} />
             <Route path="/playground" element={<PlaygroundPage />} />
             <Route path="/mock-exams" element={<MockExamPage />} />
             <Route path="/progress" element={<AnalyticsPage />} />
