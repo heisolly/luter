@@ -107,10 +107,62 @@ export const playgroundService = {
     if (error) throw error
   },
 
+  async updateRoomMetadata(roomId, patch = {}) {
+    const { data: room, error: fetchError } = await supabase
+      .from('playground_rooms')
+      .select('metadata')
+      .eq('id', roomId)
+      .single()
+
+    if (fetchError) throw fetchError
+
+    const metadata = {
+      ...(room?.metadata || {}),
+      ...patch,
+    }
+
+    const { data, error } = await supabase
+      .from('playground_rooms')
+      .update({ metadata })
+      .eq('id', roomId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  async finishRoom(roomId, patch = {}) {
+    const { data: room, error: fetchError } = await supabase
+      .from('playground_rooms')
+      .select('metadata')
+      .eq('id', roomId)
+      .single()
+
+    if (fetchError) throw fetchError
+
+    const metadata = {
+      ...(room?.metadata || {}),
+      ...patch,
+      finished_at: patch.finished_at || new Date().toISOString(),
+    }
+
+    const { data, error } = await supabase
+      .from('playground_rooms')
+      .update({ status: 'finished', metadata })
+      .eq('id', roomId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
   // ── GAMEPLAY & CONTENT ──
 
   async generateAIQuestions(gameType, subject, count = 10) {
-    const prompt = `You are a study game assistant. Generate exactly 15 high-quality study questions for a "${gameType}" game on the subject: "${subject}".
+    const safeCount = Math.max(4, Math.min(Number(count) || 10, 15))
+    const prompt = `You are a study game assistant. Generate exactly ${safeCount} high-quality study quiz items for a "${gameType}" game on the subject: "${subject}".
     
     CRITICAL: Output ONLY a valid JSON object. 
     NO markdown bolding (**), NO formatting, NO conversational text.
@@ -118,15 +170,16 @@ export const playgroundService = {
     Format:
     {
       "questions": [
-        {"term": "Direct concept", "definition": "Brief, clear explanation"},
+        {"term": "Direct question or concept", "definition": "The correct answer"},
         ...
       ]
     }
     
     Rules:
-    1. definitions must be under 150 characters.
-    2. terms must be plain text (no **asterisks**).
-    3. ensure valid JSON escaping for quotes.`
+    1. For clut-live, make terms read like real quiz questions where possible.
+    2. definitions must be under 150 characters.
+    3. terms must be plain text (no **asterisks**).
+    4. ensure valid JSON escaping for quotes.`
 
     try {
       const response = await callGroqAPI(

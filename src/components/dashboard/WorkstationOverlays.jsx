@@ -5,21 +5,21 @@ import { useReadingSpace } from './ReadingSpaceContext'
 import {
   Sparkle,
   Highlighter,
-  ChatCircle,
-  ChatCircleText,
+  MessageCircle as ChatCircle,
+  MessageCircleMore as ChatCircleText,
   Copy,
-  Cards,
-  Question,
-  Lightning,
+  Layers as SquareStack,
+  CircleHelp as Question,
+  Zap as Lightning,
   X,
-} from '@phosphor-icons/react'
+} from 'lucide-react'
 
 const SELECTION_ACTIONS = [
   { id: 'highlight', label: 'Highlight', icon: Highlighter, color: '#FFFFFF' },
   { id: 'send_to_ai', label: 'Ask Luter', icon: ChatCircle, color: '#FFFFFF' },
   { id: 'comment', label: 'Comment', icon: ChatCircleText, color: '#FFFFFF' },
   { id: 'copy', label: 'Copy', icon: Copy, color: '#FFFFFF' },
-  { id: 'flashcard', label: 'Make Flashcard', icon: Cards, color: '#FFFFFF' },
+  { id: 'flashcard', label: 'Make Flashcard', icon: SquareStack, color: '#FFFFFF' },
   { id: 'quiz', label: 'Quiz this', icon: Question, color: '#FFFFFF' },
   { id: 'divider' },
   { id: 'explain', label: 'Explain instantly', icon: Lightning, color: '#A78BFA' },

@@ -12,6 +12,8 @@ export function useAnnotation({
   const canvasRefs = useRef({});
   const [isDrawing, setIsDrawing] = useState(false);
   const currentPathRef = useRef([]); // Use ref instead of state to avoid stale closure in stopDrawing
+  const startPointRef = useRef(null);
+  const baseImageRef = useRef(null);
   const [drawMode, setDrawMode] = useState('pen');
   const [strokeColor, setStrokeColor] = useState('#111827');
   const [strokeSize, setStrokeSize] = useState(3);
@@ -47,10 +49,46 @@ export function useAnnotation({
   }, [isActive]);
 
   // ─── Draw a received stroke onto a canvas ───────────────────────────
+  const drawArrowHead = (ctx, from, to, size = 4) => {
+    const angle = Math.atan2(to.y - from.y, to.x - from.x);
+    const length = Math.max(12, size * 4);
+    ctx.beginPath();
+    ctx.moveTo(to.x, to.y);
+    ctx.lineTo(
+      to.x - length * Math.cos(angle - Math.PI / 6),
+      to.y - length * Math.sin(angle - Math.PI / 6)
+    );
+    ctx.moveTo(to.x, to.y);
+    ctx.lineTo(
+      to.x - length * Math.cos(angle + Math.PI / 6),
+      to.y - length * Math.sin(angle + Math.PI / 6)
+    );
+    ctx.stroke();
+  };
+
+  const drawLineShape = (ctx, from, to, color, size, mode) => {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = color || '#111827';
+    ctx.lineWidth = size || 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(to.x, to.y);
+    ctx.stroke();
+    if (mode === 'arrow') drawArrowHead(ctx, from, to, size);
+    ctx.closePath();
+  };
+
   const drawStrokeOnCanvas = useCallback((pageNum, points, color, size, mode) => {
     const canvas = canvasRefs.current[pageNum];
     const ctx = ctxRef.current[pageNum];
     if (!canvas || !ctx || !points || points.length === 0) return;
+
+    if ((mode === 'line' || mode === 'arrow') && points.length >= 2) {
+      drawLineShape(ctx, points[0], points[points.length - 1], color, size, mode);
+      return;
+    }
 
     ctx.beginPath();
     if (mode === 'erase') {
@@ -150,6 +188,8 @@ export function useAnnotation({
     isDrawingRef.current = true;
     setIsDrawing(true);
     currentPathRef.current = [{ x, y }];
+    startPointRef.current = { x, y };
+    baseImageRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
     
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -163,11 +203,13 @@ export function useAnnotation({
       ctx.strokeStyle = strokeColorRef.current;
       ctx.lineWidth = strokeSizeRef.current;
       
-      if (drawModeRef.current === 'pen') {
+    if (drawModeRef.current === 'pen') {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
       } else if (drawModeRef.current === 'line') {
-        ctx.lineCap = 'square';
+        ctx.lineCap = 'round';
+      } else if (drawModeRef.current === 'arrow') {
+        ctx.lineCap = 'round';
       }
     }
     
@@ -195,6 +237,18 @@ export function useAnnotation({
     if (drawModeRef.current === 'pen' || drawModeRef.current === 'eraser') {
       ctx.lineTo(x, y);
       ctx.stroke();
+    } else if (drawModeRef.current === 'line' || drawModeRef.current === 'arrow') {
+      if (baseImageRef.current) {
+        ctx.putImageData(baseImageRef.current, 0, 0);
+      }
+      drawLineShape(
+        ctx,
+        startPointRef.current || currentPathRef.current[0],
+        { x, y },
+        strokeColorRef.current,
+        strokeSizeRef.current,
+        drawModeRef.current
+      );
     }
   }, [isActive]);
 
@@ -205,6 +259,17 @@ export function useAnnotation({
     
     const ctx = ctxRef.current[pageNum];
     if (ctx) {
+      if ((drawModeRef.current === 'line' || drawModeRef.current === 'arrow') && baseImageRef.current && currentPathRef.current.length >= 2) {
+        ctx.putImageData(baseImageRef.current, 0, 0);
+        drawLineShape(
+          ctx,
+          currentPathRef.current[0],
+          currentPathRef.current[currentPathRef.current.length - 1],
+          strokeColorRef.current,
+          strokeSizeRef.current,
+          drawModeRef.current
+        );
+      }
       ctx.closePath();
       ctx.globalCompositeOperation = 'source-over';
     }
@@ -218,11 +283,13 @@ export function useAnnotation({
         color: drawModeRef.current === 'eraser' ? '#ffffff' : strokeColorRef.current,
         size: drawModeRef.current === 'eraser' ? 20 : strokeSizeRef.current,
         points: path,
-        mode: drawModeRef.current === 'eraser' ? 'erase' : 'draw',
+        mode: drawModeRef.current === 'eraser' ? 'erase' : drawModeRef.current,
       });
     }
 
     currentPathRef.current = [];
+    startPointRef.current = null;
+    baseImageRef.current = null;
     
     // Save after drawing stops (debounced 2s)
     scheduleSave(pageNum);

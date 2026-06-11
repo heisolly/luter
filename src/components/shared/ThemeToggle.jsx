@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, Desktop, CaretDown } from '@phosphor-icons/react';
+import { Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -22,10 +22,10 @@ export default function ThemeToggle({ className = '' }) {
   const options = [
     { id: 'light', label: 'Light', icon: Sun },
     { id: 'dark', label: 'Dark', icon: Moon },
-    { id: 'system', label: 'System', icon: Desktop },
+    { id: 'system', label: 'System', icon: Monitor },
   ];
 
-  const CurrentIcon = options.find(opt => opt.id === theme)?.icon || Desktop;
+  const CurrentIcon = options.find(opt => opt.id === theme)?.icon || Monitor;
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef} style={{ display: 'flex' }}>

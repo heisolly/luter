@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { RiBarChartFill as BarChart3, RiLineChartFill as TrendingUp, RiArrowDownFill as TrendingDown, RiFocusFill as Target, RiFlashlightFill as Zap, RiTimeFill as Clock, RiBookOpenFill as BookOpen, RiLoader4Line as Loader2, RiAwardFill as Award, RiHistoryFill as History, RiArrowRightSLine as ChevronRight, RiFlaskFill as FlaskConical, RiAlertFill as AlertTriangle } from 'react-icons/ri'
-import { LuterPageLoader } from '../shared/LuterPageLoader'
+import { ContentSkeleton } from '../shared/LuterPageLoader'
 import { supabase } from '../../supabaseClient'
 import { motion } from 'framer-motion'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
@@ -87,10 +87,6 @@ export default function AnalyticsPage() {
 
     fetchAnalytics()
   }, [user, ready])
-
-  if (loading && !ready) {
-    return <LuterPageLoader message="Analyzing your progress..." minHeight="100vh" />
-  }
 
   const hasData = courses.length > 0
   const avgProgress = hasData ? Math.round(courses.reduce((sum, c) => sum + c.progress, 0) / courses.length) : 0

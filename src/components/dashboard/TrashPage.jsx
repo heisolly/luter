@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import { useOutletContext } from 'react-router-dom'
 import { Search, PenTool, Youtube, FileText, RotateCcw, Trash2 } from 'lucide-react'
-import { LuterPageLoader } from '../shared/LuterPageLoader'
+import { ListSkeleton } from '../shared/LuterPageLoader'
 
 export default function TrashPage() {
   const { user } = useOutletContext()
@@ -96,7 +96,7 @@ export default function TrashPage() {
 
       <div className="trash-content">
         {loading ? (
-          <LuterPageLoader message="Scanning trash..." />
+          <ListSkeleton count={5} />
         ) : filteredItems.length > 0 ? (
           <div style={{ display: 'grid', gap: '12px' }}>
             {filteredItems.map(item => (

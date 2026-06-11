@@ -1,4 +1,3 @@
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { GoogleOAuthProvider } from '@react-oauth/google'
@@ -43,21 +42,22 @@ if (typeof window !== 'undefined') {
 }
 
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
+import { IconProvider } from './components/IconProvider.jsx'
 
 // Safe Boot Loader: Ensures PDF.js and crucial globals are ready before React mounts
 function mountApp() {
   createRoot(document.getElementById('root')).render(
-    <StrictMode>
-      <AppErrorBoundary>
-        <ThemeProvider>
+    <AppErrorBoundary>
+      <ThemeProvider>
+        <IconProvider>
           <GoogleOAuthProvider clientId={clientId}>
             <BrowserRouter>
               <App />
             </BrowserRouter>
           </GoogleOAuthProvider>
-        </ThemeProvider>
-      </AppErrorBoundary>
-    </StrictMode>,
+        </IconProvider>
+      </ThemeProvider>
+    </AppErrorBoundary>,
   )
 }
 

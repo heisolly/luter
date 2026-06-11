@@ -4,6 +4,12 @@ import { Users, UserMinus, Shield, ShieldAlert, Loader } from 'lucide-react'
 import { supabase } from '../../supabaseClient'
 import { useSessionStore } from '../../store/useSessionStore'
 
+const PROFILE_SELECT = 'id, full_name, username'
+
+const getProfileName = (profile, fallback) => (
+  profile?.username || profile?.full_name || fallback
+)
+
 export default function SessionMembersList({ session, user }) {
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -33,16 +39,25 @@ export default function SessionMembersList({ session, user }) {
         const userIds = data.map(m => m.user_id)
         
         // Always include owner in the fetch if they aren't in the list
-        if (!userIds.includes(session.user_id)) {
+        if (session.user_id && !userIds.includes(session.user_id)) {
           userIds.push(session.user_id)
         }
 
-        const { data: profiles, error: pErr } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .in('id', userIds)
-        
-        if (pErr) throw pErr
+        let profiles = []
+        try {
+          const { data: pData, error: pErr } = await supabase
+            .from('profiles')
+            .select(PROFILE_SELECT)
+            .in('id', userIds)
+          
+          if (!pErr && pData) {
+            profiles = pData
+          } else if (pErr) {
+            console.error('Error fetching profiles:', pErr)
+          }
+        } catch (e) {
+          console.error('Error fetching profiles:', e)
+        }
 
         const ownerProfile = profiles?.find(p => p.id === session.user_id)
         
@@ -50,20 +65,20 @@ export default function SessionMembersList({ session, user }) {
           const profile = profiles?.find(p => p.id === member.user_id)
           return {
             ...member,
-            name: profile?.full_name || profile?.email?.split('@')[0] || 'Peer Student',
-            email: profile?.email || ''
+            name: getProfileName(profile, member.user_id === user?.id ? user?.email?.split('@')[0] || 'You' : 'Peer Student'),
+            email: member.user_id === user?.id ? user?.email || '' : ''
           }
         })
 
         // Ensure owner is at the top, even if not explicitly in deck_session_members yet
         const allMembers = []
-        if (ownerProfile) {
+        if (session.user_id) {
           allMembers.push({
             session_id: session.id,
             user_id: session.user_id,
             role: 'owner',
-            name: ownerProfile.full_name || ownerProfile.email?.split('@')[0] || 'Owner',
-            email: ownerProfile.email || '',
+            name: getProfileName(ownerProfile, session.user_id === user?.id ? user?.email?.split('@')[0] || 'You' : 'Owner'),
+            email: session.user_id === user?.id ? user?.email || '' : '',
             last_seen_at: session.updated_at
           })
         }
@@ -77,27 +92,47 @@ export default function SessionMembersList({ session, user }) {
         setMembers(allMembers)
       } else {
         // Just show owner
-        const { data: ownerProfile } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .eq('id', session.user_id)
-          .single()
-
-        if (ownerProfile) {
-          setMembers([{
-            session_id: session.id,
-            user_id: session.user_id,
-            role: 'owner',
-            name: ownerProfile.full_name || ownerProfile.email?.split('@')[0] || 'Owner',
-            email: ownerProfile.email || '',
-            last_seen_at: session.updated_at
-          }])
-        } else {
+        if (!session.user_id) {
           setMembers([])
+          return
         }
+
+        let ownerProfile = null
+        try {
+          const { data: opData } = await supabase
+            .from('profiles')
+            .select(PROFILE_SELECT)
+            .eq('id', session.user_id)
+            .maybeSingle()
+          ownerProfile = opData
+        } catch (e) {
+          console.error('Error fetching owner profile:', e)
+        }
+
+        setMembers([{
+          session_id: session.id,
+          user_id: session.user_id,
+          role: 'owner',
+          name: getProfileName(ownerProfile, session.user_id === user?.id ? user?.email?.split('@')[0] || 'You' : 'Owner'),
+          email: session.user_id === user?.id ? user?.email || '' : '',
+          last_seen_at: session.updated_at
+        }])
       }
     } catch (err) {
       console.error('Error fetching members:', err)
+      // Fallback to just showing the owner if everything else fails
+      if (session?.user_id) {
+        setMembers([{
+          session_id: session.id,
+          user_id: session.user_id,
+          role: 'owner',
+          name: 'Owner',
+          email: '',
+          last_seen_at: session.updated_at
+        }])
+      } else {
+        setMembers([])
+      }
     } finally {
       setLoading(false)
     }

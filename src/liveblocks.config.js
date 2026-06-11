@@ -1,36 +1,66 @@
 import { createClient } from "@liveblocks/client";
 import { createRoomContext } from "@liveblocks/react";
+import { supabase } from "./supabaseClient";
+import { useLiveblocksFallback } from "./context/LiveblocksFallbackContext";
 
 const client = createClient({
-  publicApiKey: import.meta.env.VITE_LIVEBLOCKS_PUBLIC_KEY,
+  authEndpoint: async (room) => {
+    const { data } = await supabase.auth.getSession();
+    const headers = {
+      "Content-Type": "application/json",
+    };
+    if (data.session?.access_token) {
+      headers["Authorization"] = `Bearer ${data.session.access_token}`;
+    }
+    const response = await fetch("/api/liveblocks-auth", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ room }),
+    });
+    if (!response.ok) {
+      const text = await response.text().catch(() => "Unknown error");
+      throw new Error(`Liveblocks auth failed: ${response.status} ${text}`);
+    }
+    return await response.json();
+  },
+  preventUnsavedChanges: true,
 });
 
-export const {
-  RoomProvider,
-  useRoom,
-  useMyPresence,
-  useUpdateMyPresence,
-  useOthers,
-  useOthersMapped,
-  useOthersConnectionIds,
-  useOther,
-  useBroadcastEvent,
-  useEventListener,
-  useSelf,
-  useHistory,
-  useUndo,
-  useRedo,
-  useCanUndo,
-  useCanRedo,
-  useStorage,
-  useMutation,
-  useStatus,
-  useLostConnectionListener,
-  useThreads,
-  useCreateThread,
-  useInboxNotifications,
-  useMarkAllInboxNotificationsAsRead,
-} = createRoomContext(client);
+const ctx = createRoomContext(client);
+
+function withFallback(hook, fallback) {
+  return (...args) => {
+    const { isFallback } = useLiveblocksFallback();
+    if (isFallback) return fallback;
+    return hook(...args);
+  };
+}
+
+export const RoomProvider = ctx.RoomProvider;
+export const useRoom = withFallback(ctx.useRoom, null);
+export const useMyPresence = withFallback(ctx.useMyPresence, [null, () => {}]);
+export const useUpdateMyPresence = withFallback(ctx.useUpdateMyPresence, () => {});
+export const useOthers = withFallback(ctx.useOthers, []);
+export const useOthersMapped = withFallback(ctx.useOthersMapped, []);
+export const useOthersConnectionIds = withFallback(ctx.useOthersConnectionIds, []);
+export const useOther = withFallback(ctx.useOther, null);
+export const useBroadcastEvent = withFallback(ctx.useBroadcastEvent, () => {});
+export const useEventListener = withFallback(ctx.useEventListener, () => {});
+export const useSelf = withFallback(ctx.useSelf, null);
+export const useHistory = withFallback(ctx.useHistory, { undo: () => {}, redo: () => {}, clear: () => {} });
+export const useUndo = withFallback(ctx.useUndo, () => {});
+export const useRedo = withFallback(ctx.useRedo, () => {});
+export const useCanUndo = withFallback(ctx.useCanUndo, false);
+export const useCanRedo = withFallback(ctx.useCanRedo, false);
+export const useStorage = withFallback(ctx.useStorage, null);
+export const useMutation = withFallback(ctx.useMutation, () => () => {});
+export const useStatus = withFallback(ctx.useStatus, "disconnected");
+export const useSyncStatus = withFallback(ctx.useSyncStatus, null);
+export const useLostConnectionListener = withFallback(ctx.useLostConnectionListener, () => {});
+export const useThreads = withFallback(ctx.useThreads, { threads: [] });
+export const useCreateThread = withFallback(ctx.useCreateThread, () => {});
+export const useInboxNotifications = withFallback(ctx.useInboxNotifications, { inboxNotifications: [] });
+export const useMarkAllInboxNotificationsAsRead = withFallback(ctx.useMarkAllInboxNotificationsAsRead, () => {});
 
 /**
  * Liveblocks schema used by the Workstation.

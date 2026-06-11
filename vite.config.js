@@ -15,6 +15,7 @@ import {
 import { runSyllabusWebLayer } from './api/lib/syllabusWeb.js'
 import { readJsonBody } from './api/lib/readJsonBody.js'
 import { runMapboxSchoolSearch } from './api/lib/mapboxSchools.js'
+import { handleLiveKitTokenRequest } from './api/lib/livekitToken.js'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -180,108 +181,18 @@ export default defineConfig(({ mode }) => {
               });
               return;
             }
-            if (rawPath === '/api/daily-room' && req.method === 'POST') {
-              let body = '';
-              req.on('data', chunk => { body += chunk; });
-              req.on('end', async () => {
-                try {
-                  const { sessionId } = JSON.parse(body);
-                  const DAILY_API_KEY = env.DAILY_API_KEY;
-                  const DAILY_API_URL = 'https://api.daily.co/v1';
-
-                  if (!DAILY_API_KEY || !sessionId) {
-                    res.statusCode = 400;
-                    res.setHeader('Content-Type', 'application/json');
-                    res.end(JSON.stringify({ error: 'Missing DAILY_API_KEY or sessionId' }));
-                    return;
-                  }
-
-                  const roomName = `luter-session-${sessionId}`;
-                  const audioRoomProperties = {
-                    exp: Math.floor(Date.now() / 1000) + 86400,
-                    max_participants: 100,
-                    audio_only: true,
-                    start_video_off: true,
-                    enable_prejoin_ui: false,
-                    enable_screenshare: false,
-                  };
-
-                  // Check if room exists
-                  const existingRes = await fetch(`${DAILY_API_URL}/rooms/${roomName}`, {
-                    method: 'GET',
-                    headers: {
-                      'Authorization': `Bearer ${DAILY_API_KEY}`,
-                      'Content-Type': 'application/json',
-                    },
-                  });
-
-                  let roomUrl;
-                  if (existingRes.ok) {
-                    let room = await existingRes.json();
-                    const config = room.config || {};
-                    const needsAudioOnlyUpdate =
-                      config.audio_only !== true ||
-                      config.start_video_off !== true ||
-                      config.enable_prejoin_ui !== false ||
-                      config.enable_screenshare !== false;
-
-                    if (needsAudioOnlyUpdate) {
-                      const updateRes = await fetch(`${DAILY_API_URL}/rooms/${roomName}`, {
-                        method: 'POST',
-                        headers: {
-                          'Authorization': `Bearer ${DAILY_API_KEY}`,
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ properties: audioRoomProperties }),
-                      });
-
-                      if (!updateRes.ok) {
-                        throw new Error(`Failed to update room: ${updateRes.status}`);
-                      }
-
-                      room = await updateRes.json();
-                    }
-
-                    roomUrl = room.url;
-                  } else if (existingRes.status === 404) {
-                    // Create room
-                    const createRes = await fetch(`${DAILY_API_URL}/rooms`, {
-                      method: 'POST',
-                      headers: {
-                        'Authorization': `Bearer ${DAILY_API_KEY}`,
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        name: roomName,
-                        properties: audioRoomProperties,
-                      }),
-                    });
-
-                    if (!createRes.ok) {
-                      throw new Error(`Failed to create room: ${createRes.status}`);
-                    }
-
-                    const room = await createRes.json();
-                    roomUrl = room.url;
-                  } else {
-                    throw new Error(`Daily API error: ${existingRes.status}`);
-                  }
-
-                  res.statusCode = 200;
-                  res.setHeader('Content-Type', 'application/json');
-                  res.end(JSON.stringify({
-                    success: true,
-                    roomUrl,
-                    roomName,
-                    sessionId,
-                  }));
-                } catch (e) {
-                  console.error('Daily API error:', e);
-                  res.statusCode = 500;
-                  res.setHeader('Content-Type', 'application/json');
-                  res.end(JSON.stringify({ error: e.message }));
-                }
-              });
+            if (rawPath === '/api/livekit/token' && req.method === 'POST') {
+              req.body = await readJsonBody(req)
+              await handleLiveKitTokenRequest(req, res, env)
+              return;
+            }
+            if (rawPath === '/api/liveblocks-auth' && req.method === 'POST') {
+              const liveblocksAuth = await import('./api/liveblocks-auth.js')
+              // mock process.env for the handler if it uses it directly instead of env variable
+              process.env.VITE_LIVEBLOCKS_SECRET_KEY = env.VITE_LIVEBLOCKS_SECRET_KEY
+              process.env.VITE_SUPABASE_URL = env.VITE_SUPABASE_URL
+              process.env.VITE_SUPABASE_ANON_KEY = env.VITE_SUPABASE_ANON_KEY
+              await liveblocksAuth.default(req, res)
               return;
             }
             next();
@@ -308,7 +219,10 @@ export default defineConfig(({ mode }) => {
       alias: {
         "@": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "./src"),
         "pdfjs-dist": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "./src/lib/pdfjs-shim.js"),
+        "@liveblocks/core": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "./node_modules/@liveblocks/core"),
+        "@liveblocks/client": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "./node_modules/@liveblocks/client"),
       },
+      dedupe: ['@liveblocks/core', '@liveblocks/client', '@liveblocks/react'],
     },
     optimizeDeps: {
       exclude: ['pdfjs-dist'],

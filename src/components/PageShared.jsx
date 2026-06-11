@@ -499,14 +499,23 @@ export function SharedNavbar() {
   const [showFeatures, setShowFeatures] = useState(false);
   const [showLang, setShowLang] = useState(false);
   const [langSearch, setLangSearch] = useState('');
+  const [navWidth, setNavWidth] = useState(() => typeof window === 'undefined' ? 1200 : window.innerWidth);
   const location = useLocation();
   const { isDark } = useTheme();
+  const isSmallNav = navWidth < 640;
+  const isTinyNav = navWidth < 380;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', onScroll, { passive: true });
     setScrolled(window.scrollY > 40);
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => setNavWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   return (
@@ -524,13 +533,13 @@ export function SharedNavbar() {
         <motion.nav
           initial={false}
           animate={{
-            width: scrolled ? 'min(100% - 48px, 940px)' : '100%',
+            width: scrolled ? (isSmallNav ? 'calc(100% - 24px)' : 'min(100% - 48px, 940px)') : '100%',
             borderRadius: scrolled ? 100 : 0,
             background: scrolled ? (isDark ? 'rgba(26,26,26,0.95)' : 'rgba(255,255,255,0.95)') : 'rgba(255,255,255,0)',
             border: scrolled ? (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.08)') : '1px solid rgba(0,0,0,0)',
             boxShadow: scrolled ? (isDark ? '0 4px 24px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2)' : '0 4px 24px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)') : 'none',
-            padding: scrolled ? '0 12px 0 28px' : '0 48px',
-            height: scrolled ? 58 : 76,
+            padding: scrolled ? (isSmallNav ? '0 8px 0 14px' : '0 12px 0 28px') : (isSmallNav ? '0 14px' : '0 48px'),
+            height: scrolled ? (isSmallNav ? 56 : 58) : (isSmallNav ? 64 : 76),
           }}
           transition={{ type: 'spring', damping: 26, stiffness: 240, mass: 0.8 }}
           style={{
@@ -550,7 +559,7 @@ export function SharedNavbar() {
             <motion.img
               src="/Header logo.png"
               alt="Luter"
-              animate={{ height: scrolled ? 32 : 44 }}
+              animate={{ height: scrolled ? (isSmallNav ? 28 : 32) : (isSmallNav ? 34 : 44) }}
               transition={{ duration: 0.3 }}
               style={{ width: 'auto', display: 'block' }}
             />
@@ -770,10 +779,10 @@ export function SharedNavbar() {
           </div>
 
           {/* Mobile */}
-          <div className="flex md:hidden" style={{ alignItems: 'center', gap: 8 }}>
+          <div className="flex md:hidden" style={{ alignItems: 'center', gap: isTinyNav ? 4 : 8 }}>
             <ThemeToggle />
-            <Link to={getAppUrl('/signup')} style={{ fontSize: 14, fontWeight: 600, padding: '0 16px', height: 40, display: 'flex', alignItems: 'center', borderRadius: 100, color: '#2E1065', background: '#C4B5FD', textDecoration: 'none', fontFamily: 'var(--font-outfit)' }}>Start free</Link>
-            <button onClick={() => setIsOpen(!isOpen)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: '50%', background: scrolled ? 'rgba(0,0,0,0.04)' : 'transparent', border: 'none', cursor: 'pointer', transition: 'background 0.2s' }} aria-label={isOpen ? 'Close menu' : 'Open menu'}>
+            <Link to={getAppUrl('/signup')} style={{ fontSize: isSmallNav ? 13 : 14, fontWeight: 600, padding: isSmallNav ? '0 12px' : '0 16px', height: isSmallNav ? 36 : 40, display: isTinyNav ? 'none' : 'flex', alignItems: 'center', borderRadius: 100, color: '#2E1065', background: '#C4B5FD', textDecoration: 'none', fontFamily: 'var(--font-outfit)' }}>Start free</Link>
+            <button onClick={() => setIsOpen(!isOpen)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: isSmallNav ? 36 : 40, height: isSmallNav ? 36 : 40, borderRadius: '50%', background: scrolled ? 'rgba(0,0,0,0.04)' : 'transparent', border: 'none', cursor: 'pointer', transition: 'background 0.2s' }} aria-label={isOpen ? 'Close menu' : 'Open menu'}>
               <Menu size={22} weight="light" color="#374151" />
             </button>
           </div>

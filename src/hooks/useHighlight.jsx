@@ -13,6 +13,7 @@ export function useHighlight({
   const [toolbox, setToolbox] = useState(null);
   const [selectedColor, setSelectedColor] = useState('#FEF08A');
   const pendingRange = useRef(null);
+  const pendingPdfViewerSelection = useRef(null);
 
   const broadcast = useBroadcastEvent();
 
@@ -33,11 +34,22 @@ export function useHighlight({
       // Parse serialised xpath if needed
       let pageNum = h.pageNum;
       let rects = h.rects;
+      let areas = h.areas;
       if (!pageNum && h.xpath) {
         try {
           const parsed = JSON.parse(h.xpath);
+          areas = parsed.areas || areas;
           pageNum = parsed.pageNum || 1;
-          rects = parsed.rects || [];
+          rects = parsed.rects || (areas
+            ? areas
+                .filter((area) => area.pageIndex === (areas[0]?.pageIndex ?? 0))
+                .map((area) => ({
+                  left: area.left / 100,
+                  top: area.top / 100,
+                  width: area.width / 100,
+                  height: area.height / 100,
+                }))
+            : []);
         } catch (_) {}
       }
       const formatted = {
@@ -45,6 +57,7 @@ export function useHighlight({
         text: h.text || '',
         color: h.color,
         colorId: h.colorId,
+        areas: areas || null,
         pageNum: pageNum || 1,
         rects: rects || [],
         timestamp: h.timestamp || Date.now(),
@@ -155,8 +168,82 @@ export function useHighlight({
     return () => container.removeEventListener('scroll', handleScroll);
   }, [containerRef, toolbox]);
 
+  const createPdfViewerHighlight = useCallback((color, selection) => {
+    const activeSelection = selection || pendingPdfViewerSelection.current;
+    if (!activeSelection?.highlightAreas?.length) return;
+
+    const id = nanoid();
+    const areas = activeSelection.highlightAreas.map((area) => ({
+      pageIndex: area.pageIndex,
+      left: area.left,
+      top: area.top,
+      width: area.width,
+      height: area.height,
+    }));
+    const firstArea = areas[0];
+    const samePageAreas = areas.filter((area) => area.pageIndex === firstArea.pageIndex);
+    const rects = samePageAreas.map((area) => ({
+      left: area.left / 100,
+      top: area.top / 100,
+      width: area.width / 100,
+      height: area.height / 100,
+    }));
+    const pageNum = (firstArea?.pageIndex ?? 0) + 1;
+    const text = activeSelection.selectedText || activeSelection.selectionData?.selectedText || '';
+    const xpath = JSON.stringify({ type: 'react-pdf-viewer', areas, pageNum, rects });
+    const timestamp = Date.now();
+    const highlightData = {
+      id,
+      text,
+      color: color.bg,
+      colorId: color.id,
+      xpath,
+      areas,
+      pageNum,
+      rects,
+      fileId,
+      timestamp,
+    };
+
+    setHighlights((prev) => [...prev, {
+      id,
+      text,
+      color: color.bg,
+      colorId: color.id,
+      areas,
+      pageNum,
+      rects,
+      timestamp,
+    }]);
+
+    saveHighlight(highlightData);
+    broadcast({ type: 'HIGHLIGHT_ADDED', highlight: highlightData });
+    setToolbox(null);
+    pendingPdfViewerSelection.current = null;
+    window.getSelection()?.removeAllRanges();
+  }, [broadcast, fileId]);
+
+  const preparePdfViewerHighlight = useCallback((selection, position) => {
+    if (!selection?.highlightAreas?.length) return;
+    pendingPdfViewerSelection.current = selection;
+
+    if (position) {
+      setToolbox({
+        x: position.x,
+        y: position.y,
+        text: selection.selectedText || selection.selectionData?.selectedText || '',
+        pdfViewerSelection: true,
+      });
+    }
+  }, []);
+
   // Apply highlight to PDF overlay
   const applyHighlight = useCallback((color) => {
+    if (pendingPdfViewerSelection.current) {
+      createPdfViewerHighlight(color);
+      return;
+    }
+
     const range = pendingRange.current;
     if (!range) return;
 
@@ -204,6 +291,7 @@ export function useHighlight({
         text: toolbox?.text || '',
         color: color.bg,
         colorId: color.id,
+        areas: null,
         pageNum,
         rects,
         timestamp: Date.now(),
@@ -222,7 +310,7 @@ export function useHighlight({
     setToolbox(null);
     pendingRange.current = null;
     window.getSelection()?.removeAllRanges();
-  }, [toolbox, fileId, containerRef, broadcast]);
+  }, [toolbox, fileId, containerRef, broadcast, createPdfViewerHighlight]);
 
   // Delete highlight
   const deleteHighlight = useCallback((id) => {
@@ -272,13 +360,25 @@ export function useHighlight({
     data.forEach(h => {
       try {
         const parsed = JSON.parse(h.xpath);
+        const areas = Array.isArray(parsed.areas) ? parsed.areas : null;
+        const fallbackRects = areas
+          ? areas
+              .filter((area) => area.pageIndex === (areas[0]?.pageIndex ?? 0))
+              .map((area) => ({
+                left: area.left / 100,
+                top: area.top / 100,
+                width: area.width / 100,
+                height: area.height / 100,
+              }))
+          : (parsed.rects || []);
         parsedHighlights.push({
           id: h.id,
           text: h.text,
           color: h.color,
           colorId: h.color_id,
-          pageNum: parsed.pageNum || 1,
-          rects: parsed.rects || [],
+          areas,
+          pageNum: parsed.pageNum || ((areas?.[0]?.pageIndex ?? 0) + 1),
+          rects: fallbackRects,
           timestamp: new Date(h.created_at).getTime()
         });
       } catch (e) {
@@ -297,6 +397,8 @@ export function useHighlight({
     setSelectedColor,
     COLORS,
     applyHighlight,
+    createPdfViewerHighlight,
+    preparePdfViewerHighlight,
     deleteHighlight,
     loadHighlights,
   };

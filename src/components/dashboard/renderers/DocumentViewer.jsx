@@ -41,7 +41,6 @@ import { searchPlugin } from '@react-pdf-viewer/search'
 import { fullScreenPlugin } from '@react-pdf-viewer/full-screen'
 import * as XLSX from 'xlsx'
 import UniversalViewer from './UniversalViewer'
-import AnnotationCanvas from '../AnnotationCanvas';
 // Styles
 import '@react-pdf-viewer/core/lib/styles/index.css'
 import '@react-pdf-viewer/default-layout/lib/styles/index.css'
@@ -78,6 +77,9 @@ export default function DocumentViewer({
   onCanvasSave,
   scrollContainerRef,
   highlights,
+  highlightColors,
+  createPdfViewerHighlight,
+  preparePdfViewerHighlight,
   initCanvas,
   startDrawing,
   draw,
@@ -243,6 +245,9 @@ export default function DocumentViewer({
                     onCanvasSave={onCanvasSave}
                     scrollContainerRef={scrollContainerRef}
                     highlights={highlights}
+                    highlightColors={highlightColors}
+                    createPdfViewerHighlight={createPdfViewerHighlight}
+                    preparePdfViewerHighlight={preparePdfViewerHighlight}
                     initCanvas={initCanvas}
                     startDrawing={startDrawing}
                     draw={draw}
@@ -250,16 +255,6 @@ export default function DocumentViewer({
                     drawMode={drawMode}
                     loadHighlights={loadHighlights}
                     setHighlightToolbox={setHighlightToolbox}
-                 />
-                 <AnnotationCanvas
-                    pageNum={currentPage}
-                    color={annotationColor}
-                    lineWidth={annotationStrokeSize}
-                    drawMode={drawMode}
-                    initCanvas={initCanvas}
-                    startDrawing={startDrawing}
-                    draw={draw}
-                    stopDrawing={stopDrawing}
                  />
                </Worker>
             </div>

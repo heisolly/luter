@@ -28,20 +28,21 @@ import {
   ArrowRight,
   Sparkle,
   Gear,
+  GearSix,
   UserCircle,
   Notification,
   Books,
   ChartBar,
-  GearSix,
   GraduationCap,
   Backpack
 } from '@phosphor-icons/react';
 import { RiCameraLine } from 'react-icons/ri';
 import { supabase } from '../../supabaseClient';
-import { LuterPageLoader } from '../shared/LuterPageLoader';
+import { ContentSkeleton } from '../shared/LuterPageLoader';
 import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceStore';
 import { useSessionStore } from '../../store/useSessionStore';
 import { LANDING_URL } from '../../utils/urlUtils';
+
 
 export default function SettingsPage() {
   const [searchParams] = useSearchParams();
@@ -52,6 +53,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [isDark, setIsDark] = useState(() => document.body.classList.contains('dark-mode'));
   const [notifications, setNotifications] = useState({
     email: true,
     push: false,
@@ -61,6 +63,44 @@ export default function SettingsPage() {
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Watch body class for dark mode changes
+  useEffect(() => {
+    const obs = new MutationObserver(() => {
+      setIsDark(document.body.classList.contains('dark-mode'));
+    });
+    obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
+
+  // Inject global styles
+  useEffect(() => {
+    if (document.getElementById('stp-styles')) return;
+    const el = document.createElement('style');
+    el.id = 'stp-styles';
+    el.textContent = `
+      @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
+      @keyframes stp-spin { to { transform: rotate(360deg); } }
+      .stp-input { width:100%;padding:12px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:14px;font-family:Outfit,Inter,sans-serif;color:#333;background:#fff;outline:none;transition:border-color 0.2s,box-shadow 0.2s;box-sizing:border-box; }
+      body.dark-mode .stp-input { background:#111827;border-color:#374151;color:#F9FAFB; }
+      .stp-input:focus { border-color:#C4B5FD;box-shadow:0 0 0 3px rgba(196,181,253,0.2); }
+      .stp-select { width:100%;padding:12px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:14px;font-family:Outfit,Inter,sans-serif;color:#333;background:#fff;outline:none;transition:border-color 0.2s;box-sizing:border-box; }
+      body.dark-mode .stp-select { background:#111827;border-color:#374151;color:#F9FAFB; }
+      .stp-label { display:block;font-size:13px;font-weight:700;color:#333;margin-bottom:8px;font-family:Outfit,Inter,sans-serif; }
+      body.dark-mode .stp-label { color:#F9FAFB; }
+      .stp-save-btn { padding:13px 28px;background:#7a12cc;color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:Outfit,Inter,sans-serif;display:inline-flex;align-items:center;gap:8px;transition:all 0.2s; }
+      .stp-save-btn:hover { opacity:0.88;transform:translateY(-1px);box-shadow:0 8px 24px rgba(122,18,204,0.35); }
+      .stp-save-btn:disabled { opacity:0.5;cursor:not-allowed;transform:none; }
+      .stp-section-title { font-size:17px;font-weight:800;color:#333;margin:0 0 20px;padding-bottom:12px;border-bottom:2px solid #C4B5FD;display:inline-block; }
+      body.dark-mode .stp-section-title { color:#F9FAFB; }
+      .stp-toggle-track { width:44px;height:24px;border-radius:99px;background:#E5E7EB;position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0; }
+      .stp-toggle-track.on { background:#C4B5FD; }
+      .stp-toggle-thumb { position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:left 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.2); }
+      .stp-toggle-track.on .stp-toggle-thumb { left:23px; }
+    `;
+    document.head.appendChild(el);
+  }, []);
+
 
   // Determine user type
   const isUniversityStudent = profile?.is_university_user !== false && profile?.role !== 'solo_learner';
@@ -319,65 +359,50 @@ export default function SettingsPage() {
     active: { scale: 1.05, backgroundColor: 'rgba(151, 24, 251, 0.1)' }
   };
 
+  // shorthand colors
+  const bg = isDark ? '#111827' : '#F9FAFB';
+  const cardBg = isDark ? '#1F2937' : '#ffffff';
+  const border = isDark ? '#374151' : '#E5E7EB';
+  const textPrimary = isDark ? '#F9FAFB' : '#333333';
+  const textSec = isDark ? '#9CA3AF' : '#6B7280';
+
   if (loading && !profile) {
-    return <LuterPageLoader message="Loading settings..." minHeight="80vh" />;
+    return (
+      <div style={{ fontFamily: 'Outfit,Inter,sans-serif', minHeight: '100vh', background: bg }}>
+
+        {/* ── Page Header ── */}
+        <div style={{ padding: '28px 40px 20px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(196,181,253,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <GearSix size={24} color="#7a12cc" weight="fill" />
+          </div>
+          <div>
+            <h1 style={{ fontSize: 32, fontWeight: 900, color: textPrimary, margin: 0, letterSpacing: '-0.03em', lineHeight: 1.1 }}>Settings</h1>
+            <p style={{ fontSize: 14, color: textSec, margin: '3px 0 0', fontWeight: 500 }}>Manage your account and preferences</p>
+          </div>
+        </div>
+
+        <div style={{ padding: '40px' }}>
+          <ContentSkeleton rows={6} height={60} />
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div style={{ 
-      fontFamily: 'Outfit, sans-serif',
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #fafbff 0%, #f5f3ff 100%)',
-      padding: '20px'
-    }}>
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        style={{
-          background: 'white',
-          borderRadius: '16px',
-          padding: '24px',
-          marginBottom: '24px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
-          border: '1px solid rgba(151, 24, 251, 0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '20px'
-        }}
-      >
-        <div style={{
-          width: '48px',
-          height: '48px',
-          borderRadius: '12px',
-          background: 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-            <Gear size={24} color="white" />
-          </div>
-          <div>
-            <h1 style={{ 
-              fontSize: '28px', 
-              fontWeight: '700', 
-              color: '#1a1a2e',
-              margin: 0,
-              letterSpacing: '-0.5px'
-            }}>
-              Settings
-            </h1>
-            <p style={{ 
-              fontSize: '14px', 
-              color: '#6b7280', 
-              margin: 0,
-              fontWeight: '400'
-            }}>
-              Manage your account settings and preferences
-            </p>
-          </div>
-      </motion.div>
+    <div style={{ fontFamily: 'Outfit,Inter,sans-serif', minHeight: '100vh', background: bg, transition: 'background 0.3s' }}>
 
-      {/* Message Toast */}
+      {/* ── Page Header ── */}
+      <div style={{ padding: '28px 40px 20px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(196,181,253,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <GearSix size={24} color="#7a12cc" weight="fill" />
+        </div>
+        <div>
+          <h1 style={{ fontSize: 32, fontWeight: 900, color: textPrimary, margin: 0, letterSpacing: '-0.03em', lineHeight: 1.1 }}>Settings</h1>
+          <p style={{ fontSize: 14, color: textSec, margin: '3px 0 0', fontWeight: 500 }}>Manage your account and preferences</p>
+        </div>
+      </div>
+
+      {/* ── Toast ── */}
       <AnimatePresence>
         {message.text && (
           <motion.div
@@ -385,138 +410,95 @@ export default function SettingsPage() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -50, scale: 0.95 }}
             style={{
-              position: 'fixed',
-              top: '20px',
-              right: '20px',
-              zIndex: 1000,
-              padding: '16px 24px',
-              borderRadius: '12px',
-              background: message.type === 'success' ? '#10b981' : '#ef4444',
-              color: 'white',
-              fontWeight: '500',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+              position: 'fixed', top: 20, right: 20, zIndex: 1000,
+              padding: '14px 22px', borderRadius: 14,
+              background: message.type === 'success' ? '#98FF98' : '#EF4444',
+              color: message.type === 'success' ? '#166534' : 'white',
+              fontWeight: 700, fontSize: 14,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+              display: 'flex', alignItems: 'center', gap: 10,
+              fontFamily: 'Outfit,Inter,sans-serif',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {message.type === 'success' ? <Check size={20} /> : <X size={20} />}
-              {message.text}
-            </div>
+            {message.type === 'success' ? <Check size={18} /> : <X size={18} />}
+            {message.text}
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div style={{ display: 'flex', gap: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Sidebar */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          style={{
-            width: '280px',
-            flexShrink: 0
-          }}
-        >
-          <div style={{
-            background: 'white',
-            borderRadius: '16px',
-            padding: '8px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
-            border: '1px solid rgba(151, 24, 251, 0.1)'
-          }}>
+      {/* ── Two-column layout ── */}
+      <div style={{ display: 'flex', gap: 32, padding: '32px 40px', maxWidth: 1100, margin: '0 auto', alignItems: 'flex-start' }}>
+
+        {/* ── Left Nav ── */}
+        <div style={{ width: 220, flexShrink: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {tabs.map((tab) => {
               const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
               if (tab.isLogout) {
                 return (
-                  <motion.button
+                  <button
                     key={tab.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                     onClick={handleSignOut}
                     style={{
-                      width: '100%',
-                      padding: '14px 16px',
-                      border: 'none',
-                      borderRadius: '12px',
-                      background: 'transparent',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#ef4444',
-                      transition: 'all 0.2s ease',
-                      marginBottom: '4px'
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '12px 16px', borderRadius: 12,
+                      border: 'none', background: 'transparent',
+                      color: '#EF4444', fontSize: 14, fontWeight: 600,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      marginTop: 8, width: '100%', textAlign: 'left',
+                      transition: 'background 0.15s',
                     }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.07)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
-                    <Icon size={20} />
+                    <Icon size={18} />
                     <span>{tab.label}</span>
-                  </motion.button>
+                  </button>
                 );
               }
               return (
-                <motion.button
+                <button
                   key={tab.id}
-                  variants={tabVariants}
-                  animate={activeTab === tab.id ? 'active' : 'inactive'}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                   onClick={() => setActiveTab(tab.id)}
                   style={{
-                    width: '100%',
-                    padding: '14px 16px',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 16px', borderRadius: 12,
                     border: 'none',
-                    borderRadius: '12px',
-                    background: 'transparent',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: activeTab === tab.id ? '#9718fb' : '#6b7280',
-                    transition: 'all 0.2s ease',
-                    marginBottom: '4px'
+                    background: isActive ? '#C4B5FD' : 'transparent',
+                    color: isActive ? '#333333' : textSec,
+                    fontSize: 14, fontWeight: isActive ? 700 : 500,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    width: '100%', textAlign: 'left',
+                    transition: 'all 0.18s',
                   }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'; }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <Icon 
-                    size={20} 
-                    weight={activeTab === tab.id ? 'fill' : 'regular'}
-                  />
+                  <Icon size={18} weight={isActive ? 'fill' : 'regular'} color={isActive ? '#7a12cc' : undefined} />
                   <span>{tab.label}</span>
-                  {activeTab === tab.id && (
-                    <motion.div
-                      layoutId="activeTab"
-                      style={{
-                        position: 'absolute',
-                        right: '16px',
-                        width: '4px',
-                        height: '20px',
-                        borderRadius: '2px',
-                        background: '#9718fb'
-                      }}
-                    />
-                  )}
-                </motion.button>
+                </button>
               );
             })}
           </div>
-        </motion.div>
+        </div>
 
-        {/* Main Content */}
+        {/* ── Right Content Card ── */}
         <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          style={{ flex: 1 }}
+          key={activeTab}
+          initial={{ opacity: 0, x: 16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.22 }}
+          style={{
+            flex: 1,
+            background: cardBg,
+            borderRadius: 20,
+            border: `1px solid ${border}`,
+            padding: 36,
+            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+            transition: 'background 0.3s, border-color 0.3s',
+          }}
         >
-          <div style={{
-            background: 'white',
-            borderRadius: '16px',
-            padding: '32px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
-            border: '1px solid rgba(151, 24, 251, 0.1)'
-          }}>
             {/* Profile Tab */}
             {activeTab === 'profile' && (
               <motion.div
@@ -1612,11 +1594,10 @@ export default function SettingsPage() {
                 </div>
               </motion.div>
             )}
-          </div>
         </motion.div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }

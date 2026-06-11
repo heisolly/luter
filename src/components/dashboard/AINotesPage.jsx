@@ -6,13 +6,14 @@ import {
 } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
+import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService'
 import { fetchUserNotes, saveToVault } from '../../services/materialsService'
 import { useDeckStore } from '../../store/useDeckStore'
 import ReactMarkdown from 'react-markdown'
 import LuterLogo from '../shared/LuterLogo'
 
 export default function AINotesPage() {
-  const { user } = useOutletContext()
+  const { user, profile } = useOutletContext()
   const navigate = useNavigate()
   const [materials, setMaterials] = useState([])
   const [savedAiNotes, setSavedAiNotes] = useState([])
@@ -55,6 +56,8 @@ export default function AINotesPage() {
     if (!selectedMaterial?.extracted_text) return
     setIsGenerating(true)
     try {
+      const { ok } = await checkAndDeductCredits(user?.id, CREDIT_COSTS.GENERATE_AI_NOTES, profile?.is_premium)
+      if (!ok) { setIsGenerating(false); return }
       const response = await callGroqAPI(
         [{ role: 'user', content: selectedMaterial.extracted_text }],
         GROQ_MODELS.PROFESSOR,

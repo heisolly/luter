@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { useEffect, useState, lazy, Suspense } from 'react'
 import LandingPage from './components/LandingPage'
 import Features from './components/Features'
@@ -11,16 +11,21 @@ import Onboarding from './components/Onboarding'
 import WallOfLove from './pages/WallOfLove'
 import Dashboard from './components/dashboard/Dashboard'
 import DashboardHome from './components/dashboard/DashboardHome'
-import CoursesPage from './components/dashboard/CoursesPage'
+import BackpackPage from './components/dashboard/BackpackPage'
+import BackpackFolderView from './components/dashboard/BackpackFolderView'
+import DecksPage from './components/dashboard/DecksPage'
 import WorkstationPage from './components/dashboard/WorkstationPage'
 import MockExamPage from './components/dashboard/MockExamPage'
 import AnalyticsPage from './components/dashboard/AnalyticsPage'
-import CourseWorkstationRoute from './components/dashboard/CourseWorkstationRoute'
 import SettingsPage from './components/dashboard/SettingsPage'
+import FeedbackPage from './components/dashboard/FeedbackPage'
+import ChangelogPage from './components/dashboard/ChangelogPage'
+import HelpPage from './components/dashboard/HelpPage'
 import UpgradePage from './components/dashboard/UpgradePage'
 import StreakPage from './components/dashboard/StreakPage'
 import ReferPage from './components/dashboard/ReferPage'
 import PlaygroundPage from './components/dashboard/PlaygroundPage'
+import ClutLivePage from './components/dashboard/ClutLivePage'
 import PricingPage from './components/dashboard/PricingPage'
 import ExamSessionView from './components/ExamSessionView'
 import SharedFlashcardsView from './components/SharedFlashcardsView'
@@ -45,14 +50,13 @@ import AdminAgentMonitor from './admin/pages/AdminAgentMonitor'
 import AdminAgentFactory from './admin/pages/AdminAgentFactory'
 import AdminAnalytics from './admin/pages/AdminAnalytics'
 import AdminSystemControls from './admin/pages/AdminSystemControls'
+import AdminPricing from './admin/pages/AdminPricing'
 import PaymentSettings from './components/admin/PaymentSettings'
 import LuterAdminUploadPage from './admin/pages/LuterAdminUploadPage'
-import StudyMaterialsPage from './components/dashboard/StudyMaterialsPage'
 import FilesPage from './components/dashboard/FilesPage'
 import AssignmentsPage from './components/dashboard/AssignmentsPage'
-import AINotesPage from './components/dashboard/AINotesPage'
-import StudyMaterialsWeekPage from './components/dashboard/StudyMaterialsWeekPage'
-import SemesterNotesPage from './components/dashboard/SemesterNotesPage'
+import NotesStudioPage from './components/dashboard/NotesStudioPage'
+import NotesDashboardPage from './components/dashboard/NotesDashboardPage'
 import UserUpload from './components/dashboard/UserUpload'
 import NotesRequestsAdmin from './components/dashboard/NotesRequestsAdmin'
 import StudyRequestsPage from './components/dashboard/StudyRequestsPage'
@@ -70,10 +74,28 @@ import StorePage from './components/dashboard/StorePage'
 import SharedMaterialPreview from './components/shared/SharedMaterialPreview'
 import BoardPage from './components/board/BoardPage'
 import NotificationsPage from './components/dashboard/NotificationsPage'
+import { FeaturebaseProvider } from 'featurebase-js/react'
 import { DASHBOARD_URL, LANDING_URL, ADMIN_URL } from './utils/urlUtils'
 import { supabase } from './supabaseClient'
 
 const OFFLINE_BAR_PT = '2.75rem'
+const FEATUREBASE_ENABLED =
+  import.meta.env.VITE_ENABLE_FEATUREBASE === 'true' &&
+  Boolean(import.meta.env.VITE_FEATUREBASE_APP_ID)
+
+function OptionalFeaturebaseProvider({ children }) {
+  if (!FEATUREBASE_ENABLED) return children
+
+  return (
+    <FeaturebaseProvider
+      appId={import.meta.env.VITE_FEATUREBASE_APP_ID}
+      featurebaseJwt={import.meta.env.VITE_FEATUREBASE_JWT || undefined}
+      messenger={false}
+    >
+      {children}
+    </FeaturebaseProvider>
+  )
+}
 
 function useNavigatorOffline() {
   const [offline, setOffline] = useState(() =>
@@ -94,6 +116,15 @@ function useNavigatorOffline() {
   return offline
 }
 const GuestPlayPage = lazy(() => import('./components/dashboard/playground/GuestPlayPage'))
+
+function NavigateToWorkstation() {
+  const { materialId } = useParams()
+  const target = materialId
+    ? `/dashboard/workstation?materialId=${encodeURIComponent(materialId)}`
+    : '/dashboard/workstation'
+
+  return <Navigate to={target} replace />
+}
 
 export default function App() {
   const offline = useNavigatorOffline()
@@ -119,6 +150,7 @@ export default function App() {
         </div>
       )}
       <div style={{ paddingTop: offline ? OFFLINE_BAR_PT : undefined }}>
+        <OptionalFeaturebaseProvider>
         <Routes>
           {/* ADMIN HOST SPECIFIC ROUTES */}
           {isAdminHost ? (
@@ -177,6 +209,7 @@ export default function App() {
                 <Route path="agents/:id" element={<AdminAgentConsole />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
                 <Route path="controls" element={<AdminSystemControls />} />
+                <Route path="pricing" element={<AdminPricing />} />
                 <Route path="*" element={<Navigate to="/admin" replace />} />
               </Route>
             </>
@@ -196,21 +229,24 @@ export default function App() {
           {/* DASHBOARD ROUTES (Available on dashboard host) */}
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<DashboardHome />} />
-            <Route path="courses/:courseId/materials/:weekId" element={<StudyMaterialsWeekPage />} />
-            <Route path="courses/:courseId/materials" element={<StudyMaterialsPage />} />
+            <Route path="backpack" element={<BackpackPage />} />
+            <Route path="backpack/:folderId" element={<BackpackFolderView />} />
             <Route path="library" element={<LibraryPage />} />
-            <Route path="courses/:courseId/semester-notes" element={<SemesterNotesPage />} />
             <Route path="files" element={<FilesPage />} />
-            <Route path="ai-notes" element={<AINotesPage />} />
+            <Route path="notes" element={<NotesDashboardPage />} />
+            <Route path="notes/editor" element={<NotesStudioPage />} />
+            <Route path="ai-notes" element={<Navigate to="/dashboard/notes" replace />} />
+            <Route path="ai-chat" element={<NotesStudioPage />} />
             <Route path="assignments" element={<AssignmentsPage />} />
-            <Route path="courses/:courseId/learn" element={<CourseWorkstationRoute workstationMode={true} />} />
-            <Route path="courses/:courseId" element={<CourseWorkstationRoute workstationMode={false} />} />
-            <Route path="courses" element={<CoursesPage />} />
+            <Route path="decks" element={<DecksPage />} />
             <Route path="vault" element={<VaultPage />} />
             <Route path="workstation" element={<WorkstationPage />} />
             <Route path="mock-exam" element={<MockExamPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="feedback" element={<FeedbackPage />} />
+            <Route path="changelog" element={<ChangelogPage />} />
+            <Route path="help" element={<HelpPage />} />
             <Route path="upgrade" element={<UpgradePage />} />
             <Route path="pricing" element={<PricingPage />} />
             <Route path="streak" element={<StreakPage />} />
@@ -233,6 +269,8 @@ export default function App() {
           <Route element={<Dashboard />}>
             <Route path="/home" element={<DashboardHome />} />
             <Route path="/sessions" element={<SessionsPage />} />
+            <Route path="/notes" element={<NotesDashboardPage />} />
+            <Route path="/notes/editor" element={<NotesStudioPage />} />
             <Route path="/library" element={<LibraryPage />} />
             <Route path="/groups" element={<StudyGroupsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
@@ -251,7 +289,9 @@ export default function App() {
           <Route path="/exam-session/:sessionId" element={<ExamSessionView />} />
           <Route path="/share/flashcards/:bundleId" element={<SharedFlashcardsView />} />
           <Route path="/shared/:shareToken" element={<SharedMaterialPreview />} />
+          <Route path="/workspace/:materialId" element={<NavigateToWorkstation />} />
           <Route path="/play/:roomId" element={<Suspense fallback={<div>Loading Arena...</div>}><GuestPlayPage /></Suspense>} />
+          <Route path="/clut/live/:roomCode" element={<ClutLivePage />} />
           <Route path="/join/:inviteCode" element={<JoinGroupPage />} />
           <Route path="/board/:roomId" element={<BoardPage />} />
 
@@ -260,6 +300,7 @@ export default function App() {
           {/* DEFAULT REDIRECTS */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </OptionalFeaturebaseProvider>
       </div>
     </div>
   )

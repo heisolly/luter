@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
   House,
@@ -23,7 +23,6 @@ import {
   ArrowRight,
   BookmarkSimple,
   User as UserIcon,
-  ArrowSquareOut as ArrowSquareOutIcon,
   ChatCircleText as ChatCircleTextIcon,
   ThumbsUp,
   CopySimple,
@@ -93,11 +92,16 @@ import {
 import ReactMarkdown from 'react-markdown'
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS } from '../../groqClient'
+import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService'
 import canvasConfetti from 'canvas-confetti'
 import LuterLogo from '../shared/LuterLogo'
 import { FlashcardEngine as FlashcardEngineComponent } from './flashcards/FlashcardEngine'
 
-export function WorkstationNotes({ content, material, onRegenerate }) {
+export function WorkstationNotes(props) {
+  return <WorkstationNotesRichEditor {...props} />
+}
+
+function WorkstationNotesLegacy({ content, material, onRegenerate }) {
   if (!content) return <EmptyState icon={BookOpen} label="Notes are being drafted..." />
 
   return (
@@ -157,6 +161,653 @@ export function WorkstationNotes({ content, material, onRegenerate }) {
   )
 }
 
+function escapeNoteHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+function renderInlineNoteMarkdown(value = '') {
+  let html = escapeNoteHtml(value)
+  html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+  html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>')
+  html = html.replace(/~~([^~]+)~~/g, '<s>$1</s>')
+  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>')
+  html = html.replace(/_([^_]+)_/g, '<em>$1</em>')
+  return html
+}
+
+function notesMarkdownToHtml(markdown = '') {
+  const lines = String(markdown || '').replace(/\r\n/g, '\n').split('\n')
+  let html = ''
+  let listType = null
+  let paragraph = []
+
+  const closeList = () => {
+    if (!listType) return
+    html += `</${listType}>`
+    listType = null
+  }
+
+  const closeParagraph = () => {
+    if (!paragraph.length) return
+    html += `<p>${renderInlineNoteMarkdown(paragraph.join(' '))}</p>`
+    paragraph = []
+  }
+
+  const openList = (type) => {
+    if (listType === type) return
+    closeList()
+    html += `<${type}>`
+    listType = type
+  }
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index].trim()
+    const nextLine = (lines[index + 1] || '').trim()
+
+    if (!line) {
+      closeParagraph()
+      closeList()
+      continue
+    }
+
+    if (/^={3,}$/.test(line) || /^-{3,}$/.test(line)) continue
+
+    if (/^={3,}$/.test(nextLine) || /^-{3,}$/.test(nextLine)) {
+      closeParagraph()
+      closeList()
+      const tag = /^={3,}$/.test(nextLine) ? 'h2' : 'h3'
+      html += `<${tag}>${renderInlineNoteMarkdown(line)}</${tag}>`
+      index += 1
+      continue
+    }
+
+    const heading = line.match(/^(#{1,4})\s+(.+)$/)
+    if (heading) {
+      closeParagraph()
+      closeList()
+      const level = Math.min(heading[1].length + 1, 4)
+      html += `<h${level}>${renderInlineNoteMarkdown(heading[2])}</h${level}>`
+      continue
+    }
+
+    const bullet = line.match(/^[-*]\s+(.+)$/)
+    if (bullet) {
+      closeParagraph()
+      openList('ul')
+      html += `<li>${renderInlineNoteMarkdown(bullet[1])}</li>`
+      continue
+    }
+
+    const numbered = line.match(/^\d+[.)]\s+(.+)$/)
+    if (numbered) {
+      closeParagraph()
+      openList('ol')
+      html += `<li>${renderInlineNoteMarkdown(numbered[1])}</li>`
+      continue
+    }
+
+    closeList()
+    paragraph.push(line)
+  }
+
+  closeParagraph()
+  closeList()
+  return html
+}
+
+function WorkstationNotesRichEditor({ content, material, onRegenerate, onCreateSummary, onListConcepts }) {
+  const initialBody = typeof content === 'string' && content.trim() ? content : ''
+  const editorRef = useRef(null)
+  const [title, setTitle] = useState(material?.title ? `${material.title} notes` : 'Untitled')
+  const [htmlSeed, setHtmlSeed] = useState(() => notesMarkdownToHtml(initialBody))
+
+  useEffect(() => {
+    setTitle(material?.title ? `${material.title} notes` : 'Untitled')
+  }, [material?.id, material?.title])
+
+  useEffect(() => {
+    const nextHtml = notesMarkdownToHtml(typeof content === 'string' ? content : '')
+    setHtmlSeed(nextHtml)
+    if (editorRef.current && editorRef.current.innerHTML !== nextHtml) {
+      editorRef.current.innerHTML = nextHtml
+    }
+  }, [content])
+
+  const focusEditor = () => editorRef.current?.focus()
+
+  const runEditorCommand = (command, value = null) => {
+    focusEditor()
+    document.execCommand(command, false, value)
+  }
+
+  const insertHtml = (html) => runEditorCommand('insertHTML', html)
+
+  const addLink = () => {
+    focusEditor()
+    const url = window.prompt('Paste a link')
+    if (url) runEditorCommand('createLink', url)
+  }
+
+  const insertTable = () => {
+    insertHtml('<table><tbody><tr><th>Concept</th><th>Meaning</th></tr><tr><td><br></td><td><br></td></tr></tbody></table><p><br></p>')
+  }
+
+  const insertEquation = () => {
+    insertHtml('<span class="wn-equation">E = mc<sup>2</sup></span>')
+  }
+
+  const aiActions = [
+    { label: 'Generate notes', icon: Sparkle, onClick: onRegenerate, tone: 'purple' },
+    { label: 'Create summary', icon: Article, onClick: onCreateSummary, tone: 'peach' },
+    { label: 'List concepts', icon: ListBullets, onClick: onListConcepts, tone: 'mint' },
+  ]
+
+  const toolbarGroups = [
+    [
+      { label: 'B', title: 'Bold', onClick: () => runEditorCommand('bold') },
+      { label: 'I', title: 'Italic', onClick: () => runEditorCommand('italic') },
+      { label: 'U', title: 'Underline', onClick: () => runEditorCommand('underline') },
+      { label: 'S', title: 'Strikethrough', onClick: () => runEditorCommand('strikeThrough') },
+    ],
+    [
+      { label: 'Bul', title: 'Bullet list', onClick: () => runEditorCommand('insertUnorderedList') },
+      { label: '1.', title: 'Numbered list', onClick: () => runEditorCommand('insertOrderedList') },
+    ],
+    [
+      { label: 'Left', title: 'Align left', onClick: () => runEditorCommand('justifyLeft') },
+      { label: 'Center', title: 'Align center', onClick: () => runEditorCommand('justifyCenter') },
+      { label: 'Right', title: 'Align right', onClick: () => runEditorCommand('justifyRight') },
+    ],
+    [
+      { label: 'Sum', title: 'Formula', onClick: insertEquation },
+      { label: 'Grid', title: 'Table', onClick: insertTable },
+      { label: 'Link', title: 'Link', onClick: addLink },
+    ],
+    [
+      { label: 'Undo', title: 'Undo', onClick: () => runEditorCommand('undo') },
+      { label: 'Redo', title: 'Redo', onClick: () => runEditorCommand('redo') },
+    ],
+  ]
+
+  return (
+    <section className="wn-shell">
+      <style>{`
+        .wn-shell {
+          --wn-bg: var(--sb-bg, #F9FAFB);
+          --wn-surface: var(--sb-surface, #fff);
+          --wn-text: var(--sb-text, #111827);
+          --wn-secondary: var(--sb-text-secondary, #6B7280);
+          --wn-muted: var(--sb-text-muted, #9CA3AF);
+          --wn-border: var(--sb-border, #E5E7EB);
+          --wn-purple: var(--sb-purple, #C4B5FD);
+          --wn-mint: var(--sb-mint, #98FF98);
+          --wn-peach: var(--sb-peach, #FFD2A6);
+          min-height: 100%;
+          width: 100%;
+          padding: 24px 24px 40px;
+          color: var(--wn-text);
+          background: transparent;
+          font-family: var(--font-outfit), Outfit, Inter, sans-serif;
+        }
+        .wn-toolbar {
+          width: fit-content;
+          max-width: 100%;
+          min-height: 58px;
+          margin: 0 auto 44px;
+          padding: 7px 10px;
+          border-radius: 999px;
+          border: 1px solid var(--wn-border);
+          background: color-mix(in srgb, var(--wn-surface) 94%, transparent);
+          box-shadow: 0 14px 40px rgba(17,24,39,.07);
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          overflow-x: auto;
+        }
+        .wn-select, .wn-tool {
+          height: 40px;
+          border: 0;
+          border-radius: 12px;
+          background: transparent;
+          color: var(--wn-text);
+          font-weight: 900;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          flex-shrink: 0;
+        }
+        .wn-select {
+          padding: 0 12px;
+          min-width: 78px;
+          appearance: none;
+        }
+        .wn-select-small { min-width: 58px; }
+        .wn-tool {
+          min-width: 38px;
+          padding: 0 10px;
+          font-size: 14px;
+        }
+        .wn-tool:hover, .wn-select:hover { background: color-mix(in srgb, var(--wn-purple) 20%, transparent); }
+        .wn-divider {
+          width: 1px;
+          height: 30px;
+          background: var(--wn-border);
+          margin: 0 3px;
+          flex-shrink: 0;
+        }
+        .wn-editor {
+          max-width: 760px;
+          min-height: calc(100vh - 330px);
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+        }
+        .wn-title-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 12px;
+        }
+        .wn-title {
+          width: 100%;
+          border: 0;
+          outline: none;
+          background: transparent;
+          color: var(--wn-text);
+          font-size: clamp(31px, 4vw, 42px);
+          font-weight: 900;
+          letter-spacing: 0;
+        }
+        .wn-alpha {
+          min-height: 28px;
+          border-radius: 999px;
+          padding: 0 10px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          white-space: nowrap;
+          background: color-mix(in srgb, var(--wn-peach) 36%, var(--wn-surface));
+          color: #7C2D12;
+          font-size: 12px;
+          font-weight: 800;
+        }
+        .wn-actions {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin: 8px 0 28px;
+        }
+        .wn-round, .wn-action {
+          min-height: 44px;
+          border-radius: 999px;
+          border: 1px solid var(--wn-border);
+          background: var(--wn-surface);
+          color: var(--wn-text);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-weight: 900;
+          cursor: pointer;
+          transition: transform .16s ease, box-shadow .16s ease;
+        }
+        .wn-round { width: 44px; }
+        .wn-action { padding: 0 16px; }
+        .wn-action:hover, .wn-round:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(122,18,204,.1); }
+        .wn-action.tone-purple { background: color-mix(in srgb, var(--wn-purple) 52%, var(--wn-surface)); color: #3B0764; }
+        .wn-action.tone-mint { background: color-mix(in srgb, var(--wn-mint) 42%, var(--wn-surface)); color: #14532D; }
+        .wn-action.tone-peach { background: color-mix(in srgb, var(--wn-peach) 52%, var(--wn-surface)); color: #7C2D12; }
+        .wn-body {
+          flex: 1;
+          width: 100%;
+          min-height: 500px;
+          border: 0;
+          outline: none;
+          background: transparent;
+          color: var(--wn-text);
+          font: inherit;
+          font-size: 17px;
+          line-height: 1.75;
+          font-weight: 500;
+          cursor: text;
+          padding-bottom: 110px;
+        }
+        .wn-body:empty::before {
+          content: attr(data-placeholder);
+          color: var(--wn-muted);
+          font-weight: 500;
+        }
+        .wn-body h1, .wn-body h2, .wn-body h3, .wn-body h4 {
+          color: var(--wn-text);
+          margin: 28px 0 12px;
+          line-height: 1.2;
+          font-weight: 900;
+        }
+        .wn-body h2 { font-size: 26px; }
+        .wn-body h3 { font-size: 22px; }
+        .wn-body p { margin: 0 0 18px; }
+        .wn-body ul, .wn-body ol {
+          padding-left: 24px;
+          margin: 0 0 20px;
+        }
+        .wn-body li { margin: 8px 0; }
+        .wn-body strong { font-weight: 900; }
+        .wn-body code, .wn-equation {
+          border-radius: 8px;
+          padding: 2px 7px;
+          background: color-mix(in srgb, var(--wn-purple) 18%, var(--wn-surface));
+          color: #4C1D95;
+          font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+          font-weight: 700;
+        }
+        .wn-body a {
+          color: #6D28D9;
+          font-weight: 800;
+          text-decoration: underline;
+        }
+        .wn-body table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 18px 0 22px;
+          overflow: hidden;
+          border-radius: 12px;
+        }
+        .wn-body th, .wn-body td {
+          border: 1px solid var(--wn-border);
+          padding: 10px 12px;
+          text-align: left;
+        }
+        .wn-body th {
+          background: color-mix(in srgb, var(--wn-mint) 24%, var(--wn-surface));
+          font-weight: 900;
+        }
+        @media (max-width: 760px) {
+          .wn-shell { padding-inline: 16px; }
+          .wn-toolbar { margin-bottom: 28px; }
+          .wn-title-row { align-items: flex-start; flex-direction: column; }
+        }
+      `}</style>
+
+      <div className="wn-toolbar" aria-label="Notes formatting">
+        <select className="wn-select" defaultValue="p" onChange={(event) => runEditorCommand('formatBlock', event.target.value)}>
+          <option value="p">Text</option>
+          <option value="h2">Heading</option>
+          <option value="h3">Subhead</option>
+          <option value="blockquote">Quote</option>
+        </select>
+        <select className="wn-select wn-select-small" defaultValue="3" onChange={(event) => runEditorCommand('fontSize', event.target.value)}>
+          <option value="2">14</option>
+          <option value="3">16</option>
+          <option value="4">18</option>
+          <option value="5">24</option>
+        </select>
+        {toolbarGroups.map((group, groupIndex) => (
+          <React.Fragment key={`group-${groupIndex}`}>
+            <span className="wn-divider" />
+            {group.map((item) => (
+              <button key={item.title} type="button" className="wn-tool" title={item.title} onMouseDown={(event) => event.preventDefault()} onClick={item.onClick}>
+                {item.label}
+              </button>
+            ))}
+          </React.Fragment>
+        ))}
+      </div>
+
+      <div className="wn-editor">
+        <div className="wn-title-row">
+          <input className="wn-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Untitled" />
+          <span className="wn-alpha"><WarningCircle size={14} weight="bold" /> Alpha</span>
+        </div>
+
+        <div className="wn-actions">
+          <button type="button" className="wn-round" title="Dictate note"><Microphone size={18} weight="bold" /></button>
+          {aiActions.map((action) => {
+            const ActionIcon = action.icon
+            return (
+              <button key={action.label} type="button" className={`wn-action tone-${action.tone}`} onClick={action.onClick}>
+                <ActionIcon size={18} weight="bold" />
+                {action.label}
+              </button>
+            )
+          })}
+        </div>
+
+        <div
+          ref={editorRef}
+          className="wn-body"
+          contentEditable
+          suppressContentEditableWarning
+          data-placeholder="Start writing notes..."
+          dangerouslySetInnerHTML={{ __html: htmlSeed }}
+        />
+      </div>
+    </section>
+  )
+}
+
+function WorkstationNotesEditor({ content, material, onRegenerate, onCreateSummary, onListConcepts }) {
+  const initialBody = typeof content === 'string' && content.trim()
+    ? content
+    : ''
+  const [title, setTitle] = useState(material?.title ? `${material.title} notes` : 'Untitled')
+  const [body, setBody] = useState(initialBody)
+
+  useEffect(() => {
+    setTitle(material?.title ? `${material.title} notes` : 'Untitled')
+  }, [material?.id, material?.title])
+
+  useEffect(() => {
+    if (typeof content === 'string' && content.trim()) setBody(content)
+  }, [content])
+
+  const insertBlock = (text) => {
+    setBody((value) => `${value}${value ? '\n\n' : ''}${text}`)
+  }
+
+  const aiActions = [
+    { label: 'Generate notes', icon: Sparkle, onClick: onRegenerate, tone: 'purple' },
+    { label: 'Create summary', icon: Article, onClick: onCreateSummary, tone: 'peach' },
+    { label: 'List concepts', icon: ListBullets, onClick: onListConcepts, tone: 'mint' },
+  ]
+
+  const toolbar = [
+    { label: 'B', title: 'Bold', onClick: () => insertBlock('**Important point:** ') },
+    { label: 'I', title: 'Italic', onClick: () => insertBlock('_Add emphasis here_') },
+    { label: 'U', title: 'Underline', onClick: () => insertBlock('<u>Underline this idea</u>') },
+    { label: 'S', title: 'Strikethrough', onClick: () => insertBlock('~~Revise this~~') },
+    { label: '•', title: 'Bullet list', onClick: () => insertBlock('- First point\n- Second point\n- Third point') },
+    { label: '1.', title: 'Numbered list', onClick: () => insertBlock('1. First step\n2. Second step\n3. Third step') },
+    { label: 'Σ', title: 'Formula', onClick: () => insertBlock('Formula: ') },
+    { label: '▦', title: 'Table', onClick: () => insertBlock('| Concept | Meaning |\n| --- | --- |\n|  |  |') },
+  ]
+
+  return (
+    <section className="wn-shell">
+      <style>{`
+        .wn-shell {
+          --wn-bg: var(--sb-bg, #F9FAFB);
+          --wn-surface: var(--sb-surface, #fff);
+          --wn-text: var(--sb-text, #111827);
+          --wn-secondary: var(--sb-text-secondary, #6B7280);
+          --wn-muted: var(--sb-text-muted, #9CA3AF);
+          --wn-border: var(--sb-border, #E5E7EB);
+          --wn-purple: var(--sb-purple, #C4B5FD);
+          --wn-mint: var(--sb-mint, #98FF98);
+          --wn-peach: var(--sb-peach, #FFD2A6);
+          --wn-purple-deep: var(--sb-purple-deep, #7a12cc);
+          min-height: 100%;
+          width: 100%;
+          padding: 24px 24px 40px;
+          color: var(--wn-text);
+          background: transparent;
+          font-family: var(--font-outfit), Outfit, Inter, sans-serif;
+        }
+        .wn-toolbar {
+          width: fit-content;
+          max-width: 100%;
+          min-height: 64px;
+          margin: 0 auto 44px;
+          padding: 8px 14px;
+          border-radius: 999px;
+          border: 1px solid var(--wn-border);
+          background: color-mix(in srgb, var(--wn-surface) 94%, transparent);
+          box-shadow: 0 14px 40px rgba(17,24,39,.07);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          overflow-x: auto;
+        }
+        .wn-style-select, .wn-tool {
+          height: 42px;
+          border: 0;
+          border-radius: 13px;
+          background: transparent;
+          color: var(--wn-text);
+          font-weight: 900;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          flex-shrink: 0;
+        }
+        .wn-style-select { padding: 0 12px; gap: 6px; }
+        .wn-tool { width: 42px; font-size: 22px; }
+        .wn-tool:hover, .wn-style-select:hover { background: color-mix(in srgb, var(--wn-purple) 20%, transparent); }
+        .wn-editor {
+          max-width: 760px;
+          min-height: calc(100vh - 330px);
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+        }
+        .wn-title-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 12px;
+        }
+        .wn-title {
+          width: 100%;
+          border: 0;
+          outline: none;
+          background: transparent;
+          color: var(--wn-text);
+          font-size: clamp(31px, 4vw, 42px);
+          font-weight: 900;
+          letter-spacing: 0;
+        }
+        .wn-alpha {
+          min-height: 28px;
+          border-radius: 999px;
+          padding: 0 10px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          white-space: nowrap;
+          background: color-mix(in srgb, var(--wn-peach) 36%, var(--wn-surface));
+          color: #7C2D12;
+          font-size: 12px;
+          font-weight: 800;
+        }
+        .wn-actions {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin: 8px 0 28px;
+        }
+        .wn-round, .wn-action {
+          min-height: 44px;
+          border-radius: 999px;
+          border: 1px solid var(--wn-border);
+          background: var(--wn-surface);
+          color: var(--wn-text);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-weight: 900;
+          cursor: pointer;
+          transition: transform .16s ease, box-shadow .16s ease;
+        }
+        .wn-round { width: 44px; }
+        .wn-action { padding: 0 16px; }
+        .wn-action:hover, .wn-round:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(122,18,204,.1); }
+        .wn-action.tone-purple { background: color-mix(in srgb, var(--wn-purple) 52%, var(--wn-surface)); color: #3B0764; }
+        .wn-action.tone-mint { background: color-mix(in srgb, var(--wn-mint) 42%, var(--wn-surface)); color: #14532D; }
+        .wn-action.tone-peach { background: color-mix(in srgb, var(--wn-peach) 52%, var(--wn-surface)); color: #7C2D12; }
+        .wn-body {
+          flex: 1;
+          width: 100%;
+          min-height: 460px;
+          border: 0;
+          outline: none;
+          resize: none;
+          background: transparent;
+          color: var(--wn-text);
+          font: inherit;
+          font-size: 17px;
+          line-height: 1.75;
+          font-weight: 600;
+        }
+        .wn-body::placeholder { color: var(--wn-muted); }
+        @media (max-width: 760px) {
+          .wn-shell { padding-inline: 16px; }
+          .wn-toolbar { margin-bottom: 28px; }
+          .wn-title-row { align-items: flex-start; flex-direction: column; }
+        }
+      `}</style>
+
+      <div className="wn-toolbar" aria-label="Notes formatting">
+        <button type="button" className="wn-style-select">Text <CaretDown size={14} weight="bold" /></button>
+        {toolbar.map((item) => (
+          <button key={item.title} type="button" className="wn-tool" title={item.title} onClick={item.onClick}>
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="wn-editor">
+        <div className="wn-title-row">
+          <input className="wn-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Untitled" />
+          <span className="wn-alpha"><WarningCircle size={14} weight="bold" /> Alpha</span>
+        </div>
+
+        <div className="wn-actions">
+          <button type="button" className="wn-round" title="Dictate note"><Microphone size={18} weight="bold" /></button>
+          {aiActions.map((action) => {
+            const ActionIcon = action.icon
+            return (
+              <button key={action.label} type="button" className={`wn-action tone-${action.tone}`} onClick={action.onClick}>
+                <ActionIcon size={18} weight="bold" />
+                {action.label}
+              </button>
+            )
+          })}
+        </div>
+
+        <textarea
+          className="wn-body"
+          value={body}
+          onChange={(event) => setBody(event.target.value)}
+          placeholder="Start writing notes..."
+        />
+      </div>
+    </section>
+  )
+}
+
 export function WorkstationSummary({ content, material }) {
   if (!content) return <EmptyState icon={Sparkle} label="Distilling key insights..." />
 
@@ -191,7 +842,7 @@ export function WorkstationSummary({ content, material }) {
 }
 
 
-export function WorkstationFlashcards({ flashcards = [], items = [], material, user, onRegenerate }) {
+export function WorkstationFlashcards({ flashcards = [], items = [], material, user, onRegenerate, isLoading = false }) {
   const getItems = () => {
     if (Array.isArray(flashcards) && flashcards.length > 0) return flashcards
     if (flashcards?.flashcards && Array.isArray(flashcards.flashcards)) return flashcards.flashcards
@@ -202,11 +853,15 @@ export function WorkstationFlashcards({ flashcards = [], items = [], material, u
   }
   const safeItems = getItems()
 
-  return <FlashcardEngineComponent material={material} items={safeItems} user={user} onRegenerate={onRegenerate} />
+  return <FlashcardEngineComponent material={material} items={safeItems} user={user} onRegenerate={onRegenerate} isLoading={isLoading} />
 }
 
 
-export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, onRegenerate }) {
+export function WorkstationQuiz(props) {
+  return <WorkstationQuizRedesign {...props} />
+}
+
+function WorkstationQuizLegacy({ quiz = [], items = [], material, onComplete, onRegenerate, isLoading = false }) {
   const [idx, setIdx] = useState(0)
   const [selected, setSelected] = useState({})
   const [typeInAnswers, setTypeInAnswers] = useState({})
@@ -223,6 +878,16 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
     return []
   }
   const safeQuestions = getQuestions()
+  const questionSignature = safeQuestions.map((question) => question?.id || question?.question || '').join('|')
+
+  useEffect(() => {
+    setIdx(0)
+    setSelected({})
+    setTypeInAnswers({})
+    setIsFinished(false)
+    setShowExplanation(false)
+    setExplainMode(false)
+  }, [questionSignature, material?.id])
 
   if (safeQuestions.length === 0) return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', padding: '24px' }}>
@@ -236,13 +901,15 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
       {onRegenerate && (
         <button
           onClick={onRegenerate}
+          disabled={isLoading}
           style={{
             padding: '12px 24px', background: '#C4B5FD', color: '#4C1D95', border: 'none', borderRadius: '9999px',
             fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-            fontSize: '14px'
+            fontSize: '14px',
+            opacity: isLoading ? 0.65 : 1
           }}
         >
-          <Sparkle size={16} /> Generate Quiz
+          <Sparkle size={16} /> {isLoading ? 'Generating...' : 'Generate Quiz'}
         </button>
       )}
     </div>
@@ -440,6 +1107,13 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
             <Play size={14} /> Do New Quiz
           </button>
           <button
+            onClick={onRegenerate}
+            disabled={!onRegenerate || isLoading}
+            style={{ flex: 1, minWidth: '110px', height: '40px', background: 'white', border: '1px solid #E5E7EB', borderRadius: '9999px', fontSize: '13px', fontWeight: 500, color: '#374151', cursor: (!onRegenerate || isLoading) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', opacity: isLoading ? 0.65 : 1 }}
+          >
+            <ArrowsClockwise size={14} /> {isLoading ? 'Generating' : 'Regenerate'}
+          </button>
+          <button
             style={{ flex: 1, minWidth: '100px', height: '40px', background: '#C4B5FD', border: 'none', borderRadius: '9999px', fontSize: '13px', fontWeight: 600, color: '#4C1D95', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
           >
             <Export size={14} /> Share Quiz
@@ -474,6 +1148,16 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
         {/* Right side */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '12px', color: '#9CA3AF' }}>{idx + 1} / {safeQuestions.length}</span>
+          {onRegenerate && (
+            <button
+              onClick={onRegenerate}
+              disabled={isLoading}
+              title="Regenerate quiz"
+              style={{ width: '28px', height: '28px', borderRadius: '9999px', background: 'transparent', border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isLoading ? 0.55 : 1 }}
+            >
+              <ArrowsClockwise size={14} color="#9CA3AF" />
+            </button>
+          )}
           <button style={{ width: '28px', height: '28px', borderRadius: '9999px', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', hover: { background: '#F3F4F6' } }}>
             <Flag size={14} color="#9CA3AF" />
           </button>
@@ -702,6 +1386,339 @@ export function WorkstationQuiz({ quiz = [], items = [], material, onComplete, o
         </button>
       </div>
     </div>
+  )
+}
+
+function WorkstationQuizRedesign({ quiz = [], items = [], material, onComplete, onRegenerate, isLoading = false }) {
+  const [mode, setMode] = useState('home')
+  const [quizType, setQuizType] = useState('practice')
+  const [idx, setIdx] = useState(0)
+  const [selected, setSelected] = useState({})
+  const [typeInAnswers, setTypeInAnswers] = useState({})
+  const [isFinished, setIsFinished] = useState(false)
+  const [showExplanation, setShowExplanation] = useState(false)
+
+  const getQuestions = () => {
+    if (Array.isArray(quiz) && quiz.length > 0) return quiz
+    if (quiz?.questions && Array.isArray(quiz.questions)) return quiz.questions
+    if (quiz?.items && Array.isArray(quiz.items)) return quiz.items
+    if (Array.isArray(items) && items.length > 0) return items
+    if (items?.questions && Array.isArray(items.questions)) return items.questions
+    return []
+  }
+
+  const safeQuestions = getQuestions()
+  const questionSignature = safeQuestions.map((question) => question?.id || question?.question || '').join('|')
+
+  useEffect(() => {
+    setMode('home')
+    setQuizType('practice')
+    setIdx(0)
+    setSelected({})
+    setTypeInAnswers({})
+    setIsFinished(false)
+    setShowExplanation(false)
+  }, [questionSignature, material?.id])
+
+  const getCorrectIndex = (question) => {
+    const ans = question?.correctAnswer ?? question?.correct_answer ?? question?.answer
+    if (ans === undefined || ans === null) return -1
+    if (typeof ans === 'number') return ans
+    if (typeof ans === 'string') {
+      const lower = ans.trim().toLowerCase()
+      if (lower === 'a') return 0
+      if (lower === 'b') return 1
+      if (lower === 'c') return 2
+      if (lower === 'd') return 3
+      if (lower === 'true' || lower === 'yes') return 1
+      if (lower === 'false' || lower === 'no') return 0
+      const parsed = parseInt(lower, 10)
+      if (!Number.isNaN(parsed)) return parsed
+      const options = question?.options || []
+      const optionIndex = options.findIndex((opt) => {
+        const text = (typeof opt === 'object' ? (opt.text || opt.choice || '') : opt).toString().trim().toLowerCase()
+        return text === lower
+      })
+      if (optionIndex !== -1) return optionIndex
+    }
+    return -1
+  }
+
+  const calculateScore = () => {
+    return safeQuestions.reduce((acc, question, index) => {
+      if (question?.type === 'typein') {
+        const userText = (typeInAnswers[index] || '').trim().toLowerCase()
+        const expected = (question.expected_answer || question.answer || '').trim().toLowerCase()
+        return acc + (userText && userText === expected ? 1 : 0)
+      }
+      return acc + (selected[index] === getCorrectIndex(question) ? 1 : 0)
+    }, 0)
+  }
+
+  const answeredCount = Object.keys(selected).length + Object.keys(typeInAnswers).length
+  const score = calculateScore()
+  const accuracy = safeQuestions.length ? Math.round((score / safeQuestions.length) * 100) : 0
+  const currentQuestion = safeQuestions[idx]
+  const correctIdx = getCorrectIndex(currentQuestion)
+  const isAnswered = selected[idx] !== undefined || typeInAnswers[idx] !== undefined
+  const progress = safeQuestions.length ? ((idx + (isAnswered ? 1 : 0)) / safeQuestions.length) * 100 : 0
+
+  const resetQuiz = (nextMode = quizType) => {
+    setMode('active')
+    setQuizType(nextMode)
+    setIdx(0)
+    setSelected({})
+    setTypeInAnswers({})
+    setIsFinished(false)
+    setShowExplanation(false)
+  }
+
+  const handleSelect = (choiceIdx) => {
+    if (isAnswered) return
+    setSelected((prev) => ({ ...prev, [idx]: choiceIdx }))
+  }
+
+  const handleNext = () => {
+    if (idx < safeQuestions.length - 1) {
+      setIdx((value) => value + 1)
+      setShowExplanation(false)
+      return
+    }
+    setIsFinished(true)
+    onComplete?.({ score: calculateScore(), total: safeQuestions.length })
+  }
+
+  const optionText = (option) => {
+    if (typeof option === 'object') return option.text || option.choice || JSON.stringify(option)
+    return option
+  }
+
+  return (
+    <section className="lq-shell">
+      <style>{`
+        .lq-shell {
+          --lq-bg: var(--sb-bg, #F9FAFB);
+          --lq-surface: var(--sb-surface, #fff);
+          --lq-text: var(--sb-text, #111827);
+          --lq-secondary: var(--sb-text-secondary, #6B7280);
+          --lq-muted: var(--sb-text-muted, #9CA3AF);
+          --lq-border: var(--sb-border, #E5E7EB);
+          --lq-purple: var(--sb-purple, #C4B5FD);
+          --lq-mint: var(--sb-mint, #98FF98);
+          --lq-peach: var(--sb-peach, #FFD2A6);
+          --lq-purple-deep: var(--sb-purple-deep, #7a12cc);
+          min-height: 100%;
+          color: var(--lq-text);
+          background:
+            radial-gradient(circle, color-mix(in srgb, var(--lq-text) 7%, transparent) 1px, transparent 1px),
+            var(--lq-bg);
+          background-size: 14px 14px;
+          padding: 28px 40px 110px;
+          font-family: var(--font-outfit), Outfit, Inter, sans-serif;
+        }
+        .lq-card {
+          background: color-mix(in srgb, var(--lq-surface) 96%, transparent);
+          border: 1px solid var(--lq-border);
+          border-radius: 22px;
+          box-shadow: 0 18px 54px rgba(17,24,39,0.06);
+        }
+        .lq-home-grid { display: grid; grid-template-columns: minmax(320px, 1.1fr) minmax(320px, 0.9fr); gap: 24px; max-width: 1180px; margin: 0 auto; }
+        .lq-hero { min-height: 310px; padding: 28px; display: grid; grid-template-columns: 1fr auto; gap: 28px; align-items: center; overflow: hidden; position: relative; }
+        .lq-hero:before { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, color-mix(in srgb, var(--lq-purple) 32%, transparent), color-mix(in srgb, var(--lq-mint) 18%, transparent) 55%, color-mix(in srgb, var(--lq-peach) 28%, transparent)); opacity: 0.8; pointer-events: none; }
+        .lq-hero > * { position: relative; }
+        .lq-kicker { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 12px; border-radius: 999px; background: var(--lq-surface); color: var(--lq-purple-deep); font-size: 12px; font-weight: 900; }
+        .lq-hero h2 { margin: 18px 0 10px; font-size: clamp(30px, 4vw, 48px); line-height: 1; font-weight: 900; letter-spacing: 0; }
+        .lq-hero p { margin: 0; max-width: 520px; color: var(--lq-secondary); font-size: 16px; line-height: 1.55; font-weight: 600; }
+        .lq-mascot { width: 138px; height: 138px; object-fit: contain; filter: drop-shadow(0 18px 34px rgba(122,18,204,0.22)); }
+        .lq-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+        .lq-btn { min-height: 44px; border-radius: 14px; border: 1px solid var(--lq-border); background: var(--lq-surface); color: var(--lq-text); padding: 0 18px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 900; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease, background .16s ease; }
+        .lq-btn:hover { transform: translateY(-1px); box-shadow: 0 14px 30px rgba(122,18,204,.12); }
+        .lq-btn.primary { background: var(--lq-purple); border-color: color-mix(in srgb, var(--lq-purple-deep) 45%, var(--lq-purple)); color: #3B0764; }
+        .lq-btn.mint { background: var(--lq-mint); border-color: #86EFAC; color: #14532D; }
+        .lq-btn.danger { background: #FEE2E2; border-color: #FCA5A5; color: #991B1B; }
+        .lq-btn:disabled { opacity: .56; cursor: not-allowed; transform: none; box-shadow: none; }
+        .lq-side { display: grid; gap: 14px; }
+        .lq-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+        .lq-stat { min-height: 120px; padding: 18px; border-radius: 18px; border: 1px solid var(--lq-border); background: var(--lq-surface); }
+        .lq-stat span { color: var(--lq-secondary); font-size: 12px; font-weight: 900; }
+        .lq-stat strong { display: block; margin-top: 14px; font-size: 34px; line-height: 1; }
+        .lq-stat.purple strong { color: var(--lq-purple-deep); }
+        .lq-stat.mint strong { color: #15803D; }
+        .lq-stat.peach strong { color: #9A3412; }
+        .lq-mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .lq-mode-card { min-height: 172px; border-radius: 20px; border: 1px solid var(--lq-border); background: var(--lq-surface); padding: 20px; display: flex; flex-direction: column; justify-content: space-between; text-align: left; cursor: pointer; color: var(--lq-text); }
+        .lq-mode-icon { width: 46px; height: 46px; border-radius: 15px; display: inline-flex; align-items: center; justify-content: center; }
+        .lq-mode-card strong { display: block; font-size: 20px; margin-bottom: 4px; }
+        .lq-mode-card small { color: var(--lq-secondary); font-weight: 700; line-height: 1.4; }
+        .lq-empty { max-width: 460px; min-height: 440px; margin: 72px auto 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 34px; }
+        .lq-empty img { width: 118px; height: 118px; object-fit: contain; margin-bottom: 18px; }
+        .lq-empty h3 { margin: 0 0 8px; font-size: 25px; }
+        .lq-empty p { margin: 0 0 22px; color: var(--lq-secondary); line-height: 1.5; }
+        .lq-runner { min-height: calc(100vh - 176px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
+        .lq-runner-top { position: fixed; left: 44px; right: 44px; top: 118px; z-index: 8; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; pointer-events: none; }
+        .lq-runner-top > * { pointer-events: auto; }
+        .lq-progress { height: 8px; border-radius: 999px; background: color-mix(in srgb, var(--lq-border) 65%, transparent); overflow: hidden; }
+        .lq-progress span { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, var(--lq-purple), var(--lq-mint), var(--lq-peach)); transition: width .22s ease; }
+        .lq-chip { justify-self: center; min-height: 42px; border-radius: 999px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; background: var(--lq-surface); border: 1px solid var(--lq-border); font-weight: 900; color: var(--lq-secondary); }
+        .lq-runner-actions { justify-self: end; display: flex; gap: 8px; }
+        .lq-icon-btn { width: 42px; height: 42px; border-radius: 14px; border: 1px solid var(--lq-border); background: var(--lq-surface); color: var(--lq-text); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+        .lq-question-card { width: min(768px, calc(100vw - 80px)); min-height: 460px; padding: 36px; display: flex; flex-direction: column; justify-content: center; }
+        .lq-question-card h3 { margin: 0 auto 34px; max-width: 680px; text-align: center; font-size: clamp(22px, 2.2vw, 28px); line-height: 1.25; font-weight: 900; letter-spacing: 0; }
+        .lq-options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .lq-option { min-height: 88px; border-radius: 16px; border: 1px solid var(--lq-border); background: var(--lq-surface); color: var(--lq-text); display: grid; grid-template-columns: 38px 1fr; align-items: center; gap: 14px; padding: 14px 16px; text-align: left; font-weight: 800; cursor: pointer; transition: transform .14s ease, border-color .14s ease, background .14s ease; }
+        .lq-option:hover:not(:disabled) { transform: translateY(-1px); border-color: var(--lq-purple); background: color-mix(in srgb, var(--lq-purple) 14%, var(--lq-surface)); }
+        .lq-letter { width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--lq-border); display: inline-flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--lq-bg) 70%, var(--lq-surface)); font-weight: 900; }
+        .lq-option.is-selected { border-color: var(--lq-purple-deep); background: color-mix(in srgb, var(--lq-purple) 38%, var(--lq-surface)); }
+        .lq-option.is-correct { border-color: #22C55E; background: color-mix(in srgb, var(--lq-mint) 48%, var(--lq-surface)); color: #14532D; }
+        .lq-option.is-wrong { border-color: #EF4444; background: #FEE2E2; color: #7F1D1D; }
+        .lq-typein { min-height: 92px; border-radius: 18px; border: 1px solid var(--lq-border); padding: 0 20px; color: var(--lq-text); background: var(--lq-surface); font: inherit; font-size: 18px; outline: none; }
+        .lq-explain { margin-top: 18px; border-radius: 18px; padding: 18px; background: color-mix(in srgb, var(--lq-peach) 36%, var(--lq-surface)); border: 1px solid color-mix(in srgb, var(--lq-peach) 80%, var(--lq-border)); color: var(--lq-text); line-height: 1.55; font-weight: 700; }
+        .lq-bottom { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 10; padding: 8px; display: grid; grid-template-columns: 54px minmax(180px, 300px) minmax(180px, 300px); gap: 10px; border-radius: 20px; background: color-mix(in srgb, var(--lq-surface) 92%, transparent); border: 1px solid var(--lq-border); box-shadow: 0 18px 44px rgba(17,24,39,.12); backdrop-filter: blur(12px); }
+        .lq-result { width: min(720px, calc(100vw - 80px)); padding: 34px; text-align: center; }
+        .lq-result img { width: 86px; height: 86px; object-fit: contain; }
+        .lq-result h2 { margin: 12px 0 8px; font-size: 36px; }
+        .lq-result p { color: var(--lq-secondary); font-weight: 700; }
+        .lq-result-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 24px 0; }
+        body.dark-mode .lq-shell { background-size: 14px 14px; }
+        @media (max-width: 920px) {
+          .lq-shell { padding: 20px 16px 112px; }
+          .lq-home-grid, .lq-mode-grid, .lq-options { grid-template-columns: 1fr; }
+          .lq-hero { grid-template-columns: 1fr; }
+          .lq-runner-top { left: 16px; right: 16px; top: 106px; grid-template-columns: 1fr; }
+          .lq-chip, .lq-runner-actions { justify-self: start; }
+          .lq-question-card { width: 100%; padding: 24px 18px; }
+          .lq-bottom { left: 12px; right: 12px; transform: none; grid-template-columns: 44px 1fr 1fr; }
+        }
+      `}</style>
+
+      {safeQuestions.length === 0 ? (
+        <div className="lq-empty lq-card">
+          <img src="/mascot.png" alt="" />
+          <h3>No quiz yet</h3>
+          <p>Create a quiz from this material when you are ready to test recall.</p>
+          <button type="button" className="lq-btn primary" onClick={onRegenerate} disabled={!onRegenerate || isLoading}>
+            {isLoading ? <CircleNotch size={18} className="spin" /> : <Sparkle size={18} weight="bold" />}
+            {isLoading ? 'Generating' : 'Generate quiz'}
+          </button>
+        </div>
+      ) : mode === 'home' ? (
+        <div className="lq-home-grid">
+          <article className="lq-hero lq-card">
+            <div>
+              <span className="lq-kicker"><Question size={16} weight="bold" /> Quiz arena</span>
+              <h2>Practice fast, then prove it.</h2>
+              <p>Start with regular quiz mode for quick feedback, or switch to exam mode when you want a calmer, timed run.</p>
+              <div className="lq-actions">
+                <button type="button" className="lq-btn primary" onClick={() => resetQuiz('practice')}><Play size={18} weight="bold" /> Start quiz</button>
+                <button type="button" className="lq-btn mint" onClick={() => resetQuiz('exam')}><Timer size={18} weight="bold" /> Exam mode</button>
+                <button type="button" className="lq-btn" onClick={onRegenerate} disabled={!onRegenerate || isLoading}>
+                  <ArrowsClockwise size={18} weight="bold" /> {isLoading ? 'Generating' : 'Regenerate'}
+                </button>
+              </div>
+            </div>
+            <img className="lq-mascot" src="/mascot.png" alt="" />
+          </article>
+
+          <aside className="lq-side">
+            <div className="lq-stat-grid">
+              <div className="lq-stat purple"><span>Questions</span><strong>{safeQuestions.length}</strong></div>
+              <div className="lq-stat mint"><span>Answered</span><strong>{answeredCount}</strong></div>
+              <div className="lq-stat peach"><span>Score</span><strong>{accuracy}%</strong></div>
+            </div>
+            <div className="lq-mode-grid">
+              <button className="lq-mode-card" type="button" onClick={() => resetQuiz('practice')}>
+                <span className="lq-mode-icon" style={{ background: 'var(--lq-purple)', color: '#3B0764' }}><CheckSquare size={24} weight="bold" /></span>
+                <span><strong>Practice</strong><small>Instant feedback and explanations when you miss.</small></span>
+              </button>
+              <button className="lq-mode-card" type="button" onClick={() => resetQuiz('exam')}>
+                <span className="lq-mode-icon" style={{ background: 'var(--lq-mint)', color: '#14532D' }}><Timer size={24} weight="bold" /></span>
+                <span><strong>Exam</strong><small>Cleaner flow, fewer distractions, finish at the end.</small></span>
+              </button>
+            </div>
+          </aside>
+        </div>
+      ) : isFinished ? (
+        <div className="lq-runner">
+          <article className="lq-result lq-card">
+            <img src="/mascot.png" alt="" />
+            <h2>{accuracy >= 70 ? 'Solid run' : 'Good attempt'}</h2>
+            <p>You got {score} of {safeQuestions.length} questions correct.</p>
+            <div className="lq-result-stats">
+              <div className="lq-stat purple"><span>Accuracy</span><strong>{accuracy}%</strong></div>
+              <div className="lq-stat mint"><span>Correct</span><strong>{score}</strong></div>
+              <div className="lq-stat peach"><span>Review</span><strong>{Math.max(0, safeQuestions.length - score)}</strong></div>
+            </div>
+            <div className="lq-actions" style={{ justifyContent: 'center' }}>
+              <button type="button" className="lq-btn primary" onClick={() => resetQuiz(quizType)}><ArrowsClockwise size={18} weight="bold" /> Retry</button>
+              <button type="button" className="lq-btn" onClick={() => setMode('home')}><CaretLeft size={18} weight="bold" /> Dashboard</button>
+              <button type="button" className="lq-btn mint" onClick={onRegenerate} disabled={!onRegenerate || isLoading}><Sparkle size={18} weight="bold" /> New questions</button>
+            </div>
+          </article>
+        </div>
+      ) : (
+        <div className="lq-runner">
+          <div className="lq-runner-top">
+            <div className="lq-progress"><span style={{ width: `${progress}%` }} /></div>
+            <div className="lq-chip">
+              {quizType === 'exam' ? <Timer size={17} weight="bold" /> : <CheckSquare size={17} weight="bold" />}
+              {idx + 1} / {safeQuestions.length}
+            </div>
+            <div className="lq-runner-actions">
+              <button type="button" className="lq-icon-btn" title="Regenerate" onClick={onRegenerate} disabled={!onRegenerate || isLoading}><ArrowsClockwise size={18} /></button>
+              <button type="button" className="lq-icon-btn" title="Flag"><Flag size={18} /></button>
+              <button type="button" className="lq-btn danger" onClick={() => setMode('home')}><SignOut size={17} weight="bold" /> Leave</button>
+            </div>
+          </div>
+
+          <article className="lq-question-card lq-card">
+            <h3>{idx + 1}. {currentQuestion?.question || 'Untitled question'}</h3>
+            {currentQuestion?.type === 'typein' ? (
+              <input
+                className="lq-typein"
+                value={typeInAnswers[idx] || ''}
+                placeholder="Type your answer..."
+                onChange={(event) => setTypeInAnswers((prev) => ({ ...prev, [idx]: event.target.value }))}
+              />
+            ) : (
+              <div className="lq-options">
+                {(currentQuestion?.options || []).slice(0, 4).map((option, optionIdx) => {
+                  const selectedOption = selected[idx] === optionIdx
+                  const correctOption = isAnswered && optionIdx === correctIdx
+                  const wrongOption = isAnswered && selectedOption && optionIdx !== correctIdx
+                  return (
+                    <button
+                      key={`${idx}-${optionIdx}`}
+                      type="button"
+                      className={`lq-option ${selectedOption ? 'is-selected' : ''} ${correctOption ? 'is-correct' : ''} ${wrongOption ? 'is-wrong' : ''}`}
+                      onClick={() => handleSelect(optionIdx)}
+                      disabled={isAnswered}
+                    >
+                      <span className="lq-letter">{String.fromCharCode(65 + optionIdx)}</span>
+                      <span>{optionText(option)}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            {showExplanation && (
+              <div className="lq-explain">
+                {currentQuestion?.explanation || (correctIdx >= 0 ? `Correct answer: ${String.fromCharCode(65 + correctIdx)}.` : 'No explanation is available for this question yet.')}
+              </div>
+            )}
+          </article>
+
+          <div className="lq-bottom">
+            <button type="button" className="lq-icon-btn" onClick={() => setIdx((value) => Math.max(0, value - 1))} disabled={idx === 0}><CaretLeft size={18} /></button>
+            <button type="button" className="lq-btn" onClick={() => setShowExplanation((value) => !value)} disabled={!isAnswered && currentQuestion?.type !== 'typein'}>
+              <Sparkle size={17} weight="bold" /> Explain
+            </button>
+            <button type="button" className="lq-btn primary" onClick={handleNext} disabled={!isAnswered && currentQuestion?.type !== 'typein'}>
+              {idx === safeQuestions.length - 1 ? 'Finish' : 'Next'} <ArrowRight size={17} weight="bold" />
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -1536,6 +2553,10 @@ export function WorkstationWrite({ initialContent = "", onSave, material, user }
 
   const handleAiAssist = async (type) => {
     if (isAssisting) return;
+
+    const { ok } = await checkAndDeductCredits(user?.id, CREDIT_COSTS.WRITE_AI_ASSIST, false)
+    if (!ok) return
+
     setIsAssisting(true);
     try {
       const prompt = `You are Luter AI. Assist the student with their study notes.

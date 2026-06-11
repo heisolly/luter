@@ -19,15 +19,36 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { fileUrl, materialId, fileType, fileName, userId } = await req.json()
+    const { materialId, fileType, fileName, userId } = await req.json()
 
-    if (!fileUrl || !materialId || !fileType) {
-      throw new Error('Missing required parameters: fileUrl, materialId, or fileType')
+    if (!materialId || !fileType) {
+      throw new Error('Missing required parameters: materialId or fileType')
     }
 
     console.log(`[Processor] Starting conversion for material ${materialId} (${fileType}): ${fileName}`)
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!)
+
+    // ─── 0. LOOK UP MATERIAL FOR STORAGE PATH ────────────────────────────────
+    const { data: material, error: lookupError } = await supabase
+      .from("materials")
+      .select("source_url")
+      .eq("id", materialId)
+      .single()
+
+    if (lookupError || !material?.source_url) {
+      throw new Error(`Material not found or missing source_url: ${lookupError?.message || "unknown"}`)
+    }
+
+    const urlObj = new URL(material.source_url)
+    const pathParts = urlObj.pathname.split("/")
+    const publicIdx = pathParts.indexOf("public")
+    let storagePath: string
+    if (publicIdx !== -1 && pathParts.length > publicIdx + 2) {
+      storagePath = pathParts.slice(publicIdx + 2).join("/")
+    } else {
+      throw new Error("Could not derive storage path from source_url")
+    }
 
     // ─── 1. INSERT/UPDATE CONVERSION JOB ─────────────────────────────────────
     await supabase
@@ -35,16 +56,23 @@ Deno.serve(async (req) => {
       .upsert({
         material_id: materialId,
         user_id: userId || null,
-        source_url: fileUrl,
+        source_url: material.source_url,
         file_type: fileType,
         status: 'processing',
         updated_at: new Date().toISOString(),
       }, { onConflict: 'material_id' })
 
-    // ─── 2. FETCH ORIGINAL FILE ─────────────────────────────────────────────
-    const originalRes = await fetch(fileUrl)
-    if (!originalRes.ok) throw new Error(`Failed to fetch original file: ${originalRes.status}`)
-    const originalBlob = await originalRes.blob()
+    // ─── 2. FETCH ORIGINAL FILE VIA SERVICE ROLE ─────────────────────────────
+    const { data: fileData, error: downloadError } = await supabase
+      .storage
+      .from("materials")
+      .download(storagePath)
+
+    if (downloadError || !fileData) {
+      throw new Error(`Failed to download file from storage: ${downloadError?.message || "no data"}`)
+    }
+
+    const originalBlob = fileData
 
     let convertedBlob: Blob | null = null
     let outputType = 'pdf'

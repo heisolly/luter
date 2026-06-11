@@ -1,589 +1,607 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
-import { 
+import {
   House,
-  Books,
   UsersThree,
-  Bell,
+  Cards,
+  Backpack,
+  NotePencil,
+  Plus,
+  UploadSimple,
   GameController,
-  Trash,
-  Flask,
-  CaretDown,
-  CaretRight,
   X,
-  CaretLeft,
+  SidebarSimple,
   ChartBar,
   GearSix,
-  HashStraight,
-  Plus,
-  BookOpenText,
-  Clock,
-  SidebarSimple,
-  Sparkle,
-  Rocket
+  SignOut,
+  User,
+  Moon,
+  Sun,
+  CaretDown,
+  CaretUp,
+  Coin,
+  ChatTeardropDots,
+  Megaphone,
+  Question,
+  Lightning,
+  ArrowRight,
 } from '@phosphor-icons/react'
-import { isAdminUser } from '../../admin/adminAuth'
-import LuterLogo from '../shared/LuterLogo'
-import { useTranslation } from 'react-i18next'
+import './SidebarRedesign.css'
+import HelperWidget from './HelperWidget'
+import ArcadeOverlay from './ArcadeOverlay'
+import { getCreditBalance } from '../../services/creditService'
 
-// Subdomain logic removed
-// All paths are now top-level on luter.app
+/* ── dark mode hook ── */
+function useDarkMode() {
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('luter-theme')
+    if (saved) return saved === 'dark'
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
 
-const TOP_NAV = [
-  { id: 'home', labelKey: 'home', icon: House, path: '/dashboard' },
-  { id: 'sessions', labelKey: 'Sessions', icon: Clock, path: '/sessions' },
-  { id: 'library', labelKey: 'library', icon: Books, path: '/library' },
-  { id: 'study-groups', labelKey: 'studyGroups', icon: UsersThree, path: '/groups', badge: 'New' },
-  { id: 'notifications', labelKey: 'notifications', icon: Bell, path: '/notifications', count: 3 },
-]
+  useEffect(() => {
+    if (isDark) {
+      document.body.classList.add('dark-mode')
+      document.documentElement.setAttribute('data-theme', 'dark')
+      localStorage.setItem('luter-theme', 'dark')
+    } else {
+      document.body.classList.remove('dark-mode')
+      document.documentElement.setAttribute('data-theme', 'light')
+      localStorage.setItem('luter-theme', 'light')
+    }
+  }, [isDark])
 
-const BOTTOM_NAV = [
-  { id: 'playground', labelKey: 'playground', icon: GameController, path: '/playground', highlight: true },
-  { id: 'trash', labelKey: 'trash', icon: Trash, path: '/dashboard/trash' },
-  { id: 'mock-exam', labelKey: 'mockExam', icon: Flask, path: '/mock-exams' },
-]
+  return [isDark, setIsDark]
+}
 
-function isNavActiveFixed(pathname, navPath) {
-  if (navPath === '/dashboard') return pathname === '/dashboard' || pathname === '/dashboard/' || pathname === '/home'
-  if (navPath === '/dashboard/courses') return pathname.startsWith('/dashboard/courses') || pathname.startsWith('/backpack')
-  if (navPath === '/groups') return pathname.startsWith('/groups') || pathname.startsWith('/dashboard/study-groups')
+/* ── active check ── */
+function isNavActive(pathname, navPath) {
+  if (navPath === '/dashboard') return pathname === '/dashboard' || pathname === '/dashboard/'
+  if (navPath === '/dashboard/backpack') return pathname.startsWith('/dashboard/backpack')
   if (navPath === '/playground') return pathname.startsWith('/playground') || pathname.startsWith('/dashboard/compete')
   return pathname === navPath || pathname.startsWith(`${navPath}/`)
 }
 
-export default function DashboardSidebar({ collapsed, setCollapsed, user, isMobile, onClose, onNavigate, onNotificationsClick, hideToggle }) {
-  const { t } = useTranslation(['sidebar'])
-  const [streak, setStreak] = useState(0)
-  const [expandedItems, setExpandedItems] = useState(['library', 'backpack'])
-  const { ready, bundle } = useDashboardPrefetch()
-  const location = useLocation()
-  const navigate = useNavigate()
-  const pathname = location.pathname
+/* ── colour for course dot ── */
+const COURSE_COLORS = ['#C4B5FD','#98FF98','#FFD2A6','#93C5FD','#FCA5A5','#86EFAC','#FCD34D']
+const courseColor = (i) => COURSE_COLORS[i % COURSE_COLORS.length]
 
+function toArray(value) {
+  if (Array.isArray(value)) return value
+  if (Array.isArray(value?.data)) return value.data
+  if (value && typeof value === 'object') return Object.values(value)
+  return []
+}
+
+/* ═══════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════ */
+export default function DashboardSidebar({
+  collapsed,
+  user,
+  isMobile,
+  onClose,
+  onNavigate,
+  hideToggle,
+}) {
+  const { bundle } = useDashboardPrefetch()
+  const location   = useLocation()
+  const navigate   = useNavigate()
+  const pathname   = location.pathname
+
+  const [isDark, setIsDark]                 = useDarkMode()
+  const [showPersonal, setShowPersonal]     = useState(false)
+  const [showQuickCreate, setShowQuickCreate] = useState(false)
+  const [selectedOption, setSelectedOption] = useState(null)
+  const [backpackOpen, setBackpackOpen]     = useState(
+    () => pathname.startsWith('/dashboard/backpack')
+  )
+  const [helperOverlay, setHelperOverlay]   = useState(null) // 'feedback' | 'changelog' | 'help' | null
+  const [showArcade, setShowArcade]         = useState(false) // arcade overlay
+  const [creditsBalance, setCreditsBalance] = useState(Infinity)
+
+  // Fetch real credit balance
   useEffect(() => {
-    if (!user) return
-    if (ready && bundle?.stats?.data) {
-      setStreak(bundle.stats.data.streak_days || 0)
-      return
-    }
-    const getStreak = async () => {
-      const { data } = await supabase.from('user_stats').select('streak_days').eq('user_id', user.id).maybeSingle()
-      if (data) setStreak(data.streak_days || 0)
-    }
-    getStreak()
-  }, [user, ready, bundle])
+    if (!user?.id) return
+    getCreditBalance(user.id).then(b => {
+      if (typeof b === 'number') setCreditsBalance(b)
+    }).catch(() => {})
+  }, [user?.id])
 
-  const profile = bundle?.profile?.data || bundle?.profile
-  const isSoloLearner = profile?.is_university_user === false || profile?.role === 'solo_learner'
-  const standaloneMaterials = (bundle?.materials?.data || []).filter((item) => !item.course_id)
-  const displayUsername = profile?.username ? `@${profile.username}` : (profile?.full_name?.split(' ')[0] || 'Scholar')
-  const initials = (profile?.username?.slice(0, 2) || profile?.full_name?.slice(0, 2) || 'SC').toUpperCase()
-  
-  // Gamification stats from bundle
-  const stats = bundle?.stats?.data
-  const xp = stats?.total_xp || 0
-  const level = Math.floor(xp / 500) + 1
-  const xpInLevel = xp % 500
-  const xpProgress = (xpInLevel / 500) * 100
-  const coins = stats?.coins || 100 // Default to 100 if not in stats
-  
-  // Subscription tier display
-  const subscriptionTier = profile?.subscription_tier?.toLowerCase() || 'free'
-  const subscriptionType = profile?.subscription_type?.toLowerCase() || 'free'
-  const getTierBadge = () => {
-    if (subscriptionTier === 'premium' || subscriptionType === 'premium') {
-      return { label: 'Executive', icon: Rocket, color: '#0ea5e9', bg: 'rgba(14, 165, 233, 0.15)' }
-    }
-    if (subscriptionTier === 'pro' || subscriptionType === 'pro') {
-      return { label: 'Pro', icon: Sparkle, color: '#7a12cc', bg: 'rgba(122, 18, 204, 0.15)' }
-    }
-    return null
-  }
-  const tierBadge = getTierBadge()
+  // Close arcade on Escape
+  useEffect(() => {
+    if (!showArcade) return
+    const handler = (e) => { if (e.key === 'Escape') setShowArcade(false) }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [showArcade])
 
+  // Close arcade on Escape
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') setShowArcade(false) }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
+  const personalRef = useRef(null)
+  const profileBtnRef = useRef(null)
+  const quickCreateRef = useRef(null)
+
+  /* close personal dropdown on outside click */
+  useEffect(() => {
+    const handler = (e) => {
+      if (
+        personalRef.current &&
+        !personalRef.current.contains(e.target) &&
+        profileBtnRef.current &&
+        !profileBtnRef.current.contains(e.target)
+      ) {
+        setShowPersonal(false)
+      }
+      if (quickCreateRef.current && !quickCreateRef.current.contains(e.target)) {
+        setShowQuickCreate(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  /* profile data */
+  const profile        = bundle?.profile?.data || bundle?.profile
+  const displayName    = profile?.full_name?.split(' ')[0] || 'Scholar'
+  const displayUser    = profile?.username ? `@${profile.username}` : displayName
+  const initials       = (profile?.username?.slice(0, 2) || profile?.full_name?.slice(0, 2) || 'SC').toUpperCase()
+  const credits        = typeof creditsBalance === 'number' ? creditsBalance : profile?.credits ?? 20000
+
+  const tier    = (profile?.subscription_tier || profile?.subscription_type || 'free').toLowerCase()
+  const isPaid  = tier === 'premium' || tier === 'pro'
+  const tierLabel = tier === 'premium' ? 'Executive Plan' : tier === 'pro' ? 'Pro Plan' : 'Free Plan'
+
+  /* courses from prefetch */
+  const userCourses = toArray(bundle?.uc)
+    .filter(uc => uc && !uc.is_archived)
+    .slice(0, 8) // show max 8 in sidebar
+
+  /* helpers */
   const go = (path) => {
     navigate(path)
     onNavigate?.()
+    setShowPersonal(false)
+    setShowQuickCreate(false)
+    setSelectedOption(null)
   }
 
-  const NavButton = ({ item }) => {
-    const { id, path, icon: Icon, labelKey, children, highlight, badge, count } = item
-    const label = t(labelKey)
-    const isActive = isNavActiveFixed(pathname, path)
-    const isExpanded = expandedItems.includes(id)
+  const CREATE_OPTIONS = [
+    { id: 'note',    emoji: '📝', title: 'New Note',    desc: 'Write and organize your thoughts',  path: '/dashboard/notes?new=1' },
+    { id: 'upload',  emoji: '📄', title: 'Upload PDF',  desc: 'Study from any document',           path: '/dashboard/upload' },
+    { id: 'session', emoji: '🧑‍🤝‍🧑', title: 'New Session',  desc: 'Collaborate with others live',      path: '/sessions?new=1' },
+  ]
 
-    return (
-      <div className="dsb-nav-group">
-        <button
-          id={`nav-${id}`}
-          className={`dsb-nav-item 
-            ${isActive ? 'dsb-nav-item--active' : ''} 
-            ${highlight ? 'dsb-nav-item--playground' : ''}
-            ${collapsed ? 'dsb-nav-item--center' : ''}`}
-          onClick={() => {
-            if (id === 'notifications') {
-              onNotificationsClick?.()
-              return
-            }
-            if (children && !collapsed) {
-              setExpandedItems(prev => 
-                prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-              )
-            } else {
-              go(path)
-            }
-          }}
-          title={collapsed ? label : ''}
-          style={{
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-            transform: isActive ? 'translateX(2px)' : 'translateX(0)'
-          }}
-        >
-          <div className="dsb-nav-icon-wrap" style={{
-            transition: 'all 0.2s ease',
-            transform: isActive ? 'scale(1.05)' : 'scale(1)'
-          }}>
-            <Icon size={20} weight={isActive ? "fill" : "regular"} />
-            {count > 0 && collapsed && <div className="dsb-nav-badge dsb-nav-badge--count">{count}</div>}
-          </div>
-          {!collapsed && (
-            <>
-              <span className="dsb-nav-label-text" style={{
-                fontWeight: isActive ? 600 : 500,
-                transition: 'all 0.2s ease'
-              }}>{label}</span>
-              {badge && <span className="dsb-nav-badge-pill">{badge}</span>}
-              {count > 0 && <span className="dsb-nav-badge-count">{count}</span>}
-              {children && (
-                <div className="dsb-nav-arrow" style={{ 
-                  marginLeft: 'auto',
-                  transition: 'transform 0.2s ease',
-                  transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'
-                }}>
-                  <CaretDown size={16} weight="regular" />
-                </div>
-              )}
-            </>
-          )}
-        </button>
-
-        {children && isExpanded && !collapsed && (
-          <div className="dsb-nav-children">
-            {children.map((child, idx) => {
-              const isChildActive = pathname.startsWith(child.path)
-              const ChildIcon = child.icon
-              return (
-                <button
-                   key={idx}
-                   className={`dsb-nav-child-item ${isChildActive ? 'dsb-nav-child--active' : ''}`}
-                   onClick={() => go(child.path)}
-                >
-                  {ChildIcon && <ChildIcon size={16} weight="regular" style={{ marginRight: 8 }} />}
-                  <span>{child.label}</span>
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
-    )
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/'
   }
+
+  const isBackpackActive = isNavActive(pathname, '/dashboard/backpack')
 
   return (
-    <aside className={`dsb ${collapsed ? 'dsb--collapsed' : ''}`}>
-      <div className="dsb-logo">
-        <div className="dsb-logo-inner">
-          <LuterLogo size={30} fontSize={22} />
-        </div>
+    <aside className={`dsb-redesign${collapsed ? ' collapsed' : ''}`}>
+
+      {/* ── Logo ── */}
+      <div className="dsb-logo-area">
+        <img
+          src="/Header logo.png"
+          alt="Luter"
+          className="dsb-logo-img"
+          style={{ height: collapsed ? 28 : 34 }}
+          onError={(e) => {
+            e.target.style.display = 'none'
+            if (e.target.nextSibling) e.target.nextSibling.style.display = 'block'
+          }}
+        />
+        <span style={{
+          display: 'none', fontWeight: 900, fontSize: 22,
+          color: '#7a12cc', fontFamily: 'Outfit, Inter, sans-serif'
+        }}>
+          Luter
+        </span>
 
         {isMobile ? (
-          <button className="dsb-close-btn" onClick={onClose}>
-            <X size={18} weight="regular" />
-          </button>
-        ) : !hideToggle && (
           <button
-            className="dsb-close-btn"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sb-muted)', padding: 4 }}
             onClick={onClose}
-            title="Close sidebar"
+          >
+            <X size={20} weight="bold" />
+          </button>
+        ) : !hideToggle && !collapsed && (
+          <button
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sb-muted)', padding: 4 }}
+            onClick={onClose}
+            title="Collapse sidebar"
           >
             <SidebarSimple size={20} weight="bold" />
           </button>
         )}
       </div>
 
-      <nav className="dsb-nav">
-        {/* Top Section */}
-        <div className="dsb-nav-section" style={{ marginTop: '0px' }}>
-          {TOP_NAV.map((item) => (
-            <NavButton key={item.id} item={item} />
-          ))}
-        </div>
-
-        {/* Section divider */}
-        {!collapsed && (
-          <div style={{
-            height: '1px',
-            background: 'linear-gradient(to right, transparent, rgba(226, 232, 240, 0.5), transparent)',
-            margin: '16px 12px 8px 12px'
-          }} />
-        )}
-
-        <div className="dsb-divider" />
-
-        {/* Middle Section - Backpack (Courses) */}
-        {!collapsed && (
-          <div 
-            className="dsb-section-label dsb-section-label--clickable" 
-            style={{ marginTop: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}
-          >
-            <div id="nav-backpack" style={{ display: 'flex', alignItems: 'center', gap: 8 }} onClick={() => go('/dashboard/courses')}>
-              <div style={{ width: 4, height: 16, background: '#7a12cc', borderRadius: 2 }} />
-              <span style={{ fontWeight: 800, fontSize: 11, letterSpacing: '0.05em', color: '#111' }}>
-                {t('backpack')}
-              </span>
-            </div>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                setExpandedItems(prev => prev.includes('backpack') ? prev.filter(i => i !== 'backpack') : [...prev, 'backpack']);
-              }}
-              style={{ display: 'flex', alignItems: 'center', padding: '4px', color: '#94a3b8' }}
-            >
-              <CaretDown 
-                weight="regular"
-                size={16} 
-                style={{ 
-                  transform: expandedItems.includes('backpack') ? 'rotate(0deg)' : 'rotate(-90deg)',
-                  transition: 'transform 0.2s'
-                }} 
-              />
-            </button>
-          </div>
-        )}
-
-        {expandedItems.includes('backpack') && (
-          <div className="dsb-nav-section dsb-backpack-section" style={{ 
-            maxHeight: '380px', 
-            overflowY: 'auto', 
-            paddingRight: '4px', 
-            marginBottom: '8px', 
-            marginTop: '8px'
-          }}>
-            {isSoloLearner ? (
-              standaloneMaterials.length > 0 ? (
-                <>
-                  {standaloneMaterials.map((material, idx) => {
-                    const isActive = pathname === '/dashboard/workstation' && location.search.includes(material.id)
-                    return (
-                      <button
-                        key={material.id || `material-${idx}`}
-                        className={`dsb-nav-item dsb-course-item ${isActive ? 'dsb-nav-item--active' : ''} ${collapsed ? 'dsb-nav-item--center' : ''}`}
-                        onClick={() => go(`/dashboard/workstation?materialId=${material.id}`)}
-                        style={{
-                          padding: '12px 16px',
-                          marginBottom: '4px',
-                          background: isActive ? 'rgba(122, 18, 204, 0.08)' : 'transparent',
-                          border: isActive ? '1px solid rgba(122, 18, 204, 0.2)' : '1px solid transparent',
-                          borderRadius: '8px',
-                          transition: 'all 0.2s ease'
-                        }}
-                        title={material.title}
-                      >
-                        <div className="dsb-nav-icon-wrap" style={{ color: isActive ? '#7a12cc' : '#94a3b8' }}>
-                          <BookOpenText size={18} weight="regular" />
-                        </div>
-                        {!collapsed && (
-                          <span className="dsb-nav-label-text" style={{
-                            fontSize: '13px',
-                            fontWeight: isActive ? 700 : 500,
-                            color: isActive ? '#111' : '#64748b',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}>
-                            {material.title || 'Untitled material'}
-                          </span>
-                        )}
-                      </button>
-                    )
-                  })}
-                  <button
-                    className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`}
-                    onClick={() => go('/dashboard/upload')}
-                    style={{ marginTop: '4px', border: '1px dashed #e2e8f0', borderRadius: '12px', margin: '8px 12px', padding: '8px' }}
-                  >
-                    <div className="dsb-nav-icon-wrap" style={{ color: '#7a12cc' }}><Plus size={18} weight="regular" /></div>
-                    {!collapsed && <span className="dsb-nav-label-text" style={{ color: '#7a12cc', fontWeight: 700, fontSize: '12px' }}>
-                      {t('addToVault')}
-                    </span>}
-                  </button>
-                </>
-              ) : (
-                <button
-                  className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`}
-                  onClick={() => go('/dashboard/upload')}
-                  style={{ margin: '8px 12px', background: 'rgba(122, 18, 204, 0.05)', borderRadius: '12px', padding: '12px' }}
-                >
-                  <div className="dsb-nav-icon-wrap" style={{ color: '#7a12cc' }}><Plus size={20} weight="regular" /></div>
-                  {!collapsed && <span className="dsb-nav-label-text" style={{ color: '#7a12cc', fontWeight: 800 }}>
-                    {t('setupVault')}
-                  </span>}
-                </button>
-              )
-            ) : bundle?.uc?.data?.length > 0 ? (
-              <>
-                {(() => {
-                  const coursesWithData = bundle.uc.data.filter(row => row && (row.courses || row.course));
-                  console.log('Courses found:', coursesWithData.length, coursesWithData);
-                  return coursesWithData.map((row, idx) => {
-                    const c = row.courses || row.course;
-                    const isActive = pathname.includes(c?.id);
-                    return (
-                      <button
-                        key={c?.id || `course-${idx}`}
-                        className={`dsb-nav-item dsb-course-item ${isActive ? 'dsb-nav-item--active' : ''} ${collapsed ? 'dsb-nav-item--center' : ''}`}
-                        onClick={() => go(`/dashboard/courses/${c?.id}`)}
-                        style={{ 
-                          padding: '12px 16px', 
-                          marginBottom: '4px',
-                          background: isActive ? 'rgba(122, 18, 204, 0.08)' : 'transparent',
-                          border: isActive ? '1px solid rgba(122, 18, 204, 0.2)' : '1px solid transparent',
-                          borderRadius: '8px',
-                          transition: 'all 0.2s ease'
-                        }}
-                        title={c?.name}
-                      >
-                        <div className="dsb-nav-icon-wrap" style={{ color: isActive ? '#7a12cc' : '#94a3b8' }}>
-                          <HashStraight size={18} weight="regular" />
-                        </div>
-                        {!collapsed && (
-                          <span className="dsb-nav-label-text" style={{ 
-                            fontSize: '13px', 
-                            fontWeight: isActive ? 700 : 500,
-                            color: isActive ? '#111' : '#64748b',
-                            overflow: 'hidden', 
-                            textOverflow: 'ellipsis' 
-                          }}>
-                            {c?.code || c?.name}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  });
-                })()}
-                <button
-                  className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`}
-                  onClick={() => go(isSoloLearner ? '/dashboard/upload' : '/dashboard/courses')}
-                  style={{ marginTop: '4px', border: '1px dashed #e2e8f0', borderRadius: '12px', margin: '8px 12px', padding: '8px' }}
-                >
-                  <div className="dsb-nav-icon-wrap" style={{ color: '#7a12cc' }}><Plus size={18} weight="regular" /></div>
-                  {!collapsed && <span className="dsb-nav-label-text" style={{ color: '#7a12cc', fontWeight: 700, fontSize: '12px' }}>
-                    {isSoloLearner ? t('addToVault') : t('enrollMore')}
-                  </span>}
-                </button>
-              </>
-            ) : (
-              <button
-                  className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`}
-                  onClick={() => go(isSoloLearner ? '/dashboard/upload' : '/dashboard/courses')}
-                  style={{ margin: '8px 12px', background: 'rgba(122, 18, 204, 0.05)', borderRadius: '12px', padding: '12px' }}
-                >
-                  <div className="dsb-nav-icon-wrap" style={{ color: '#7a12cc' }}><Plus size={20} weight="regular" /></div>
-                  {!collapsed && <span className="dsb-nav-label-text" style={{ color: '#7a12cc', fontWeight: 800 }}>
-                    {isSoloLearner ? t('setupVault') : t('addFirstCourse')}
-                  </span>}
-                </button>
-            )}
-          </div>
-        )}
-
-        {/* Down Section (Toolbox) sits directly below Backpack */}
-        <div className="dsb-nav-section" style={{ 
-          marginTop: '0px',
-          paddingTop: !collapsed ? '8px' : '0'
-        }}>
-          {BOTTOM_NAV.map((item) => (
-            <NavButton key={item.id} item={item} />
-          ))}
-        </div>
-      </nav>
-
-      <div className="dsb-bottom" style={{ paddingBottom: collapsed ? '12px' : '0' }}>
-        {!collapsed && <div className="dsb-section-label" style={{ 
-          marginTop: '8px',
-          fontSize: '11px',
-          fontWeight: 600,
-          color: '#94a3b8',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px',
-          padding: '0 12px'
-        }}>{t('personal')}</div>}
-        
-        <div className="dsb-personal-group" style={{
-          borderRadius: '12px',
-          overflow: 'hidden',
-          background: collapsed ? 'transparent' : 'rgba(248, 250, 252, 0.5)',
-          border: collapsed ? 'none' : '1px solid rgba(226, 232, 240, 0.6)',
-          padding: collapsed ? 0 : '4px'
-        }}>
-          <button id="nav-progress" className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/progress')} style={{
-            borderRadius: '8px',
-            margin: collapsed ? 0 : '2px'
-          }}>
-            <div className="dsb-nav-icon-wrap"><ChartBar size={20} weight="regular" /></div>
-            {!collapsed && <span className="dsb-nav-label-text">{t('myProgress')}</span>}
-          </button>
-          
-          <button id="nav-settings" className={`dsb-nav-item ${collapsed ? 'dsb-nav-item--center' : ''}`} onClick={() => go('/settings')} style={{
-            borderRadius: '8px',
-            margin: collapsed ? 0 : '2px'
-          }}>
-            <div className="dsb-nav-icon-wrap"><GearSix size={20} weight="regular" /></div>
-            {!collapsed && <span className="dsb-nav-label-text">{t('settings')}</span>}
-          </button>
-
-        </div>
-          {/* Gamified User Profile - Streak, Level, Coins */}
-          <button 
-            id="nav-profile-card"
-            className={`dsb-user-compact ${collapsed ? 'dsb-user--collapsed' : ''}`}
-            onClick={() => go('/profile')}
-            style={{
-              background: collapsed ? 'none' : '#f8fafc',
-              border: collapsed ? 'none' : '1px solid #e2e8f0',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              borderRadius: '12px',
-              padding: collapsed ? '8px' : '10px 14px',
-              width: collapsed ? 'auto' : 'calc(100% - 24px)',
-              margin: collapsed ? '0 0 12px 0' : '0 12px 16px 12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}
-          onMouseEnter={(e) => {
-            if (!collapsed) {
-              e.currentTarget.style.borderColor = '#ff9b38'
-              e.currentTarget.style.background = 'rgba(255, 155, 56, 0.08)'
-              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255, 155, 56, 0.15)'
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!collapsed) {
-              e.currentTarget.style.borderColor = '#e2e8f0'
-              e.currentTarget.style.background = '#f8fafc'
-              e.currentTarget.style.boxShadow = 'none'
-            }
-          }}
+      <div className="dsb-quick-create-wrap" ref={quickCreateRef}>
+        <button
+          className={`dsb-quick-create${showQuickCreate ? ' active' : ''}`}
+          onClick={() => setShowQuickCreate(v => !v)}
+          title="New"
         >
-          {/* Avatar - Shows profile picture or initials */}
-          <div 
-            className="dsb-avatar-sm" 
-            style={{ 
-              flexShrink: 0,
-              background: profile?.avatar_url ? 'transparent' : undefined,
-              overflow: 'hidden',
-              padding: 0
-            }}
-          >
-            {profile?.avatar_url ? (
-              <img 
-                src={profile.avatar_url} 
-                alt="Profile" 
-                style={{ 
-                  width: '100%', 
-                  height: '100%', 
-                  objectFit: 'cover',
-                  borderRadius: '50%'
-                }} 
-              />
-            ) : (
-              initials
-            )}
-          </div>
-          {!collapsed && (
-            <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-              <span className="dsb-user-name-alt" style={{ 
-                display: 'block', 
-                marginBottom: '6px',
-                fontSize: '13px',
-                fontWeight: 600
-              }}>{displayUsername}</span>
-              
-              {/* Gamification Stats - Streak, Level, Coins */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-start',
-                gap: '8px'
-              }}>
-                {/* Streak */}
-                {streak > 0 && (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    padding: '4px 10px',
-                    background: 'rgba(255, 155, 56, 0.12)',
-                    borderRadius: '20px',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    color: '#ff9b38',
-                    whiteSpace: 'nowrap'
-                  }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.07-.5-4.5 2.5-6.5 1.5 1 2.5 3 2.5 5 0 1.5-1 2.5-2 3.5" stroke="#ff9b38" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M12 18c2 0 3.5-2 4-4" stroke="#ff9b38" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M8.5 14.5c1.5 1 3 1.5 4.5 1.5" stroke="#ff9b38" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    {streak}
-                  </div>
-                )}
-                
-                {/* Level */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '4px 10px',
-                  background: 'rgba(151, 110, 238, 0.12)',
-                  borderRadius: '20px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: '#6745AE',
-                  whiteSpace: 'nowrap'
-                }}>
-                  <svg width="14" height="14" viewBox="0 0 32 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" clipRule="evenodd" d="M14.9936 0.677492C12.8268 2.26076 10.5479 3.66886 8.91217 4.43512C6.50413 5.56309 3.60975 6.40891 0.959029 6.7591C0.611852 6.80501 0.250714 6.85849 0.156549 6.87803C-0.0147001 6.91354 -0.0147001 6.91354 0.0147078 13.244C0.0352042 17.6458 0.0712958 19.7555 0.133305 20.1688C0.552591 22.9655 1.39413 25.5485 2.58983 27.7088C5.16674 32.3646 9.24196 35.8051 14.2339 37.5394C15.7725 38.0739 15.8923 38.0894 16.6963 37.8587C20.044 36.8981 23.2063 35.0219 25.7263 32.501C29.0455 29.1808 31.0489 25.1043 31.787 20.1688C31.8487 19.7565 31.885 17.6353 31.9054 13.244C31.9348 6.91354 31.9348 6.91354 31.7635 6.87803C31.6694 6.85849 31.3082 6.80501 30.9611 6.7591C29.0555 6.50734 26.6524 5.90354 24.9136 5.23957C22.3382 4.25616 19.8307 2.81575 16.784 0.569628C16.359 0.256362 15.9909 0 15.9661 0C15.9412 0 15.5036 0.304871 14.9936 0.677492" fill="#6745AE"/>
-                  </svg>
-                  Lv.{level}
-                </div>
-                
-                {/* Coins */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '4px 10px',
-                  background: 'rgba(254, 153, 35, 0.12)',
-                  borderRadius: '20px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: '#fe9922',
-                  whiteSpace: 'nowrap'
-                }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="8" cy="8" r="6" stroke="#fe9922" strokeWidth="2"/>
-                    <path d="M18.09 10.37A6 6 0 1 1 10.34 18" stroke="#fe9922" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  {coins}
-                </div>
-              </div>
-            </div>
-          )}
+          <Plus size={18} weight="bold" />
+          {!collapsed && <span>New</span>}
         </button>
       </div>
+
+      {showQuickCreate && createPortal(
+        <div className="dsb-create-overlay" onClick={() => { setShowQuickCreate(false); setSelectedOption(null) }}>
+          <div className="dsb-create-modal" onClick={e => e.stopPropagation()}>
+            <p className="dsb-create-modal-title">What do you want to create?</p>
+            <p className="dsb-create-modal-subtitle">Pick an option to get started</p>
+
+            <div className="dsb-create-options">
+              {CREATE_OPTIONS.map(opt => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  className={`dsb-create-option${selectedOption === opt.id ? ' selected' : ''}`}
+                  onClick={() => setSelectedOption(opt.id)}
+                >
+                  <div className="dsb-create-option-icon">{opt.emoji}</div>
+                  <div className="dsb-create-option-text">
+                    <span className="dsb-create-option-title">{opt.title}</span>
+                    <span className="dsb-create-option-desc">{opt.desc}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className="dsb-create-continue-btn"
+              disabled={!selectedOption}
+              onClick={() => {
+                const opt = CREATE_OPTIONS.find(o => o.id === selectedOption)
+                if (opt) go(opt.path)
+              }}
+            >
+              Continue
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Main Nav ── */}
+      <nav className="dsb-nav-list" aria-label="Main navigation">
+
+        {/* Home */}
+        <button
+          id="nav-home"
+          className={`dsb-nav-pill${isNavActive(pathname, '/dashboard') ? ' active' : ''}`}
+          onClick={() => go('/dashboard')}
+        >
+          <div className="dsb-icon">
+            <House size={21} weight="regular" />
+          </div>
+          {!collapsed && <span className="dsb-nav-label">Home</span>}
+        </button>
+
+        {/* Sessions */}
+        <button
+          id="nav-sessions"
+          className={`dsb-nav-pill${isNavActive(pathname, '/sessions') ? ' active' : ''}`}
+          onClick={() => go('/sessions')}
+        >
+          <div className="dsb-icon">
+            <UsersThree size={21} weight="regular" />
+          </div>
+          {!collapsed && <span className="dsb-nav-label">Sessions</span>}
+        </button>
+
+        {/* Notes */}
+        <button
+          id="nav-notes"
+          className={`dsb-nav-pill${isNavActive(pathname, '/dashboard/notes') || isNavActive(pathname, '/notes') ? ' active' : ''}`}
+          onClick={() => go('/dashboard/notes')}
+        >
+          <div className="dsb-icon">
+            <NotePencil size={21} weight="regular" />
+          </div>
+          {!collapsed && <span className="dsb-nav-label">Notes</span>}
+        </button>
+
+        {/* AI Chat */}
+        <button
+          id="nav-ai-chat"
+          className={`dsb-nav-pill${isNavActive(pathname, '/dashboard/ai-chat') ? ' active' : ''}`}
+          onClick={() => go('/dashboard/ai-chat')}
+          title="Luter AI Chat"
+        >
+          <div className="dsb-icon">
+            <ChatTeardropDots size={21} weight="regular" />
+          </div>
+          {!collapsed && <span className="dsb-nav-label">AI Chat</span>}
+        </button>
+
+        {/* My Decks */}
+        <button
+          id="nav-decks"
+          className={`dsb-nav-pill${isNavActive(pathname, '/dashboard/decks') ? ' active' : ''}`}
+          onClick={() => go('/dashboard/decks')}
+        >
+          <div className="dsb-icon">
+            <Cards size={21} weight="regular" />
+          </div>
+          {!collapsed && <span className="dsb-nav-label">My Decks</span>}
+        </button>
+
+        {/* ── Backpack (with inline dropdown) ── */}
+        {!collapsed ? (
+          <div>
+            {/* Backpack pill row */}
+            <div className="dsb-backpack-row">
+              <button
+                id="nav-backpack"
+                className={`dsb-nav-pill dsb-backpack-pill${isBackpackActive ? ' active' : ''}`}
+                onClick={() => go('/dashboard/backpack')}
+              >
+                <div className="dsb-icon">
+                  <Backpack size={21} weight="regular" />
+                </div>
+                <span className="dsb-nav-label">Backpack</span>
+              </button>
+              <button
+                className={`dsb-backpack-caret-btn${isBackpackActive ? ' active-area' : ''}`}
+                onClick={() => setBackpackOpen(o => !o)}
+                title={backpackOpen ? 'Collapse folders' : 'Show folders'}
+              >
+                <CaretDown
+                  size={14}
+                  weight="bold"
+                  className={`dsb-caret-icon${backpackOpen ? ' open' : ''}`}
+                />
+              </button>
+            </div>
+
+            {/* Folders sub-nav */}
+            <div className={`dsb-subnav${backpackOpen ? ' open' : ''}`}>
+              <div className="dsb-subnav-inner">
+                {userCourses.length === 0 ? (
+                  <span className="dsb-subnav-empty">No folders yet</span>
+                ) : (
+                  userCourses.map((uc, i) => {
+                    const course = uc.courses || {}
+                    const courseId = course.id || uc.course_id
+                    const coursePath = `/dashboard/backpack/${courseId}`
+                    const isActive = pathname.startsWith(coursePath)
+                    const name = uc.custom_name || course.name || 'Untitled'
+                    const code = course.code || ''
+
+                    return (
+                      <button
+                        key={uc.id || courseId || `${name}-${i}`}
+                        className={`dsb-subnav-item${isActive ? ' active' : ''}`}
+                        onClick={() => go(coursePath)}
+                        title={name}
+                      >
+                        <span
+                          className="dsb-subnav-dot"
+                          style={{ background: isActive ? '#7a12cc' : courseColor(i) }}
+                        />
+                        <span className="dsb-subnav-label">{name}</span>
+                        {code && <span className="dsb-subnav-code">{code}</span>}
+                      </button>
+                    )
+                  })
+                )}
+
+                {/* View All link */}
+                <button
+                  className="dsb-subnav-view-all"
+                  onClick={() => go('/dashboard/backpack')}
+                >
+                  <ArrowRight size={13} weight="bold" />
+                  View all
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Collapsed — just show icon */
+          <button
+            id="nav-backpack"
+            className={`dsb-nav-pill${isBackpackActive ? ' active' : ''}`}
+            onClick={() => go('/dashboard/backpack')}
+            title="Backpack"
+          >
+            <div className="dsb-icon">
+              <Backpack size={21} weight="regular" />
+            </div>
+          </button>
+        )}
+
+        {/* Arcade */}
+        <button
+          id="nav-arcade"
+          className={`dsb-nav-pill${showArcade ? ' active arcade-pill' : isNavActive(pathname, '/playground') || isNavActive(pathname, '/dashboard/mock-exam') || isNavActive(pathname, '/dashboard/study-groups') ? ' active arcade-pill' : ''}`}
+          onClick={() => setShowArcade(v => !v)}
+        >
+          <div className="dsb-icon">
+            <GameController size={21} weight={showArcade ? 'fill' : 'regular'} />
+          </div>
+          {!collapsed && <span className="dsb-nav-label">Arcade</span>}
+        </button>
+
+      </nav>
+
+      {/* ── Helper Icons ── */}
+      {!collapsed && (
+        <div className="dsb-helper-row">
+          <button
+            className={`dsb-helper-btn${helperOverlay === 'feedback' ? ' active-helper' : ''}`}
+            data-tooltip="Send Feedback"
+            onClick={() => setHelperOverlay(v => v === 'feedback' ? null : 'feedback')}
+          >
+            <ChatTeardropDots size={21} weight={helperOverlay === 'feedback' ? 'fill' : 'regular'} />
+          </button>
+          <button
+            className={`dsb-helper-btn${helperOverlay === 'changelog' ? ' active-helper' : ''}`}
+            data-tooltip="What's New"
+            onClick={() => setHelperOverlay(v => v === 'changelog' ? null : 'changelog')}
+          >
+            <Megaphone size={21} weight={helperOverlay === 'changelog' ? 'fill' : 'regular'} />
+          </button>
+          <button
+            className={`dsb-helper-btn${helperOverlay === 'help' ? ' active-helper' : ''}`}
+            data-tooltip="Help & Support"
+            onClick={() => setHelperOverlay(v => v === 'help' ? null : 'help')}
+          >
+            <Question size={21} weight={helperOverlay === 'help' ? 'fill' : 'regular'} />
+          </button>
+        </div>
+      )}
+
+      {/* ── Personal Section ── */}
+      <div className="dsb-personal-section">
+
+        {/* Credits */}
+        {!collapsed && (
+          <div className="dsb-credits-row">
+            <div className="dsb-credits-info">
+              <span className="dsb-credits-label">AI Credits</span>
+              <span className="dsb-credits-sub">Resets daily</span>
+            </div>
+            <div className="dsb-credits-badge">
+              <Coin size={16} weight="fill" />
+              {credits.toLocaleString()}
+            </div>
+          </div>
+        )}
+
+        {/* Upgrade */}
+        {!collapsed && !isPaid && (
+          <button className="dsb-upgrade-btn" onClick={() => go('/pricing')}>
+            <Lightning size={18} weight="fill" />
+            <span>Upgrade</span>
+          </button>
+        )}
+
+        {/* Profile Card */}
+        <button
+          ref={profileBtnRef}
+          className="dsb-profile-card"
+          onClick={() => setShowPersonal(p => !p)}
+          aria-expanded={showPersonal}
+        >
+          <div className="dsb-avatar-circle">
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt="Profile"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+              />
+            ) : initials}
+          </div>
+          {!collapsed && (
+            <>
+              <div className="dsb-profile-info">
+                <span className="dsb-profile-name">{displayUser}</span>
+                <span className="dsb-profile-handle">{tierLabel}</span>
+              </div>
+              <CaretUp
+                size={14}
+                weight="bold"
+                className={`dsb-profile-caret${showPersonal ? ' open' : ''}`}
+              />
+            </>
+          )}
+        </button>
+
+        {/* ── Personal Dropdown — position:fixed, won't clip ── */}
+        {showPersonal && !collapsed && (
+          <div className="dsb-personal-dropdown" ref={personalRef}>
+
+            <div className="dsb-dropdown-header">
+              <span className="dsb-dropdown-tier">{tierLabel}</span>
+              <div className="dsb-dropdown-credits-row">
+                <div>
+                  <span className="dsb-dropdown-credits-label">AI Credits</span>
+                  <span className="dsb-dropdown-credits-sub">Resets daily</span>
+                </div>
+                <div className="dsb-dropdown-credits-badge">
+                  <Coin size={14} weight="fill" />
+                  {credits.toLocaleString()}
+                </div>
+              </div>
+              {!isPaid && (
+                <button className="dsb-dropdown-upgrade" onClick={() => go('/pricing')}>
+                  <Lightning size={15} weight="fill" />
+                  Upgrade
+                </button>
+              )}
+            </div>
+
+            <div className="dsb-dropdown-body">
+              <button className="dsb-dropdown-item" onClick={() => go('/profile')}>
+                <span className="dsb-dropdown-item-icon"><User size={16} /></span>
+                Profile
+              </button>
+              <button className="dsb-dropdown-item" onClick={() => go('/progress')}>
+                <span className="dsb-dropdown-item-icon"><ChartBar size={16} /></span>
+                My Progress
+              </button>
+              <button className="dsb-dropdown-item" onClick={() => go('/settings')}>
+                <span className="dsb-dropdown-item-icon"><GearSix size={16} /></span>
+                Settings
+              </button>
+
+              <div className="dsb-dropdown-divider" />
+
+              {/* Dark Mode Toggle */}
+              <div
+                className="dsb-toggle-row"
+                onClick={() => setIsDark(d => !d)}
+              >
+                <span className="dsb-dropdown-item-icon" style={{ color: 'var(--sb-text-muted)' }}>
+                  {isDark ? <Sun size={16} /> : <Moon size={16} />}
+                </span>
+                <span className="dsb-toggle-label">Dark Mode</span>
+                <label className="dsb-toggle-switch" onClick={e => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={isDark}
+                    onChange={e => setIsDark(e.target.checked)}
+                  />
+                  <span className="dsb-toggle-track" />
+                </label>
+              </div>
+
+              <div className="dsb-dropdown-divider" />
+
+              <button className="dsb-dropdown-item danger" onClick={handleSignOut}>
+                <span className="dsb-dropdown-item-icon"><SignOut size={16} /></span>
+                Sign Out
+              </button>
+            </div>
+          </div>
+        )}
+
+      </div>
+      {/* ── Help Widget ── */}
+      <HelperWidget
+        type={helperOverlay}
+        onClose={() => setHelperOverlay(null)}
+      />
+
+      {/* ── Arcade Overlay ── */}
+      {showArcade && <ArcadeOverlay user={user} onClose={() => setShowArcade(false)} />}
+
     </aside>
   )
 }

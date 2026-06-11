@@ -12,7 +12,7 @@ import AudioRenderer from './AudioRenderer'
 import VideoRenderer from './VideoRenderer'
 import ImageRenderer from './ImageRenderer'
 import ConversionSkeleton from './ConversionSkeleton'
-import { pollConversionStatus } from '../../../services/materialsService'
+import { pollConversionStatus, getSignedFileUrl } from '../../../services/materialsService'
 
 export const getFileType = (material) => {
   if (!material) return 'unknown'
@@ -77,6 +77,9 @@ export default function UniversalViewer({
   onCanvasSave,
   scrollContainerRef,
   highlights,
+  highlightColors,
+  createPdfViewerHighlight,
+  preparePdfViewerHighlight,
   initCanvas,
   startDrawing,
   draw,
@@ -85,29 +88,44 @@ export default function UniversalViewer({
   loadHighlights,
   setHighlightToolbox,
 }) {
-  if (!material) return null
-
   const type = getFileType(material)
-  const fileUrl = material?.source_url
+  const [signedFileUrl, setSignedFileUrl] = useState(material?.source_url)
   const [conversionFailed, setConversionFailed] = useState(false)
 
-  console.log('[UniversalViewer] Render state:', {
-    type,
-    has_converted_url: !!material?.converted_url,
-    converted_url: material?.converted_url,
-    material_id: material?.id
-  })
+  // Generate signed URL for file-based materials (PDF, images, etc.) to bypass bucket restrictions
+  useEffect(() => {
+    if (material?.source_url) {
+      getSignedFileUrl(material.source_url).then(url => {
+        if (url) setSignedFileUrl(url)
+      })
+    }
+  }, [material?.source_url])
+
+  const [localConvertedUrl, setLocalConvertedUrl] = useState(material?.converted_url || null)
+
+  // Keep local mirror in sync if parent updates the material
+  useEffect(() => {
+    if (material?.converted_url && material.converted_url !== localConvertedUrl) {
+      setLocalConvertedUrl(material.converted_url)
+    }
+  }, [material?.converted_url])
+
+  // Effective material — merge local converted_url into material
+  const effectiveMaterial = localConvertedUrl
+    ? { ...material, converted_url: localConvertedUrl }
+    : material
 
   // ─── Poll for converted_url when PPTX has no converted_url yet ────────────
   useEffect(() => {
     if (type !== 'pptx' && type !== 'docx') return
-    if (hasConvertedPdf(material)) return
+    if (hasConvertedPdf(effectiveMaterial)) return
     if (conversionFailed) return
 
     console.log(`[UniversalViewer] Starting conversion poll for ${material.id} (${type})`)
     const cleanup = pollConversionStatus(material.id, {
       onConverted: (data) => {
         console.log(`[UniversalViewer] Conversion ready for ${material.id}, triggering update`)
+        setLocalConvertedUrl(data.converted_url)
         onMaterialUpdate?.({ converted_url: data.converted_url, converted_type: data.converted_type })
       },
       onFailed: () => {
@@ -115,14 +133,18 @@ export default function UniversalViewer({
         setConversionFailed(true)
       },
       intervalMs: 3000,
-      maxAttempts: 120, // 6 minutes
+      maxAttempts: 120,
     })
 
     return cleanup
-  }, [material.id, type, material.converted_url, conversionFailed])
+  }, [material.id, type, localConvertedUrl, conversionFailed])
+
+  const fileUrl = signedFileUrl || material?.source_url
+
+  if (!material) return null
 
   // ─── 1. CONVERTED PDF (highest fidelity) ────────────────────────────────
-  if (hasConvertedPdf(material)) {
+  if (hasConvertedPdf(effectiveMaterial)) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -131,9 +153,9 @@ export default function UniversalViewer({
         style={{ height: '100%' }}
       >
         <FlashkaDocumentViewer
-          fileUrl={material.converted_url}
+          fileUrl={effectiveMaterial.converted_url}
           initialPage={initialPage}
-          title={material.title}
+          title={effectiveMaterial.title}
           type={type}
           onPageChange={onPageChange}
           onDocumentLoad={onDocumentLoad}
@@ -152,6 +174,9 @@ export default function UniversalViewer({
           onCanvasSave={onCanvasSave}
           scrollContainerRef={scrollContainerRef}
           highlights={highlights}
+          highlightColors={highlightColors}
+          createPdfViewerHighlight={createPdfViewerHighlight}
+          preparePdfViewerHighlight={preparePdfViewerHighlight}
           initCanvas={initCanvas}
           startDrawing={startDrawing}
           draw={draw}
@@ -159,7 +184,7 @@ export default function UniversalViewer({
           drawMode={drawMode}
           loadHighlights={loadHighlights}
           setHighlightToolbox={setHighlightToolbox}
-          material={material}
+          material={effectiveMaterial}
         />
       </motion.div>
     )
@@ -190,6 +215,9 @@ export default function UniversalViewer({
         onCanvasSave={onCanvasSave}
         scrollContainerRef={scrollContainerRef}
         highlights={highlights}
+        highlightColors={highlightColors}
+        createPdfViewerHighlight={createPdfViewerHighlight}
+        preparePdfViewerHighlight={preparePdfViewerHighlight}
         initCanvas={initCanvas}
         startDrawing={startDrawing}
         draw={draw}

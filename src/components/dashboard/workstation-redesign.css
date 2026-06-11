@@ -1,0 +1,1241 @@
+/* =============================================================
+   LUTER WORKSTATION — REDESIGN v3
+   Visual language: matches Sidebar · Sessions · Backpack · Dashboard · Notes
+   Brand: #7C3AED purple · #C4B5FD lavender · #98FF98 mint · #FFD2A6 peach
+   Fonts: Outfit (headings/UI) · Helvetica Neue (body)
+   ============================================================= */
+
+/* ── Design Tokens ──────────────────────────────────────────────── */
+:root {
+  /* Layout */
+  --wsr-topbar-h:      60px;
+  --wsr-panel-w:       360px;
+  --wsr-radius:        20px;
+  --wsr-radius-sm:     12px;
+  --wsr-radius-pill:   9999px;
+
+  /* Colours — light */
+  --wsr-bg:            #F7F8FB;
+  --wsr-dots:          rgba(17, 24, 39, 0.035);
+  --wsr-surface:       #FFFFFF;
+  --wsr-surface-alt:   #F7F8FB;
+  --wsr-surface-hover: #F3F4F6;
+  --wsr-border:        #E4E7EC;
+  --wsr-border-sub:    #F2F4F8;
+
+  /* Typography */
+  --wsr-text:          #111827;
+  --wsr-text-body:     #374151;
+  --wsr-text-muted:    #6B7280;
+  --wsr-text-faint:    #9CA3AF;
+
+  /* Brand */
+  --wsr-purple:        #7C3AED;
+  --wsr-purple-deep:   #6D28D9;
+  --wsr-purple-mid:    #A78BFA;
+  --wsr-purple-soft:   #C4B5FD;
+  --wsr-purple-wash:   #F5F3FF;
+  --wsr-purple-light:  #EDE9FE;
+  --wsr-mint:          #98FF98;
+  --wsr-peach:         #FFD2A6;
+  --wsr-danger:        #EF4444;
+  --wsr-warning:       #F59E0B;
+  --wsr-success:       #10B981;
+
+  /* Elevation */
+  --wsr-shadow-xs:     0 1px 3px rgba(17, 24, 39, 0.06);
+  --wsr-shadow:        0 2px 10px rgba(17, 24, 39, 0.07);
+  --wsr-shadow-md:     0 6px 20px rgba(17, 24, 39, 0.09);
+  --wsr-shadow-lg:     0 16px 40px rgba(17, 24, 39, 0.11);
+  --wsr-shadow-purple: 0 8px 24px rgba(124, 58, 237, 0.18);
+}
+
+/* Dark mode overrides */
+body.dark-mode {
+  --wsr-bg:            #0F1117;
+  --wsr-dots:          rgba(249, 250, 251, 0.035);
+  --wsr-surface:       #1A1F2E;
+  --wsr-surface-alt:   #0F1117;
+  --wsr-surface-hover: #222839;
+  --wsr-border:        rgba(255, 255, 255, 0.08);
+  --wsr-border-sub:    rgba(255, 255, 255, 0.04);
+  --wsr-text:          #F1F5F9;
+  --wsr-text-body:     #CBD5E1;
+  --wsr-text-muted:    #94A3B8;
+  --wsr-text-faint:    #64748B;
+  --wsr-purple-wash:   rgba(124, 58, 237, 0.12);
+  --wsr-purple-light:  rgba(124, 58, 237, 0.18);
+  --wsr-shadow-xs:     0 1px 3px rgba(0, 0, 0, 0.3);
+  --wsr-shadow:        0 2px 10px rgba(0, 0, 0, 0.35);
+  --wsr-shadow-md:     0 6px 20px rgba(0, 0, 0, 0.40);
+  --wsr-shadow-lg:     0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Root Shell ─────────────────────────────────────────────────── */
+.ws-root,
+.ws-root[style] {
+  min-height: 100vh !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  /* Dot-grid background matching Dashboard/Backpack */
+  background:
+    radial-gradient(circle at 1px 1px, var(--wsr-dots) 1px, transparent 0),
+    var(--wsr-bg) !important;
+  background-size: 22px 22px !important;
+  color: var(--wsr-text) !important;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif !important;
+}
+
+/* ── Topbar ─────────────────────────────────────────────────────── */
+.ws-root > style + header,
+.ws-root > header {
+  height: var(--wsr-topbar-h) !important;
+  min-height: var(--wsr-topbar-h) !important;
+  flex-shrink: 0 !important;
+  /* Frosted glass — matches DashboardSidebar header */
+  background: color-mix(in srgb, var(--wsr-surface) 88%, transparent) !important;
+  border-bottom: 1px solid var(--wsr-border) !important;
+  box-shadow: var(--wsr-shadow-xs) !important;
+  backdrop-filter: blur(20px) saturate(1.4) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.4) !important;
+  padding: 0 18px !important;
+}
+
+/* Sidebar toggle */
+.ws-root > header > div > div:first-child > button:first-child {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: var(--wsr-radius-sm) !important;
+  border: 1px solid var(--wsr-border) !important;
+  background: var(--wsr-surface) !important;
+  color: var(--wsr-text-muted) !important;
+  box-shadow: var(--wsr-shadow-xs) !important;
+  transition: background 150ms, border-color 150ms, color 150ms !important;
+}
+.ws-root > header > div > div:first-child > button:first-child:hover {
+  background: var(--wsr-purple-wash) !important;
+  border-color: var(--wsr-purple-soft) !important;
+  color: var(--wsr-purple) !important;
+}
+
+/* Breadcrumb home button */
+.ws-root > header > div > div:first-child > button:nth-child(2) {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: var(--wsr-radius-sm) !important;
+  border: none !important;
+  background: transparent !important;
+  color: var(--wsr-text-muted) !important;
+  transition: background 150ms, color 150ms !important;
+}
+.ws-root > header > div > div:first-child > button:nth-child(2):hover {
+  background: var(--wsr-surface-hover) !important;
+  color: var(--wsr-text) !important;
+}
+
+/* Active file chip / breadcrumb chip */
+.ws-root > header button[style*="F5F3FF"],
+.ws-root > header div[style*="F5F3FF"],
+.ws-root > header button[style*="EDE9FE"],
+.ws-root > header div[style*="EDE9FE"] {
+  background: var(--wsr-purple-wash) !important;
+  border: 1px solid rgba(196, 181, 253, 0.5) !important;
+  border-radius: var(--wsr-radius-pill) !important;
+  color: var(--wsr-purple) !important;
+  padding: 6px 14px !important;
+  height: auto !important;
+  box-shadow: var(--wsr-shadow-xs) !important;
+  font-weight: 700 !important;
+}
+
+/* Center tab pill container */
+.ws-root > header > div > div:nth-child(2) > div {
+  background: var(--wsr-surface-alt) !important;
+  border: 1px solid var(--wsr-border) !important;
+  border-radius: var(--wsr-radius-pill) !important;
+  box-shadow: var(--wsr-shadow-xs) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  padding: 4px 4px !important;
+  gap: 2px !important;
+}
+
+/* Tab buttons */
+.ws-root > header > div > div:nth-child(2) > div button {
+  height: 34px !important;
+  border-radius: var(--wsr-radius-pill) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
+  padding: 0 18px !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--wsr-text-muted) !important;
+  transition: color 160ms !important;
+}
+
+/* Active tab */
+.ws-root > header > div > div:nth-child(2) > div button[style*="color: rgb(124, 58, 237)"],
+.ws-root > header > div > div:nth-child(2) > div button[style*="#7C3AED"],
+.ws-root > header > div > div:nth-child(2) > div button[style*="7C3AED"] {
+  color: var(--wsr-purple) !important;
+}
+
+/* Right action buttons (generic pill shape) */
+.ws-root > header button[style*="rgba(255, 255, 255, 0.7)"],
+.ws-root > header button[style*="rgba(255,255,255,0.7)"] {
+  background: var(--wsr-surface) !important;
+  border: 1px solid var(--wsr-border) !important;
+  border-radius: var(--wsr-radius-pill) !important;
+  color: var(--wsr-text-body) !important;
+  box-shadow: var(--wsr-shadow-xs) !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  transition: background 150ms, border-color 150ms, box-shadow 150ms !important;
+}
+.ws-root > header button[style*="rgba(255, 255, 255, 0.7)"]:hover,
+.ws-root > header button[style*="rgba(255,255,255,0.7)"]:hover {
+  background: var(--wsr-purple-wash) !important;
+  border-color: var(--wsr-purple-soft) !important;
+  box-shadow: var(--wsr-shadow) !important;
+}
+
+/* Pro/Upgrade badge */
+.ws-root > header div[style*="FEF3C7"],
+.ws-root > header div[style*="gradient"][style*="FEF3C7"] {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FCEAFF 100%) !important;
+  border: 1px solid rgba(217, 119, 6, 0.15) !important;
+  border-radius: var(--wsr-radius-pill) !important;
+  box-shadow: none !important;
+}
+
+/* Exit/danger button */
+.ws-root > header button[style*="#EF4444"],
+.ws-root > header button[style*="rgb(239, 68, 68)"] {
+  color: var(--wsr-danger) !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+  background: var(--wsr-surface) !important;
+}
+.ws-root > header button[style*="#EF4444"]:hover,
+.ws-root > header button[style*="rgb(239, 68, 68)"]:hover {
+  background: #FEF2F2 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+/* ── Main Layout ────────────────────────────────────────────────── */
+.ws-main-layout,
+.ws-main-layout[style] {
+  flex: 1 !important;
+  height: calc(100vh - var(--wsr-topbar-h)) !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 10px !important;
+  padding: 10px 10px 10px 10px !important;
+  background: transparent !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* ── Center Viewer (document pane) ──────────────────────────────── */
+.ws-center-viewer,
+.ws-center-viewer[style] {
+  flex: 1 !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  margin: 0 !important;
+  border-radius: var(--wsr-radius) !important;
+  border: 1px solid var(--wsr-border) !important;
+  background: var(--wsr-surface) !important;
+  box-shadow: var(--wsr-shadow) !important;
+  overflow: hidden !important;
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  transition: border-color 200ms, box-shadow 200ms !important;
+}
+
+/* Glass cards inside center pane (summary / flashcards / quiz / board) */
+.ws-center-viewer > div[style*="backdrop-filter"],
+.ws-center-viewer > div[style*="rgba(255, 255, 255, 0.4)"],
+.ws-center-viewer > div[style*="rgba(255,255,255,0.4)"] {
+  background: var(--wsr-surface) !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Document scroll area — subtle dot-grid, matches Backpack/Dashboard */
+.flashka-viewer-scroll,
+.flashka-viewer-scroll[style],
+.document-scroll-area {
+  background:
+    radial-gradient(circle at 1px 1px, rgba(17, 24, 39, 0.025) 1px, transparent 0),
+    #F8FAFC !important;
+  background-size: 22px 22px !important;
+  padding: 20px !important;
+}
+
+body.dark-mode .flashka-viewer-scroll,
+body.dark-mode .flashka-viewer-scroll[style],
+body.dark-mode .document-scroll-area {
+  background:
+    radial-gradient(circle at 1px 1px, rgba(249, 250, 251, 0.035) 1px, transparent 0),
+    #0F1117 !important;
+}
+
+/* PDF page cards */
+.flashka-viewer-pages .rpv-core__page-layer,
+.rpv-core__page-layer {
+  border-radius: 14px !important;
+  box-shadow: 0 6px 20px rgba(17, 24, 39, 0.09) !important;
+  overflow: hidden !important;
+  margin: 0 auto 18px !important;
+}
+
+body.dark-mode .rpv-core__page-layer {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.36) !important;
+}
+
+/* Viewer inner shell */
+.ws-visual-viewport {
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* ── Resize Handle ──────────────────────────────────────────────── */
+.ws-main-layout > div[style*="col-resize"],
+.ws-main-layout > div[style*="cursor: col-resize"],
+.ws-main-layout div[style*="cursor: col-resize"]:not(.ws-right-panel):not(aside) {
+  width: 12px !important;
+  flex-shrink: 0 !important;
+  background: transparent !important;
+  cursor: col-resize !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* ── Right Panel ────────────────────────────────────────────────── */
+.ws-right-panel,
+.ws-right-panel[style],
+aside.ws-right-panel {
+  height: 100% !important;
+  min-height: 0 !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+
+  border-radius: var(--wsr-radius) !important;
+  border: 1px solid var(--wsr-border) !important;
+  background: var(--wsr-surface) !important;
+  box-shadow: var(--wsr-shadow) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  position: relative !important;
+  margin: 0 !important;
+  padding: 0 !important;
+
+  right: auto !important;
+  top: auto !important;
+}
+
+/* Remove old accent stripe */
+.ws-right-panel::before,
+aside.ws-right-panel::before {
+  display: none !important;
+}
+
+/* ── Panel Header (tab row) ─────────────────────────────────────── */
+.ws-right-panel-header,
+.ws-right-panel-header[style] {
+  height: 52px !important;
+  min-height: 52px !important;
+  flex-shrink: 0 !important;
+  padding: 0 8px 0 12px !important;
+  border-bottom: 1px solid var(--wsr-border-sub) !important;
+  background: var(--wsr-surface) !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+/* ── Panel Tabs ─────────────────────────────────────────────────── */
+.ws-right-tabs {
+  display: flex !important;
+  align-items: center !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  height: 52px !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  gap: 0 !important;
+}
+.ws-right-tabs::-webkit-scrollbar { display: none !important; }
+
+/* Each tab button */
+.ws-right-panel .ws-right-tab,
+.ws-right-panel .ws-right-tab[style],
+.ws-right-panel button.ws-right-tab {
+  all: unset !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 0 14px !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  color: var(--wsr-text-faint) !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  cursor: pointer !important;
+  position: relative !important;
+  transition: color 160ms, border-color 160ms !important;
+}
+
+.ws-right-panel .ws-right-tab svg {
+  color: currentColor !important;
+  transition: color 160ms !important;
+}
+
+.ws-right-panel .ws-right-tab:hover,
+.ws-right-panel .ws-right-tab:hover[style] {
+  color: var(--wsr-text-body) !important;
+  background: transparent !important;
+}
+
+.ws-right-panel .ws-right-tab.is-active,
+.ws-right-panel .ws-right-tab.is-active[style],
+.ws-right-panel button.ws-right-tab.is-active {
+  color: var(--wsr-purple) !important;
+  border-bottom-color: var(--wsr-purple) !important;
+  background: transparent !important;
+}
+
+/* Kill framer-motion layout indicator (replaced by border-bottom) */
+.ws-right-panel .ws-right-tab > div[layoutid="activeSideTabIndicator"] {
+  display: none !important;
+}
+
+/* Panel close / collapse button */
+.ws-right-panel-header > button,
+.ws-right-panel-header > button[style] {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  padding: 0 !important;
+  border-radius: var(--wsr-radius-sm) !important;
+  border: 1px solid var(--wsr-border) !important;
+  background: var(--wsr-surface-alt) !important;
+  color: var(--wsr-text-muted) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  flex-shrink: 0 !important;
+  transition: background 140ms, color 140ms, border-color 140ms !important;
+}
+.ws-right-panel-header > button:hover {
+  background: var(--wsr-purple-wash) !important;
+  color: var(--wsr-purple) !important;
+  border-color: var(--wsr-purple-soft) !important;
+}
+
+/* ── Panel Content ──────────────────────────────────────────────── */
+.ws-right-panel > div[style*="overflowY"],
+.ws-right-panel > div[style*="overflow-y"],
+.ws-right-panel > div:last-child {
+  flex: 1 !important;
+  min-height: 0 !important;
+  background: var(--wsr-surface) !important;
+  border-radius: 0 !important;
+  overflow: hidden auto !important;
+}
+
+/* ── Chat Messages ──────────────────────────────────────────────── */
+.ws-chat-messages,
+.ws-chat-messages[style] {
+  background: var(--wsr-surface) !important;
+  padding: 16px !important;
+  overflow-y: auto !important;
+}
+.ws-chat-messages::-webkit-scrollbar { width: 4px !important; }
+.ws-chat-messages::-webkit-scrollbar-track { background: transparent !important; }
+.ws-chat-messages::-webkit-scrollbar-thumb {
+  background: var(--wsr-border) !important;
+  border-radius: var(--wsr-radius-pill) !important;
+}
+.ws-chat-messages::-webkit-scrollbar-thumb:hover {
+  background: var(--wsr-purple-soft) !important;
+}
+
+/* Empty state */
+.ws-chat-messages > div[style*="flexDirection: 'column'"][style*="alignItems: 'center'"],
+.ws-chat-messages > div[style*="flex-direction: column"][style*="align-items: center"] {
+  gap: 10px !important;
+}
+
+/* Suggested prompts */
+.ws-chat-messages div[style*="justifyContent: 'space-between'"],
+.ws-chat-messages div[style*="justify-content: space-between"] {
+  background: var(--wsr-surface-alt) !important;
+  border: 1px solid var(--wsr-border) !important;
+  border-radius: var(--wsr-radius-sm) !important;
+  color: var(--wsr-text-body) !important;
+  transition: background 140ms, border-color 140ms !important;
+}
+.ws-chat-messages div[style*="justifyContent: 'space-between'"]:hover,
+.ws-chat-messages div[style*="justify-content: space-between"]:hover {
+  background: var(--wsr-purple-wash) !important;
+  border-color: var(--wsr-purple-soft) !important;
+}
+
+/* User message avatar */
+.ws-chat-scroll > div > div > div[style*="#F1F5F9"],
+.ws-chat-scroll > div > div > div[style*="rgb(241, 245, 249)"] {
+  background: var(--wsr-surface-alt) !important;
+  border: 1px solid var(--wsr-border) !important;
+}
+
+/* AI message avatar */
+.ws-chat-scroll > div > div > div[style*="#EDE9FE"],
+.ws-chat-scroll > div > div > div[style*="rgb(237, 233, 254)"] {
+  background: var(--wsr-purple-wash) !important;
+  border: 1px solid rgba(196, 181, 253, 0.35) !important;
+}
+
+/* AI text */
+.ws-ai-message-content p,
+.ws-ai-message-content li,
+.ws-plain-message p {
+  color: var(--wsr-text-body) !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
+}
+
+/* Quick prompt chip row */
+.ws-right-panel > div[style*="overflowY"] > div > div[style*="borderTop"],
+.ws-right-panel div[style*="background: rgba(250, 250, 250"] {
+  background: var(--wsr-surface) !important;
+  border-top: 1px solid var(--wsr-border-sub) !important;
+  padding: 8px 12px !important;
+}
+
+/* Quick prompt chips */
+.ws-right-panel div[style*="borderTop"] button[style*="borderRadius: '9999px'"],
+.ws-right-panel div button[style*="9999px"][style*="12px"] {
+  border: 1px solid var(--wsr-border) !important;
+  border-radius: var(--wsr-radius-pill) !important;
+  background: var(--wsr-surface) !important;
+  color: var(--wsr-text-body) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
+  transition: background 130ms, border-color 130ms, color 130ms !important;
+}
+.ws-right-panel div[style*="borderTop"] button:hover,
+.ws-right-panel div button[style*="9999px"][style*="12px"]:hover {
+  background: var(--wsr-purple-wash) !important;
+  border-color: var(--wsr-purple-soft) !important;
+  color: var(--wsr-purple) !important;
+}
+
+/* ── Chat Input Area ────────────────────────────────────────────── */
+.ws-right-panel div[style*="backdropFilter"],
+.ws-right-panel div[style*="backdrop-filter"] {
+  background: var(--wsr-surface) !important;
+  border-top: 1px solid var(--wsr-border-sub) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Input shell */
+.ws-right-panel div[style*="background: white"][style*="border-radius"][style*="24px"],
+.ws-right-panel div[style*="background: white"][style*="borderRadius"][style*="24px"] {
+  background: var(--wsr-surface-alt) !important;
+  border: 1.5px solid var(--wsr-border) !important;
+  border-radius: var(--wsr-radius-pill) !important;
+  box-shadow: none !important;
+  transition: border-color 160ms, box-shadow 160ms !important;
+}
+.ws-right-panel div[style*="background: white"][style*="borderRadius"][style*="24px"]:focus-within {
+  border-color: var(--wsr-purple-soft) !important;
+  box-shadow: 0 0 0 3px rgba(196, 181, 253, 0.18) !important;
+}
+
+/* Input text */
+.ws-right-panel input[style*="flex: 1"],
+.ws-right-panel input[placeholder*="Luter"] {
+  color: var(--wsr-text) !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
+  font-size: 14px !important;
+  background: transparent !important;
+  border: none !important;
+}
+.ws-right-panel input[placeholder*="Luter"]::placeholder {
+  color: var(--wsr-text-faint) !important;
+}
+
+/* Send button active */
+.ws-right-panel button[style*="background: rgb(17, 24, 39)"],
+.ws-right-panel button[style*="background: #111827"] {
+  background: var(--wsr-purple) !important;
+  color: #FFFFFF !important;
+  border-radius: var(--wsr-radius-pill) !important;
+  box-shadow: none !important;
+}
+
+/* Send button disabled */
+.ws-right-panel button[style*="background: rgb(229, 231, 235)"],
+.ws-right-panel button[style*="background: #E5E7EB"] {
+  background: var(--wsr-border) !important;
+  color: var(--wsr-text-faint) !important;
+}
+
+/* Voice button */
+.ws-voice-button {
+  color: var(--wsr-text-muted) !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: var(--wsr-radius-pill) !important;
+  transition: color 130ms, background 130ms !important;
+}
+.ws-voice-button:hover {
+  background: var(--wsr-purple-wash) !important;
+  color: var(--wsr-purple) !important;
+}
+.ws-voice-button.is-listening {
+  background: #FEF2F2 !important;
+  color: var(--wsr-danger) !important;
+  border: 2px solid rgba(239, 68, 68, 0.28) !important;
+}
+
+/* ── Bottom Tool Dock ───────────────────────────────────────────── */
+/* Floating pill toolbar inside center pane */
+.ws-center-viewer > div[style*="position: 'absolute'"][style*="bottom"],
+.ws-center-viewer > div[style*="bottom: '24px'"] {
+  z-index: 30 !important;
+}
+
+/* The pill wrapper */
+.ws-center-viewer > div[style*="bottom: '24px'"] > div:last-child,
+.ws-center-viewer div[style*="bottom"][style*="left: '50%'"] > div:last-child {
+  background: color-mix(in srgb, var(--wsr-surface) 94%, transparent) !important;
+  border: 1px solid var(--wsr-border) !important;
+  border-radius: var(--wsr-radius-pill) !important;
+  box-shadow: var(--wsr-shadow-lg) !important;
+  backdrop-filter: blur(22px) !important;
+  -webkit-backdrop-filter: blur(22px) !important;
+  padding: 5px 6px !important;
+  gap: 4px !important;
+}
+
+/* Tool buttons in dock */
+.ws-center-viewer div[style*="borderRadius: '9999px'"][style*="border: '1px solid'"],
+.ws-center-viewer button[style*="padding: '8px 14px'"][style*="borderRadius: '9999px'"] {
+  font-family: 'Outfit', system-ui, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  border-radius: var(--wsr-radius-pill) !important;
+  transition: background 130ms, color 130ms, border-color 130ms, transform 130ms !important;
+}
+
+/* Active tool pulse */
+.active-tool-glow {
+  animation: wsr-tool-pulse 2.4s infinite ease-in-out !important;
+}
+@keyframes wsr-tool-pulse {
+  0%, 100% { box-shadow: 0 4px 12px rgba(124, 58, 237, 0.13); }
+  50%       { box-shadow: 0 6px 18px rgba(124, 58, 237, 0.26); }
+}
+
+/* ── Scrollbars (global workstation scope) ──────────────────────── */
+.ws-root ::-webkit-scrollbar { width: 4px !important; height: 4px !important; }
+.ws-root ::-webkit-scrollbar-track { background: transparent !important; }
+.ws-root ::-webkit-scrollbar-thumb {
+  background: var(--wsr-border) !important;
+  border-radius: var(--wsr-radius-pill) !important;
+}
+.ws-root ::-webkit-scrollbar-thumb:hover {
+  background: var(--wsr-purple-soft) !important;
+}
+
+/* ── Selection Action Bar ───────────────────────────────────────── */
+.selection-action-bar,
+.selection-action-bar[style] {
+  background: rgba(17, 24, 39, 0.97) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: var(--wsr-radius-pill) !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+body.dark-mode .selection-action-bar {
+  background: rgba(15, 18, 32, 0.97) !important;
+}
+
+/* ── Exit Summary Modal ─────────────────────────────────────────── */
+.ws-root > div[style*="position: 'fixed'"][style*="zIndex: 1000"] > div,
+.ws-root div[style*="zIndex: 1000"] > div[style*="background: 'white'"] {
+  border-radius: 24px !important;
+  border: 1px solid var(--wsr-border) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.14) !important;
+}
+
+/* ── Voice Modal ────────────────────────────────────────────────── */
+.ws-root div[style*="zIndex: 1300"] > div[style*="background: '#FFFFFF'"],
+.ws-root div[style*="z-index: 1300"] > div {
+  border-radius: 22px !important;
+  border: 1px solid var(--wsr-border) !important;
+  box-shadow: var(--wsr-shadow-lg) !important;
+}
+
+/* ── Annotation Toolbar popup ───────────────────────────────────── */
+.ws-root div[style*="bottom: 'calc(100% + 8px)'"] {
+  border: 1px solid var(--wsr-border) !important;
+  border-radius: 14px !important;
+  background: var(--wsr-surface) !important;
+  box-shadow: var(--wsr-shadow-lg) !important;
+}
+
+/* ── Re-open panel button (when panel is collapsed) ─────────────── */
+.ws-root > main button[style*="right: '12px'"][style*="top: '50%'"],
+.ws-root > main > button[style*="right"][style*="top: '50%'"] {
+  border-radius: var(--wsr-radius-pill) !important;
+  border: 1px solid var(--wsr-border) !important;
+  background: var(--wsr-surface) !important;
+  color: var(--wsr-purple) !important;
+  box-shadow: var(--wsr-shadow-lg) !important;
+}
+
+/* ── Whiteboard (Board tab) ─────────────────────────────────────── */
+.ws-center-viewer div[style*="Whiteboard"] {
+  border-radius: 0 !important;
+}
+
+/* ── Mobile Top Bar ─────────────────────────────────────────────── */
+.mobile-top-bar,
+.mobile-top-bar[style] {
+  height: 62px !important;
+  background: color-mix(in srgb, var(--wsr-surface) 94%, transparent) !important;
+  border-bottom: 1px solid var(--wsr-border) !important;
+  box-shadow: var(--wsr-shadow-xs) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  padding: 0 16px !important;
+}
+
+/* ── Mobile Bottom Nav ──────────────────────────────────────────── */
+.mobile-bottom-nav {
+  background: color-mix(in srgb, var(--wsr-surface) 94%, transparent) !important;
+  border: 1px solid var(--wsr-border) !important;
+  border-radius: 22px !important;
+  box-shadow: var(--wsr-shadow-lg) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  left: 10px !important;
+  right: 10px !important;
+  bottom: max(10px, env(safe-area-inset-bottom, 10px)) !important;
+  padding: 6px !important;
+}
+
+.mobile-nav-item {
+  color: var(--wsr-text-muted) !important;
+  border-radius: 14px !important;
+  min-height: 50px !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  transition: background 140ms, color 140ms !important;
+}
+
+.mobile-nav-item--active {
+  background: var(--wsr-purple-wash) !important;
+  color: var(--wsr-purple) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+body.dark-mode .mobile-nav-item--active {
+  background: rgba(196, 181, 253, 0.12) !important;
+  color: var(--wsr-purple-soft) !important;
+}
+
+/* ── Framer Motion tab indicator (right panel) ──────────────────── */
+.ws-right-panel div[style*="position: 'absolute'"][style*="bottom: 0"][style*="height: '3px'"] {
+  background: var(--wsr-purple) !important;
+  border-radius: var(--wsr-radius-pill) !important;
+  height: 2px !important;
+}
+
+/* ── Shimmer loading skeleton ───────────────────────────────────── */
+.summary-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--wsr-border-sub) 25%,
+    color-mix(in srgb, var(--wsr-border) 55%, transparent) 50%,
+    var(--wsr-border-sub) 75%
+  ) !important;
+  background-size: 900px 100% !important;
+  animation: wsr-shimmer 1.7s ease-in-out infinite !important;
+}
+@keyframes wsr-shimmer {
+  0%   { background-position: -900px 0; }
+  100% { background-position: 900px 0; }
+}
+
+/* ── Presence / Collaboration ───────────────────────────────────── */
+.ws-root header div[style*="display: 'flex'"][style*="alignItems: 'center'"][style*="gap: '6px'"] > div {
+  border-radius: var(--wsr-radius-pill) !important;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .ws-main-layout,
+  .ws-main-layout[style] {
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: calc(100dvh - 62px) !important;
+    overflow-y: auto !important;
+    padding: 10px !important;
+    padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;
+    gap: 10px !important;
+  }
+
+  .ws-center-viewer,
+  .ws-center-viewer[style],
+  .ws-right-panel,
+  .ws-right-panel[style],
+  aside.ws-right-panel {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: calc(100dvh - 160px) !important;
+    min-height: calc(100dvh - 160px) !important;
+    border-radius: 18px !important;
+  }
+
+  .ws-root > header {
+    display: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .ws-main-layout,
+  .ws-main-layout[style] {
+    padding: 8px !important;
+    gap: 8px !important;
+  }
+  .mobile-bottom-nav {
+    left: 6px !important;
+    right: 6px !important;
+    bottom: max(6px, env(safe-area-inset-bottom, 6px)) !important;
+  }
+}
+
+/* ── Dark mode surface overrides ────────────────────────────────── */
+body.dark-mode .ws-center-viewer,
+body.dark-mode .ws-center-viewer[style] {
+  background: var(--wsr-surface) !important;
+  border-color: var(--wsr-border) !important;
+}
+body.dark-mode .ws-right-panel,
+body.dark-mode .ws-right-panel[style],
+body.dark-mode aside.ws-right-panel {
+  background: var(--wsr-surface) !important;
+  border-color: var(--wsr-border) !important;
+}
+body.dark-mode .ws-right-panel-header {
+  background: var(--wsr-surface) !important;
+  border-bottom-color: var(--wsr-border) !important;
+}
+body.dark-mode .ws-chat-messages {
+  background: var(--wsr-surface) !important;
+}
+body.dark-mode .mobile-top-bar {
+  background: color-mix(in srgb, var(--wsr-surface) 92%, transparent) !important;
+  border-bottom-color: var(--wsr-border) !important;
+}
+body.dark-mode .mobile-bottom-nav {
+  background: color-mix(in srgb, var(--wsr-surface) 90%, transparent) !important;
+  border-color: var(--wsr-border) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   WORKSTATION PAGE — NEW VISUAL IDENTITY LAYER
+   Applied on top of existing structure via new semantic class names
+   and specific CSS selectors that don't break logic.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Workstation root gradient upgrade ──────────────────────────── */
+.ws-root {
+  /* Soft lavender-to-white ambient gradient, matching Sessions page */
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(196, 181, 253, 0.14) 0%, transparent 60%),
+    radial-gradient(circle at 1px 1px, var(--wsr-dots) 1px, transparent 0),
+    var(--wsr-bg) !important;
+  background-size: auto, 22px 22px, auto !important;
+}
+
+/* ── Header visual refinement ───────────────────────────────────── */
+.ws-root > header {
+  background: rgba(255, 255, 255, 0.82) !important;
+  border-bottom: 1px solid rgba(228, 231, 236, 0.9) !important;
+  backdrop-filter: blur(24px) saturate(1.5) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.5) !important;
+}
+body.dark-mode .ws-root > header {
+  background: rgba(26, 31, 46, 0.88) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.07) !important;
+}
+
+/* ── Center viewer: clean card with subtle inner shadow ─────────── */
+.ws-center-viewer {
+  box-shadow:
+    0 0 0 1px var(--wsr-border),
+    0 4px 16px rgba(17, 24, 39, 0.06) !important;
+}
+.ws-center-viewer:focus-within {
+  box-shadow:
+    0 0 0 1.5px var(--wsr-purple-soft),
+    0 4px 20px rgba(124, 58, 237, 0.08) !important;
+}
+
+/* ── Right panel: matching card style ───────────────────────────── */
+.ws-right-panel,
+aside.ws-right-panel {
+  box-shadow:
+    0 0 0 1px var(--wsr-border),
+    0 4px 16px rgba(17, 24, 39, 0.06) !important;
+}
+
+/* ── Panel header: lavender accent line at top ──────────────────── */
+.ws-right-panel-header::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 3px !important;
+  background: linear-gradient(90deg, var(--wsr-purple) 0%, var(--wsr-purple-soft) 60%, transparent 100%) !important;
+  border-radius: var(--wsr-radius-sm) var(--wsr-radius-sm) 0 0 !important;
+  opacity: 0.7 !important;
+}
+
+/* ── AI Chat: bubble refinement ─────────────────────────────────── */
+/* User bubble */
+.ws-chat-scroll > div > div > div[style*="#F1F5F9"],
+.ws-chat-scroll > div > div > div[style*="rgb(241, 245, 249)"] {
+  border-radius: 20px 20px 6px 20px !important;
+  background: var(--wsr-surface-alt) !important;
+  border: 1px solid var(--wsr-border) !important;
+}
+/* AI bubble */
+.ws-chat-scroll > div > div > div[style*="#EDE9FE"],
+.ws-chat-scroll > div > div > div[style*="rgb(237, 233, 254)"] {
+  border-radius: 20px 20px 20px 6px !important;
+  background: var(--wsr-purple-wash) !important;
+  border: 1px solid rgba(196, 181, 253, 0.3) !important;
+}
+
+/* ── Tool dock: elevated pill ───────────────────────────────────── */
+.ws-center-viewer > div[style*="bottom: '24px'"] > div:last-child {
+  box-shadow: 0 12px 32px rgba(17, 24, 39, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* ── File switcher dropdown ─────────────────────────────────────── */
+.ws-root > header div[style*="position: 'absolute'"][style*="top: 'calc(100% + 8px)'"],
+.ws-root header div[style*="position: 'absolute'"][style*="width: '300px'"] {
+  border-radius: var(--wsr-radius) !important;
+  border: 1px solid var(--wsr-border) !important;
+  box-shadow: var(--wsr-shadow-lg) !important;
+  background: var(--wsr-surface) !important;
+}
+
+/* ── Focus mode ─────────────────────────────────────────────────── */
+.ws-focus-mode .ws-main-layout {
+  padding: 10px !important;
+}
+
+/* ── Presence bar avatars ────────────────────────────────────────── */
+.ws-root header div[style*="display: 'flex'"][style*="alignItems: 'center'"] > div[style*="border-radius: '9999px'"],
+.ws-root header div[style*="display: 'flex'"][style*="alignItems: 'center'"] > div[style*="borderRadius: '9999px'"] {
+  box-shadow: 0 0 0 2px var(--wsr-surface) !important;
+  transition: transform 150ms !important;
+}
+.ws-root header div[style*="display: 'flex'"][style*="alignItems: 'center'"] > div[style*="border-radius: '9999px'"]:hover {
+  transform: scale(1.1) translateY(-1px) !important;
+  z-index: 2 !important;
+}
+
+/* ── Session timer chip ─────────────────────────────────────────── */
+.ws-root header div[style*="Timer"] + span,
+.ws-root header div[style*="elapsed"] {
+  font-weight: 800 !important;
+  color: var(--wsr-text-muted) !important;
+  font-size: 12px !important;
+}
+
+/* ── Summary / Flashcard / Quiz content cards ───────────────────── */
+.ws-center-viewer > div[style*="display: activeTab === 'summary' ? 'flex' : 'none'"],
+.ws-center-viewer > div[style*="display: activeTab === 'flashcards' ? 'block' : 'none'"],
+.ws-center-viewer > div[style*="display: activeTab === 'quiz' ? 'block' : 'none'"] {
+  background: var(--wsr-surface) !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+/* ── Write/Notes scroll area ─────────────────────────────────────── */
+.ws-scroll-container {
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--wsr-border) transparent !important;
+}
+.ws-scroll-container::-webkit-scrollbar { width: 5px !important; }
+.ws-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--wsr-border) !important;
+  border-radius: var(--wsr-radius-pill) !important;
+}
+.ws-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: var(--wsr-purple-soft) !important;
+}
+
+/* ── No-material empty state ─────────────────────────────────────── */
+.ws-center-viewer > div > div[style*="borderRadius: '12px'"][style*="background: '#F3F4F6'"] {
+  background: var(--wsr-purple-wash) !important;
+  border-radius: 16px !important;
+}
+
+/* ── Tactile buttons (used in tools) ─────────────────────────────── */
+.ws-tactile-btn {
+  font-family: 'Outfit', system-ui, sans-serif !important;
+  font-weight: 800 !important;
+  transition: transform 120ms ease, box-shadow 120ms ease !important;
+}
+.ws-tactile-btn:active {
+  transform: translateY(1px) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   WORKSTATION RIGHT PANEL — Notes-style visual language
+   Matches nd-* (NotesDashboardPage) + aic-* (AIChatPage) design
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Panel header — clean topbar like nd-topbar */
+.ws-right-panel-header,
+.ws-right-panel-header[style] {
+  background: var(--sb-surface, #fff) !important;
+  border-bottom: 1px solid var(--sb-border, #E5E7EB) !important;
+  /* Lavender top accent line */
+  box-shadow: inset 0 3px 0 0 #7C3AED !important;
+  padding: 0 10px 0 14px !important;
+  height: 54px !important;
+  min-height: 54px !important;
+}
+
+/* Tab labels — match nd-topbar-title weight */
+.ws-right-panel .ws-right-tab,
+.ws-right-panel .ws-right-tab[style],
+.ws-right-panel button.ws-right-tab {
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif !important;
+  letter-spacing: 0.01em !important;
+  color: var(--sb-text-muted, #475569) !important;
+  padding: 0 12px !important;
+  border-bottom: 2px solid transparent !important;
+  transition: color 150ms, border-color 150ms !important;
+}
+.ws-right-panel .ws-right-tab:hover {
+  color: var(--sb-text, #0F172A) !important;
+}
+.ws-right-panel .ws-right-tab.is-active,
+.ws-right-panel button.ws-right-tab.is-active {
+  color: #7C3AED !important;
+  border-bottom-color: #7C3AED !important;
+}
+
+/* Panel collapse button — nd-bulk-action-btn style */
+.ws-right-panel-header > button {
+  background: var(--sb-border-subtle, #F3F4F6) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  color: var(--sb-text-muted, #475569) !important;
+  width: 30px !important;
+  height: 30px !important;
+  box-shadow: none !important;
+}
+.ws-right-panel-header > button:hover {
+  background: var(--sb-purple-soft, #F3E8FF) !important;
+  color: #7C3AED !important;
+  border-color: transparent !important;
+}
+
+/* Chat messages area — nd-list style */
+.ws-chat-messages,
+.ws-chat-messages[style] {
+  background: var(--sb-bg, #FFFFFF) !important;
+  padding: 16px 14px !important;
+}
+
+/* User message bubble — purple, round corners like aic-msg--user */
+.ws-chat-scroll > div > div > div[style*="#F1F5F9"],
+.ws-chat-scroll > div > div > div[style*="rgb(241, 245, 249)"] {
+  background: var(--sb-border-subtle, #F3F4F6) !important;
+  border: 1px solid var(--sb-border, #E5E7EB) !important;
+  border-radius: 18px 18px 4px 18px !important;
+}
+
+/* AI message bubble — white card like nd-row */
+.ws-chat-scroll > div > div > div[style*="#EDE9FE"],
+.ws-chat-scroll > div > div > div[style*="rgb(237, 233, 254)"] {
+  background: var(--sb-surface, #fff) !important;
+  border: 1px solid var(--sb-border, #E5E7EB) !important;
+  border-radius: 18px 18px 18px 4px !important;
+  box-shadow: 0 1px 4px rgba(17, 24, 39, 0.05) !important;
+}
+
+/* Suggested question chips — nd-row style */
+.ws-chat-messages div[style*="justifyContent: 'space-between'"],
+.ws-chat-messages div[style*="justify-content: space-between"] {
+  background: var(--sb-surface, #fff) !important;
+  border: 1px solid var(--sb-border, #E5E7EB) !important;
+  border-radius: 14px !important;
+  transition: border-color 0.18s, box-shadow 0.18s !important;
+}
+.ws-chat-messages div[style*="justifyContent: 'space-between'"]:hover,
+.ws-chat-messages div[style*="justify-content: space-between"]:hover {
+  border-color: #C4B5FD !important;
+  box-shadow: 0 2px 10px rgba(124, 58, 237, 0.07) !important;
+  background: var(--sb-purple-soft, #F3E8FF) !important;
+}
+
+/* Chat input shell — aic-input-shell style */
+.ws-right-panel div[style*="background: white"][style*="borderRadius"][style*="24px"],
+.ws-right-panel div[style*="background: white"][style*="border-radius"][style*="24px"] {
+  background: var(--sb-bg, #FFFFFF) !important;
+  border: 1.5px solid var(--sb-border, #E5E7EB) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+.ws-right-panel div[style*="background: white"][style*="borderRadius"][style*="24px"]:focus-within {
+  border-color: #C4B5FD !important;
+  box-shadow: 0 0 0 3px rgba(196, 181, 253, 0.16) !important;
+}
+
+/* Send button — aic-send-btn style */
+.ws-right-panel button[style*="background: rgb(17, 24, 39)"],
+.ws-right-panel button[style*="background: #111827"] {
+  background: #7C3AED !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 10px rgba(124, 58, 237, 0.25) !important;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s !important;
+}
+.ws-right-panel button[style*="background: rgb(17, 24, 39)"]:hover {
+  background: #6D28D9 !important;
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.35) !important;
+}
+
+/* Quick prompt chips — nd-create-btn-adjacent style */
+.ws-right-panel div[style*="borderTop"] button[style*="borderRadius: '9999px'"],
+.ws-right-panel div button[style*="9999px"][style*="12px"] {
+  background: var(--sb-surface, #fff) !important;
+  border: 1px solid var(--sb-border, #E5E7EB) !important;
+  border-radius: 10px !important;
+  color: var(--sb-text-muted, #475569) !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  transition: background 0.15s, border-color 0.15s, color 0.15s !important;
+}
+.ws-right-panel div[style*="borderTop"] button:hover,
+.ws-right-panel div button[style*="9999px"][style*="12px"]:hover {
+  background: var(--sb-purple-soft, #F3E8FF) !important;
+  border-color: #DDD6FE !important;
+  color: #7C3AED !important;
+}
+
+/* AI chat textarea input */
+.ws-right-panel input[placeholder*="Luter"],
+.ws-right-panel input[style*="flex: 1"] {
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif !important;
+  font-size: 13.5px !important;
+  color: var(--sb-text, #0F172A) !important;
+  background: transparent !important;
+  border: none !important;
+}
+.ws-right-panel input[placeholder*="Luter"]::placeholder {
+  color: #9CA3AF !important;
+}
+
+/* Dark mode panel */
+body.dark-mode .ws-right-panel,
+body.dark-mode aside.ws-right-panel {
+  background: var(--sb-surface) !important;
+  border-color: var(--sb-border) !important;
+}
+body.dark-mode .ws-right-panel-header {
+  background: var(--sb-surface) !important;
+  border-bottom-color: var(--sb-border) !important;
+}
+body.dark-mode .ws-chat-messages {
+  background: var(--sb-bg) !important;
+}
+body.dark-mode .ws-chat-scroll > div > div > div[style*="#EDE9FE"],
+body.dark-mode .ws-chat-scroll > div > div > div[style*="rgb(237, 233, 254)"] {
+  background: var(--sb-surface) !important;
+  border-color: var(--sb-border) !important;
+}
+body.dark-mode .ws-right-panel div[style*="background: white"][style*="borderRadius"][style*="24px"] {
+  background: var(--sb-bg) !important;
+  border-color: var(--sb-border) !important;
+}
+
+/* ── "Open in AI Chat" shortcut button in right panel ─────────────
+   Appears at the bottom of the panel header area for quick navigation */
+.ws-open-aichat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: var(--sb-purple-soft, #F3E8FF);
+  border: 1px solid var(--sb-purple-border, #DDD6FE);
+  border-radius: 9999px;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #7C3AED;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+}
+.ws-open-aichat-btn:hover {
+  background: #EDE9FE;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.14);
+}

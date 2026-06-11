@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { RiAlertLine, RiCheckboxCircleLine, RiCloseLine, RiMessage3Line, RiTeamLine } from 'react-icons/ri';
+import { AlertTriangle, CheckCircle, X, MessageCircle, Users } from 'lucide-react';
 import { useOthers, useStorage, useThreads } from '../liveblocks.config';
 
 const MAX_TOASTS = 4;
@@ -10,10 +10,10 @@ function buildToast({ id, kind, title, body }) {
 }
 
 const iconFor = {
-  comment: RiMessage3Line,
-  quiz: RiCheckboxCircleLine,
-  mention: RiTeamLine,
-  warning: RiAlertLine,
+  comment: MessageCircle,
+  quiz: CheckCircle,
+  mention: Users,
+  warning: AlertTriangle,
 };
 
 export default function WorkstationNotifications() {

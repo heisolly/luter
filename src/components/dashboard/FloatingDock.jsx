@@ -1,13 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  RiAddLine as Plus, RiUploadCloudFill as Upload, RiMagicFill as Sparkles, RiBookOpenFill as BookOpen, 
-  RiDeleteBin6Fill as Trash2, RiPlayFill as Play, RiCloseLine as X, RiArrowUpSLine as ChevronUp, RiStackFill as Layers,
-  RiFileTextFill as FileText, RiMusicFill as Music, RiVideoFill as Video, RiImageFill as ImageIcon,
-  RiFolderOpenFill as Folder, RiTimeFill as Clock, RiDragMoveFill as DragHandle, RiMenuFill as Menu,
-  RiBook2Fill as Book
-} from 'react-icons/ri';
+import {
+  Plus,
+  UploadCloud as Upload,
+  Sparkles,
+  BookOpen,
+  Trash2,
+  Play,
+  X,
+  ChevronUp,
+  Layers,
+  FileText,
+  Music,
+  Video,
+  Image as ImageIcon,
+  Folder,
+  Clock,
+  GripVertical as DragHandle,
+  Menu,
+  Book
+} from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { useSessionStore } from '../../store/useSessionStore';
 import { uploadMaterial } from '../../services/materialsService';
@@ -39,9 +52,9 @@ const FloatingDock = ({ user, isMobile }) => {
 
   useEffect(() => {
     if (user?.id) {
-      loadSessions();
+      loadSessions(false, user.id);
     }
-  }, [user?.id]);
+  }, [user?.id, loadSessions]);
 
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);

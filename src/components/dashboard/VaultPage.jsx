@@ -5,7 +5,7 @@ import {
   RiMagicFill as Sparkles, RiDeleteBin6Fill as Trash2, RiTimeFill as Clock, RiLayoutGridFill as Grid, RiListCheck as List,
   RiImageFill as ImageIcon, RiMusicFill as Music, RiVideoFill as Video, RiLoader4Line as Loader2
 } from 'react-icons/ri'
-import { LuterPageLoader } from '../shared/LuterPageLoader'
+import { CardSkeleton } from '../shared/LuterPageLoader'
 import { supabase } from '../../supabaseClient'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -157,7 +157,7 @@ export default function VaultPage() {
       </div>
 
       {loading ? (
-        <LuterPageLoader message="Opening your vault..." />
+        <CardSkeleton count={6} />
       ) : filteredFiles.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 0', background: 'white', borderRadius: 32, border: '2px dashed #f1f5f9' }}>
            <div style={{ width: 64, height: 64, background: 'var(--primary-bg)', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: 'var(--primary)' }}>

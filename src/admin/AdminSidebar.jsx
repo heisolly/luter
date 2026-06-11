@@ -42,6 +42,7 @@ const NAV = [
   { to: '/activity', icon: Pulse, label: 'Live activity' },
   { to: '/system', icon: Cpu, label: 'System' },
   { to: '/payment-settings', icon: CreditCard, label: 'Payment Settings' },
+  { to: '/pricing', icon: ChartLineUp, label: 'Pricing Config' },
   { to: '/settings', icon: GearSix, label: 'Admin settings' },
 ]
 

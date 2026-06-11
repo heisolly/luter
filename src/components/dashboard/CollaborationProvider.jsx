@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { RoomProvider } from '../../liveblocks.config';
 import { LiveObject, LiveList } from '@liveblocks/client';
+import { LiveblocksFallbackProvider, useLiveblocksFallback } from '../../context/LiveblocksFallbackContext';
+import { supabase } from '../../supabaseClient';
 
 const userColors = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#0891B2'];
 
@@ -8,32 +10,67 @@ function colorFromId(id = 'peer') {
   return userColors[String(id).split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % userColors.length];
 }
 
-/**
- * CollaborationProvider wraps the Workstation in a Liveblocks Room.
- * Room ID is derived from the materialId or a custom sessionId.
- * 
- * Storage layout (shared between all users in the room):
- *  - whiteboardData      LiveList   — Excalidraw elements
- *  - whiteboardAppState  LiveObject — Excalidraw app state
- *  - syncMode            boolean    — Whether slide sync is on
- *  - presenterId         string|null — Who is presenting
- *  - presenterSlide      number     — Current slide of presenter
- *  - messages            LiveList   — Group chat messages
- *  - annotations         LiveList   — Shared PDF highlights
- *  - quizState           string     — 'idle'|'generating'|'active'|'results'
- *  - quizQuestions       LiveList   — Quiz questions array
- *  - quizCurrentIdx      number     — Current question index
- *  - quizScores          LiveObject — Map of connectionId → score
- *
- * Presence layout (per-user, ephemeral):
- *  - currentPage  number     — Which page/slide the user is on
- *  - cursor       {x,y}|null — Whiteboard cursor position
- *  - isTyping     boolean    — Whether user is typing in group chat
- *  - status       string     — 'active'|'idle'
- *  - role         string     — 'presenter'|'participant' (set by app logic)
- */
-export const CollaborationProvider = ({ roomId, children, userInfo = {}, initialPresence = {} }) => {
-  if (!roomId) return children;
+function LiveblocksStatusCheck({ roomId, children, userInfo, initialPresence }) {
+  const [status, setStatus] = useState('checking'); // 'checking' | 'connected' | 'failed'
+  const { setFallback } = useLiveblocksFallback();
+  const checkDone = useRef(false);
+
+  useEffect(() => {
+    if (checkDone.current) return;
+    if (!roomId) {
+      setStatus('failed');
+      checkDone.current = true;
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    supabase.auth.getSession().then(({ data }) =>
+      fetch('/api/liveblocks-auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(data.session?.access_token ? { Authorization: `Bearer ${data.session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ room: roomId }),
+        signal: controller.signal,
+      })
+    ).then((res) => {
+      clearTimeout(timeout);
+      if (res.ok) {
+        setFallback(false);
+        setStatus('connected');
+      } else {
+        setStatus('failed');
+      }
+    }).catch(() => {
+      clearTimeout(timeout);
+      setStatus('failed');
+    }).finally(() => {
+      clearTimeout(timeout);
+      checkDone.current = true;
+    });
+
+    return () => clearTimeout(timeout);
+  }, [roomId]);
+
+  if (status === 'checking') {
+    return <>{children}</>;
+  }
+
+  if (status === 'failed') {
+    return (
+      <>
+        <OfflineBanner onReconnect={() => {
+          checkDone.current = false;
+          setFallback(true);
+          setStatus('checking');
+        }} />
+        {children}
+      </>
+    );
+  }
 
   return (
     <RoomProvider
@@ -57,12 +94,9 @@ export const CollaborationProvider = ({ roomId, children, userInfo = {}, initial
         ...initialPresence,
       }}
       initialStorage={{
-        // Whiteboard
         whiteboardData: new LiveList([]),
         whiteboardAppState: new LiveObject({}),
         whiteboardFiles: new LiveObject({}),
-
-        // Slide sync
         syncMode: false,
         presenterId: null,
         presenterSlide: 1,
@@ -71,14 +105,8 @@ export const CollaborationProvider = ({ roomId, children, userInfo = {}, initial
           leaderId: null,
           currentSlide: 0,
         }),
-
-        // Group chat
         messages: new LiveList([]),
-
-        // Annotations / highlights
         annotations: new LiveList([]),
-
-        // Group quiz
         quizState: 'idle',
         quizQuestions: new LiveList([]),
         quizCurrentIdx: 0,
@@ -101,5 +129,43 @@ export const CollaborationProvider = ({ roomId, children, userInfo = {}, initial
     >
       {children}
     </RoomProvider>
+  );
+}
+
+function OfflineBanner({ onReconnect }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '8px 16px', background: '#FEF3C7', borderBottom: '1px solid #FDE68A',
+      fontSize: '12px', fontWeight: 600, color: '#92400E', gap: '12px'
+    }}>
+      <span>Collaboration unavailable — working offline</span>
+      <button
+        onClick={onReconnect}
+        style={{
+          background: '#92400E', color: 'white', border: 'none',
+          borderRadius: '6px', padding: '4px 12px', cursor: 'pointer',
+          fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap'
+        }}
+      >
+        Reconnect
+      </button>
+    </div>
+  );
+}
+
+export const CollaborationProvider = ({ roomId, children, userInfo = {}, initialPresence = {} }) => {
+  if (!roomId) return children;
+
+  return (
+    <LiveblocksFallbackProvider>
+      <LiveblocksStatusCheck
+        roomId={roomId}
+        userInfo={userInfo}
+        initialPresence={initialPresence}
+      >
+        {children}
+      </LiveblocksStatusCheck>
+    </LiveblocksFallbackProvider>
   );
 };

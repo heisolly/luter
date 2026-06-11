@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { useParams, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate, useOutletContext, useSearchParams, useLocation } from 'react-router-dom'
 import {
   House,
   CaretLeft,
@@ -108,8 +108,10 @@ import { queryStudyMaterials, reprocessMaterial } from '../../services/langchain
 import { pollMaterialUntilReady } from '../../services/materialsService'
 import { preloadingService } from '../../services/preloadingService'
 import { useDeckStore } from '../../store/useDeckStore'
+import { useSessionStore } from '../../store/useSessionStore'
 import MaterialAnalysisService from '../../services/materialAnalysisService'
 import { askDograhVoiceAgent } from '../../services/dograhVoiceAgent'
+import { checkAndDeductCredits, CREDIT_COSTS, getCreditBalance } from '../../services/creditService'
 import './workstation.css'
 import { useHighlight } from '../../hooks/useHighlight.jsx'
 import { useAnnotation } from '../../hooks/useAnnotation'
@@ -225,6 +227,7 @@ const getMaterialChipMeta = (material) => {
 function WorkstationContent() {
   const { t } = useTranslation(['workspace'])
   const navigate = useNavigate()
+  const location = useLocation()
   const { courseId, materialId: materialIdParam2 } = useParams()
   const [searchParams] = useSearchParams()
   const materialIdParam = searchParams.get('materialId') || materialIdParam2
@@ -293,11 +296,14 @@ function WorkstationContent() {
       if (isSidePanelCollapsed) setSidePanelCollapsed(false)
 
       try {
-        // Usage check
-        if (explanationsLeft <= 0 && !profile?.is_premium) {
-          setActiveExplanation("You've used your 3 free explanations. Upgrade to Luter Pro for unlimited access!")
+        // Credit check
+        const cost = CREDIT_COSTS.EXPLAIN_TEXT
+        const { ok } = await checkAndDeductCredits(user?.id, cost, profile?.is_premium)
+        if (!ok) {
+          setActiveExplanation("You've used up your AI credits for today. They reset daily — come back tomorrow or upgrade to Pro for more!")
           return
         }
+        setCreditsBalance(prev => typeof prev === 'number' ? prev - cost : prev)
 
         const prompt = actionId === 'explain'
           ? `Explain this concept clearly for a student: "${text}"`
@@ -309,12 +315,6 @@ function WorkstationContent() {
           { systemPromptOverride: GROQ_PROMPTS.TUTOR }
         )
         setActiveExplanation(response)
-
-        // Decrement logic
-        if (!profile?.is_premium) {
-          const { data: newCount } = await supabase.rpc('decrement_user_explanations', { user_id: user.id })
-          if (newCount !== undefined) setExplanationsLeft(newCount)
-        }
         return response
       } catch (err) {
         setActiveExplanation("Failed to generate response. Please try again.")
@@ -349,12 +349,14 @@ function WorkstationContent() {
     navigate(-1)
   }
 
-  const [activeTab, setActiveTab] = useState('content')
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tool') === 'quiz' ? 'quiz' : 'content')
   const [activeSideTab, setActiveSideTab] = useState('chat')
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [shareTargetSession, setShareTargetSession] = useState(null)
+  const [isPreparingShare, setIsPreparingShare] = useState(false)
   const [activeSessionId, setActiveSessionId] = useState(sessionIdParam || null)
-  const [explanationsLeft, setExplanationsLeft] = useState(profile?.explanations_left ?? 3)
+  const [creditsBalance, setCreditsBalance] = useState(Infinity)
   const [panelWidth, setPanelWidth] = useState(() => {
     const saved = localStorage.getItem('luter-panel-width') || localStorage.getItem('ws-panel-width')
     return saved ? parseInt(saved, 10) : 360
@@ -362,6 +364,7 @@ function WorkstationContent() {
   const [isResizeHovered, setIsResizeHovered] = useState(false)
   const [isResizeActive, setIsResizeActive] = useState(false)
   const isResizing = useRef(false)
+  const createStudyRoomSession = useSessionStore((state) => state.createSession)
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -393,6 +396,25 @@ function WorkstationContent() {
     return () => clearInterval(timer)
   }, [])
 
+  // Study Time Logger — logs 1 minute to Supabase every 60s while tab is focused
+  useEffect(() => {
+    if (!user?.id) return
+    const logInterval = setInterval(() => {
+      if (document.hasFocus()) {
+        supabase.rpc('log_study_time', { p_minutes: 1 }).then().catch(e => console.warn('Study log error:', e))
+      }
+    }, 60000)
+    return () => clearInterval(logInterval)
+  }, [user?.id])
+
+  // Fetch credit balance on mount
+  useEffect(() => {
+    if (!user?.id) return
+    getCreditBalance(user.id).then(balance => {
+      if (typeof balance === 'number') setCreditsBalance(balance)
+    }).catch(() => {})
+  }, [user?.id])
+
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
@@ -411,6 +433,62 @@ function WorkstationContent() {
   const [showExitSummary, setShowExitSummary] = useState(false)
   const [activePanelContext, setActivePanelContext] = useState('default') // default, explanation, quiz, flashcard
   const [activeExplanation, setActiveExplanation] = useState(null)
+
+  const handleShareCurrentWorkspace = useCallback(async () => {
+    setShowMoreMenu(false)
+
+    const existingSessionId = activeSessionId || sessionIdParam
+    if (existingSessionId) {
+      setShareTargetSession({ id: existingSessionId })
+      setShowShareModal(true)
+      return
+    }
+
+    if (!selectedMaterial?.id || !user?.id || isPreparingShare) return
+
+    setIsPreparingShare(true)
+    try {
+      const result = await createStudyRoomSession(
+        selectedMaterial.title ? `${selectedMaterial.title} live room` : 'Live material room',
+        [{
+          id: selectedMaterial.id,
+          content_id: selectedMaterial.id,
+          materialId: selectedMaterial.id,
+          title: selectedMaterial.title || 'Study material',
+          type: selectedMaterial.type || 'material',
+          url: selectedMaterial.source_url || selectedMaterial.url || null,
+        }],
+        {
+          sessionType: 'group',
+          isShared: true,
+          role: 'owner',
+        },
+      )
+
+      if (!result?.success || !result.session?.id) {
+        throw new Error(result?.error || 'Could not create a live material room')
+      }
+
+      const session = result.session
+      setActiveSessionId(session.id)
+      setShareTargetSession(session)
+      setShowShareModal(true)
+      navigate(`/dashboard/workstation?sessionId=${session.id}&materialId=${selectedMaterial.id}&sessionType=group`, { replace: true })
+    } catch (error) {
+      console.error('Failed to prepare shared workspace:', error)
+      alert(error.message || 'Could not prepare the shared workspace.')
+    } finally {
+      setIsPreparingShare(false)
+    }
+  }, [
+    activeSessionId,
+    sessionIdParam,
+    selectedMaterial,
+    user?.id,
+    isPreparingShare,
+    createStudyRoomSession,
+    navigate,
+  ])
   // Tour effect — must come AFTER selectedMaterial declaration
   useEffect(() => {
     if (user?.id && selectedMaterial && !isLoadingTours && !hasCompletedTour('workstation')) {
@@ -461,8 +539,18 @@ function WorkstationContent() {
   const [pendingEquation, setPendingEquation] = useState('')
 
   const audioRoomId = activeSessionId || sessionIdParam || groupIdParam || shareCodeParam || null
-  // Hidden audio session hook - auto-connects for collaborative workspaces.
-  const audioSession = useAudioSession(audioRoomId, user?.full_name || 'Guest')
+  const audioRoomName = activeSessionId || sessionIdParam
+    ? `luter-session-${activeSessionId || sessionIdParam}`
+    : shareCodeParam
+      ? `luter-share-${shareCodeParam.toLowerCase()}`
+      : groupIdParam
+        ? `luter-group-${groupIdParam}`
+        : null
+  const audioUserName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Guest'
+  const audioSession = useAudioSession(audioRoomName, {
+    userId: user?.id,
+    userName: audioUserName,
+  })
 
   const recognitionRef = useRef(null)
   const voiceFinalTranscriptRef = useRef('')
@@ -589,6 +677,23 @@ function WorkstationContent() {
     setTyping(false)
 
     if (!text.toLowerCase().includes('@luter')) return
+
+    if (!profile?.is_premium && user?.id) {
+      const { ok } = await checkAndDeductCredits(user.id, CREDIT_COSTS.AI_CHAT, false)
+      if (!ok) {
+        appendGroupMessage({
+          id: `ai-error-${Date.now()}`,
+          userId: 'luter-ai',
+          userName: 'Luter AI',
+          userColor: '#7C3AED',
+          text: "You've used up your AI credits for today.",
+          isAI: true,
+          timestamp: Date.now(),
+        })
+        return
+      }
+    }
+
     const typingId = `ai-typing-${Date.now()}`
     appendGroupMessage({
       id: typingId,
@@ -641,6 +746,9 @@ function WorkstationContent() {
       setVoiceState('idle')
       return
     }
+
+    const { ok } = await checkAndDeductCredits(user?.id, CREDIT_COSTS.VOICE_AGENT, profile?.is_premium)
+    if (!ok) { setVoiceState('idle'); return }
 
     setVoiceState('processing')
     setMessages((prev) => [...prev, { role: 'user', content: cleanQuestion }])
@@ -1100,32 +1208,35 @@ function WorkstationContent() {
   }
 
   useEffect(() => {
-    console.log('🔍 WorkstationPage useEffect triggered:', { materialIdParam, courseId, userId: user?.id })
     if (!user?.id) {
-      console.log('❌ No user ID, skipping material loading')
+      return
+    }
+
+    // Priority 0: material passed directly via navigation state (from Backpack, SharedMaterialPreview etc.)
+    const stateMaterial = location?.state?.material
+    if (stateMaterial?.id && !sessionIdParam && !shareCodeParam && !materialIdParam && !courseId) {
+      setCourseMaterials([stateMaterial])
+      setSessionMaterials([stateMaterial])
+      setSelectedMaterial(stateMaterial)
+      setShowDashboard(false)
       return
     }
 
     if (sessionIdParam || shareCodeParam) {
-      console.log('👥 Loading shared session materials:', { sessionIdParam, shareCodeParam })
       fetchSessionMaterials(sessionIdParam, shareCodeParam)
     } else if (materialIdParam) {
       // If materialId is specified, load that specific material regardless of courseId
-      console.log('📄 Loading standalone material:', materialIdParam)
       fetchStandaloneMaterial(materialIdParam)
     } else if (courseId) {
       // Load course-specific materials
-      console.log('📚 Loading course materials for:', courseId)
       fetchCourseInfo()
       fetchMaterials()
       checkAssignments()
     } else if (activeDeckItems.length > 0) {
       // Load materials from deck if no courseId is provided
-      console.log('🎒 Loading deck materials')
       loadDeckMaterials()
     } else {
       // Fallback: fetch all user's standalone + course materials
-      console.log('🔄 Loading all user materials')
       fetchAllUserMaterials()
     }
   }, [courseId, materialIdParam, sessionIdParam, shareCodeParam, activeDeckItems.length, user?.id])
@@ -1350,6 +1461,10 @@ function WorkstationContent() {
       // Proactive extraction check (Process on Arrival)
       if (selectedMaterial && (!selectedMaterial.extracted_text || selectedMaterial.extracted_text.length < 50)) {
         console.log('[Workstation] Material missing text. Triggering proactive extraction...')
+        if (!profile?.is_premium && user?.id) {
+          const { ok } = await checkAndDeductCredits(user.id, CREDIT_COSTS.OPEN_MATERIAL, false)
+          if (!ok) return // silently skip; user sees analysis unavailable
+        }
         MaterialAnalysisService.getOrCreateAnalysis(materialId, selectedMaterial, user?.id)
           .then(res => {
             if (res.success && res.material?.extracted_text) {
@@ -1374,6 +1489,10 @@ function WorkstationContent() {
       if (currentAnalysis.page_summaries) {
         setPageSummaries(currentAnalysis.page_summaries)
         return
+      }
+      if (!profile?.is_premium && user?.id) {
+        const { ok } = await checkAndDeductCredits(user.id, CREDIT_COSTS.GENERATE_SUMMARY, false)
+        if (!ok) { setPageSummaries({}); return }
       }
       const pageTextMap = await MaterialAnalysisService.fetchMaterialPageMap(selectedMaterial.id, selectedMaterial)
       const summaries = await MaterialAnalysisService.generatePageByPageSummary(selectedMaterial.id, pageTextMap)
@@ -1513,6 +1632,10 @@ function WorkstationContent() {
       // ALWAYS get fresh analysis if we don't have it or if it's incomplete
       let currentAnalysisRow = materialAnalysis
       if (!materialAnalysis || !materialAnalysis.summary || materialAnalysis.isFallback) {
+        if (!profile?.is_premium && user?.id) {
+          const { ok } = await checkAndDeductCredits(user.id, CREDIT_COSTS.OPEN_MATERIAL, false)
+          if (!ok) { setIsAnalysisLoading(false); clearTimeout(timeout); return }
+        }
         console.log(`[runAnalysis] Generating new analysis...`)
         const analysisResult = await MaterialAnalysisService.getOrCreateAnalysis(selectedMaterial.id, selectedMaterial, user.id)
         if (analysisResult.success) {
@@ -1528,6 +1651,10 @@ function WorkstationContent() {
       let finalResult
       switch(type) {
         case 'notes':
+          if (!profile?.is_premium && user?.id) {
+            const { ok } = await checkAndDeductCredits(user.id, CREDIT_COSTS.GENERATE_AI_NOTES, false)
+            if (!ok) { finalResult = "You've used up your AI credits for today."; break; }
+          }
           try {
             const content = (selectedMaterial.extracted_text || "").replace(/\*\*/g, '').slice(0, 6000)
             if (!content) { finalResult = 'No content available.'; break; }
@@ -1539,6 +1666,10 @@ function WorkstationContent() {
           }
           break;
         case 'summary': {
+          if (!profile?.is_premium && user?.id) {
+            const { ok } = await checkAndDeductCredits(user.id, CREDIT_COSTS.GENERATE_SUMMARY, false)
+            if (!ok) { finalResult = "You've used up your AI credits for today."; break; }
+          }
           try {
             const content = (selectedMaterial.extracted_text || '').replace(/\*\*/g, '').slice(0, 6000)
             if (!content) { finalResult = 'No content available.'; break; }
@@ -1551,6 +1682,10 @@ function WorkstationContent() {
           break;
         }
         case 'flashcards': {
+          if (!profile?.is_premium && user?.id) {
+            const { ok } = await checkAndDeductCredits(user.id, CREDIT_COSTS.GENERATE_FLASHCARDS, false)
+            if (!ok) { finalResult = []; break; }
+          }
           console.log(`[runAnalysis] Generating flashcards...`)
           const fRes = await MaterialAnalysisService.generateFlashcards(currentAnalysisRow, 10, selectedMaterial);
           console.log(`[runAnalysis] Flashcards result:`, fRes)
@@ -1558,6 +1693,10 @@ function WorkstationContent() {
           break;
         }
         case 'quiz': {
+          if (!profile?.is_premium && user?.id) {
+            const { ok } = await checkAndDeductCredits(user.id, CREDIT_COSTS.GENERATE_QUIZ, false)
+            if (!ok) { finalResult = []; break; }
+          }
           console.log(`[runAnalysis] Generating quiz...`)
           const qRes = await MaterialAnalysisService.generateQuiz(currentAnalysisRow, 5, 'medium', selectedMaterial);
           console.log(`[runAnalysis] Quiz result:`, qRes)
@@ -1637,14 +1776,17 @@ function WorkstationContent() {
     setChatInput('')
     setIsProcessingLoading(true)
     try {
-      // Usage check
-      if (explanationsLeft <= 0 && !profile?.is_premium) {
+      // Credit check
+      const cost = CREDIT_COSTS.AI_CHAT
+      const { ok } = await checkAndDeductCredits(user?.id, cost, profile?.is_premium)
+      if (!ok) {
         setMessages(prev => [...prev, {
           role: 'ai',
-          content: "You've reached your limit of free explanations for today. 🚀 **Upgrade to Luter Pro** to unlock unlimited AI power and continue your study session without interruptions!"
+          content: "You've used up your AI credits for today. They reset daily — come back tomorrow or upgrade to Pro for more!"
         }])
         return
       }
+      setCreditsBalance(prev => typeof prev === 'number' ? prev - cost : prev)
 
       // Determine retrieval context: Specific material, or the whole deck?
       const materialContext = selectedMaterial?.id || activeDeckItems.map(i => i.content_id)
@@ -1656,12 +1798,6 @@ function WorkstationContent() {
         fallbackContext: (selectedMaterial?.extracted_text || "").replace(/\*\*/g, '').slice(0, 8000)
       })
       setMessages(prev => [...prev, { role: 'ai', content: aiResponse }])
-
-      // Decrement logic
-      if (!profile?.is_premium) {
-        const { data: newCount } = await supabase.rpc('decrement_user_explanations', { user_id: user.id })
-        if (newCount !== undefined) setExplanationsLeft(newCount)
-      }
     } catch (err) {
       setMessages(prev => [...prev, { role: 'ai', content: 'Luter encountered an error.' }])
     } finally { setIsProcessingLoading(false) }
@@ -1673,6 +1809,19 @@ function WorkstationContent() {
   const fileName = selectedMaterial?.title || 'Material'
   const elapsed = formatTime(elapsedTime)
   const materialChipMeta = getMaterialChipMeta(selectedMaterial)
+  const audioStatusMeta = {
+    idle: { label: 'Voice ready', color: '#64748B' },
+    connecting: { label: 'Connecting', color: '#D97706' },
+    connected: { label: 'Live voice', color: '#059669' },
+    reconnecting: { label: 'Reconnecting', color: '#D97706' },
+    failed: { label: 'Voice issue', color: '#EF4444' },
+  }[audioSession.connectionStatus] || { label: 'Voice ready', color: '#64748B' }
+  const audioButtonLabel = audioSession.connectionStatus === 'connecting'
+    ? 'Joining'
+    : audioSession.isJoined ? 'Leave' : 'Join Audio'
+  const activeSpeakerLabel = audioSession.activeSpeakers?.length
+    ? `${audioSession.activeSpeakers.map((speaker) => speaker.name).slice(0, 2).join(', ')} speaking`
+    : `${audioSession.participantCount || 0} in audio`
   const topNavigationTabs = [
     { id: 'content', label: 'Source', icon: FileText, onClick: () => { setActiveTab('content'); setActiveSideTab('chat') } },
     { id: 'summary', label: 'Summary', icon: Sparkle, onClick: () => setActiveTab('summary') },
@@ -2001,6 +2150,50 @@ function WorkstationContent() {
               {isCollaborativeSession && <PresenceBar />}
               {isCollaborativeSession && audioRoomId && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div
+                    title={audioSession.error || activeSpeakerLabel}
+                    style={{
+                      minWidth: 92,
+                      maxWidth: 160,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-end',
+                      lineHeight: 1.15,
+                    }}
+                  >
+                    <span style={{ fontSize: 11, fontWeight: 800, color: audioStatusMeta.color, whiteSpace: 'nowrap' }}>
+                      {audioStatusMeta.label}
+                    </span>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {audioSession.error || activeSpeakerLabel}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={audioSession.isJoined ? audioSession.leaveSession : audioSession.joinSession}
+                    disabled={audioSession.connectionStatus === 'connecting'}
+                    title={audioSession.isJoined ? 'Leave audio room' : 'Join audio room'}
+                    style={{
+                      height: 34,
+                      borderRadius: 9999,
+                      border: '1px solid rgba(109, 40, 217, 0.16)',
+                      background: audioSession.isJoined ? '#111827' : '#FFFFFF',
+                      color: audioSession.isJoined ? '#FFFFFF' : '#6D28D9',
+                      cursor: audioSession.connectionStatus === 'connecting' ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      padding: '0 12px',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                      transition: 'all 160ms ease',
+                    }}
+                  >
+                    {audioSession.isJoined ? <SignOut size={15} weight="bold" /> : <Microphone size={15} weight="bold" />}
+                    <span>{audioButtonLabel}</span>
+                  </button>
                   <button
                     type="button"
                     onClick={audioSession.toggleMicrophone}
@@ -2074,7 +2267,7 @@ function WorkstationContent() {
                   fontSize: 11, fontWeight: 700, color: '#B45309',
                   letterSpacing: '0.02em',
                   fontFamily: WORKSTATION_FONT_STACK,
-                }}>{explanationsLeft} LEFT</span>
+                }}>{typeof creditsBalance === 'number' ? `${creditsBalance} CREDITS` : '∞'}</span>
                 <span style={{ color: 'rgba(180, 83, 9, 0.2)' }}>|</span>
                 <span style={{
                   fontSize: 11, fontWeight: 800, color: '#7C3AED',
@@ -2171,13 +2364,11 @@ function WorkstationContent() {
                       }}
                     >
                       <button
-                        onClick={() => {
-                          setShowMoreMenu(false);
-                          setShowShareModal(true);
-                        }}
+                        onClick={handleShareCurrentWorkspace}
+                        disabled={isPreparingShare || (!selectedMaterial && !(activeSessionId || sessionIdParam))}
                         style={{ padding: '12px 16px', width: '100%', border: 'none', background: 'none', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontFamily: 'var(--font-body)' }}
                       >
-                        <ShareNetwork size={15} weight="regular" /> Share Session
+                        <ShareNetwork size={15} weight="regular" /> {activeSessionId || sessionIdParam ? 'Share Session' : isPreparingShare ? 'Preparing...' : 'Share Material Live'}
                       </button>
                     </motion.div>
                   )}
@@ -2414,7 +2605,7 @@ function WorkstationContent() {
                       if (data.currentPage) updatePresence({ currentPage: data.currentPage });
                     }}
                     onScrollUpdate={handleScrollUpdate}
-                    onMaterialUpdate={(m) => setSelectedMaterial(m)}
+                    onMaterialUpdate={(m) => setSelectedMaterial(prev => prev ? { ...prev, ...m } : m)}
                     annotateMode={activeStudyTool === 'annotate'}
                     highlightMode={activeStudyTool === 'highlight'}
                     commentMode={activeStudyTool === 'comment'}
@@ -2814,21 +3005,43 @@ function WorkstationContent() {
                   </button>
                 ))}
               </div>
-              <button
-                onClick={() => setSidePanelCollapsed(true)}
-                style={{
-                  background: 'rgba(248, 250, 252, 0.8)', border: '1px solid rgba(229, 231, 235, 0.8)', borderRadius: '12px', padding: '8px 10px',
-                  cursor: 'pointer', color: '#6B7280', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', transition: 'all 150ms ease', gap: '6px',
-                  fontFamily: WORKSTATION_FONT_STACK, fontSize: '12px', fontWeight: 700
-                }}
-                onMouseEnter={(event) => { event.currentTarget.style.background = '#F3F4F6' }}
-                onMouseLeave={(event) => { event.currentTarget.style.background = 'rgba(248, 250, 252, 0.8)' }}
-              >
-                <CaretRight size={15} weight="bold" />
-                <SidebarSimple size={16} weight="duotone" />
-              </button>
-            </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {/* Open in full AI Chat page */}
+                <button
+                  className="ws-open-aichat-btn"
+                  onClick={() => {
+                    // Write material context so AiChatPanel picks it up
+                    try {
+                      if (selectedMaterial) {
+                        sessionStorage.setItem('luter-ws-ai-context', JSON.stringify({
+                          title: selectedMaterial.title || selectedMaterial.file_name || 'Study material',
+                          text: (selectedMaterial.extracted_text || '').slice(0, 8000),
+                        }))
+                      }
+                    } catch {}
+                    navigate('/dashboard/ai-chat')
+                  }}
+                  title="Open full AI Chat"
+                >
+                  <ArrowSquareOutIcon size={12} weight="bold" />
+                  Full Chat
+                </button>
+                {/* Collapse panel */}
+                <button
+                  onClick={() => setSidePanelCollapsed(true)}
+                  style={{
+                    background: 'rgba(248, 250, 252, 0.8)', border: '1px solid rgba(229, 231, 235, 0.8)', borderRadius: '12px', padding: '8px 10px',
+                    cursor: 'pointer', color: '#6B7280', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', transition: 'all 150ms ease', gap: '6px',
+                    fontFamily: WORKSTATION_FONT_STACK, fontSize: '12px', fontWeight: 700
+                  }}
+                  onMouseEnter={(event) => { event.currentTarget.style.background = '#F3F4F6' }}
+                  onMouseLeave={(event) => { event.currentTarget.style.background = 'rgba(248, 250, 252, 0.8)' }}
+                >
+                  <CaretRight size={15} weight="bold" />
+                  <SidebarSimple size={16} weight="duotone" />
+                </button>
+              </div>            </div>
 
             {/* Panel content */}
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
@@ -2864,6 +3077,70 @@ function WorkstationContent() {
               ) : activeSideTab === 'groupchat' ? (
                 // ── Group Chat (Liveblocks-backed) ──────────────────────────
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                  {isCollaborativeSession && audioRoomId && (
+                    <div style={{ padding: '12px 14px', borderBottom: '1px solid #F1F5F9', background: '#FFFFFF' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 800, color: '#1E293B' }}>Audio room</div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: audioStatusMeta.color }}>{audioStatusMeta.label}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={audioSession.isJoined ? audioSession.leaveSession : audioSession.joinSession}
+                          disabled={audioSession.connectionStatus === 'connecting'}
+                          style={{
+                            height: 30,
+                            border: 'none',
+                            borderRadius: 9999,
+                            background: audioSession.isJoined ? '#111827' : '#6D28D9',
+                            color: '#FFFFFF',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            padding: '0 11px',
+                            fontSize: 11,
+                            fontWeight: 800,
+                            cursor: audioSession.connectionStatus === 'connecting' ? 'wait' : 'pointer',
+                          }}
+                        >
+                          {audioSession.isJoined ? <SignOut size={14} weight="bold" /> : <Microphone size={14} weight="bold" />}
+                          <span>{audioButtonLabel}</span>
+                        </button>
+                      </div>
+                      {audioSession.error && (
+                        <div style={{ fontSize: 11, color: '#EF4444', fontWeight: 600, marginBottom: 8 }}>
+                          {audioSession.error}
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {(audioSession.participants.length ? audioSession.participants : [{ id: 'empty', name: 'No one in audio yet', isSpeaking: false }]).map((participant) => (
+                          <div
+                            key={participant.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: 8,
+                              padding: '7px 9px',
+                              borderRadius: 10,
+                              background: participant.isSpeaking ? '#ECFDF5' : '#F8FAFC',
+                              border: `1px solid ${participant.isSpeaking ? '#BBF7D0' : '#E2E8F0'}`,
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                              <span style={{ width: 8, height: 8, borderRadius: 9999, background: participant.isSpeaking ? '#10B981' : '#CBD5E1', flexShrink: 0 }} />
+                              <span style={{ fontSize: 12, color: '#334155', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {participant.isLocal ? 'You' : participant.name}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: 10, color: participant.isSpeaking ? '#059669' : '#94A3B8', fontWeight: 800, flexShrink: 0 }}>
+                              {participant.isSpeaking ? 'Speaking' : participant.isMicrophoneEnabled === false ? 'Muted' : 'Audio'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {/* Messages */}
                   <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {groupMessages.length === 0 ? (
@@ -2970,6 +3247,8 @@ function WorkstationContent() {
                         <GroupQuiz
                           materialText={selectedMaterial?.extracted_text}
                           isPresenter={presenterId === user?.id}
+                          user={user}
+                          profile={profile}
                         />
                       </div>
                    </div>
@@ -3522,7 +3801,6 @@ function WorkstationContent() {
                     if (!equationInput.trim()) return
                     setPendingEquation(equationInput.trim())
                     setDrawMode('text')
-                    setIsEraserMode(false)
                     setShowEquationModal(false)
                   }}
                   style={{
@@ -3895,6 +4173,16 @@ function WorkstationContent() {
       </AnimatePresence>
 
       <SelectionActionBar onAction={handleSelectionAction} />
+      <ShareSessionModal
+        isOpen={showShareModal}
+        onClose={() => {
+          setShowShareModal(false)
+          setShareTargetSession(null)
+        }}
+        sessionId={shareTargetSession?.id || activeSessionId || sessionIdParam}
+        session={shareTargetSession}
+        materialId={selectedMaterial?.id || materialIdParam}
+      />
     </div>
   )
 }

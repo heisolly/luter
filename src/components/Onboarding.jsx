@@ -7,6 +7,7 @@ import {
 } from "../lib/curriculumSlugs";
 import { uploadMaterial, addYoutubeMaterial } from "../services/materialsService";
 import { clearLuterCaches } from "../utils/cacheUtils";
+import { Search, ChevronLeft, ChevronRight, ChevronDown, Globe, Building, School, Briefcase, Check, MapPin, FileText as FileTextIcon, Camera, Clipboard, Youtube } from 'lucide-react';
 
 /* ─────────────────────────────────────────────────────────────────
    NIGERIA — MAPBOX BOUNDING BOX + TOKEN
@@ -378,91 +379,21 @@ const STEP_PCT = {
    ICONS (inline SVG)
 ───────────────────────────────────────────────────────────────── */
 const Ico = {
-  Search: () => (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={C.lightGray} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-    </svg>
-  ),
-  ChevLeft: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.midGray} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="15 18 9 12 15 6"/>
-    </svg>
-  ),
-  ChevRight: () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.lightGray} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="9 18 15 12 9 6"/>
-    </svg>
-  ),
-  ChevDown: () => (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="6 9 12 15 18 9"/>
-    </svg>
-  ),
-  Globe: () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-    </svg>
-  ),
-  Building: () => (
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="9" width="13" height="13"/><path d="M8 22V12h5v10"/>
-      <path d="M21 22V7l-7-5v20"/>
-    </svg>
-  ),
-  School: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
-    </svg>
-  ),
-  Briefcase: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="7" width="20" height="14" rx="2"/>
-      <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-    </svg>
-  ),
-  Check: () => (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12"/>
-    </svg>
-  ),
-  Pin: () => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.lightGray} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-      <circle cx="12" cy="10" r="3"/>
-    </svg>
-  ),
-  FilePDF: () => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-      <polyline points="14 2 14 8 20 8"/>
-    </svg>
-  ),
-  PPT: () => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-      <polyline points="14 2 14 8 20 8"/>
-      <rect x="8" y="12" width="4" height="5" rx="1"/>
-    </svg>
-  ),
-  Youtube: () => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="#EF4444">
-      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.96-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>
-      <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="white"/>
-    </svg>
-  ),
-  Camera: () => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={C.midGray} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-      <circle cx="12" cy="13" r="4"/>
-    </svg>
-  ),
-  Paste: () => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
-      <rect x="9" y="3" width="6" height="4" rx="1"/>
-    </svg>
-  ),
+  Search,
+  ChevLeft: ChevronLeft,
+  ChevRight: ChevronRight,
+  ChevDown: ChevronDown,
+  Globe,
+  Building,
+  School,
+  Briefcase,
+  Check,
+  Pin: MapPin,
+  FilePDF: (props) => <FileTextIcon stroke="#EF4444" {...props} />,
+  PPT: (props) => <FileTextIcon stroke="#F97316" {...props} />,
+  Youtube: (props) => <Youtube color="#EF4444" {...props} />,
+  Camera,
+  Paste: Clipboard,
 };
 
 /* ─────────────────────────────────────────────────────────────────
@@ -499,6 +430,7 @@ function LuterBtn({ children, onClick, disabled, variant = "primary", fullWidth 
 
   return (
     <button
+      className="ob-btn"
       onClick={onClick}
       disabled={disabled}
       onMouseEnter={() => !disabled && setHov(true)}
@@ -532,6 +464,7 @@ const PillInput = ({ type = "text", placeholder, value, onChange, onKeyDown, aut
   const [focused, setFocused] = useState(false);
   return (
     <input
+      className="ob-input"
       type={type} placeholder={placeholder} value={value}
       onChange={onChange} onKeyDown={onKeyDown} autoFocus={autoFocus}
       min={min} max={max}
@@ -551,11 +484,12 @@ const PillInput = ({ type = "text", placeholder, value, onChange, onKeyDown, aut
 const SearchBar = ({ value, onChange, placeholder, autoFocus }) => {
   const [focused, setFocused] = useState(false);
   return (
-    <div style={{ position: "relative" }}>
+    <div className="ob-search-wrap" style={{ position: "relative" }}>
       <div style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none", display: "flex" }}>
         <Ico.Search />
       </div>
       <input
+        className="ob-search-input"
         type="text" placeholder={placeholder} value={value}
         onChange={onChange} autoFocus={autoFocus}
         onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
@@ -572,7 +506,7 @@ const SearchBar = ({ value, onChange, placeholder, autoFocus }) => {
 };
 
 const OptionPill = ({ children, icon, onClick, selected }) => (
-  <button onClick={onClick} style={{
+  <button className="ob-option-pill" onClick={onClick} style={{
     width: "100%", height: "60px", borderRadius: "14px",
     border: `2px solid ${selected ? C.btnBorder : C.divider}`,
     borderBottom: selected ? `5px solid ${C.btnBorder}` : `5px solid ${C.divider}`,
@@ -985,7 +919,7 @@ export default function Onboarding() {
       clearLuterCaches();
       setTimeout(() => { 
         if (createdMaterialId) {
-          window.location.href = `/workspace/${createdMaterialId}`;
+          window.location.href = `/dashboard/workstation?materialId=${encodeURIComponent(createdMaterialId)}`;
         } else {
           window.location.href = "/dashboard"; 
         }
@@ -1019,7 +953,7 @@ export default function Onboarding() {
      RENDER
   ───────────────────────────────────────────────────────────────── */
   return (
-    <div style={{
+    <div className="ob-page" style={{
       minHeight: "100vh", width: "100%",
       /* Luter palette background: white → mint → peach → lavender gradients */
       background: `
@@ -1035,6 +969,20 @@ export default function Onboarding() {
     }}>
       <style>{`
         @keyframes ob-spin { to { transform: rotate(360deg); } }
+        .ob-page {
+          min-height: 100dvh !important;
+          overflow-x: clip;
+        }
+        .ob-shell {
+          width: min(100%, 640px);
+        }
+        .ob-scroll-list {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(124,57,246,0.2) transparent;
+        }
+        .ob-title {
+          overflow-wrap: anywhere;
+        }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 99px; }
         /* Remove number input arrows */
@@ -1044,10 +992,128 @@ export default function Onboarding() {
         /* Keep placeholder lowercase */
         input::placeholder { text-transform: none !important; }
         textarea::placeholder { text-transform: none !important; }
+        @media (max-width: 900px) {
+          .ob-page {
+            padding: 0 14px 32px !important;
+          }
+          .ob-header {
+            max-width: 720px !important;
+            padding: 18px 0 !important;
+          }
+          .ob-shell {
+            max-width: 600px !important;
+            min-height: min(600px, calc(100dvh - 112px)) !important;
+            padding: 34px 40px 38px !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .ob-page {
+            align-items: stretch !important;
+            min-height: 100svh !important;
+            padding: 0 10px 20px !important;
+          }
+          .ob-header {
+            padding: 14px 2px 12px !important;
+          }
+          .ob-header img {
+            height: 27px !important;
+          }
+          .ob-shell {
+            width: 100% !important;
+            min-height: auto !important;
+            margin: 0 auto !important;
+            border-radius: 22px !important;
+            padding: 24px 18px 26px !important;
+          }
+          .ob-progress-row {
+            gap: 10px !important;
+            margin-bottom: 20px !important;
+          }
+          .ob-mascot-row {
+            margin-bottom: 10px !important;
+          }
+          .ob-mascot-row img {
+            width: 40px !important;
+            height: 40px !important;
+          }
+          .ob-title {
+            font-size: clamp(1.35rem, 6.8vw, 1.8rem) !important;
+            line-height: 1.18 !important;
+            margin-bottom: 22px !important;
+            letter-spacing: 0 !important;
+          }
+          .ob-input,
+          .ob-option-pill {
+            height: 52px !important;
+            min-height: 52px !important;
+            font-size: 15px !important;
+            border-radius: 13px !important;
+          }
+          .ob-btn {
+            height: 52px !important;
+            padding: 0 18px !important;
+            font-size: 15px !important;
+            border-radius: 13px !important;
+          }
+          .ob-search-input {
+            height: 50px !important;
+            font-size: 14px !important;
+          }
+          .ob-scroll-list {
+            max-height: min(330px, calc(100svh - 320px)) !important;
+          }
+          .ob-scroll-list > button {
+            height: auto !important;
+            min-height: 50px !important;
+            padding: 10px 12px !important;
+            line-height: 1.25 !important;
+            white-space: normal !important;
+          }
+        }
+        @media (max-width: 420px) {
+          .ob-page {
+            padding-left: 8px !important;
+            padding-right: 8px !important;
+          }
+          .ob-shell {
+            padding: 20px 14px 22px !important;
+            border-radius: 18px !important;
+          }
+          .ob-title {
+            font-size: clamp(1.22rem, 7vw, 1.55rem) !important;
+          }
+          .ob-input,
+          .ob-option-pill,
+          .ob-btn {
+            height: 50px !important;
+            min-height: 50px !important;
+          }
+          .ob-option-pill {
+            gap: 8px !important;
+          }
+          .ob-scroll-list {
+            max-height: min(300px, calc(100svh - 292px)) !important;
+          }
+        }
+        @media (max-width: 340px) {
+          .ob-shell {
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+          .ob-title {
+            font-size: 1.18rem !important;
+          }
+          .ob-input,
+          .ob-search-input,
+          .ob-option-pill,
+          .ob-btn {
+            font-size: 14px !important;
+          }
+        }
       `}</style>
 
       {/* ── TOP NAV ── */}
-      <header style={{
+      <header className="ob-header" style={{
         width: "100%", maxWidth: "1100px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "22px 0", boxSizing: "border-box",
@@ -1064,7 +1130,7 @@ export default function Onboarding() {
       </header>
 
       {/* ── CARD ── */}
-      <main style={{
+      <main className="ob-shell" style={{
         width: "100%", maxWidth: "640px",
         minHeight: "600px",
         background: "rgba(255,255,255,0.90)",
@@ -1080,7 +1146,7 @@ export default function Onboarding() {
       }}>
 
         {/* ── Progress bar row ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "28px" }}>
+        <div className="ob-progress-row" style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "28px" }}>
           {step > 1 ? (
             <button onClick={prevStep}
               style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", display: "flex", flexShrink: 0 }}
@@ -1101,7 +1167,7 @@ export default function Onboarding() {
         </div>
 
         {/* ── Mascot row ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+        <div className="ob-mascot-row" style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
           <img
             src="/mascot.png" alt="Lumi"
             style={{ width: "46px", height: "46px", borderRadius: "50%", objectFit: "cover", flexShrink: 0, boxShadow: "0 2px 8px rgba(167,139,250,0.25)" }}
@@ -1111,7 +1177,7 @@ export default function Onboarding() {
         </div>
 
         {/* ── Title ── */}
-        <h1 style={{ fontSize: "27px", fontWeight: 800, color: C.nearBlack, margin: "0 0 30px", lineHeight: 1.25, letterSpacing: "-0.02em" }}>
+        <h1 className="ob-title" style={{ fontSize: "27px", fontWeight: 800, color: C.nearBlack, margin: "0 0 30px", lineHeight: 1.25, letterSpacing: "-0.02em" }}>
           {TITLES[step]}
         </h1>
 
@@ -1225,7 +1291,7 @@ export default function Onboarding() {
                     <span style={{ fontSize: "13px", color: C.lightGray }}>Searching…</span>
                   </div>
                 )}
-                <div style={{ maxHeight: "360px", overflowY: "auto" }}>
+                <div className="ob-scroll-list" style={{ maxHeight: "360px", overflowY: "auto" }}>
                   {uniResults.length > 0 && uniResults.map((uni, i) => (
                     <div key={uni.id}
                       onClick={() => { setUniversity(uni.name); setUniSearch(""); setStep(7); }}
@@ -1280,7 +1346,7 @@ export default function Onboarding() {
                     autoFocus
                   />
                 </div>
-                <div style={{ maxHeight: "360px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "7px" }}>
+                <div className="ob-scroll-list" style={{ maxHeight: "360px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "7px" }}>
                   {filteredDegrees.length > 0 ? (
                     filteredDegrees.map((deg) => (
                       <button key={deg}
@@ -1356,7 +1422,7 @@ export default function Onboarding() {
                   </div>
                 ) : (
                   <>
-                    <div style={{ maxHeight: "340px", overflowY: "auto", marginBottom: "18px" }}>
+                    <div className="ob-scroll-list" style={{ maxHeight: "340px", overflowY: "auto", marginBottom: "18px" }}>
                       {selectedCourses.map((c, idx) => (
                         <div key={c.code + idx}
                           onClick={() => setSelectedCourses((cs) => cs.map((x, i) => i === idx ? { ...x, selected: !x.selected } : x))}

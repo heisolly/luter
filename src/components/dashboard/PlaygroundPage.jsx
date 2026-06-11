@@ -22,13 +22,14 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { playgroundService } from '../../services/playgroundService'
 import { supabase } from '../../supabaseClient'
+import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService'
 import GameLobby from './playground/GameLobby'
 import MatchingGame from './playground/MatchingGame'
 import StackerGame from './playground/StackerGame'
 import TermBuilderGame from './playground/TermBuilderGame'
 import BrainBlitzGame from './playground/BrainBlitzGame'
 
-import { Cards, Stack, PuzzlePiece, Lightning, Brain, Keyboard } from '@phosphor-icons/react'
+import { Cards, Stack, PuzzlePiece, Lightning, Brain, Keyboard, Folder, Hash, Sparkle, CaretRight, X } from '@phosphor-icons/react'
 
 const PLAYGROUND_GAMES = [
   { id: 'matching', name: 'Matching', icon: Cards, color: '#7c3aed', desc: 'Match terms with definitions as fast as you can.' },
@@ -38,15 +39,19 @@ const PLAYGROUND_GAMES = [
 ]
 
 export default function PlaygroundPage() {
-  const { isMobile, user } = useOutletContext()
+  const { isMobile, user, profile } = useOutletContext()
   const navigate = useNavigate()
   const { roomId } = useParams()
   
   const [activeTab, setActiveTab] = useState('arena') // arena | history
-  const [step, setStep] = useState('content') // content | game | mode | play
+  const [step, setStep] = useState('hub') // hub | quiz-material | clut-menu | clut-material | clut-topic | clut-code | content | game | mode | play
   const [selectedMaterial, setSelectedMaterial] = useState(null)
   const [selectedGame, setSelectedGame] = useState(null)
   const [playMode, setPlayMode] = useState(null) // solo | multiplayer
+  const [materials, setMaterials] = useState([])
+  const [materialSearch, setMaterialSearch] = useState('')
+  const [topicInput, setTopicInput] = useState('')
+  const [joinCode, setJoinCode] = useState('')
   
   const [room, setRoom] = useState(null)
   const [participants, setParticipants] = useState([])
@@ -65,6 +70,7 @@ export default function PlaygroundPage() {
   useEffect(() => {
     if (user) {
       fetchUserCourses()
+      fetchUserMaterials()
       fetchHistory()
     }
   }, [user])
@@ -75,7 +81,7 @@ export default function PlaygroundPage() {
       resumeSession(roomId)
     } else if (!roomId) {
       setRoom(null)
-      setStep('content')
+      setStep('hub')
     }
   }, [roomId, user])
 
@@ -88,6 +94,18 @@ export default function PlaygroundPage() {
     if (data) {
       setCourses(data.filter(c => c.courses).map(c => c.courses))
     }
+  }
+
+  const fetchUserMaterials = async () => {
+    const { data } = await supabase
+      .from('materials')
+      .select('id, title, file_name, type, extracted_text, created_at')
+      .eq('user_id', user.id)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(40)
+
+    if (data) setMaterials(data)
   }
 
   const fetchHistory = async () => {
@@ -188,6 +206,9 @@ export default function PlaygroundPage() {
         .limit(3)
 
       let finalDeck = []
+
+      const { ok } = await checkAndDeductCredits(user?.id, CREDIT_COSTS.PLAYGROUND_QUESTIONS, profile?.is_premium)
+      if (!ok) { setLoading(false); return }
       
       // 2. Generate content using Groq (either from extracted text or just course info)
       const contextText = materials?.map(m => m.extracted_text).join('\n').substring(0, 3000)
@@ -244,9 +265,70 @@ export default function PlaygroundPage() {
     }
     if (roomId) {
       navigate('/dashboard/compete')
-    } else if (step === 'mode') setStep('game')
+    } else if (['quiz-material', 'clut-menu'].includes(step)) setStep('hub')
+    else if (['clut-material', 'clut-topic', 'clut-code'].includes(step)) setStep('clut-menu')
+    else if (step === 'mode') setStep('game')
     else if (step === 'game') setStep('content')
-    else setStep('content')
+    else if (step === 'content') setStep('hub')
+    else setStep('hub')
+  }
+
+  const filteredMaterials = materials.filter((material) => {
+    const q = materialSearch.trim().toLowerCase()
+    const name = `${material.title || ''} ${material.file_name || ''} ${material.type || ''}`.toLowerCase()
+    return !q || name.includes(q)
+  })
+
+  const openMaterialQuiz = (material) => {
+    navigate(`/dashboard/workstation?materialId=${encodeURIComponent(material.id)}&tool=quiz`)
+  }
+
+  const createClutCode = () => String(Math.floor(100000000 + Math.random() * 900000000))
+
+  const openClutLive = async ({ material, topic, code } = {}) => {
+    if (code) {
+      navigate(`/clut/live/${encodeURIComponent(code)}`)
+      return
+    }
+    if (!user?.id) return
+
+    const { ok } = await checkAndDeductCredits(user?.id, CREDIT_COSTS.PLAYGROUND_QUESTIONS, profile?.is_premium)
+    if (!ok) { setLoading(false); return }
+
+    setLoading(true)
+    const roomCode = createClutCode()
+    const params = new URLSearchParams()
+    const title = material?.title || material?.file_name || topic || 'Clut Live'
+    try {
+      const subject = material?.extracted_text
+        ? `${title} Context: ${material.extracted_text.slice(0, 3500)}`
+        : title
+      const generated = await playgroundService.generateAIQuestions('clut-live', subject, 8)
+      const deck = generated.length ? generated.slice(0, 8).map((item, index) => ({ ...item, id: `clut_${index}` })) : [
+        { id: 'fallback_1', term: title, definition: `A quick recall question about ${title}` },
+        { id: 'fallback_2', term: 'Study', definition: 'Focused practice to improve memory' },
+        { id: 'fallback_3', term: 'Recall', definition: 'Retrieving information from memory' },
+        { id: 'fallback_4', term: 'Mastery', definition: 'Knowing a topic deeply enough to use it' },
+      ]
+
+      await playgroundService.createRoom('clut-live', user.id, { mode: 'multiplayer' }, {
+        clut_code: roomCode,
+        source_type: material ? 'material' : 'topic',
+        source_id: material?.id || null,
+        title,
+        topic: topic || null,
+        deck,
+      })
+
+      if (material?.id) params.set('materialId', material.id)
+      params.set('title', title)
+      navigate(`/clut/live/${roomCode}?${params.toString()}`)
+    } catch (error) {
+      console.error('Failed to create Clut room:', error)
+      showToast('Could not create Clut room. Try again.', 'error')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const renderActiveGame = () => {
@@ -386,11 +468,120 @@ export default function PlaygroundPage() {
             <motion.div key="arena" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               
               <AnimatePresence mode="wait">
+                {step === 'hub' && (
+                  <motion.div key="hub" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+                    <ArcadeHero />
+                    <div style={{ maxWidth: 820, margin: '0 auto', background: 'white', borderRadius: 28, padding: 18, border: '1px solid #e2e8f0', boxShadow: '0 24px 80px rgba(15,23,42,0.10)' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 10 }}>
+                        <ArcadeChoiceCard
+                          icon={Brain}
+                          title="Memorize"
+                          desc="Quiz from your materials"
+                          color="#22c55e"
+                          selected
+                          onClick={() => setStep('quiz-material')}
+                        />
+                        <ArcadeChoiceCard
+                          icon={Sparkle}
+                          title="Clut"
+                          desc="Live quiz with friends"
+                          color="#f59e0b"
+                          onClick={() => setStep('clut-menu')}
+                        />
+                        <ArcadeChoiceCard
+                          icon={Gamepad}
+                          title="Other games"
+                          desc="Matching, Stacker, Blitz"
+                          color="#7c3aed"
+                          onClick={() => setStep('content')}
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {step === 'quiz-material' && (
+                  <motion.div key="quiz-material" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                    <ArcadeBackButton onClick={handleBack} />
+                    <MaterialPickPanel
+                      title="Pick a material to quiz on"
+                      subtitle="Choose from your uploaded materials. Luter will open the quiz workspace for that material."
+                      materials={filteredMaterials}
+                      search={materialSearch}
+                      onSearch={setMaterialSearch}
+                      onSelect={openMaterialQuiz}
+                      emptyAction={() => navigate('/dashboard/backpack')}
+                    />
+                  </motion.div>
+                )}
+
+                {step === 'clut-menu' && (
+                  <motion.div key="clut-menu" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} style={{ maxWidth: 680, margin: '0 auto', width: '100%' }}>
+                    <ArcadeBackButton onClick={handleBack} />
+                    <div style={{ background: 'white', borderRadius: 28, border: '1px solid #e2e8f0', padding: isMobile ? 16 : 28, boxShadow: '0 24px 80px rgba(15,23,42,0.10)' }}>
+                      <div style={{ textAlign: 'center', marginBottom: 28 }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 999, border: '3px solid #f59e0b', color: '#111827', fontWeight: 900 }}>
+                          <Sparkle size={20} weight="fill" /> Clut Live
+                        </div>
+                      </div>
+                      <div style={{ border: '1px solid #e2e8f0', borderRadius: 18, overflow: 'hidden' }}>
+                        <ClutMenuRow icon={Folder} title="Materials" desc="Quiz on a material" onClick={() => setStep('clut-material')} />
+                        <ClutMenuRow icon={Sparkle} title="Any topic" desc="Quiz on anything" onClick={() => setStep('clut-topic')} />
+                        <ClutMenuRow icon={Hash} title="Have a code?" desc="Play with your friends" onClick={() => setStep('clut-code')} />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {step === 'clut-material' && (
+                  <motion.div key="clut-material" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                    <ArcadeBackButton onClick={handleBack} />
+                    <MaterialPickPanel
+                      title="Pick a material for Clut"
+                      subtitle="This creates a live room that friends can join with a code or link."
+                      materials={filteredMaterials}
+                      search={materialSearch}
+                      onSearch={setMaterialSearch}
+                      onSelect={(material) => openClutLive({ material })}
+                      emptyAction={() => navigate('/dashboard/backpack')}
+                    />
+                  </motion.div>
+                )}
+
+                {step === 'clut-topic' && (
+                  <motion.div key="clut-topic" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} style={{ maxWidth: 680, margin: '0 auto', width: '100%' }}>
+                    <ArcadeBackButton onClick={handleBack} />
+                    <TopicPanel
+                      title="Enter a topic to play"
+                      value={topicInput}
+                      onChange={setTopicInput}
+                      placeholder="Enter any topic"
+                      buttonLabel="Play"
+                      onSubmit={() => topicInput.trim() && openClutLive({ topic: topicInput.trim() })}
+                    />
+                  </motion.div>
+                )}
+
+                {step === 'clut-code' && (
+                  <motion.div key="clut-code" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} style={{ maxWidth: 680, margin: '0 auto', width: '100%' }}>
+                    <ArcadeBackButton onClick={handleBack} />
+                    <TopicPanel
+                      title="Enter a game code"
+                      value={joinCode}
+                      onChange={(value) => setJoinCode(value.toUpperCase())}
+                      placeholder="Example: 209576910"
+                      buttonLabel="Join game"
+                      onSubmit={() => joinCode.trim() && navigate(`/clut/live/${encodeURIComponent(joinCode.trim())}`)}
+                    />
+                  </motion.div>
+                )}
+
                 {step === 'content' && (
                   <motion.div key="content" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                    <ArcadeBackButton onClick={handleBack} />
                     <div style={{ textAlign: 'center', marginBottom: 40 }}>
-                       <h1 style={{ fontSize: 32, fontWeight: 900, color: '#111', marginBottom: 8 }}>Study Arena</h1>
-                       <p style={{ color: '#64748b', fontWeight: 500 }}>Select a course to start your study session</p>
+                       <h1 style={{ fontSize: 32, fontWeight: 900, color: '#111', marginBottom: 8 }}>Other Arcade Games</h1>
+                       <p style={{ color: '#64748b', fontWeight: 500 }}>Select a course to power Matching, Stacker, Term Builder, or Brain Blitz.</p>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
                       {courses.map(course => (
@@ -478,7 +669,7 @@ export default function PlaygroundPage() {
                       </div>
                       <h3 style={{ fontSize: 18, fontWeight: 800, color: '#64748b' }}>No games played yet</h3>
                       <p style={{ color: '#94a3b8', marginTop: 8 }}>Enter the Arena to start your first study session!</p>
-                      <button onClick={() => setActiveTab('arena')} style={{ marginTop: 24, padding: '12px 24px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 12, fontWeight: 800, cursor: 'pointer' }}>
+                      <button onClick={() => setActiveTab('arena')} style={{ marginTop: 24, padding: '12px 24px', background: '#98FF98', color: '#166534', border: 'none', borderRadius: 12, fontWeight: 800, cursor: 'pointer' }}>
                         Go to Arena
                       </button>
                     </div>
@@ -497,6 +688,128 @@ export default function PlaygroundPage() {
           )}
         </AnimatePresence>
       </main>
+    </div>
+  )
+}
+
+function ArcadeHero() {
+  return (
+    <div style={{ textAlign: 'center', marginBottom: 28 }}>
+      <div style={{ width: 128, height: 128, margin: '0 auto 12px', borderRadius: 40, background: 'linear-gradient(135deg, #ede9fe, #dbeafe)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 18px 50px rgba(124,58,237,0.18)' }}>
+        <Brain size={70} weight="duotone" color="#7c3aed" />
+      </div>
+      <h1 style={{ margin: 0, color: '#0f172a', fontSize: 34, fontWeight: 950, letterSpacing: '-0.02em' }}>Arcade</h1>
+      <p style={{ margin: '8px auto 0', color: '#64748b', fontWeight: 650, maxWidth: 520 }}>Choose how you want to memorize today.</p>
+    </div>
+  )
+}
+
+function ArcadeBackButton({ onClick }) {
+  return (
+    <button onClick={onClick} style={{ background: 'white', border: '1px solid #e2e8f0', color: '#0f172a', fontWeight: 850, cursor: 'pointer', marginBottom: 20, display: 'inline-flex', alignItems: 'center', gap: 8, borderRadius: 999, padding: '10px 14px', boxShadow: '0 8px 24px rgba(15,23,42,0.06)' }}>
+      <ArrowLeft /> Back
+    </button>
+  )
+}
+
+function ArcadeChoiceCard({ icon: Icon, title, desc, color, selected, onClick }) {
+  return (
+    <motion.button
+      type="button"
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      style={{
+        minHeight: 210,
+        background: selected ? `${color}0f` : 'white',
+        border: `3px solid ${selected ? color : '#e2e8f0'}`,
+        borderRadius: 22,
+        cursor: 'pointer',
+        padding: 24,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
+      }}
+    >
+      <div style={{ width: 76, height: 76, borderRadius: 24, background: `${color}18`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+        <Icon size={42} weight="duotone" />
+      </div>
+      <strong style={{ color: '#0f172a', fontSize: 18, fontWeight: 950 }}>{title}</strong>
+      <span style={{ color: '#475569', fontSize: 14, fontWeight: 650, marginTop: 6 }}>{desc}</span>
+    </motion.button>
+  )
+}
+
+function MaterialPickPanel({ title, subtitle, materials, search, onSearch, onSelect, emptyAction }) {
+  return (
+    <div style={{ maxWidth: 860, margin: '0 auto', background: 'white', borderRadius: 28, border: '1px solid #e2e8f0', padding: 24, boxShadow: '0 24px 80px rgba(15,23,42,0.10)' }}>
+      <div style={{ textAlign: 'center', marginBottom: 22 }}>
+        <h2 style={{ margin: 0, fontSize: 24, color: '#0f172a', fontWeight: 950 }}>{title}</h2>
+        <p style={{ margin: '8px auto 0', color: '#64748b', fontWeight: 650, maxWidth: 520 }}>{subtitle}</p>
+      </div>
+      <input
+        value={search}
+        onChange={(event) => onSearch(event.target.value)}
+        placeholder="Search materials"
+        style={{ width: '100%', height: 52, border: '3px solid #3b82f6', borderRadius: 999, padding: '0 18px', fontSize: 15, fontWeight: 650, outline: 'none', marginBottom: 18 }}
+      />
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: 18, overflow: 'hidden', maxHeight: 420, overflowY: 'auto' }}>
+        {materials.length ? materials.map((material) => (
+          <button key={material.id} onClick={() => onSelect(material)} style={{ width: '100%', border: 'none', borderBottom: '1px solid #e2e8f0', background: 'white', padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer', textAlign: 'left' }}>
+            <span style={{ width: 46, height: 46, borderRadius: 16, background: '#f1f5f9', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Folder size={24} /></span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <strong style={{ display: 'block', color: '#0f172a', fontSize: 16, fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{material.title || material.file_name || 'Untitled material'}</strong>
+              <span style={{ color: '#64748b', fontWeight: 650, fontSize: 13 }}>{material.type || 'material'} {material.extracted_text ? '• ready' : '• needs text'}</span>
+            </span>
+            <CaretRight size={22} weight="bold" color="#334155" />
+          </button>
+        )) : (
+          <div style={{ padding: 36, textAlign: 'center' }}>
+            <Folder size={42} color="#94a3b8" />
+            <h3 style={{ margin: '12px 0 6px', color: '#0f172a' }}>No materials found</h3>
+            <p style={{ color: '#64748b', fontWeight: 650 }}>Upload or search another material to start.</p>
+            <button onClick={emptyAction} style={{ marginTop: 14, border: 'none', background: '#98FF98', color: '#166534', borderRadius: 999, padding: '12px 18px', fontWeight: 900, cursor: 'pointer' }}>Open Backpack</button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ClutMenuRow({ icon: Icon, title, desc, onClick }) {
+  return (
+    <button onClick={onClick} style={{ width: '100%', border: 'none', borderBottom: '1px solid #e2e8f0', background: 'white', padding: '22px 18px', display: 'flex', alignItems: 'center', gap: 18, cursor: 'pointer', textAlign: 'left' }}>
+      <span style={{ width: 52, height: 52, borderRadius: 18, background: '#f1f5f9', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={26} /></span>
+      <span style={{ flex: 1 }}>
+        <strong style={{ display: 'block', color: '#0f172a', fontSize: 17, fontWeight: 950 }}>{title}</strong>
+        <span style={{ color: '#475569', fontWeight: 650 }}>{desc}</span>
+      </span>
+      <CaretRight size={24} weight="bold" color="#334155" />
+    </button>
+  )
+}
+
+function TopicPanel({ title, value, onChange, placeholder, buttonLabel, onSubmit }) {
+  return (
+    <div style={{ background: 'white', borderRadius: 22, border: '1px solid #e2e8f0', padding: 28, minHeight: 360, display: 'flex', flexDirection: 'column', boxShadow: '0 24px 80px rgba(15,23,42,0.10)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 34 }}>
+        <span />
+        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 950, color: '#0f172a' }}>{title}</h2>
+        <button type="button" onClick={() => onChange('')} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#0f172a' }}><X size={24} /></button>
+      </div>
+      <input
+        autoFocus
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => { if (event.key === 'Enter') onSubmit() }}
+        placeholder={placeholder}
+        style={{ width: '100%', height: 54, border: '3px solid #3b82f6', borderRadius: 999, padding: '0 18px', fontSize: 16, fontWeight: 650, outline: 'none' }}
+      />
+      <button type="button" onClick={onSubmit} disabled={!value.trim()} style={{ marginTop: 'auto', width: '100%', height: 54, border: 'none', borderRadius: 999, background: value.trim() ? '#98FF98' : '#94a3b8', color: value.trim() ? '#166534' : 'white', fontWeight: 950, fontSize: 16, cursor: value.trim() ? 'pointer' : 'not-allowed' }}>
+        {buttonLabel}
+      </button>
     </div>
   )
 }

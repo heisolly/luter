@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext, useLocation } from 'react-router-dom'
 import { uploadMaterial, addYoutubeMaterial } from '../../services/materialsService'
 import { preloadingService } from '../../services/preloadingService'
-import { clearMaterialsCache } from './StudyMaterialsPage'
+import { clearPageCache } from '../../lib/offlineCache'
 import { supabase } from '../../supabaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDeckStore } from '../../store/useDeckStore'
@@ -145,7 +145,7 @@ export default function UserUpload() {
         }
 
         // Clear caches so the new material appears in lists immediately
-        clearMaterialsCache(selectedCourse)
+        clearPageCache(user.id, 'materials')
         preloadingService.clearCache()
         
         setStatus({ 
@@ -426,7 +426,7 @@ export default function UserUpload() {
               margin: '0 0 1rem 0',
               color: '#111'
             }}>
-              📚 Choose Course (Optional)
+              📂 Choose Folder (Optional)
             </h2>
             
             <select
@@ -443,7 +443,7 @@ export default function UserUpload() {
                 cursor: 'pointer'
               }}
             >
-              <option value="">No course - Personal materials</option>
+              <option value="">No folder - Save to Backpack root</option>
               {courses.map(c => (
                 <option key={c.id} value={c.id}>{c.code} — {c.name}</option>
               ))}
@@ -454,7 +454,7 @@ export default function UserUpload() {
               color: '#64748b',
               margin: '0.5rem 0 0 0'
             }}>
-              Leave blank to keep materials in your personal space
+              Leave blank to keep materials in your Backpack root
             </p>
           </div>
 

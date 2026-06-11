@@ -1,0 +1,346 @@
+
+<style>
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+  .tab-bar{display:flex;gap:4px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:4px;margin-bottom:1.5rem}
+  .tab{flex:1;text-align:center;padding:7px 0;font-size:13px;font-weight:500;border-radius:6px;cursor:pointer;color:var(--color-text-secondary);border:none;background:transparent}
+  .tab.active{background:var(--color-background-primary);color:var(--color-text-primary);border:.5px solid var(--color-border-tertiary)}
+  .pane{display:none}.pane.active{display:block}
+
+  .plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem}
+  .plan{background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.1rem 1rem;position:relative;overflow:hidden}
+  .plan::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .plan.free::before{background:#888780}
+  .plan.pro::before{background:#378ADD}
+  .plan.beast::before{background:#1D9E75}
+  .plan-name{font-size:13px;font-weight:500;color:var(--color-text-secondary);margin:0 0 4px}
+  .plan-price{font-size:26px;font-weight:500;margin:0 0 1px;color:var(--color-text-primary)}
+  .plan-price sup{font-size:13px;font-weight:400;vertical-align:super}
+  .plan-price sub{font-size:12px;color:var(--color-text-secondary)}
+  .plan-naira{font-size:11px;color:var(--color-text-secondary);margin:0 0 10px}
+  .plan-divider{border:none;border-top:.5px solid var(--color-border-tertiary);margin:10px 0}
+  .plan-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0}
+  .plan-row-label{color:var(--color-text-secondary)}
+  .plan-row-val{font-weight:500}
+  .ok{color:#0F6E56}.warn{color:#BA7517}.danger{color:#A32D2D}
+
+  .token-table{width:100%;border-collapse:collapse;font-size:12px}
+  .token-table th{text-align:left;color:var(--color-text-secondary);font-weight:500;padding:6px 8px 6px 0;border-bottom:.5px solid var(--color-border-tertiary);font-size:11px;text-transform:uppercase;letter-spacing:.03em}
+  .token-table td{padding:7px 8px 7px 0;border-bottom:.5px solid var(--color-border-tertiary);vertical-align:middle}
+  .token-table tr:last-child td{border-bottom:none}
+  .pill{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;margin:1px}
+  .pill-gray{background:#F1EFE8;color:#444441}
+  .pill-blue{background:#E6F1FB;color:#0C447C}
+  .pill-teal{background:#E1F5EE;color:#085041}
+
+  .sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+  .sliders{display:flex;flex-direction:column;gap:.5rem}
+  .s-group{margin-bottom:.5rem}
+  .s-group-label{font-size:10px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+  .s-row{display:grid;grid-template-columns:130px 1fr 56px;align-items:center;gap:8px;margin-bottom:.4rem}
+  .s-label{font-size:12px;color:var(--color-text-secondary)}
+  .s-val{font-size:12px;font-weight:500;text-align:right}
+  .metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem}
+  .metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.7rem .85rem}
+  .metric-label{font-size:10px;color:var(--color-text-secondary);margin-bottom:2px;text-transform:uppercase;letter-spacing:.03em}
+  .metric-val{font-size:18px;font-weight:500}
+  .verdict{border-radius:var(--border-radius-md);padding:9px 12px;font-size:12px;display:flex;align-items:flex-start;gap:8px;margin-bottom:1rem}
+  .verdict.ok{background:#E1F5EE;color:#085041}
+  .verdict.warn{background:#FAEEDA;color:#633806}
+  .verdict.danger{background:#FCEBEB;color:#791F1F}
+  .chart-pane{display:flex;flex-direction:column;gap:1rem}
+  .chart-label{font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--color-text-secondary);margin-bottom:6px}
+  .legend span{display:flex;align-items:center;gap:4px}
+  .legend-dot{width:8px;height:8px;border-radius:2px;display:inline-block}
+</style>
+
+<h2 class="sr-only">Luter pricing hub — plan cards, token costs, and profitability simulator all in one place</h2>
+
+<div class="tab-bar">
+  <button class="tab active" onclick="showTab('plans')">Plans & pricing</button>
+  <button class="tab" onclick="showTab('tokens')">Token costs</button>
+  <button class="tab" onclick="showTab('sim')">Profit simulator</button>
+</div>
+
+<div id="pane-plans" class="pane active">
+  <div class="plan-grid">
+    <div class="plan free">
+      <p class="plan-name">Free</p>
+      <p class="plan-price">$0<sub>/mo</sub></p>
+      <p class="plan-naira">₦0 &nbsp;·&nbsp; always free</p>
+      <div class="plan-divider"></div>
+      <div class="plan-row"><span class="plan-row-label">Daily credits</span><span class="plan-row-val">200</span></div>
+      <div class="plan-row"><span class="plan-row-label">AI chat</span><span class="plan-row-val">~10/day</span></div>
+      <div class="plan-row"><span class="plan-row-label">AI Notes</span><span class="plan-row-val">~2/day</span></div>
+      <div class="plan-row"><span class="plan-row-label">Flashcards/quizzes</span><span class="plan-row-val ok">included</span></div>
+      <div class="plan-row"><span class="plan-row-label">Audio upload</span><span class="plan-row-val danger">no</span></div>
+      <div class="plan-row"><span class="plan-row-label">Group study</span><span class="plan-row-val warn">limited</span></div>
+      <div class="plan-row"><span class="plan-row-label">Mock exams</span><span class="plan-row-val warn">limited</span></div>
+      <div class="plan-divider"></div>
+      <div class="plan-row"><span class="plan-row-label">Our cost/user/mo</span><span class="plan-row-val danger">~$0.60</span></div>
+      <div class="plan-row"><span class="plan-row-label">Revenue</span><span class="plan-row-val">$0</span></div>
+      <div class="plan-row"><span class="plan-row-label">Margin</span><span class="plan-row-val danger">-$0.60</span></div>
+    </div>
+    <div class="plan pro">
+      <p class="plan-name">Pro</p>
+      <p class="plan-price"><sup>$</sup>7.00<sub>/mo</sub></p>
+      <p class="plan-naira">≈ ₦9,600/mo &nbsp;·&nbsp; ₦4,800/2 wks</p>
+      <div class="plan-divider"></div>
+      <div class="plan-row"><span class="plan-row-label">Daily credits</span><span class="plan-row-val">1,500</span></div>
+      <div class="plan-row"><span class="plan-row-label">AI chat</span><span class="plan-row-val ok">~75/day</span></div>
+      <div class="plan-row"><span class="plan-row-label">AI Notes</span><span class="plan-row-val ok">~18/day</span></div>
+      <div class="plan-row"><span class="plan-row-label">Flashcards/quizzes</span><span class="plan-row-val ok">included</span></div>
+      <div class="plan-row"><span class="plan-row-label">Audio upload</span><span class="plan-row-val warn">5 files/day</span></div>
+      <div class="plan-row"><span class="plan-row-label">Group study</span><span class="plan-row-val ok">included</span></div>
+      <div class="plan-row"><span class="plan-row-label">Mock exams</span><span class="plan-row-val ok">included</span></div>
+      <div class="plan-divider"></div>
+      <div class="plan-row"><span class="plan-row-label">Our cost/user/mo</span><span class="plan-row-val warn">~$4.50 avg</span></div>
+      <div class="plan-row"><span class="plan-row-label">Revenue</span><span class="plan-row-val ok">$7.00</span></div>
+      <div class="plan-row"><span class="plan-row-label">Gross margin</span><span class="plan-row-val ok">~$2.50 (36%)</span></div>
+    </div>
+    <div class="plan beast">
+      <p class="plan-name">Beast</p>
+      <p class="plan-price"><sup>$</sup>15.00<sub>/mo</sub></p>
+      <p class="plan-naira">≈ ₦20,550/mo &nbsp;·&nbsp; ₦10,275/2 wks</p>
+      <div class="plan-divider"></div>
+      <div class="plan-row"><span class="plan-row-label">Daily credits</span><span class="plan-row-val ok">unlimited</span></div>
+      <div class="plan-row"><span class="plan-row-label">AI chat</span><span class="plan-row-val ok">unlimited</span></div>
+      <div class="plan-row"><span class="plan-row-label">AI Notes</span><span class="plan-row-val ok">unlimited</span></div>
+      <div class="plan-row"><span class="plan-row-label">Flashcards/quizzes</span><span class="plan-row-val ok">unlimited</span></div>
+      <div class="plan-row"><span class="plan-row-label">Audio upload</span><span class="plan-row-val ok">unlimited</span></div>
+      <div class="plan-row"><span class="plan-row-label">Group study</span><span class="plan-row-val ok">unlimited</span></div>
+      <div class="plan-row"><span class="plan-row-label">Mock exams</span><span class="plan-row-val ok">unlimited</span></div>
+      <div class="plan-divider"></div>
+      <div class="plan-row"><span class="plan-row-label">Our cost/user/mo</span><span class="plan-row-val warn">~$7.00 avg</span></div>
+      <div class="plan-row"><span class="plan-row-label">Revenue</span><span class="plan-row-val ok">$15.00</span></div>
+      <div class="plan-row"><span class="plan-row-label">Gross margin</span><span class="plan-row-val ok">~$8.00 (53%)</span></div>
+    </div>
+  </div>
+  <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.85rem 1rem;font-size:12px;color:var(--color-text-secondary)">
+    <strong style="color:var(--color-text-primary)">Yearly plans:</strong> &nbsp;Pro $65/yr (saves ~$19) &nbsp;·&nbsp; Beast $140/yr (saves ~$40) &nbsp;·&nbsp; Locks in users, reduces churn, gives you upfront cash.
+  </div>
+</div>
+
+<div id="pane-tokens" class="pane">
+  <table class="token-table">
+    <thead>
+      <tr>
+        <th style="width:26%">Feature</th>
+        <th style="width:24%">Model</th>
+        <th style="width:12%">Cost/call</th>
+        <th style="width:10%">Credits</th>
+        <th style="width:28%">Available on</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>AI Notes</td><td style="color:var(--color-text-secondary)">llama-3.3-70b</td><td class="danger" style="font-weight:500">$0.0050</td><td>80</td><td><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>Open material</td><td style="color:var(--color-text-secondary)">llama-3.3-70b</td><td class="danger">$0.0050</td><td>50</td><td><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>AI chat (1 msg)</td><td style="color:var(--color-text-secondary)">llama-3.3-70b</td><td class="warn">$0.0016</td><td>20</td><td><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>Notes Studio chat</td><td style="color:var(--color-text-secondary)">llama-3.3-70b</td><td class="warn">$0.0016</td><td>20</td><td><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>Explain text</td><td style="color:var(--color-text-secondary)">llama-3.3-70b</td><td>$0.0009</td><td>10</td><td><span class="pill pill-gray">Free</span><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>Group quiz</td><td style="color:var(--color-text-secondary)">llama-3.3-70b</td><td class="danger">$0.0050</td><td>30</td><td><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>Battle: performance</td><td style="color:var(--color-text-secondary)">llama-3.3-70b</td><td class="warn">$0.0016</td><td>30</td><td><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>Mock exam: ask tutor</td><td style="color:var(--color-text-secondary)">llama-3.3-70b</td><td class="warn">$0.0016</td><td>20</td><td><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>Summary</td><td style="color:var(--color-text-secondary)">llama-3.1-8b</td><td class="ok">$0.0002</td><td>5</td><td><span class="pill pill-gray">Free</span><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>Flashcards (set)</td><td style="color:var(--color-text-secondary)">llama-3.1-8b</td><td class="ok">$0.0002</td><td>10</td><td><span class="pill pill-gray">Free</span><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>Quiz (5 questions)</td><td style="color:var(--color-text-secondary)">llama-3.1-8b</td><td class="ok">$0.0003</td><td>10</td><td><span class="pill pill-gray">Free</span><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>Mock exam (10 Qs)</td><td style="color:var(--color-text-secondary)">llama-3.1-8b</td><td class="ok">$0.0004</td><td>15</td><td><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>Battle: questions</td><td style="color:var(--color-text-secondary)">llama-3.1-8b</td><td class="ok">$0.0002</td><td>10</td><td><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>Mock exam: weakness</td><td style="color:var(--color-text-secondary)">llama-3.1-8b</td><td class="ok">$0.0002</td><td>10</td><td><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>Battle: hint</td><td style="color:var(--color-text-secondary)">llama-3.1-8b</td><td class="ok">$0.0001</td><td>5</td><td><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>Voice agent query</td><td style="color:var(--color-text-secondary)">llama-3.1-8b</td><td class="ok">$0.0001</td><td>5</td><td><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>Write: AI assist</td><td style="color:var(--color-text-secondary)">llama-3.1-8b</td><td class="ok">$0.0001</td><td>5</td><td><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td>Image OCR</td><td style="color:var(--color-text-secondary)">llama-3.2-11b-vision</td><td class="ok">$0.0001</td><td>0</td><td><span class="pill pill-gray">Free</span><span class="pill pill-blue">Pro</span><span class="pill pill-teal">Beast</span></td></tr>
+      <tr><td><strong>Audio (per min)</strong></td><td style="color:var(--color-text-secondary)">whisper-large-v3</td><td class="danger" style="font-weight:500">$0.0030</td><td>20/min</td><td><span class="pill pill-teal">Beast only</span></td></tr>
+      <tr><td style="color:var(--color-text-secondary)">Audio (5 min file)</td><td style="color:var(--color-text-secondary)">whisper-large-v3</td><td class="danger">$0.0150</td><td>100</td><td><span class="pill pill-teal">Beast only</span></td></tr>
+      <tr><td style="color:var(--color-text-secondary)">Audio (30 min file)</td><td style="color:var(--color-text-secondary)">whisper-large-v3</td><td class="danger">$0.0900</td><td>600</td><td><span class="pill pill-teal">Beast only</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div id="pane-sim" class="pane">
+  <div class="sim-grid">
+    <div>
+      <div class="s-group">
+        <div class="s-group-label">Users</div>
+        <div class="s-row"><span class="s-label">Free users</span><input type="range" min="0" max="10000" step="50" value="1000" id="sFree"><span class="s-val" id="oFree">1,000</span></div>
+        <div class="s-row"><span class="s-label">Conversion rate</span><input type="range" min="1" max="25" step="1" value="7" id="sConv"><span class="s-val" id="oConv">7%</span></div>
+        <div class="s-row"><span class="s-label">Pro/Beast split</span><input type="range" min="10" max="90" step="5" value="60" id="sSplit"><span class="s-val" id="oSplit">60/40</span></div>
+        <div class="s-row"><span class="s-label">Free usage</span><input type="range" min="10" max="100" step="5" value="40" id="sFreeInt"><span class="s-val" id="oFreeInt">40%</span></div>
+      </div>
+      <div class="s-group">
+        <div class="s-group-label">Pricing</div>
+        <div class="s-row"><span class="s-label">Pro ($/mo)</span><input type="range" min="3" max="20" step="0.5" value="7" id="sProP"><span class="s-val" id="oProP">$7.00</span></div>
+        <div class="s-row"><span class="s-label">Beast ($/mo)</span><input type="range" min="8" max="30" step="0.5" value="15" id="sBeastP"><span class="s-val" id="oBeastP">$15.00</span></div>
+      </div>
+      <div class="s-group">
+        <div class="s-group-label">Overhead</div>
+        <div class="s-row"><span class="s-label">Salaries</span><input type="range" min="0" max="3000" step="50" value="500" id="sSal"><span class="s-val" id="oSal">$500</span></div>
+        <div class="s-row"><span class="s-label">Marketing</span><input type="range" min="0" max="1000" step="25" value="150" id="sMkt"><span class="s-val" id="oMkt">$150</span></div>
+        <div class="s-row"><span class="s-label">Hosting & tools</span><input type="range" min="0" max="500" step="10" value="80" id="sHost"><span class="s-val" id="oHost">$80</span></div>
+      </div>
+      <div class="metrics-grid" id="metrics"></div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+    <div class="chart-pane">
+      <div>
+        <div class="chart-label">Revenue vs costs at scale</div>
+        <div class="legend">
+          <span><span class="legend-dot" style="background:#378ADD"></span>Revenue</span>
+          <span><span class="legend-dot" style="background:#E24B4A"></span>Total cost</span>
+          <span><span class="legend-dot" style="background:#1D9E75"></span>Profit</span>
+        </div>
+        <div style="position:relative;width:100%;height:200px">
+          <canvas id="plChart" role="img" aria-label="Grouped bar chart showing monthly revenue, cost, and profit at user scales from 100 to 10000">P&L at scale.</canvas>
+        </div>
+      </div>
+      <div>
+        <div class="chart-label">Break-even paid users by overhead</div>
+        <div style="position:relative;width:100%;height:160px">
+          <canvas id="beChart" role="img" aria-label="Line chart showing paid users needed to break even as overhead increases">Break-even line.</canvas>
+        </div>
+      </div>
+      <div>
+        <div class="chart-label">Cost breakdown this month</div>
+        <div style="position:relative;width:100%;height:160px">
+          <canvas id="donutChart" role="img" aria-label="Donut chart showing cost split between free tier API, Pro API, Beast API, and overhead">Cost split.</canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+  function showTab(t){
+    document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['plans','tokens','sim'][i]===t));
+    document.querySelectorAll('.pane').forEach(el=>el.classList.remove('active'));
+    document.getElementById('pane-'+t).classList.add('active');
+    if(t==='sim') update();
+  }
+
+  const FREE_CR=200, PRO_CR=1500, COST_CR=0.00005, BEAST_DAY=0.23;
+  let plC=null, beC=null, donutC=null;
+
+  function g(id){return document.getElementById(id);}
+
+  function getVals(){
+    return {
+      freeN:parseInt(g('sFree').value),
+      conv:parseInt(g('sConv').value)/100,
+      proSplit:parseInt(g('sSplit').value)/100,
+      freeInt:parseInt(g('sFreeInt').value)/100,
+      proP:parseFloat(g('sProP').value),
+      beastP:parseFloat(g('sBeastP').value),
+      sal:parseInt(g('sSal').value),
+      mkt:parseInt(g('sMkt').value),
+      host:parseInt(g('sHost').value),
+    };
+  }
+
+  function compute(v){
+    const paid=Math.round(v.freeN*v.conv);
+    const proN=Math.round(paid*v.proSplit);
+    const beastN=paid-proN;
+    const oh=v.sal+v.mkt+v.host;
+    const fApi=v.freeN*FREE_CR*v.freeInt*COST_CR*30;
+    const pApi=proN*PRO_CR*0.6*COST_CR*30;
+    const bApi=beastN*BEAST_DAY*30;
+    const tApi=fApi+pApi+bApi;
+    const tCost=tApi+oh;
+    const rev=proN*v.proP+beastN*v.beastP;
+    const profit=rev-tCost;
+    const margin=rev>0?(profit/rev)*100:-100;
+    const avgRev=paid>0?rev/paid:0;
+    const avgApi=paid>0?(pApi+bApi)/paid:0;
+    const netPerUser=avgRev-avgApi;
+    const beU=netPerUser>0?Math.ceil(tCost/netPerUser):999;
+    return {paid,proN,beastN,oh,fApi,pApi,bApi,tApi,tCost,rev,profit,margin,beU};
+  }
+
+  function update(){
+    const v=getVals();
+    g('oFree').textContent=v.freeN.toLocaleString();
+    g('oConv').textContent=Math.round(v.conv*100)+'%';
+    g('oSplit').textContent=Math.round(v.proSplit*100)+'/'+(Math.round((1-v.proSplit)*100));
+    g('oFreeInt').textContent=Math.round(v.freeInt*100)+'%';
+    g('oProP').textContent='$'+v.proP.toFixed(2);
+    g('oBeastP').textContent='$'+v.beastP.toFixed(2);
+    g('oSal').textContent='$'+v.sal.toLocaleString();
+    g('oMkt').textContent='$'+v.mkt.toLocaleString();
+    g('oHost').textContent='$'+v.host.toLocaleString();
+
+    const c=compute(v);
+    const pc=c.profit>=0?'ok':c.profit>-300?'warn':'danger';
+    const mc=c.margin>=20?'ok':c.margin>=0?'warn':'danger';
+
+    g('metrics').innerHTML=`
+      <div class="metric"><div class="metric-label">Paid users</div><div class="metric-val">${c.paid}</div></div>
+      <div class="metric"><div class="metric-label">Revenue/mo</div><div class="metric-val ok">$${Math.round(c.rev).toLocaleString()}</div></div>
+      <div class="metric"><div class="metric-label">API cost/mo</div><div class="metric-val warn">$${Math.round(c.tApi).toLocaleString()}</div></div>
+      <div class="metric"><div class="metric-label">Overhead/mo</div><div class="metric-val warn">$${c.oh.toLocaleString()}</div></div>
+      <div class="metric"><div class="metric-label">Total cost/mo</div><div class="metric-val danger">$${Math.round(c.tCost).toLocaleString()}</div></div>
+      <div class="metric"><div class="metric-label">Net profit</div><div class="metric-val ${pc}">${c.profit>=0?'+':''}$${Math.round(c.profit).toLocaleString()}</div></div>
+      <div class="metric"><div class="metric-label">Net margin</div><div class="metric-val ${mc}">${Math.round(c.margin)}%</div></div>
+      <div class="metric"><div class="metric-label">Break-even</div><div class="metric-val">${c.beU} paid</div></div>
+    `;
+
+    const vEl=g('verdict');
+    if(c.profit>=0){
+      vEl.className='verdict ok';
+      vEl.innerHTML=`<i class="ti ti-circle-check" aria-hidden="true"></i> Profitable — $${Math.round(c.profit).toLocaleString()}/mo after all costs. ${c.margin>=20?'Healthy margin.':'Margin is thin — consider raising prices slightly.'}`;
+    } else {
+      vEl.className=c.profit>-300?'verdict warn':'verdict danger';
+      vEl.innerHTML=`<i class="ti ti-alert-triangle" aria-hidden="true"></i> Losing $${Math.abs(Math.round(c.profit)).toLocaleString()}/mo. Need ${c.beU} paid users to break even — ${Math.max(0,c.beU-c.paid)} more than now.`;
+    }
+
+    const scales=[100,500,1000,2000,5000,10000];
+    const revs=[],costs=[],profits=[];
+    scales.forEach(n=>{
+      const p=Math.round(n*v.conv), pro=Math.round(p*v.proSplit), beast=p-pro;
+      const api=(n*FREE_CR*v.freeInt*COST_CR*30)+(pro*PRO_CR*0.6*COST_CR*30)+(beast*BEAST_DAY*30);
+      const r=pro*v.proP+beast*v.beastP;
+      revs.push(Math.round(r)); costs.push(Math.round(api+c.oh)); profits.push(Math.round(r-api-c.oh));
+    });
+    const profColors=profits.map(p=>p>=0?'#1D9E75':'#E24B4A');
+
+    if(plC){
+      plC.data.datasets[0].data=revs; plC.data.datasets[1].data=costs;
+      plC.data.datasets[2].data=profits; plC.data.datasets[2].backgroundColor=profColors; plC.update();
+    } else {
+      plC=new Chart(g('plChart').getContext('2d'),{type:'bar',data:{
+        labels:scales.map(n=>n>=1000?(n/1000)+'k':n+''),
+        datasets:[
+          {label:'Revenue',data:revs,backgroundColor:'#378ADD',borderWidth:0},
+          {label:'Total cost',data:costs,backgroundColor:'#E24B4A',borderWidth:0},
+          {label:'Profit',data:profits,backgroundColor:profColors,borderWidth:0}
+        ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' $'+ctx.parsed.y.toLocaleString()}}},
+        scales:{x:{grid:{display:false},ticks:{color:'#888780',font:{size:10}},title:{display:true,text:'free users',color:'#888780',font:{size:10}}},
+        y:{grid:{color:'rgba(136,135,128,0.12)'},ticks:{color:'#888780',font:{size:10},callback:v=>'$'+Math.abs(v).toLocaleString()}}}}});
+    }
+
+    const ohPts=[100,200,400,600,800,1000,1500,2000];
+    const beUs=ohPts.map(oh=>{
+      const pA=PRO_CR*0.6*COST_CR*30, bA=BEAST_DAY*30;
+      const avgR=v.proP*v.proSplit+v.beastP*(1-v.proSplit);
+      const avgA=pA*v.proSplit+bA*(1-v.proSplit);
+      const m=avgR-avgA; return m>0?Math.ceil(oh/m):999;
+    });
+    if(beC){beC.data.datasets[0].data=beUs;beC.update();}
+    else{beC=new Chart(g('beChart').getContext('2d'),{type:'line',data:{
+      labels:ohPts.map(o=>'$'+o),
+      datasets:[{label:'Paid users needed',data:beUs,borderColor:'#7F77DD',backgroundColor:'rgba(127,119,221,0.08)',fill:true,tension:0.3,pointBackgroundColor:'#534AB7',pointRadius:3,borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.y} paid users`}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#888780',font:{size:10}},title:{display:true,text:'monthly overhead ($)',color:'#888780',font:{size:10}}},
+      y:{grid:{color:'rgba(136,135,128,0.12)'},ticks:{color:'#888780',font:{size:10}}}}}});}
+
+    const donutData=[Math.round(c.fApi),Math.round(c.pApi),Math.round(c.bApi),c.oh];
+    if(donutC){donutC.data.datasets[0].data=donutData;donutC.update();}
+    else{donutC=new Chart(g('donutChart').getContext('2d'),{type:'doughnut',data:{
+      labels:['Free API','Pro API','Beast API','Overhead'],
+      datasets:[{data:donutData,backgroundColor:['#B5D4F4','#378ADD','#1D9E75','#EF9F27'],borderWidth:0,hoverOffset:4}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'right',labels:{font:{size:11},color:'#888780',boxWidth:10,padding:10}},tooltip:{callbacks:{label:ctx=>' $'+ctx.parsed.toLocaleString()}}}}});}
+  }
+
+  ['sFree','sConv','sSplit','sFreeInt','sProP','sBeastP','sSal','sMkt','sHost'].forEach(id=>g(id).addEventListener('input',update));
+</script>

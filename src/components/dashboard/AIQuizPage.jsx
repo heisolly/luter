@@ -1,153 +1,190 @@
-import React, { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { RiQuestionFill as HelpCircle, RiLoader4Line as Loader2, RiFlashlightFill as Zap, RiCheckboxCircleFill as CheckCircle2, RiCloseCircleFill as XCircle } from 'react-icons/ri'
+import {
+  ArrowClockwise,
+  CheckCircle,
+  Lightning,
+  MagnifyingGlass,
+  Question,
+  Spinner,
+  XCircle,
+} from '@phosphor-icons/react'
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
-import LuterLogo from '../shared/LuterLogo'
+import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService'
+import './luterPages.css'
 
 export default function AIQuizPage() {
-  const { user } = useOutletContext()
+  const { user, profile } = useOutletContext()
   const [materials, setMaterials] = useState([])
   const [selectedMaterial, setSelectedMaterial] = useState(null)
   const [questions, setQuestions] = useState([])
   const [isGenerating, setIsGenerating] = useState(false)
   const [currentIdx, setCurrentIdx] = useState(0)
   const [score, setScore] = useState(0)
-  const [showResult, setShowResult] = useState(false)
   const [selectedAnswer, setSelectedAnswer] = useState(null)
+  const [search, setSearch] = useState('')
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    if (user) fetchMaterials()
-  }, [user])
+    if (!user?.id) return
+    const fetchMaterials = async () => {
+      const { data } = await supabase
+        .from('materials')
+        .select('id, title, file_name, type, extracted_text, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(30)
+      if (data) setMaterials(data)
+    }
+    fetchMaterials()
+  }, [user?.id])
 
-  async function fetchMaterials() {
-    const { data } = await supabase.from('materials').select('*').limit(20)
-    if (data) setMaterials(data)
-  }
+  const filteredMaterials = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return materials.filter((material) => !q || (material.title || material.file_name || '').toLowerCase().includes(q))
+  }, [materials, search])
+
+  const currentQuestion = questions[currentIdx]
+  const complete = questions.length > 0 && currentIdx >= questions.length
 
   const generateQuiz = async () => {
-    if (!selectedMaterial?.extracted_text) return
+    if (!selectedMaterial?.extracted_text) {
+      setError('Choose a material with extracted text first.')
+      return
+    }
+
     setIsGenerating(true)
+    setError('')
     setQuestions([])
-    setShowResult(false)
     setScore(0)
     setCurrentIdx(0)
+    setSelectedAnswer(null)
+
     try {
+      const { ok } = await checkAndDeductCredits(user?.id, CREDIT_COSTS.GENERATE_QUIZ, profile?.is_premium)
+      if (!ok) { setError("You've used up your AI credits for today. They reset daily."); setIsGenerating(false); return }
       const response = await callGroqAPI(
-        [{ role: 'user', content: selectedMaterial.extracted_text }],
+        [{ role: 'user', content: selectedMaterial.extracted_text.slice(0, 12000) }],
         GROQ_MODELS.PROFESSOR,
         { systemPromptOverride: GROQ_PROMPTS.MOCK_EXAM }
       )
-      const content = response.choices[0].message.content
+      const content = response.choices?.[0]?.message?.content || ''
       const jsonMatch = content.match(/\[[\s\S]*\]/)
       const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content)
-      setQuestions(parsed)
+      setQuestions(Array.isArray(parsed) ? parsed.slice(0, 10) : [])
     } catch (err) {
       console.error(err)
+      setError('Luter could not generate this quiz yet. Try another material.')
     } finally {
       setIsGenerating(false)
     }
   }
 
-  const handleAnswer = (key) => {
+  const chooseAnswer = (key) => {
+    if (selectedAnswer || !currentQuestion) return
     setSelectedAnswer(key)
-    const isCorrect = key === questions[currentIdx].answer
-    if (isCorrect) setScore(s => s + 1)
-    
+    if (key === currentQuestion.answer) setScore((value) => value + 1)
     setTimeout(() => {
-      if (currentIdx < questions.length - 1) {
-        setCurrentIdx(currentIdx + 1)
-        setSelectedAnswer(null)
-      } else {
-        setShowResult(true)
-      }
-    }, 1000)
+      setSelectedAnswer(null)
+      setCurrentIdx((value) => value + 1)
+    }, 850)
   }
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'Outfit' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-        <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#1A3A32', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <HelpCircle color="#7a12cc" size={32} /> AI Quick Quiz
-          </h1>
-          <p style={{ color: '#4A5568' }}>Test your knowledge with instant AI-generated questions.</p>
-        </div>
-        <LuterLogo size={40} showText={false} />
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '24px' }}>
-        <div style={{ background: 'white', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', height: 'fit-content' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#4A5568', marginBottom: '16px', textTransform: 'uppercase' }}>Select Material</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {materials.map(m => (
-              <button 
-                key={m.id}
-                onClick={() => setSelectedMaterial(m)}
-                style={{ 
-                  textAlign: 'left', padding: '12px', borderRadius: '10px', border: '1px solid',
-                  borderColor: selectedMaterial?.id === m.id ? '#7a12cc' : '#F1F5F9',
-                  background: selectedMaterial?.id === m.id ? '#F5F3FF' : 'white',
-                  fontSize: '13px', color: selectedMaterial?.id === m.id ? '#7a12cc' : '#4A5568'
-                }}
-              >
-                {m.title}
-              </button>
-            ))}
+    <div className="lp-root">
+      <div className="lp-shell">
+        <section className="lp-hero">
+          <div>
+            <p className="lp-kicker">Quick Quiz</p>
+            <h1 className="lp-title">Turn any uploaded material into a fast recall check.</h1>
+            <p className="lp-subtitle">Pick a file, generate focused questions, and see where your memory is strong or slippery.</p>
           </div>
-          <button 
-            onClick={generateQuiz}
-            disabled={!selectedMaterial || isGenerating}
-            style={{ 
-              width: '100%', marginTop: '24px', padding: '12px', borderRadius: '10px', 
-              background: '#7a12cc', color: 'white', fontWeight: 700, display: 'flex', 
-              alignItems: 'center', justifyContent: 'center', gap: '8px'
-            }}
-          >
-            {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
-            Start Quiz
+          <button className="lp-btn lp-btn-primary" disabled={!selectedMaterial || isGenerating} onClick={generateQuiz}>
+            {isGenerating ? <Spinner size={18} className="lp-spin" /> : <Lightning size={18} weight="fill" />}
+            {isGenerating ? 'Generating' : questions.length ? 'Regenerate' : 'Start quiz'}
           </button>
-        </div>
+        </section>
 
-        <div style={{ background: 'white', padding: '32px', borderRadius: '16px', border: '1px solid #E2E8F0', minHeight: '400px' }}>
-          {showResult ? (
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              <div style={{ fontSize: '64px', marginBottom: '16px' }}>🏆</div>
-              <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#1A3A32' }}>Quiz Complete!</h2>
-              <p style={{ fontSize: '18px', margin: '16px 0', color: '#4A5568' }}>You scored <strong>{score}</strong> out of <strong>{questions.length}</strong></p>
-              <button onClick={generateQuiz} style={{ padding: '12px 24px', background: '#7a12cc', color: 'white', borderRadius: '10px', fontWeight: 700 }}>Try Again</button>
+        <section className="lp-two-col">
+          <aside className="lp-panel" style={{ padding: 14 }}>
+            <div className="lp-search" style={{ marginBottom: 12 }}>
+              <MagnifyingGlass size={18} />
+              <input className="lp-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search materials" />
             </div>
-          ) : questions.length > 0 ? (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px', fontSize: '14px', fontWeight: 600, color: '#7a12cc' }}>
-                <span>Question {currentIdx + 1} of {questions.length}</span>
-                <span>Score: {score}</span>
+            <div className="lp-list">
+              {filteredMaterials.length === 0 ? (
+                <div className="lp-empty" style={{ minHeight: 220 }}>
+                  <div><Question size={36} /><h3>No materials</h3><p>Upload notes in Backpack to generate quizzes.</p></div>
+                </div>
+              ) : filteredMaterials.map((material) => (
+                <button
+                  key={material.id}
+                  className={`lp-list-btn${selectedMaterial?.id === material.id ? ' active' : ''}`}
+                  onClick={() => setSelectedMaterial(material)}
+                >
+                  <span>{material.title || material.file_name || 'Untitled material'}</span>
+                  <span className="lp-badge">{material.type || 'file'}</span>
+                </button>
+              ))}
+            </div>
+          </aside>
+
+          <main className="lp-panel" style={{ minHeight: 480, padding: 20 }}>
+            {error && <div className="lp-badge" style={{ marginBottom: 16, color: '#EF4444', background: 'rgba(239,68,68,0.1)' }}>{error}</div>}
+
+            {complete ? (
+              <div className="lp-empty" style={{ minHeight: 430 }}>
+                <div>
+                  <CheckCircle size={56} weight="duotone" />
+                  <h3>Quiz complete</h3>
+                  <p>You scored {score} out of {questions.length}. Run it again when the material needs another pass.</p>
+                  <button className="lp-btn lp-btn-primary" onClick={generateQuiz}><ArrowClockwise size={18} /> Try again</button>
+                </div>
               </div>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1A3A32', marginBottom: '24px', lineHeight: 1.5 }}>{questions[currentIdx].question}</h3>
-              <div style={{ display: 'grid', gap: '12px' }}>
-                {Object.entries(questions[currentIdx].options || {}).map(([key, value]) => (
-                  <button
-                    key={key}
-                    onClick={() => !selectedAnswer && handleAnswer(key)}
-                    style={{
-                      textAlign: 'left', padding: '16px', borderRadius: '12px', border: '1px solid',
-                      borderColor: selectedAnswer === key ? (key === questions[currentIdx].answer ? '#10B981' : '#EF4444') : '#E2E8F0',
-                      background: selectedAnswer === key ? (key === questions[currentIdx].answer ? '#ECFDF5' : '#FEF2F2') : 'white',
-                      fontSize: '15px', color: '#4A5568', transition: 'all 0.2s', position: 'relative'
-                    }}
-                  >
-                    <strong>{key}:</strong> {value}
-                  </button>
-                ))}
+            ) : currentQuestion ? (
+              <div>
+                <div className="lp-row" style={{ justifyContent: 'space-between', marginBottom: 18 }}>
+                  <span className="lp-badge">Question {currentIdx + 1} of {questions.length}</span>
+                  <span className="lp-badge" style={{ background: 'rgba(152,255,152,0.24)', color: '#166534' }}>Score {score}</span>
+                </div>
+                <h2 style={{ margin: '0 0 18px', fontSize: 24, lineHeight: 1.25, fontWeight: 900 }}>{currentQuestion.question}</h2>
+                <div className="lp-list">
+                  {Object.entries(currentQuestion.options || {}).map(([key, value]) => {
+                    const isSelected = selectedAnswer === key
+                    const isCorrect = selectedAnswer && key === currentQuestion.answer
+                    const isWrong = isSelected && key !== currentQuestion.answer
+                    return (
+                      <button
+                        key={key}
+                        className="lp-list-btn"
+                        onClick={() => chooseAnswer(key)}
+                        disabled={Boolean(selectedAnswer)}
+                        style={{
+                          minHeight: 60,
+                          borderColor: isCorrect ? '#16a34a' : isWrong ? '#EF4444' : undefined,
+                          background: isCorrect ? 'rgba(152,255,152,0.24)' : isWrong ? 'rgba(239,68,68,0.08)' : undefined,
+                        }}
+                      >
+                        <span><strong>{key}.</strong> {value}</span>
+                        {isCorrect && <CheckCircle size={22} color="#16a34a" weight="fill" />}
+                        {isWrong && <XCircle size={22} color="#EF4444" weight="fill" />}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          ) : (
-            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.4 }}>
-              <HelpCircle size={48} style={{ marginBottom: '16px' }} />
-              <p>Select a material to generate a quick quiz.</p>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="lp-empty" style={{ minHeight: 430 }}>
+                <div>
+                  <Question size={56} weight="duotone" />
+                  <h3>{selectedMaterial ? 'Ready when you are' : 'Choose a material'}</h3>
+                  <p>{selectedMaterial ? 'Generate a short quiz from the selected material.' : 'Your quiz controls will appear here once you choose a material.'}</p>
+                </div>
+              </div>
+            )}
+          </main>
+        </section>
       </div>
     </div>
   )

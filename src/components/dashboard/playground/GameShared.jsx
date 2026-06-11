@@ -56,21 +56,21 @@ export const GameStartScreen = ({ title, description, instructions, icon: Icon, 
         animate={{ opacity: 1, y: 0 }}
         style={{
           width: '100%', maxWidth: '900px', background: 'white', borderRadius: '32px',
-          border: '3px solid #4c1d95', boxShadow: `8px 8px 0px ${color}`,
+          border: '3px solid #C4B5FD', boxShadow: `8px 8px 0px ${color}`,
           display: 'flex', flexWrap: 'wrap', overflow: 'hidden'
         }}
       >
         <div style={{ 
           flex: '1 1 300px', background: color, display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center', padding: '40px',
-          borderRight: '3px solid #4c1d95', position: 'relative', overflow: 'hidden'
+          borderRight: '3px solid #C4B5FD', position: 'relative', overflow: 'hidden'
         }}>
           <div style={{ position: 'absolute', opacity: 0.1, top: -20, left: -20 }}>
             <Icon size={300} weight="fill" color="white" />
           </div>
           <div style={{ 
             background: 'white', padding: '32px', borderRadius: '100px', 
-            border: '3px solid #4c1d95', boxShadow: '4px 4px 0px #4c1d95',
+            border: '3px solid #C4B5FD', boxShadow: '4px 4px 0px #C4B5FD',
             zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: color, minWidth: 120, minHeight: 120
           }}>
@@ -85,15 +85,15 @@ export const GameStartScreen = ({ title, description, instructions, icon: Icon, 
         </div>
 
         <div style={{ flex: '2 1 400px', padding: '48px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <h1 style={{ fontSize: '42px', fontWeight: 900, marginBottom: '16px', color: '#4c1d95', letterSpacing: '-0.5px' }}>{title}</h1>
-          <p style={{ fontSize: '18px', color: '#4c1d95', opacity: 0.8, marginBottom: '32px', fontWeight: 500, lineHeight: 1.6 }}>{description}</p>
-          <div style={{ background: '#f5f3ff', borderRadius: '20px', border: '2px solid #ddd6fe', padding: '24px', marginBottom: '40px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: '#4c1d95', fontWeight: 800, fontSize: '15px', textTransform: 'uppercase' }}>
+          <h1 style={{ fontSize: '42px', fontWeight: 900, marginBottom: '16px', color: '#6D28D9', letterSpacing: '-0.5px' }}>{title}</h1>
+          <p style={{ fontSize: '18px', color: '#7C3AED', opacity: 0.8, marginBottom: '32px', fontWeight: 500, lineHeight: 1.6 }}>{description}</p>
+          <div style={{ background: '#F5F3FF', borderRadius: '20px', border: '2px solid #DDD6FE', padding: '24px', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: '#6D28D9', fontWeight: 800, fontSize: '15px', textTransform: 'uppercase' }}>
               <Info size={20} weight="bold" /> Instructions
             </div>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
               {instructions.map((inst, i) => (
-                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '12px', color: '#4c1d95', fontWeight: 600, fontSize: '16px', lineHeight: '1.5' }}>
+                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '12px', color: '#6D28D9', fontWeight: 600, fontSize: '16px', lineHeight: '1.5' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: color, marginTop: '8px', flexShrink: 0 }} />
                   {inst}
                 </li>
@@ -102,17 +102,19 @@ export const GameStartScreen = ({ title, description, instructions, icon: Icon, 
           </div>
 
           <motion.button 
-            whileHover={countdown === null ? { y: -4, boxShadow: `0px 12px 0px #4c1d95` } : {}}
-            whileTap={countdown === null ? { y: 2, boxShadow: `0px 2px 0px #4c1d95` } : {}}
+            whileHover={countdown === null ? { y: -4, boxShadow: `0px 12px 0px #86EFAC` } : {}}
+            whileTap={countdown === null ? { y: 2, boxShadow: `0px 2px 0px #86EFAC` } : {}}
             onClick={onStart}
             disabled={countdown !== null}
             style={{
-              width: '100%', padding: '24px', background: countdown !== null ? '#e2e8f0' : color,
-              color: countdown !== null ? '#94a3b8' : 'white', border: '3px solid #4c1d95',
+              width: '100%', padding: '24px',
+              background: countdown !== null ? '#e2e8f0' : '#98FF98',
+              color: countdown !== null ? '#94a3b8' : '#166534',
+              border: '3px solid #86EFAC',
               borderRadius: '24px', fontSize: '20px', fontWeight: 900,
               cursor: countdown !== null ? 'default' : 'pointer', display: 'flex',
               alignItems: 'center', justifyContent: 'center', gap: '12px',
-              boxShadow: countdown !== null ? 'none' : `0px 8px 0px #4c1d95`, transition: 'all 0.2s ease',
+              boxShadow: countdown !== null ? 'none' : `0px 8px 0px #86EFAC`, transition: 'all 0.2s ease',
               textTransform: 'uppercase'
             }}
           >
@@ -230,14 +232,14 @@ export const GameOverScreen = ({ score, total, xp, accuracy, onRetry, onExit, co
         initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
         style={{
           width: '100%', maxWidth: '640px', background: 'white', borderRadius: '48px',
-          border: '4px solid #1e293b', padding: 'clamp(24px, 5vw, 48px)',
-          boxShadow: '12px 12px 0px #1e293b', textAlign: 'center', position: 'relative'
+          border: '4px solid #C4B5FD', padding: 'clamp(24px, 5vw, 48px)',
+          boxShadow: '12px 12px 0px #C4B5FD', textAlign: 'center', position: 'relative'
         }}
       >
         <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
           <div style={{ 
-            width: '90px', height: '90px', background: '#fbbf24', border: '4px solid #1e293b',
-            boxShadow: '4px 4px 0px #1e293b', borderRadius: '24px', display: 'flex', 
+            width: '90px', height: '90px', background: '#fbbf24', border: '4px solid #C4B5FD',
+            boxShadow: '4px 4px 0px #C4B5FD', borderRadius: '24px', display: 'flex', 
             alignItems: 'center', justifyContent: 'center', color: 'white',
             margin: '0 auto 28px', transform: 'rotate(-5deg)'
           }}>
@@ -257,8 +259,8 @@ export const GameOverScreen = ({ score, total, xp, accuracy, onRetry, onExit, co
             <div style={{ fontSize: '32px', fontWeight: 900, color: '#10b981' }}>{accuracy}%</div>
           </div>
           <div style={{ 
-            background: `linear-gradient(135deg, ${color} 0%, #1e293b 100%)`, 
-            border: '4px solid #1e293b', padding: '24px', borderRadius: '28px', 
+            background: `linear-gradient(135deg, ${color} 0%, #4C1D95 100%)`, 
+            border: '4px solid #C4B5FD', padding: '24px', borderRadius: '28px', 
             gridColumn: '1 / -1', boxShadow: `0 8px 32px ${color}33`, color: 'white'
           }}>
             <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', fontWeight: 800, marginBottom: '4px', letterSpacing: '2px' }}>EXPERIENCE EARNED</div>
@@ -299,7 +301,7 @@ export const GameOverScreen = ({ score, total, xp, accuracy, onRetry, onExit, co
           <motion.button
             whileHover={{ scale: 1.02, y: -4 }} whileTap={{ scale: 0.98, y: 0 }} onClick={onRetry}
             style={{
-              padding: '18px', background: '#1e293b', color: 'white', border: 'none',
+              padding: '18px', background: '#98FF98', color: '#166534', border: 'none',
               borderRadius: '18px', fontWeight: 900, fontSize: '16px', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10
             }}

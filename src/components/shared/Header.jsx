@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
-import { SidebarSimple } from '@phosphor-icons/react'
+import { Sidebar, Menu, Search, Plus } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 
 
@@ -91,7 +91,7 @@ const Header = ({
               onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
               title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              <SidebarSimple size={20} weight={sidebarCollapsed ? "bold" : "regular"} />
+              <Sidebar size={20} strokeWidth={2} />
             </button>
           )}
 
@@ -116,11 +116,7 @@ const Header = ({
               padding: 8
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-menu" aria-hidden="true">
-              <path d="M4 5h16"></path>
-              <path d="M4 12h16"></path>
-              <path d="M4 19h16"></path>
-            </svg>
+            <Menu size={18} strokeWidth={2.2} aria-hidden="true" />
           </button>
 
           {/* Mobile Search Button */}
@@ -139,10 +135,7 @@ const Header = ({
                 padding: 8
               }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-search" aria-hidden="true">
-                <path d="m21 21-4.34-4.34"></path>
-                <circle cx="11" cy="11" r="8"></circle>
-              </svg>
+              <Search size={18} strokeWidth={2.2} aria-hidden="true" />
             </button>
           )}
 
@@ -177,10 +170,7 @@ const Header = ({
                 minWidth: '250px'
               }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-search" aria-hidden="true" style={{ opacity: 0.5 }}>
-                <path d="m21 21-4.34-4.34"></path>
-                <circle cx="11" cy="11" r="8"></circle>
-              </svg>
+              <Search size={18} strokeWidth={2.2} aria-hidden="true" style={{ opacity: 0.5 }} />
               <input
                 type="text"
                 placeholder="Search for anything"
@@ -225,10 +215,7 @@ const Header = ({
                 justifyContent: 'center'
               }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus" aria-hidden="true">
-                <path d="M5 12h14"></path>
-                <path d="M12 5v14"></path>
-              </svg>
+              <Plus size={40} strokeWidth={2.2} aria-hidden="true" />
             </button>
           )}
 

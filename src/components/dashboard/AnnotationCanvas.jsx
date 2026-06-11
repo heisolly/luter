@@ -32,7 +32,7 @@ export default function AnnotationCanvas({
 
   const getCursor = () => {
     if (!isActive) return 'default';
-    if (drawMode === 'eraser') return 'cell';
+    if (drawMode === 'eraser') return 'grab';
     if (drawMode === 'text') return 'text';
     return 'crosshair';
   };
@@ -40,6 +40,7 @@ export default function AnnotationCanvas({
   return (
     <canvas
       ref={canvasRef}
+      className="luter-annotation-canvas"
       style={{
         position: 'absolute',
         top: 0, left: 0,
@@ -48,7 +49,7 @@ export default function AnnotationCanvas({
         borderRadius: 'inherit',
         pointerEvents: isActive ? 'auto' : 'none',
         cursor: getCursor(),
-        zIndex: 10,
+        zIndex: 80,
         touchAction: 'none',
       }}
       onMouseDown={e => startDrawing(e, pageNum)}

@@ -411,10 +411,11 @@ const InteractiveFeatureCard = ({ children, style = {} }) => {
 };
 
 /* ── Wave Badge: hover animates each letter with a staggered bounce ── */
-const WaveBadge = ({ text, badgeStyle = {}, color }) => {
+const WaveBadge = ({ text, badgeStyle = {}, color, className = '' }) => {
   const [hovered, setHovered] = useState(false);
   return (
     <span
+      className={className}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -585,10 +586,95 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div ref={containerRef} className={isDark ? 'dark' : ''} style={{ background: 'var(--background)', minHeight: '100vh', paddingTop: 72 }}>
+    <div ref={containerRef} className={`landing-page ${isDark ? 'dark' : ''}`} style={{ background: 'var(--background)', minHeight: '100vh', paddingTop: 72 }}>
       <GlobalStyles />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap');
+        .landing-page {
+          overflow-x: clip;
+        }
+        .hero-content {
+          width: min(100%, 950px);
+        }
+        .hero-cta-row {
+          display: flex;
+          justify-content: center;
+          gap: 20px;
+          flex-wrap: wrap;
+        }
+        .hero-mockup-body {
+          display: flex;
+          height: 500px;
+          background: var(--background);
+        }
+        .hero-mockup-main {
+          flex: 1;
+          padding: 32px 40px;
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+          text-align: left;
+          font-family: var(--font-varela);
+          overflow: hidden;
+          min-width: 0;
+        }
+        .hero-mockup-path {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+        }
+        .hero-mockup-split {
+          display: flex;
+          gap: 24px;
+          flex: 1;
+          flex-direction: row;
+          min-width: 0;
+        }
+        .landing-logo-cloud,
+        .landing-features-section,
+        .landing-letter-section {
+          padding-left: 24px;
+          padding-right: 24px;
+        }
+        .landing-feature-stack {
+          max-width: 1100px;
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          gap: 140px;
+        }
+        .landing-letter-card {
+          position: relative;
+          width: 100%;
+          max-width: 850px;
+          background: var(--card-bg-light, #ffffff);
+          padding: 80px 40px;
+          border-radius: 32px;
+          box-shadow: var(--card-shadow-letter, 0 25px 50px -12px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.02));
+          border: var(--card-border-letter, none);
+          font-family: 'Caveat', cursive;
+          color: var(--card-text-letter, #334155);
+          font-size: 2.4rem;
+          line-height: 1.5;
+          font-weight: 600;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+        }
+        .landing-letter-title {
+          margin-bottom: 30px;
+          color: var(--foreground);
+          font-size: 3.2rem;
+          font-weight: 700;
+        }
+        .landing-letter-pullquote {
+          font-size: 3.6rem;
+          color: #2563EB;
+          transform: rotate(-2deg);
+          margin-bottom: 50px;
+        }
         .doodle-quiz { top: 15%; left: max(2%, calc(50% - 480px)); }
         .doodle-flashcards { top: 10%; right: max(2%, calc(50% - 480px)); }
         .doodle-summary { top: 55%; left: max(2%, calc(50% - 500px)); }
@@ -601,18 +687,159 @@ export default function LandingPage() {
           .doodle-summary { top: 75%; left: 5%; }
           .doodle-board { top: 70%; right: 5%; }
           .doodle-games { top: 38%; right: 2%; }
+          .hero-mockup {
+            max-width: 920px !important;
+          }
+          .hero-mockup-body {
+            height: 440px;
+          }
+          .hero-mockup-main {
+            padding: 28px;
+          }
         }
 
         @media (max-width: 768px) {
           .hero-section-inner { 
-            padding-top: 120px !important; 
-            padding-bottom: 120px !important; 
+            padding: 76px 16px 64px !important;
           }
-          .doodle-quiz { top: 20px; left: 10px; }
-          .doodle-flashcards { top: 40px; right: 10px; }
-          .doodle-summary { top: auto; bottom: 20px; left: 10px; }
-          .doodle-board { top: auto; bottom: 40px; right: 10px; }
-          .doodle-games { display: none; }
+          .doodle-quiz,
+          .doodle-flashcards,
+          .doodle-summary,
+          .doodle-board,
+          .doodle-games {
+            display: none;
+          }
+          .hero-content h1 {
+            font-size: clamp(2.35rem, 11vw, 3.8rem) !important;
+            line-height: 1.16 !important;
+            margin-bottom: 22px !important;
+          }
+          .hero-wave-badge {
+            display: inline-block;
+            margin: 4px 0 !important;
+            padding: 0 14px !important;
+            border-bottom-width: 4px !important;
+          }
+          .hero-content p {
+            font-size: 1rem !important;
+            line-height: 1.65 !important;
+            margin-bottom: 32px !important;
+          }
+          .hero-cta-row {
+            gap: 12px;
+          }
+          .hero-cta-row a,
+          .hero-cta-row button {
+            width: min(100%, 320px) !important;
+            max-width: 100% !important;
+          }
+          .hero-mockup {
+            margin-top: 48px !important;
+            border-radius: 18px !important;
+            box-shadow: 0 8px 0 #333333 !important;
+          }
+          .hero-mockup-body {
+            height: auto;
+            min-height: 360px;
+          }
+          .hero-mockup-main {
+            padding: 20px;
+            gap: 18px;
+          }
+          .hero-mockup-path {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 10px;
+          }
+          .hero-mockup-path > div:first-child {
+            font-size: 11px !important;
+            line-height: 1.45 !important;
+          }
+          .hero-mockup-split {
+            gap: 16px;
+          }
+          .hero-mockup input {
+            font-size: 12px !important;
+            text-overflow: ellipsis;
+          }
+          .landing-logo-cloud {
+            padding-top: 56px !important;
+            padding-bottom: 56px !important;
+          }
+          .landing-features-section {
+            padding-top: 72px !important;
+            padding-bottom: 72px !important;
+          }
+          .landing-feature-stack {
+            gap: 84px;
+          }
+          .zigzag-row {
+            gap: 36px !important;
+          }
+          .zigzag-row > div {
+            flex-basis: auto !important;
+            width: 100%;
+          }
+          .zigzag-row h2 {
+            font-size: clamp(2rem, 9vw, 2.7rem) !important;
+          }
+          .zigzag-row p {
+            font-size: 1rem !important;
+            margin-bottom: 28px !important;
+          }
+          .landing-letter-section {
+            padding-top: 80px !important;
+            padding-bottom: 40px !important;
+          }
+          .landing-letter-card {
+            padding: 56px 22px 44px !important;
+            border-radius: 24px !important;
+            font-size: clamp(1.55rem, 7vw, 2rem) !important;
+            line-height: 1.4 !important;
+          }
+          .landing-letter-title {
+            font-size: clamp(2.1rem, 10vw, 2.7rem) !important;
+          }
+          .landing-letter-pullquote {
+            font-size: clamp(2.2rem, 10vw, 3rem) !important;
+            margin-bottom: 34px !important;
+          }
+          .landing-letter-sticker {
+            display: none;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .hero-section-inner {
+            padding-left: 14px !important;
+            padding-right: 14px !important;
+          }
+          .hero-content h1 {
+            font-size: clamp(2.05rem, 12vw, 3rem) !important;
+          }
+          .hero-mockup-header-url {
+            display: none !important;
+          }
+          .hero-mockup-main {
+            padding: 16px;
+          }
+          .hero-mockup-card {
+            padding: 16px !important;
+            box-shadow: 0 4px 0 #333333 !important;
+          }
+          .hero-mockup-card p {
+            font-size: 14px !important;
+          }
+          .hero-mockup-success {
+            align-items: flex-start !important;
+          }
+          .landing-logo-cloud .trusted-badge {
+            white-space: normal;
+            border-radius: 18px !important;
+          }
+          .landing-letter-card img {
+            height: 82px !important;
+          }
         }
 
         .zigzag-row {
@@ -762,6 +989,7 @@ export default function LandingPage() {
           }}>
             Read <WaveBadge
               text="Smarter."
+              className="hero-wave-badge"
               badgeStyle={{
                 background: '#C4B5FD',
                 color: '#2E1065',
@@ -773,6 +1001,7 @@ export default function LandingPage() {
             /><br/>
             Understand <WaveBadge
               text="Deeper."
+              className="hero-wave-badge"
               badgeStyle={{
                 background: '#98FF98',
                 color: '#065F46',
@@ -784,6 +1013,7 @@ export default function LandingPage() {
             /><br/>
             Excel <WaveBadge
               text="Faster."
+              className="hero-wave-badge"
               badgeStyle={{
                 background: '#FFF917',
                 color: '#854D0E',
@@ -800,7 +1030,7 @@ export default function LandingPage() {
           }}>
             Transform your academic journey with AI-powered tools that help you master your curriculum faster and remember longer. The intelligent way to excel.
           </p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, flexWrap: 'wrap' }}>
+          <div className="hero-cta-row">
             <PremiumButton to={getAppUrl("/signup")} size="lg" style={{ width: 220, borderRadius: '16px' }}>
               Get Started
             </PremiumButton>
@@ -820,10 +1050,10 @@ export default function LandingPage() {
             <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#EF4444', border: '1.5px solid #333' }} />
             <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#F59E0B', border: '1.5px solid #333' }} />
             <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#98FF98', border: '1.5px solid #333' }} />
-            <div style={{ marginLeft: 20, height: 28, background: 'var(--background)', borderRadius: 8, flex: 1, maxWidth: 400, border: '1.5px solid #333', display: 'flex', alignItems: 'center', padding: '0 12px', fontSize: 12, color: 'var(--tt-gray-light-a-600)', fontFamily: 'var(--font-varela)' }}>luter.app/dashboard</div>
+            <div className="hero-mockup-header-url" style={{ marginLeft: 20, height: 28, background: 'var(--background)', borderRadius: 8, flex: 1, maxWidth: 400, border: '1.5px solid #333', display: 'flex', alignItems: 'center', padding: '0 12px', fontSize: 12, color: 'var(--tt-gray-light-a-600)', fontFamily: 'var(--font-varela)' }}>luter.app/dashboard</div>
           </div>
           {/* Mockup Body */}
-          <div style={{ display: 'flex', height: 500, background: 'var(--background)' }}>
+          <div className="hero-mockup-body">
             {/* Sidebar */}
             <div className="hidden md:block" style={{ width: 220, borderRight: '2px solid #333333', padding: '32px 16px', background: 'var(--background)', textAlign: 'left', fontFamily: 'var(--font-outfit)' }}>
               {/* Logo inside sidebar */}
@@ -852,9 +1082,9 @@ export default function LandingPage() {
               </div>
             </div>
             {/* Main Content */}
-            <div style={{ flex: 1, padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: 24, textAlign: 'left', fontFamily: 'var(--font-varela)', overflow: 'hidden' }}>
+            <div className="hero-mockup-main">
               {/* Path indicator */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="hero-mockup-path">
                 <div style={{ fontSize: 13, color: 'var(--tt-gray-light-a-600)', fontWeight: 700, fontFamily: 'var(--font-outfit)' }}>
                   CURRICULUMS &gt; AP PSYCHOLOGY &gt; <span style={{ color: '#4B0082' }}>NEURAL SIGNALS</span>
                 </div>
@@ -864,10 +1094,10 @@ export default function LandingPage() {
               </div>
 
               {/* Split screen in main content */}
-              <div style={{ display: 'flex', gap: 24, flex: 1, flexDirection: 'row' }}>
+              <div className="hero-mockup-split">
                 
                 {/* Left Card: Active Flashcard */}
-                <div style={{
+                <div className="hero-mockup-card" style={{
                   flex: 1.3, background: 'var(--background)', borderRadius: 16, border: '2px solid #333333',
                   boxShadow: '0 6px 0 #333333', padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
                   position: 'relative'
@@ -901,7 +1131,7 @@ export default function LandingPage() {
                       <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#059669', fontSize: 16, fontWeight: 'bold' }}>✓</span>
                     </div>
 
-                    <div style={{
+                    <div className="hero-mockup-success" style={{
                       background: 'rgba(152, 255, 152, 0.15)', border: '2px solid #98FF98', borderRadius: 10,
                       padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10
                     }}>
@@ -965,9 +1195,9 @@ export default function LandingPage() {
       </section>
 
       {/* Logo Cloud */}
-      <section style={{ padding: '80px 0', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0', background: 'var(--background)', position: 'relative', overflow: 'hidden' }}>
+      <section className="landing-logo-cloud" style={{ padding: '80px 0', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0', background: 'var(--background)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', marginBottom: 40, textAlign: 'center' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: '#F1F5F9', padding: '8px 16px', borderRadius: 999, border: '1px solid #E2E8F0', marginBottom: 16 }}>
+          <div className="trusted-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: '#F1F5F9', padding: '8px 16px', borderRadius: 999, border: '1px solid #E2E8F0', marginBottom: 16 }}>
             <div style={{ display: 'flex' }}>
               {[
                 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nkechi&backgroundColor=b6e3f4',
@@ -1016,8 +1246,8 @@ export default function LandingPage() {
       </section>
 
       {/* ZigZag Features Section */}
-      <section style={{ padding: '120px 24px', background: 'var(--background)', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 140 }}>
+      <section className="landing-features-section" style={{ padding: '120px 24px', background: 'var(--background)', position: 'relative', overflow: 'hidden' }}>
+        <div className="landing-feature-stack">
           {ZIGZAG_FEATURES.map((feature, idx) => (
             <div key={feature.id} className="zigzag-row" style={{ flexDirection: feature.reverse ? 'row-reverse' : 'row' }}>
                {/* Text Content */}
@@ -1057,7 +1287,7 @@ export default function LandingPage() {
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '150px', background: 'linear-gradient(to bottom, var(--background) 0%, transparent 100%)', zIndex: 1, pointerEvents: 'none' }} />
 
         {/* CEO Letter Section */}
-        <section style={{ 
+        <section className="landing-letter-section" style={{
           padding: '140px 24px 60px 24px', 
           position: 'relative', 
           overflow: 'hidden', 
@@ -1065,7 +1295,7 @@ export default function LandingPage() {
           justifyContent: 'center',
           zIndex: 2
         }}>
-          <div style={{
+          <div className="landing-letter-card" style={{
             position: 'relative',
             width: '100%',
             maxWidth: 850,
@@ -1085,10 +1315,10 @@ export default function LandingPage() {
             textAlign: 'center'
           }}>
             {/* Floating Stickers */}
-            <div style={{ position: 'absolute', top: -30, right: 60, fontSize: '4rem', transform: 'rotate(15deg)', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.1))', zIndex: 3 }}>🚀</div>
-            <div style={{ position: 'absolute', bottom: 80, left: -20, fontSize: '4rem', transform: 'rotate(-15deg)', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.1))', zIndex: 3 }}>🧠</div>
-            <div style={{ position: 'absolute', top: 60, left: -20, fontSize: '3rem', transform: 'rotate(-25deg)', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.1))', zIndex: 3 }}>✨</div>
-            <div style={{ position: 'absolute', bottom: -20, right: 100, fontSize: '3.5rem', transform: 'rotate(10deg)', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.1))', zIndex: 3 }}>🎓</div>
+            <div className="landing-letter-sticker" style={{ position: 'absolute', top: -30, right: 60, fontSize: '4rem', transform: 'rotate(15deg)', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.1))', zIndex: 3 }}>🚀</div>
+            <div className="landing-letter-sticker" style={{ position: 'absolute', bottom: 80, left: -20, fontSize: '4rem', transform: 'rotate(-15deg)', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.1))', zIndex: 3 }}>🧠</div>
+            <div className="landing-letter-sticker" style={{ position: 'absolute', top: 60, left: -20, fontSize: '3rem', transform: 'rotate(-25deg)', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.1))', zIndex: 3 }}>✨</div>
+            <div className="landing-letter-sticker" style={{ position: 'absolute', bottom: -20, right: 100, fontSize: '3.5rem', transform: 'rotate(10deg)', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.1))', zIndex: 3 }}>🎓</div>
 
             {/* Decorative Quote Mark */}
             <div style={{
@@ -1105,7 +1335,7 @@ export default function LandingPage() {
             </div>
 
             <div style={{ position: 'relative', zIndex: 2, maxWidth: 700 }}>
-              <div style={{ marginBottom: 30, color: 'var(--foreground)', fontSize: '3.2rem', fontWeight: 700 }}>
+              <div className="landing-letter-title" style={{ marginBottom: 30, color: 'var(--foreground)', fontSize: '3.2rem', fontWeight: 700 }}>
                 They say studying is hard...
               </div>
               <div style={{ letterSpacing: '0.01em', marginBottom: 20 }}>
@@ -1114,7 +1344,7 @@ export default function LandingPage() {
               <div style={{ letterSpacing: '0.01em', marginBottom: 40 }}>
                 Don't let exams intimidate you—turn your confusion into confidence and your hard work into top grades. Start learning today, and soon you'll realize...
               </div>
-              <div style={{ fontSize: '3.6rem', color: '#2563EB', transform: 'rotate(-2deg)', marginBottom: 50 }}>
+              <div className="landing-letter-pullquote" style={{ fontSize: '3.6rem', color: '#2563EB', transform: 'rotate(-2deg)', marginBottom: 50 }}>
                 "You were always capable of brilliance."
               </div>
               

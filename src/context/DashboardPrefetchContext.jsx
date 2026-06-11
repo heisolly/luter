@@ -39,7 +39,7 @@ export function clearPrefetchCache(userId) {
  * Fetches the dashboard data individually to avoid cascading failures.
  */
 async function fetchDashboardBundle(userId) {
-  const [uc, stats, leaderboard, profile, materials] = await Promise.all([
+  const [uc, stats, leaderboard, profile, materials, studySessions, materialAnalysis] = await Promise.all([
     supabase
       .from('user_courses')
       .select('id, progress, last_studied_at, target_score, custom_name, is_archived, semester, created_at, courses(id, code, name, faculty)')
@@ -51,7 +51,7 @@ async function fetchDashboardBundle(userId) {
     
     supabase
       .from('user_stats')
-      .select('total_xp, streak_days, user_id, ai_credits_monthly, ai_credits_used, arena_battles_monthly, arena_battles_used')
+      .select('total_xp, streak_days, user_id, ai_credits_monthly, ai_credits_used, arena_battles_monthly, arena_battles_used, claimed_tasks, daily_goal_minutes')
       .order('total_xp', { ascending: false })
       .limit(10)
       .then(res => res),
@@ -65,9 +65,17 @@ async function fetchDashboardBundle(userId) {
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .then(res => res),
+
+    Promise.resolve({ data: [], error: null }),
+
+    supabase
+      .from('material_analysis')
+      .select('material_id, flashcards, quiz, summary, updated_at')
+      .eq('user_id', userId)
+      .then(res => res)
   ])
 
-  return { uc, stats, leaderboard, profile, materials }
+  return { uc, stats, leaderboard, profile, materials, studySessions, materialAnalysis }
 }
 
 export function DashboardPrefetchProvider({ userId, children }) {

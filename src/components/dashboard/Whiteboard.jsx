@@ -2,18 +2,20 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Excalidraw, WelcomeScreen, Footer } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import { LiveList, LiveObject } from '@liveblocks/client';
-import { useStorage, useMutation, useSelf, useStatus } from '../../liveblocks.config';
+import { useStorage, useMutation, useSelf, useStatus, useOthers, useUpdateMyPresence } from '../../liveblocks.config';
 
 // ─── tiny debounce helper ────────────────────────────────────────────
 function useDebounce(fn, delay) {
   const timer = useRef(null);
-  return useCallback(
+  const debounced = useCallback(
     (...args) => {
       clearTimeout(timer.current);
       timer.current = setTimeout(() => fn(...args), delay);
     },
     [fn, delay]
   );
+  debounced.cancel = () => clearTimeout(timer.current);
+  return debounced;
 }
 
 // ─── CSS injected once to rebrand Excalidraw → Luter ─────────────────
@@ -36,20 +38,6 @@ const LUTER_BRAND_STYLE = `
     display: none !important;
   }
 
-  /* ── Replace "Excalidraw" text label with "Luter Board" ── */
-  .excalidraw .app-menu__label {
-    visibility: hidden;
-    position: relative;
-  }
-  .excalidraw .app-menu__label::after {
-    content: 'Luter Board';
-    visibility: visible;
-    position: absolute;
-    left: 0;
-    top: 0;
-    font-weight: 700;
-  }
-
   /* ── Ensure canvas fills the container ── */
   .luter-whiteboard-root {
     width: 100%;
@@ -64,6 +52,21 @@ const LUTER_BRAND_STYLE = `
   }
   .luter-whiteboard-root .excalidraw {
     height: 100%;
+  }
+
+  .luter-whiteboard-root .excalidraw,
+  .luter-whiteboard-root .excalidraw__canvas {
+    border-radius: inherit;
+  }
+
+  .luter-whiteboard-root .excalidraw .Island,
+  .luter-whiteboard-root .excalidraw .Stack.Stack_horizontal,
+  .luter-whiteboard-root .excalidraw .App-menu_top {
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08) !important;
+  }
+
+  .luter-whiteboard-root .excalidraw .Island {
+    border: 1px solid rgba(226, 232, 240, 0.92) !important;
   }
 
   /* ── Subtle Luter purple accent on active tool ── */
@@ -112,8 +115,16 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
   const storedAppState  = useStorage((root) => root.whiteboardAppState);
   const storedFiles     = useStorage((root) => root.whiteboardFiles);
   const status          = useStatus();
-  const isStorageLoaded = status === 'connected';
+  const isStorageLoaded = !isCollaborative || (
+    status === 'connected' &&
+    storedElements !== undefined &&
+    storedAppState !== undefined &&
+    storedFiles !== undefined
+  );
+  const isStorageLoadedRef = useRef(false);
   const self            = useSelf();
+  const others          = useOthers();
+  const updatePresence  = useUpdateMyPresence();
   const userRole        = self?.presence?.role;
 
   const isWorkstationRoom = roomId?.startsWith('luter-material-') || roomId?.startsWith('luter-course-');
@@ -155,11 +166,78 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
     }
   }, []);
 
-  const debouncedUpdateElements = useDebounce(updateElements, 80);
-  const debouncedUpdateAppState = useDebounce(updateAppState, 300);
-  const debouncedUpdateFiles    = useDebounce(updateFiles, 150);
+  useEffect(() => {
+    isStorageLoadedRef.current = isStorageLoaded;
+  }, [isStorageLoaded]);
+
+  const safeUpdateElements = useCallback((newElements) => {
+    if (!isStorageLoadedRef.current) return;
+    try {
+      updateElements(newElements);
+    } catch (error) {
+      if (!String(error?.message || '').includes('storage has been loaded')) {
+        console.warn('Whiteboard elements sync skipped:', error);
+      }
+    }
+  }, [updateElements]);
+
+  const safeUpdateAppState = useCallback((newState) => {
+    if (!isStorageLoadedRef.current) return;
+    try {
+      updateAppState(newState);
+    } catch (error) {
+      if (!String(error?.message || '').includes('storage has been loaded')) {
+        console.warn('Whiteboard viewport sync skipped:', error);
+      }
+    }
+  }, [updateAppState]);
+
+  const safeUpdateFiles = useCallback((newFiles) => {
+    if (!isStorageLoadedRef.current) return;
+    try {
+      updateFiles(newFiles);
+    } catch (error) {
+      if (!String(error?.message || '').includes('storage has been loaded')) {
+        console.warn('Whiteboard file sync skipped:', error);
+      }
+    }
+  }, [updateFiles]);
+
+  const debouncedUpdateElements = useDebounce(safeUpdateElements, 80);
+  const debouncedUpdateAppState = useDebounce(safeUpdateAppState, 300);
+  const debouncedUpdateFiles    = useDebounce(safeUpdateFiles, 150);
   const lastSavedElements  = useRef('[]');
   const lastSavedAppState  = useRef(null);
+
+  const collaborators = React.useMemo(() => {
+    const map = new Map();
+    others.forEach((other) => {
+      const presence = other.presence || {};
+      const user = presence.user || other.info || {};
+      const cursor = presence.boardCursor || presence.cursor;
+      if (!cursor) return;
+
+      const color = user.color || '#7C3AED';
+      map.set(String(other.connectionId), {
+        id: user.id || String(other.connectionId),
+        socketId: String(other.connectionId),
+        username: user.name || 'Peer',
+        avatarUrl: user.avatar || null,
+        pointer: {
+          x: cursor.x,
+          y: cursor.y,
+          tool: cursor.tool || 'pointer',
+          renderCursor: true,
+        },
+        button: presence.boardButton || 'up',
+        color: {
+          background: color,
+          stroke: color,
+        },
+      });
+    });
+    return map;
+  }, [others]);
 
   // Helper to load files synchronously for initialData
   const getInitialFiles = () => {
@@ -177,6 +255,7 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
   // ── Sync remote elements and files into Excalidraw ─────────────────
   useEffect(() => {
     if (!excalidrawAPI) return;
+    if (!isStorageLoaded) return;
 
     let filesToLoad = {};
     try {
@@ -202,7 +281,12 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
       files: Object.keys(filesToLoad).length > 0 ? filesToLoad : undefined,
     });
     setTimeout(() => { isRemoteUpdate.current = false; }, 150);
-  }, [storedElements, storedFiles, excalidrawAPI, roomId]);
+  }, [storedElements, storedFiles, excalidrawAPI, roomId, isStorageLoaded]);
+
+  useEffect(() => {
+    if (!excalidrawAPI) return;
+    excalidrawAPI.updateScene({ collaborators });
+  }, [collaborators, excalidrawAPI]);
 
   // ── onChange: push local changes to Liveblocks ───────────────────
   const onChange = useCallback((newElements, newAppState, files) => {
@@ -235,6 +319,29 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
     }
   }, [roomId, isStorageLoaded, debouncedUpdateElements, debouncedUpdateAppState, debouncedUpdateFiles]);
 
+  useEffect(() => {
+    return () => {
+      debouncedUpdateElements.cancel?.();
+      debouncedUpdateAppState.cancel?.();
+      debouncedUpdateFiles.cancel?.();
+    };
+  }, [debouncedUpdateElements, debouncedUpdateAppState, debouncedUpdateFiles]);
+
+  const handlePointerUpdate = useCallback(({ pointer, button }) => {
+    if (!isCollaborative) return;
+    updatePresence({
+      boardCursor: pointer ? { x: pointer.x, y: pointer.y, tool: pointer.tool || 'pointer' } : null,
+      boardButton: button || 'up',
+      currentTool: 'board',
+    });
+  }, [isCollaborative, updatePresence]);
+
+  useEffect(() => {
+    return () => {
+      updatePresence({ boardCursor: null, boardButton: 'up' });
+    };
+  }, [updatePresence]);
+
   return (
     <div className="luter-whiteboard-root">
       <Excalidraw
@@ -254,9 +361,10 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
           scrollToContent: true,
         }}
         onChange={onChange}
+        onPointerUpdate={handlePointerUpdate}
+        isCollaborating={isCollaborative}
         viewModeEnabled={false}
         theme="light"
-        name="Luter Board"
         langCode="en"
         UIOptions={{
           dockedSidebarBreakpoint: 0,

@@ -223,17 +223,27 @@ export async function uploadMaterial({
     throw new Error(`Failed to save material to database: ${dbError?.message || 'Unknown error'}`)
   }
 
-  // Run LangChain ingestion pipeline immediately (non-blocking — extracts, chunks, embeds, stores)
-  const ingestionPromise = ingestMaterial({
-    file: ingestFile,
-    type,
-    url: null,
-    metadata: { materialId: materialData.id, courseId: courseId || null, userId, title: title || file.name }
-  })
+  // Decide how to extract text for this file type
+  const documentTypes = ['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv', 'txt', 'html', 'htm', 'xml', 'json', 'epub', 'md']
+  const isDocument = documentTypes.includes(type)
 
-  // Trigger high-fidelity conversion for Office documents immediately (non-blocking)
+  let ingestionPromise
+  if (isDocument) {
+    // Documents → Supabase Edge Function (server-side Markdown extraction)
+    ingestionPromise = triggerDocumentTextExtractor(materialData.id, type, title || file.name, userId)
+  } else {
+    // Images, audio, video, YouTube → client-side pipeline
+    ingestionPromise = ingestMaterial({
+      file: ingestFile,
+      type,
+      url: null,
+      metadata: { materialId: materialData.id, courseId: courseId || null, userId, title: title || file.name }
+    })
+  }
+
+  // Trigger high-fidelity PDF conversion for Office documents (for preview, not text)
   const conversionPromise = ['docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv'].includes(type) 
-    ? triggerDocumentConversion(materialData.id, materialData.source_url, type, title || file.name, userId)
+    ? triggerDocumentConversion(materialData.id, type, title || file.name, userId)
     : Promise.resolve()
 
   // Process both in parallel and update status
@@ -241,15 +251,15 @@ export async function uploadMaterial({
     const [ingestionResult, conversionResult] = results
     
     if (ingestionResult.status === 'rejected') {
-      console.error('[LangChain] Ingestion error after upload:', ingestionResult.reason)
+      console.error('[Ingestion] Error after upload:', ingestionResult.reason)
     }
     
     if (conversionResult.status === 'rejected') {
       console.error('[Conversion] Document conversion trigger failed:', conversionResult.reason)
     }
     
-    // Update material status to processing_complete if both succeeded
-    if (ingestionResult.status === 'fulfilled' && conversionResult.status === 'fulfilled') {
+    // Update material status to ready if ingestion succeeded
+    if (ingestionResult.status === 'fulfilled') {
       supabase
         .from('materials')
         .update({ 
@@ -767,11 +777,65 @@ export async function updateSessionLastAccessed(sessionId) {
 }
 
 /**
+ * Generate a signed URL for a material's source file (overcomes non-public bucket restrictions).
+ * Falls back to the public URL if signed URL generation fails.
+ */
+export async function getSignedFileUrl(sourceUrl) {
+  if (!sourceUrl) return null
+  try {
+    const url = new URL(sourceUrl)
+    const parts = url.pathname.split('/')
+    const publicIdx = parts.indexOf('public')
+    if (publicIdx !== -1 && parts.length > publicIdx + 2) {
+      const storagePath = parts.slice(publicIdx + 2).join('/')
+      const { data, error } = await supabase.storage.from('materials').createSignedUrl(storagePath, 3600)
+      if (error) throw error
+      return data?.signedUrl || sourceUrl
+    }
+  } catch (e) {
+    console.warn('[getSignedFileUrl] Failed, using public URL:', e.message)
+  }
+  return sourceUrl
+}
+
+/**
+ * Trigger the document-text-extractor Edge Function to extract text from files.
+ * Converts documents to clean Markdown, saves to materials.extracted_text + study_vault chunks.
+ */
+export async function triggerDocumentTextExtractor(materialId, fileType, fileName, userId) {
+  if (!materialId) throw new Error('Missing materialId')
+
+  console.log(`[TextExtractor] Triggering for ${materialId} (${fileType})`)
+
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  const response = await fetch(`${supabaseUrl}/functions/v1/document-text-extractor`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ materialId, fileType, fileName, userId }),
+  })
+
+  const result = await response.json()
+  console.log('[TextExtractor] Response:', {
+    status: response.status,
+    body: result
+  })
+
+  if (!response.ok) throw new Error(result.error || 'Text extraction failed')
+  return result
+}
+
+/**
  * Trigger the document-processor Edge Function to convert Office files → PDF.
  * Non-blocking; fires after upload and returns immediately.
  */
-export async function triggerDocumentConversion(materialId, fileUrl, fileType, fileName, userId) {
-  if (!materialId || !fileUrl) throw new Error('Missing materialId or fileUrl')
+export async function triggerDocumentConversion(materialId, fileType, fileName, userId) {
+  if (!materialId) throw new Error('Missing materialId')
 
   console.log(`[Conversion] Triggering document-processor for ${materialId} (${fileType})`)
 
@@ -785,7 +849,7 @@ export async function triggerDocumentConversion(materialId, fileUrl, fileType, f
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ materialId, fileUrl, fileType, fileName, userId }),
+    body: JSON.stringify({ materialId, fileType, fileName, userId }),
   })
 
   const result = await response.json()

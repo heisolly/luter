@@ -1,861 +1,445 @@
-import React, { useState, useEffect } from 'react';
-import { useOutletContext, useNavigate } from 'react-router-dom';
-import { supabase } from '../../supabaseClient';
-import PaystackPop from '@paystack/inline-js';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Sparkle, ShieldCheck, Check, ShieldWarning
-} from '@phosphor-icons/react';
-import GlareHover from '../ui/GlareHover';
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useOutletContext, useNavigate } from 'react-router-dom'
+import { supabase } from '../../supabaseClient'
+import { Chart, BarController, BarElement, LineController, LineElement, PointElement, DoughnutController, ArcElement, CategoryScale, LinearScale, Tooltip, Legend, Filler } from 'chart.js'
+import { TIER_LIMITS, CREDIT_COSTS, getActionLabel } from '../../services/creditService'
+
+Chart.register(BarController, BarElement, LineController, LineElement, PointElement, DoughnutController, ArcElement, CategoryScale, LinearScale, Tooltip, Legend, Filler)
+
+const TOKENS = [
+  { feature: 'AI Notes', model: 'llama-3.3-70b', cost: 0.0050, credits: 80, tiers: ['Pro', 'Beast'] },
+  { feature: 'Open material', model: 'llama-3.3-70b', cost: 0.0050, credits: 50, tiers: ['Pro', 'Beast'] },
+  { feature: 'AI chat (1 msg)', model: 'llama-3.3-70b', cost: 0.0016, credits: 20, tiers: ['Pro', 'Beast'] },
+  { feature: 'Notes Studio chat', model: 'llama-3.3-70b', cost: 0.0016, credits: 20, tiers: ['Pro', 'Beast'] },
+  { feature: 'Explain text', model: 'llama-3.3-70b', cost: 0.0009, credits: 10, tiers: ['Free', 'Pro', 'Beast'] },
+  { feature: 'Group quiz', model: 'llama-3.3-70b', cost: 0.0050, credits: 30, tiers: ['Pro', 'Beast'] },
+  { feature: 'Battle: performance', model: 'llama-3.3-70b', cost: 0.0016, credits: 30, tiers: ['Pro', 'Beast'] },
+  { feature: 'Mock exam: ask tutor', model: 'llama-3.3-70b', cost: 0.0016, credits: 20, tiers: ['Pro', 'Beast'] },
+  { feature: 'Summary', model: 'llama-3.1-8b', cost: 0.0002, credits: 5, tiers: ['Free', 'Pro', 'Beast'] },
+  { feature: 'Flashcards (set)', model: 'llama-3.1-8b', cost: 0.0002, credits: 10, tiers: ['Free', 'Pro', 'Beast'] },
+  { feature: 'Quiz (5 questions)', model: 'llama-3.1-8b', cost: 0.0003, credits: 10, tiers: ['Free', 'Pro', 'Beast'] },
+  { feature: 'Mock exam (10 Qs)', model: 'llama-3.1-8b', cost: 0.0004, credits: 15, tiers: ['Pro', 'Beast'] },
+  { feature: 'Battle: questions', model: 'llama-3.1-8b', cost: 0.0002, credits: 10, tiers: ['Pro', 'Beast'] },
+  { feature: 'Mock exam: weakness', model: 'llama-3.1-8b', cost: 0.0002, credits: 10, tiers: ['Pro', 'Beast'] },
+  { feature: 'Battle: hint', model: 'llama-3.1-8b', cost: 0.0001, credits: 5, tiers: ['Pro', 'Beast'] },
+  { feature: 'Voice agent query', model: 'llama-3.1-8b', cost: 0.0001, credits: 5, tiers: ['Pro', 'Beast'] },
+  { feature: 'Write: AI assist', model: 'llama-3.1-8b', cost: 0.0001, credits: 5, tiers: ['Pro', 'Beast'] },
+  { feature: 'Image OCR', model: 'llama-3.2-11b-vision', cost: 0.0001, credits: 0, tiers: ['Free', 'Pro', 'Beast'] },
+  { feature: 'Audio (per min)', model: 'whisper-large-v3', cost: 0.0030, credits: 20, tiers: ['Beast'], perMinute: true },
+  { feature: 'Audio (5 min file)', model: 'whisper-large-v3', cost: 0.0150, credits: 100, tiers: ['Beast'] },
+  { feature: 'Audio (30 min file)', model: 'whisper-large-v3', cost: 0.0900, credits: 600, tiers: ['Beast'] },
+]
+
+const TIER_ACCENTS = { free: '#888780', pro: '#378ADD', beast: '#1D9E75' }
+const TIER_NAMES = { free: 'Free', pro: 'Pro', beast: 'Beast' }
+
+const SCALES = [100, 500, 1000, 2000, 5000, 10000]
+
+function costClass(cost) {
+  if (cost >= 0.005) return { fontWeight: 500, color: '#A32D2D' }
+  if (cost >= 0.001) return { fontWeight: 500, color: '#BA7517' }
+  return { color: '#0F6E56', fontWeight: 500 }
+}
+
+function tierPill(tier) {
+  const cls = tier === 'Free' ? 'pill pill-gray' : tier === 'Pro' ? 'pill pill-blue' : 'pill pill-teal'
+  return <span key={tier} className={cls}>{tier}</span>
+}
+
+function formatNaira(usd) {
+  return `₦${(usd * 1370).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+}
 
 export default function PricingPage() {
-  const context = useOutletContext();
-  const userProfile = context?.profile ?? null;
-  const navigate = useNavigate();
+  const context = useOutletContext()
+  const profile = context?.profile ?? null
+  const user = context?.user ?? null
+  const navigate = useNavigate()
 
-  const [user, setUser] = useState(null);
-  const [loadingCheckout, setLoadingCheckout] = useState(null); // 'starter' or 'beast' depending on active checkout
-  const [errorMsg, setErrorMsg] = useState('');
-  const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly', 'quarterly', 'yearly'
-  // ----- Admin entry code state -----
-  const [entryCode, setEntryCode] = useState('');
-  const [isAdminBypass, setIsAdminBypass] = useState(false);
+  const [tab, setTab] = useState('plans')
 
-  // Check auth session
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setUser(session.user);
-    });
-  }, []);
+  const plCanvas = useRef(null)
+  const beCanvas = useRef(null)
+  const donutCanvas = useRef(null)
+  const plChart = useRef(null)
+  const beChart = useRef(null)
+  const donutChart = useRef(null)
 
-  const isCurrentPlanActive = userProfile?.subscription_tier === 'premium';
+  const [sim, setSim] = useState({ freeN: 1000, conv: 7, proSplit: 60, freeInt: 40, proP: 7, beastP: 15, sal: 500, mkt: 150, host: 80 })
 
-  // Dynamic pricing settings for Beast Plan
-  const getBeastPlanDetails = () => {
-    switch (billingCycle) {
-      case 'quarterly':
-        return {
-          id: 'beast_quarterly',
-          priceText: '9,599.9',
-          periodText: '/4 months',
-          billingText: 'Billed quarterly at ₦9,599.9 (save 20%)',
-          amount: 9599.9,
-          badge: 'Save 20%'
-        };
-      case 'yearly':
-        return {
-          id: 'beast_yearly',
-          priceText: '28,800',
-          periodText: '/year',
-          billingText: 'Billed yearly at ₦28,800 (equivalent to ₦2,400/mo)',
-          amount: 28800,
-          badge: 'Save 20%'
-        };
-      case 'monthly':
-      default:
-        return {
-          id: 'beast_monthly',
-          priceText: '2,999.9',
-          periodText: '/month',
-          billingText: 'Billed monthly at ₦2,999.9/mo',
-          amount: 2999.9,
-          badge: null
-        };
-    }
-  };
+  const updateSim = useCallback((key, val) => {
+    setSim(prev => ({ ...prev, [key]: val }))
+  }, [])
 
-  const beastPlan = getBeastPlanDetails();
+  const compute = useCallback(() => {
+    const { freeN, conv, proSplit, freeInt, proP, beastP, sal, mkt, host } = sim
+    const paid = Math.round(freeN * conv / 100)
+    const proN = Math.round(paid * proSplit / 100)
+    const beastN = paid - proN
+    const oh = sal + mkt + host
+    const FREE_CR = TIER_LIMITS.free
+    const PRO_CR = TIER_LIMITS.pro
+    const COST_CR = 0.00005
+    const BEAST_DAY = 0.23
+    const fApi = freeN * FREE_CR * (freeInt / 100) * COST_CR * 30
+    const pApi = proN * PRO_CR * 0.6 * COST_CR * 30
+    const bApi = beastN * BEAST_DAY * 30
+    const tApi = fApi + pApi + bApi
+    const tCost = tApi + oh
+    const rev = proN * proP + beastN * beastP
+    const profit = rev - tCost
+    const margin = rev > 0 ? (profit / rev) * 100 : -100
+    const avgRev = paid > 0 ? rev / paid : 0
+    const avgApi = paid > 0 ? (pApi + bApi) / paid : 0
+    const netPerUser = avgRev - avgApi
+    const beU = netPerUser > 0 ? Math.ceil(tCost / netPerUser) : 999
+    return { paid, proN, beastN, oh, fApi, pApi, bApi, tApi, tCost, rev, profit, margin, beU }
+  }, [sim])
 
-  const starterPlan = {
-    id: 'starter',
-    priceText: '999.9',
-    periodText: '/first 2 Weeks',
-    billingText: '₦2,999.9 auto-renewal subsequent months',
-    amount: 999.9,
-    badge: 'Save 70%'
-  };
-
-  const handleCheckout = async (plan, planTypeKey) => {
-    // Admin bypass: if admin code activated, upgrade user to premium and reload dashboard
-    if (isAdminBypass) {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const userId = session?.user?.id;
-        if (userId) {
-          await supabase.from('profiles').update({ subscription_tier: 'premium', is_premium: true }).eq('id', userId);
+  const drawPlChart = useCallback((c) => {
+    if (plChart.current) { plChart.current.destroy(); plChart.current = null }
+    const revs = [], costs = [], profits = []
+    const { conv, proSplit, freeInt, proP, beastP, sal, mkt, host } = sim
+    const oh = sal + mkt + host
+    const FREE_CR = TIER_LIMITS.free, PRO_CR = TIER_LIMITS.pro, COST_CR = 0.00005, BEAST_DAY = 0.23
+    SCALES.forEach(n => {
+      const p = Math.round(n * conv / 100), pro = Math.round(p * proSplit / 100), beast = p - pro
+      const api = (n * FREE_CR * (freeInt / 100) * COST_CR * 30) + (pro * PRO_CR * 0.6 * COST_CR * 30) + (beast * BEAST_DAY * 30)
+      const r = pro * proP + beast * beastP
+      revs.push(Math.round(r)); costs.push(Math.round(api + oh)); profits.push(Math.round(r - api - oh))
+    })
+    const profColors = profits.map(p => p >= 0 ? '#1D9E75' : '#E24B4A')
+    const ctx = c.getContext('2d')
+    plChart.current = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: SCALES.map(n => n >= 1000 ? (n / 1000) + 'k' : '' + n),
+        datasets: [
+          { label: 'Revenue', data: revs, backgroundColor: '#378ADD', borderWidth: 0 },
+          { label: 'Total cost', data: costs, backgroundColor: '#E24B4A', borderWidth: 0 },
+          { label: 'Profit', data: profits, backgroundColor: profColors, borderWidth: 0 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ' $' + ctx.parsed.y.toLocaleString() } }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#888780', font: { size: 10 } }, title: { display: true, text: 'free users', color: '#888780', font: { size: 10 } } },
+          y: { grid: { color: 'rgba(136,135,128,0.12)' }, ticks: { color: '#888780', font: { size: 10 }, callback: v => '$' + Math.abs(v).toLocaleString() } }
         }
-      } catch (err) {
-        console.error('Admin bypass profile update failed', err);
       }
-      // Reload dashboard to reflect premium status
-      window.location.href = '/dashboard';
-      return;
-    }
+    })
+  }, [sim])
 
-    if (!user) {
-      navigate('/signin?redirect=' + encodeURIComponent(window.location.pathname));
-      return;
-    }
-    setLoadingCheckout(planTypeKey);
-    setErrorMsg('');
-      
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const accessToken = session?.access_token;
-      if (!accessToken) {
-        navigate('/signin?redirect=' + encodeURIComponent(window.location.pathname));
-        return;
+  const drawBeChart = useCallback((c) => {
+    if (beChart.current) { beChart.current.destroy(); beChart.current = null }
+    const { proP, beastP, proSplit } = sim
+    const ohPts = [100, 200, 400, 600, 800, 1000, 1500, 2000]
+    const beUs = ohPts.map(oh => {
+      const pA = TIER_LIMITS.pro * 0.6 * 0.00005 * 30, bA = 0.23 * 30
+      const avgR = proP * (proSplit / 100) + beastP * (1 - proSplit / 100)
+      const avgA = pA * (proSplit / 100) + bA * (1 - proSplit / 100)
+      const m = avgR - avgA; return m > 0 ? Math.ceil(oh / m) : 999
+    })
+    const ctx = c.getContext('2d')
+    beChart.current = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ohPts.map(o => '$' + o),
+        datasets: [{ label: 'Paid users needed', data: beUs, borderColor: '#7F77DD', backgroundColor: 'rgba(127,119,221,0.08)', fill: true, tension: 0.3, pointBackgroundColor: '#534AB7', pointRadius: 3, borderWidth: 2 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} paid users` } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#888780', font: { size: 10 } }, title: { display: true, text: 'monthly overhead ($)', color: '#888780', font: { size: 10 } } },
+          y: { grid: { color: 'rgba(136,135,128,0.12)' }, ticks: { color: '#888780', font: { size: 10 } } }
+        }
       }
-      
-      const amount = plan.amount;
-      const currency = 'NGN';
-      
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-paystack-checkout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({
-          planId: plan.id,
-          amount: amount,
-          email: user.email,
-          currency: currency,
-          callback_url: `${window.location.origin}/dashboard/payment/success`,
-        }),
-      });
+    })
+  }, [sim])
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Payment initialization failed');
+  const drawDonut = useCallback((c) => {
+    if (donutChart.current) { donutChart.current.destroy(); donutChart.current = null }
+    const { freeN, conv, proSplit, freeInt, sal, mkt, host } = sim
+    const paid = Math.round(freeN * conv / 100)
+    const proN = Math.round(paid * proSplit / 100)
+    const beastN = paid - proN
+    const oh = sal + mkt + host
+    const COST_CR = 0.00005
+    const fApi = Math.round(freeN * TIER_LIMITS.free * (freeInt / 100) * COST_CR * 30)
+    const pApi = Math.round(proN * TIER_LIMITS.pro * 0.6 * COST_CR * 30)
+    const bApi = Math.round(beastN * 0.23 * 30)
+    const ctx = c.getContext('2d')
+    donutChart.current = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Free API', 'Pro API', 'Beast API', 'Overhead'],
+        datasets: [{ data: [fApi, pApi, bApi, oh], backgroundColor: ['#B5D4F4', '#378ADD', '#1D9E75', '#EF9F27'], borderWidth: 0, hoverOffset: 4 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '62%',
+        plugins: {
+          legend: { position: 'right', labels: { font: { size: 11 }, color: '#888780', boxWidth: 10, padding: 10 } },
+          tooltip: { callbacks: { label: ctx => ' $' + ctx.parsed.toLocaleString() } }
+        }
       }
+    })
+  }, [sim])
 
-      const data = await response.json();
-      const paystack = new PaystackPop();
-      
-      paystack.newTransaction({
-        key: data.publicKey || import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-        email: user.email,
-        amount: Number(amount) * 100,
-        currency: currency,
-        ref: data.reference,
-        metadata: {
-          plan_id: plan.id,
-          user_id: user.id,
-          source: 'upgrade_page',
-          timestamp: new Date().toISOString(),
-        },
-        onSuccess: (transaction) => {
-          setLoadingCheckout(null);
-          navigate(`/dashboard/payment/success?reference=${transaction.reference}`);
-        },
-        onCancel: () => {
-          setLoadingCheckout(null);
-        },
-        onError: (error) => {
-          setLoadingCheckout(null);
-          setErrorMsg(error.message || 'Payment processing failed.');
-        },
-      });
-
-    } catch (err) {
-      setErrorMsg(err.message || 'Checkout failed. Please try again.');
-      setLoadingCheckout(null);
+  useEffect(() => {
+    if (tab === 'sim' && plCanvas.current && beCanvas.current && donutCanvas.current) {
+      drawPlChart(plCanvas.current)
+      drawBeChart(beCanvas.current)
+      drawDonut(donutCanvas.current)
+      return () => {
+        if (plChart.current) plChart.current.destroy()
+        if (beChart.current) beChart.current.destroy()
+        if (donutChart.current) donutChart.current.destroy()
+      }
     }
-  };
+  }, [tab, sim, drawPlChart, drawBeChart, drawDonut])
 
-  const planFeatures = [
-    "Unlimited manual creation",
-    "Unlimited AI quiz maker",
-    "Unlimited AI flashcards maker",
-    "Unlimited study game auto generation",
-    "Unlimited AI Lesson auto generation",
-    "Unlimited AI quiz generator",
-    "Unlimited quiz participation",
-    "Unlimited study sets sharing",
-    "Study streak tracking",
-    "Study Group collaboration",
-    "Live Boards"
-  ];
+  const c = compute()
+  const pc = c.profit >= 0 ? 'ok' : c.profit > -300 ? 'warn' : 'danger'
+  const mc = c.margin >= 20 ? 'ok' : c.margin >= 0 ? 'warn' : 'danger'
 
   return (
-    <div className="luter-pricing-fullscreen-container">
-      <motion.div 
-        className="luter-pricing-root"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
-      >
-        {/* HEADER SECTION */}
-        <div className="pricing-title-wrap text-center">
-          <h1>Select Your Plan</h1>
-          <p>Get instant access to AI quiz creation, study guides, and shared workspaces.</p>
-        </div>
+    <div style={{ padding: '1.5rem 2rem', maxWidth: 1060, margin: '0 auto', color: 'var(--color-text-primary)', fontFamily: 'var(--font-outfit, Inter, sans-serif)' }}>
+      <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 4 }}>Pricing Hub</h1>
+      <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 20 }}>Plans, token costs, and profitability — all in one place.</p>
 
-        {/* BILLING CYCLES SELECTOR */}
-        <div className="billing-cycle-selector-container">
-          <div className="billing-cycle-selector">
-            <button 
-              className={`cycle-btn ${billingCycle === 'monthly' ? 'active' : ''}`}
-              onClick={() => setBillingCycle('monthly')}
-            >
-              Monthly
-            </button>
-            <button 
-              className={`cycle-btn ${billingCycle === 'quarterly' ? 'active' : ''}`}
-              onClick={() => setBillingCycle('quarterly')}
-            >
-              Quarterly
-              <span className="save-mini">Save 20%</span>
-            </button>
-            <button 
-              className={`cycle-btn ${billingCycle === 'yearly' ? 'active' : ''}`}
-              onClick={() => setBillingCycle('yearly')}
-            >
-              Yearly
-              <span className="save-mini">Save 20%</span>
-            </button>
-          </div>
-          <div className="cancel-policy-note">
-            <span>✓ Cancel Anytime</span>
-            <span>✓ Credit Rollover Enabled</span>
-          </div>
-          {/* ADMIN ENTRY CODE */}
-          <div className="admin-entry-code-wrapper" style={{marginTop: '16px', textAlign: 'center'}}>
-            <input
-              type="text"
-              placeholder="Enter admin code"
-              value={entryCode}
-              onChange={(e) => setEntryCode(e.target.value)}
-              className="admin-code-input"
-              style={{
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0',
-                marginRight: '8px',
-                minWidth: '180px',
-              }}
-            />
-            <button
-              className="admin-code-btn"
-              onClick={async () => {
-                  if (entryCode.trim() === 'LUDMIN') {
-                    try {
-                      const { data: { session } } = await supabase.auth.getSession();
-                      const userId = session?.user?.id;
-                      if (userId) {
-                        await supabase.from('profiles').update({ subscription_tier: 'premium', is_premium: true }).eq('id', userId);
-                      }
-                      // Reload dashboard to reflect premium status
-                      window.location.href = '/dashboard';
-                    } catch (err) {
-                      console.error('Admin bypass failed', err);
-                      setErrorMsg('Admin bypass failed.');
-                    }
-                  } else {
-                    setErrorMsg('Invalid admin code.');
-                  }
-                }}
-              disabled={loadingCheckout !== null}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                background: '#1e1b4b',
-                color: '#fff',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              Apply Coupon
-            </button>
-          </div>
-        </div>
+      <div style={{ display: 'flex', gap: 4, background: 'var(--color-background-secondary)', borderRadius: 8, padding: 4, marginBottom: '1.5rem' }}>
+        {[
+          { key: 'plans', label: 'Plans & pricing' },
+          { key: 'tokens', label: 'Token costs' },
+          { key: 'sim', label: 'Profit simulator' },
+        ].map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            style={{
+              flex: 1, textAlign: 'center', padding: '7px 0', fontSize: 13, fontWeight: 500,
+              borderRadius: 6, cursor: 'pointer',
+              color: tab === t.key ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+              background: tab === t.key ? 'var(--color-background-primary)' : 'transparent',
+              border: tab === t.key ? '.5px solid var(--color-border-tertiary)' : 'none',
+            }}
+          >{t.label}</button>
+        ))}
+      </div>
 
-        <AnimatePresence>
-          {errorMsg && (
-            <motion.div 
-              className="checkout-error-banner"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-            >
-              <ShieldWarning size={16} weight="fill" />
-              <span>{errorMsg}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* CARDS CONTAINER */}
-        <div className="pricing-cards-grid">
-          
-          {/* STARTER PLAN - Electric Border & Glare Hover Animation */}
-          <div className="starter-card-outer">
-            <div className="starter-card-glow-line"></div>
-            <GlareHover
-              width="100%"
-              height="100%"
-              background="#ffffff"
-              borderRadius="16px"
-              borderColor="transparent"
-              glareColor="#ffffff"
-              glareOpacity={0.25}
-              glareAngle={-30}
-              glareSize={250}
-              className="pricing-card-panel starter-card"
-            >
-              <div className="card-top-badge starter-badge">
-                {starterPlan.badge}
+      {tab === 'plans' && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: '1.5rem' }}>
+            {[
+              { tier: 'free', name: 'Free', price: '$0', sub: '/mo', naira: '₦0 · always free', rows: [
+                { label: 'Daily credits', val: '200', cls: '' },
+                { label: 'AI chat', val: '~10/day', cls: '' },
+                { label: 'AI Notes', val: '~2/day', cls: '' },
+                { label: 'Flashcards/quizzes', val: 'included', cls: 'ok' },
+                { label: 'Audio upload', val: 'no', cls: 'danger' },
+                { label: 'Group study', val: 'limited', cls: 'warn' },
+                { label: 'Mock exams', val: 'limited', cls: 'warn' },
+              ], footer: [
+                { label: 'Our cost/user/mo', val: '~$0.60', cls: 'danger' },
+                { label: 'Revenue', val: '$0', cls: '' },
+                { label: 'Margin', val: '-$0.60', cls: 'danger' },
+              ]},
+              { tier: 'pro', name: 'Pro', price: '$7.00', prefix: '$', sub: '/mo', naira: `${formatNaira(7)}/mo · ${formatNaira(3.5)}/2 wks`, rows: [
+                { label: 'Daily credits', val: '1,500', cls: '' },
+                { label: 'AI chat', val: '~75/day', cls: '' },
+                { label: 'AI Notes', val: '~18/day', cls: '' },
+                { label: 'Flashcards/quizzes', val: 'included', cls: 'ok' },
+                { label: 'Audio upload', val: '5 files/day', cls: 'warn' },
+                { label: 'Group study', val: 'included', cls: 'ok' },
+                { label: 'Mock exams', val: 'included', cls: 'ok' },
+              ], footer: [
+                { label: 'Our cost/user/mo', val: '~$4.50 avg', cls: 'warn' },
+                { label: 'Revenue', val: '$7.00', cls: 'ok' },
+                { label: 'Gross margin', val: '~$2.50 (36%)', cls: 'ok' },
+              ]},
+              { tier: 'beast', name: 'Beast', price: '$15.00', prefix: '$', sub: '/mo', naira: `${formatNaira(15)}/mo · ${formatNaira(7.5)}/2 wks`, rows: [
+                { label: 'Daily credits', val: 'unlimited', cls: 'ok' },
+                { label: 'AI chat', val: 'unlimited', cls: 'ok' },
+                { label: 'AI Notes', val: 'unlimited', cls: 'ok' },
+                { label: 'Flashcards/quizzes', val: 'unlimited', cls: 'ok' },
+                { label: 'Audio upload', val: 'unlimited', cls: 'ok' },
+                { label: 'Group study', val: 'unlimited', cls: 'ok' },
+                { label: 'Mock exams', val: 'unlimited', cls: 'ok' },
+              ], footer: [
+                { label: 'Our cost/user/mo', val: '~$7.00 avg', cls: 'warn' },
+                { label: 'Revenue', val: '$15.00', cls: 'ok' },
+                { label: 'Gross margin', val: '~$8.00 (53%)', cls: 'ok' },
+              ]},
+            ].map(plan => (
+              <div key={plan.tier} style={{
+                background: 'var(--color-background-primary)',
+                border: '.5px solid var(--color-border-tertiary)',
+                borderRadius: 12, padding: '1.1rem 1rem', position: 'relative', overflow: 'hidden'
+              }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: TIER_ACCENTS[plan.tier] }} />
+                <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-secondary)', margin: '0 0 4px' }}>{plan.name}</p>
+                <p style={{ fontSize: 26, fontWeight: 500, margin: '0 0 1px', color: 'var(--color-text-primary)' }}>
+                  {plan.prefix && <sup style={{ fontSize: 13, fontWeight: 400, verticalAlign: 'super' }}>{plan.prefix}</sup>}
+                  {plan.price}<sub style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{plan.sub}</sub>
+                </p>
+                <p style={{ fontSize: 11, color: 'var(--color-text-secondary)', margin: '0 0 10px' }}>{plan.naira}</p>
+                <hr style={{ border: 'none', borderTop: '.5px solid var(--color-border-tertiary)', margin: '10px 0' }} />
+                {plan.rows.map(r => (
+                  <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0' }}>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>{r.label}</span>
+                    <span style={{ fontWeight: 500, color: r.cls === 'ok' ? '#0F6E56' : r.cls === 'warn' ? '#BA7517' : r.cls === 'danger' ? '#A32D2D' : undefined }}>{r.val}</span>
+                  </div>
+                ))}
+                <hr style={{ border: 'none', borderTop: '.5px solid var(--color-border-tertiary)', margin: '10px 0' }} />
+                {plan.footer.map(r => (
+                  <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0' }}>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>{r.label}</span>
+                    <span style={{ fontWeight: 500, color: r.cls === 'ok' ? '#0F6E56' : r.cls === 'warn' ? '#BA7517' : r.cls === 'danger' ? '#A32D2D' : undefined }}>{r.val}</span>
+                  </div>
+                ))}
               </div>
+            ))}
+          </div>
+          <div style={{ background: 'var(--color-background-secondary)', borderRadius: 8, padding: '.85rem 1rem', fontSize: 12, color: 'var(--color-text-secondary)' }}>
+            <strong style={{ color: 'var(--color-text-primary)' }}>Yearly plans:</strong> &nbsp;Pro $65/yr (saves ~$19) &nbsp;·&nbsp; Beast $140/yr (saves ~$40) &nbsp;·&nbsp; Locks in users, reduces churn, gives you upfront cash.
+          </div>
+        </>
+      )}
 
-              <div className="card-header-info">
-                <h3>Starter Plan</h3>
-                <div className="price-tag-wrap">
-                  <span className="currency">₦</span>
-                  <span className="amount">{starterPlan.priceText}</span>
-                  <span className="period">{starterPlan.periodText}</span>
+      {tab === 'tokens' && (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr>
+                <th style={{ width: '26%', textAlign: 'left', color: 'var(--color-text-secondary)', fontWeight: 500, padding: '6px 8px 6px 0', borderBottom: '.5px solid var(--color-border-tertiary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.03em' }}>Feature</th>
+                <th style={{ width: '24%', textAlign: 'left', color: 'var(--color-text-secondary)', fontWeight: 500, padding: '6px 8px 6px 0', borderBottom: '.5px solid var(--color-border-tertiary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.03em' }}>Model</th>
+                <th style={{ width: '12%', textAlign: 'left', color: 'var(--color-text-secondary)', fontWeight: 500, padding: '6px 8px 6px 0', borderBottom: '.5px solid var(--color-border-tertiary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.03em' }}>Cost/call</th>
+                <th style={{ width: '10%', textAlign: 'left', color: 'var(--color-text-secondary)', fontWeight: 500, padding: '6px 8px 6px 0', borderBottom: '.5px solid var(--color-border-tertiary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.03em' }}>Credits</th>
+                <th style={{ width: '28%', textAlign: 'left', color: 'var(--color-text-secondary)', fontWeight: 500, padding: '6px 8px 6px 0', borderBottom: '.5px solid var(--color-border-tertiary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.03em' }}>Available on</th>
+              </tr>
+            </thead>
+            <tbody>
+              {TOKENS.map(t => (
+                <tr key={t.feature}>
+                  <td style={{ padding: '7px 8px 7px 0', borderBottom: '.5px solid var(--color-border-tertiary)', verticalAlign: 'middle' }}>{t.feature}</td>
+                  <td style={{ padding: '7px 8px 7px 0', borderBottom: '.5px solid var(--color-border-tertiary)', verticalAlign: 'middle', color: 'var(--color-text-secondary)' }}>{t.model}</td>
+                  <td style={{ padding: '7px 8px 7px 0', borderBottom: '.5px solid var(--color-border-tertiary)', verticalAlign: 'middle', ...costClass(t.cost) }}>${t.cost.toFixed(4)}</td>
+                  <td style={{ padding: '7px 8px 7px 0', borderBottom: '.5px solid var(--color-border-tertiary)', verticalAlign: 'middle' }}>{t.credits}{t.perMinute ? '/min' : ''}</td>
+                  <td style={{ padding: '7px 8px 7px 0', borderBottom: '.5px solid var(--color-border-tertiary)', verticalAlign: 'middle' }}>{t.tiers.map(tierPill)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {tab === 'sim' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+          <div>
+            <div style={{ marginBottom: '.5rem' }}>
+              <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: '.4rem' }}>Users</div>
+              {[
+                { key: 'freeN', label: 'Free users', min: 0, max: 10000, step: 50, suffix: n => n.toLocaleString() },
+                { key: 'conv', label: 'Conversion rate', min: 1, max: 25, step: 1, suffix: n => n + '%' },
+                { key: 'proSplit', label: 'Pro/Beast split', min: 10, max: 90, step: 5, suffix: n => n + '/' + (100 - n) },
+                { key: 'freeInt', label: 'Free usage', min: 10, max: 100, step: 5, suffix: n => n + '%' },
+              ].map(s => (
+                <div key={s.key} style={{ display: 'grid', gridTemplateColumns: '130px 1fr 56px', alignItems: 'center', gap: 8, marginBottom: '.4rem' }}>
+                  <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{s.label}</span>
+                  <input type="range" min={s.min} max={s.max} step={s.step} value={sim[s.key]} onChange={e => updateSim(s.key, parseFloat(e.target.value))} style={{ width: '100%' }} />
+                  <span style={{ fontSize: 12, fontWeight: 500, textAlign: 'right' }}>{s.suffix(sim[s.key])}</span>
                 </div>
-                <p className="renewal-subtext">{starterPlan.billingText}</p>
-              </div>
-
-              <div className="card-cta-section">
-                <motion.button 
-                  className="pricing-action-btn starter-btn"
-                  onClick={() => handleCheckout(starterPlan, 'starter')}
-                  disabled={loadingCheckout !== null || isCurrentPlanActive}
-                  whileHover={{ scale: (loadingCheckout || isCurrentPlanActive) ? 1 : 1.01 }}
-                  whileTap={{ scale: (loadingCheckout || isCurrentPlanActive) ? 1 : 0.99 }}
-                >
-                  {loadingCheckout === 'starter' ? (
-                    <div className="spinner-loader"></div>
-                  ) : isCurrentPlanActive ? (
-                    <span>Current Plan Active</span>
-                  ) : (
-                    <div className="btn-inner-flex">
-                      <span>Activate</span>
-                      <span className="slots-left">Only 163 Slots left</span>
-                    </div>
-                  )}
-                </motion.button>
-              </div>
-
-              <div className="card-features-section">
-                <h4>WHAT'S INCLUDED:</h4>
-                <ul className="features-checklist">
-                  {planFeatures.map((feature, i) => (
-                    <li key={i}>
-                      <Check size={14} weight="bold" className="chk-icon" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </GlareHover>
-          </div>
-
-          {/* BEAST PLAN - Clean dynamic color accents & Lavender Pill button */}
-          <div className="beast-card-outer">
-            <motion.div 
-              className="pricing-card-panel beast-card premium-recommended"
-              whileHover={{ y: -3 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="card-top-badge beast-badge-glow">
-                ★ Recommended
-              </div>
-
-              <div className="card-header-info">
-                <div className="beast-icon-badge">
-                  <Sparkle size={14} weight="fill" />
-                  <span>BEAST MODE</span>
+              ))}
+            </div>
+            <div style={{ marginBottom: '.5rem' }}>
+              <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: '.4rem' }}>Pricing</div>
+              {[
+                { key: 'proP', label: 'Pro ($/mo)', min: 3, max: 20, step: 0.5, suffix: n => '$' + n.toFixed(2) },
+                { key: 'beastP', label: 'Beast ($/mo)', min: 8, max: 30, step: 0.5, suffix: n => '$' + n.toFixed(2) },
+              ].map(s => (
+                <div key={s.key} style={{ display: 'grid', gridTemplateColumns: '130px 1fr 56px', alignItems: 'center', gap: 8, marginBottom: '.4rem' }}>
+                  <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{s.label}</span>
+                  <input type="range" min={s.min} max={s.max} step={s.step} value={sim[s.key]} onChange={e => updateSim(s.key, parseFloat(e.target.value))} style={{ width: '100%' }} />
+                  <span style={{ fontSize: 12, fontWeight: 500, textAlign: 'right' }}>{s.suffix(sim[s.key])}</span>
                 </div>
-                <h3>Beast Plan</h3>
-                <div className="price-tag-wrap">
-                  <span className="currency">₦</span>
-                  <span className="amount">{beastPlan.priceText}</span>
-                  <span className="period">{beastPlan.periodText}</span>
+              ))}
+            </div>
+            <div style={{ marginBottom: '.5rem' }}>
+              <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: '.4rem' }}>Overhead</div>
+              {[
+                { key: 'sal', label: 'Salaries', min: 0, max: 3000, step: 50, suffix: n => '$' + n },
+                { key: 'mkt', label: 'Marketing', min: 0, max: 1000, step: 25, suffix: n => '$' + n },
+                { key: 'host', label: 'Hosting & tools', min: 0, max: 500, step: 10, suffix: n => '$' + n },
+              ].map(s => (
+                <div key={s.key} style={{ display: 'grid', gridTemplateColumns: '130px 1fr 56px', alignItems: 'center', gap: 8, marginBottom: '.4rem' }}>
+                  <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{s.label}</span>
+                  <input type="range" min={s.min} max={s.max} step={s.step} value={sim[s.key]} onChange={e => updateSim(s.key, parseFloat(e.target.value))} style={{ width: '100%' }} />
+                  <span style={{ fontSize: 12, fontWeight: 500, textAlign: 'right' }}>{s.suffix(sim[s.key])}</span>
                 </div>
-                <p className="renewal-subtext">{beastPlan.billingText}</p>
-              </div>
-
-              <div className="card-cta-section">
-                <motion.button 
-                  className="pricing-action-btn beast-btn"
-                  onClick={() => handleCheckout(beastPlan, 'beast')}
-                  disabled={loadingCheckout !== null || isCurrentPlanActive}
-                  whileHover={{ scale: (loadingCheckout || isCurrentPlanActive) ? 1 : 1.01 }}
-                  whileTap={{ scale: (loadingCheckout || isCurrentPlanActive) ? 1 : 0.99 }}
-                >
-                  {loadingCheckout === 'beast' ? (
-                    <div className="spinner-loader"></div>
-                  ) : isCurrentPlanActive ? (
-                    <span>Current Plan Active</span>
-                  ) : (
-                    <span>Go Premium</span>
-                  )}
-                </motion.button>
-              </div>
-
-              <div className="card-features-section">
-                <h4>WHAT'S INCLUDED:</h4>
-                <ul className="features-checklist">
-                  {planFeatures.map((feature, i) => (
-                    <li key={i}>
-                      <Check size={14} weight="bold" className="chk-icon" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </motion.div>
+              ))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: '1rem' }}>
+              {[
+                { label: 'Paid users', val: c.paid, cls: '' },
+                { label: 'Revenue/mo', val: '$' + Math.round(c.rev).toLocaleString(), cls: 'ok' },
+                { label: 'API cost/mo', val: '$' + Math.round(c.tApi).toLocaleString(), cls: 'warn' },
+                { label: 'Overhead/mo', val: '$' + c.oh.toLocaleString(), cls: 'warn' },
+                { label: 'Total cost/mo', val: '$' + Math.round(c.tCost).toLocaleString(), cls: 'danger' },
+                { label: 'Net profit', val: (c.profit >= 0 ? '+' : '') + '$' + Math.round(c.profit).toLocaleString(), cls: pc },
+                { label: 'Net margin', val: Math.round(c.margin) + '%', cls: mc },
+                { label: 'Break-even', val: c.beU + ' paid', cls: '' },
+              ].map(m => (
+                <div key={m.label} style={{ background: 'var(--color-background-secondary)', borderRadius: 8, padding: '.7rem .85rem' }}>
+                  <div style={{ fontSize: 10, color: 'var(--color-text-secondary)', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '.03em' }}>{m.label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 500, color: m.cls === 'ok' ? '#0F6E56' : m.cls === 'warn' ? '#BA7517' : m.cls === 'danger' ? '#A32D2D' : undefined }}>{m.val}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{
+              borderRadius: 8, padding: '9px 12px', fontSize: 12,
+              display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: '1rem',
+              background: c.profit >= 0 ? '#E1F5EE' : c.profit > -300 ? '#FAEEDA' : '#FCEBEB',
+              color: c.profit >= 0 ? '#085041' : c.profit > -300 ? '#633806' : '#791F1F',
+            }}>
+              {c.profit >= 0
+                ? `Profitable — $${Math.round(c.profit).toLocaleString()}/mo after all costs. ${c.margin >= 20 ? 'Healthy margin.' : 'Margin is thin — consider raising prices slightly.'}`
+                : `Losing $${Math.abs(Math.round(c.profit)).toLocaleString()}/mo. Need ${c.beU} paid users to break even — ${Math.max(0, c.beU - c.paid)} more than now.`}
+            </div>
           </div>
-
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '.03em', marginBottom: 4 }}>Revenue vs costs at scale</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 6 }}>
+                <span><span style={{ width: 8, height: 8, borderRadius: 2, display: 'inline-block', background: '#378ADD', marginRight: 4 }}></span>Revenue</span>
+                <span><span style={{ width: 8, height: 8, borderRadius: 2, display: 'inline-block', background: '#E24B4A', marginRight: 4 }}></span>Total cost</span>
+                <span><span style={{ width: 8, height: 8, borderRadius: 2, display: 'inline-block', background: '#1D9E75', marginRight: 4 }}></span>Profit</span>
+              </div>
+              <div style={{ position: 'relative', width: '100%', height: 200 }}><canvas ref={plCanvas} /></div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '.03em', marginBottom: 4 }}>Break-even paid users by overhead</div>
+              <div style={{ position: 'relative', width: '100%', height: 160 }}><canvas ref={beCanvas} /></div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '.03em', marginBottom: 4 }}>Cost breakdown this month</div>
+              <div style={{ position: 'relative', width: '100%', height: 160 }}><canvas ref={donutCanvas} /></div>
+            </div>
+          </div>
         </div>
-
-        <div className="secured-payment-footer">
-          <ShieldCheck size={14} weight="bold" />
-          <span>Payments secured via Paystack. Subscription credits preserve and roll over automatically upon renewals.</span>
-        </div>
-      </motion.div>
+      )}
 
       <style>{`
-        .luter-pricing-fullscreen-container {
-          width: 100%;
-          min-height: calc(100vh - 80px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px 24px;
-          background: #fcfbfe;
-          font-family: 'Outfit', 'Inter', sans-serif;
-        }
-
-        .luter-pricing-root {
-          width: 100%;
-          max-width: 960px;
-          margin: 0 auto;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 20px;
-        }
-
-        /* HEADER */
-        .pricing-title-wrap {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .pricing-title-wrap h1 {
-          font-size: 32px;
-          font-weight: 800;
-          color: #1e1b4b;
-          letter-spacing: -0.02em;
-          margin: 0;
-        }
-
-        .pricing-title-wrap p {
-          font-size: 14px;
-          color: #64748b;
-          max-width: 580px;
-          line-height: 1.45;
-          margin: 0;
-          text-align: center;
-        }
-
-        /* TOGGLE SELECTOR */
-        .billing-cycle-selector-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .billing-cycle-selector {
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 12px; /* Not too round! */
-          padding: 4px;
-          display: flex;
-          gap: 4px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
-        }
-
-        .cycle-btn {
-          padding: 8px 18px;
-          border-radius: 8px; /* Not too round! */
-          border: none;
-          background: transparent;
-          font-size: 13.5px;
-          font-weight: 700;
-          color: #475569;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .cycle-btn.active {
-          background: #1e1b4b; /* Lavender dark */
-          color: #ffffff;
-        }
-
-        .save-mini {
-          font-size: 9px;
-          padding: 1px 5px;
-          border-radius: 4px;
-          background: #dcfce7;
-          color: #15803d;
-          font-weight: 800;
-        }
-
-        .cycle-btn.active .save-mini {
-          background: #15803d;
-          color: #ffffff;
-        }
-
-        .cancel-policy-note {
-          display: flex;
-          gap: 16px;
-          font-size: 12px;
-          color: #475569;
-          font-weight: 600;
-        }
-
-        /* GRID CARDS */
-        .pricing-cards-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 28px;
-          width: 100%;
-          max-width: 860px;
-        }
-
-        .pricing-card-panel {
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 16px; /* Not too round! */
-          padding: 28px 24px;
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          height: 100%;
-          background-clip: padding-box;
-        }
-
-        /* Override GlareHover layout inside panel */
-        .glare-hover.pricing-card-panel {
-          display: flex !important;
-          place-items: unset !important;
-          text-align: left;
-          width: 100% !important;
-          height: 100% !important;
-          border: none !important;
-        }
-
-        /* ELECTRIC BORDER - Conic Rotating Gradient */
-        .starter-card-outer {
-          position: relative;
-          padding: 2px;
-          border-radius: 16px; /* Not too round! */
-          overflow: hidden;
-          background: #e2e8f0;
-        }
-
-        .starter-card-outer::before {
-          content: '';
-          position: absolute;
-          top: -50%;
-          left: -50%;
-          width: 200%;
-          height: 200%;
-          background: conic-gradient(
-            from 0deg,
-            transparent 15%,
-            #22c55e 35%, /* Beautiful Green */
-            #ef4444 55%, /* Bright Red */
-            #a5b4fc 75%, /* Lavender */
-            transparent 100%
-          );
-          animation: rotateElectric 4s linear infinite;
-          z-index: 0;
-        }
-
-        .starter-card-outer .pricing-card-panel {
-          position: relative;
-          z-index: 1;
-          border: none;
-          background: #ffffff;
-        }
-
-        @keyframes rotateElectric {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        /* BEAST CARD - Sleek gradient outline */
-        .beast-card-outer {
-          position: relative;
-          padding: 2px;
-          border-radius: 16px; /* Not too round! */
-          overflow: hidden;
-          background: linear-gradient(135deg, #a5b4fc, #ef4444, #22c55e); /* Lavender, Red, Green */
-        }
-
-        .beast-card-outer .pricing-card-panel {
-          position: relative;
-          z-index: 1;
-          border: none;
-          background: linear-gradient(180deg, #ffffff 0%, #fafbff 100%);
-        }
-
-        /* CARD LABELS & BADGES */
-        .card-top-badge {
-          position: absolute;
-          top: 18px;
-          right: 20px;
-          font-size: 11px;
-          font-weight: 800;
-          padding: 4px 10px;
-          border-radius: 6px; /* Not too round! */
-          z-index: 10;
-        }
-
-        .starter-badge {
-          background: #dcfce7;
-          color: #15803d;
-        }
-
-        .beast-badge-glow {
-          top: -12px;
-          left: 50%;
-          right: auto;
-          transform: translateX(-50%);
-          background: #ef4444; /* Premium red recommendation badge */
-          color: #ffffff;
-          font-size: 11.5px;
-          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
-          letter-spacing: 0.02em;
-        }
-
-        .beast-icon-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          color: #4f46e5; /* Lavender icon theme */
-          font-size: 10px;
-          font-weight: 800;
-          letter-spacing: 0.05em;
-          margin-bottom: 2px;
-        }
-
-        .card-header-info h3 {
-          font-size: 22px;
-          font-weight: 800;
-          color: #1e1b4b;
-          margin: 0 0 4px 0;
-        }
-
-        .price-tag-wrap {
-          display: flex;
-          align-items: baseline;
-        }
-
-        .price-tag-wrap .currency {
-          font-size: 18px;
-          font-weight: 800;
-          color: #1e1b4b;
-          margin-right: 1px;
-        }
-
-        .price-tag-wrap .amount {
-          font-size: 38px;
-          font-weight: 900;
-          color: #1e1b4b;
-          letter-spacing: -0.02em;
-          line-height: 1;
-        }
-
-        .price-tag-wrap .period {
-          font-size: 13.5px;
-          font-weight: 600;
-          color: #64748b;
-          margin-left: 2px;
-        }
-
-        .renewal-subtext {
-          font-size: 12px;
-          color: #64748b;
-          font-weight: 500;
-          margin: 5px 0 0 0;
-          line-height: 1.35;
-        }
-
-        /* BUTTONS */
-        .pricing-action-btn {
-          width: 100%;
-          height: 46px;
-          border-radius: 8px; /* Not too round! */
-          border: none;
-          font-size: 14px;
-          font-weight: 800;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-        }
-
-        .starter-btn {
-          background: #1e1b4b;
-          color: #ffffff;
-        }
-
-        .starter-btn:hover {
-          background: #2e2a72;
-          box-shadow: 0 4px 12px rgba(30, 27, 75, 0.2);
-        }
-
-        /* Go Premium pill effect lavender button */
-        .beast-btn {
-          background: linear-gradient(90deg, #a78bfa, #6366f1); /* Exquisite Lavender/Indigo gradient */
-          color: #ffffff;
-          border-radius: 99px; /* Pill effect! */
-          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
-        }
-
-        .beast-btn:hover {
-          background: linear-gradient(90deg, #8b5cf6, #4f46e5);
-          box-shadow: 0 6px 16px rgba(139, 92, 246, 0.35);
-        }
-
-        .pricing-action-btn:disabled {
-          background: #cbd5e1;
-          color: #94a3b8;
-          cursor: not-allowed;
-          box-shadow: none;
-        }
-
-        .btn-inner-flex {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-        }
-
-        .slots-left {
-          font-size: 10px;
-          background: rgba(255, 255, 255, 0.15);
-          padding: 2px 8px;
-          border-radius: 4px;
-          font-weight: 700;
-        }
-
-        /* FEATURES SECTION */
-        .card-features-section {
-          border-top: 1px solid #f1f5f9;
-          padding-top: 16px;
-        }
-
-        .card-features-section h4 {
-          font-size: 11px;
-          font-weight: 800;
-          letter-spacing: 0.05em;
-          color: #64748b;
-          margin: 0 0 10px 0;
-        }
-
-        .features-checklist {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .features-checklist li {
-          display: flex;
-          align-items: flex-start;
-          gap: 8px;
-          font-size: 12.5px;
-          font-weight: 500;
-          color: #334155;
-          line-height: 1.35;
-        }
-
-        .chk-icon {
-          color: #22c55e; /* Green checkmarks */
-          margin-top: 1px;
-          flex-shrink: 0;
-        }
-
-        /* FOOTER INFO */
-        .secured-payment-footer {
-          max-width: 600px;
-          margin-top: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          font-size: 11px;
-          color: #64748b;
-          text-align: center;
-          line-height: 1.4;
-          font-weight: 500;
-        }
-
-        .secured-payment-footer svg {
-          color: #22c55e; /* Green lock icon */
-          flex-shrink: 0;
-        }
-
-        .checkout-error-banner {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 14px;
-          background: #fef2f2;
-          border: 1px solid #fee2e2;
-          color: #ef4444;
-          border-radius: 8px;
-          font-size: 12.5px;
-          font-weight: 500;
-          width: 100%;
-          max-width: 860px;
-        }
-
-        .spinner-loader {
-          width: 18px;
-          height: 18px;
-          border: 2px solid rgba(255,255,255,0.3);
-          border-radius: 50%;
-          border-top-color: #ffffff;
-          animation: spin 0.8s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 768px) {
-          .pricing-cards-grid {
-            grid-template-columns: 1fr;
-            max-width: 420px;
-          }
-          .luter-pricing-fullscreen-container {
-            min-height: auto;
-            padding: 40px 16px;
-          }
-          .pricing-title-wrap h1 {
-            font-size: 26px;
-          }
-        }
+        .pill{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;margin:1px}
+        .pill-gray{background:#F1EFE8;color:#444441}
+        .pill-blue{background:#E6F1FB;color:#0C447C}
+        .pill-teal{background:#E1F5EE;color:#085041}
+        input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:var(--color-border-tertiary);outline:none}
+        input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:#7C3AED;cursor:pointer;border:2px solid var(--color-background-primary)}
+        input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#7C3AED;cursor:pointer;border:2px solid var(--color-background-primary)}
       `}</style>
     </div>
-  );
+  )
 }

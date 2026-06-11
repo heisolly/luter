@@ -59,8 +59,10 @@ export default function AuthPageShell({
       <style>{`
         .auth-simple-page {
           min-height: 100vh;
+          min-height: 100dvh;
           position: relative;
-          overflow: hidden;
+          overflow-x: clip;
+          overflow-y: auto;
           background:
             radial-gradient(circle at 12% 18%, rgba(196, 181, 253, 0.24) 0%, transparent 30%),
             radial-gradient(circle at 88% 82%, rgba(152, 255, 152, 0.22) 0%, transparent 32%),
@@ -83,6 +85,7 @@ export default function AuthPageShell({
           will-change: transform;
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
+          overflow: hidden;
         }
 
         .auth-love-background section {
@@ -108,19 +111,22 @@ export default function AuthPageShell({
 
         .auth-simple-main {
           min-height: 100vh;
+          min-height: 100dvh;
           position: relative;
           z-index: 2;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 32px 20px;
+          padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
           box-sizing: border-box;
         }
 
         .auth-simple-card {
           width: min(100%, 522px);
-          max-height: calc(100vh - 64px);
+          max-height: calc(100vh - 48px);
+          max-height: calc(100dvh - 48px);
           overflow-y: auto;
+          overscroll-behavior: contain;
           background:
             linear-gradient(180deg, rgba(249, 250, 251, 0.94), rgba(249, 250, 251, 0.9)),
             radial-gradient(circle at 0% 0%, rgba(255, 210, 166, 0.2), transparent 36%),
@@ -131,6 +137,7 @@ export default function AuthPageShell({
           backdrop-filter: blur(18px);
           padding: 32px 28px 28px;
           text-align: center;
+          box-sizing: border-box;
         }
 
         .auth-simple-logo-link {
@@ -397,9 +404,34 @@ export default function AuthPageShell({
 
         .auth-success-card strong {
           color: #333333;
+          overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 900px) {
+          .auth-love-background {
+            inset: -8vh -55vw;
+            opacity: 0.72;
+            transform: rotate(-4deg) scale(1) translateZ(0);
+            -webkit-transform: rotate(-4deg) scale(1) translateZ(0);
+          }
+
+          .auth-simple-main {
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+
+          .auth-simple-card {
+            width: min(100%, 500px);
+            padding: 30px 24px 26px;
+            border-radius: 26px;
+          }
         }
 
         @media (max-width: 640px) {
+          .auth-simple-page {
+            overflow-y: auto;
+          }
+
           .auth-love-background {
             inset: -5vh -190vw;
             opacity: 0.5;
@@ -408,16 +440,15 @@ export default function AuthPageShell({
           }
 
           .auth-simple-main {
-            align-items: flex-start;
-            padding: 18px 12px 32px;
+            align-items: center;
+            min-height: 100svh;
+            padding: max(14px, env(safe-area-inset-top)) 12px max(24px, env(safe-area-inset-bottom));
           }
 
           .auth-simple-card {
-            max-height: none;
-            min-height: calc(100vh - 36px);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+            max-height: calc(100svh - 38px);
+            min-height: auto;
+            overflow-y: auto;
             padding: 24px 18px;
             border-radius: 20px;
           }
@@ -427,11 +458,15 @@ export default function AuthPageShell({
           }
 
           .auth-simple-copy h1 {
-            font-size: 2rem;
+            font-size: clamp(1.8rem, 8vw, 2.15rem);
+            line-height: 1.08;
+            letter-spacing: -0.025em;
           }
 
           .auth-simple-copy p {
             font-size: 14px;
+            line-height: 1.48;
+            max-width: 32rem;
           }
 
           .auth-mode-switch {
@@ -441,6 +476,91 @@ export default function AuthPageShell({
           .auth-input {
             min-height: 52px;
             font-size: 14px;
+          }
+
+          .auth-success-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            font-size: 34px;
+          }
+
+          .auth-success-card h2 {
+            font-size: 28px;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .auth-simple-main {
+            padding-left: 10px;
+            padding-right: 10px;
+          }
+
+          .auth-simple-card {
+            padding: 22px 14px;
+            border-radius: 18px;
+          }
+
+          .auth-simple-logo-link {
+            margin-bottom: 14px;
+          }
+
+          .auth-simple-logo {
+            height: 32px;
+          }
+
+          .auth-mode-switch {
+            width: min(100%, 204px);
+            height: 48px;
+            margin: 18px auto;
+          }
+
+          .auth-form {
+            gap: 10px;
+          }
+
+          .auth-input-wrap svg {
+            left: 16px;
+            font-size: 17px;
+          }
+
+          .auth-input {
+            min-height: 50px;
+            padding-left: 44px;
+          }
+
+          .auth-divider {
+            margin: 13px 0;
+          }
+
+          .auth-footer-link {
+            margin-top: 14px;
+            font-size: 13px;
+            line-height: 1.45;
+          }
+
+          .auth-bottom-note {
+            margin-top: 14px;
+            font-size: 11.5px;
+          }
+        }
+
+        @media (max-width: 340px) {
+          .auth-simple-card {
+            padding-left: 12px;
+            padding-right: 12px;
+          }
+
+          .auth-simple-copy h1 {
+            font-size: 1.72rem;
+          }
+
+          .auth-simple-copy p {
+            font-size: 13px;
+          }
+
+          .auth-mode-switch {
+            width: 190px;
           }
         }
       `}</style>

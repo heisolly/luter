@@ -3,10 +3,11 @@ import { useOutletContext } from 'react-router-dom'
 import { Sparkle, Loader2, FileText } from '@phosphor-icons/react'
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS } from '../../groqClient'
+import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService'
 import ReactMarkdown from 'react-markdown'
 
 export default function AISummaryPage() {
-  const { user } = useOutletContext()
+  const { user, profile } = useOutletContext()
   const [materials, setMaterials] = useState([])
   const [selectedMaterial, setSelectedMaterial] = useState(null)
   const [summary, setSummary] = useState('')
@@ -25,6 +26,8 @@ export default function AISummaryPage() {
     if (!selectedMaterial?.extracted_text) return
     setIsGenerating(true)
     try {
+      const { ok } = await checkAndDeductCredits(user?.id, CREDIT_COSTS.GENERATE_SUMMARY, profile?.is_premium)
+      if (!ok) { setIsGenerating(false); return }
       const response = await callGroqAPI(
         [{ role: 'user', content: selectedMaterial.extracted_text }],
         GROQ_MODELS.SPEEDSTER,

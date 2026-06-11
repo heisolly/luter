@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import ColourPicker from '../ui/ColourPicker';
 import { 
   Highlighter, ChatCircle, Copy, Trash, Sparkle, 

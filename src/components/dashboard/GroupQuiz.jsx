@@ -3,8 +3,9 @@ import { useStorage, useMutation, useOthers, useSelf } from '../../liveblocks.co
 import { LiveList, LiveObject } from '@liveblocks/client';
 import { Trophy, Lightning, Play, Users } from '@phosphor-icons/react';
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient';
+import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService';
 
-export const GroupQuiz = ({ materialText, isPresenter }) => {
+export const GroupQuiz = ({ materialText, isPresenter, user, profile }) => {
   const quizState   = useStorage((root) => root.quizState)   ?? 'idle';
   // useStorage returns the serialized value of LiveList — a plain array
   const questions   = useStorage((root) => root.quizQuestions) ?? [];
@@ -19,6 +20,10 @@ export const GroupQuiz = ({ materialText, isPresenter }) => {
 
   const startQuiz = useMutation(async ({ storage }) => {
     if (!materialText) return;
+
+    const { ok } = await checkAndDeductCredits(user?.id, CREDIT_COSTS.GROUP_QUIZ, profile?.is_premium)
+    if (!ok) return
+
     setIsGenerating(true);
     storage.set('quizState', 'generating');
 

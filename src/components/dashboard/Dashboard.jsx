@@ -2,21 +2,65 @@ import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import DashboardSidebar from './DashboardSidebar'
-import { RiLoader4Line as Loader2, RiSwordFill as Sword, RiCloseLine as X, RiArrowRightLine as ArrowRight } from 'react-icons/ri'
-import { SidebarSimple } from '@phosphor-icons/react'
+import { Loader2, Sword, X, ArrowRight, Sidebar as SidebarSimple } from 'lucide-react'
+import { Backpack, DotsThree, House, NotePencil, UsersThree } from '@phosphor-icons/react'
 import { LuterPageLoader } from '../shared/LuterPageLoader'
 import { motion, AnimatePresence } from 'framer-motion'
 import LuterLogo from '../shared/LuterLogo'
 import './dashboard.css'
 import { DashboardPrefetchProvider } from '../../context/DashboardPrefetchContext'
 import NotificationsOverlay from './NotificationsOverlay'
-import FloatingDock from './FloatingDock'
 import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceStore'
 import { preloadingService } from '../../services/preloadingService'
 import { LANDING_URL } from '../../utils/urlUtils'
 
 import { LuterTourGuide } from '../shared/tour/LuterTourGuide'
 import { useTourStore } from '../../store/useTourStore'
+
+function DashboardMobileBottomNav({ pathname, navigate, onMore }) {
+  const isActive = (target) => {
+    if (target === '/dashboard') return pathname === '/dashboard' || pathname === '/dashboard/' || pathname === '/home'
+    if (target === '/dashboard/courses') return pathname.startsWith('/dashboard/courses') || pathname.startsWith('/backpack')
+    if (target === '/sessions') return pathname.startsWith('/sessions') || pathname.startsWith('/dashboard/sessions')
+    if (target === '/dashboard/notes') return pathname.startsWith('/dashboard/notes') || pathname.startsWith('/notes')
+    return pathname === target || pathname.startsWith(`${target}/`)
+  }
+
+  const items = [
+    { label: 'Home', path: '/dashboard', icon: House },
+    { label: 'Backpack', path: '/dashboard/courses', icon: Backpack },
+    { label: 'Sessions', path: '/sessions', icon: UsersThree },
+    { label: 'Notes', path: '/dashboard/notes', icon: NotePencil },
+  ]
+
+  return (
+    <nav className="dash-mobile-bottom-nav" aria-label="Dashboard quick navigation">
+      {items.map(({ label, path, icon: Icon }) => {
+        const active = isActive(path)
+        return (
+          <button
+            key={path}
+            type="button"
+            className={`dash-mobile-bottom-item${active ? ' active' : ''}`}
+            onClick={() => navigate(path)}
+            aria-current={active ? 'page' : undefined}
+          >
+            <Icon size={22} weight={active ? 'fill' : 'regular'} />
+            <span>{label}</span>
+          </button>
+        )
+      })}
+      <button
+        type="button"
+        className="dash-mobile-bottom-item dash-mobile-bottom-more"
+        onClick={onMore}
+      >
+        <DotsThree size={26} weight="bold" />
+        <span>More</span>
+      </button>
+    </nav>
+  )
+}
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -215,7 +259,7 @@ export default function Dashboard() {
   }, [navigate])
 
 
-  const isWorkstation = location.pathname.includes('/workstation')
+  const isWorkstation = location.pathname.includes('/workstation') || location.pathname.includes('/notes/editor') || location.pathname.includes('/ai-chat')
   const isFocusPage = isWorkstation || location.pathname.includes('/mock-exam') || location.pathname.includes('/profile') || location.pathname.includes('/trash') || location.pathname.includes('/analytics')
   const isPlayground = location.pathname.includes('/playground')
   const [sidebarHovered, setSidebarHovered] = useState(false)
@@ -352,21 +396,22 @@ export default function Dashboard() {
           style={{
             position: 'fixed',
             top: 0, left: 0, bottom: 0,
-            width: '10px',
-            zIndex: 9998,
+            width: '20px',
+            zIndex: 10002,  // above AI panel (9999) and floating dock (10001)
           }}
         />
       )}
         <AnimatePresence>
           {sidebarHovered && sidebarCollapsed && !isMobile && (
             <motion.div
-              initial={{ x: -280, opacity: 0, scale: 0.9 }}
-              animate={{ x: 0, opacity: 1, scale: 1 }}
-              exit={{ x: -280, opacity: 0, scale: 0.9 }}
-              transition={{ 
-                type: "spring", 
-                stiffness: 450, 
-                damping: 35 
+              initial={{ x: -290, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -290, opacity: 0 }}
+              transition={{
+                type: "spring",
+                stiffness: 380,
+                damping: 32,
+                mass: 0.8
               }}
               className="floating-sidebar-dock"
               onMouseLeave={() => setSidebarHovered(false)}
@@ -416,32 +461,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Floating sidebar toggle when closed on desktop */}
-        {!isMobile && sidebarCollapsed && !isWorkstation && !location.pathname.includes('/pricing') && (
-          <button
-            onClick={() => setSidebarCollapsed(false)}
-            className="dsb-floating-toggle"
-            style={{
-              position: 'fixed',
-              top: '20px',
-              left: '20px',
-              zIndex: 10002,
-              background: 'white',
-              border: '1px solid var(--border)',
-              padding: '10px',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-              color: 'var(--text)'
-            }}
-            title="Open sidebar"
-          >
-            <SidebarSimple size={24} weight="bold" />
-          </button>
-        )}
+
 
         <main
           className={`dash-main 
@@ -451,13 +471,29 @@ export default function Dashboard() {
           `}
           style={{
             paddingTop: isMobile && !isWorkstation ? 64 : 0,
-            paddingBottom: 0,
+            paddingBottom: isMobile && !isWorkstation ? 'calc(92px + env(safe-area-inset-bottom, 0px))' : 0,
           }}
         >
-          <Outlet context={{ user, isMobile, sidebarCollapsed, setSidebarCollapsed, profile, mobileSidebarOpen, setMobileSidebarOpen }} />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+            >
+              <Outlet context={{ user, isMobile, sidebarCollapsed, setSidebarCollapsed, profile, mobileSidebarOpen, setMobileSidebarOpen, setNotificationsOpen }} />
+            </motion.div>
+          </AnimatePresence>
         </main>
-  
-        {!(isWorkstation && isMobile) && <FloatingDock user={user} isMobile={isMobile} />}
+
+        {isMobile && !isWorkstation && (
+          <DashboardMobileBottomNav
+            pathname={location.pathname}
+            navigate={navigate}
+            onMore={() => setMobileSidebarOpen(true)}
+          />
+        )}
   
         <NotificationsOverlay isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
       </div>

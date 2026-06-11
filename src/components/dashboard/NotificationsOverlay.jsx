@@ -1,520 +1,255 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  RiCloseLine as X,
-  RiMagicFill as Sparkles,
-  RiFireFill as Flame,
-  RiNotification3Fill as Bell,
-  RiBookOpenFill as BookOpen,
-  RiTrophyFill as Trophy,
-  RiTeamFill as Users,
-  RiArrowRightLine as ArrowRight,
-  RiSettings4Fill as Settings,
-  RiCheckboxCircleFill as CheckCircle,
-} from 'react-icons/ri'
-import { useNotificationStore, NotificationTypes } from '../../store/useNotificationStore'
+import { X, Bell, Check, Trash } from 'lucide-react'
 
-const MOCK_NOTIFICATIONS = [
+/* ─── Mock data (swap with real Supabase fetch) ──────────────────── */
+const INITIAL_NOTIFS = [
   {
-    id: 1,
-    title: 'Keep Your Streak Alive!',
-    description: "You're on a 5-day streak! Just 2 minutes of study today to make it 6 days.",
-    time: '2h ago',
-    unread: true,
-    type: 'streak',
-    icon: Flame,
-    iconBg: 'linear-gradient(135deg, #ff7043, #ff5722)',
-    action: { label: 'Continue Streak', path: '/dashboard/workstation' },
+    id: 1, read: false,
+    emoji: '🔥', emojiBg: 'rgba(255,107,53,0.12)',
+    title: 'Streak at risk!',
+    body: "You haven't studied today — your 7-day streak ends in 2 hours.",
+    time: '2m ago', action: 'Study now',
   },
   {
-    id: 2,
-    title: 'AI Summary Complete',
-    description: '"Modern Physics" notes are ready. Smart summary & flashcards generated.',
-    time: '4h ago',
-    unread: true,
-    type: 'ai',
-    icon: Sparkles,
-    iconBg: 'linear-gradient(135deg, #7a12cc, #9718fb)',
-    action: { label: 'View Summary', path: '/dashboard/courses/physics' },
+    id: 2, read: false,
+    emoji: '👥', emojiBg: 'rgba(196,181,253,0.2)',
+    title: 'Session invite',
+    body: 'Alex invited you to join the "Physics Finals" study room.',
+    time: '18m ago', action: 'Join',
   },
   {
-    id: 3,
-    title: 'Study Group Invitation',
-    description: 'Sarah invited you to "CS101 Study Squad" for exam prep.',
-    time: 'Yesterday',
-    unread: true,
-    type: 'social',
-    icon: Users,
-    iconBg: 'linear-gradient(135deg, #0284c7, #0ea5e9)',
-    action: { label: 'Join Group', path: '/dashboard/study-groups/123' },
-  },
-  {
-    id: 4,
-    title: 'Weekly Achievement Unlocked',
-    description: 'You earned 1,250 XP this week! Top 5% at your university.',
-    time: '2 days ago',
-    unread: false,
-    type: 'achievement',
-    icon: Trophy,
-    iconBg: 'linear-gradient(135deg, #d97706, #f59e0b)',
-  },
-  {
-    id: 5,
-    title: 'New Course Material',
-    description: 'Week 8 materials for "Data Structures" are now available.',
-    time: '3 days ago',
-    unread: false,
-    type: 'course',
-    icon: BookOpen,
-    iconBg: 'linear-gradient(135deg, #059669, #10b981)',
-    action: { label: 'View Materials', path: '/dashboard/courses/ds' },
+    id: 3, read: true,
+    emoji: '🃏', emojiBg: 'rgba(152,255,152,0.22)',
+    title: 'Deck ready',
+    body: 'Your Calculus II flashcard deck is ready — 42 cards generated.',
+    time: '1h ago', action: 'Study',
   },
 ]
 
 export default function NotificationsOverlay({ isOpen, onClose }) {
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS)
-  const [activeFilter, setActiveFilter] = useState('all')
+  const [items, setItems]   = useState(INITIAL_NOTIFS)
+  const [isDark, setIsDark] = useState(() => document.body.classList.contains('dark-mode'))
+  const [hoveredId, setHov] = useState(null)
+  const cardRef             = useRef(null)
 
-  const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, unread: false })))
-  const dismiss = (id) => setNotifications(prev => prev.filter(n => n.id !== id))
-  const markRead = (id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, unread: false } : n))
+  /* dark mode observer */
+  useEffect(() => {
+    const obs = new MutationObserver(() => setIsDark(document.body.classList.contains('dark-mode')))
+    obs.observe(document.body, { attributes: true, attributeFilter: ['class'] })
+    return () => obs.disconnect()
+  }, [])
 
-  const unreadCount = notifications.filter(n => n.unread).length
+  /* Escape key */
+  useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') onClose() }
+    if (isOpen) window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [isOpen, onClose])
 
-  const filters = [
-    { id: 'all', label: 'All' },
-    { id: 'ai', label: 'AI' },
-    { id: 'streak', label: 'Streaks' },
-    { id: 'social', label: 'Social' },
-    { id: 'achievement', label: 'Awards' },
-  ]
+  /* click outside */
+  useEffect(() => {
+    const h = (e) => { if (cardRef.current && !cardRef.current.contains(e.target)) onClose() }
+    if (isOpen) setTimeout(() => document.addEventListener('mousedown', h), 80)
+    return () => document.removeEventListener('mousedown', h)
+  }, [isOpen, onClose])
 
-  const filtered = activeFilter === 'all' ? notifications : notifications.filter(n => n.type === activeFilter)
+  const unread   = items.filter(n => !n.read).length
+  const markAll  = () => setItems(p => p.map(n => ({ ...n, read: true })))
+  const dismiss  = (id) => { setItems(p => p.filter(n => n.id !== id)); setHov(null) }
+  const markRead = (id) => setItems(p => p.map(n => n.id === id ? { ...n, read: true } : n))
+  const clearAll = () => setItems([])
+
+  /* theme */
+  const cardBg = isDark ? '#1F2937' : '#ffffff'
+  const bd     = isDark ? '#374151' : '#E5E7EB'
+  const subtle = isDark ? '#374151' : '#F3F4F6'
+  const txt    = isDark ? '#F9FAFB' : '#333333'
+  const muted  = isDark ? '#9CA3AF' : '#6B7280'
+  const isEmpty = items.length === 0
 
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* transparent backdrop — click to close */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            key="nb-bd"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
-            style={backdropStyles}
+            style={{ position: 'fixed', inset: 0, zIndex: 9000 }}
           />
 
-          {/* Panel */}
+          {/* ── Floating card — bottom-left, right of sidebar ── */}
           <motion.div
-            initial={{ opacity: 0, x: 40, scale: 0.97 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 40, scale: 0.97 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            style={panelStyles}
+            key="nb-card"
+            ref={cardRef}
+            initial={{ opacity: 0, y: 12, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0,  scale: 1    }}
+            exit={{    opacity: 0, y: 12, scale: 0.97 }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            style={{
+              position:      'fixed',
+              left:          '270px',
+              bottom:        '76px',
+              width:         '340px',
+              maxHeight:     '440px',
+              background:    cardBg,
+              border:        `1px solid ${bd}`,
+              borderRadius:  16,
+              boxShadow:     isDark
+                ? '0 20px 52px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.05)'
+                : '0 20px 52px rgba(0,0,0,0.13), 0 0 0 1px rgba(0,0,0,0.04)',
+              zIndex:        9001,
+              fontFamily:    "'Outfit','Inter',sans-serif",
+              display:       'flex',
+              flexDirection: 'column',
+              overflow:      'hidden',
+            }}
           >
-            {/* Decorative glow */}
-            <div style={panelGlowStyles} />
 
             {/* ── Header ── */}
-            <div style={panelHeaderStyles}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={headerIconStyles}>
-                  <Bell size={18} color="#7a12cc" />
-                  {unreadCount > 0 && <div style={unreadDotStyles}>{unreadCount}</div>}
-                </div>
-                <div>
-                  <h2 style={headerTitleStyles}>Notifications</h2>
-                  <p style={headerSubtitleStyles}>{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}</p>
-                </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px 11px', borderBottom: `1px solid ${bd}`, flexShrink: 0 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(196,181,253,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Bell size={15} color="#7a12cc" weight="fill" />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {unreadCount > 0 && (
-                  <button onClick={markAllRead} style={markAllBtnStyles}>
-                    <CheckCircle size={14} /> Mark all read
+
+              <div style={{ flex: 1 }}>
+                <span style={{ fontSize: 14, fontWeight: 800, color: txt, letterSpacing: '-0.01em' }}>
+                  Notifications
+                </span>
+                {unread > 0 && (
+                  <span style={{ marginLeft: 7, fontSize: 10, fontWeight: 800, background: '#C4B5FD', color: '#333', borderRadius: 99, padding: '1px 6px' }}>
+                    {unread} unread
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: 5 }}>
+                {unread > 0 && (
+                  <button onClick={markAll} title="Mark all read"
+                    style={{ width: 27, height: 27, borderRadius: 8, border: 'none', background: subtle, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a12cc' }}>
+                    <Check size={13} weight="bold" />
                   </button>
                 )}
-                <button onClick={onClose} style={closeBtnStyles}>
-                  <X size={18} />
+                <button onClick={onClose}
+                  style={{ width: 27, height: 27, borderRadius: 8, border: 'none', background: subtle, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: muted }}>
+                  <X size={13} weight="bold" />
                 </button>
               </div>
             </div>
 
-            {/* ── Filters ── */}
-            <div style={filterRowStyles}>
-              {filters.map(f => (
-                <button
-                  key={f.id}
-                  onClick={() => setActiveFilter(f.id)}
-                  style={{
-                    ...filterBtnStyles,
-                    background: activeFilter === f.id ? '#7a12cc' : 'transparent',
-                    color: activeFilter === f.id ? 'white' : '#64748b',
-                  }}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
+            {/* ── Body ── */}
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {isEmpty ? (
+                /* empty state */
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '38px 24px', gap: 12, textAlign: 'center' }}>
+                  <div style={{ width: 54, height: 54, borderRadius: '50%', background: subtle, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Bell size={24} color={muted} weight="regular" />
+                  </div>
+                  <div>
+                    <p style={{ margin: '0 0 3px', fontSize: 14, fontWeight: 700, color: txt }}>No notifications yet</p>
+                    <p style={{ margin: 0, fontSize: 12, color: muted }}>You're all caught up for now</p>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: '6px 8px' }}>
+                  <AnimatePresence initial={false}>
+                    {items.map(n => {
+                      const isHov = hoveredId === n.id
+                      const rowBg = isHov
+                        ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)')
+                        : n.read
+                          ? 'transparent'
+                          : (isDark ? 'rgba(196,181,253,0.06)' : 'rgba(196,181,253,0.07)')
 
-            {/* ── List ── */}
-            <div style={listStyles}>
-              <AnimatePresence initial={false}>
-                {filtered.length > 0 ? filtered.map((notif, idx) => {
-                  const NotifIcon = notif.icon
-                  return (
-                    <motion.div
-                      key={notif.id}
-                      initial={{ opacity: 0, y: -8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: 40, height: 0, marginBottom: 0 }}
-                      transition={{ duration: 0.25, delay: idx * 0.04 }}
-                      style={{
-                        ...notifItemStyles,
-                        background: notif.unread ? 'rgba(122,18,204,0.02)' : 'white',
-                        borderColor: notif.unread ? 'rgba(122,18,204,0.08)' : '#f1f5f9',
-                      }}
-                      onClick={() => markRead(notif.id)}
-                    >
-                      {/* Unread indicator */}
-                      {notif.unread && <div style={unreadBarStyles} />}
-
-                      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                        {/* Icon */}
-                        <div style={{ ...notifIconStyles, background: notif.iconBg }}>
-                          <NotifIcon size={18} color="white" />
-                        </div>
-
-                        {/* Content */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-                            <h4 style={{ ...notifTitleStyles, fontWeight: notif.unread ? 800 : 700 }}>{notif.title}</h4>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); dismiss(notif.id) }}
-                              style={dismissBtnStyles}
-                            >
-                              <X size={14} />
-                            </button>
+                      return (
+                        <motion.div
+                          key={n.id}
+                          layout
+                          initial={{ opacity: 0, y: -6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, x: 26, transition: { duration: 0.17 } }}
+                          onMouseEnter={() => setHov(n.id)}
+                          onMouseLeave={() => setHov(null)}
+                          onClick={() => markRead(n.id)}
+                          style={{
+                            display: 'flex', gap: 10,
+                            padding: '10px 10px 10px 12px',
+                            borderRadius: 12, marginBottom: 4,
+                            cursor: 'pointer',
+                            background: rowBg,
+                            borderLeft: n.read ? '3px solid transparent' : '3px solid #C4B5FD',
+                            transition: 'background 0.14s',
+                          }}
+                        >
+                          {/* Emoji bubble */}
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: n.emojiBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0, alignSelf: 'flex-start', marginTop: 1 }}>
+                            {n.emoji}
                           </div>
-                          <p style={notifDescStyles}>{notif.description}</p>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 10 }}>
-                            <span style={notifTimeStyles}>{notif.time}</span>
-                            {notif.action && (
-                              <button style={notifActionBtnStyles}>
-                                {notif.action.label} <ArrowRight size={12} />
-                              </button>
-                            )}
+
+                          {/* Content */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ margin: 0, fontSize: 13, fontWeight: n.read ? 600 : 800, color: txt, lineHeight: 1.35 }}>
+                              {n.title}
+                            </p>
+                            <p style={{ margin: '3px 0 0', fontSize: 12, color: muted, lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                              {n.body}
+                            </p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 7 }}>
+                              <span style={{ fontSize: 11, color: isDark ? '#6B7280' : '#9CA3AF', fontWeight: 500 }}>{n.time}</span>
+                              {n.action && (
+                                <button
+                                  onClick={e => { e.stopPropagation(); markRead(n.id) }}
+                                  style={{ fontSize: 11, fontWeight: 800, color: '#7a12cc', background: 'rgba(196,181,253,0.2)', border: 'none', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontFamily: 'inherit' }}
+                                >
+                                  {n.action}
+                                </button>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )
-                }) : (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    style={emptyStateStyles}
-                  >
-                    <div style={emptyIconStyles}>
-                      <Bell size={28} color="#cbd5e1" />
-                    </div>
-                    <h3 style={emptyTitleStyles}>All caught up!</h3>
-                    <p style={emptyDescStyles}>No notifications in this category.</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+
+                          {/* Dismiss X — fades in on row hover */}
+                          <button
+                            onClick={e => { e.stopPropagation(); dismiss(n.id) }}
+                            title="Dismiss"
+                            style={{
+                              width: 22, height: 22, borderRadius: 6, border: 'none',
+                              background: 'transparent', color: muted,
+                              cursor: 'pointer', display: 'flex', alignItems: 'center',
+                              justifyContent: 'center', flexShrink: 0,
+                              alignSelf: 'flex-start', marginTop: 2,
+                              opacity: isHov ? 0.65 : 0,
+                              transition: 'opacity 0.15s',
+                            }}
+                          >
+                            <X size={11} weight="bold" />
+                          </button>
+                        </motion.div>
+                      )
+                    })}
+                  </AnimatePresence>
+                </div>
+              )}
             </div>
 
             {/* ── Footer ── */}
-            <div style={footerStyles}>
-              <button style={footerBtnStyles}>
-                <Settings size={15} /> Notification Settings
-              </button>
-            </div>
+            {!isEmpty && (
+              <div style={{ padding: '9px 10px', borderTop: `1px solid ${bd}`, flexShrink: 0 }}>
+                <button onClick={clearAll}
+                  style={{ width: '100%', padding: '8px', borderRadius: 9, border: `1px solid ${bd}`, background: 'transparent', fontSize: 12, fontWeight: 600, color: muted, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'background 0.14s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = subtle}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <Trash size={13} />
+                  Clear all notifications
+                </button>
+              </div>
+            )}
+
           </motion.div>
         </>
       )}
     </AnimatePresence>
   )
-}
-
-// ── STYLES ──
-
-const backdropStyles = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(0,0,0,0.25)',
-  backdropFilter: 'blur(4px)',
-  zIndex: 50,
-}
-
-const panelStyles = {
-  position: 'fixed',
-  top: 16,
-  right: 16,
-  bottom: 16,
-  width: 420,
-  background: 'white',
-  borderRadius: 28,
-  boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 40px 80px rgba(0,0,0,0.12)',
-  zIndex: 51,
-  display: 'flex',
-  flexDirection: 'column',
-  overflow: 'hidden',
-  fontFamily: "'Outfit', sans-serif",
-}
-
-const panelGlowStyles = {
-  position: 'absolute',
-  top: -60,
-  right: -60,
-  width: 200,
-  height: 200,
-  borderRadius: '50%',
-  background: 'radial-gradient(circle, rgba(122,18,204,0.08) 0%, transparent 70%)',
-  pointerEvents: 'none',
-}
-
-const panelHeaderStyles = {
-  padding: '24px 24px 20px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  borderBottom: '1px solid #f1f5f9',
-}
-
-const headerIconStyles = {
-  width: 44,
-  height: 44,
-  borderRadius: 16,
-  background: 'rgba(122,18,204,0.07)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  position: 'relative',
-}
-
-const unreadDotStyles = {
-  position: 'absolute',
-  top: -4,
-  right: -4,
-  width: 18,
-  height: 18,
-  background: 'linear-gradient(135deg, #7a12cc, #9718fb)',
-  color: 'white',
-  borderRadius: 99,
-  fontSize: 10,
-  fontWeight: 900,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  border: '2px solid white',
-}
-
-const headerTitleStyles = {
-  fontSize: 18,
-  fontWeight: 900,
-  color: '#0f172a',
-  margin: 0,
-  letterSpacing: '-0.02em',
-}
-
-const headerSubtitleStyles = {
-  fontSize: 12,
-  fontWeight: 600,
-  color: '#94a3b8',
-  margin: '2px 0 0',
-}
-
-const markAllBtnStyles = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 6,
-  padding: '8px 14px',
-  background: 'rgba(122,18,204,0.06)',
-  border: 'none',
-  borderRadius: 12,
-  fontSize: 12,
-  fontWeight: 800,
-  color: '#7a12cc',
-  cursor: 'pointer',
-}
-
-const closeBtnStyles = {
-  width: 36,
-  height: 36,
-  borderRadius: 12,
-  background: '#f8fafc',
-  border: '1px solid #f1f5f9',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: '#94a3b8',
-  cursor: 'pointer',
-}
-
-const filterRowStyles = {
-  display: 'flex',
-  gap: 4,
-  padding: '16px 20px',
-  overflowX: 'auto',
-}
-
-const filterBtnStyles = {
-  padding: '7px 14px',
-  borderRadius: 99,
-  border: 'none',
-  fontSize: 12,
-  fontWeight: 700,
-  cursor: 'pointer',
-  whiteSpace: 'nowrap',
-  transition: 'all 0.2s',
-}
-
-const listStyles = {
-  flex: 1,
-  overflowY: 'auto',
-  padding: '0 12px',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 4,
-}
-
-const notifItemStyles = {
-  padding: '16px 18px',
-  borderRadius: 20,
-  border: '1px solid',
-  cursor: 'pointer',
-  position: 'relative',
-  overflow: 'hidden',
-  transition: 'all 0.2s',
-}
-
-const unreadBarStyles = {
-  position: 'absolute',
-  left: 0,
-  top: '20%',
-  bottom: '20%',
-  width: 3,
-  background: 'linear-gradient(180deg, #7a12cc, #9718fb)',
-  borderRadius: 99,
-}
-
-const notifIconStyles = {
-  width: 44,
-  height: 44,
-  borderRadius: 16,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0,
-}
-
-const notifTitleStyles = {
-  fontSize: 14,
-  color: '#0f172a',
-  margin: 0,
-  letterSpacing: '-0.01em',
-  lineHeight: 1.3,
-}
-
-const notifDescStyles = {
-  fontSize: 13,
-  color: '#64748b',
-  fontWeight: 500,
-  lineHeight: 1.5,
-  margin: '6px 0 0',
-}
-
-const notifTimeStyles = {
-  fontSize: 11,
-  fontWeight: 700,
-  color: '#cbd5e1',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-}
-
-const notifActionBtnStyles = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-  padding: '4px 12px',
-  background: 'rgba(122,18,204,0.06)',
-  border: 'none',
-  borderRadius: 99,
-  fontSize: 12,
-  fontWeight: 800,
-  color: '#7a12cc',
-  cursor: 'pointer',
-}
-
-const dismissBtnStyles = {
-  width: 28,
-  height: 28,
-  borderRadius: 10,
-  background: 'transparent',
-  border: 'none',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: '#cbd5e1',
-  cursor: 'pointer',
-  flexShrink: 0,
-  transition: 'all 0.15s',
-}
-
-const emptyStateStyles = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '80px 40px',
-  textAlign: 'center',
-}
-
-const emptyIconStyles = {
-  width: 80,
-  height: 80,
-  background: '#f8fafc',
-  borderRadius: 28,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginBottom: 24,
-}
-
-const emptyTitleStyles = {
-  fontSize: 18,
-  fontWeight: 800,
-  color: '#1e293b',
-  margin: '0 0 8px',
-}
-
-const emptyDescStyles = {
-  fontSize: 14,
-  fontWeight: 500,
-  color: '#94a3b8',
-  margin: 0,
-}
-
-const footerStyles = {
-  padding: '16px 20px',
-  borderTop: '1px solid #f1f5f9',
-}
-
-const footerBtnStyles = {
-  width: '100%',
-  padding: '14px',
-  borderRadius: 16,
-  background: '#f8fafc',
-  border: '1px solid #f1f5f9',
-  fontSize: 13,
-  fontWeight: 800,
-  color: '#475569',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 8,
-  cursor: 'pointer',
-  transition: 'all 0.2s',
 }

@@ -1,0 +1,439 @@
+/* =============================================
+   DASHBOARD NAVBAR — Header.css
+   Brand: #C4B5FD (purple) | #98FF98 (mint) | #FFD2A6 (peach)
+   Deep purple: #7a12cc
+   ============================================= */
+
+/* ── Navbar Container ── */
+.luter-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 28px 0 20px;
+  margin-bottom: 0;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: rgba(249, 250, 251, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.7);
+  transition: background 0.3s, border-color 0.3s;
+  gap: 16px;
+}
+
+body.dark-mode .luter-navbar {
+  background: rgba(17, 24, 39, 0.85);
+  border-bottom-color: rgba(55, 65, 81, 0.6);
+}
+
+/* ── Left Section ── */
+.lnav-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+/* ── Sidebar Toggle ── */
+.lnav-sidebar-toggle {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.18s;
+  flex-shrink: 0;
+}
+
+.lnav-sidebar-toggle:hover {
+  background: rgba(122, 18, 204, 0.06);
+  border-color: rgba(122, 18, 204, 0.15);
+  color: #7a12cc;
+}
+
+body.dark-mode .lnav-sidebar-toggle:hover {
+  background: rgba(196, 181, 253, 0.1);
+  color: #C4B5FD;
+}
+
+/* ── Page Title ── */
+.lnav-page-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0a0a0a;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.3s;
+}
+
+body.dark-mode .lnav-page-title {
+  color: #F9FAFB;
+}
+
+/* ── Search Bar ── */
+.lnav-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 0 14px;
+  height: 40px;
+  min-width: 220px;
+  max-width: 340px;
+  width: 100%;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.3s;
+  cursor: text;
+}
+
+.lnav-search-wrap:focus-within {
+  border-color: #C4B5FD;
+  box-shadow: 0 0 0 3px rgba(196, 181, 253, 0.2);
+  background: #ffffff;
+}
+
+body.dark-mode .lnav-search-wrap {
+  background: rgba(31, 41, 55, 0.9);
+  border-color: #374151;
+}
+
+body.dark-mode .lnav-search-wrap:focus-within {
+  border-color: #C4B5FD;
+  box-shadow: 0 0 0 3px rgba(196, 181, 253, 0.12);
+}
+
+.lnav-search-icon {
+  color: #9CA3AF;
+  flex-shrink: 0;
+  transition: color 0.18s;
+}
+
+.lnav-search-wrap:focus-within .lnav-search-icon {
+  color: #7a12cc;
+}
+
+body.dark-mode .lnav-search-wrap:focus-within .lnav-search-icon {
+  color: #C4B5FD;
+}
+
+.lnav-search-input {
+  flex: 1;
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 14px;
+  font-family: 'Outfit', 'Varela Round', sans-serif;
+  color: #111827;
+  min-width: 0;
+}
+
+.lnav-search-input::placeholder {
+  color: #9CA3AF;
+}
+
+body.dark-mode .lnav-search-input {
+  color: #F9FAFB;
+}
+
+body.dark-mode .lnav-search-input::placeholder {
+  color: #6B7280;
+}
+
+.lnav-search-kbd {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.lnav-kbd {
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: #F3F4F6;
+  border: 1px solid #E5E7EB;
+  font-size: 10px;
+  font-weight: 700;
+  color: #6B7280;
+  font-family: 'Outfit', monospace;
+  line-height: 1.6;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
+
+.lnav-search-wrap:focus-within .lnav-kbd {
+  display: none;
+}
+
+body.dark-mode .lnav-kbd {
+  background: rgba(55, 65, 81, 0.8);
+  border-color: #4B5563;
+  color: #9CA3AF;
+}
+
+/* ── Right Section ── */
+.lnav-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Divider ── */
+.lnav-divider {
+  width: 1px;
+  height: 24px;
+  background: #E5E7EB;
+  margin: 0 6px;
+  transition: background 0.3s;
+}
+
+body.dark-mode .lnav-divider {
+  background: #374151;
+}
+
+/* ── Action Button (shared) ── */
+.lnav-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  transition: background 0.16s, color 0.16s;
+  white-space: nowrap;
+  color: #374151;
+}
+
+.lnav-action-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #111827;
+}
+
+body.dark-mode .lnav-action-btn {
+  color: #9CA3AF;
+}
+
+body.dark-mode .lnav-action-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #F9FAFB;
+}
+
+/* ── Streak Button ── */
+.lnav-streak-btn {
+  color: #b45309;
+}
+
+.lnav-streak-btn:hover {
+  background: rgba(255, 155, 56, 0.1) !important;
+  color: #92400e !important;
+}
+
+/* ── Level Button ── */
+.lnav-level-btn {
+  color: #6d28d9;
+}
+
+.lnav-level-btn:hover {
+  background: rgba(109, 40, 217, 0.08) !important;
+  color: #5b21b6 !important;
+}
+
+/* ── Coins Button ── */
+.lnav-coins-btn {
+  color: #92400e;
+}
+
+.lnav-coins-btn:hover {
+  background: rgba(254, 153, 35, 0.1) !important;
+  color: #78350f !important;
+}
+
+/* ── Create (Plus) Button ── */
+.lnav-create-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 16px;
+  height: 38px;
+  border-radius: 11px;
+  border: none;
+  background: #7a12cc;
+  color: white;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.12s, box-shadow 0.18s;
+  box-shadow: 0 2px 8px rgba(122, 18, 204, 0.25);
+  white-space: nowrap;
+}
+
+.lnav-create-btn:hover {
+  background: #6d10b8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(122, 18, 204, 0.35);
+}
+
+.lnav-create-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(122, 18, 204, 0.2);
+}
+
+/* ── Profile Avatar ── */
+.lnav-avatar-btn {
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: 4px;
+}
+
+.lnav-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7a12cc 0%, #9d4edd 100%);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
+  border: 2.5px solid transparent;
+  background-clip: padding-box;
+  box-shadow: 0 0 0 2px #E5E7EB;
+  transition: box-shadow 0.18s, transform 0.18s;
+  font-family: 'Outfit', 'Inter', sans-serif;
+}
+
+.lnav-avatar:hover {
+  box-shadow: 0 0 0 2.5px #C4B5FD;
+  transform: scale(1.06);
+}
+
+body.dark-mode .lnav-avatar {
+  box-shadow: 0 0 0 2px #374151;
+}
+
+body.dark-mode .lnav-avatar:hover {
+  box-shadow: 0 0 0 2.5px #C4B5FD;
+}
+
+.lnav-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── Mobile Search Button ── */
+.lnav-mobile-search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.lnav-mobile-search-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #374151;
+}
+
+/* ── Pill Tabs ── */
+.lnav-tabs-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 32px;
+  margin-top: 24px;
+}
+
+.lnav-tabs-inner {
+  display: flex;
+  background: #F3F4F6;
+  border-radius: 13px;
+  padding: 4px;
+  gap: 3px;
+}
+
+body.dark-mode .lnav-tabs-inner {
+  background: #1F2937;
+}
+
+.lnav-tab-btn {
+  padding: 9px 22px;
+  border-radius: 10px;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  background: transparent;
+  color: #64748b;
+}
+
+.lnav-tab-btn.active {
+  background: white;
+  color: #111827;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+body.dark-mode .lnav-tab-btn {
+  color: #9CA3AF;
+}
+
+body.dark-mode .lnav-tab-btn.active {
+  background: #374151;
+  color: #F9FAFB;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .lnav-search-wrap {
+    display: none;
+  }
+
+  .lnav-level-btn {
+    display: none;
+  }
+
+  .lnav-page-title {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .luter-navbar {
+    padding: 0 16px;
+    gap: 10px;
+  }
+
+  .lnav-coins-btn {
+    display: none;
+  }
+}

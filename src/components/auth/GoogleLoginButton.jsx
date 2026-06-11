@@ -86,9 +86,9 @@ const GoogleLoginButton = () => {
   };
 
   return (
-    <div className="w-full flex flex-col items-center" style={{ marginBottom: '16px' }}>
+    <div className="w-full flex flex-col items-center auth-google-button" style={{ marginBottom: '16px', maxWidth: '100%' }}>
       {/* The Refined Custom Button Container */}
-      <div className={`relative w-full h-[52px] group active:scale-[0.99] transition-all duration-200 ${isAuthenticating ? 'pointer-events-none opacity-75' : ''}`}>
+      <div className={`relative w-full h-[52px] max-w-full group active:scale-[0.99] transition-all duration-200 ${isAuthenticating ? 'pointer-events-none opacity-75' : ''}`}>
         
         {/* Styled Layer: Premium Sleek Design */}
         <div className="absolute inset-0 flex items-center justify-center gap-3 bg-[#F9FAFB] border-[1px] border-[#C4B5FD]/70 rounded-full transition-all duration-300 
@@ -108,7 +108,7 @@ const GoogleLoginButton = () => {
             )}
           </div>
           
-          <span className="text-[14px] font-bold text-[#333333] font-outfit uppercase tracking-wider">
+          <span className="auth-google-label text-[14px] font-bold text-[#333333] font-outfit uppercase tracking-wider">
             {isAuthenticating ? 'Signing in...' : 'Continue with Google'}
           </span>
         </div>
@@ -127,6 +127,32 @@ const GoogleLoginButton = () => {
           />
         </div>
       </div>
+      <style>{`
+        .auth-google-button,
+        .auth-google-button > div {
+          min-width: 0;
+        }
+
+        .auth-google-button iframe,
+        .auth-google-button div[role="button"] {
+          max-width: 100% !important;
+        }
+
+        @media (max-width: 420px) {
+          .auth-google-button {
+            margin-bottom: 13px !important;
+          }
+
+          .auth-google-button > div {
+            height: 50px !important;
+          }
+
+          .auth-google-label {
+            font-size: 12px !important;
+            letter-spacing: 0.04em !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

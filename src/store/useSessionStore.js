@@ -68,19 +68,28 @@ export const useSessionStore = create(
         currentUserId: null,
       }),
 
-      loadSessions: async (force = false) => {
+      loadSessions: async (force = false, userIdOverride = null) => {
         if (get().loading && !force) return
 
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
+        let userId = userIdOverride || get().currentUserId
+        if (!userId) {
+          try {
+            const { data: { session } } = await supabase.auth.getSession()
+            userId = session?.user?.id || null
+          } catch (error) {
+            console.warn('[SessionStore] Could not read auth session:', error?.message || error)
+            return
+          }
+        }
+        if (!userId) return
 
-        if (get().currentUserId && get().currentUserId !== user.id) {
+        if (get().currentUserId && get().currentUserId !== userId) {
           get().resetStore()
         }
-        set({ currentUserId: user.id, loading: true })
+        set({ currentUserId: userId, loading: true })
 
         try {
-          const sharedIds = await fetchSharedSessionIds(user.id)
+          const sharedIds = await fetchSharedSessionIds(userId)
           let query = supabase
             .from('deck_sessions')
             .select('*, member_count:deck_session_members(count)')
@@ -88,9 +97,9 @@ export const useSessionStore = create(
             .order('last_accessed', { ascending: false })
 
           if (sharedIds.length) {
-            query = query.or(`user_id.eq.${user.id},id.in.(${sharedIds.join(',')})`)
+            query = query.or(`user_id.eq.${userId},id.in.(${sharedIds.join(',')})`)
           } else {
-            query = query.eq('user_id', user.id)
+            query = query.eq('user_id', userId)
           }
 
           const { data, error } = await query
@@ -128,7 +137,7 @@ export const useSessionStore = create(
             session_name: sessionName || 'New Study Session',
             items,
             is_active: true,
-            last_accessed: new Date().toISOString(),
+            last_accessed_at: new Date().toISOString(),
             group_id: groupId,
             session_type: sessionType,
             is_shared: isShared,
@@ -194,7 +203,16 @@ export const useSessionStore = create(
       },
 
       shareSession: async (sessionId, options = {}) => {
-        const session = get().sessions.find((item) => item.id === sessionId)
+        let session = get().sessions.find((item) => item.id === sessionId)
+        if (!session) {
+          const { data, error } = await supabase
+            .from('deck_sessions')
+            .select('*')
+            .eq('id', sessionId)
+            .maybeSingle()
+          if (error) return { success: false, error: error.message }
+          session = data
+        }
         if (!session) return { success: false, error: 'Session not found' }
 
         const shareCode = session.share_code || buildShareCode()

@@ -4,8 +4,10 @@ import { Viewer, Worker, SpecialZoomLevel } from '@react-pdf-viewer/core'
 import { searchPlugin } from '@react-pdf-viewer/search'
 import { pageNavigationPlugin } from '@react-pdf-viewer/page-navigation'
 import { zoomPlugin } from '@react-pdf-viewer/zoom'
+import { highlightPlugin, Trigger } from '@react-pdf-viewer/highlight'
 import '@react-pdf-viewer/core/lib/styles/index.css'
 import '@react-pdf-viewer/search/lib/styles/index.css'
+import '@react-pdf-viewer/highlight/lib/styles/index.css'
 import {
   FileText,
   DownloadSimple as Download,
@@ -81,6 +83,9 @@ export default function FlashkaDocumentViewer({
   material,
   scrollContainerRef,
   highlights,
+  highlightColors = [],
+  createPdfViewerHighlight,
+  preparePdfViewerHighlight,
   initCanvas,
   startDrawing,
   draw,
@@ -151,6 +156,124 @@ export default function FlashkaDocumentViewer({
   const searchPluginInstance = searchPlugin()
   const pageNavigationPluginInstance = pageNavigationPlugin()
   const zoomPluginInstance = zoomPlugin()
+  const safeHighlightColors = Array.isArray(highlightColors) ? highlightColors : []
+  const viewerHighlightColors = safeHighlightColors.length
+    ? safeHighlightColors
+    : [
+        { id: 'yellow', bg: '#FEF08A', border: '#FDE047', label: 'Yellow' },
+        { id: 'green', bg: '#BBF7D0', border: '#4ADE80', label: 'Green' },
+        { id: 'purple', bg: '#DDD6FE', border: '#A78BFA', label: 'Purple' },
+      ]
+
+  const getHighlightAreas = useCallback((highlight) => {
+    if (Array.isArray(highlight.areas) && highlight.areas.length > 0) {
+      return highlight.areas
+    }
+
+    return (highlight.rects || []).map((rect) => ({
+      pageIndex: Math.max(0, (highlight.pageNum || 1) - 1),
+      left: rect.left * 100,
+      top: rect.top * 100,
+      width: rect.width * 100,
+      height: rect.height * 100,
+    }))
+  }, [])
+
+  const renderHighlightTarget = useCallback((props) => {
+    const selection = {
+      highlightAreas: props.highlightAreas,
+      selectedText: props.selectedText,
+      selectionData: props.selectionData,
+    }
+
+    return (
+      <div
+        className="luter-pdf-highlight-target"
+        style={{
+          position: 'absolute',
+          left: `${props.selectionRegion.left}%`,
+          top: `${props.selectionRegion.top}%`,
+          transform: 'translateY(calc(-100% - 8px))',
+          zIndex: 50,
+        }}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="luter-pdf-highlight-target__colors">
+          {viewerHighlightColors.slice(0, 5).map((color) => (
+            <button
+              key={color.id}
+              type="button"
+              title={color.label || color.id}
+              style={{ '--highlight-color': color.bg, '--highlight-border': color.border || color.bg }}
+              onClick={() => {
+                createPdfViewerHighlight?.(color, selection)
+                props.cancel()
+              }}
+            />
+          ))}
+        </div>
+        <button
+          type="button"
+          className="luter-pdf-highlight-target__ask"
+          title="Ask Luter"
+          onClick={() => {
+            const containerRect = scrollContainerRef?.current?.getBoundingClientRect()
+            preparePdfViewerHighlight?.(selection, containerRect ? {
+              x: ((props.selectionRegion.left + props.selectionRegion.width / 2) / 100) * containerRect.width,
+              y: (props.selectionRegion.top / 100) * containerRect.height,
+            } : null)
+            props.cancel()
+          }}
+        >
+          <MessageIcon size={14} weight="fill" />
+        </button>
+      </div>
+    )
+  }, [createPdfViewerHighlight, preparePdfViewerHighlight, scrollContainerRef, viewerHighlightColors])
+
+  const renderHighlights = useCallback((props) => (
+    <div>
+      {(highlights || []).map((highlight) => (
+        <React.Fragment key={highlight.id}>
+          {getHighlightAreas(highlight)
+            .filter((area) => area.pageIndex === props.pageIndex)
+            .map((area, index) => (
+              <button
+                key={`${highlight.id}-${index}`}
+                type="button"
+                className="luter-pdf-highlight-area"
+                title={highlight.text || 'Highlight'}
+                style={{
+                  ...props.getCssProperties(area, props.rotation),
+                  '--highlight-color': highlight.color || '#FEF08A',
+                }}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  const containerRect = scrollContainerRef?.current?.getBoundingClientRect()
+                  setHighlightToolbox?.({
+                    x: containerRect ? event.clientX - containerRect.left : event.clientX,
+                    y: containerRect ? event.clientY - containerRect.top : event.clientY,
+                    text: highlight.text,
+                    existingId: highlight.id,
+                  })
+                }}
+              />
+            ))}
+        </React.Fragment>
+      ))}
+    </div>
+  ), [getHighlightAreas, highlights, scrollContainerRef, setHighlightToolbox])
+
+  const highlightPluginInstance = highlightPlugin({
+    trigger: Trigger.TextSelection,
+    renderHighlightTarget,
+    renderHighlights,
+  })
+  const { zoomTo } = zoomPluginInstance
+
+  useEffect(() => {
+    highlightPluginInstance.switchTrigger(highlightMode ? Trigger.TextSelection : Trigger.None)
+  }, [highlightMode, highlightPluginInstance])
 
   // Handle fullscreen changes
   useEffect(() => {
@@ -288,7 +411,7 @@ export default function FlashkaDocumentViewer({
   const renderPage = (props) => {
     const pageNum = props.pageIndex + 1;
     return (
-      <div style={{ position: 'relative', width: '100%', height: '100%' }} className="notranslate" translate="no">
+      <div style={{ position: 'relative', minWidth: 0 }} className="flashka-page-render notranslate" translate="no">
         <div style={{
           background: 'white',
           borderRadius: '10px',
@@ -298,10 +421,9 @@ export default function FlashkaDocumentViewer({
           marginRight: 'auto',
           maxWidth: '100%',
           display: 'block',
-          overflow: 'hidden',
+          overflow: 'visible',
           position: 'relative',
-          width: '100%',
-          height: '100%'
+          boxSizing: 'border-box'
         }}>
           {props.canvasLayer.children}
           {props.textLayer.children}
@@ -318,38 +440,6 @@ export default function FlashkaDocumentViewer({
             drawMode={drawMode}
           />
 
-          {/* Page-relative Highlights Overlay */}
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              pointerEvents: 'none',
-              zIndex: 9,
-            }}
-          >
-            {(highlights || [])
-              .filter((h) => h.pageNum === pageNum)
-              .map((h) =>
-                h.rects?.map((r, idx) => (
-                  <div
-                    key={`${h.id}-${idx}`}
-                    style={{
-                      position: 'absolute',
-                      left: `${r.left * 100}%`,
-                      top: `${r.top * 100}%`,
-                      width: `${r.width * 100}%`,
-                      height: `${r.height * 100}%`,
-                      background: h.color,
-                      opacity: 0.4,
-                      mixBlendMode: 'multiply',
-                    }}
-                  />
-                ))
-              )}
-          </div>
         </div>
 
         {/* Comment Thread Markers */}
@@ -517,7 +607,7 @@ export default function FlashkaDocumentViewer({
         .flashka-desk .rpv-core__viewer {
           background: transparent !important;
           border: none !important;
-          overflow-x: auto !important;
+          overflow-x: hidden !important;
           overflow-y: auto !important;
           padding: 0px 0px 100px 0px !important;
           scroll-behavior: smooth !important;
@@ -533,7 +623,8 @@ export default function FlashkaDocumentViewer({
           will-change: transform !important;
           display: flex !important;
           justify-content: center !important;
-          width: 100% !important;
+          width: auto !important;
+          min-width: 0 !important;
           max-width: 100% !important;
         }
         .flashka-desk .rpv-core__page-layer {
@@ -545,7 +636,8 @@ export default function FlashkaDocumentViewer({
           margin-right: auto !important;
           max-width: 100% !important;
           display: block !important;
-          overflow: hidden !important;
+          overflow: visible !important;
+          box-sizing: border-box !important;
           transition: none !important;
           transform: translateZ(0) !important;
           will-change: transform !important;
@@ -573,24 +665,10 @@ export default function FlashkaDocumentViewer({
         }
         .flashka-desk img,
         .flashka-desk canvas {
-          max-width: 100% !important;
-          width: auto !important;
-          height: auto !important;
           display: block !important;
         }
 
-        /* High-Fidelity Custom SVG Cursors & Text Interactivity */
-        .ws-highlight-active {
-          cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28' fill='none'><path d='M4 24L7.5 20.5L3.5 16.5L0 20L4 24Z' fill='%23F59E0B'/><path d='M7.5 20.5L20 8L16 4L3.5 16.5L7.5 20.5Z' fill='%23FDE68A' stroke='%23D97706' stroke-width='1.5'/><path d='M20 8L24 4.5C24.5 4 25.5 4 26 4.5C26.5 5 26.5 6 26 6.5L22.5 10.5L18.5 6.5' fill='%23D97706'/></svg>") 0 24, text !important;
-        }
-        .ws-annotate-active {
-          cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28' fill='none'><path d='M0 28L4 18L10 24L0 28Z' fill='%237C3AED'/><path d='M4 18L20 2L26 8L10 24L4 18Z' fill='%23ECE9FC' stroke='%237C3AED' stroke-width='1.5'/></svg>") 0 28, crosshair !important;
-        }
-        .ws-annotate-active.ws-eraser-active {
-          cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28' fill='none'><rect x='2' y='14' width='14' height='12' rx='2' fill='%23EF4444' stroke='%23DC2626' stroke-width='1.5'/><rect x='10' y='2' width='14' height='14' rx='2' fill='%23FCA5A5' stroke='%23EF4444' stroke-width='1.5' transform='rotate(15 10 2)'/></svg>") 4 20, pointer !important;
-        }
-
-        /* Force Selectable PDF Text Layer inside Highlight Mode */
+        /* Force selectable PDF text layer inside highlight mode */
         .ws-highlight-active .rpv-core__text-layer,
         .ws-highlight-active .rpv-core__text-layer *,
         .ws-highlight-active .rpv-core__text-line,
@@ -598,6 +676,84 @@ export default function FlashkaDocumentViewer({
           pointer-events: auto !important;
           user-select: text !important;
           -webkit-user-select: text !important;
+        }
+        .luter-pdf-highlight-target {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 5px;
+          border-radius: 9999px;
+          border: 1px solid rgba(229, 231, 235, 0.92);
+          background: rgba(255, 255, 255, 0.96);
+          box-shadow: 0 12px 34px rgba(17, 24, 39, 0.16);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          pointer-events: auto;
+        }
+        body.dark-mode .luter-pdf-highlight-target {
+          border-color: rgba(255, 255, 255, 0.12);
+          background: rgba(17, 24, 39, 0.96);
+        }
+        .luter-pdf-highlight-target__colors {
+          display: inline-flex;
+          gap: 3px;
+        }
+        .luter-pdf-highlight-target__colors button {
+          width: 24px;
+          height: 24px;
+          border-radius: 9999px;
+          border: 2px solid var(--highlight-border);
+          background: var(--highlight-color);
+          cursor: pointer;
+          transition: transform 140ms ease, box-shadow 140ms ease;
+        }
+        .luter-pdf-highlight-target__colors button:hover {
+          transform: translateY(-1px) scale(1.04);
+          box-shadow: 0 4px 10px rgba(17, 24, 39, 0.12);
+        }
+        .luter-pdf-highlight-target__ask {
+          width: 26px;
+          height: 26px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 0;
+          border-radius: 9999px;
+          background: rgba(196, 181, 253, 0.28);
+          color: #7a12cc;
+          cursor: pointer;
+        }
+        body.dark-mode .luter-pdf-highlight-target__ask {
+          color: #C4B5FD;
+          background: rgba(196, 181, 253, 0.18);
+        }
+        .luter-pdf-highlight-area {
+          position: absolute;
+          border: 0;
+          padding: 0;
+          background: var(--highlight-color);
+          opacity: 0.44;
+          mix-blend-mode: multiply;
+          cursor: pointer;
+          border-radius: 2px;
+          transition: opacity 140ms ease;
+        }
+        .luter-pdf-highlight-area:hover {
+          opacity: 0.62;
+        }
+        body.dark-mode .luter-pdf-highlight-area {
+          mix-blend-mode: screen;
+          opacity: 0.34;
+        }
+        .ws-annotate-active .rpv-highlight__selected-text,
+        .ws-annotate-active .luter-pdf-highlight-target {
+          display: none !important;
+        }
+        .ws-annotate-active .rpv-core__text-layer,
+        .ws-annotate-active .rpv-core__text-layer * {
+          pointer-events: none !important;
+          user-select: none !important;
+          -webkit-user-select: none !important;
         }
       `
       document.head.appendChild(style)
@@ -635,16 +791,51 @@ export default function FlashkaDocumentViewer({
   }, [onPageChange])
 
   const zoomIn = useCallback(() => {
-    setScale(prev => Math.min(prev + 0.1, 3.0))
-  }, [])
+    setScale((prev) => {
+      const next = Math.min((typeof prev === 'number' ? prev : 1) + 0.1, 3.0)
+      zoomTo(next)
+      return next
+    })
+  }, [zoomTo])
 
   const zoomOut = useCallback(() => {
-    setScale(prev => Math.max(prev - 0.1, 0.5))
-  }, [])
+    setScale((prev) => {
+      const next = Math.max((typeof prev === 'number' ? prev : 1) - 0.1, 0.5)
+      zoomTo(next)
+      return next
+    })
+  }, [zoomTo])
 
   const fitToWidth = useCallback(() => {
     setScale(SpecialZoomLevel.PageWidth)
-  }, [])
+    zoomTo(SpecialZoomLevel.PageWidth)
+  }, [zoomTo])
+
+  useEffect(() => {
+    if (!docLoaded) return undefined
+
+    let frameId = window.requestAnimationFrame(() => {
+      zoomTo(SpecialZoomLevel.PageWidth)
+    })
+
+    const target = viewerContainerRef.current || scrollContainerRef?.current
+    if (!target || typeof ResizeObserver === 'undefined') {
+      return () => window.cancelAnimationFrame(frameId)
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      window.cancelAnimationFrame(frameId)
+      frameId = window.requestAnimationFrame(() => {
+        zoomTo(SpecialZoomLevel.PageWidth)
+      })
+    })
+    resizeObserver.observe(target)
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+      resizeObserver.disconnect()
+    }
+  }, [docLoaded, scrollContainerRef, zoomTo])
 
   const toggleFullscreen = useCallback(() => {
     const container = viewerContainerRef.current
@@ -695,8 +886,6 @@ export default function FlashkaDocumentViewer({
     highlightMode ? 'ws-highlight-active' : ''
   } ${
     annotateMode ? 'ws-annotate-active' : ''
-  } ${
-    annotateMode && isEraserMode ? 'ws-eraser-active' : ''
   }`.trim()
 
   return (
@@ -737,7 +926,7 @@ export default function FlashkaDocumentViewer({
           <Viewer
             key={fileUrl}
             fileUrl={fileUrl}
-            plugins={[searchPluginInstance, pageNavigationPluginInstance, zoomPluginInstance]}
+            plugins={[searchPluginInstance, pageNavigationPluginInstance, zoomPluginInstance, highlightPluginInstance]}
             defaultScale={scale}
             initialPage={initialPage > 0 ? initialPage - 1 : 0}
             onDocumentLoad={handleDocumentLoad}

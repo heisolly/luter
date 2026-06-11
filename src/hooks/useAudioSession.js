@@ -1,15 +1,34 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { dailyService } from '../services/dailyService'
+import { ConnectionState } from 'livekit-client'
+import { livekitService, normalizeLiveKitRoomName } from '../services/livekitService'
 
-export const useAudioSession = (sessionId, userName) => {
+const statusFromLiveKitState = (state) => {
+  if (state === ConnectionState.Connected) return 'connected'
+  if (state === ConnectionState.Connecting) return 'connecting'
+  if (state === ConnectionState.Reconnecting) return 'reconnecting'
+  return 'idle'
+}
+
+export const useAudioSession = (roomId, userInfo = {}) => {
+  const userId = typeof userInfo === 'object' ? userInfo.userId : null
+  const userName = typeof userInfo === 'object' ? userInfo.userName : userInfo
   const [isJoined, setIsJoined] = useState(false)
   const [isMicEnabled, setIsMicEnabled] = useState(true)
   const [isSpeakerEnabled, setIsSpeakerEnabled] = useState(true)
   const [participantCount, setParticipantCount] = useState(0)
-  const [connectionStatus, setConnectionStatus] = useState('idle') // idle, connecting, connected, failed
+  const [participants, setParticipants] = useState([])
+  const [activeSpeakers, setActiveSpeakers] = useState([])
+  const [connectionStatus, setConnectionStatus] = useState('idle') // idle, connecting, connected, reconnecting, failed
   const [error, setError] = useState(null)
-  const roomUrlRef = useRef(null)
-  const eventListenersRef = useRef({})
+  const isJoinedRef = useRef(false)
+  const joinPromiseRef = useRef(null)
+  const removeListenersRef = useRef(null)
+  const activeSpeakersRef = useRef([])
+
+  const setJoinedState = useCallback((joined) => {
+    isJoinedRef.current = joined
+    setIsJoined(joined)
+  }, [])
 
   const logAudioHook = useCallback((level, message, data) => {
     const debugState = window.__luterAudioHookDebug || { logs: [] }
@@ -32,137 +51,151 @@ export const useAudioSession = (sessionId, userName) => {
   /**
    * Update participant count
    */
-  const updateParticipantCount = useCallback(() => {
+  const updateParticipants = useCallback((speakers = activeSpeakersRef.current) => {
     try {
-      const participants = dailyService.getParticipants()
-      setParticipantCount(participants.length)
+      const nextParticipants = livekitService.getParticipants(speakers)
+      setParticipantCount(nextParticipants.length)
+      setParticipants(nextParticipants)
     } catch (err) {
       console.error('Failed to update participant count:', err)
     }
+  }, [])
+
+  const removeEventListeners = useCallback(() => {
+    removeListenersRef.current?.()
+    removeListenersRef.current = null
   }, [])
 
   /**
    * Join the audio session
    */
   const joinSession = useCallback(async () => {
-    if (!sessionId) {
-      logAudioHook('warn', 'Skipping audio auto-join: no workspace session id yet', { sessionId, userName })
+    const roomName = normalizeLiveKitRoomName(roomId)
+    if (!roomName) {
+      logAudioHook('warn', 'Skipping audio join: no workspace room id yet', { roomId, userName })
       return
     }
-    if (!userName) {
-      logAudioHook('warn', 'Skipping audio auto-join: no user name yet', { sessionId, userName })
+    if (!userId || !userName) {
+      logAudioHook('warn', 'Skipping audio join: no user identity yet', { roomName, userId, userName })
       return
     }
-    if (isJoined) {
-      logAudioHook('info', 'Skipping audio auto-join: already joined', { sessionId, userName })
+    if (isJoinedRef.current) {
+      logAudioHook('info', 'Skipping audio join: already joined', { roomName, userName })
       return
     }
+    if (joinPromiseRef.current) return joinPromiseRef.current
 
-    try {
-      logAudioHook('info', 'Starting audio auto-join', { sessionId, userName })
+    const joinPromise = (async () => {
+      logAudioHook('info', 'Starting LiveKit audio join', { roomName, userName })
       setConnectionStatus('connecting')
       setError(null)
 
-      const roomUrl = await dailyService.getRoomUrl(sessionId)
+      const { token, livekitUrl } = await livekitService.getToken({ roomName, userId, username: userName })
+      const room = await livekitService.connect({ livekitUrl, token, userName })
 
-      roomUrlRef.current = roomUrl
+      removeEventListeners()
 
-      await dailyService.joinRoom(roomUrl, userName)
+      removeListenersRef.current = livekitService.addAudioEventListeners({
+        onParticipantsChanged: () => updateParticipants(),
+        onActiveSpeakersChanged: (speakers) => {
+          activeSpeakersRef.current = speakers || []
+          setActiveSpeakers(activeSpeakersRef.current.map((speaker) => ({
+            id: speaker.sid || speaker.identity,
+            identity: speaker.identity,
+            name: speaker.name || speaker.identity || 'Peer',
+          })))
+          updateParticipants(activeSpeakersRef.current)
+        },
+        onConnectionStateChanged: (state) => {
+          setConnectionStatus(statusFromLiveKitState(state))
+        },
+        onDisconnected: () => {
+          setJoinedState(false)
+          setConnectionStatus('idle')
+          setParticipantCount(0)
+          setParticipants([])
+          setActiveSpeakers([])
+          activeSpeakersRef.current = []
+        },
+        onReconnecting: () => {
+          setConnectionStatus('reconnecting')
+        },
+        onReconnected: () => {
+          setConnectionStatus('connected')
+          updateParticipants()
+        },
+      })
 
-      // Set up event listeners
-      const handleParticipantsChange = () => {
-        updateParticipantCount()
-      }
+      setJoinedState(true)
+      setConnectionStatus(statusFromLiveKitState(room.state))
+      setIsMicEnabled(Boolean(room.localParticipant.isMicrophoneEnabled))
+      setIsSpeakerEnabled(true)
+      updateParticipants()
+      logAudioHook('info', 'LiveKit audio connected', { roomName })
+    })()
 
-      const handleError = (event) => {
-        console.error('Daily.co error:', event)
-        setError(event?.message || 'An error occurred')
-      }
+    joinPromiseRef.current = joinPromise
 
-      const handleStoppedError = (event) => {
-        console.error('Daily.co stopped with error:', event)
-        setError('Connection lost')
-        setIsJoined(false)
-      }
-
-      dailyService.addEventListener('joined-meeting', handleParticipantsChange)
-      dailyService.addEventListener('participant-joined', handleParticipantsChange)
-      dailyService.addEventListener('participant-left', handleParticipantsChange)
-      dailyService.addEventListener('error', handleError)
-      dailyService.addEventListener('stopped-error', handleStoppedError)
-
-      eventListenersRef.current = {
-        handleParticipantsChange,
-        handleError,
-        handleStoppedError,
-      }
-
-      setIsJoined(true)
-      setConnectionStatus('connected')
-      updateParticipantCount()
-      logAudioHook('info', 'Audio auto-join connected', { sessionId })
+    try {
+      await joinPromise
     } catch (err) {
       logAudioHook('error', 'Failed to join audio session', {
         message: err?.message,
         stack: err?.stack,
-        sessionId,
+        roomId,
       })
-      setError(err.message || 'Failed to join audio session')
+      const permissionDenied = /permission|notallowed|denied/i.test(err?.message || '')
+      setError(permissionDenied ? 'Microphone permission denied. Please allow microphone access.' : (err.message || 'Failed to join audio session'))
       setConnectionStatus('failed')
-      setIsJoined(false)
+      setJoinedState(false)
+    } finally {
+      joinPromiseRef.current = null
     }
-  }, [sessionId, userName, isJoined, updateParticipantCount, logAudioHook])
+  }, [roomId, userId, userName, updateParticipants, logAudioHook, removeEventListeners, setJoinedState])
 
   /**
    * Leave the audio session
    */
   const leaveSession = useCallback(async () => {
     try {
-      // Remove event listeners
-      const listeners = eventListenersRef.current
-      if (listeners.handleParticipantsChange) {
-        dailyService.removeEventListener('joined-meeting', listeners.handleParticipantsChange)
-        dailyService.removeEventListener('participant-joined', listeners.handleParticipantsChange)
-        dailyService.removeEventListener('participant-left', listeners.handleParticipantsChange)
-      }
-      if (listeners.handleError) {
-        dailyService.removeEventListener('error', listeners.handleError)
-      }
-      if (listeners.handleStoppedError) {
-        dailyService.removeEventListener('stopped-error', listeners.handleStoppedError)
-      }
-      eventListenersRef.current = {}
+      removeEventListeners()
 
-      await dailyService.leaveRoom()
-      setIsJoined(false)
+      await livekitService.disconnect()
+      setJoinedState(false)
       setConnectionStatus('idle')
       setParticipantCount(0)
+      setParticipants([])
+      setActiveSpeakers([])
+      activeSpeakersRef.current = []
     } catch (err) {
       console.error('Failed to leave audio session:', err)
     }
-  }, [])
+  }, [removeEventListeners, setJoinedState])
 
   /**
    * Toggle microphone
    */
   const toggleMicrophone = useCallback(async () => {
+    if (!isJoinedRef.current) return
     try {
       const newState = !isMicEnabled
-      await dailyService.setMicrophoneEnabled(newState)
+      await livekitService.setMicrophoneEnabled(newState)
       setIsMicEnabled(newState)
+      updateParticipants()
     } catch (err) {
       console.error('Failed to toggle microphone:', err)
       setError('Failed to toggle microphone')
     }
-  }, [isMicEnabled])
+  }, [isMicEnabled, updateParticipants])
 
   /**
    * Toggle speaker
    */
   const toggleSpeaker = useCallback(async () => {
+    if (!isJoinedRef.current) return
     try {
       const newState = !isSpeakerEnabled
-      await dailyService.setSpeakerEnabled(newState)
+      livekitService.setSpeakerEnabled(newState)
       setIsSpeakerEnabled(newState)
     } catch (err) {
       console.error('Failed to toggle speaker:', err)
@@ -171,23 +204,30 @@ export const useAudioSession = (sessionId, userName) => {
   }, [isSpeakerEnabled])
 
   useEffect(() => {
-    const connectTimer = setTimeout(() => {
-      joinSession()
-    }, 0)
+    setJoinedState(false)
+    setConnectionStatus('idle')
+    setError(null)
+    setParticipantCount(0)
+    setParticipants([])
+    setActiveSpeakers([])
+    activeSpeakersRef.current = []
 
     return () => {
-      clearTimeout(connectTimer)
-      leaveSession()
+      removeEventListeners()
+      if (isJoinedRef.current || joinPromiseRef.current) {
+        livekitService.disconnect()
+      }
+      isJoinedRef.current = false
     }
-    // Auto-connect only when the backing workspace session changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId])
+  }, [roomId, removeEventListeners, setJoinedState])
 
   return {
     isJoined,
     isMicEnabled,
     isSpeakerEnabled,
     participantCount,
+    participants,
+    activeSpeakers,
     connectionStatus,
     error,
     joinSession,

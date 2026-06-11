@@ -14,6 +14,7 @@ import { SidebarSimple } from '@phosphor-icons/react'
 import { toPng } from 'html-to-image'
 import confetti from 'canvas-confetti'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
+import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService'
 import LuterLogo from '../shared/LuterLogo'
 import useTourStore from '../../store/useTourStore'
 
@@ -62,7 +63,7 @@ const SAMPLE_COURSE_MATERIALS = {
 }
 
 export default function MockExamPage() {
-  const { user, isMobile, sidebarCollapsed, setSidebarCollapsed } = useOutletContext()
+  const { user, isMobile, sidebarCollapsed, setSidebarCollapsed, profile } = useOutletContext()
   const navigate = useNavigate()
   const { ready, bundle } = useDashboardPrefetch() || { ready: false, bundle: null }
   const location = useLocation()
@@ -265,6 +266,9 @@ export default function MockExamPage() {
     setIsAiLoading(true)
 
     try {
+      const { ok } = await checkAndDeductCredits(user?.id, CREDIT_COSTS.MOCK_TUTOR, profile?.is_premium)
+      if (!ok) { setIsAiLoading(false); return }
+
       // Get current question context
       const currentQuestion = generatedQuestions[current]
       let contextPrompt = 'You are Luter Tutor, a helpful assistant for Nigerian university students.'
@@ -628,6 +632,8 @@ export default function MockExamPage() {
   const analyzeWeaknesses = async (incorrectQs) => {
     setIsAnalyzingWeakness(true);
     try {
+      const { ok } = await checkAndDeductCredits(user?.id, CREDIT_COSTS.MOCK_WEAKNESS, profile?.is_premium)
+      if (!ok) { setIsAnalyzingWeakness(false); return }
       const prompt = `Based on these incorrect questions from a mock exam on ${examCourses[0]?.name || 'the course'}, identify the student's key weaknesses and provide a brief 2-sentence study recommendation.
       
       Questions:
@@ -771,6 +777,9 @@ export default function MockExamPage() {
   // Generate Luter-powered questions
   const generateQuestions = async () => {
     if (examCourses.length === 0) return
+
+    const { ok } = await checkAndDeductCredits(user?.id, CREDIT_COSTS.START_MOCK_EXAM, profile?.is_premium)
+    if (!ok) return
     
     setIsGenerating(true)
     setLoadingStep(1)

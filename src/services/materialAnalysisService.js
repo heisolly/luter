@@ -329,14 +329,13 @@ Return the analysis in JSON format with the following structure:
   /**
    * Generate flashcards from cached analysis or material content
    */
-  static async generateFlashcards(analysis, count = 10, material = null) {
+  static async generateFlashcards(analysis, count = 10, material = null, options = {}) {
     try {
-      // If analysis is empty or incomplete, and we have material, generate directly from content
-      const content = material?.extracted_text || analysis?.extracted_text || ""
+      const content = this.getGenerationContent(analysis, material)
       
-      if ((!analysis || (!analysis.summary && !analysis.keyTopics && !analysis.keyTerms)) && content) {
-        console.log('[Flashcards] Analysis incomplete, generating directly from material content')
-        return this.generateDirectFlashcards({ ...analysis, extracted_text: content }, count)
+      if (content && content.length >= 120) {
+        console.log('[Flashcards] Generating directly from material content')
+        return this.generateDirectFlashcards({ ...analysis, extracted_text: content }, count, options)
       }
       
       if (!analysis) {
@@ -347,6 +346,10 @@ Return the analysis in JSON format with the following structure:
       
       const flashcardPrompt = `
 Based on this educational material analysis, generate ${count} flashcards for studying. Create question-answer pairs that test understanding of the key concepts.
+
+Regeneration id: ${options.seed || Date.now()}
+Avoid repeating these previous prompts:
+${this.formatAvoidList(options.previous || options.avoid)}
 
 Analysis Data:
 ${JSON.stringify(analysis, null, 2)}
@@ -371,11 +374,12 @@ Focus on:
 2. Important concepts
 3. Learning objectives
 4. Core ideas from the summary
+Avoid generic prompts like "What is the main topic?" or "What is the key concept?". Every card must mention a specific term, process, formula, event, or idea from the material.
 `
 
       const response = await callGroqAPI([
         { role: 'user', content: flashcardPrompt }
-      ], GROQ_MODELS.SPEEDSTER, 0.3)
+      ], GROQ_MODELS.SPEEDSTER, { temperature: 0.55 })
       
       let flashcardData
       try {
@@ -414,14 +418,13 @@ Focus on:
   /**
    * Generate quiz from cached analysis or material content
    */
-  static async generateQuiz(analysis, questionCount = 5, difficulty = 'medium', material = null) {
+  static async generateQuiz(analysis, questionCount = 5, difficulty = 'medium', material = null, options = {}) {
     try {
-      // If analysis is empty or incomplete, and we have material, generate directly from content
-      const content = material?.extracted_text || analysis?.extracted_text || ""
+      const content = this.getGenerationContent(analysis, material)
       
-      if ((!analysis || (!analysis.summary && !analysis.keyTopics && !analysis.keyTerms)) && content) {
-        console.log('[Quiz] Analysis incomplete, generating directly from material content')
-        return this.generateDirectQuiz({ ...analysis, extracted_text: content }, questionCount, difficulty)
+      if (content && content.length >= 120) {
+        console.log('[Quiz] Generating directly from material content')
+        return this.generateDirectQuiz({ ...analysis, extracted_text: content }, questionCount, difficulty, options)
       }
       
       if (!analysis) {
@@ -432,6 +435,10 @@ Focus on:
       
       const quizPrompt = `
 Based on this educational material analysis, generate a quiz with ${questionCount} multiple-choice questions at ${difficulty} difficulty level.
+
+Regeneration id: ${options.seed || Date.now()}
+Avoid repeating these previous questions:
+${this.formatAvoidList(options.previous || options.avoid)}
 
 Analysis Data:
 ${JSON.stringify(analysis, null, 2)}
@@ -465,11 +472,12 @@ Create questions that test:
 2. Knowledge of important terms
 3. Application of learning objectives
 4. Critical thinking about the material
+Avoid generic questions like "What is the main topic covered?". Every question must be specific to the material.
 `
 
       const response = await callGroqAPI([
         { role: 'user', content: quizPrompt }
-      ], GROQ_MODELS.SPEEDSTER, 0.3)
+      ], GROQ_MODELS.SPEEDSTER, { temperature: 0.55 })
       
       let quizData
       try {
@@ -580,6 +588,107 @@ Create questions that test:
       }
     }
   }
+
+  static getGenerationContent(analysis, material) {
+    return (
+      material?.extracted_text ||
+      material?.content ||
+      analysis?.extracted_text ||
+      analysis?.materialMetadata?.content ||
+      analysis?.content ||
+      ''
+    ).toString()
+  }
+
+  static buildContentWindow(content, maxLength = 9000) {
+    const clean = (content || '').replace(/\s+/g, ' ').trim()
+    if (clean.length <= maxLength) return clean
+    const part = Math.floor(maxLength / 3)
+    const middleStart = Math.max(0, Math.floor(clean.length / 2) - Math.floor(part / 2))
+    return [
+      clean.slice(0, part),
+      clean.slice(middleStart, middleStart + part),
+      clean.slice(-part)
+    ].join('\n\n[...]\n\n')
+  }
+
+  static formatAvoidList(items = []) {
+    const list = (Array.isArray(items) ? items : [])
+      .map((item) => item?.question || item?.front || item?.term || item?.title || '')
+      .filter(Boolean)
+      .slice(0, 16)
+
+    return list.length ? list.map((text, index) => `${index + 1}. ${text}`).join('\n') : 'None'
+  }
+
+  static extractStudySentences(content, limit = 12) {
+    const sentences = (content || '')
+      .replace(/\s+/g, ' ')
+      .split(/(?<=[.!?])\s+|\n+/)
+      .map((sentence) => sentence.trim())
+      .filter((sentence) => sentence.length >= 45 && sentence.length <= 260)
+      .filter((sentence) => !/^(page|slide)\s+\d+/i.test(sentence))
+
+    const seen = new Set()
+    return sentences.filter((sentence) => {
+      const key = sentence.toLowerCase().slice(0, 80)
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    }).slice(0, limit)
+  }
+
+  static createContentFlashcards(content, count = 10) {
+    const sentences = this.extractStudySentences(content, count)
+    const flashcards = sentences.map((sentence, index) => {
+      const topicMatch = sentence.match(/\b([A-Z][A-Za-z0-9()./-]*(?:\s+[A-Z][A-Za-z0-9()./-]*){0,4})\b/)
+      const topic = topicMatch?.[1]?.trim() || `Concept ${index + 1}`
+      return {
+        id: `fc_${Date.now()}_${index + 1}`,
+        question: `What should you remember about ${topic}?`,
+        answer: sentence,
+        front: `What should you remember about ${topic}?`,
+        back: sentence,
+        difficulty: index % 3 === 0 ? 'easy' : index % 3 === 1 ? 'medium' : 'hard',
+        topic
+      }
+    })
+
+    return {
+      success: true,
+      flashcards: flashcards.length ? flashcards : this.createFallbackFlashcards(count).flashcards
+    }
+  }
+
+  static createContentQuiz(content, questionCount = 5, difficulty = 'medium') {
+    const sentences = this.extractStudySentences(content, questionCount)
+    const questions = sentences.map((sentence, index) => {
+      const words = sentence.match(/\b[A-Za-z][A-Za-z-]{4,}\b/g) || []
+      const focus = words.find((word) => !/^(which|there|their|about|these|those|because|between|should|would|could)$/i.test(word)) || `concept ${index + 1}`
+      const question = `Which statement best describes ${focus} in this material?`
+      return {
+        id: `q_${Date.now()}_${index + 1}`,
+        question,
+        options: [
+          { id: 0, text: sentence },
+          { id: 1, text: `${focus} is mentioned only as an unrelated example.` },
+          { id: 2, text: `${focus} is described as outside the scope of the source.` },
+          { id: 3, text: `${focus} contradicts the main explanation in the material.` }
+        ],
+        correctAnswer: 0,
+        explanation: `The source states: ${sentence}`
+      }
+    })
+
+    return {
+      success: true,
+      quiz: {
+        title: 'Study Quiz',
+        difficulty,
+        questions: questions.length ? questions : this.createFallbackQuiz(questionCount, difficulty).quiz.questions
+      }
+    }
+  }
   
   /**
    * Create fallback flashcards when analysis is incomplete
@@ -606,7 +715,7 @@ Create questions that test:
   /**
    * Generate flashcards directly from content when analysis is incomplete
    */
-  static async generateDirectFlashcards(analysis, count = 10) {
+  static async generateDirectFlashcards(analysis, count = 10, options = {}) {
     try {
       // Get content from multiple possible sources
       const content = analysis.extracted_text || 
@@ -620,13 +729,19 @@ Create questions that test:
         console.log('No sufficient content available, using fallback flashcards')
         return this.createFallbackFlashcards(count)
       }
+
+      const contentWindow = this.buildContentWindow(content)
       
       const flashcardPrompt = `
 Generate ${count} flashcards from this educational material. Create question-answer pairs that test understanding of the key concepts.
 
+Regeneration id: ${options.seed || Date.now()}
+Avoid repeating these previous prompts:
+${this.formatAvoidList(options.previous || options.avoid)}
+
 Material Content:
 """
-${content.substring(0, 4000)} ${content.length > 4000 ? '...' : ''}
+${contentWindow}
 """
 
 Generate flashcards in this valid JSON format only. Do not include any preamble or extra text.
@@ -649,6 +764,7 @@ Focus on:
 2. Important concepts
 3. Main ideas from the content
 4. Practical applications
+Avoid generic prompts like "What is the key concept covered in this document?". Make every card specific and distinct.
 `
 
       let response
@@ -659,7 +775,7 @@ Focus on:
       } catch (rateLimitError) {
         if (rateLimitError.message?.includes('429') || rateLimitError.message?.includes('rate limit')) {
           console.warn('Rate limit hit for flashcards, using fallback method')
-          return this.createFallbackFlashcards(count)
+          return this.createContentFlashcards(content, count)
         }
         throw rateLimitError
       }
@@ -670,26 +786,29 @@ Focus on:
         flashcardData = this.cleanAndParseJson(rawContent)
       } catch (parseError) {
         console.warn('Direct flashcard parse failed, using fallback:', parseError)
-        flashcardData = this.createBasicFlashcards(analysis, count)
+        flashcardData = this.createContentFlashcards(content, count)
       }
+
+      const finalCards = flashcardData.flashcards || []
+      if (!finalCards.length) return this.createContentFlashcards(content, count)
       
       const result = {
         success: true,
-        flashcards: flashcardData.flashcards || []
+        flashcards: finalCards
       }
       console.log('Direct flashcards generated:', result.flashcards?.length || 0, 'cards')
       return result
       
     } catch (error) {
       console.error('Failed to generate direct flashcards:', error)
-      return this.createFallbackFlashcards(count)
+      return this.createContentFlashcards(analysis?.extracted_text || '', count)
     }
   }
   
   /**
    * Generate quiz directly from content when analysis is incomplete
    */
-  static async generateDirectQuiz(analysis, questionCount = 5, difficulty = 'medium') {
+  static async generateDirectQuiz(analysis, questionCount = 5, difficulty = 'medium', options = {}) {
     try {
       // Get content from multiple possible sources
       const content = analysis.extracted_text || 
@@ -703,13 +822,19 @@ Focus on:
         console.log('No sufficient content available, using fallback quiz')
         return this.createFallbackQuiz(questionCount, difficulty)
       }
+
+      const contentWindow = this.buildContentWindow(content)
       
       const quizPrompt = `
 Generate a quiz with ${questionCount} multiple-choice questions at ${difficulty} difficulty level from this educational material.
 
+Regeneration id: ${options.seed || Date.now()}
+Avoid repeating these previous questions:
+${this.formatAvoidList(options.previous || options.avoid)}
+
 Material Content:
 """
-${content.substring(0, 4000)} ${content.length > 4000 ? '...' : ''}
+${contentWindow}
 """
 
 Generate a valid JSON quiz only. Do not include any preamble or extra text.
@@ -741,17 +866,18 @@ Create questions that test:
 2. Knowledge of important terms
 3. Application of the material
 4. Critical thinking about the content
+Avoid generic questions like "What is the main topic covered?". Each question must name a specific term, process, formula, person, or claim from the source.
 `
 
       let response
       try {
         response = await callGroqAPI([
           { role: 'user', content: quizPrompt }
-        ], GROQ_MODELS.SPEEDSTER, 0.3)
+        ], GROQ_MODELS.SPEEDSTER, { temperature: 0.55 })
       } catch (rateLimitError) {
         if (rateLimitError.message?.includes('429') || rateLimitError.message?.includes('rate limit')) {
           console.warn('Rate limit hit for quiz, using fallback method')
-          return this.createFallbackQuiz(questionCount, difficulty)
+          return this.createContentQuiz(content, questionCount, difficulty)
         }
         throw rateLimitError
       }
@@ -762,8 +888,11 @@ Create questions that test:
         quizData = this.cleanAndParseJson(rawContent)
       } catch (parseError) {
         console.warn('Direct quiz parse failed, using fallback:', parseError)
-        quizData = this.createBasicQuiz(analysis, questionCount, difficulty)
+        quizData = this.createContentQuiz(content, questionCount, difficulty)
       }
+
+      const questions = quizData.quiz?.questions || []
+      if (!questions.length) return this.createContentQuiz(content, questionCount, difficulty)
       
       return {
         success: true,

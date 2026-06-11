@@ -139,8 +139,7 @@ export default function GuestPlayPage() {
           </p>
           <button
             onClick={() => navigate('/')}
-            style={{ background: '#7c3aed', color: 'white', border: 'none', padding: '14px 28px', borderRadius: 16, fontSize: 15, fontWeight: 800, cursor: 'pointer' }}
-          >
+            style={{ background: '#98FF98', color: '#166534', border: 'none', padding: '14px 28px', borderRadius: 16, fontSize: 15, fontWeight: 800, cursor: 'pointer' }}          >
             Go to Luter
           </button>
         </motion.div>
@@ -212,11 +211,11 @@ export default function GuestPlayPage() {
             onClick={handleJoin}
             disabled={joining || !nickname.trim()}
             style={{
-              width: '100%', padding: '16px', background: joining ? '#a78bfa' : '#7c3aed',
-              color: 'white', border: 'none', borderRadius: 16, fontSize: 16,
+              width: '100%', padding: '16px', background: joining ? '#86EFAC' : '#98FF98',
+              color: '#166534', border: 'none', borderRadius: 16, fontSize: 16,
               fontWeight: 800, cursor: joining ? 'default' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              boxShadow: '0 8px 20px rgba(124,58,237,0.25)'
+              boxShadow: '0 8px 20px rgba(152,255,152,0.25)'
             }}
           >
             {joining ? <RiLoader4Line size={20} style={{ animation: 'spin 1s linear infinite' }} /> : <RiArrowRightLine size={20} />}

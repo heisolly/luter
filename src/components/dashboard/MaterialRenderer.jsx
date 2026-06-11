@@ -38,6 +38,9 @@ export default function MaterialRenderer({
   onCanvasSave,
   scrollContainerRef,
   highlights,
+  highlightColors,
+  createPdfViewerHighlight,
+  preparePdfViewerHighlight,
   initCanvas,
   startDrawing,
   draw,
@@ -118,6 +121,9 @@ export default function MaterialRenderer({
           onCanvasSave={onCanvasSave}
           scrollContainerRef={scrollContainerRef}
           highlights={highlights}
+          highlightColors={highlightColors}
+          createPdfViewerHighlight={createPdfViewerHighlight}
+          preparePdfViewerHighlight={preparePdfViewerHighlight}
           initCanvas={initCanvas}
           startDrawing={startDrawing}
           draw={draw}

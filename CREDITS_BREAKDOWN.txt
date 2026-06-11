@@ -1,0 +1,238 @@
+====================================================================
+  LUTER CREDIT SYSTEM — FULL BREAKDOWN
+  (What we pay vs what users should pay)
+====================================================================
+
+Hello bro, this file explains everything in simple terms so you
+can understand exactly what's happening and make decisions.
+
+Let's break it into 3 parts:
+
+  PART 1: What we pay for (our expenses)
+  PART 2: What users should pay for (credit costs)
+  PART 3: Suggested credit allowances per plan
+
+
+
+====================================================================
+PART 1: WHAT WE ARE PAYING FOR (OUR EXPENSES)
+====================================================================
+
+We use Groq AI mostly. Groq has 2 main models we use:
+
+--- MODEL 1: llama-3.3-70b-versatile (we call it "PROFESSOR") ---
+  Think of this as the "Senior Professor" — very smart, very expensive.
+  Used for: AI Notes, Chat, Explanations, Analysis, Admin stuff.
+  
+  Groq price: $0.79 per 1 MILLION tokens (both input and output)
+  
+  Real cost per call:
+    - AI Notes (full document)    = about $0.005 per call
+    - Chat message (1 question)   = about $0.0016 per call  
+    - Explain selected text        = about $0.0009 per call
+    - Open material (auto-analyze) = about $0.005 per call
+
+  So 1,000 students asking 1 question each = $1.60 to us.
+
+--- MODEL 2: llama-3.1-8b-instant (we call it "SPEEDSTER") ---
+  Think of this as the "Fast Assistant" — quick, cheap.
+  Used for: Summaries, Flashcards, Quiz questions, Mock exams.
+  
+  Groq price: $0.05/M (input) + $0.08/M (output) = about $0.06/M average
+  
+  Real cost per call:
+    - Generate Summary            = about $0.0002 per call
+    - Generate Flashcards (set)   = about $0.0002 per call
+    - Generate Quiz (5 questions) = about $0.0003 per call
+    - Start Mock Exam (10 Qs)     = about $0.0004 per call
+
+  So 10,000 summaries = only $2.00. Basically FREE.
+
+--- MODEL 3: whisper-large-v3-turbo ---
+  Used for: Transcribing audio/video files when user uploads.
+  
+  Groq price: $0.003 per MINUTE of audio
+  
+  Real cost per call:
+    - 5-minute audio file         = about $0.015 per call
+    - 30-minute lecture recording = about $0.09 per call
+
+  This is our MOST EXPENSIVE feature per use!
+
+--- MODEL 4: llama-3.2-11b-vision-preview ---
+  Used for: Reading text from uploaded images (OCR).
+  
+  Groq price: about $0.08/M tokens
+  
+  Real cost per call:
+    - 1 image OCR                 = about $0.0001 per call
+  Basically FREE.
+
+--- OTHER SERVICES WE PAY FOR ---
+
+  Tavily (web search for admin syllabus):
+    - 1,000 free searches per month on dev tier
+    - After that: $0.10 per search
+    - We use this rarely, only admins
+
+  Firecrawl (web scraping for syllabus):
+    - ~500 free pages per month
+    - Used rarely, only admins
+
+  Resend (emails):
+    - 100 free emails per month
+    - Almost nothing
+
+  LiveKit (audio/video calls for study groups):
+    - 5,000 free minutes per month on dev
+    - Then $0.004 per minute
+    - Only used during group study sessions
+
+====================================================================
+PART 2: WHAT USERS SHOULD PAY FOR (CREDIT COSTS)
+====================================================================
+
+This is what I suggest. The idea is:
+  - Each feature costs a number of "credits"
+  - Credits = a way to limit how much users can use expensive features
+  - More expensive to us = more credits
+  - Cheaper features = fewer credits
+
+--- FEATURES THAT COST CREDITS ---
+
+  CREDIT COST  |  FEATURE              |  WHY THIS PRICE?
+  -------------|-----------------------|-------------------------------------------
+      0        |  Upload PDF/DOCX      |  Free for us — no API call needed
+      0        |  Upload image         |  Costs us basically nothing ($0.0001)
+     20        |  Upload audio/video   |  Costs us real money ($0.003/min for Whisper)
+      0        |  View your material   |  No AI call, just showing what's saved
+     50        |  Open a material      |  Triggers full AI analysis (costs us $0.005)
+      5        |  Generate Summary     |  Very cheap for us ($0.0002)
+     10        |  Generate Flashcards  |  Very cheap for us ($0.0002)
+     10        |  Generate Quiz        |  Very cheap for us ($0.0003)
+     80        |  Generate AI Notes    |  Expensive — uses Professor model ($0.005)
+     20        |  Ask AI Chat (1 msg)  |  Expensive — Professor model each message
+     10        |  Explain selected text|  Small Professor call ($0.0009)
+     15        |  Start Mock Exam      |  Generates 10 questions cheaply
+     20        |  Mock Exam: Ask Tutor |  Professor model per question
+     10        |  Mock Exam: Weakness  |  Cheap 8b call
+     20        |  Notes Studio AI Chat |  Professor model per message
+     10        |  Battle: Questions    |  Cheap 8b call
+      5        |  Battle: Get Hint     |  Tiny 8b call
+     30        |  Battle: Performance  |  Professor model heavy analysis
+     30        |  Group Quiz           |  Professor model for group
+     10        |  Playground Questions |  Cheap 8b call
+      5        |  Voice Agent query    |  Cheap 8b call
+      5        |  Write: AI Assist     |  Cheap 8b call
+
+--- FEATURES THAT SHOULD BE FREE (0 CREDITS) ---
+
+  - Uploading PDF/DOCX files (no API cost to us)
+  - Uploading images (no meaningful cost)
+  - Viewing/browsing your library
+  - Opening and reading documents
+  - Highlighting text manually
+  - Taking notes manually (typing yourself)
+  - All admin features (internal use)
+  - Course enrollment
+  - Profile/settings changes
+
+====================================================================
+PART 3: SUGGESTED CREDIT ALLOWANCES PER PLAN
+====================================================================
+
+If each user gets a daily or monthly budget of credits:
+
+--- FREE PLAN ---
+  Daily credits: 200
+  What that lets you do per day:
+    - Open 2 materials (100 credits gone) 
+    - OR Open 1 material + 5 AI chat messages (50+100=150)
+    - OR 4 summaries (20 credits)
+    - OR 2 AI Notes (160 credits)
+  
+  Basically a free user can do a few things per day but not abuse it.
+  Cost to us per free user per day: about $0.02 max
+  
+--- STARTER PLAN (₦999/2 weeks) ---
+  Daily credits: 1,000
+  What that lets you do per day:
+    - Open 5 materials + 10 AI chats + generate notes
+  
+  Cost to us per starter user per day: about $0.10 max
+
+--- PRO/BEAST PLAN (₦2,999/month) ---
+  Daily credits: 5,000 (or unlimited, up to you)
+  Basically can use everything freely.
+  Cost to us per pro user per day: about $0.50 if they're heavy users
+
+--- HOW 1 CREDIT RELATES TO REAL MONEY ---
+  Based on our costs:
+  
+  For cheap features (8b model):
+    1 credit ≈ $0.00004 of API cost to us
+    100 credits ≈ $0.004
+  
+  For expensive features (70b model):
+    1 credit ≈ $0.00006 of API cost to us  
+    100 credits ≈ $0.006
+  
+  So if we give a user 200 credits/day:
+    If they use it all on expensive features = costs us about $0.12/day
+    If they use it all on cheap features = costs us about $0.008/day
+    Average realistic use ≈ $0.02-$0.05/day per user
+
+====================================================================
+SIMPLE EXPLANATION (For you to understand without tech)
+====================================================================
+
+Think of it like a phone data plan:
+
+  - We (Luter) buy "data" from Groq (like MTN buying airtime)
+  - Every time a user does something with AI, it uses some of our data
+  - Some things use little data (summaries, flashcards)
+  - Some things use lots of data (AI notes, chat)
+  - Audio files use the most data (transcription)
+
+  Credits = the user's personal data allowance
+  - Free users get a small allowance
+  - Paid users get a bigger allowance
+  - When they run out, they wait until next day or upgrade
+
+  Right NOW, we are NOT limiting anything.
+  Users can generate unlimited AI Notes (costing us $0.005 each)
+  without any restriction. This is bad — we're spending real money
+  with no cap.
+
+====================================================================
+WHAT'S NOT CHARGED RIGHT NOW (but should be)
+====================================================================
+
+Currently the ONLY thing enforced is:
+  - 3 free explanations per day (via explanations_left counter)
+
+Everything else is completely FREE with no limits:
+  - AI Notes → costs us $0.005 each → UNLIMITED
+  - AI Chat → costs us $0.0016 each → UNLIMITED
+  - Summaries → costs us $0.0002 each → UNLIMITED
+  - Flashcards → costs us $0.0002 each → UNLIMITED
+  - Mock Exams → costs us $0.0004 each → UNLIMITED
+
+And the side bar shows "20,000 credits" to users, but those
+20,000 credits are NEVER deducted. It's fake right now.
+
+====================================================================
+SUMMARY
+====================================================================
+
+1. The big cost driver = PROFESSOR model (70b) for AI Notes, Chat, Analysis
+2. The silent cost = Whisper for audio transcription ($0.003/min)
+3. Everything else is cheap (8b model costs almost nothing)
+4. We need to start DEDUCTING credits when users use AI features
+5. Suggested: 200 credits/day for free, 1,000 for starter, unlimited for pro
+6. 1 credit ≈ $0.00005 of real API cost to us (roughly)
+
+This way:
+  - Free users get real but limited value
+  - Heavy users pay (via subscription)
+  - We don't go bankrupt from API costs

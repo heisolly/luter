@@ -242,8 +242,8 @@ export default function GameLobby({ room, participants, user, onStart, onRefresh
                     disabled={toggling}
                     style={{
                       padding: '16px', 
-                      background: toggling ? '#f1f5f9' : (isReady ? '#fee2e2' : '#16a34a'), 
-                      color: toggling ? '#94a3b8' : (isReady ? '#ef4444' : 'white'),
+                      background: toggling ? '#f1f5f9' : (isReady ? '#fee2e2' : '#98FF98'), 
+                      color: toggling ? '#94a3b8' : (isReady ? '#ef4444' : '#166534'),
                       border: 'none', borderRadius: 16, fontSize: 15, fontWeight: 800, 
                       cursor: toggling ? 'not-allowed' : 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -265,9 +265,9 @@ export default function GameLobby({ room, participants, user, onStart, onRefresh
                    whileTap={{ scale: 0.98 }}
                    onClick={handleStartGame}
                    style={{
-                     padding: '16px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 16,
+                     padding: '16px', background: '#98FF98', color: '#166534', border: 'none', borderRadius: 16,
                      fontSize: 16, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                     boxShadow: '0 10px 20px rgba(124, 58, 237, 0.2)'
+                     boxShadow: '0 10px 20px rgba(152, 255, 152, 0.3)'
                    }}
                  >
                    <RiPlayFill size={20} /> Start Game
