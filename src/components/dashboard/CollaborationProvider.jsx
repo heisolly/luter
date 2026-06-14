@@ -56,7 +56,23 @@ function LiveblocksStatusCheck({ roomId, children, userInfo, initialPresence }) 
   }, [roomId]);
 
   if (status === 'checking') {
-    return <>{children}</>;
+    return (
+      <div style={{
+        height: '100vh', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: '16px',
+        background: 'radial-gradient(120% 120% at 50% 0%, #FAF5FF 0%, #F5F3FF 50%, #F9FAFB 100%)',
+        color: '#7C3AED', fontFamily: 'Outfit'
+      }}>
+        <div style={{
+           width: '40px', height: '40px',
+           border: '3px solid rgba(124, 58, 237, 0.1)',
+           borderTopColor: '#7C3AED', borderRadius: '50%',
+           animation: 'spin 1s linear infinite'
+        }} />
+        <span style={{ fontSize: '14px', fontWeight: 600, color: '#6B7280' }}>Preparing collaboration space...</span>
+        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
   }
 
   if (status === 'failed') {
@@ -133,23 +149,48 @@ function LiveblocksStatusCheck({ roomId, children, userInfo, initialPresence }) 
 }
 
 function OfflineBanner({ onReconnect }) {
+  const [isVisible, setIsVisible] = useState(true);
+
+  if (!isVisible) return null;
+
   return (
     <div style={{
+      position: 'fixed', bottom: '24px', right: '24px', zIndex: 999999,
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '8px 16px', background: '#FEF3C7', borderBottom: '1px solid #FDE68A',
-      fontSize: '12px', fontWeight: 600, color: '#92400E', gap: '12px'
+      padding: '12px 16px', background: '#FEF3C7', border: '1px solid #FDE68A',
+      borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+      fontSize: '13px', fontWeight: 600, color: '#92400E', gap: '16px',
+      animation: 'toolboxAppear 0.3s ease-out'
     }}>
-      <span>Collaboration unavailable — working offline</span>
-      <button
-        onClick={onReconnect}
-        style={{
-          background: '#92400E', color: 'white', border: 'none',
-          borderRadius: '6px', padding: '4px 12px', cursor: 'pointer',
-          fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap'
-        }}
-      >
-        Reconnect
-      </button>
+      <span>Collaboration offline.</span>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <button
+          onClick={onReconnect}
+          style={{
+            background: '#92400E', color: 'white', border: 'none',
+            borderRadius: '6px', padding: '6px 12px', cursor: 'pointer',
+            fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap',
+            transition: 'opacity 0.2s'
+          }}
+          onMouseEnter={e => e.currentTarget.style.opacity = 0.9}
+          onMouseLeave={e => e.currentTarget.style.opacity = 1}
+        >
+          Reconnect
+        </button>
+        <button
+          onClick={() => setIsVisible(false)}
+          style={{
+            background: 'transparent', color: '#92400E', border: 'none',
+            cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}
+          title="Dismiss"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars, react-hooks/rules-of-hooks, react-hooks/exhaustive-deps, react-refresh/only-export-components */
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import FlashkaDocumentViewer from './FlashkaDocumentViewer'
+import CleanDocumentViewer from './CleanDocumentViewer'
 import DocxRenderer from './DocxRenderer'
 import PptxRenderer from './PptxRenderer'
 import ImageSlidesRenderer from './ImageSlidesRenderer'
@@ -64,6 +64,7 @@ export default function UniversalViewer({
   onMaterialUpdate,
   annotateMode = false,
   highlightMode = false,
+  occludeMode = false,
   commentMode = false,
   focusModeTool = false,
   annotationColor = '#7C3AED',
@@ -85,8 +86,9 @@ export default function UniversalViewer({
   draw,
   stopDrawing,
   drawMode,
-  loadHighlights,
   setHighlightToolbox,
+  isDark,
+  ...rest
 }) {
   const type = getFileType(material)
   const [signedFileUrl, setSignedFileUrl] = useState(material?.source_url)
@@ -102,6 +104,7 @@ export default function UniversalViewer({
   }, [material?.source_url])
 
   const [localConvertedUrl, setLocalConvertedUrl] = useState(material?.converted_url || null)
+  const [signedConvertedUrl, setSignedConvertedUrl] = useState(material?.converted_url || null)
 
   // Keep local mirror in sync if parent updates the material
   useEffect(() => {
@@ -110,10 +113,21 @@ export default function UniversalViewer({
     }
   }, [material?.converted_url])
 
-  // Effective material — merge local converted_url into material
-  const effectiveMaterial = localConvertedUrl
-    ? { ...material, converted_url: localConvertedUrl }
-    : material
+  // Sign the converted URL so private buckets don't throw 400
+  useEffect(() => {
+    if (localConvertedUrl) {
+      getSignedFileUrl(localConvertedUrl).then(url => {
+        if (url) setSignedConvertedUrl(url)
+      })
+    }
+  }, [localConvertedUrl])
+
+  // Effective material — merge local signed converted_url and signed source_url into material
+  const effectiveMaterial = {
+    ...material,
+    ...(signedConvertedUrl ? { converted_url: signedConvertedUrl } : {}),
+    ...(signedFileUrl ? { source_url: signedFileUrl } : {})
+  }
 
   // ─── Poll for converted_url when PPTX has no converted_url yet ────────────
   useEffect(() => {
@@ -152,39 +166,16 @@ export default function UniversalViewer({
         transition={{ duration: 0.4, ease: 'easeOut' }}
         style={{ height: '100%' }}
       >
-        <FlashkaDocumentViewer
-          fileUrl={effectiveMaterial.converted_url}
-          initialPage={initialPage}
-          title={effectiveMaterial.title}
-          type={type}
-          onPageChange={onPageChange}
-          onDocumentLoad={onDocumentLoad}
+        <CleanDocumentViewer 
+          material={effectiveMaterial} 
+          isDark={isDark}
           annotateMode={annotateMode}
           highlightMode={highlightMode}
-          commentMode={commentMode}
-          focusModeTool={focusModeTool}
+          occludeMode={occludeMode}
+          isEraserMode={isEraserMode}
           annotationColor={annotationColor}
           annotationStrokeSize={annotationStrokeSize}
-          isEraserMode={isEraserMode}
-          annotationToolType={annotationToolType}
-          pendingEquation={pendingEquation}
-          onEquationPlaced={onEquationPlaced}
-          onCommentThreadSelect={onCommentThreadSelect}
-          canvasRefs={canvasRefs}
-          onCanvasSave={onCanvasSave}
-          scrollContainerRef={scrollContainerRef}
-          highlights={highlights}
-          highlightColors={highlightColors}
-          createPdfViewerHighlight={createPdfViewerHighlight}
-          preparePdfViewerHighlight={preparePdfViewerHighlight}
-          initCanvas={initCanvas}
-          startDrawing={startDrawing}
-          draw={draw}
-          stopDrawing={stopDrawing}
-          drawMode={drawMode}
-          loadHighlights={loadHighlights}
-          setHighlightToolbox={setHighlightToolbox}
-          material={effectiveMaterial}
+          {...rest}
         />
       </motion.div>
     )
@@ -193,39 +184,16 @@ export default function UniversalViewer({
   // ─── 2. NATIVE PDF ───────────────────────────────────────────────────────
   if (type === 'pdf') {
     return (
-      <FlashkaDocumentViewer
-        fileUrl={fileUrl}
-        initialPage={initialPage}
-        title={material.title}
-        type={type}
-        onPageChange={onPageChange}
-        onDocumentLoad={onDocumentLoad}
+      <CleanDocumentViewer 
+        material={effectiveMaterial}
+        isDark={isDark}
         annotateMode={annotateMode}
         highlightMode={highlightMode}
-        commentMode={commentMode}
-        focusModeTool={focusModeTool}
+        occludeMode={occludeMode}
+        isEraserMode={isEraserMode}
         annotationColor={annotationColor}
         annotationStrokeSize={annotationStrokeSize}
-        isEraserMode={isEraserMode}
-        annotationToolType={annotationToolType}
-        pendingEquation={pendingEquation}
-        onEquationPlaced={onEquationPlaced}
-        onCommentThreadSelect={onCommentThreadSelect}
-        canvasRefs={canvasRefs}
-        onCanvasSave={onCanvasSave}
-        scrollContainerRef={scrollContainerRef}
-        highlights={highlights}
-        highlightColors={highlightColors}
-        createPdfViewerHighlight={createPdfViewerHighlight}
-        preparePdfViewerHighlight={preparePdfViewerHighlight}
-        initCanvas={initCanvas}
-        startDrawing={startDrawing}
-        draw={draw}
-        stopDrawing={stopDrawing}
-        drawMode={drawMode}
-        loadHighlights={loadHighlights}
-        setHighlightToolbox={setHighlightToolbox}
-        material={material}
+        {...rest}
       />
     )
   }

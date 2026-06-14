@@ -27,6 +27,7 @@ export default function MaterialRenderer({
   highlightMode = false,
   commentMode = false,
   focusModeTool = false,
+  occludeMode = false,
   annotationColor = '#7C3AED',
   annotationStrokeSize = 4,
   isEraserMode = false,
@@ -48,6 +49,7 @@ export default function MaterialRenderer({
   drawMode,
   loadHighlights,
   setHighlightToolbox,
+  isDark,
 }) {
   if (!material) return null
 
@@ -55,14 +57,8 @@ export default function MaterialRenderer({
   // We handle the UI visibility in the parent WorkstationPage
 
 
-  // If material is still processing, show the professional pending state
-  if (material.processing_status === 'pending' || material.processing_status === 'processing') {
-    return (
-      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC' }}>
-        <LuterPageLoader message="Luter is optimizing this material for your study workstation..." minHeight="300px" />
-      </div>
-    )
-  }
+  // Removed blocking loader for 'pending' status so native PDFs can render immediately 
+  // while backend processing (like flashcards extraction) happens in the background.
 
   // If processing failed, show a retry state
   if (material.processing_status === 'failed') {
@@ -110,6 +106,7 @@ export default function MaterialRenderer({
           highlightMode={highlightMode}
           commentMode={commentMode}
           focusModeTool={focusModeTool}
+          occludeMode={occludeMode}
           annotationColor={annotationColor}
           annotationStrokeSize={annotationStrokeSize}
           isEraserMode={isEraserMode}
@@ -131,6 +128,7 @@ export default function MaterialRenderer({
           drawMode={drawMode}
           loadHighlights={loadHighlights}
           setHighlightToolbox={setHighlightToolbox}
+          isDark={isDark}
         />
       </Suspense>
     </div>

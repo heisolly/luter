@@ -7,6 +7,7 @@ import MaterialAnalysisService from '../../services/materialAnalysisService'
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService'
 import { reprocessMaterial } from '../../services/langchainPipeline'
 import LuterLogo from '../shared/LuterLogo'
+import { ThinkingIndicator } from '../ui/thinking-indicator'
 
 export default function FlashcardPage() {
   const { user, profile } = useOutletContext()
@@ -149,6 +150,10 @@ export default function FlashcardPage() {
                 </button>
               </div>
             </>
+          ) : isGenerating ? (
+            <div style={{ height: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <ThinkingIndicator />
+            </div>
           ) : (
             <div style={{ height: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.4 }}>
               <Layers size={64} style={{ marginBottom: '16px' }} />

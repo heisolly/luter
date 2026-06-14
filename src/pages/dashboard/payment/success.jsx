@@ -6,11 +6,22 @@ function useQuery() {
   return new URLSearchParams(useLocation().search);
 }
 
+const TIER_MAP = {
+  pro: { tier: 'pro', monthlyCredits: 1500 },
+  pro_2weeks: { tier: 'pro', monthlyCredits: 1500 },
+  pro_yearly: { tier: 'pro', monthlyCredits: 1500 },
+  beast_monthly: { tier: 'beast', monthlyCredits: 999999 },
+  beast_2weeks: { tier: 'beast', monthlyCredits: 999999 },
+  beast_quarterly: { tier: 'beast', monthlyCredits: 999999 },
+  beast_yearly: { tier: 'beast', monthlyCredits: 999999 },
+  starter: { tier: 'pro', monthlyCredits: 1500 },
+}
+
 export default function PaymentSuccess() {
   const query = useQuery();
   const navigate = useNavigate();
   const reference = query.get('reference');
-  const [status, setStatus] = useState('loading'); // loading, success, error
+  const [status, setStatus] = useState('loading');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -19,29 +30,63 @@ export default function PaymentSuccess() {
       setMessage('Missing transaction reference.');
       return;
     }
-    // Verify transaction exists and is completed
-    const fetchTransaction = async () => {
-      const { data, error } = await supabase
-        .from('payment_transactions')
-        .select('status, gateway_response')
-        .eq('reference', reference)
-        .single();
-      if (error) {
-        setStatus('error');
-        setMessage('Unable to fetch transaction. Please contact support.');
-        return;
+
+    let cancelled = false
+    let pollAttempts = 0
+    const MAX_POLL_ATTEMPTS = 30
+
+    const verifyAndUpgrade = async () => {
+      while (!cancelled && pollAttempts < MAX_POLL_ATTEMPTS) {
+        const { data, error } = await supabase
+          .from('payment_transactions')
+          .select('status, user_id, plan_id')
+          .eq('reference', reference)
+          .single();
+
+        if (error || !data) {
+          setStatus('error');
+          setMessage('Unable to fetch transaction. Please contact support.');
+          return;
+        }
+
+        if (data.status === 'completed') {
+          // Upgrade user based on the plan they purchased
+          const mapping = TIER_MAP[data.plan_id]
+          if (mapping && data.user_id) {
+            await Promise.all([
+              supabase
+                .from('profiles')
+                .update({ is_premium: true, subscription_tier: mapping.tier })
+                .eq('id', data.user_id),
+              supabase
+                .from('user_stats')
+                .upsert(
+                  { user_id: data.user_id, ai_credits_monthly: mapping.monthlyCredits, ai_credits_used: 0 },
+                  { onConflict: 'user_id' }
+                ),
+            ])
+          }
+
+          setStatus('success');
+          setMessage('Payment confirmed! Redirecting...');
+          setTimeout(() => navigate(`/dashboard/upgrade?payment=success&tier=${mapping?.tier || 'pro'}`), 2000);
+          return;
+        }
+
+        // Still pending — wait and retry
+        pollAttempts++
+        setMessage(`Waiting for payment confirmation (${pollAttempts}/${MAX_POLL_ATTEMPTS})...`)
+        await new Promise(r => setTimeout(r, 2000))
       }
-      if (data.status !== 'completed') {
+
+      if (!cancelled) {
         setStatus('error');
-        setMessage('Payment not yet confirmed. Please wait a moment and refresh.');
-        return;
+        setMessage('Payment confirmation timed out. Your payment may still be processing — refresh to check.');
       }
-      setStatus('success');
-      setMessage('Your payment was successful! Redirecting to dashboard...');
-      // Optionally refresh user profile to reflect new subscription
-      setTimeout(() => navigate('/dashboard'), 3000);
     };
-    fetchTransaction();
+
+    verifyAndUpgrade();
+    return () => { cancelled = true }
   }, [reference, navigate]);
 
   return (

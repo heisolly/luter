@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useStorage, useMutation, useOthers, useSelf } from '../../liveblocks.config';
 import { LiveList, LiveObject } from '@liveblocks/client';
 import { Trophy, Lightning, Play, Users } from '@phosphor-icons/react';
+import { ThinkingIndicator } from '../ui/thinking-indicator';
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient';
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService';
 
@@ -118,9 +119,8 @@ export const GroupQuiz = ({ materialText, isPresenter, user, profile }) => {
   // ── Generating state ──────────────────────────────────────────────────────
   if (quizState === 'generating') {
     return (
-      <div style={{ padding: '32px', textAlign: 'center' }}>
-        <Lightning size={28} color="#6D28D9" style={{ marginBottom: '12px', animation: 'pulse 1s infinite' }} />
-        <p style={{ fontWeight: 700, color: '#1E293B', fontSize: '13px' }}>AI is crafting your quiz…</p>
+      <div style={{ padding: '32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <ThinkingIndicator />
       </div>
     );
   }

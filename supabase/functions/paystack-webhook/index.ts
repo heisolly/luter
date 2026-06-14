@@ -1,137 +1,122 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders, status: 200 })
+  }
+
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
   }
 
   try {
     const body = await req.text()
     const signature = req.headers.get('x-paystack-signature')
-    
-    // Log webhook receipt
-    console.log('Paystack webhook received')
-    console.log('Signature present:', !!signature)
-    
-    const event = JSON.parse(body)
-    console.log('Paystack webhook event:', event.event, 'Reference:', event.data?.reference)
 
-    // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    // Handle different event types
-    if (event.event === 'charge.success') {
-      const { data } = event
-      const reference = data.reference
-      
-      // Update transaction status
-      const { data: transaction } = await supabaseClient
-        .from('payment_transactions')
-        .update({ 
-          status: 'completed',
-          gateway_response: data,
-          completed_at: new Date().toISOString()
-        })
-        .eq('reference', reference)
-        .select()
-        .single()
-
-      // Update user subscription
-      if (transaction && transaction.user_id && transaction.plan_id) {
-        const planMap: { [key: string]: { tier: string; type: string; is_premium: boolean } } = {
-          'price_1TQBBYHPD8pnlRZIniqKwUo0': { tier: 'pro', type: 'monthly', is_premium: true },
-          'price_1TQBBcHPD8pnlRZImYqlm80o': { tier: 'pro', type: 'semester', is_premium: true },
-          'price_1TQBBdHPD8pnlRZIp7HSWNQj': { tier: 'premium', type: 'monthly', is_premium: true },
-          'price_1TQBBeHPD8pnlRZIeg7YvWbb': { tier: 'premium', type: 'semester', is_premium: true },
-          'ultimate': { tier: 'pro', type: 'monthly', is_premium: true },
-          'premium': { tier: 'premium', type: 'monthly', is_premium: true },
-          'starter': { tier: 'starter', type: 'starter', is_premium: false },
-          'beast_monthly': { tier: 'premium', type: 'monthly', is_premium: true },
-          'beast_quarterly': { tier: 'premium', type: 'quarterly', is_premium: true },
-          'beast_yearly': { tier: 'premium', type: 'yearly', is_premium: true },
-          'beast_annual': { tier: 'premium', type: 'yearly', is_premium: true },
-          'wizard_monthly': { tier: 'premium', type: 'monthly', is_premium: true },
-          'wizard_quarterly': { tier: 'premium', type: 'quarterly', is_premium: true },
-          'wizard_annual': { tier: 'premium', type: 'yearly', is_premium: true },
-          'monthly': { tier: 'premium', type: 'monthly', is_premium: true },
-          'quarterly': { tier: 'premium', type: 'quarterly', is_premium: true },
-          'annual': { tier: 'premium', type: 'yearly', is_premium: true },
-        }
-
-        const planInfo = planMap[transaction.plan_id]
-        if (planInfo) {
-          // Fetch existing user profile to support credit preservation
-          const { data: profile } = await supabaseClient
-            .from('profiles')
-            .select('subscription_expires_at')
-            .eq('id', transaction.user_id)
-            .single()
-
-          const now = new Date()
-          let baseDate = now
-
-          // If current subscription expires in the future, save their credit by starting from that expiry date!
-          if (profile && profile.subscription_expires_at) {
-            const currentExpiry = new Date(profile.subscription_expires_at)
-            if (currentExpiry > now) {
-              baseDate = currentExpiry
-            }
-          }
-
-          const expiryDate = new Date(baseDate)
-            
-          if (planInfo.type === 'yearly') {
-            expiryDate.setFullYear(expiryDate.getFullYear() + 1)
-          } else if (planInfo.type === 'quarterly') {
-            // Beast Quarterly plan duration is 4 months (Monthly * 4 - 20% discount)
-            expiryDate.setMonth(expiryDate.getMonth() + 4)
-          } else if (planInfo.type === 'starter') {
-            // Starter Plan has 2 weeks (14 days) duration
-            expiryDate.setDate(expiryDate.getDate() + 14)
-          } else if (planInfo.type === 'semester') {
-            if (planInfo.tier === 'premium') {
-              expiryDate.setFullYear(expiryDate.getFullYear() + 1) // 1 year for Executive long-term
-            } else {
-              expiryDate.setMonth(expiryDate.getMonth() + 4) // 4 months for Pro semester
-            }
-          } else {
-            expiryDate.setMonth(expiryDate.getMonth() + 1) // 1 month for monthly
-          }
-
-          await supabaseClient
-            .from('profiles')
-            .update({
-              subscription_tier: planInfo.tier,
-              subscription_type: planInfo.type,
-              subscription_expires_at: expiryDate.toISOString(),
-              is_premium: planInfo.is_premium,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', transaction.user_id)
-
-          console.log(`Updated subscription for user ${transaction.user_id} to ${planInfo.tier} (${planInfo.type}) expiring at ${expiryDate.toISOString()}`)
-        }
-      }
+    if (!signature) {
+      throw new Error('Missing Paystack signature')
     }
 
-    return new Response('Webhook processed', { 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200 
-    })
+    // Try both test and live secret keys for verification
+    const testKey = Deno.env.get('PAYSTACK_TEST_SECRET_KEY')
+    const liveKey = Deno.env.get('PAYSTACK_LIVE_SECRET_KEY')
+    let isValid = false
+
+    for (const secret of [testKey, liveKey]) {
+      if (!secret) continue
+      const encoder = new TextEncoder()
+      const keyData = encoder.encode(secret)
+      const msgData = encoder.encode(body)
+      const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+      const sig = await crypto.subtle.sign('HMAC', key, msgData)
+      const computed = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
+      if (computed === signature) { isValid = true; break }
+    }
+
+    if (!isValid) {
+      throw new Error('Invalid webhook signature')
+    }
+
+    const event = JSON.parse(body)
+
+    if (event.event === 'charge.success') {
+      const data = event.data
+      const reference = data.reference
+
+      const supabaseAdmin = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      )
+
+      // Find the transaction
+      const { data: tx } = await supabaseAdmin
+        .from('payment_transactions')
+        .select('id, user_id, plan_id, status')
+        .eq('reference', reference)
+        .single()
+
+      if (!tx) {
+        console.error(`Transaction not found: ${reference}`)
+        return new Response(JSON.stringify({ status: 'ignored', message: 'Transaction not found' }), { status: 200 })
+      }
+
+      if (tx.status === 'completed') {
+        return new Response(JSON.stringify({ status: 'already_completed' }), { status: 200 })
+      }
+
+      // Mark transaction as completed
+      await supabaseAdmin
+        .from('payment_transactions')
+        .update({
+          status: 'completed',
+          gateway_response: data,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', tx.id)
+
+      // Determine plan tier from plan_id
+      const TIER_MAP = {
+        pro: { tier: 'pro', monthlyCredits: 1500 },
+        pro_2weeks: { tier: 'pro', monthlyCredits: 1500 },
+        pro_yearly: { tier: 'pro', monthlyCredits: 1500 },
+        beast_monthly: { tier: 'beast', monthlyCredits: 999999 },
+        beast_2weeks: { tier: 'beast', monthlyCredits: 999999 },
+        beast_yearly: { tier: 'beast', monthlyCredits: 999999 },
+        starter: { tier: 'pro', monthlyCredits: 1500 },
+      }
+
+      const mapping = TIER_MAP[tx.plan_id]
+      if (mapping && tx.user_id) {
+        await Promise.all([
+          supabaseAdmin
+            .from('profiles')
+            .update({ is_premium: true, subscription_tier: mapping.tier })
+            .eq('id', tx.user_id),
+          supabaseAdmin
+            .from('user_stats')
+            .upsert(
+              { user_id: tx.user_id, ai_credits_monthly: mapping.monthlyCredits, ai_credits_used: 0 },
+              { onConflict: 'user_id' }
+            ),
+        ])
+        console.log(`Upgraded user ${tx.user_id} to ${mapping.tier}`)
+      }
+
+      return new Response(JSON.stringify({ status: 'completed' }), { status: 200 })
+    }
+
+    // Acknowledge other events
+    return new Response(JSON.stringify({ status: 'received', event: event.event }), { status: 200 })
   } catch (error) {
-    console.error('Webhook processing error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
-    })
+    console.error('Webhook error:', error)
+    return new Response(JSON.stringify({ error: error.message }), { status: 400 })
   }
 })

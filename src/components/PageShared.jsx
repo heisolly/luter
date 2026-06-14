@@ -559,6 +559,7 @@ export function SharedNavbar() {
             <motion.img
               src="/Header logo.png"
               alt="Luter"
+              initial={{ height: scrolled ? (isSmallNav ? 28 : 32) : (isSmallNav ? 34 : 44) }}
               animate={{ height: scrolled ? (isSmallNav ? 28 : 32) : (isSmallNav ? 34 : 44) }}
               transition={{ duration: 0.3 }}
               style={{ width: 'auto', display: 'block' }}

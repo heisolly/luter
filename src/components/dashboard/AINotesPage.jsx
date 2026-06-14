@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { 
-  RiBrainFill as Brain, RiAddLine as Plus, RiLoader4Line as Loader2, RiDownloadFill as Download, RiShareFill as Share2, RiFileTextFill as FileText, 
-  RiArrowRightSLine as ChevronRight, RiMagicFill as Sparkles, RiCheckboxCircleFill as CheckCircle 
+  RiBrainFill as Brain 
 } from 'react-icons/ri'
+import { Sparkles, FileText, ChevronRight, Download, Share2, Plus, CheckCircle, Loader2 } from 'lucide-react'
+import { ThinkingIndicator } from '../ui/thinking-indicator'
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService'
@@ -237,6 +238,10 @@ export default function AINotesPage() {
                 </div>
               </div>
               <ReactMarkdown>{notes}</ReactMarkdown>
+            </div>
+          ) : isGenerating ? (
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '500px' }}>
+              <ThinkingIndicator />
             </div>
           ) : (
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.4, minHeight: '500px' }}>

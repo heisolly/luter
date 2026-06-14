@@ -5,6 +5,12 @@ import { MagnifyingGlass, CircleNotch, DownloadSimple, Plus, X } from '@phosphor
 
 const PAGE = 25
 
+const PLAN_CONFIG = {
+  free:  { label: 'Free',  monthlyCredits: 200,   isPremium: false },
+  pro:   { label: 'Pro',   monthlyCredits: 1500,  isPremium: true  },
+  beast: { label: 'Beast', monthlyCredits: 999999, isPremium: true  },
+}
+
 function formatTs(s) {
   if (!s) return '—'
   try {
@@ -27,11 +33,12 @@ export default function AdminUsers() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [newUserId, setNewUserId] = useState('')
   const [newFullName, setNewFullName] = useState('')
-  const [newTier, setNewTier] = useState('premium')
+  const [newTier, setNewTier] = useState('pro')
   const [newType, setNewType] = useState('monthly')
   const [newDuration, setNewDuration] = useState('30') // '30', '90', '365', 'lifetime'
   const [modalSaving, setModalSaving] = useState(false)
   const [modalError, setModalError] = useState(null)
+  const [changingPlan, setChangingPlan] = useState(null) // user.id being changed
 
   // Live user search states in modal
   const [modalSearchQ, setModalSearchQ] = useState('')
@@ -114,38 +121,46 @@ export default function AdminUsers() {
     }
   }
 
-  const toggleUserPremium = async (user) => {
-    setError(null)
-    const isNowPremium = !user.is_premium
-    let expiry = null
-    if (isNowPremium) {
-      const d = new Date()
-      d.setDate(d.getDate() + 30) // Default 30 days
-      expiry = d.toISOString()
-    }
+  const changeUserPlan = async (user, planId) => {
+    const plan = PLAN_CONFIG[planId]
+    if (!plan) return
 
-    const { error: err } = await supabase
+    setChangingPlan(user.id)
+    setError(null)
+
+    const { error: profileErr } = await supabase
       .from('profiles')
       .update({
-        is_premium: isNowPremium,
-        subscription_tier: isNowPremium ? 'premium' : 'free',
-        subscription_type: isNowPremium ? 'monthly' : null,
-        subscription_expires_at: expiry,
-        updated_at: new Date().toISOString()
+        is_premium: plan.isPremium,
+        subscription_tier: planId,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', user.id)
 
-    if (err) {
-      setError(err.message)
-    } else {
-      setRows(prev => prev.map(r => r.id === user.id ? {
-        ...r,
-        is_premium: isNowPremium,
-        subscription_tier: isNowPremium ? 'premium' : 'free',
-        subscription_type: isNowPremium ? 'monthly' : null,
-        subscription_expires_at: expiry
-      } : r))
+    if (profileErr) {
+      setError(profileErr.message)
+      setChangingPlan(null)
+      return
     }
+
+    const { error: statsErr } = await supabase
+      .from('user_stats')
+      .upsert({
+        user_id: user.id,
+        ai_credits_monthly: plan.monthlyCredits,
+        ai_credits_used: 0,
+      }, { onConflict: 'user_id' })
+
+    if (statsErr) {
+      console.error('[AdminUsers] stats update error:', statsErr)
+    }
+
+    setRows(prev => prev.map(r =>
+      r.id === user.id
+        ? { ...r, is_premium: plan.isPremium, subscription_tier: planId }
+        : r
+    ))
+    setChangingPlan(null)
   }
 
   const handleAddPaidUser = async (e) => {
@@ -157,6 +172,8 @@ export default function AdminUsers() {
     setModalSaving(true)
     setModalError(null)
 
+    const plan = PLAN_CONFIG[newTier] || PLAN_CONFIG.pro
+
     let expiresAt = null
     if (newDuration !== 'lifetime') {
       const days = parseInt(newDuration, 10)
@@ -165,12 +182,12 @@ export default function AdminUsers() {
       expiresAt = d.toISOString()
     }
 
-    const { error: err } = await supabase
+    const { error: profileErr } = await supabase
       .from('profiles')
       .upsert({
         id: newUserId.trim(),
         full_name: newFullName.trim() || 'Premium User',
-        is_premium: true,
+        is_premium: plan.isPremium,
         subscription_tier: newTier,
         subscription_type: newType || null,
         subscription_expires_at: expiresAt,
@@ -178,14 +195,24 @@ export default function AdminUsers() {
         updated_at: new Date().toISOString()
       }, { onConflict: 'id' })
 
-    if (err) {
-      setModalError(err.message)
-    } else {
-      setShowAddModal(false)
-      setNewUserId('')
-      setNewFullName('')
-      fetchPage(page, subFilter)
+    if (profileErr) {
+      setModalError(profileErr.message)
+      setModalSaving(false)
+      return
     }
+
+    await supabase
+      .from('user_stats')
+      .upsert({
+        user_id: newUserId.trim(),
+        ai_credits_monthly: plan.monthlyCredits,
+        ai_credits_used: 0,
+      }, { onConflict: 'user_id' })
+
+    setShowAddModal(false)
+    setNewUserId('')
+    setNewFullName('')
+    fetchPage(page, subFilter)
     setModalSaving(false)
   }
 
@@ -294,25 +321,50 @@ export default function AdminUsers() {
                       <span className={`adm-pill ${r.role === 'admin' ? 'adm-pill--warn' : ''}`}>{r.role || 'user'}</span>
                     </td>
                     <td>
-                      {r.is_premium ? (
-                        <span className="adm-pill" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontWeight: 600 }}>
-                          Premium
-                        </span>
-                      ) : (
-                        <span className="adm-pill" style={{ background: '#f3f4f6', color: '#4b5563', border: '1px solid #e5e7eb', fontWeight: 500 }}>
-                          Free
-                        </span>
-                      )}
+                      {(() => {
+                        const t = (r.subscription_tier || 'free').toLowerCase()
+                        const cfg = PLAN_CONFIG[t]
+                        if (!cfg || !r.is_premium) {
+                          return (
+                            <span className="adm-pill" style={{ background: '#f3f4f6', color: '#4b5563', border: '1px solid #e5e7eb', fontWeight: 500 }}>
+                              Free
+                            </span>
+                          )
+                        }
+                        const colors = {
+                          pro:   { bg: '#eff6ff', color: '#1e40af', border: '#bfdbfe' },
+                          beast: { bg: '#ecfdf5', color: '#065f46', border: '#a7f3d0' },
+                        }
+                        const c = colors[t] || { bg: '#ecfdf5', color: '#065f46', border: '#a7f3d0' }
+                        return (
+                          <span className="adm-pill" style={{ background: c.bg, color: c.color, border: `1px solid ${c.border}`, fontWeight: 600 }}>
+                            {cfg.label}
+                          </span>
+                        )
+                      })()}
                     </td>
                     <td>
-                      <button
-                        type="button"
-                        className="adm-btn adm-btn--ghost"
-                        style={{ padding: '4px 8px', fontSize: 11, minHeight: 'auto' }}
-                        onClick={() => toggleUserPremium(r)}
+                      <select
+                        value={(r.subscription_tier || 'free').toLowerCase()}
+                        onChange={(e) => changeUserPlan(r, e.target.value)}
+                        disabled={changingPlan === r.id}
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: 11,
+                          borderRadius: 6,
+                          border: '1px solid var(--adm-border, #e2e8f0)',
+                          background: changingPlan === r.id ? '#f1f5f9' : '#fff',
+                          cursor: changingPlan === r.id ? 'wait' : 'pointer',
+                          fontWeight: 500,
+                        }}
                       >
-                        {r.is_premium ? 'Downgrade' : 'Grant Premium'}
-                      </button>
+                        <option value="free">Free</option>
+                        <option value="pro">Pro</option>
+                        <option value="beast">Beast</option>
+                      </select>
+                      {changingPlan === r.id && (
+                        <span style={{ fontSize: 10, color: '#7a12cc', marginLeft: 6 }}>saving...</span>
+                      )}
                     </td>
                     <td>
                       <Link to={`/users/${r.id}`} className="adm-link">
@@ -464,8 +516,8 @@ export default function AdminUsers() {
                     value={newTier}
                     onChange={(e) => setNewTier(e.target.value)}
                   >
-                    <option value="premium">Premium</option>
                     <option value="pro">Pro</option>
+                    <option value="beast">Beast</option>
                   </select>
                 </label>
 

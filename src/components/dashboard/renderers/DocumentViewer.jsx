@@ -31,30 +31,10 @@ import {
   RiYoutubeFill as YoutubeLogo, RiCheckboxCircleFill as CheckCircle, RiListCheck as List
 } from "react-icons/ri";
 
-// Professional Renderers
-import { Viewer, Worker, SpecialZoomLevel } from '@react-pdf-viewer/core'
-import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout'
-import { renderAsync } from 'docx-preview'
-import ReactPlayer from 'react-player'
-import QuickPinchZoom, { make3dTransformValue } from 'react-quick-pinch-zoom'
-import { searchPlugin } from '@react-pdf-viewer/search'
-import { fullScreenPlugin } from '@react-pdf-viewer/full-screen'
 import * as XLSX from 'xlsx'
 import UniversalViewer from './UniversalViewer'
-// Styles
-import '@react-pdf-viewer/core/lib/styles/index.css'
-import '@react-pdf-viewer/default-layout/lib/styles/index.css'
-import '@react-pdf-viewer/search/lib/styles/index.css'
-import '@react-pdf-viewer/full-screen/lib/styles/index.css'
 
-import * as pdfjsLib from 'pdfjs-dist'
 
-// PDF Worker configuration
-const PDF_WORKER_URL = 'https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js'
-
-if (typeof window !== 'undefined' && pdfjsLib) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL
-}
 
 // ─── Main Document Viewer ─────────────────────────────────────────────────────
 
@@ -87,6 +67,7 @@ export default function DocumentViewer({
   drawMode,
   loadHighlights,
   setHighlightToolbox,
+  isDark
 }) {
   const { setViewportData, askAI } = useReadingSpace()
   const [viewMode, setViewMode] = useState('visuals')
@@ -116,9 +97,7 @@ export default function DocumentViewer({
   const aiReaderRef = useRef(null)
   const canvasRef = useRef(null)
 
-  // PDF Plugins - Initialized once
-  const searchPluginInstance = searchPlugin()
-  const fullScreenPluginInstance = fullScreenPlugin()
+  // Removed legacy PDF plugins
 
   const handlePageJump = (pg) => {
     const p = parseInt(pg)
@@ -216,14 +195,13 @@ export default function DocumentViewer({
   }
 
   return (
-    <div className="ws-infinite-reader-container" ref={canvasRef}>
-      <div className="ws-canvas-scroller">
+    <div className="ws-infinite-reader-container" ref={canvasRef} style={{ background: 'transparent' }}>
+      <div className="ws-canvas-scroller" style={{ padding: 0 }}>
         
         <div className="ws-canvas-surface" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
           {/* VISUAL VIEW: CLEAN DOCUMENT MODE */}
           {viewMode === 'visuals' && (
             <div className="ws-visual-viewport" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-               <Worker workerUrl={PDF_WORKER_URL}>
                  <UniversalViewer
                     material={material}
                     initialPage={currentPage}
@@ -255,8 +233,8 @@ export default function DocumentViewer({
                     drawMode={drawMode}
                     loadHighlights={loadHighlights}
                     setHighlightToolbox={setHighlightToolbox}
+                    isDark={isDark}
                  />
-               </Worker>
             </div>
           )}
 

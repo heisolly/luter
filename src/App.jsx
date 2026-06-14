@@ -241,6 +241,7 @@ export default function App() {
             <Route path="decks" element={<DecksPage />} />
             <Route path="vault" element={<VaultPage />} />
             <Route path="workstation" element={<WorkstationPage />} />
+            <Route path="workstation/:materialId" element={<WorkstationPage />} />
             <Route path="mock-exam" element={<MockExamPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="settings" element={<SettingsPage />} />

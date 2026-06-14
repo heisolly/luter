@@ -14,6 +14,7 @@ import { Table } from '@tiptap/extension-table'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { TableRow } from '@tiptap/extension-table-row'
+import Image from '@tiptap/extension-image'
 import { Suggestion } from '@tiptap/suggestion'
 import {
   FloatingToolbar,
@@ -480,7 +481,10 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
   const [aiModeType, setAiModeType] = useState('Default')
   const [historyOpen, setHistoryOpen] = useState(false)
   const [chatHistory, setChatHistory] = useState(loadHistory)
-  const [conversationId] = useState(() => crypto.randomUUID())
+  const [conversationId] = useState(() => {
+    try { return crypto.randomUUID() }
+    catch { return Math.random().toString(36).substring(2) + Date.now().toString(36) }
+  })
 
   // Detect standalone /ai-chat route — no nav to notes, no close/widget buttons
   const location = useLocation()
@@ -1326,8 +1330,21 @@ function markdownToEditorHtml(text) {
 
   const flushList = () => {
     if (!listItems.length) return
-    blocks.push(`<ul>${listItems.map(item => `<li><p>${escapeHtml(item)}</p></li>`).join('')}</ul>`)
+    blocks.push(`<ul>${listItems.map(item => `<li><p>${parseInlineStyles(item)}</p></li>`).join('')}</ul>`)
     listItems = []
+  }
+
+  const parseInlineStyles = (str) => {
+    let parsed = escapeHtml(str)
+    // Images: ![alt](url)
+    parsed = parsed.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />')
+    // Bold: **text**
+    parsed = parsed.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    // Italic: *text*
+    parsed = parsed.replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    // Inline Code: `text`
+    parsed = parsed.replace(/`([^`]+)`/g, '<code>$1</code>')
+    return parsed
   }
 
   lines.forEach((line) => {
@@ -1345,10 +1362,10 @@ function markdownToEditorHtml(text) {
     }
 
     flushList()
-    if (trimmed.startsWith('### ')) blocks.push(`<h3>${escapeHtml(trimmed.slice(4))}</h3>`)
-    else if (trimmed.startsWith('## ')) blocks.push(`<h2>${escapeHtml(trimmed.slice(3))}</h2>`)
-    else if (trimmed.startsWith('# ')) blocks.push(`<h1>${escapeHtml(trimmed.slice(2))}</h1>`)
-    else blocks.push(`<p>${escapeHtml(trimmed)}</p>`)
+    if (trimmed.startsWith('### ')) blocks.push(`<h3>${parseInlineStyles(trimmed.slice(4))}</h3>`)
+    else if (trimmed.startsWith('## ')) blocks.push(`<h2>${parseInlineStyles(trimmed.slice(3))}</h2>`)
+    else if (trimmed.startsWith('# ')) blocks.push(`<h1>${parseInlineStyles(trimmed.slice(2))}</h1>`)
+    else blocks.push(`<p>${parseInlineStyles(trimmed)}</p>`)
   })
 
   flushList()
@@ -1451,7 +1468,7 @@ function SelectionAiActions({ editor, user, profile }) {
   )
 }
 
-function NativeDocumentToolbar({ editor }) {
+function NativeDocumentToolbar({ editor, workstationMode = false }) {
   const [, forceUpdate] = useState(0)
 
   useEffect(() => {
@@ -1503,7 +1520,7 @@ function NativeDocumentToolbar({ editor }) {
   ]
 
   return (
-    <div className="ns-native-toolbar" aria-label="Document toolbar">
+    <div className={`ns-native-toolbar ${workstationMode ? 'workstation-toolbar' : ''}`} aria-label="Document toolbar">
       {buttons.map((item, index) => {
         if (item.type === 'divider') return <span key={`divider-${index}`} className="ns-native-divider" />
         const Icon = item.icon
@@ -1525,7 +1542,7 @@ function NativeDocumentToolbar({ editor }) {
 }
 
 // ─── Live Note Editor ──────────────────────────────────────────────────────────
-function LiveNoteEditor({ title, roomId, displayName, user, profile, isSharedLink = false }) {
+export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSharedLink = false, hideHeader = false, workstationMode = false, emptyState = null, onOpenAiChat }) {
   const location = useLocation()
   const navigate = useNavigate()
   const isAiChatRoute = location.pathname.includes('/ai-chat')
@@ -1675,7 +1692,11 @@ function LiveNoteEditor({ title, roomId, displayName, user, profile, isSharedLin
           const { empty, $anchor } = this.editor.state.selection
           // Only trigger on empty paragraphs at the start of the line
           if (empty && $anchor.parent.content.size === 0 && $anchor.parent.type.name === 'paragraph') {
-            setAiOpen(true)
+            if (onOpenAiChat) {
+              onOpenAiChat()
+            } else {
+              setAiOpen(true)
+            }
             return true // Prevent default space insertion
           }
           return false
@@ -1717,6 +1738,7 @@ function LiveNoteEditor({ title, roomId, displayName, user, profile, isSharedLin
       TaskItem.configure({ nested: true }),
       Table.configure({ resizable: true }),
       TableRow, TableHeader, TableCell,
+      Image,
       Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' } }),
       Typography,
       SlashCommand,
@@ -1917,8 +1939,9 @@ function LiveNoteEditor({ title, roomId, displayName, user, profile, isSharedLin
       <NotesLiveCursors />
       <NotesCommentNotifications threads={threads} onOpenComments={toggleCommentsPanel} />
       {/* ── Top Bar ── */}
-      <header className="ns-topbar">
-        {/* Left: Breadcrumbs + Exit on mobile */}
+      {!hideHeader && (
+        <header className="ns-topbar">
+          {/* Left: Breadcrumbs + Exit on mobile */}
         <div className="ns-breadcrumbs">
           {isMobile && (
             <button
@@ -2023,11 +2046,12 @@ function LiveNoteEditor({ title, roomId, displayName, user, profile, isSharedLin
           </button>
         </div>
       </header>
+      )}
 
-      <NativeDocumentToolbar editor={editor} />
+      {(!hideHeader || workstationMode) && <NativeDocumentToolbar editor={editor} workstationMode={workstationMode} />}
 
       {/* ── Body: Editor + Comments ── */}
-      <div className={`ns-body-row${aiOpen && !commentsOpen && aiMode === 'sidebar' ? ' ns-ai-sidebar-open' : ''}`}>
+      <div className={`ns-body-row${aiOpen && !commentsOpen && aiMode === 'sidebar' ? ' ns-ai-sidebar-open' : ''} ${workstationMode ? 'workstation-mode' : ''}`}>
         <div className="ns-body">
           {/* Editor */}
           <main className="ns-main" style={{ paddingRight: aiOpen && !commentsOpen && aiMode === 'sidebar' ? 0 : undefined }}>
@@ -2073,6 +2097,7 @@ function LiveNoteEditor({ title, roomId, displayName, user, profile, isSharedLin
 
               <div className="ns-paper">
                 <EditorContent editor={editor} />
+                {editor?.isEmpty && emptyState && (typeof emptyState === 'function' ? emptyState(editor) : emptyState)}
               </div>
               {editor && (
                 <FloatingToolbar editor={editor} className="ns-floating-toolbar">
@@ -2099,7 +2124,7 @@ function LiveNoteEditor({ title, roomId, displayName, user, profile, isSharedLin
         </div>
 
         {/* AI Panel in SIDEBAR mode sits here, inside the row wrapper */}
-        {aiOpen && !commentsOpen && aiMode === 'sidebar' && (
+        {aiOpen && !commentsOpen && aiMode === 'sidebar' && !workstationMode && (
           <AiChatPanel
             isOpen={aiOpen}
             onClose={() => setAiOpen(false)}
@@ -2116,7 +2141,7 @@ function LiveNoteEditor({ title, roomId, displayName, user, profile, isSharedLin
       </div>
 
       {/* AI Panel in FLOATING or FULLSCREEN mode — outside the row, uses fixed positioning */}
-      {aiOpen && !commentsOpen && aiMode !== 'sidebar' && (
+      {aiOpen && !commentsOpen && aiMode !== 'sidebar' && !workstationMode && (
         <AiChatPanel
           isOpen={aiOpen}
           onClose={() => setAiOpen(false)}

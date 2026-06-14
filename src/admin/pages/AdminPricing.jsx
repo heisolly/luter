@@ -4,25 +4,55 @@ import { CREDIT_COSTS, TIER_LIMITS, getActionLabel } from '../../services/credit
 
 const STORAGE_KEY = 'luter_pricing_config'
 
-function loadConfig() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch { return null }
-}
-
-function saveConfig(config) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
-}
-
 export default function AdminPricing() {
   const [tab, setTab] = useState('credits')
-  const [costs, setCosts] = useState(() => loadConfig()?.costs ?? { ...CREDIT_COSTS })
-  const [limits, setLimits] = useState(() => loadConfig()?.limits ?? { ...TIER_LIMITS })
-  const [pricing, setPricing] = useState(() => loadConfig()?.pricing ?? { proMonthly: 7, beastMonthly: 15, proYearly: 65, beastYearly: 140 })
+  const [costs, setCosts] = useState({ ...CREDIT_COSTS })
+  const [limits, setLimits] = useState({ ...TIER_LIMITS })
+  const [pricing, setPricing] = useState({ proMonthly: 7, beastMonthly: 15, proYearly: 65, beastYearly: 140 })
+  const [resetTime, setResetTime] = useState('04:00')
+  const [freeNaira, setFreeNaira] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [resetTime, setResetTime] = useState(() => loadConfig()?.resetTime ?? '04:00')
-  const [freeNaira, setFreeNaira] = useState(() => loadConfig()?.freeNaira ?? false)
+  const [loading, setLoading] = useState(true)
+
+  // Load from DB on mount, fall back to localStorage
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await supabase
+          .from('pricing_config')
+          .select('costs, limits, pricing, reset_time, free_naira')
+          .eq('id', 1)
+          .maybeSingle()
+
+        if (data) {
+          if (data.costs && Object.keys(data.costs).length > 0) setCosts(data.costs)
+          if (data.limits && Object.keys(data.limits).length > 0) setLimits(data.limits)
+          if (data.pricing && Object.keys(data.pricing).length > 0) setPricing(data.pricing)
+          if (data.reset_time) setResetTime(data.reset_time)
+          if (typeof data.free_naira === 'boolean') setFreeNaira(data.free_naira)
+          setLoading(false)
+          return
+        }
+      } catch (err) {
+        console.warn('[AdminPricing] DB load failed, trying localStorage:', err.message)
+      }
+
+      // Fallback to localStorage
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY)
+        if (raw) {
+          const cfg = JSON.parse(raw)
+          if (cfg.costs) setCosts(prev => ({ ...prev, ...cfg.costs }))
+          if (cfg.limits) setLimits(prev => ({ ...prev, ...cfg.limits }))
+          if (cfg.pricing) setPricing(prev => ({ ...prev, ...cfg.pricing }))
+          if (cfg.resetTime) setResetTime(cfg.resetTime)
+          if (typeof cfg.freeNaira === 'boolean') setFreeNaira(cfg.freeNaira)
+        }
+      } catch { /* ignore */ }
+      setLoading(false)
+    }
+    load()
+  }, [])
 
   useEffect(() => {
     if (saved) {
@@ -31,18 +61,51 @@ export default function AdminPricing() {
     }
   }, [saved])
 
-  const handleSave = () => {
-    saveConfig({ costs, limits, pricing, resetTime, freeNaira })
+  const handleSave = async () => {
+    const payload = { costs, limits, pricing, reset_time: resetTime, free_naira: freeNaira }
+
+    // Save to DB
+    try {
+      const { error } = await supabase
+        .from('pricing_config')
+        .upsert({ id: 1, ...payload }, { onConflict: 'id' })
+      if (error) throw error
+    } catch (err) {
+      console.warn('[AdminPricing] DB save failed, falling back to localStorage:', err.message)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        costs, limits, pricing, resetTime, freeNaira,
+      }))
+    }
+
     setSaved(true)
   }
 
   const handleReset = () => {
-    setCosts({ ...CREDIT_COSTS })
-    setLimits({ ...TIER_LIMITS })
-    setPricing({ proMonthly: 7, beastMonthly: 15, proYearly: 65, beastYearly: 140 })
-    setResetTime('04:00')
-    setFreeNaira(false)
-    saveConfig({ costs: { ...CREDIT_COSTS }, limits: { ...TIER_LIMITS }, pricing: { proMonthly: 7, beastMonthly: 15, proYearly: 65, beastYearly: 140 }, resetTime: '04:00', freeNaira: false })
+    const defaults = {
+      costs: { ...CREDIT_COSTS },
+      limits: { ...TIER_LIMITS },
+      pricing: { proMonthly: 7, beastMonthly: 15, proYearly: 65, beastYearly: 140 },
+      resetTime: '04:00',
+      freeNaira: false,
+    }
+    setCosts(defaults.costs)
+    setLimits(defaults.limits)
+    setPricing(defaults.pricing)
+    setResetTime(defaults.resetTime)
+    setFreeNaira(defaults.freeNaira)
+
+    supabase
+      .from('pricing_config')
+      .upsert({
+        id: 1,
+        costs: defaults.costs,
+        limits: defaults.limits,
+        pricing: defaults.pricing,
+        reset_time: defaults.resetTime,
+        free_naira: defaults.freeNaira,
+      }, { onConflict: 'id' })
+      .catch(err => console.warn('[AdminPricing] Reset DB save failed:', err.message))
+
     setSaved(true)
   }
 
@@ -57,12 +120,20 @@ export default function AdminPricing() {
 
   const sortedKeys = Object.keys(CREDIT_COSTS).sort()
 
+  if (loading) {
+    return (
+      <div style={{ padding: '1.5rem 2rem', maxWidth: 1000, margin: '0 auto', fontFamily: 'var(--font-outfit, Inter, sans-serif)' }}>
+        <p style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>Loading pricing config...</p>
+      </div>
+    )
+  }
+
   return (
     <div style={{ padding: '1.5rem 2rem', maxWidth: 1000, margin: '0 auto', color: 'var(--color-text-primary)', fontFamily: 'var(--font-outfit, Inter, sans-serif)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 600, margin: 0 }}>Pricing Configuration</h1>
-          <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', margin: '4px 0 0' }}>Override credit costs, daily limits, and subscription pricing.</p>
+          <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', margin: '4px 0 0' }}>Override credit costs, daily limits, and subscription pricing. Saved to Supabase.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={handleReset} style={{ padding: '8px 16px', borderRadius: 8, border: '.5px solid var(--color-border-tertiary)', background: 'var(--color-background-secondary)', color: 'var(--color-text-secondary)', fontSize: 13, cursor: 'pointer' }}>Reset defaults</button>

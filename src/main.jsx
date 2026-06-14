@@ -61,18 +61,4 @@ function mountApp() {
   )
 }
 
-if (typeof window !== 'undefined') {
-  // Poll for pdfjsLib if not immediately available
-  const checkReady = () => {
-    if (window.pdfjsLib) {
-      console.log('✅ PDF.js Ready');
-      mountApp();
-    } else {
-      console.warn('🕒 Waiting for PDF.js...');
-      setTimeout(checkReady, 50);
-    }
-  };
-  checkReady();
-} else {
-  mountApp();
-}
+mountApp();

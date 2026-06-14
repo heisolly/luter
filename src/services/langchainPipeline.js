@@ -22,11 +22,10 @@ import { Readability } from '@mozilla/readability'
 
 import * as pdfjsLib from 'pdfjs-dist'
 
-// PDF Worker Initialization
-const PDF_WORKER_URL = 'https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js'
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
 if (typeof window !== 'undefined' && pdfjsLib) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
 }
 
 /** Race a promise against a timeout */

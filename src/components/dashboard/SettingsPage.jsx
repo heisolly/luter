@@ -39,6 +39,7 @@ import {
 import { RiCameraLine } from 'react-icons/ri';
 import { supabase } from '../../supabaseClient';
 import { ContentSkeleton } from '../shared/LuterPageLoader';
+import AvatarCropModal from '../shared/AvatarCropModal';
 import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceStore';
 import { useSessionStore } from '../../store/useSessionStore';
 import { LANDING_URL } from '../../utils/urlUtils';
@@ -62,6 +63,8 @@ export default function SettingsPage() {
   });
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState(null);
+  const [pendingFile, setPendingFile] = useState(null);
   const fileInputRef = useRef(null);
 
   // Watch body class for dark mode changes
@@ -148,74 +151,60 @@ export default function SettingsPage() {
   }
 
   const handleAvatarUpload = async (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg']
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)')
+      return
+    }
+
+    if (file.size > 20 * 1024 * 1024) {
+      alert('Image size must be less than 20MB')
+      return
+    }
+
+    // Read file as data URL and show crop modal
+    setPendingFile(file)
+    const reader = new FileReader()
+    reader.onload = () => setCropImageSrc(reader.result)
+    reader.readAsDataURL(file)
+  }
+
+  const handleCropConfirm = async (blob) => {
+    setCropImageSrc(null)
+    setUploading(true)
     try {
-      setUploading(true)
-      
-      const file = event.target.files[0]
-      if (!file) return
+      const filePath = `${user.id}/avatar.jpg`
+      const cropFile = new File([blob], 'avatar.jpg', { type: 'image/jpeg' })
 
-      console.log('Selected file:', file.name, file.type, file.size)
-
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg']
-      if (!allowedTypes.includes(file.type)) {
-        alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)')
-        setUploading(false)
-        return
-      }
-
-      // Validate file size (20MB max)
-      if (file.size > 20 * 1024 * 1024) {
-        alert('Image size must be less than 20MB')
-        setUploading(false)
-        return
-      }
-
-      const fileExt = file.name.split('.').pop().toLowerCase()
-      const filePath = `${user.id}/avatar.${fileExt}`
-
-      console.log('Uploading to:', filePath)
-
-      // Upload to avatars bucket
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, { upsert: true })
+        .upload(filePath, cropFile, { upsert: true })
 
-      if (uploadError) {
-        throw uploadError
-      }
+      if (uploadError) throw uploadError
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath)
 
-      // Update profile with direct URL
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl })
         .eq('id', user.id)
 
-      if (updateError) {
-        throw updateError
-      }
+      if (updateError) throw updateError
 
-      // Set avatar URL with cache bust
       setAvatarUrl(`${publicUrl}?v=${Date.now()}`)
-      
-      // Refresh profile
       fetchUserProfile()
-      
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-      
+      if (fileInputRef.current) fileInputRef.current.value = ''
     } catch (error) {
       console.error('Error uploading avatar:', error)
       alert(`Failed to upload image: ${error.message}. Please try again.`)
     } finally {
       setUploading(false)
+      setPendingFile(null)
     }
   }
 
@@ -1603,6 +1592,14 @@ export default function SettingsPage() {
           100% { transform: rotate(360deg); }
         }
       `}</style>
+
+      {cropImageSrc && (
+        <AvatarCropModal
+          imageSrc={cropImageSrc}
+          onCancel={() => { setCropImageSrc(null); setPendingFile(null); if (fileInputRef.current) fileInputRef.current.value = '' }}
+          onConfirm={handleCropConfirm}
+        />
+      )}
     </div>
   );
 }

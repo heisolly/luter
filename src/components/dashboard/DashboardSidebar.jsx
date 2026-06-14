@@ -46,15 +46,32 @@ function useDarkMode() {
     if (isDark) {
       document.body.classList.add('dark-mode')
       document.documentElement.setAttribute('data-theme', 'dark')
-      localStorage.setItem('luter-theme', 'dark')
     } else {
       document.body.classList.remove('dark-mode')
       document.documentElement.setAttribute('data-theme', 'light')
-      localStorage.setItem('luter-theme', 'light')
+    }
+    
+    const handleStorage = (e) => {
+      if (e.key === 'luter-theme') setIsDark(e.newValue === 'dark')
+    }
+    const handleCustom = (e) => setIsDark(e.detail === 'dark')
+    
+    window.addEventListener('storage', handleStorage)
+    window.addEventListener('theme-change', handleCustom)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      window.removeEventListener('theme-change', handleCustom)
     }
   }, [isDark])
 
-  return [isDark, setIsDark]
+  const setGlobalDark = (newDark) => {
+    setIsDark(newDark)
+    localStorage.setItem('luter-theme', newDark ? 'dark' : 'light')
+    window.dispatchEvent(new CustomEvent('theme-change', { detail: newDark ? 'dark' : 'light' }))
+  }
+
+  return [isDark, setGlobalDark]
 }
 
 /* ── active check ── */
@@ -486,7 +503,7 @@ export default function DashboardSidebar({
 
         {/* Upgrade */}
         {!collapsed && !isPaid && (
-          <button className="dsb-upgrade-btn" onClick={() => go('/pricing')}>
+          <button className="dsb-upgrade-btn" onClick={() => go('/upgrade')}>
             <Lightning size={18} weight="fill" />
             <span>Upgrade</span>
           </button>
@@ -540,7 +557,7 @@ export default function DashboardSidebar({
                 </div>
               </div>
               {!isPaid && (
-                <button className="dsb-dropdown-upgrade" onClick={() => go('/pricing')}>
+                <button className="dsb-dropdown-upgrade" onClick={() => go('/upgrade')}>
                   <Lightning size={15} weight="fill" />
                   Upgrade
                 </button>

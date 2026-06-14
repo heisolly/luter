@@ -1,14 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import {
-  ArrowClockwise,
-  CheckCircle,
-  Lightning,
-  MagnifyingGlass,
-  Question,
-  Spinner,
-  XCircle,
-} from '@phosphor-icons/react'
+import { Brain, Lightning, MagnifyingGlass, Question, XCircle, CheckCircle, ArrowClockwise, Spinner } from '@phosphor-icons/react'
+import { ThinkingIndicator } from '../ui/thinking-indicator'
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService'
@@ -141,6 +134,10 @@ export default function AIQuizPage() {
                   <p>You scored {score} out of {questions.length}. Run it again when the material needs another pass.</p>
                   <button className="lp-btn lp-btn-primary" onClick={generateQuiz}><ArrowClockwise size={18} /> Try again</button>
                 </div>
+              </div>
+            ) : isGenerating ? (
+              <div className="lp-empty" style={{ minHeight: 430 }}>
+                <ThinkingIndicator />
               </div>
             ) : currentQuestion ? (
               <div>

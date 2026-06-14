@@ -82,8 +82,8 @@ export default function BackpackFolderView() {
     .filter((m) => !search || materialLabel(m).toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
-  const handleOpenMaterial = (material) => navigate('/dashboard/workstation', { state: { material } })
-  const handleStudyMaterial = (material) => navigate('/dashboard/workstation', { state: { material } })
+  const handleOpenMaterial = (material) => navigate(`/dashboard/workstation/${material.id}`, { state: { material } })
+  const handleStudyMaterial = (material) => navigate(`/dashboard/workstation/${material.id}`, { state: { material } })
 
   return (
     <div className="sr-container">

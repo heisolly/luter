@@ -1,23 +1,27 @@
 import { 
-  Pen, Minus, ArrowUpRight, TextT, Eraser, Trash 
+  Eraser
 } from '@phosphor-icons/react';
 
 export default function AnnotationToolbar({
-  drawMode, setDrawMode,
+  activeWorkspaceTool, // 'annotate', 'highlight', 'occlude'
+  isEraserMode, setIsEraserMode,
   strokeColor, setStrokeColor,
   strokeSize, setStrokeSize,
   ANNOTATION_COLORS, STROKE_SIZES,
-  onClear,
+  isDark,
   visible,
 }) {
   if (!visible) return null;
 
-  const MODES = [
-    { id: 'pen',   icon: <Pen size={14}/>,          label: 'Draw' },
-    { id: 'line',  icon: <Minus size={14}/>,         label: 'Line' },
-    { id: 'arrow', icon: <ArrowUpRight size={14}/>,  label: 'Arrow' },
-    { id: 'text',  icon: <TextT size={14}/>,         label: 'Text' },
-  ];
+  const bg = isDark ? '#1F2937' : 'white';
+  const border = isDark ? '#374151' : '#E5E7EB';
+  const text = isDark ? '#F9FAFB' : '#111827';
+  const inactiveText = isDark ? '#9CA3AF' : '#6B7280';
+  const hoverBg = isDark ? '#374151' : '#F3F4F6';
+  
+  // Determine which properties to show based on active tool
+  const showColors = activeWorkspaceTool === 'annotate' || activeWorkspaceTool === 'highlight';
+  const showSizes = activeWorkspaceTool === 'annotate';
 
   return (
     <div style={{
@@ -26,168 +30,121 @@ export default function AnnotationToolbar({
       left: '50%',
       transform: 'translateX(-50%)',
       zIndex: 40,
-      background: 'white',
-      border: '1px solid #E5E7EB',
+      background: bg,
+      border: `1px solid ${border}`,
       borderRadius: '20px',
       padding: '8px 12px',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.10)',
+      boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.10)',
       display: 'flex',
       alignItems: 'center',
       gap: 8,
       whiteSpace: 'nowrap',
       animation: 'toolboxAppear 150ms ease',
+      color: text,
     }}>
       
-      {/* Draw mode switcher */}
-      <div style={{
-        background: '#F3F4F6',
-        borderRadius: 9999,
-        padding: 3,
-        display: 'flex',
-        gap: 2,
-      }}>
-        {MODES.map(mode => (
-          <button
-            key={mode.id}
-            onClick={() => setDrawMode(mode.id)}
-            title={mode.label}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: '5px 10px',
-              borderRadius: 9999,
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: 500,
-              transition: 'all 150ms',
-              background: drawMode === mode.id ? 'white' : 'transparent',
-              color: drawMode === mode.id ? '#111827' : '#9CA3AF',
-              boxShadow: drawMode === mode.id 
-                ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-            }}
-          >
-            {mode.icon}
-            {mode.label}
-          </button>
-        ))}
-      </div>
+      {showColors && (
+        <div style={{display:'flex', gap:5, alignItems:'center'}}>
+          {ANNOTATION_COLORS.map(color => (
+            <div
+              key={color}
+              onClick={() => {
+                setStrokeColor(color);
+                setIsEraserMode(false);
+              }}
+              style={{
+                width: 18, height: 18,
+                borderRadius: '50%',
+                background: color,
+                cursor: 'pointer',
+                transition: 'all 150ms',
+                border: strokeColor === color && !isEraserMode
+                  ? `2px solid ${color}` : '2px solid transparent',
+                boxShadow: strokeColor === color && !isEraserMode
+                  ? `0 0 0 2px ${bg}, 0 0 0 3.5px ${color}` : 'none',
+                transform: strokeColor === color && !isEraserMode 
+                  ? 'scale(1.2)' : 'scale(1)',
+                opacity: isEraserMode ? 0.5 : 1
+              }}
+            />
+          ))}
+        </div>
+      )}
 
-      {/* Divider */}
-      <div style={{
-        width: 1, height: 20,
-        background: '#E5E7EB',
-        flexShrink: 0,
-      }}/>
+      {showSizes && showColors && (
+        <div style={{width:1, height:20, background: border, flexShrink:0, margin: '0 4px'}}/>
+      )}
 
-      {/* Colors */}
-      <div style={{display:'flex', gap:5, alignItems:'center'}}>
-        {ANNOTATION_COLORS.map(color => (
-          <div
-            key={color}
-            onClick={() => setStrokeColor(color)}
-            style={{
-              width: 18, height: 18,
-              borderRadius: '50%',
-              background: color,
-              cursor: 'pointer',
-              transition: 'all 150ms',
-              border: strokeColor === color 
-                ? `2px solid ${color}` : '2px solid transparent',
-              boxShadow: strokeColor === color
-                ? `0 0 0 2px white, 0 0 0 3.5px ${color}` : 'none',
-              transform: strokeColor === color 
-                ? 'scale(1.2)' : 'scale(1)',
-            }}
-          />
-        ))}
-      </div>
+      {showSizes && (
+        <div style={{display:'flex', gap:4, alignItems:'center'}}>
+          {STROKE_SIZES.map((s, idx) => {
+            const isObj = typeof s === 'object';
+            const id = isObj ? s.id : idx;
+            const size = isObj ? s.size : s;
+            const label = isObj ? s.label : `${s}px`;
+            return (
+            <button
+              key={id}
+              onClick={() => {
+                setStrokeSize(size);
+                setIsEraserMode(false);
+              }}
+              title={label}
+              style={{
+                width: 28, height: 28,
+                borderRadius: '50%',
+                border: 'none',
+                background: strokeSize === size && !isEraserMode ? hoverBg : 'transparent',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 150ms',
+                opacity: isEraserMode ? 0.5 : 1
+              }}
+            >
+              <div style={{
+                width: size === 2 ? 4 : size === 4 ? 6 : 9,
+                height: size === 2 ? 4 : size === 4 ? 6 : 9,
+                borderRadius: '50%',
+                background: strokeColor,
+                border: strokeSize === size && !isEraserMode ? `2px solid ${text}` : 'none',
+                transition: 'border 150ms'
+              }}/>
+            </button>
+          )})}
+        </div>
+      )}
 
-      {/* Divider */}
-      <div style={{width:1, height:20, background:'#E5E7EB', flexShrink:0}}/>
-
-      {/* Stroke sizes */}
-      <div style={{display:'flex', gap:4, alignItems:'center'}}>
-        {STROKE_SIZES.map(s => (
-          <button
-            key={s.id}
-            onClick={() => setStrokeSize(s.size)}
-            title={s.label}
-            style={{
-              width: 28, height: 28,
-              borderRadius: '50%',
-              border: 'none',
-              background: strokeSize === s.size ? '#F3F4F6' : 'transparent',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 150ms',
-            }}
-          >
-            <div style={{
-              width: s.size === 2 ? 4 : s.size === 4 ? 6 : 9,
-              height: s.size === 2 ? 4 : s.size === 4 ? 6 : 9,
-              borderRadius: '50%',
-              background: strokeColor,
-            }}/>
-          </button>
-        ))}
-      </div>
-
-      {/* Divider */}
-      <div style={{width:1, height:20, background:'#E5E7EB', flexShrink:0}}/>
+      {(showColors || showSizes) && activeWorkspaceTool === 'annotate' && (
+        <div style={{width:1, height:20, background: border, flexShrink:0, margin: '0 4px'}}/>
+      )}
 
       {/* Eraser */}
-      <button
-        onClick={() => setDrawMode('eraser')}
-        title="Eraser"
-        style={{
-          width: 28, height: 28,
-          borderRadius: '50%',
-          border: 'none',
-          background: drawMode === 'eraser' ? '#FEF2F2' : 'transparent',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 150ms',
-        }}
-        onMouseEnter={e => {
-          if (drawMode !== 'eraser')
-            e.currentTarget.style.background = '#F3F4F6';
-        }}
-        onMouseLeave={e => {
-          if (drawMode !== 'eraser')
-            e.currentTarget.style.background = 'transparent';
-        }}
-      >
-        <Eraser size={14} 
-          color={drawMode === 'eraser' ? '#EF4444' : '#6B7280'}
-        />
-      </button>
+      {activeWorkspaceTool === 'annotate' && (
+        <button
+          onClick={() => setIsEraserMode(!isEraserMode)}
+          title="Eraser"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 12px',
+            borderRadius: 9999,
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: 12,
+            fontWeight: 600,
+            background: isEraserMode ? hoverBg : 'transparent',
+            color: isEraserMode ? text : inactiveText,
+            transition: 'all 150ms'
+          }}
+        >
+          <Eraser size={16} weight={isEraserMode ? 'fill' : 'regular'} />
+          Erase
+        </button>
+      )}
 
-      {/* Clear page */}
-      <button
-        onClick={onClear}
-        title="Clear all annotations on this page"
-        style={{
-          width: 28, height: 28,
-          borderRadius: '50%',
-          border: 'none',
-          background: 'transparent',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 150ms',
-        }}
-        onMouseEnter={e => e.currentTarget.style.background = '#FEF2F2'}
-        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-      >
-        <Trash size={14} color="#9CA3AF"/>
-      </button>
     </div>
   );
 }

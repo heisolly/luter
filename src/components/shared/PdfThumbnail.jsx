@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
 
-const PDF_WORKER_URL = 'https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js'
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
 if (typeof window !== 'undefined' && pdfjsLib?.GlobalWorkerOptions) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
 }
 
 /**

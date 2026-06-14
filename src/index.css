@@ -49,7 +49,7 @@
   --dark: #333333;
   --border: var(--tt-gray-light-a-200);
   --border-light: var(--tt-gray-light-a-100);
-  
+
   --card-shadow: 0px 16px 48px 0px rgba(17, 24, 39, .04), 0px 12px 24px 0px rgba(17, 24, 39, .04);
   --card-shadow-hover: 0px 20px 60px -12px rgba(17, 24, 39, 0.1), 0 4px 16px rgba(17, 24, 39, 0.08);
 
@@ -60,20 +60,20 @@
   --card-text-letter: #334155;
   --card-quote-mark: #F8FAFC;
   --card-gradient-fade: linear-gradient(to top, #ffffff 0%, rgba(255,255,255,0) 100%);
-  
+
   --dark-card: #242424;
   --dark-border: #3a3a3a;
   --background-alt: #F1F5F9;
-  
+
   --font-outfit: 'Outfit', sans-serif;
   --font-varela: 'Varela Round', sans-serif;
   --font-inter: 'Inter', sans-serif;
   --font-bwmodellica: 'bwModellica', 'Inter', sans-serif;
-  
+
   --transition-fast: 0.1s cubic-bezier(0.46, 0.03, 0.52, 0.96);
   --transition-base: 0.2s cubic-bezier(0.46, 0.03, 0.52, 0.96);
   --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   /* Onboarding Tokens */
   --ob-card-bg: #ffffff;
   --ob-card-radius: 32px;
@@ -385,21 +385,21 @@ h2, h3, h4 {
   .container-custom {
     padding: 0 20px;
   }
-  
+
   /* Generic Responsive Helpers */
   .hide-on-mobile { display: none !important; }
   .show-on-mobile-only { display: block !important; }
   .stack-on-mobile { flex-direction: column !important; }
   .full-width-mobile { width: 100% !important; max-width: 100% !important; }
-  
+
   /* Shared Navbar Adjustments */
   .navbar { padding: 0 24px !important; height: 80px !important; }
-  
+
   /* Hero Section Adjustments */
   .hero-section { padding-top: 100px !important; }
   .hero-content h1 { font-size: 2.5rem !important; }
   .hero-content p { font-size: 1.1rem !important; }
-  
+
   /* Dashboard Mockup on Landing */
   .dashboard-wrapper { margin: 40px 10px 0 !important; }
   .dashboard-content { height: 360px !important; }
@@ -1422,16 +1422,16 @@ h2, h3, h4 {
     align-items: center !important;
     gap: 32px !important;
   }
-  
+
   [style*="flex: '1 1 300px'"] {
     max-width: 100% !important;
     margin: 0 !important;
     transform: scale(1) !important;
   }
-  
+
   /* FAQ Padding */
   .faq-question h4 { font-size: 15px !important; }
-  
+
   /* Footer Stacking */
   footer [style*="display: 'grid'"][style*="gridTemplateColumns: 'repeat(5, 1fr)'"] {
     grid-template-columns: 1fr 1fr !important;
@@ -1539,4 +1539,23 @@ body:not(.in-workspace) a[href*="liveblocks.io"] {
   height: 0 !important;
   position: absolute !important;
   z-index: -9999 !important;
+}
+
+@theme inline {
+  @keyframes shimmer {
+  0% {
+    background-position: 0% 0;
+    }
+  100% {
+    background-position: 100% 0;
+    }
+  }
+}
+.shimmer-text {
+    color: transparent;
+    background: linear-gradient(90deg, #a3a3a3 0%, #a3a3a3 35%, #525252 50%, #a3a3a3 65%, #a3a3a3 100%);
+    background-size: 300% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation: shimmer 1.5s ease-in-out infinite;
 }

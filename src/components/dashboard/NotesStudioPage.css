@@ -1821,3 +1821,19 @@ body.dark-mode .ns-share-dropdown { box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
   from { opacity: 0; transform: translateY(-4px) scale(0.95); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* Workstation Mode Overrides */
+.workstation-mode .ns-editor-wrap { background: transparent !important; box-shadow: none !important; border: none !important; padding: 40px 60px !important; max-width: none !important; }
+.workstation-mode .ns-main { padding: 0; background: transparent; }
+.workstation-mode .ns-page-clean-header { display: none; }
+.workstation-mode .ns-page-cover { display: none; }
+
+.workstation-mode .ns-body, .workstation-mode .ns-paper, .workstation-mode .ns-prosemirror { background: transparent !important; }
+.workstation-mode .ns-body-row { background: transparent !important; }
+
+/* Workstation Toolbar */
+.workstation-toolbar { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); width: auto; border-radius: 14px; border: 1px solid #E5E7EB; background: rgba(255, 255, 255, 0.95); box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05); z-index: 50; backdrop-filter: blur(12px); padding: 4px 8px; justify-content: center; }
+.workstation-toolbar .ns-native-divider { margin: 0 8px; }
+
+.workstation-mode { background-image: radial-gradient(circle at 1px 1px, rgba(17, 24, 39, 0.05) 1px, transparent 0) !important; background-size: 24px 24px !important; background-color: #FAFAFA !important; }
+.ns-dark .workstation-mode { background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0) !important; background-color: #111827 !important; }

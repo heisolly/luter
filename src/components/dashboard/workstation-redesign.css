@@ -1,3 +1,5 @@
+@import './NotesStudioPage.css';
+
 /* =============================================================
    LUTER WORKSTATION — REDESIGN v3
    Visual language: matches Sidebar · Sessions · Backpack · Dashboard · Notes
@@ -1238,4 +1240,85 @@ body.dark-mode .ws-right-panel div[style*="background: white"][style*="borderRad
 .ws-open-aichat-btn:hover {
   background: #EDE9FE;
   box-shadow: 0 2px 8px rgba(124, 58, 237, 0.14);
+}
+
+/* ── Notes Studio AI Panel Integration overrides ── */
+.ws-root {
+  --ns-bg:        var(--wsr-surface);
+  --ns-surface:   var(--wsr-surface);
+  --ns-border:    var(--wsr-border);
+  --ns-border-subtle: var(--wsr-border-sub);
+  --ns-text:      var(--wsr-text);
+  --ns-text-2:    var(--wsr-text-body);
+  --ns-text-3:    var(--wsr-text-muted);
+  --ns-purple:    var(--wsr-purple-soft);
+  --ns-purple-deep: var(--wsr-purple);
+  --ns-purple-mid: var(--wsr-purple-mid);
+  --ns-mint:      var(--wsr-mint);
+  --ns-hover:     var(--wsr-surface-hover);
+  --ns-selected:  var(--wsr-purple-light);
+}
+
+body.dark-mode .ws-root {
+  --ns-bg:        var(--wsr-surface);
+  --ns-surface:   var(--wsr-surface);
+  --ns-border:    var(--wsr-border);
+  --ns-border-subtle: var(--wsr-border-sub);
+  --ns-text:      var(--wsr-text);
+  --ns-text-2:    var(--wsr-text-body);
+  --ns-text-3:    var(--wsr-text-muted);
+  --ns-purple:    var(--wsr-purple-soft);
+  --ns-purple-deep: var(--wsr-purple-mid);
+  --ns-purple-mid: var(--wsr-purple-mid);
+  --ns-hover:     var(--wsr-surface-hover);
+  --ns-selected:  var(--wsr-purple-wash);
+}
+
+/* Override .ns-ai-panel when inside the workstation's right panel */
+.ws-right-panel .ns-ai-panel {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  position: static !important;
+}
+
+/* Hide title, layout menu, and duplicate close button inside the nested header */
+.ws-right-panel .ns-ai-title,
+.ws-right-panel .ns-ai-layout-menu-wrap,
+.ws-right-panel .ns-ai-panel-header .close-btn {
+  display: none !important;
+}
+
+/* Style the remaining header to float the history and new chat buttons nicely */
+.ws-right-panel .ns-ai-panel-header {
+  border-bottom: 1px solid var(--wsr-border) !important;
+  background: transparent !important;
+  padding: 8px 16px !important;
+  height: auto !important;
+  min-height: 40px !important;
+  justify-content: flex-end !important; /* Push buttons to the right */
+}
+
+/* Adjust history panel to fit within the side panel */
+.ws-right-panel .ns-ai-history-panel {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 100 !important;
+  background: var(--wsr-surface) !important;
+  border-left: none !important;
+}
+
+/* Adjust typing indicator container margin */
+.ws-right-panel .ns-ai-messages {
+  background: transparent !important;
+}
+
+/* Adjust main content viewer / sidebar background and borders to follow dark mode */
+body.dark-mode .ws-right-panel-header {
+  border-bottom-color: var(--wsr-border) !important;
+}
+body.dark-mode .ws-right-tab.is-active {
+  color: var(--wsr-purple-mid) !important;
 }

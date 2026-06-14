@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { Sparkle, Loader2, FileText } from '@phosphor-icons/react'
+import { ThinkingIndicator } from '../ui/thinking-indicator'
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS } from '../../groqClient'
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService'
@@ -98,6 +99,10 @@ export default function AISummaryPage() {
             {summary ? (
               <div className="markdown-body" style={{ fontSize: '15px', lineHeight: 1.7, color: '#334155' }}>
                 <ReactMarkdown>{summary}</ReactMarkdown>
+              </div>
+            ) : isGenerating ? (
+              <div style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <ThinkingIndicator />
               </div>
             ) : (
               <div style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>

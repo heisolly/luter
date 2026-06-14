@@ -192,11 +192,11 @@ export default function BackpackPage() {
   }
 
   const openMaterial = (material) => {
-    navigate('/dashboard/workstation', { state: { material } })
+    navigate(`/dashboard/workstation/${material.id}`, { state: { material } })
   }
 
   const handleStudyMaterial = (material) => {
-    navigate('/dashboard/workstation', { state: { material } })
+    navigate(`/dashboard/workstation/${material.id}`, { state: { material } })
   }
 
   return (

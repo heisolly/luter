@@ -205,7 +205,7 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks: {
             'vendor-three': ['three', '@react-three/fiber', '@react-three/drei', 'postprocessing', '@react-three/postprocessing'],
-            'vendor-pdf': ['pdfjs-dist', '@react-pdf-viewer/core', '@react-pdf-viewer/default-layout'],
+            'vendor-pdf': ['pdfjs-dist', 'react-pdf'],
             'vendor-excel': ['xlsx'],
             'vendor-langchain': ['langchain', '@langchain/core', '@langchain/community', '@langchain/google-genai'],
             'vendor-utils': ['jspdf', 'mammoth', 'jszip', 'docx-preview'],
@@ -218,18 +218,14 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "./src"),
-        "pdfjs-dist": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "./src/lib/pdfjs-shim.js"),
         "@liveblocks/core": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "./node_modules/@liveblocks/core"),
         "@liveblocks/client": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "./node_modules/@liveblocks/client"),
       },
       dedupe: ['@liveblocks/core', '@liveblocks/client', '@liveblocks/react'],
     },
     optimizeDeps: {
-      exclude: ['pdfjs-dist'],
       include: [
         '@excalidraw/excalidraw',
-        '@react-pdf-viewer/search',
-        '@react-pdf-viewer/full-screen',
         'docx-preview',
         'react-player',
         'react-quick-pinch-zoom',
