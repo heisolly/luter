@@ -86,6 +86,13 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
   const [currentStroke, setCurrentStroke] = useState(null);
   const updateMyPresence = useUpdateMyPresence();
 
+  // Sync local stroke to multiplayer presence
+  useEffect(() => {
+    if (isDrawing && currentStroke && activeTool === 'pen') {
+      updateMyPresence({ activeStroke: { ...currentStroke, pageNumber } });
+    }
+  }, [currentStroke, isDrawing, activeTool, pageNumber, updateMyPresence]);
+
   // Freehand drawing logic
   const drawEverything = useCallback(() => {
     const canvas = canvasRef.current;
@@ -187,12 +194,10 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
         if (coords) {
           setCurrentStroke(prev => {
             if (!prev) return prev;
-            const nextStroke = {
+            return {
               ...prev,
               points: [...prev.points, coords]
             };
-            updateMyPresence({ activeStroke: { ...nextStroke, pageNumber } });
-            return nextStroke;
           });
         }
       } else if (activeTool === 'occlusion' && currentStroke) {

@@ -1,23 +1,24 @@
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import * as Y from 'yjs';
 import { SupabaseProvider as YSupabaseProvider } from '@supabase-labs/y-supabase';
 import { supabase } from '../../supabaseClient';
 
 const CollaborationContext = createContext(null);
 
-export function CollaborationProvider({ roomId, children, userInfo, initialPresence = {} }) {
+export function CollaborationProvider({ roomId, id, children, userInfo, initialPresence = {} }) {
+  const actualRoomId = roomId || id;
   const [yDoc, setYDoc] = useState(null);
   const [provider, setProvider] = useState(null);
   const [awareness, setAwareness] = useState(null);
   const [awarenessStates, setAwarenessStates] = useState(new Map());
 
   useEffect(() => {
-    if (!roomId) return;
+    if (!actualRoomId) return;
 
     const doc = new Y.Doc();
     setYDoc(doc);
 
-    const newProvider = new YSupabaseProvider(roomId, doc, supabase, {
+    const newProvider = new YSupabaseProvider(actualRoomId, doc, supabase, {
       awareness: true,
       persistence: { table: 'yjs_documents' }
     });
@@ -129,14 +130,14 @@ export function useSelf() {
 export function useUpdateMyPresence() {
   const { awareness } = useCollaboration();
   
-  return (patch) => {
+  return useCallback((patch) => {
     if (!awareness) return;
     const currentState = awareness.getLocalState()?.user || {};
     awareness.setLocalStateField('user', {
       ...currentState,
       presence: { ...currentState.presence, ...patch }
     });
-  };
+  }, [awareness]);
 }
 
 export function useStorage(keyOrSelector) {
