@@ -6,7 +6,7 @@ export default function WorkstationEmptyState({ editor, material, isGenerating, 
   const [error, setError] = useState(null);
 
   const getAiContext = () => {
-    return material?.text || material?.content || '';
+    return material?.extracted_text || material?.text || material?.content || '';
   };
 
   const handleAiAction = async (actionType) => {

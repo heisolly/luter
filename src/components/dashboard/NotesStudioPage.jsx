@@ -1532,8 +1532,9 @@ function NativeDocumentToolbar({ editor, workstationMode = false }) {
             className={item.active ? 'active' : ''}
             disabled={!editor || item.disabled}
             onClick={() => run(item.action)}
+            style={workstationMode ? { color: '#111827' } : {}}
           >
-            <Icon size={16} strokeWidth={2.25} />
+            <Icon size={workstationMode ? 18 : 16} strokeWidth={workstationMode ? 2 : 2.25} />
           </button>
         )
       })}
