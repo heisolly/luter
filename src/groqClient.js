@@ -718,3 +718,35 @@ Based on these search results, identify the official or most plausible course li
     }]
   }
 }
+
+/**
+ * Transcribe Audio using Groq's Whisper API
+ */
+export async function transcribeAudioGroq(audioBlob) {
+  const apiKeyUsed = getKey('groq') || import.meta.env.VITE_GROQ_API_KEY;
+  if (!apiKeyUsed) {
+    throw new Error('Groq API Key is not configured');
+  }
+
+  const formData = new FormData();
+  formData.append('file', audioBlob, 'audio.webm');
+  formData.append('model', 'whisper-large-v3');
+  formData.append('response_format', 'json');
+
+  const response = await fetch(`${GROQ_BASE_URL}/audio/transcriptions`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKeyUsed}`
+    },
+    body: formData
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    console.error(`[GroqAudio] HTTP ${response.status}:`, errorBody);
+    throw new Error(`Audio transcription failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.text || '';
+}

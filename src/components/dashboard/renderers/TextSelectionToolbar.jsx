@@ -103,21 +103,15 @@ export default function TextSelectionToolbar({
         e.stopPropagation();
       }}
     >
-      <ActionButton icon={MagicWand} title="Ask AI" action="explain" color="#8B5CF6" />
-      
-      <div style={{ width: 1, height: 24, background: border, margin: '0 4px' }} />
-
-      <ActionButton icon={Highlighter} title="Highlight" action="highlight" color="#EAB308" />
-      <ActionButton icon={TextUnderline} title="Underline" action="underline" />
-      <ActionButton icon={TextStrikethrough} title="Strike Through" action="strike" />
-
-      <div style={{ width: 1, height: 24, background: border, margin: '0 4px' }} />
-
-      <ActionButton icon={ChatCircle} title="Comment" action="comment" />
-      
-      <div style={{ width: 1, height: 24, background: border, margin: '0 4px' }} />
-
-      <ActionButton icon={Copy} title="Copy" action="copy" />
+      <div style={{ display: 'flex', gap: '4px' }}>
+        <ActionButton icon={ChatCircle} action="comment" />
+        <ActionButton icon={Highlighter} action="highlight" color="#FEF08A" />
+        <ActionButton icon={TextUnderline} action="underline" />
+        <ActionButton icon={TextStrikethrough} action="strike" />
+        <ActionButton icon={MagicWand} action="explain" color="#A78BFA" />
+        <div style={{ width: '1px', background: border, margin: '4px' }} />
+        <ActionButton icon={Copy} action="copy" />
+      </div>
     </div>
   );
 }

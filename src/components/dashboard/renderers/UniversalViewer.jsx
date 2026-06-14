@@ -123,11 +123,11 @@ export default function UniversalViewer({
   }, [localConvertedUrl])
 
   // Effective material — merge local signed converted_url and signed source_url into material
-  const effectiveMaterial = {
+  const effectiveMaterial = React.useMemo(() => ({
     ...material,
     ...(signedConvertedUrl ? { converted_url: signedConvertedUrl } : {}),
     ...(signedFileUrl ? { source_url: signedFileUrl } : {})
-  }
+  }), [material, signedConvertedUrl, signedFileUrl])
 
   // ─── Poll for converted_url when PPTX has no converted_url yet ────────────
   useEffect(() => {

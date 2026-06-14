@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { RiPulseLine } from 'react-icons/ri';
-import { useOthers, useStorage } from '../liveblocks.config';
+import { useOthers, useStorage } from './dashboard/CollaborationProvider';
 
 function timeAgo(ts) {
   const minutes = Math.max(0, Math.floor((Date.now() - ts) / 60000));

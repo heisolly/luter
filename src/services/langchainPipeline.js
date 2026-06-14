@@ -19,6 +19,7 @@ import { supabase } from '../supabaseClient'
 import { GROQ_API_KEY, GROQ_MODELS, LUTER_SYSTEM_PROMPT } from '../groqClient'
 import { GEMINI_API_KEY, GEMINI_MODELS } from '../geminiClient'
 import { Readability } from '@mozilla/readability'
+import { extractDocumentWithMistral } from '../mistralClient'
 
 import * as pdfjsLib from 'pdfjs-dist'
 
@@ -82,8 +83,17 @@ const splitter = new RecursiveCharacterTextSplitter({
 
 // ─── Format-specific Extractors ───────────────────────────────────────────────
 
-/** Extract pages from PDF using pdfjs-dist */
+/** Extract pages from PDF using pdfjs-dist or Mistral OCR */
 async function extractPdfText(file) {
+  try {
+    const mistralText = await extractDocumentWithMistral(file, file.type || 'application/pdf');
+    if (mistralText && mistralText.trim().length > 100) {
+      return [{ text: mistralText, pageNumber: 1 }];
+    }
+  } catch (e) {
+    console.warn('Mistral OCR failed, falling back to local pdf.js', e);
+  }
+
   const fileData = await file.arrayBuffer()
   const pdf = await pdfjsLib.getDocument({ data: fileData }).promise
   const pages = []
@@ -280,8 +290,16 @@ export async function extractTextChunks(file, type, url) {
     return transcribeMedia(file)
   }
 
-  // 3. Images / Vision
-  if (file.type?.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].some(ext => t === ext)) {
+  // 3. Images
+  if (t === 'image' || file.type?.startsWith('image/')) {
+    try {
+      const mistralText = await extractDocumentWithMistral(file, file.type);
+      if (mistralText && mistralText.trim().length > 10) {
+        return [{ text: mistralText, pageNumber: 1 }];
+      }
+    } catch (e) {
+      console.warn('Mistral OCR failed for image', e);
+    }
     return extractImageText(file)
   }
 

@@ -5,7 +5,8 @@ import { ArrowRight, Sparkle, CircleNotch, PaperPlaneRight, CaretDown, CaretUp, 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ThinkingIndicator } from '../ui/thinking-indicator';
-import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient';
+import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS, transcribeAudioGroq } from '../../groqClient';
+import { callMistralAPI, MISTRAL_MODELS } from '../../mistralClient';
 import { supabase } from '../../supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Typing } from '../ui/Typing';
@@ -99,6 +100,53 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated))
     setChatHistory(updated)
   }
+
+  // --- Voice Input Logic ---
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+
+  const toggleVoiceInput = async (e) => {
+    e.preventDefault();
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+        
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) audioChunksRef.current.push(event.data);
+        };
+        
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          stream.getTracks().forEach(track => track.stop());
+          
+          try {
+            const text = await transcribeAudioGroq(audioBlob);
+            if (text && textareaRef.current) {
+               const currentVal = textareaRef.current.value;
+               const newVal = currentVal ? `${currentVal} ${text}` : text;
+               textareaRef.current.value = newVal;
+               growTextarea();
+            }
+          } catch (err) {
+            console.error("Audio transcription failed", err);
+          }
+        };
+        
+        mediaRecorder.start();
+        setIsRecording(true);
+      } catch (err) {
+        console.error("Microphone access denied or error:", err);
+        alert("Microphone access is required for dictation.");
+      }
+    }
+  };
   
   const quickActions = [
     { label: 'Summarize this document', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg> },
@@ -223,13 +271,57 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
       }
       
       const history = messages.map(m => ({ role: m.role, content: m.content }))
-      const aiResponse = await callGroqAPI(
-        [...history, { role: 'user', content: shouldEditDocument ? getDocumentAiPrompt(text, editor) : text + contextStr }],
-        GROQ_MODELS.PROFESSOR,
-        { temperature: 0.7 }
-      )
-      
-      const responseText = aiResponse?.choices?.[0]?.message?.content || "I'm sorry, I couldn't process that."
+      const finalMsg = { role: 'user', content: shouldEditDocument ? getDocumentAiPrompt(text, editor) : text + contextStr };
+
+      let aiResponse;
+      if (aiModeType === 'Smart Tutor') {
+        const tools = [
+          {
+            type: "function",
+            function: {
+              name: "generate_flashcards",
+              description: "Generate flashcards from the student's text to test their knowledge.",
+              parameters: {
+                type: "object",
+                properties: {
+                  flashcards: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        question: { type: "string" },
+                        answer: { type: "string" }
+                      },
+                      required: ["question", "answer"]
+                    }
+                  }
+                },
+                required: ["flashcards"]
+              }
+            }
+          }
+        ];
+        aiResponse = await callMistralAPI([...history, finalMsg], MISTRAL_MODELS.LARGE, { temperature: 0.7, tools });
+      } else {
+        aiResponse = await callGroqAPI([...history, finalMsg], GROQ_MODELS.PROFESSOR, { temperature: 0.7 });
+      }
+
+      const responseMessage = aiResponse?.choices?.[0]?.message;
+      let responseText = responseMessage?.content || "I'm sorry, I couldn't process that.";
+
+      if (responseMessage?.tool_calls?.length > 0) {
+        const toolCall = responseMessage.tool_calls[0];
+        if (toolCall.function.name === 'generate_flashcards') {
+          try {
+            const args = JSON.parse(toolCall.function.arguments);
+            const flashcardMarkdown = args.flashcards.map(f => `**Q: ${f.question}**\n*A: ${f.answer}*`).join('\n\n---\n\n');
+            responseText = (responseText && responseText !== "I'm sorry, I couldn't process that." ? responseText + '\n\n' : '') + `I created some flashcards for you to study!\n\n${flashcardMarkdown}`;
+          } catch (e) {
+            console.error("Failed to parse Mistral tool arguments", e);
+          }
+        }
+      }
+
       if (shouldEditDocument) {
         const range = findTextRange(editor, placeholderText)
         const contentHtml = markdownToEditorHtml(responseText)
@@ -394,7 +486,7 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
                     <span className="ns-set-val">3 {'>'}</span>
                   </div>
                   <div className="ns-set-divider"/>
-                  <div className="ns-set-item" onClick={() => setAiModeType('Default')}>
+                  <div className="ns-set-item" onClick={() => setAiModeType(aiModeType === 'Default' ? 'Smart Tutor' : 'Default')}>
                     <div className="ns-set-label">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                       Mode
@@ -407,8 +499,16 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
           </div>
           <div className="ns-ai-input-actions">
             <span className="ns-ai-auto-text">{aiModeType === 'Default' ? 'Auto' : aiModeType}</span>
-            <button title="Voice input">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            <button 
+              title="Voice input" 
+              onClick={toggleVoiceInput}
+              className={`ns-ai-voice-btn ${isRecording ? 'recording' : ''}`}
+            >
+              {isRecording ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" strokeWidth="2"><rect x="6" y="6" width="12" height="12" rx="2" ry="2"></rect></svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              )}
             </button>
             <button className="submit" onClick={handleSendFromRef} disabled={loading}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>

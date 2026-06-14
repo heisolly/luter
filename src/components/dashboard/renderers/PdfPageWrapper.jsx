@@ -1,8 +1,70 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Page } from 'react-pdf';
 import { ChatCircle } from '@phosphor-icons/react';
+import { useOthers, useUpdateMyPresence } from '../CollaborationProvider';
 
-export default function PdfPageWrapper({
+const RemoteStrokesOverlay = React.memo(({ pageNumber, scale }) => {
+  const others = useOthers();
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    // Use devicePixelRatio for sharp rendering
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+    } else {
+      // Just clear if size didn't change, but we need to reset transform to clear fully
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(dpr, dpr);
+    }
+
+    others.forEach(({ presence }) => {
+      const activeStroke = presence?.activeStroke;
+      if (activeStroke && activeStroke.pageNumber === pageNumber && activeStroke.points && activeStroke.points.length > 1) {
+        if (activeStroke.tool === 'occlusion') return;
+        
+        ctx.beginPath();
+        ctx.strokeStyle = activeStroke.color;
+        ctx.lineWidth = activeStroke.width * scale;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        activeStroke.points.forEach((point, i) => {
+          const x = point.x * scale;
+          const y = point.y * scale;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+    });
+  });
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 10
+      }}
+    />
+  );
+});
+
+const PdfPageWrapper = React.memo(function PdfPageWrapper({
   pageNumber,
   scale,
   pageWidth,
@@ -22,6 +84,7 @@ export default function PdfPageWrapper({
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentStroke, setCurrentStroke] = useState(null);
+  const updateMyPresence = useUpdateMyPresence();
 
   // Freehand drawing logic
   const drawEverything = useCallback(() => {
@@ -119,19 +182,20 @@ export default function PdfPageWrapper({
 
   const handlePointerMove = (e) => {
     if (!isDrawing) return;
-    
-    if (activeTool === 'pen' && currentStroke) {
-      const coords = getCanvasCoords(e);
-      if (coords) {
-        setCurrentStroke(prev => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            points: [...prev.points, coords]
-          };
-        });
-      }
-    } else if (activeTool === 'occlusion' && currentStroke) {
+        if (activeTool === 'pen' && currentStroke) {
+        const coords = getCanvasCoords(e);
+        if (coords) {
+          setCurrentStroke(prev => {
+            if (!prev) return prev;
+            const nextStroke = {
+              ...prev,
+              points: [...prev.points, coords]
+            };
+            updateMyPresence({ activeStroke: { ...nextStroke, pageNumber } });
+            return nextStroke;
+          });
+        }
+      } else if (activeTool === 'occlusion' && currentStroke) {
       const coords = getCanvasCoords(e);
       if (coords) {
         setCurrentStroke(prev => {
@@ -160,6 +224,7 @@ export default function PdfPageWrapper({
     }
     setIsDrawing(false);
     setCurrentStroke(null);
+    updateMyPresence({ activeStroke: null });
   };
 
   const handleEraser = (e) => {
@@ -388,4 +453,29 @@ export default function PdfPageWrapper({
       />
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  if (prevProps.pageNumber !== nextProps.pageNumber) return false;
+  if (prevProps.scale !== nextProps.scale) return false;
+  if (prevProps.pageWidth !== nextProps.pageWidth) return false;
+  if (prevProps.activeTool !== nextProps.activeTool) return false;
+  if (prevProps.activeColor !== nextProps.activeColor) return false;
+  if (prevProps.activeStrokeWidth !== nextProps.activeStrokeWidth) return false;
+  if (prevProps.isDark !== nextProps.isDark) return false;
+  if (prevProps.activeAnnotationId !== nextProps.activeAnnotationId) return false;
+  if (prevProps.highlights.length !== nextProps.highlights.length) return false;
+  if (prevProps.strokes.length !== nextProps.strokes.length) return false;
+  
+  for (let i = 0; i < prevProps.highlights.length; i++) {
+    if (prevProps.highlights[i].id !== nextProps.highlights[i].id) return false;
+    if (prevProps.highlights[i].color !== nextProps.highlights[i].color) return false;
+    if (prevProps.highlights[i].comment !== nextProps.highlights[i].comment) return false;
+  }
+  for (let i = 0; i < prevProps.strokes.length; i++) {
+    if (prevProps.strokes[i].id !== nextProps.strokes[i].id) return false;
+    if (prevProps.strokes[i].color !== nextProps.strokes[i].color) return false;
+    if (prevProps.strokes[i].comment !== nextProps.strokes[i].comment) return false;
+  }
+  return true;
+});
+
+export default PdfPageWrapper;

@@ -497,15 +497,82 @@ export async function saveToVault({ userId, courseId, materialId, title, content
 
 /** Fetch user's standalone materials (not attached to any course) */
 export async function fetchUserStandaloneMaterials(userId) {
-  const { data, error } = await supabase
+  // 1. Fetch materials the user owns
+  const { data: ownedMaterials, error: ownedError } = await supabase
     .from('materials')
     .select('*')
     .eq('user_id', userId)
     .is('course_id', null)
     .is('deleted_at', null)
-    .order('created_at', { ascending: false })
-  if (error) throw error
-  return data || []
+    .order('created_at', { ascending: false });
+
+  if (ownedError) throw ownedError;
+
+  // 2. Fetch materials the user is collaborating on
+  const { data: collabRecords, error: collabError } = await supabase
+    .from('material_collaborators')
+    .select('material_id')
+    .eq('user_id', userId);
+    
+  if (collabError) console.error("Error fetching collab records:", collabError);
+
+  let collaboratedMaterials = [];
+  if (collabRecords && collabRecords.length > 0) {
+    const materialIds = collabRecords.map(r => r.material_id);
+    const { data: sharedMaterials, error: sharedError } = await supabase
+      .from('materials')
+      .select('*')
+      .in('id', materialIds)
+      .is('deleted_at', null);
+      
+    if (sharedError) console.error("Error fetching shared materials:", sharedError);
+    else collaboratedMaterials = sharedMaterials || [];
+  }
+
+  // Merge and deduplicate
+  const allMaterials = [...(ownedMaterials || []), ...collaboratedMaterials];
+  const uniqueMaterialsMap = new Map();
+  allMaterials.forEach(item => {
+    if (!uniqueMaterialsMap.has(item.id)) {
+      uniqueMaterialsMap.set(item.id, item);
+    }
+  });
+
+  const uniqueMaterials = Array.from(uniqueMaterialsMap.values());
+  return uniqueMaterials.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+
+/** Join a material as a collaborator */
+export async function joinMaterial(materialId, userId) {
+  if (!materialId || !userId) return;
+  const { error } = await supabase
+    .from('material_collaborators')
+    .upsert({ material_id: materialId, user_id: userId, role: 'editor' }, { onConflict: 'material_id,user_id' });
+  if (error) console.error("Error joining material:", error);
+}
+
+/** Fetch list of collaborators for a material */
+export async function fetchMaterialCollaborators(materialId) {
+  const { data, error } = await supabase
+    .from('material_collaborators')
+    .select(`
+      user_id,
+      role,
+      joined_at,
+      profiles:user_id (
+        full_name,
+        email,
+        avatar_url
+      )
+    `)
+    .eq('material_id', materialId)
+    .order('joined_at', { ascending: true });
+    
+  if (error) {
+    console.error('Error fetching collaborators:', error);
+    return [];
+  }
+  return data || [];
 }
 
 /** Fetch user's saved notes for a course */

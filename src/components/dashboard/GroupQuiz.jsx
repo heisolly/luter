@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { useStorage, useMutation, useOthers, useSelf } from '../../liveblocks.config';
-import { LiveList, LiveObject } from '@liveblocks/client';
+import { useStorage, useMutation, useOthers, useSelf, LiveList, LiveObject } from './CollaborationProvider';
 import { Trophy, Lightning, Play, Users } from '@phosphor-icons/react';
 import { ThinkingIndicator } from '../ui/thinking-indicator';
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient';

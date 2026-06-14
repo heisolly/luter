@@ -1,8 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Excalidraw, WelcomeScreen, Footer } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
-import { LiveList, LiveObject } from '@liveblocks/client';
-import { useStorage, useMutation, useSelf, useStatus, useOthers, useUpdateMyPresence } from '../../liveblocks.config';
+import { LiveList, LiveObject, useStorage, useMutation, useSelf, useStatus, useOthers, useUpdateMyPresence } from './CollaborationProvider';
 
 // ─── tiny debounce helper ────────────────────────────────────────────
 function useDebounce(fn, delay) {

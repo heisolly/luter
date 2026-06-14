@@ -1,4 +1,4 @@
-import { useStorage, useMutation, useUpdateMyPresence } from '../liveblocks.config';
+import { useStorage, useMutation, useUpdateMyPresence } from '../components/dashboard/CollaborationProvider';
 
 /**
  * useGroupChat — Liveblocks-backed group chat for collaborative sessions.

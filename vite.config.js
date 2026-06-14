@@ -186,15 +186,6 @@ export default defineConfig(({ mode }) => {
               await handleLiveKitTokenRequest(req, res, env)
               return;
             }
-            if (rawPath === '/api/liveblocks-auth' && req.method === 'POST') {
-              const liveblocksAuth = await import('./api/liveblocks-auth.js')
-              // mock process.env for the handler if it uses it directly instead of env variable
-              process.env.VITE_LIVEBLOCKS_SECRET_KEY = env.VITE_LIVEBLOCKS_SECRET_KEY
-              process.env.VITE_SUPABASE_URL = env.VITE_SUPABASE_URL
-              process.env.VITE_SUPABASE_ANON_KEY = env.VITE_SUPABASE_ANON_KEY
-              await liveblocksAuth.default(req, res)
-              return;
-            }
             next();
           });
         }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useOthers } from '../liveblocks.config';
+import { useOthers } from './dashboard/CollaborationProvider';
 
 export default function LiveCursors() {
   const others = useOthers();

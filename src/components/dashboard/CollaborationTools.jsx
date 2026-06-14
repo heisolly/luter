@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useOthers, useUpdateMyPresence, useSelf } from '../../liveblocks.config';
+import { useOthers, useUpdateMyPresence, useSelf } from './CollaborationProvider';
 import { useLiveBroadcast, useLiveEventListener } from '../../hooks/useLiveCollaboration';
 import { RadioButton, Hand, Smiley } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'framer-motion';

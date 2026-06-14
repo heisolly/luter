@@ -8,7 +8,6 @@ import React, {
 } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import "@excalidraw/excalidraw/index.css";
-import { LiveList, LiveObject } from '@liveblocks/client'
 import {
   RoomProvider,
   useStorage,
@@ -17,7 +16,9 @@ import {
   useSelf,
   useStatus,
   useUpdateMyPresence,
-} from '../../liveblocks.config'
+  LiveList,
+  LiveObject
+} from '../dashboard/CollaborationProvider'
 import { supabase } from '../../supabaseClient'
 
 // Lazy-load Excalidraw to keep the initial bundle small

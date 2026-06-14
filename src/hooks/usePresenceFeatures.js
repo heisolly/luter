@@ -1,4 +1,4 @@
-import { useOthersMapped } from '../liveblocks.config';
+import { useOthersMapped } from '../components/dashboard/CollaborationProvider';
 
 export function useAvatarStack() {
   const others = useOthersMapped((other) => {

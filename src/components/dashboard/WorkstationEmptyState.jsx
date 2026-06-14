@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, FileText, Bot, Database, FormInput, LayoutTemplate, MoreHorizontal, List } from 'lucide-react';
 import { callGroqAPI, GROQ_PROMPTS } from '../../groqClient';
+import { extractTextChunks } from '../../services/langchainPipeline';
 
 export default function WorkstationEmptyState({ editor, material, isGenerating, setIsGenerating }) {
   const [error, setError] = useState(null);
@@ -14,7 +15,22 @@ export default function WorkstationEmptyState({ editor, material, isGenerating, 
     setIsGenerating(true);
     setError(null);
     try {
-      const context = getAiContext();
+      let context = getAiContext();
+
+      // Fallback: If no text is available in the database, extract it on the fly
+      if (!context && material.source_url) {
+        editor.commands.insertContent('<p><em>Extracting document context on the fly...</em></p>');
+        const res = await fetch(material.source_url);
+        if (!res.ok) throw new Error('Failed to download document for extraction');
+        const blob = await res.blob();
+        const file = new File([blob], material.title || 'document.pdf', { type: blob.type });
+        const chunks = await extractTextChunks(file, material.type || 'pdf', null);
+        context = chunks.map(c => c.text).join('\n\n');
+        
+        // Clear the extracting message
+        editor.commands.setContent('');
+      }
+
       if (!context) throw new Error('No document text available to process.');
 
       let prompt = '';
@@ -31,7 +47,8 @@ export default function WorkstationEmptyState({ editor, material, isGenerating, 
       // Add a loader placeholder
       editor.commands.insertContent('<p><em>Luter AI is generating...</em></p>');
 
-      const response = await callGroqAPI([{ role: 'system', content: GROQ_PROMPTS.DEFAULT }, { role: 'user', content: prompt }]);
+      const data = await callGroqAPI([{ role: 'user', content: prompt }]);
+      const responseText = data?.choices?.[0]?.message?.content || '';
       
       const markdownToHtml = (text) => {
         let parsed = text
@@ -86,7 +103,7 @@ export default function WorkstationEmptyState({ editor, material, isGenerating, 
         return finalBlocks.join('') || '<p></p>'
       }
 
-      const html = markdownToHtml(response);
+      const html = markdownToHtml(responseText);
       editor.commands.setContent(html); 
     } catch (err) {
       console.error(err);

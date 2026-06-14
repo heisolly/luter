@@ -44,6 +44,7 @@ export async function callMistralAPI(messages, modelName = MISTRAL_MODELS.LARGE,
     responseFormat = null,
     profile = null,
     systemPromptOverride = null,
+    tools = null,
   } = options
 
   let systemContent =
@@ -73,7 +74,8 @@ export async function callMistralAPI(messages, modelName = MISTRAL_MODELS.LARGE,
         model: modelName,
         messages: fullMessages,
         temperature,
-        ...(responseFormat?.type === 'json_object' && { responseFormat: { type: 'json_object' } })
+        ...(responseFormat?.type === 'json_object' && { responseFormat: { type: 'json_object' } }),
+        ...(tools && { tools })
       })
 
       return {
@@ -81,7 +83,8 @@ export async function callMistralAPI(messages, modelName = MISTRAL_MODELS.LARGE,
           {
             message: {
               role: 'assistant',
-              content: response.choices[0]?.message?.content || ''
+              content: response.choices[0]?.message?.content || '',
+              tool_calls: response.choices[0]?.message?.tool_calls || undefined
             }
           }
         ],
@@ -106,7 +109,8 @@ export async function callMistralAPI(messages, modelName = MISTRAL_MODELS.LARGE,
       model: modelName,
       messages: fullMessages,
       temperature,
-      ...(responseFormat?.type === 'json_object' && { response_format: { type: 'json_object' } })
+      ...(responseFormat?.type === 'json_object' && { response_format: { type: 'json_object' } }),
+      ...(tools && { tools })
     })
   })
 
@@ -121,7 +125,8 @@ export async function callMistralAPI(messages, modelName = MISTRAL_MODELS.LARGE,
       {
         message: {
           role: 'assistant',
-          content: result.choices[0]?.message?.content || ''
+          content: result.choices[0]?.message?.content || '',
+          tool_calls: result.choices[0]?.message?.tool_calls || undefined
         }
       }
     ],
@@ -129,4 +134,59 @@ export async function callMistralAPI(messages, modelName = MISTRAL_MODELS.LARGE,
       total_tokens: result.usage?.total_tokens || 0
     }
   }
+}
+
+/**
+ * Extract Document Text (Images / PDFs) using Mistral OCR API
+ */
+export async function extractDocumentWithMistral(fileBlob, mimeType) {
+  const apiKeyUsed = MISTRAL_API_KEY;
+  if (!apiKeyUsed) {
+    throw new Error('Mistral API Key is not configured');
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(fileBlob);
+    reader.onload = async () => {
+      try {
+        const base64Data = reader.result;
+        
+        const url = 'https://api.mistral.ai/v1/ocr';
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKeyUsed}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'mistral-ocr-latest',
+            document: {
+              type: "image_url",
+              image_url: base64Data
+            }
+          })
+        });
+
+        if (!response.ok) {
+           const errText = await response.text();
+           console.error('[MistralOCR] Failed:', errText);
+           throw new Error(`Mistral OCR failed: ${response.status} - ${errText}`);
+        }
+
+        const data = await response.json();
+        if (data.pages && data.pages.length > 0) {
+            const fullText = data.pages.map(p => p.markdown || p.text || '').join('\n\n');
+            resolve(fullText);
+        } else {
+            resolve('');
+        }
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = error => reject(error);
+  });
 }

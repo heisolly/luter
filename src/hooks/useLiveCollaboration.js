@@ -1,4 +1,4 @@
-import { useBroadcastEvent, useEventListener } from '../liveblocks.config';
+import { useBroadcastEvent, useEventListener } from '../components/dashboard/CollaborationProvider';
 
 /**
  * useLiveBroadcast — fire-and-forget broadcast event helpers.

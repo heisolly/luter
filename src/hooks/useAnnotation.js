@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
-import { useBroadcastEvent, useEventListener } from '../liveblocks.config';
+import { useBroadcastEvent, useEventListener } from '../components/dashboard/CollaborationProvider';
 
 export function useAnnotation({
   fileId,

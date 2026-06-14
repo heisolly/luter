@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useCreateThread, useThreads } from '../liveblocks.config';
+import { useCreateThread, useThreads } from '../components/dashboard/CollaborationProvider';
 
 export function useDocumentComments(pageNum) {
   const createThread = useCreateThread();

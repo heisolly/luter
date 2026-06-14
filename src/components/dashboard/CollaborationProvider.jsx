@@ -1,212 +1,192 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { RoomProvider } from '../../liveblocks.config';
-import { LiveObject, LiveList } from '@liveblocks/client';
-import { LiveblocksFallbackProvider, useLiveblocksFallback } from '../../context/LiveblocksFallbackContext';
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import * as Y from 'yjs';
+import { SupabaseProvider as YSupabaseProvider } from '@supabase-labs/y-supabase';
 import { supabase } from '../../supabaseClient';
 
-const userColors = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#0891B2'];
+const CollaborationContext = createContext(null);
 
-function colorFromId(id = 'peer') {
-  return userColors[String(id).split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % userColors.length];
-}
-
-function LiveblocksStatusCheck({ roomId, children, userInfo, initialPresence }) {
-  const [status, setStatus] = useState('checking'); // 'checking' | 'connected' | 'failed'
-  const { setFallback } = useLiveblocksFallback();
-  const checkDone = useRef(false);
+export function CollaborationProvider({ roomId, children, userInfo, initialPresence = {} }) {
+  const [yDoc, setYDoc] = useState(null);
+  const [provider, setProvider] = useState(null);
+  const [awareness, setAwareness] = useState(null);
+  const [awarenessStates, setAwarenessStates] = useState(new Map());
 
   useEffect(() => {
-    if (checkDone.current) return;
-    if (!roomId) {
-      setStatus('failed');
-      checkDone.current = true;
-      return;
-    }
+    if (!roomId) return;
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    const doc = new Y.Doc();
+    setYDoc(doc);
 
-    supabase.auth.getSession().then(({ data }) =>
-      fetch('/api/liveblocks-auth', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(data.session?.access_token ? { Authorization: `Bearer ${data.session.access_token}` } : {}),
-        },
-        body: JSON.stringify({ room: roomId }),
-        signal: controller.signal,
-      })
-    ).then((res) => {
-      clearTimeout(timeout);
-      if (res.ok) {
-        setFallback(false);
-        setStatus('connected');
-      } else {
-        setStatus('failed');
-      }
-    }).catch(() => {
-      clearTimeout(timeout);
-      setStatus('failed');
-    }).finally(() => {
-      clearTimeout(timeout);
-      checkDone.current = true;
+    const newProvider = new YSupabaseProvider(roomId, doc, supabase, {
+      awareness: true,
+      persistence: { table: 'yjs_documents' }
     });
+    setProvider(newProvider);
 
-    return () => clearTimeout(timeout);
+    const aw = newProvider.getAwareness();
+    setAwareness(aw);
+
+    const handleAwarenessUpdate = () => {
+      setAwarenessStates(new Map(aw.getStates()));
+    };
+
+    aw.on('change', handleAwarenessUpdate);
+    handleAwarenessUpdate();
+
+    return () => {
+      aw.off('change', handleAwarenessUpdate);
+      newProvider.destroy();
+      doc.destroy();
+    };
   }, [roomId]);
 
-  if (status === 'checking') {
-    return (
-      <div style={{
-        height: '100vh', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', gap: '16px',
-        background: 'radial-gradient(120% 120% at 50% 0%, #FAF5FF 0%, #F5F3FF 50%, #F9FAFB 100%)',
-        color: '#7C3AED', fontFamily: 'Outfit'
-      }}>
-        <div style={{
-           width: '40px', height: '40px',
-           border: '3px solid rgba(124, 58, 237, 0.1)',
-           borderTopColor: '#7C3AED', borderRadius: '50%',
-           animation: 'spin 1s linear infinite'
-        }} />
-        <span style={{ fontSize: '14px', fontWeight: 600, color: '#6B7280' }}>Preparing collaboration space...</span>
-        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
+  // Deep compare dependencies to prevent infinite render loops
+  const presenceString = JSON.stringify(initialPresence || {});
+  const userInfoString = JSON.stringify(userInfo || null);
 
-  if (status === 'failed') {
-    return (
-      <>
-        <OfflineBanner onReconnect={() => {
-          checkDone.current = false;
-          setFallback(true);
-          setStatus('checking');
-        }} />
-        {children}
-      </>
-    );
+  useEffect(() => {
+    if (!provider || !awareness) return;
+
+    const parsedPresence = JSON.parse(presenceString);
+    const parsedUserInfo = JSON.parse(userInfoString);
+
+    const onStatus = (status) => {
+      if (status === 'connected') {
+        awareness.setLocalStateField('user', {
+          info: parsedUserInfo,
+          presence: parsedPresence
+        });
+      }
+    };
+
+    // If already connected, set it immediately
+    if (provider.getStatus() === 'connected') {
+      awareness.setLocalStateField('user', {
+        info: parsedUserInfo,
+        presence: parsedPresence
+      });
+    }
+
+    provider.on('status', onStatus);
+    return () => {
+      provider.off('status', onStatus);
+    };
+  }, [provider, awareness, userInfoString, presenceString]);
+
+  const value = useMemo(() => ({
+    yDoc,
+    provider,
+    awareness,
+    awarenessStates
+  }), [yDoc, provider, awareness, awarenessStates]);
+
+  if (!yDoc || !provider) {
+    return <div className="flex h-screen items-center justify-center text-zinc-400">Loading collaborative room...</div>;
   }
 
   return (
-    <RoomProvider
-      id={roomId}
-      initialPresence={{
-        cursor: null,
-        currentPage: 1,
-        currentSlide: 0,
-        isTyping: false,
-        status: 'active',
-        selectedText: null,
-        currentTool: 'none',
-        role: 'participant',
-        user: {
-          id: userInfo?.id || 'guest',
-          name: userInfo?.name || 'Peer',
-          avatar: userInfo?.avatar || null,
-          color: userInfo?.color || colorFromId(userInfo?.id),
-          role: userInfo?.role || 'peer',
-        },
-        ...initialPresence,
-      }}
-      initialStorage={{
-        whiteboardData: new LiveList([]),
-        whiteboardAppState: new LiveObject({}),
-        whiteboardFiles: new LiveObject({}),
-        syncMode: false,
-        presenterId: null,
-        presenterSlide: 1,
-        syncState: new LiveObject({
-          isSynced: false,
-          leaderId: null,
-          currentSlide: 0,
-        }),
-        messages: new LiveList([]),
-        annotations: new LiveList([]),
-        quizState: 'idle',
-        quizQuestions: new LiveList([]),
-        quizCurrentIdx: 0,
-        quizScores: new LiveObject({}),
-        quiz: new LiveObject({
-          status: 'idle',
-          question: null,
-          options: [],
-          correctAnswer: null,
-          answers: {},
-          scores: {},
-          startedAt: null,
-          timeLimit: 60,
-        }),
-        sessionFiles: new LiveList([]),
-        activeFileId: null,
-        coverAreas: new LiveObject({}),
-        raisedHands: new LiveObject({}),
-      }}
-    >
+    <CollaborationContext.Provider value={value}>
       {children}
-    </RoomProvider>
+    </CollaborationContext.Provider>
   );
 }
 
-function OfflineBanner({ onReconnect }) {
-  const [isVisible, setIsVisible] = useState(true);
-
-  if (!isVisible) return null;
-
-  return (
-    <div style={{
-      position: 'fixed', bottom: '24px', right: '24px', zIndex: 999999,
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '12px 16px', background: '#FEF3C7', border: '1px solid #FDE68A',
-      borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-      fontSize: '13px', fontWeight: 600, color: '#92400E', gap: '16px',
-      animation: 'toolboxAppear 0.3s ease-out'
-    }}>
-      <span>Collaboration offline.</span>
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-        <button
-          onClick={onReconnect}
-          style={{
-            background: '#92400E', color: 'white', border: 'none',
-            borderRadius: '6px', padding: '6px 12px', cursor: 'pointer',
-            fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap',
-            transition: 'opacity 0.2s'
-          }}
-          onMouseEnter={e => e.currentTarget.style.opacity = 0.9}
-          onMouseLeave={e => e.currentTarget.style.opacity = 1}
-        >
-          Reconnect
-        </button>
-        <button
-          onClick={() => setIsVisible(false)}
-          style={{
-            background: 'transparent', color: '#92400E', border: 'none',
-            cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}
-          title="Dismiss"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
+export function useCollaboration() {
+  const context = useContext(CollaborationContext);
+  if (!context) throw new Error('useCollaboration must be used within CollaborationProvider');
+  return context;
 }
 
-export const CollaborationProvider = ({ roomId, children, userInfo = {}, initialPresence = {} }) => {
-  if (!roomId) return children;
+export function useOthers() {
+  const { awareness, awarenessStates } = useCollaboration();
+  if (!awareness) return [];
+  
+  const others = [];
+  awarenessStates.forEach((state, clientId) => {
+    if (clientId !== awareness.clientID && state.user) {
+      others.push({
+        connectionId: clientId,
+        presence: state.user.presence || {},
+        info: state.user.info || {}
+      });
+    }
+  });
+  return others;
+}
 
-  return (
-    <LiveblocksFallbackProvider>
-      <LiveblocksStatusCheck
-        roomId={roomId}
-        userInfo={userInfo}
-        initialPresence={initialPresence}
-      >
-        {children}
-      </LiveblocksStatusCheck>
-    </LiveblocksFallbackProvider>
-  );
-};
+export function useSelf() {
+  const { awareness, awarenessStates } = useCollaboration();
+  if (!awareness) return null;
+
+  const state = awarenessStates.get(awareness.clientID);
+  return {
+    connectionId: awareness.clientID,
+    presence: state?.user?.presence || {},
+    info: state?.user?.info || {}
+  };
+}
+
+export function useUpdateMyPresence() {
+  const { awareness } = useCollaboration();
+  
+  return (patch) => {
+    if (!awareness) return;
+    const currentState = awareness.getLocalState()?.user || {};
+    awareness.setLocalStateField('user', {
+      ...currentState,
+      presence: { ...currentState.presence, ...patch }
+    });
+  };
+}
+
+export function useStorage(keyOrSelector) {
+  const { yDoc } = useCollaboration();
+  if (!yDoc) return null;
+  if (typeof keyOrSelector === 'string') {
+     return yDoc.getMap(keyOrSelector);
+  }
+  return keyOrSelector(yDoc);
+}
+
+export function useMutation(callback, deps = []) {
+  const { yDoc, awareness } = useCollaboration();
+  return useMemo(() => {
+    return (...args) => {
+      const context = {
+        storage: yDoc,
+        self: awareness ? { presence: awareness.getLocalState()?.user?.presence || {} } : {},
+      };
+      return callback(context, ...args);
+    };
+  }, [yDoc, awareness, ...deps]);
+}
+
+export function useStatus() {
+  const { provider } = useCollaboration();
+  const [status, setStatus] = useState('connecting');
+
+  useEffect(() => {
+    if (!provider) return;
+    const handleStatus = (newStatus) => setStatus(newStatus);
+    provider.on('status', handleStatus);
+    setStatus(provider.getStatus() || 'connecting');
+    return () => provider.off('status', handleStatus);
+  }, [provider]);
+
+  return status;
+}
+
+export const RoomProvider = CollaborationProvider;
+export const LiveList = Y.Array;
+export const LiveObject = Y.Map;
+export function useThreads() { return { threads: [] }; }
+export function useSyncStatus() { return 'synchronized'; }
+
+export function ClientSideSuspense({ fallback, children }) {
+  // Yjs provider doesn't strictly suspend, we just render children
+  return children;
+}
+export function useBroadcastEvent() { return () => {}; }
+export function useEventListener() { return () => {}; }
+export function useOthersMapped(selector) { return []; }
+export function useCreateThread() { return () => {}; }

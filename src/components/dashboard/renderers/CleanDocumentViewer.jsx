@@ -4,10 +4,61 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import debounce from 'lodash.debounce';
 import { supabase } from '../../../supabaseClient';
+import { useOthers, useUpdateMyPresence } from '../CollaborationProvider';
 import PdfPageWrapper from './PdfPageWrapper';
 import TextSelectionToolbar from './TextSelectionToolbar';
 import HighlightPopup from './HighlightPopup';
 import CommentEditorPopup from './CommentEditorPopup';
+
+const CursorsOverlay = React.memo(() => {
+  const others = useOthers();
+  return (
+    <>
+      {others.map(({ connectionId, presence, info }) => {
+        if (!presence?.cursor) return null;
+        
+        const color = info?.color || '#7C3AED';
+        const name = info?.name || 'Anonymous';
+        
+        // Reconstruct absolute position
+        const left = `calc(50% + ${presence.cursor.x}px)`;
+        const top = `${presence.cursor.y}px`;
+
+        return (
+          <div
+            key={connectionId}
+            style={{
+              position: 'absolute',
+              left,
+              top,
+              pointerEvents: 'none',
+              zIndex: 9999,
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <svg width="24" height="36" viewBox="0 0 24 36" fill="none" stroke="white" strokeWidth="2">
+              <path d="M5.65376 12.3673H5.46026L5.31717 12.4976L0.500002 16.8829L0.500002 1.19841L11.7841 12.3673H5.65376Z" fill={color} />
+            </svg>
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: '16px',
+              backgroundColor: color,
+              color: 'white',
+              padding: '2px 8px',
+              borderRadius: '12px',
+              fontSize: '12px',
+              fontWeight: 600,
+              whiteSpace: 'nowrap'
+            }}>
+              {name}
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+});
 import {
   CursorClick, Highlighter, Pen, Eraser, 
   MagnifyingGlassPlus, MagnifyingGlassMinus,
@@ -77,6 +128,7 @@ export default function CleanDocumentViewer({
   const [numPages, setNumPages] = useState(null);
   const [scale, setScale] = useState(1.0);
   const [containerWidth, setContainerWidth] = useState(null);
+  const updateMyPresence = useUpdateMyPresence();
   
   // New States for Advanced Interactions
   const [textSelectionData, setTextSelectionData] = useState(null);
@@ -104,10 +156,16 @@ export default function CleanDocumentViewer({
     // update locally
     if (type === 'highlight') {
       setHighlights(prev => prev.map(h => h.id === item.id ? { ...h, comment: text } : h));
-      if (userId) await supabase.from('highlights').update({ comment: text }).eq('id', item.id);
+      if (userId) {
+        const { error } = await supabase.from('highlights').update({ comment: text }).eq('id', item.id);
+        if (error) console.error("Error updating highlight comment:", error);
+      }
     } else {
       setStrokes(prev => prev.map(s => s.id === item.id ? { ...s, comment: text } : s));
-      if (userId) await supabase.from('strokes').update({ comment: text }).eq('id', item.id);
+      if (userId) {
+        const { error } = await supabase.from('strokes').update({ comment: text }).eq('id', item.id);
+        if (error) console.error("Error updating stroke comment:", error);
+      }
     }
     setCommentPopupData(null);
   };
@@ -125,7 +183,7 @@ export default function CleanDocumentViewer({
     });
   }, []);
 
-  // Fetch initial data
+  // Fetch initial data & subscribe to Realtime
   useEffect(() => {
     if (!material?.id) return;
     
@@ -147,6 +205,38 @@ export default function CleanDocumentViewer({
     };
 
     fetchAnnotations();
+
+    // Subscribe to realtime updates for this material
+    const channel = supabase.channel(`document-${material.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'highlights', filter: `material_id=eq.${material.id}` }, payload => {
+        if (payload.eventType === 'INSERT') {
+          setHighlights(prev => {
+            if (prev.some(h => h.id === payload.new.id)) return prev;
+            return [...prev, payload.new];
+          });
+        } else if (payload.eventType === 'UPDATE') {
+          setHighlights(prev => prev.map(h => h.id === payload.new.id ? payload.new : h));
+        } else if (payload.eventType === 'DELETE') {
+          setHighlights(prev => prev.filter(h => h.id !== payload.old.id));
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'strokes', filter: `material_id=eq.${material.id}` }, payload => {
+        if (payload.eventType === 'INSERT') {
+          setStrokes(prev => {
+            if (prev.some(s => s.id === payload.new.id)) return prev;
+            return [...prev, payload.new];
+          });
+        } else if (payload.eventType === 'UPDATE') {
+          setStrokes(prev => prev.map(s => s.id === payload.new.id ? payload.new : s));
+        } else if (payload.eventType === 'DELETE') {
+          setStrokes(prev => prev.filter(s => s.id !== payload.old.id));
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [material?.id]);
 
   // Intersection Observer for Page Number
@@ -171,12 +261,16 @@ export default function CleanDocumentViewer({
     const pages = scrollContainerRef.current.querySelectorAll('.pdf-page-wrapper');
     pages.forEach((p) => observer.observe(p));
 
-    // Also observe container width
-    const resizeObserver = new ResizeObserver((entries) => {
+    let lastWidth = 0;
+    const resizeObserver = new ResizeObserver(debounce((entries) => {
       for (let entry of entries) {
-        setContainerWidth(entry.contentRect.width);
+        const newWidth = entry.contentRect.width;
+        if (Math.abs(lastWidth - newWidth) > 5) {
+          lastWidth = newWidth;
+          setContainerWidth(newWidth);
+        }
       }
-    });
+    }, 100));
     resizeObserver.observe(scrollContainerRef.current);
 
     return () => {
@@ -279,7 +373,8 @@ export default function CleanDocumentViewer({
   const saveHighlightToDb = useCallback(
     debounce(async (highlight) => {
       if (!highlight.user_id) return;
-      await supabase.from('highlights').insert([highlight]);
+      const { error } = await supabase.from('highlights').insert([highlight]);
+      if (error) console.error("Error saving highlight to DB:", error);
     }, 1000),
     []
   );
@@ -294,6 +389,7 @@ export default function CleanDocumentViewer({
       points: strokeData.points,
       color: strokeData.color,
       width: strokeData.width,
+      tool: strokeData.tool || 'pen',
       created_at: new Date().toISOString()
     };
 
@@ -304,7 +400,8 @@ export default function CleanDocumentViewer({
   const saveStrokeToDb = useCallback(
     debounce(async (stroke) => {
       if (!stroke.user_id) return;
-      await supabase.from('strokes').insert([stroke]);
+      const { error } = await supabase.from('strokes').insert([stroke]);
+      if (error) console.error("Error saving stroke to DB:", error);
     }, 1000),
     []
   );
@@ -402,6 +499,16 @@ export default function CleanDocumentViewer({
         ref={scrollContainerRef}
         onMouseUp={handleMouseUp}
         onTouchEnd={handleMouseUp}
+        onPointerMove={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          // Store x relative to the center so it scales correctly across different screen widths
+          const x = (e.clientX - rect.left) - (rect.width / 2);
+          const y = e.clientY - rect.top + e.currentTarget.scrollTop;
+          updateMyPresence({ cursor: { x, y } });
+        }}
+        onPointerLeave={() => {
+          updateMyPresence({ cursor: null });
+        }}
         onClick={(e) => {
           // Close popups if clicking outside
           if (!e.target.closest('.highlight-popup') && !e.target.closest('.text-selection-toolbar')) {
@@ -420,8 +527,12 @@ export default function CleanDocumentViewer({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
+          position: 'relative',
         }}
       >
+        {/* Remote Cursors Layer */}
+        <CursorsOverlay />
+
         {fileToLoad ? (
           <Document
             file={fileToLoad}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { nanoid } from 'nanoid';
 import { supabase } from '../supabaseClient';
-import { useBroadcastEvent, useEventListener } from '../liveblocks.config';
+import { useBroadcastEvent, useEventListener } from '../components/dashboard/CollaborationProvider';
 
 export function useHighlight({ 
   fileId, 

@@ -16,19 +16,15 @@ import { TableHeader } from '@tiptap/extension-table-header'
 import { TableRow } from '@tiptap/extension-table-row'
 import Image from '@tiptap/extension-image'
 import { Suggestion } from '@tiptap/suggestion'
-import {
-  FloatingToolbar,
-  Toolbar,
-  useIsEditorReady,
-  useLiveblocksExtension,
-  FloatingThreads,
-  FloatingComposer
-} from '@liveblocks/react-tiptap'
-import { Thread } from '@liveblocks/react-ui'
-import '@liveblocks/react-ui/styles.css'
-import '@liveblocks/react-tiptap/styles.css'
-import { RoomProvider, useOthers, useSelf, useStatus, useSyncStatus, useThreads, useStorage, useMutation, useUpdateMyPresence } from '../../liveblocks.config'
-import { ClientSideSuspense } from '@liveblocks/react'
+import { BubbleMenu, FloatingMenu } from '@tiptap/react/menus'
+import Collaboration from '@tiptap/extension-collaboration'
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
+
+import { RoomProvider, useOthers, useSelf, useStatus, useSyncStatus, useThreads, useStorage, useMutation, useUpdateMyPresence, useCollaboration } from './CollaborationProvider'
+import { ClientSideSuspense } from './CollaborationProvider'
+import { CommentsProvider, useComments } from './CommentsProvider'
+import CommentsPane from './CommentsPane'
+import { CommentExtension } from './CommentExtension'
 import { supabase } from '../../supabaseClient'
 import { callGroqAPI, GROQ_MODELS } from '../../groqClient'
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService'
@@ -1563,6 +1559,7 @@ export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSh
   const [aiPanelWidth, setAiPanelWidth] = useState(380)
   const [shareOpen, setShareOpen] = useState(false)
   const [commentsOpen, setCommentsOpen] = useState(false)
+  const [pendingComment, setPendingComment] = useState(null)
   
   // Auto-switch AI mode based on screen size
   useEffect(() => {
@@ -1581,7 +1578,7 @@ export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSh
     role: 'editor',
   }), [displayName, profile?.avatar_url, user?.id, user?.user_metadata?.avatar_url])
   
-  const { threads = [] } = useThreads()
+  const { threads, setActiveThreadId } = useComments() || { threads: [] };
   
   const noteTitle = useStorage((root) => root.noteTitle)
   const noteIcon = useStorage((root) => root.noteIcon) || '📄'
@@ -1706,16 +1703,16 @@ export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSh
     }
   })
 
-  const liveblocks = useLiveblocksExtension({
-    comments: true,
-    mentions: false,
-    initialContent: {
-      type: 'doc',
-      content: [
-        { type: 'paragraph' },
-      ],
-    },
-  })
+  const { yDoc, provider } = useCollaboration();
+  const yjsCollab = yDoc ? Collaboration.configure({ document: yDoc }) : null;
+  const yjsCursor = (yDoc && provider) ? CollaborationCursor.configure({
+    provider: provider.awareness,
+    user: {
+      name: localUserInfo.name,
+      color: localUserInfo.color,
+      avatar: localUserInfo.avatar
+    }
+  }) : null;
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -1727,8 +1724,23 @@ export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSh
         saveToSupabase(latestHtmlRef.current)
       }, 2000)
     },
+    onSelectionUpdate: ({ editor }) => {
+      const isComment = editor.isActive('comment');
+      if (isComment) {
+        const attributes = editor.getAttributes('comment');
+        if (attributes.threadId) {
+          setCommentsOpen(true);
+          if (setActiveThreadId) setActiveThreadId(attributes.threadId);
+        }
+      } else {
+        // If they click away, we don't necessarily need to close the panel, but we might want to clear the active thread if they aren't typing a reply
+        // if (setActiveThreadId) setActiveThreadId(null);
+      }
+    },
     extensions: [
-      liveblocks,
+      yjsCollab,
+      yjsCursor,
+      CommentExtension,
       StarterKit.configure({ history: false, undoRedo: false, link: false, underline: false }),
       Placeholder.configure({
         placeholder: "Press 'space' for AI or '/' for commands...",
@@ -2101,26 +2113,51 @@ export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSh
                 {editor?.isEmpty && emptyState && (typeof emptyState === 'function' ? emptyState(editor) : emptyState)}
               </div>
               {editor && (
-                <FloatingToolbar editor={editor} className="ns-floating-toolbar">
-                  <Toolbar.SectionInline />
-                  <Toolbar.SectionCollaboration />
+                <BubbleMenu editor={editor} className="ns-bubble-menu shadow-2xl rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1 flex items-center gap-1" tippyOptions={{ duration: 100, maxWidth: 500 }}>
+                  <button onClick={() => editor.chain().focus().toggleBold().run()} className={`p-1.5 rounded-lg transition-colors ${editor.isActive('bold') ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-gray-100 text-gray-700 dark:text-gray-300'}`}>
+                    <Bold size={15} />
+                  </button>
+                  <button onClick={() => editor.chain().focus().toggleItalic().run()} className={`p-1.5 rounded-lg transition-colors ${editor.isActive('italic') ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-gray-100 text-gray-700 dark:text-gray-300'}`}>
+                    <Italic size={15} />
+                  </button>
+                  <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={`p-1.5 rounded-lg transition-colors ${editor.isActive('underline') ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-gray-100 text-gray-700 dark:text-gray-300'}`}>
+                    <UnderlineIcon size={15} />
+                  </button>
+                  
+                  <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
+                  
+                  <button 
+                    onClick={() => {
+                      const { from, to } = editor.state.selection;
+                      const text = editor.state.doc.textBetween(from, to, ' ');
+                      if (!text.trim()) return;
+                      const newThreadId = crypto.randomUUID();
+                      editor.chain().focus().setComment(newThreadId).run();
+                      setPendingComment({ threadId: newThreadId, quote: text });
+                      setCommentsOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-lg text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+                  >
+                    <MessageSquarePlus size={15} />
+                    Comment
+                  </button>
+
+                  <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
+                  
                   <SelectionAiActions editor={editor} user={user} profile={profile} />
-                </FloatingToolbar>
-              )}
-              {editor && threads && (
-                <FloatingThreads editor={editor} threads={threads} className="ns-floating-threads" />
-              )}
-              {editor && (
-                <FloatingComposer editor={editor} className="ns-floating-composer" />
+                </BubbleMenu>
               )}
             </div>
             <LiveCursorChat user={user} />
           </main>
 
-          <NotesCommentsPanel
-            open={commentsOpen}
-            threads={threads}
+          <CommentsPane
+            isOpen={commentsOpen}
             onClose={() => setCommentsOpen(false)}
+            user={user}
+            profile={profile}
+            pendingComment={pendingComment}
+            setPendingComment={setPendingComment}
           />
         </div>
 

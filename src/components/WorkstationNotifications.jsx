@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle, X, MessageCircle, Users } from 'lucide-react';
-import { useOthers, useStorage, useThreads } from '../liveblocks.config';
+import { useOthers, useStorage, useThreads } from './dashboard/CollaborationProvider';
 
 const MAX_TOASTS = 4;
 const AUTO_DISMISS_MS = 4000;
