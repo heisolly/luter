@@ -59,9 +59,13 @@ const LUTER_BRAND_STYLE = `
   }
 
   .luter-whiteboard-root .excalidraw .Island,
-  .luter-whiteboard-root .excalidraw .Stack.Stack_horizontal,
-  .luter-whiteboard-root .excalidraw .App-menu_top {
+  .luter-whiteboard-root .excalidraw .Stack.Stack_horizontal {
     box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08) !important;
+  }
+
+  /* ── Move top toolbar closer to the header ── */
+  .luter-whiteboard-root .excalidraw .App-menu_top {
+    top: 8px !important;
   }
 
   .luter-whiteboard-root .excalidraw .Island {
@@ -85,14 +89,14 @@ const LUTER_BRAND_STYLE = `
   }
 `;
 
-let brandStyleInjected = false;
 function injectBrandStyle() {
-  if (brandStyleInjected) return;
-  const el = document.createElement('style');
-  el.id = 'luter-board-brand';
+  let el = document.getElementById('luter-board-brand');
+  if (!el) {
+    el = document.createElement('style');
+    el.id = 'luter-board-brand';
+    document.head.appendChild(el);
+  }
   el.textContent = LUTER_BRAND_STYLE;
-  document.head.appendChild(el);
-  brandStyleInjected = true;
 }
 
 // ─── Main Component ────────────────────────────────────────────────────
@@ -108,6 +112,15 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
 
   // Inject brand CSS once
   useEffect(() => { injectBrandStyle(); }, []);
+
+  const [isDark, setIsDark] = useState(document.body.classList.contains('dark-mode'));
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.body.classList.contains('dark-mode'));
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   // Liveblocks storage
   const storedElements  = useStorage((root) => root.whiteboardData);
@@ -363,7 +376,7 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
         onPointerUpdate={handlePointerUpdate}
         isCollaborating={isCollaborative}
         viewModeEnabled={false}
-        theme="light"
+        theme={isDark ? "dark" : "light"}
         langCode="en"
         UIOptions={{
           dockedSidebarBreakpoint: 0,

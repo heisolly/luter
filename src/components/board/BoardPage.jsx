@@ -138,6 +138,15 @@ const PresenceStrip = ({ user }) => {
 const BoardInner = ({ roomId, boardName, user }) => {
   const navigate   = useNavigate()
   const [excalidrawAPI, setExcalidrawAPI] = useState(null)
+
+  const [isDark, setIsDark] = useState(document.body.classList.contains('dark-mode'));
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.body.classList.contains('dark-mode'));
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
   const [copied, setCopied]               = useState(false)
   const boardContainerRef = useRef(null)
   const updateMyPresence = useUpdateMyPresence()
@@ -358,7 +367,7 @@ const BoardInner = ({ roomId, boardName, user }) => {
           }}
           onChange={onChange}
           viewModeEnabled={self?.presence?.role !== 'presenter'}
-          theme="light"
+          theme={isDark ? "dark" : "light"}
           UIOptions={{
             canvasActions: {
               loadScene:  false,

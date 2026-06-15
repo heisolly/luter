@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useOutletContext, Link, useLocation, useSearchParams, useParams } from 'react-router-dom';
-import { AiChatPanel } from '../shared/AiChatPanel';
+import { WorkspaceRightPanel } from '../shared/WorkspaceRightPanel';
 import { 
   FileText, Star, Lightning, Cards, CheckSquareOffset, CornersOut, CornersIn,
   CaretDown, Bell, Link as LinkIcon, ShareNetwork, Moon, Sun, User as UserIcon, X as CloseIcon,
   Highlighter, PencilLine, PencilSimple, Chalkboard, Square, PushPin,
-  WhatsappLogo, ChatsCircle, DiscordLogo, RedditLogo, LinkedinLogo
+  WhatsappLogo, ChatsCircle, DiscordLogo, RedditLogo, LinkedinLogo, Sparkle, SidebarSimple, ChatTeardropText
 } from '@phosphor-icons/react';
 import { fetchUserStandaloneMaterials, joinMaterial, fetchMaterialCollaborators } from '../../services/materialsService';
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext';
@@ -309,8 +309,7 @@ export default function WorkstationPage() {
           backgroundImage: isDark 
             ? 'radial-gradient(circle, #374151 1px, transparent 1px)'
             : 'radial-gradient(circle, #E5E7EB 1px, transparent 1px)',
-          backgroundSize: '24px 24px',
-          order: isMobile ? 1 : 2
+          backgroundSize: '24px 24px'
         }}>
           
           {/* Top Header */}
@@ -479,7 +478,7 @@ export default function WorkstationPage() {
 
             {/* Right: Actions */}
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '12px', flex: 1, justifyContent: 'flex-end' }}>
-              <VoiceChatWidget roomId={roomId} user={user} />
+              <VoiceChatWidget roomId={roomId} user={user} isDark={isDark} />
               <button 
                 onClick={() => setIsShareOpen(true)}
                 style={{
@@ -502,6 +501,7 @@ export default function WorkstationPage() {
                 <ShareNetwork size={18} weight="bold" />
                 {!isMobile && <span>Share</span>}
               </button>
+              
 
               {/* Notification Dropdown */}
               <div style={{ position: 'relative' }} ref={notifRef}>
@@ -666,6 +666,33 @@ export default function WorkstationPage() {
                 )}
               </div>
 
+              <div style={{ width: '1px', height: '24px', backgroundColor: borderColor, margin: '0 4px' }} />
+
+              <button 
+                  onClick={() => setIsChatOpen(!isChatOpen)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: isChatOpen ? (isDark ? '#374151' : '#E5E7EB') : 'transparent',
+                    color: isChatOpen ? (isDark ? '#FFFFFF' : '#111827') : subTextColor,
+                    border: 'none',
+                    padding: '8px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    width: '38px',
+                    height: '38px'
+                  }}
+                  title={isChatOpen ? "Close AI Chat" : "Open AI Chat"}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = isDark ? '#374151' : '#E5E7EB'; e.currentTarget.style.color = textColor; }}
+                  onMouseLeave={e => { 
+                    e.currentTarget.style.backgroundColor = isChatOpen ? (isDark ? '#374151' : '#E5E7EB') : 'transparent';
+                    e.currentTarget.style.color = isChatOpen ? (isDark ? '#FFFFFF' : '#111827') : subTextColor;
+                  }}
+                >
+                  <ChatTeardropText size={22} weight={isChatOpen ? "fill" : "regular"} />
+                </button>
             </div>
           </header>
 
@@ -678,7 +705,7 @@ export default function WorkstationPage() {
               onMouseLeave={() => setIsSubNavHovered(false)}
               style={{
                 position: 'absolute',
-                bottom: '24px',
+                bottom: '80px',
                 left: '24px',
                 zIndex: 50,
                 display: 'flex',
@@ -816,15 +843,24 @@ export default function WorkstationPage() {
 
               {/* Excalidraw Board */}
               {activeSubTab === 'Boards' && (
-                <div style={isBoardFullScreen ? {
+                <div id="luter-board-container" style={isBoardFullScreen ? {
                   position: 'fixed', inset: 0, zIndex: 99999, backgroundColor: isDark ? '#111827' : '#F9FAFB',
                   display: 'flex', flexDirection: 'column'
                 } : {
-                  flex: 1, position: 'relative', display: 'flex', flexDirection: 'column'
+                  flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', width: '100%', height: '100%'
                 }}>
-                  <div style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 50 }}>
+                  <div style={{ position: 'absolute', top: '10px', right: '16px', zIndex: 50 }}>
                     <button 
-                      onClick={() => setIsBoardFullScreen(!isBoardFullScreen)}
+                      onClick={() => {
+                        if (!document.fullscreenElement) {
+                          document.documentElement.requestFullscreen().catch(err => {
+                            console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+                          });
+                        } else {
+                          document.exitFullscreen();
+                        }
+                        setIsBoardFullScreen(!isBoardFullScreen);
+                      }}
                       style={{
                         backgroundColor: isDark ? '#374151' : '#FFFFFF', color: textColor,
                         border: `1px solid ${borderColor}`, borderRadius: '8px', padding: '8px 12px',
@@ -835,8 +871,8 @@ export default function WorkstationPage() {
                       onMouseEnter={e => e.currentTarget.style.backgroundColor = hoverBg}
                       onMouseLeave={e => e.currentTarget.style.backgroundColor = isDark ? '#374151' : '#FFFFFF'}
                     >
-                      {isBoardFullScreen ? <CornersIn size={16} weight="bold"/> : <CornersOut size={16} weight="bold"/>}
-                      {isBoardFullScreen ? 'Exit Full Screen' : 'Full Screen'}
+                      {isBoardFullScreen || !!document.fullscreenElement ? <CornersIn size={16} weight="bold"/> : <CornersOut size={16} weight="bold"/>}
+                      {isBoardFullScreen || !!document.fullscreenElement ? 'Exit Full Screen' : 'Full Screen'}
                     </button>
                   </div>
                   
@@ -895,54 +931,43 @@ export default function WorkstationPage() {
                 </div>
               </div>
             )}
-
-            {/* Floating Mascot Toggle Button */}
-            <button 
-              onClick={() => setIsChatOpen(true)}
-              title="Ask Luter AI"
-              style={{
-                position: 'absolute', right: isMobile ? '24px' : '48px', bottom: isMobile ? '24px' : '56px',
-                backgroundColor: 'transparent', border: 'none',
-                width: '64px', height: '64px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', zIndex: 40,
-                transition: 'transform 0.3s, opacity 0.2s',
-                transform: isChatOpen ? 'scale(0)' : 'scale(1)',
-                opacity: isChatOpen ? 0 : 1, pointerEvents: isChatOpen ? 'none' : 'auto'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1) rotate(-5deg)'}
-              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1) rotate(0)'}
-            >
-              <img src="/logo.png" alt="Luter AI" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.2))' }} />
-            </button>
-
           </div>
         </div>
 
         {isMobile ? (
           <div style={{
             position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-            zIndex: 100, display: isChatOpen ? 'block' : 'none',
+            zIndex: 1000000, display: isChatOpen ? 'block' : 'none',
             backgroundColor: isDark ? '#111827' : '#FFFFFF'
           }}>
-            <AiChatPanel 
+            <WorkspaceRightPanel 
               isOpen={isChatOpen} 
               onClose={() => setIsChatOpen(false)} 
               mode="sidebar"
               setMode={() => {}}
               panelWidth="100%"
               setPanelWidth={setChatWidth}
+              isDark={isDark}
             />
           </div>
         ) : (
-          <AiChatPanel 
-            isOpen={isChatOpen} 
-            onClose={() => setIsChatOpen(false)} 
-            mode="sidebar"
-            setMode={() => {}}
-            panelWidth={chatWidth}
-            setPanelWidth={setChatWidth}
-          />
+          <div style={isBoardFullScreen ? {
+            position: 'fixed', right: 0, top: 0, bottom: 0, zIndex: 1000000,
+            display: isChatOpen ? 'block' : 'none',
+            boxShadow: '-8px 0 32px rgba(0,0,0,0.1)'
+          } : {
+            display: isChatOpen ? 'block' : 'none'
+          }}>
+            <WorkspaceRightPanel 
+              isOpen={isChatOpen} 
+              onClose={() => setIsChatOpen(false)} 
+              mode="sidebar"
+              setMode={() => {}}
+              panelWidth={chatWidth}
+              setPanelWidth={setChatWidth}
+              isDark={isDark}
+            />
+          </div>
         )}
 
         {/* Share Overlay */}

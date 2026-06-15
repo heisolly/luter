@@ -124,6 +124,7 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentStroke, setCurrentStroke] = useState(null);
+  const [isLoaded, setIsLoaded] = useState(false);
   const updateMyPresence = useUpdateMyPresence();
 
   const { ref: inViewRef, inView } = useInView({
@@ -325,7 +326,7 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
         boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
         backgroundColor: isDark ? '#1a1a1a' : 'white',
         cursor: activeTool === 'pin' ? 'crosshair' : 'default',
-        minHeight: pageWidth ? `${pageWidth * 1.414}px` : '800px',
+        minHeight: isLoaded ? undefined : (pageWidth ? `${pageWidth * 0.75}px` : '800px'),
         width: pageWidth ? `${pageWidth}px` : '100%',
       }}
       data-page-number={pageNumber}
@@ -355,6 +356,7 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
                      canvas.style.height = pageCanvas.style.height;
                    }
                 }
+                setIsLoaded(true);
                 setTimeout(drawEverything, 50);
               }}
             />

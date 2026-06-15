@@ -10,6 +10,7 @@ import { callMistralAPI, MISTRAL_MODELS } from '../../mistralClient';
 import { supabase } from '../../supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Typing } from '../ui/Typing';
+import { VoiceWave } from '../ui/VoiceWave';
 
 const HISTORY_KEY = 'luter-ai-chat-history'
 const MAX_SESSIONS = 20
@@ -39,7 +40,7 @@ function saveSession(messages, id) {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(updated))
   return updated
 }
-export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNoteId, panelWidth, setPanelWidth, user, profile }) {
+export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNoteId, panelWidth, setPanelWidth, user, profile, hideWrapper }) {
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -103,6 +104,7 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
 
   // --- Voice Input Logic ---
   const [isRecording, setIsRecording] = useState(false);
+  const [audioStream, setAudioStream] = useState(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
@@ -125,6 +127,7 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
         mediaRecorder.onstop = async () => {
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
           stream.getTracks().forEach(track => track.stop());
+          setAudioStream(null);
           
           try {
             const text = await transcribeAudioGroq(audioBlob);
@@ -141,6 +144,7 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
         
         mediaRecorder.start();
         setIsRecording(true);
+        setAudioStream(stream);
       } catch (err) {
         console.error("Microphone access denied or error:", err);
         alert("Microphone access is required for dictation.");
@@ -430,27 +434,25 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
   // The shared input block
   const InputBlock = ({ isBottom = false }) => (
     <div className={`ns-ai-input-container${isBottom ? ' is-bottom' : ''}`}>
-      <div className="ns-ai-input-wrapper">
-        {/* Context badge â€” only when real context exists */}
-        {hasRealContext && (
-          <div className="ns-ai-input-top">
-            {contextEnabled && contextLabel ? (
-              <span className="ns-ai-new-badge">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                {contextLabel}
-                <button className="ns-ai-badge-close" onClick={() => setContextEnabled(false)}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-              </span>
-            ) : (
-              <button className="ns-ai-add-context-btn" onClick={() => setContextEnabled(true)}>
-                + Add context
-              </button>
-            )}
-          </div>
+      <div className="ns-ai-input-top">
+        {contextEnabled && contextLabel ? (
+          <span className="ns-ai-new-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            {contextLabel}
+            <button className="ns-ai-badge-close" onClick={() => setContextEnabled(false)}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </span>
+        ) : (
+          <button className="ns-ai-add-context-btn" onClick={() => setContextEnabled(true)}>
+            + Add context
+          </button>
         )}
+      </div>
 
-        {/* Textarea â€” uncontrolled to prevent cursor corruption */}
+      {isRecording ? (
+        <VoiceWave isRecording={isRecording} stream={audioStream} />
+      ) : (
         <textarea
           ref={textareaRef}
           className="ns-ai-input"
@@ -459,62 +461,54 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
           onKeyDown={handleTextareaKey}
           placeholder="Do anything with AI..."
           rows={1}
-          style={{ resize: 'none', overflowY: 'hidden' }}
-          autoFocus={isFullscreen && !hasMessages}
         />
+      )}
 
-        <div className="ns-ai-input-bottom">
-          <div className="ns-ai-input-tools">
-            <div className="ns-ai-settings-dropdown">
-              <button className={`ns-ai-input-settings-btn ${settingsOpen ? 'active' : ''}`} onClick={() => setSettingsOpen(!settingsOpen)}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-              </button>
-              {settingsOpen && (
-                <div className="ns-ai-settings-wrap">
-                  <div className="ns-set-item">
-                    <div className="ns-set-label">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                      Web access
-                    </div>
-                    <div className="ns-set-toggle active"><div className="ns-set-knob"/></div>
-                  </div>
-                  <div className="ns-set-item">
-                    <div className="ns-set-label">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                      My sources
-                    </div>
-                    <span className="ns-set-val">3 {'>'}</span>
-                  </div>
-                  <div className="ns-set-divider"/>
-                  <div className="ns-set-item" onClick={() => setAiModeType(aiModeType === 'Default' ? 'Smart Tutor' : 'Default')}>
-                    <div className="ns-set-label">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                      Mode
-                    </div>
-                    <span className="ns-set-val">{aiModeType} {'>'}</span>
-                  </div>
+      <div className="ns-ai-input-bottom">
+        <div className="ns-ai-input-tools">
+          <button 
+            title="Voice input" 
+            onClick={toggleVoiceInput}
+            style={{
+              color: isRecording ? '#EF4444' : undefined
+            }}
+          >
+            {isRecording ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="6" y="6" width="12" height="12" rx="2" ry="2"></rect></svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            )}
+          </button>
+          <button>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <div className="ns-ai-settings-dropdown">
+            <button className={`ns-ai-input-settings-btn ${settingsOpen ? 'active' : ''}`} onClick={() => setSettingsOpen(!settingsOpen)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+            </button>
+            {settingsOpen && (
+              <div className="ns-ai-settings-wrap">
+                <div className="ns-set-item">
+                  <div className="ns-set-label">Web access</div>
+                  <div className="ns-set-toggle active"><div className="ns-set-knob"/></div>
                 </div>
-              )}
-            </div>
-          </div>
-          <div className="ns-ai-input-actions">
-            <span className="ns-ai-auto-text">{aiModeType === 'Default' ? 'Auto' : aiModeType}</span>
-            <button 
-              title="Voice input" 
-              onClick={toggleVoiceInput}
-              className={`ns-ai-voice-btn ${isRecording ? 'recording' : ''}`}
-            >
-              {isRecording ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" strokeWidth="2"><rect x="6" y="6" width="12" height="12" rx="2" ry="2"></rect></svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-              )}
-            </button>
-            <button className="submit" onClick={handleSendFromRef} disabled={loading}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-            </button>
+                <div className="ns-set-divider"/>
+                <div className="ns-set-item" onClick={() => setAiModeType(aiModeType === 'Default' ? 'Smart Tutor' : 'Default')}>
+                  <div className="ns-set-label">Mode</div>
+                  <span className="ns-set-val">{aiModeType} {'>'}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
+        {!isRecording && (
+          <div className="ns-ai-input-actions">
+            <span className="ns-ai-auto-text">{aiModeType === 'Default' ? 'Auto' : aiModeType}</span>
+            <button className="ns-ai-submit-btn" onClick={handleSendFromRef} disabled={loading}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -524,17 +518,18 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
   return (
     <aside
       className={`ns-ai-panel mode-${mode}${hasMessages ? ' has-messages' : ''}`}
-      style={mode === 'sidebar' ? { width: panelWidth } : {}}
+      style={hideWrapper ? { flex: 1, border: 'none', background: 'transparent' } : (mode === 'sidebar' ? { width: panelWidth } : {})}
     >
       {/* Drag Handle */}
       {mode === 'sidebar' && (
         <div className="ns-ai-drag-handle" onMouseDown={handleMouseDown} />
       )}
 
-      {/* â”€â”€ Header â”€â”€ */}
-      <div className="ns-ai-panel-header">
-        <div className="ns-ai-top-left">
-          <span className="ns-ai-title">New AI chat</span>
+      {/* ── Header ── */}
+      {!hideWrapper && (
+        <div className="ns-ai-panel-header">
+          <div className="ns-ai-top-left">
+            <span className="ns-ai-title">New AI chat</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <div className="ns-ai-top-right">
@@ -580,6 +575,7 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
           )}
         </div>
       </div>
+      )}
 
       {/* History Panel */}
       {historyOpen && (
@@ -612,10 +608,9 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
       {isFullscreen && !hasMessages ? (
         <div className="ns-ai-messages">
           <div className="ns-ai-empty-state">
-            <div className="ns-ai-mascot-wrap">
-              <img src="/mascot.png" alt="Luter AI" className="ns-ai-mascot" />
-              <span className="ns-ai-magic-stars">âœ¨</span>
-            </div>
+              <div className="ns-ai-mascot">
+                <img src="/mascot.png" alt="AI Mascot" width={64} height={64} />
+              </div>
             <h3>What magic shall we make happen?</h3>
 
             {/* Input â€” centered, prominent */}
@@ -658,7 +653,6 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
               <div className="ns-ai-empty-state">
                 <div className="ns-ai-mascot-wrap">
                   <img src="/mascot.png" alt="Luter Mascot" className="ns-ai-mascot" />
-                  <span className="ns-ai-magic-stars">âœ¨</span>
                 </div>
                 <h3>What magic shall we make happen?</h3>
                 <div className="ns-ai-quick-grid">

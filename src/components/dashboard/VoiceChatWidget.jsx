@@ -4,8 +4,7 @@ import { Mic, MicOff, Volume2, VolumeX, Loader2, AlertTriangle } from 'lucide-re
 import { useTheme } from '../../contexts/ThemeContext';
 import { motion } from 'framer-motion';
 
-export default function VoiceChatWidget({ roomId, user }) {
-  const { isDark } = useTheme();
+export default function VoiceChatWidget({ roomId, user, isDark }) {
   const {
     isJoined,
     isMicEnabled,
