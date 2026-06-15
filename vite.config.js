@@ -53,7 +53,7 @@ export default defineConfig(({ mode }) => {
           navigateFallback: '/index.html',
           navigateFallbackDenylist: [/^\/api\//],
           navigateFallbackAllowlist: [/.*/],
-          maximumFileSizeToCacheInBytes: 10485760, // 10MiB
+          maximumFileSizeToCacheInBytes: 15728640, // 15MiB
           runtimeCaching: [
             {
               urlPattern: /^\/assets\/.+\.js$/,
