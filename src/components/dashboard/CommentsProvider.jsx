@@ -24,8 +24,7 @@ export function CommentsProvider({ roomId, children }) {
           resolved,
           created_at,
           author_id,
-          metadata,
-          auth_users:author_id ( raw_user_meta_data )
+          metadata
         `)
         .eq('room_id', roomId)
         .order('created_at', { ascending: true });
@@ -49,8 +48,7 @@ export function CommentsProvider({ roomId, children }) {
             body,
             created_at,
             author_id,
-            metadata,
-            auth_users:author_id ( raw_user_meta_data )
+            metadata
           `)
           .in('thread_id', threadIds)
           .order('created_at', { ascending: true });
@@ -128,10 +126,10 @@ export function CommentsProvider({ roomId, children }) {
     return threadData;
   }, [roomId]);
 
-  const createComment = useCallback(async (threadId, authorId, body) => {
+  const createComment = useCallback(async (threadId, authorId, body, metadata = {}) => {
     const { data, error } = await supabase
       .from('document_comments')
-      .insert({ thread_id: threadId, body, author_id: authorId })
+      .insert({ thread_id: threadId, body, author_id: authorId, metadata })
       .select()
       .single();
 

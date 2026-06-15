@@ -4,7 +4,7 @@ import { AiChatPanel } from '../shared/AiChatPanel';
 import { 
   FileText, Star, Lightning, Cards, CheckSquareOffset, CornersOut, CornersIn,
   CaretDown, Bell, Link as LinkIcon, ShareNetwork, Moon, Sun, User as UserIcon, X as CloseIcon,
-  Highlighter, PencilLine, PencilSimple, Chalkboard, Square,
+  Highlighter, PencilLine, PencilSimple, Chalkboard, Square, PushPin,
   WhatsappLogo, ChatsCircle, DiscordLogo, RedditLogo, LinkedinLogo
 } from '@phosphor-icons/react';
 import { fetchUserStandaloneMaterials, joinMaterial, fetchMaterialCollaborators } from '../../services/materialsService';
@@ -18,6 +18,7 @@ import MaterialRenderer from './MaterialRenderer';
 import { ClientSideSuspense } from './CollaborationProvider';
 import { RoomProvider } from './CollaborationProvider';
 import { LiveNoteEditor } from './NotesStudioPage';
+import { CommentsProvider } from './CommentsProvider';
 import WorkstationEmptyState from './WorkstationEmptyState';
 import VoiceChatWidget from './VoiceChatWidget';
 import './NotesStudioPage.css';
@@ -69,7 +70,7 @@ const BOTTOM_WORKSPACE_TOOLS = [
     activeBg: '#EDE9FE', activeBorder: '#A78BFA', activeColor: '#6D28D9',
   },
   {
-    id: 'occlude', label: 'Occlude', icon: Square,
+    id: 'pin', label: 'Sticky Note', icon: PushPin,
     baseBg: '#F3F4F6', baseBorder: '#E5E7EB', baseColor: '#374151',
     activeBg: '#111827', activeBorder: '#000000', activeColor: '#FFFFFF',
   },
@@ -741,7 +742,7 @@ export default function WorkstationPage() {
                       activeTab="source"
                       annotateMode={activeWorkspaceTool === 'annotate'}
                       highlightMode={activeWorkspaceTool === 'highlight'}
-                      occludeMode={activeWorkspaceTool === 'occlude'}
+                      pinMode={activeWorkspaceTool === 'pin'}
                       annotationColor={strokeColor}
                       annotationStrokeSize={strokeSize}
                       isEraserMode={drawMode === 'eraser'}
@@ -781,24 +782,26 @@ export default function WorkstationPage() {
                           }}
                         >
                           <ClientSideSuspense fallback={<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', color: '#6B7280', fontFamily: 'Outfit' }}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite', marginBottom: '12px', color: '#8B5CF6' }}><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg><div>Connecting Notes...</div></div>}>
-                            <LiveNoteEditor 
-                              title={selectedMaterial.title} 
-                              roomId={`luter:notes:${selectedMaterial.id}`} 
-                              displayName={displayName} 
-                              user={user} 
-                              profile={profile} 
-                              hideHeader={true}
-                              workstationMode={true}
-                              onOpenAiChat={() => setIsChatOpen(true)}
-                              emptyState={(editor) => (
-                                <WorkstationEmptyState 
-                                  editor={editor} 
-                                  material={selectedMaterial} 
-                                  isGenerating={isGenerating} 
-                                  setIsGenerating={setIsGenerating} 
-                                />
-                              )}
-                            />
+                            <CommentsProvider roomId={`luter:notes:${selectedMaterial.id}`}>
+                              <LiveNoteEditor 
+                                title={selectedMaterial.title} 
+                                roomId={`luter:notes:${selectedMaterial.id}`} 
+                                displayName={displayName} 
+                                user={user} 
+                                profile={profile} 
+                                hideHeader={true}
+                                workstationMode={true}
+                                onOpenAiChat={() => setIsChatOpen(true)}
+                                emptyState={(editor) => (
+                                  <WorkstationEmptyState 
+                                    editor={editor} 
+                                    material={selectedMaterial} 
+                                    isGenerating={isGenerating} 
+                                    setIsGenerating={setIsGenerating} 
+                                  />
+                                )}
+                              />
+                            </CommentsProvider>
                           </ClientSideSuspense>
                         </RoomProvider>
                       )}
@@ -857,7 +860,7 @@ export default function WorkstationPage() {
                   strokeSize={strokeSize} setStrokeSize={setStrokeSize}
                   ANNOTATION_COLORS={ANNOTATION_COLORS} STROKE_SIZES={STROKE_SIZES}
                   isDark={isDark}
-                  visible={['annotate', 'highlight', 'occlude'].includes(activeWorkspaceTool)}
+                  visible={['annotate', 'highlight', 'pin'].includes(activeWorkspaceTool)}
                 />
                 
                 <div style={{

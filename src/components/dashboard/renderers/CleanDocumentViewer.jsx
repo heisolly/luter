@@ -10,6 +10,8 @@ import TextSelectionToolbar from './TextSelectionToolbar';
 import HighlightPopup from './HighlightPopup';
 import CommentEditorPopup from './CommentEditorPopup';
 
+import DocumentErrorBoundary from './DocumentErrorBoundary';
+
 const CursorsOverlay = React.memo(() => {
   const others = useOthers();
   return (
@@ -119,7 +121,7 @@ export default function CleanDocumentViewer({
   isDark,
   annotateMode = false,
   highlightMode = false,
-  occludeMode = false,
+  pinMode = false,
   isEraserMode = false,
   annotationColor,
   annotationStrokeSize,
@@ -138,7 +140,7 @@ export default function CleanDocumentViewer({
   // Resolve tool state from parent WorkstationPage props
   const activeTool = highlightMode ? (isEraserMode ? 'eraser' : 'highlight') 
                    : (annotateMode ? (isEraserMode ? 'eraser' : 'pen') 
-                   : (occludeMode ? (isEraserMode ? 'eraser' : 'occlusion')
+                   : (pinMode ? 'pin'
                    : 'select'));
                    
   const activeColor = annotationColor || '#7C3AED';
@@ -370,6 +372,31 @@ export default function CleanDocumentViewer({
     setTextSelectionData(null);
   }, [activeTool, scale, activeColor, material?.id, userId]);
 
+  const handleAddPin = useCallback((pageNumber, unscaledPoint, viewportPos) => {
+    if (!userId || !material?.id) return;
+    
+    const newPin = {
+      id: crypto.randomUUID(),
+      material_id: material.id,
+      user_id: userId,
+      page_number: pageNumber,
+      rects: [{ isPin: true, ...unscaledPoint }],
+      color: activeColor,
+      style: 'pin',
+      created_at: new Date().toISOString()
+    };
+    setHighlights(prev => [...prev, newPin]);
+    saveHighlightToDb(newPin);
+    
+    // Automatically open the comment popup for the new pin
+    setCommentPopupData({
+      position: viewportPos ? viewportPos : { x: unscaledPoint.x * scale, y: unscaledPoint.y * scale },
+      item: newPin,
+      type: 'highlight',
+      isNew: true
+    });
+  }, [activeColor, material?.id, userId, scale]);
+
   const saveHighlightToDb = useCallback(
     debounce(async (highlight) => {
       if (!highlight.user_id) return;
@@ -486,8 +513,19 @@ export default function CleanDocumentViewer({
   const fileSource = material?.converted_url || material?.source_url;
   const pageWidth = containerWidth ? Math.min(containerWidth - 80, 1200) : undefined;
   
-  // Memoize file to avoid unnecessary re-renders when react-pdf parses it
   const fileToLoad = React.useMemo(() => fileSource, [fileSource]);
+  
+  // Reset numPages when file changes to prevent Page components from rendering during document load
+  useEffect(() => {
+    setNumPages(null);
+  }, [fileSource]);
+
+  // Memoize options to prevent react-pdf from remounting the document on every render
+  const pdfOptions = React.useMemo(() => ({
+    cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
+    cMapPacked: true,
+    standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/standard_fonts/`,
+  }), []);
 
   return (
     <div className="clean-doc-viewer" style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', backgroundColor: 'transparent', position: 'relative' }}>
@@ -534,58 +572,62 @@ export default function CleanDocumentViewer({
         <CursorsOverlay />
 
         {fileToLoad ? (
-          <Document
-            file={fileToLoad}
-            onLoadSuccess={onDocumentLoadSuccess}
-            loading={
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '100px' }}>
-                <div style={{ color: '#64748B' }}>Loading document...</div>
-              </div>
-            }
-          >
-            {Array.from(new Array(numPages || 0), (el, index) => (
-              <PdfPageWrapper
-                key={`page_${index + 1}`}
-                pageNumber={index + 1}
-                scale={scale}
-                pageWidth={pageWidth}
-                activeTool={activeTool}
-                activeColor={activeColor}
-                activeStrokeWidth={activeStrokeWidth}
-                isDark={isDark}
-                activeAnnotationId={popupAnnotation?.item?.id}
-                highlights={highlights.filter(h => h.page_number === index + 1)}
-                strokes={strokes.filter(s => s.page_number === index + 1)}
-                onAddHighlight={() => {}} // Handled at container level via MouseUp
-                onAddStroke={handleAddStroke}
-                onRemoveStroke={handleDeleteStroke}
-                onAnnotationClick={(e, type, item) => {
-                  e.stopPropagation();
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const position = {
-                    x: rect.left + (rect.width / 2),
-                    y: rect.top
-                  };
-                  if (type === 'comment_dot') {
-                    setPopupAnnotation(null); // hide highlight popup
-                    setCommentPopupData({
-                      position,
-                      item,
-                      type: 'highlight',
-                      isNew: false
-                    });
-                  } else {
-                    setCommentPopupData(null); // hide comment popup
-                    setPopupAnnotation({
-                      position,
-                      type,
-                      item
-                    });
-                  }
-                }}
-              />
-            ))}
-          </Document>
+          <DocumentErrorBoundary>
+            <Document
+              file={fileToLoad}
+              options={pdfOptions}
+              onLoadSuccess={onDocumentLoadSuccess}
+              loading={
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '100px' }}>
+                  <div style={{ color: '#64748B' }}>Loading document...</div>
+                </div>
+              }
+            >
+              {Array.from(new Array(numPages || 0), (el, index) => (
+                <PdfPageWrapper
+                  key={`page_${index + 1}`}
+                  pageNumber={index + 1}
+                  scale={scale}
+                  pageWidth={pageWidth}
+                  activeTool={activeTool}
+                  activeColor={activeColor}
+                  activeStrokeWidth={activeStrokeWidth}
+                  isDark={isDark}
+                  activeAnnotationId={popupAnnotation?.item?.id}
+                  highlights={highlights.filter(h => h.page_number === index + 1)}
+                  strokes={strokes.filter(s => s.page_number === index + 1)}
+                  onAddHighlight={() => {}} // Handled at container level via MouseUp
+                  onAddPin={handleAddPin}
+                  onAddStroke={handleAddStroke}
+                  onRemoveStroke={handleDeleteStroke}
+                  onAnnotationClick={(e, type, item) => {
+                    e.stopPropagation();
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const position = {
+                      x: rect.left + (rect.width / 2),
+                      y: rect.top
+                    };
+                    if (type === 'comment_dot') {
+                      setPopupAnnotation(null); // hide highlight popup
+                      setCommentPopupData({
+                        position,
+                        item,
+                        type: 'highlight',
+                        isNew: false
+                      });
+                    } else {
+                      setCommentPopupData(null); // hide comment popup
+                      setPopupAnnotation({
+                        position,
+                        type,
+                        item
+                      });
+                    }
+                  }}
+                />
+              ))}
+            </Document>
+          </DocumentErrorBoundary>
         ) : (
           <div style={{ textAlign: 'center', padding: '100px', color: '#EF4444' }}>
             No document source provided.

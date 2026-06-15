@@ -46,6 +46,7 @@ export default function DocumentViewer({
   highlightMode = false,
   commentMode = false,
   focusModeTool = false,
+  pinMode = false,
   annotationColor = '#7C3AED',
   annotationStrokeSize = 4,
   isEraserMode = false,
@@ -212,6 +213,7 @@ export default function DocumentViewer({
                     highlightMode={highlightMode}
                     commentMode={commentMode}
                     focusModeTool={focusModeTool}
+                    pinMode={pinMode}
                     annotationColor={annotationColor}
                     annotationStrokeSize={annotationStrokeSize}
                     isEraserMode={isEraserMode}

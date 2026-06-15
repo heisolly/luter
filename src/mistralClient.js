@@ -163,7 +163,10 @@ export async function extractDocumentWithMistral(fileBlob, mimeType) {
           },
           body: JSON.stringify({
             model: 'mistral-ocr-latest',
-            document: {
+            document: mimeType === 'application/pdf' ? {
+              type: "document_url",
+              document_url: base64Data
+            } : {
               type: "image_url",
               image_url: base64Data
             }

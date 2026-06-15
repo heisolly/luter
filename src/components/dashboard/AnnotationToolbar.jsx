@@ -20,7 +20,7 @@ export default function AnnotationToolbar({
   const hoverBg = isDark ? '#374151' : '#F3F4F6';
   
   // Determine which properties to show based on active tool
-  const showColors = activeWorkspaceTool === 'annotate' || activeWorkspaceTool === 'highlight';
+  const showColors = activeWorkspaceTool === 'annotate' || activeWorkspaceTool === 'highlight' || activeWorkspaceTool === 'pin';
   const showSizes = activeWorkspaceTool === 'annotate';
 
   return (

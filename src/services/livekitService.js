@@ -4,6 +4,7 @@ import {
   RoomEvent,
   Track,
 } from 'livekit-client'
+import { KrispNoiseFilter } from '@livekit/krisp-noise-filter'
 import { supabase } from '../supabaseClient'
 
 const livekitState = globalThis.__luterLiveKitAudioState || {
@@ -260,6 +261,14 @@ export const livekitService = {
         noiseSuppression: true,
         autoGainControl: true,
       })
+      
+      if (enabled) {
+        const localAudioTrack = livekitState.room.localParticipant.getTrackPublication(Track.Source.Microphone)?.audioTrack;
+        if (localAudioTrack) {
+          await localAudioTrack.setProcessor(KrispNoiseFilter());
+          logLiveKit('info', 'AI noise cancellation is live!');
+        }
+      }
     } catch (error) {
       setLastError(error, 'Failed to toggle LiveKit microphone')
       throw error

@@ -18,7 +18,7 @@ import Image from '@tiptap/extension-image'
 import { Suggestion } from '@tiptap/suggestion'
 import { BubbleMenu, FloatingMenu } from '@tiptap/react/menus'
 import Collaboration from '@tiptap/extension-collaboration'
-import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
+import { CollaborationCursor } from './renderers/CollaborationCursor'
 
 import { RoomProvider, useOthers, useSelf, useStatus, useSyncStatus, useThreads, useStorage, useMutation, useUpdateMyPresence, useCollaboration } from './CollaborationProvider'
 import { ClientSideSuspense } from './CollaborationProvider'
@@ -34,6 +34,7 @@ import {
   Bold,
   Italic,
   Underline as UnderlineIcon,
+  Strikethrough,
   Highlighter,
   Heading1,
   Heading2,
@@ -49,6 +50,11 @@ import {
   WandSparkles,
   FileQuestion,
   Pilcrow,
+  Users,
+  Link2,
+  Copy,
+  Check,
+  ShieldCheck,
 } from 'lucide-react'
 import './NotesStudioPage.css'
 
@@ -1055,23 +1061,36 @@ function ShareDropdown({ roomId, onClose }) {
   }, [onClose])
 
   return (
-    <div className="ns-share-dropdown">
+    <div className="ns-share-dropdown ns-share-dropdown-premium">
       <div className="ns-share-header">
-        <strong>Share & Collaborate</strong>
-        <p>Anyone with this link can join and edit in real time.</p>
+        <div className="ns-share-icon-wrap">
+          <Users size={20} className="text-indigo-600" />
+        </div>
+        <div className="ns-share-header-text">
+          <strong>Share & Collaborate</strong>
+          <p>Anyone with this link can join and edit in real time.</p>
+        </div>
       </div>
+      
+      <div className="ns-share-link-section">
+        <div className="ns-share-link-label">
+          <Link2 size={14} /> Invite Link
+        </div>
+        <div className="ns-share-link-row">
+          <input className="ns-share-link-input" value={shareUrl} readOnly onClick={(e) => e.target.select()} />
+          <button className={`ns-share-copy-btn ${copied ? 'copied' : ''}`} onClick={handleCopy}>
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+            <span>{copied ? 'Copied' : 'Copy'}</span>
+          </button>
+        </div>
+      </div>
+
       <div className="ns-share-room-id">
-        <span className="ns-share-room-label">Room ID</span>
+        <div className="ns-share-room-id-left">
+          <ShieldCheck size={16} className="text-emerald-500" />
+          <span>Secure Room ID</span>
+        </div>
         <code className="ns-share-room-code">{shortId}</code>
-      </div>
-      <div className="ns-share-link-row">
-        <input className="ns-share-link-input" value={shareUrl} readOnly />
-        <button className={`ns-share-copy-btn ${copied ? 'copied' : ''}`} onClick={handleCopy}>
-          {copied ? '✓ Copied' : 'Copy'}
-        </button>
-      </div>
-      <div className="ns-share-hint">
-        Share this link with classmates to collaborate in real time via Liveblocks.
       </div>
     </div>
   )
@@ -1500,6 +1519,7 @@ function NativeDocumentToolbar({ editor, workstationMode = false }) {
     { id: 'bold', label: 'Bold', icon: Bold, active: editor?.isActive('bold'), action: () => editor.chain().focus().toggleBold().run() },
     { id: 'italic', label: 'Italic', icon: Italic, active: editor?.isActive('italic'), action: () => editor.chain().focus().toggleItalic().run() },
     { id: 'underline', label: 'Underline', icon: UnderlineIcon, active: editor?.isActive('underline'), action: () => editor.chain().focus().toggleUnderline().run() },
+    { id: 'strike', label: 'Strikethrough', icon: Strikethrough, active: editor?.isActive('strike'), action: () => editor.chain().focus().toggleStrike().run() },
     { id: 'highlight', label: 'Highlight', icon: Highlighter, active: editor?.isActive('highlight'), action: () => editor.chain().focus().toggleHighlight({ color: '#C4B5FD' }).run() },
     { type: 'divider' },
     { id: 'h1', label: 'Heading 1', icon: Heading1, active: editor?.isActive('heading', { level: 1 }), action: () => editor.chain().focus().toggleHeading({ level: 1 }).run() },
@@ -1703,10 +1723,10 @@ export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSh
     }
   })
 
-  const { yDoc, provider } = useCollaboration();
+  const { yDoc, provider, awareness } = useCollaboration();
   const yjsCollab = yDoc ? Collaboration.configure({ document: yDoc }) : null;
-  const yjsCursor = (yDoc && provider) ? CollaborationCursor.configure({
-    provider: provider.awareness,
+  const yjsCursor = (yDoc && awareness) ? CollaborationCursor.configure({
+    provider: { awareness }, // Tiptap expects an object with an 'awareness' property
     user: {
       name: localUserInfo.name,
       color: localUserInfo.color,
@@ -2123,6 +2143,9 @@ export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSh
                   <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={`p-1.5 rounded-lg transition-colors ${editor.isActive('underline') ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-gray-100 text-gray-700 dark:text-gray-300'}`}>
                     <UnderlineIcon size={15} />
                   </button>
+                  <button onClick={() => editor.chain().focus().toggleStrike().run()} className={`p-1.5 rounded-lg transition-colors ${editor.isActive('strike') ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-gray-100 text-gray-700 dark:text-gray-300'}`}>
+                    <Strikethrough size={15} />
+                  </button>
                   
                   <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
                   
@@ -2254,7 +2277,9 @@ export default function NotesStudioPage() {
       }}
     >
       <ClientSideSuspense fallback={<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100dvh', width: '100%', color: '#7C3AED', fontFamily: 'Outfit' }}><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite', marginBottom: '16px' }}><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg><div>Loading Note...</div></div>}>
-        <LiveNoteEditor title={title} roomId={roomId} displayName={displayName} user={user} profile={profile} isSharedLink={isSharedLink} />
+        <CommentsProvider roomId={roomId}>
+          <LiveNoteEditor title={title} roomId={roomId} displayName={displayName} user={user} profile={profile} isSharedLink={isSharedLink} />
+        </CommentsProvider>
       </ClientSideSuspense>
     </RoomProvider>
   )

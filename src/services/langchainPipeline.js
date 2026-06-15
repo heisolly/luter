@@ -95,7 +95,12 @@ async function extractPdfText(file) {
   }
 
   const fileData = await file.arrayBuffer()
-  const pdf = await pdfjsLib.getDocument({ data: fileData }).promise
+  const pdf = await pdfjsLib.getDocument({ 
+    data: fileData,
+    cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/cmaps/`,
+    cMapPacked: true,
+    standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/standard_fonts/`
+  }).promise
   const pages = []
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i)

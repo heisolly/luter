@@ -29,7 +29,14 @@ export default function PdfThumbnail({ url, width = 240, className = '', style =
 
     async function render() {
       try {
-        const loadingTask = pdfjsLib.getDocument({ url, disableStream: true, disableRange: false })
+        const loadingTask = pdfjsLib.getDocument({ 
+          url, 
+          disableStream: true, 
+          disableRange: false,
+          cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/cmaps/`,
+          cMapPacked: true,
+          standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/standard_fonts/`
+        })
         const pdf = await loadingTask.promise
         if (cancelled) return
 

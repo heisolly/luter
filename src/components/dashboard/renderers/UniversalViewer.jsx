@@ -64,7 +64,7 @@ export default function UniversalViewer({
   onMaterialUpdate,
   annotateMode = false,
   highlightMode = false,
-  occludeMode = false,
+  pinMode = false,
   commentMode = false,
   focusModeTool = false,
   annotationColor = '#7C3AED',
@@ -171,7 +171,7 @@ export default function UniversalViewer({
           isDark={isDark}
           annotateMode={annotateMode}
           highlightMode={highlightMode}
-          occludeMode={occludeMode}
+          pinMode={pinMode}
           isEraserMode={isEraserMode}
           annotationColor={annotationColor}
           annotationStrokeSize={annotationStrokeSize}
@@ -189,7 +189,7 @@ export default function UniversalViewer({
         isDark={isDark}
         annotateMode={annotateMode}
         highlightMode={highlightMode}
-        occludeMode={occludeMode}
+        pinMode={pinMode}
         isEraserMode={isEraserMode}
         annotationColor={annotationColor}
         annotationStrokeSize={annotationStrokeSize}

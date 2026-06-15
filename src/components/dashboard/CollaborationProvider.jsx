@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import * as Y from 'yjs';
+import { Awareness } from 'y-protocols/awareness';
 import { SupabaseProvider as YSupabaseProvider } from '@supabase-labs/y-supabase';
 import { supabase } from '../../supabaseClient';
 
@@ -18,61 +19,76 @@ export function CollaborationProvider({ roomId, id, children, userInfo, initialP
     const doc = new Y.Doc();
     setYDoc(doc);
 
+    // Initialize y-supabase purely for syncing the document
     const newProvider = new YSupabaseProvider(actualRoomId, doc, supabase, {
-      awareness: true,
+      awareness: false, // Explicitly disable since v0.1.0 doesn't support it well
       persistence: { table: 'yjs_documents' }
     });
     setProvider(newProvider);
 
-    const aw = newProvider.getAwareness();
+    // Initialize official y-protocols awareness
+    const aw = new Awareness(doc);
     setAwareness(aw);
 
-    const handleAwarenessUpdate = () => {
+    // Create Supabase Channel for native Presence
+    const channel = supabase.channel(`presence_${actualRoomId}`, {
+      config: { presence: { key: aw.clientID.toString() } }
+    });
+
+    const parsedPresence = initialPresence || {};
+    const parsedUserInfo = userInfo || null;
+
+    // Whenever local awareness changes, track it to the channel
+    const handleAwarenessUpdate = ({ added, updated, removed }, origin) => {
+      if (origin === 'local') {
+        const localState = aw.getLocalState();
+        if (channel.state === 'joined') {
+          channel.track({ clientID: aw.clientID, state: localState || {} }).catch(console.error);
+        }
+      }
       setAwarenessStates(new Map(aw.getStates()));
     };
 
     aw.on('change', handleAwarenessUpdate);
-    handleAwarenessUpdate();
+
+    // Initial state setup
+    aw.setLocalStateField('user', {
+      info: parsedUserInfo,
+      presence: parsedPresence
+    });
+    setAwarenessStates(new Map(aw.getStates()));
+
+    // When remote presence updates arrive, apply them to awareness
+    channel.on('presence', { event: 'sync' }, () => {
+      const presenceState = channel.presenceState();
+      
+      Object.entries(presenceState).forEach(([key, clients]) => {
+        clients.forEach(client => {
+          if (client.clientID && client.clientID !== aw.clientID) {
+            aw.setLocalState(client.clientID, client.state);
+          }
+        });
+      });
+      setAwarenessStates(new Map(aw.getStates()));
+    });
+
+    channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        const local = aw.getLocalState();
+        if (local) {
+          channel.track({ clientID: aw.clientID, state: local }).catch(console.error);
+        }
+      }
+    });
 
     return () => {
       aw.off('change', handleAwarenessUpdate);
+      aw.destroy();
+      channel.unsubscribe();
       newProvider.destroy();
       doc.destroy();
     };
-  }, [roomId]);
-
-  // Deep compare dependencies to prevent infinite render loops
-  const presenceString = JSON.stringify(initialPresence || {});
-  const userInfoString = JSON.stringify(userInfo || null);
-
-  useEffect(() => {
-    if (!provider || !awareness) return;
-
-    const parsedPresence = JSON.parse(presenceString);
-    const parsedUserInfo = JSON.parse(userInfoString);
-
-    const onStatus = (status) => {
-      if (status === 'connected') {
-        awareness.setLocalStateField('user', {
-          info: parsedUserInfo,
-          presence: parsedPresence
-        });
-      }
-    };
-
-    // If already connected, set it immediately
-    if (provider.getStatus() === 'connected') {
-      awareness.setLocalStateField('user', {
-        info: parsedUserInfo,
-        presence: parsedPresence
-      });
-    }
-
-    provider.on('status', onStatus);
-    return () => {
-      provider.off('status', onStatus);
-    };
-  }, [provider, awareness, userInfoString, presenceString]);
+  }, [actualRoomId]);
 
   const value = useMemo(() => ({
     yDoc,

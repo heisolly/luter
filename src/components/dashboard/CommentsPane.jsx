@@ -26,16 +26,21 @@ export default function CommentsPane({ isOpen, onClose, user, profile, pendingCo
   const handleReply = async (e) => {
     e.preventDefault();
     if (!replyText.trim()) return;
+
+    const authorMeta = {
+      full_name: profile?.full_name || profile?.username || 'User',
+      avatar_url: profile?.avatar_url || user?.user_metadata?.avatar_url || ''
+    };
     
     try {
       if (pendingComment) {
         // Create new thread
-        const thread = await createThread(pendingComment.threadId, user.id, replyText, { quote: pendingComment.quote });
+        const thread = await createThread(pendingComment.threadId, user.id, replyText, { quote: pendingComment.quote, author: authorMeta });
         setReplyText('');
         setPendingComment(null);
         if (onThreadCreated) onThreadCreated(thread.id, pendingComment.threadId); 
       } else if (activeThread) {
-        await createComment(activeThread.id, user.id, replyText);
+        await createComment(activeThread.id, user.id, replyText, { author: authorMeta });
         setReplyText('');
       }
     } catch (err) {
@@ -122,7 +127,7 @@ export default function CommentsPane({ isOpen, onClose, user, profile, pendingCo
             {/* Comments List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {threadComments.map((comment, index) => {
-                const authorMeta = comment.auth_users?.raw_user_meta_data || {};
+                const authorMeta = comment.metadata?.author || {};
                 const avatar = authorMeta.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorMeta.full_name || 'U')}`;
                 
                 return (
@@ -187,7 +192,7 @@ export default function CommentsPane({ isOpen, onClose, user, profile, pendingCo
                 {sortedThreads.map(thread => {
                   const rootComment = comments.find(c => c.thread_id === thread.id);
                   const replyCount = comments.filter(c => c.thread_id === thread.id).length - 1;
-                  const authorMeta = rootComment?.auth_users?.raw_user_meta_data || {};
+                  const authorMeta = thread.metadata?.author || rootComment?.metadata?.author || {};
                   
                   return (
                     <button

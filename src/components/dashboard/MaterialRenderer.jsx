@@ -27,7 +27,7 @@ export default function MaterialRenderer({
   highlightMode = false,
   commentMode = false,
   focusModeTool = false,
-  occludeMode = false,
+  pinMode = false,
   annotationColor = '#7C3AED',
   annotationStrokeSize = 4,
   isEraserMode = false,
@@ -106,7 +106,7 @@ export default function MaterialRenderer({
           highlightMode={highlightMode}
           commentMode={commentMode}
           focusModeTool={focusModeTool}
-          occludeMode={occludeMode}
+          pinMode={pinMode}
           annotationColor={annotationColor}
           annotationStrokeSize={annotationStrokeSize}
           isEraserMode={isEraserMode}

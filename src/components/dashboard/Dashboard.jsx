@@ -135,12 +135,11 @@ export default function Dashboard() {
             const profileCacheKey = `luter:profile:${session.user.id}`
             const offline = typeof navigator !== 'undefined' && !navigator.onLine
 
-            if (offline) {
-              try {
-                const raw = localStorage.getItem(profileCacheKey)
-                if (raw) setProfile(JSON.parse(raw))
-              } catch {}
-            }
+            // Fast boot: load cache first regardless of network status
+            try {
+              const raw = localStorage.getItem(profileCacheKey)
+              if (raw) setProfile(JSON.parse(raw))
+            } catch {}
 
             try {
               const { data, error } = await supabase

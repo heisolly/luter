@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles, FileText, Bot, Database, FormInput, LayoutTemplate, MoreHorizontal, List } from 'lucide-react';
 import { callGroqAPI, GROQ_PROMPTS } from '../../groqClient';
 import { extractTextChunks } from '../../services/langchainPipeline';
+import { marked } from 'marked';
 
 export default function WorkstationEmptyState({ editor, material, isGenerating, setIsGenerating }) {
   const [error, setError] = useState(null);
@@ -51,56 +52,13 @@ export default function WorkstationEmptyState({ editor, material, isGenerating, 
       const responseText = data?.choices?.[0]?.message?.content || '';
       
       const markdownToHtml = (text) => {
-        let parsed = text
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-
-        parsed = parsed.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />')
-        parsed = parsed.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        parsed = parsed.replace(/\*([^*]+)\*/g, '<em>$1</em>')
-        parsed = parsed.replace(/`([^`]+)`/g, '<code>$1</code>')
-        
-        parsed = parsed.replace(/\$\$([\s\S]+?)\$\$/g, (match, formula) => {
+        let preprocessed = text.replace(/\$\$([\s\S]+?)\$\$/g, (match, formula) => {
            return `<img src="https://latex.codecogs.com/svg.latex?\\color{black}${encodeURIComponent(formula.trim())}" alt="math" />`
         })
-        parsed = parsed.replace(/\$([^$\n]+)\$/g, (match, formula) => {
+        preprocessed = preprocessed.replace(/\$([^$\n]+)\$/g, (match, formula) => {
            return `<img src="https://latex.codecogs.com/svg.latex?\\color{black}${encodeURIComponent(formula.trim())}" alt="math" />`
         })
-
-        const blocks = parsed.split(/\n+/)
-        let listItems = []
-        let finalBlocks = []
-
-        const flushList = () => {
-          if (!listItems.length) return
-          finalBlocks.push(`<ul>${listItems.map(item => `<li><p>${item}</p></li>`).join('')}</ul>`)
-          listItems = []
-        }
-
-        blocks.forEach((line) => {
-          const trimmed = line.trim()
-          if (!trimmed) {
-            flushList()
-            return
-          }
-
-          const bullet = trimmed.match(/^[-*]\s+(.+)/)
-          const numbered = trimmed.match(/^\d+\.\s+(.+)/)
-          if (bullet || numbered) {
-            listItems.push((bullet || numbered)[1])
-            return
-          }
-
-          flushList()
-          if (trimmed.startsWith('### ')) finalBlocks.push(`<h3>${trimmed.slice(4)}</h3>`)
-          else if (trimmed.startsWith('## ')) finalBlocks.push(`<h2>${trimmed.slice(3)}</h2>`)
-          else if (trimmed.startsWith('# ')) finalBlocks.push(`<h1>${trimmed.slice(2)}</h1>`)
-          else finalBlocks.push(`<p>${trimmed}</p>`)
-        })
-
-        flushList()
-        return finalBlocks.join('') || '<p></p>'
+        return marked.parse(preprocessed);
       }
 
       const html = markdownToHtml(responseText);

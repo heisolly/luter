@@ -304,6 +304,12 @@ input { font-family: var(--font); }
   overflow: hidden;
 }
 
+body.dark-mode .floating-sidebar-dock .dsb,
+body.dark-mode .floating-sidebar-dock .dsb-redesign {
+  border: 1px solid rgba(51, 65, 85, 0.8);
+  background: rgba(15, 23, 42, 0.96);
+}
+
 /* Workstation Specific Sidebar States */
 .dsb-container--ws-hidden {
   width: 0;

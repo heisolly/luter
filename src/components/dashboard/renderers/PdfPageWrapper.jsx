@@ -2,7 +2,46 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Page } from 'react-pdf';
 import { ChatCircle } from '@phosphor-icons/react';
 import { useOthers, useUpdateMyPresence } from '../CollaborationProvider';
+import { useInView } from 'react-intersection-observer';
 
+class PageErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('PdfPageWrapper ErrorBoundary caught an error rendering <Page>:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ 
+          width: this.props.width || '100%', 
+          minHeight: 800, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          backgroundColor: '#f8717111',
+          border: '1px dashed #f87171',
+          borderRadius: '8px',
+          color: '#ef4444',
+          flexDirection: 'column',
+          gap: '8px'
+        }}>
+          <div style={{ fontWeight: 600 }}>Failed to render page</div>
+          <div style={{ fontSize: '13px', opacity: 0.8 }}>This page contains unsupported fonts or corrupted elements.</div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 const RemoteStrokesOverlay = React.memo(({ pageNumber, scale }) => {
   const others = useOthers();
   const canvasRef = useRef(null);
@@ -75,6 +114,7 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
   strokes,
   onAddHighlight,
   onAddStroke,
+  onAddPin,
   onRemoveStroke,
   onAnnotationClick,
   activeAnnotationId,
@@ -85,6 +125,19 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentStroke, setCurrentStroke] = useState(null);
   const updateMyPresence = useUpdateMyPresence();
+
+  const { ref: inViewRef, inView } = useInView({
+    triggerOnce: true,
+    rootMargin: '600px 0px', // Pre-load 600px before scrolling into view
+  });
+
+  const setRefs = useCallback(
+    (node) => {
+      containerRef.current = node;
+      inViewRef(node);
+    },
+    [inViewRef]
+  );
 
   // Sync local stroke to multiplayer presence
   useEffect(() => {
@@ -254,45 +307,60 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
 
   return (
     <div 
-      ref={containerRef}
+      ref={setRefs}
       className="pdf-page-wrapper"
+      onClick={(e) => {
+        if (activeTool === 'pin') {
+          const coords = getCanvasCoords(e);
+          if (coords) {
+            onAddPin?.(pageNumber, coords, { x: e.clientX, y: e.clientY });
+          }
+        }
+      }}
       style={{ 
         position: 'relative', 
         marginBottom: '32px', 
         borderRadius: '16px',
         overflow: 'hidden',
         boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
-        backgroundColor: isDark ? '#1a1a1a' : 'white'
+        backgroundColor: isDark ? '#1a1a1a' : 'white',
+        cursor: activeTool === 'pin' ? 'crosshair' : 'default',
+        minHeight: pageWidth ? `${pageWidth * 1.414}px` : '800px',
+        width: pageWidth ? `${pageWidth}px` : '100%',
       }}
       data-page-number={pageNumber}
     >
-      <div style={{ 
-        filter: isDark ? 'invert(0.92) hue-rotate(180deg)' : 'none',
-        transition: 'filter 0.3s ease'
-      }}>
-        <Page 
-          pageNumber={pageNumber} 
-          scale={scale} 
-          width={pageWidth}
-          renderTextLayer={true}
-          renderAnnotationLayer={true} // Needed for native links
-          onRenderSuccess={() => {
-            // Sync canvas size to page size exactly
-            const canvas = canvasRef.current;
-            const container = containerRef.current;
-            if (canvas && container) {
-               const pageCanvas = container.querySelector('.react-pdf__Page__canvas');
-               if (pageCanvas) {
-                 canvas.width = pageCanvas.width;
-                 canvas.height = pageCanvas.height;
-                 canvas.style.width = pageCanvas.style.width;
-                 canvas.style.height = pageCanvas.style.height;
-               }
-            }
-            setTimeout(drawEverything, 50);
-          }}
-        />
-      </div>
+      {inView ? (
+        <div style={{ 
+          filter: isDark ? 'invert(0.92) hue-rotate(180deg)' : 'none',
+          transition: 'filter 0.3s ease'
+        }}>
+          <PageErrorBoundary width={pageWidth}>
+            <Page 
+              pageNumber={pageNumber} 
+              scale={scale} 
+              width={pageWidth}
+              renderTextLayer={true}
+              renderAnnotationLayer={true} // Needed for native links
+              onRenderSuccess={() => {
+                // Sync canvas size to page size exactly
+                const canvas = canvasRef.current;
+                const container = containerRef.current;
+                if (canvas && container) {
+                   const pageCanvas = container.querySelector('.react-pdf__Page__canvas');
+                   if (pageCanvas) {
+                     canvas.width = pageCanvas.width;
+                     canvas.height = pageCanvas.height;
+                     canvas.style.width = pageCanvas.style.width;
+                     canvas.style.height = pageCanvas.style.height;
+                   }
+                }
+                setTimeout(drawEverything, 50);
+              }}
+            />
+          </PageErrorBoundary>
+        </div>
+      ) : null}
       
       {/* Highlights Layer */}
       <div 
@@ -310,6 +378,51 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
           const maxX = Math.max(...h.rects.map(r => r.x + r.width));
           const maxY = Math.max(...h.rects.map(r => r.y + r.height));
           const isActive = h.id === activeAnnotationId;
+
+          if (h.style === 'pin') {
+            const rect = h.rects[0];
+            return (
+              <div
+                key={h.id}
+                style={{
+                  position: 'absolute',
+                  left: rect.x * scale,
+                  top: rect.y * scale,
+                  transform: 'translate(-50%, -100%)', // Point of pin is at the coordinate
+                  cursor: 'pointer',
+                  pointerEvents: 'auto',
+                  zIndex: 15,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  filter: isActive ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.6))' : 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))',
+                  animation: 'toolboxAppear 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAnnotationClick?.(e, 'comment_dot', h); // Open comment popup directly
+                }}
+              >
+                {/* Pin Head */}
+                <div style={{
+                  width: '28px',
+                  height: '28px',
+                  backgroundColor: h.color || '#FCD34D',
+                  border: '2px solid rgba(255,255,255,0.8)',
+                  borderRadius: '50% 50% 50% 0',
+                  transform: 'rotate(-45deg)',
+                  boxShadow: 'inset 0 -2px 4px rgba(0,0,0,0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  {h.comment && <div style={{
+                    width: '8px', height: '8px', backgroundColor: '#fff', borderRadius: '50%', transform: 'rotate(45deg)'
+                  }} />}
+                </div>
+              </div>
+            );
+          }
 
           return (
             <React.Fragment key={h.id}>
