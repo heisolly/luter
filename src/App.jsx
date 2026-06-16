@@ -1,79 +1,79 @@
 import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { useEffect, useState, lazy, Suspense } from 'react'
 import LandingPage from './components/LandingPage'
-import Features from './components/Features'
-import HowItWorks from './components/HowItWorks'
-import About from './components/About'
-import PathCalculator from './components/PathCalculator'
-import SignIn from './components/SignIn'
-import SignUp from './components/SignUp'
-import Onboarding from './components/Onboarding'
-import WallOfLove from './pages/WallOfLove'
-import Dashboard from './components/dashboard/Dashboard'
-import DashboardHome from './components/dashboard/DashboardHome'
-import BackpackPage from './components/dashboard/BackpackPage'
-import BackpackFolderView from './components/dashboard/BackpackFolderView'
-import DecksPage from './components/dashboard/DecksPage'
-import WorkstationPage from './components/dashboard/WorkstationPage'
-import MockExamPage from './components/dashboard/MockExamPage'
-import AnalyticsPage from './components/dashboard/AnalyticsPage'
-import SettingsPage from './components/dashboard/SettingsPage'
-import FeedbackPage from './components/dashboard/FeedbackPage'
-import ChangelogPage from './components/dashboard/ChangelogPage'
-import HelpPage from './components/dashboard/HelpPage'
-import UpgradePage from './components/dashboard/UpgradePage'
-import StreakPage from './components/dashboard/StreakPage'
-import ReferPage from './components/dashboard/ReferPage'
-import PlaygroundPage from './components/dashboard/PlaygroundPage'
-import ClutLivePage from './components/dashboard/ClutLivePage'
-import PricingPage from './components/dashboard/PricingPage'
-import ExamSessionView from './components/ExamSessionView'
-import SharedFlashcardsView from './components/SharedFlashcardsView'
-import AdminLayout from './admin/AdminLayout'
-import AdminOverview from './admin/pages/AdminOverview'
-import AdminUsers from './admin/pages/AdminUsers'
-import AdminUserDetail from './admin/pages/AdminUserDetail'
-import AdminCourses from './admin/pages/AdminCourses'
-import AdminEnrollments from './admin/pages/AdminEnrollments'
-import AdminMatches from './admin/pages/AdminMatches'
-import AdminNotifications from './admin/pages/AdminNotifications'
-import AdminActivity from './admin/pages/AdminActivity'
-import AdminSystem from './admin/pages/AdminSystem'
-import AdminSettings from './admin/pages/AdminSettings'
-import AdminSyllabusManager from './admin/pages/AdminSyllabusManager'
-import AdminNotesManager from './admin/pages/AdminNotesManager'
-import AdminAudit from './admin/pages/AdminAudit'
-import AdminAgents from './admin/pages/AdminAgents'
-import AdminAgentBuilder from './admin/pages/AdminAgentBuilder'
-import AdminAgentConsole from './admin/pages/AdminAgentConsole'
-import AdminAgentMonitor from './admin/pages/AdminAgentMonitor'
-import AdminAgentFactory from './admin/pages/AdminAgentFactory'
-import AdminAnalytics from './admin/pages/AdminAnalytics'
-import AdminSystemControls from './admin/pages/AdminSystemControls'
-import AdminPricing from './admin/pages/AdminPricing'
-import PaymentSettings from './components/admin/PaymentSettings'
-import LuterAdminUploadPage from './admin/pages/LuterAdminUploadPage'
-import FilesPage from './components/dashboard/FilesPage'
-import AssignmentsPage from './components/dashboard/AssignmentsPage'
-import NotesStudioPage from './components/dashboard/NotesStudioPage'
-import NotesDashboardPage from './components/dashboard/NotesDashboardPage'
-import UserUpload from './components/dashboard/UserUpload'
-import NotesRequestsAdmin from './components/dashboard/NotesRequestsAdmin'
-import StudyRequestsPage from './components/dashboard/StudyRequestsPage'
-import ExamSessionPage from './components/dashboard/ExamSessionPage'
-import StudyGroupsPage from './components/dashboard/StudyGroupsPage'
-import StudyGroupDetailsPage from './components/dashboard/StudyGroupDetailsPage'
-import JoinGroupPage from './components/dashboard/JoinGroupPage'
-import LibraryPage from './components/dashboard/LibraryPage'
-import TrashPage from './components/dashboard/TrashPage'
-import VaultPage from './components/dashboard/VaultPage'
-import StudySessionPage from './components/dashboard/StudySessionPage'
-import SessionsPage from './components/dashboard/SessionsPage'
-import LevelPage from './components/dashboard/LevelPage'
-import StorePage from './components/dashboard/StorePage'
-import SharedMaterialPreview from './components/shared/SharedMaterialPreview'
-import BoardPage from './components/board/BoardPage'
-import NotificationsPage from './components/dashboard/NotificationsPage'
+const Features = lazy(() => import('./components/Features'));
+const HowItWorks = lazy(() => import('./components/HowItWorks'));
+const About = lazy(() => import('./components/About'));
+const PathCalculator = lazy(() => import('./components/PathCalculator'));
+const SignIn = lazy(() => import('./components/SignIn'));
+const SignUp = lazy(() => import('./components/SignUp'));
+const Onboarding = lazy(() => import('./components/Onboarding'));
+const WallOfLove = lazy(() => import('./pages/WallOfLove'));
+const Dashboard = lazy(() => import('./components/dashboard/Dashboard'));
+const DashboardHome = lazy(() => import('./components/dashboard/DashboardHome'));
+const BackpackPage = lazy(() => import('./components/dashboard/BackpackPage'));
+const BackpackFolderView = lazy(() => import('./components/dashboard/BackpackFolderView'));
+const DecksPage = lazy(() => import('./components/dashboard/DecksPage'));
+const WorkstationPage = lazy(() => import('./components/dashboard/WorkstationPage'));
+const MockExamPage = lazy(() => import('./components/dashboard/MockExamPage'));
+const AnalyticsPage = lazy(() => import('./components/dashboard/AnalyticsPage'));
+const SettingsPage = lazy(() => import('./components/dashboard/SettingsPage'));
+const FeedbackPage = lazy(() => import('./components/dashboard/FeedbackPage'));
+const ChangelogPage = lazy(() => import('./components/dashboard/ChangelogPage'));
+const HelpPage = lazy(() => import('./components/dashboard/HelpPage'));
+const UpgradePage = lazy(() => import('./components/dashboard/UpgradePage'));
+const StreakPage = lazy(() => import('./components/dashboard/StreakPage'));
+const ReferPage = lazy(() => import('./components/dashboard/ReferPage'));
+const PlaygroundPage = lazy(() => import('./components/dashboard/PlaygroundPage'));
+const ClutLivePage = lazy(() => import('./components/dashboard/ClutLivePage'));
+const PricingPage = lazy(() => import('./components/dashboard/PricingPage'));
+const ExamSessionView = lazy(() => import('./components/ExamSessionView'));
+const SharedFlashcardsView = lazy(() => import('./components/SharedFlashcardsView'));
+const AdminLayout = lazy(() => import('./admin/AdminLayout'));
+const AdminOverview = lazy(() => import('./admin/pages/AdminOverview'));
+const AdminUsers = lazy(() => import('./admin/pages/AdminUsers'));
+const AdminUserDetail = lazy(() => import('./admin/pages/AdminUserDetail'));
+const AdminCourses = lazy(() => import('./admin/pages/AdminCourses'));
+const AdminEnrollments = lazy(() => import('./admin/pages/AdminEnrollments'));
+const AdminMatches = lazy(() => import('./admin/pages/AdminMatches'));
+const AdminNotifications = lazy(() => import('./admin/pages/AdminNotifications'));
+const AdminActivity = lazy(() => import('./admin/pages/AdminActivity'));
+const AdminSystem = lazy(() => import('./admin/pages/AdminSystem'));
+const AdminSettings = lazy(() => import('./admin/pages/AdminSettings'));
+const AdminSyllabusManager = lazy(() => import('./admin/pages/AdminSyllabusManager'));
+const AdminNotesManager = lazy(() => import('./admin/pages/AdminNotesManager'));
+const AdminAudit = lazy(() => import('./admin/pages/AdminAudit'));
+const AdminAgents = lazy(() => import('./admin/pages/AdminAgents'));
+const AdminAgentBuilder = lazy(() => import('./admin/pages/AdminAgentBuilder'));
+const AdminAgentConsole = lazy(() => import('./admin/pages/AdminAgentConsole'));
+const AdminAgentMonitor = lazy(() => import('./admin/pages/AdminAgentMonitor'));
+const AdminAgentFactory = lazy(() => import('./admin/pages/AdminAgentFactory'));
+const AdminAnalytics = lazy(() => import('./admin/pages/AdminAnalytics'));
+const AdminSystemControls = lazy(() => import('./admin/pages/AdminSystemControls'));
+const AdminPricing = lazy(() => import('./admin/pages/AdminPricing'));
+const PaymentSettings = lazy(() => import('./components/admin/PaymentSettings'));
+const LuterAdminUploadPage = lazy(() => import('./admin/pages/LuterAdminUploadPage'));
+const FilesPage = lazy(() => import('./components/dashboard/FilesPage'));
+const AssignmentsPage = lazy(() => import('./components/dashboard/AssignmentsPage'));
+const NotesStudioPage = lazy(() => import('./components/dashboard/NotesStudioPage'));
+const NotesDashboardPage = lazy(() => import('./components/dashboard/NotesDashboardPage'));
+const UserUpload = lazy(() => import('./components/dashboard/UserUpload'));
+const NotesRequestsAdmin = lazy(() => import('./components/dashboard/NotesRequestsAdmin'));
+const StudyRequestsPage = lazy(() => import('./components/dashboard/StudyRequestsPage'));
+const ExamSessionPage = lazy(() => import('./components/dashboard/ExamSessionPage'));
+const StudyGroupsPage = lazy(() => import('./components/dashboard/StudyGroupsPage'));
+const StudyGroupDetailsPage = lazy(() => import('./components/dashboard/StudyGroupDetailsPage'));
+const JoinGroupPage = lazy(() => import('./components/dashboard/JoinGroupPage'));
+const LibraryPage = lazy(() => import('./components/dashboard/LibraryPage'));
+const TrashPage = lazy(() => import('./components/dashboard/TrashPage'));
+const VaultPage = lazy(() => import('./components/dashboard/VaultPage'));
+const StudySessionPage = lazy(() => import('./components/dashboard/StudySessionPage'));
+const SessionsPage = lazy(() => import('./components/dashboard/SessionsPage'));
+const LevelPage = lazy(() => import('./components/dashboard/LevelPage'));
+const StorePage = lazy(() => import('./components/dashboard/StorePage'));
+const SharedMaterialPreview = lazy(() => import('./components/shared/SharedMaterialPreview'));
+const BoardPage = lazy(() => import('./components/board/BoardPage'));
+const NotificationsPage = lazy(() => import('./components/dashboard/NotificationsPage'));
 import { FeaturebaseProvider } from 'featurebase-js/react'
 import { DASHBOARD_URL, LANDING_URL, ADMIN_URL } from './utils/urlUtils'
 import { supabase } from './supabaseClient'
@@ -152,7 +152,8 @@ export default function App() {
       )}
       <div style={{ paddingTop: offline ? OFFLINE_BAR_PT : undefined }}>
         <OptionalFeaturebaseProvider>
-        <Routes>
+        <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-[#111116]"><div className="w-8 h-8 border-4 border-[#9718fb] border-t-transparent rounded-full animate-spin"></div></div>}>
+          <Routes>
           {/* ADMIN HOST SPECIFIC ROUTES */}
           {isAdminHost ? (
             <>
@@ -302,6 +303,7 @@ export default function App() {
           {/* DEFAULT REDIRECTS */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+          </Suspense>
         </OptionalFeaturebaseProvider>
       </div>
     </div>
