@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useMemo, useCall
 import * as Y from 'yjs';
 import { Awareness } from 'y-protocols/awareness';
 import { SupabaseProvider as YSupabaseProvider } from '@supabase-labs/y-supabase';
+import { IndexeddbPersistence } from 'y-indexeddb';
 import { supabase } from '../../supabaseClient';
 
 const CollaborationContext = createContext(null);
@@ -25,6 +26,9 @@ export function CollaborationProvider({ roomId, id, children, userInfo, initialP
       persistence: { table: 'yjs_documents' }
     });
     setProvider(newProvider);
+
+    // Initialize offline indexeddb provider
+    const idbProvider = new IndexeddbPersistence(actualRoomId, doc);
 
     // Initialize official y-protocols awareness
     const aw = new Awareness(doc);
@@ -86,6 +90,7 @@ export function CollaborationProvider({ roomId, id, children, userInfo, initialP
       aw.destroy();
       channel.unsubscribe();
       newProvider.destroy();
+      idbProvider.destroy();
       doc.destroy();
     };
   }, [actualRoomId]);

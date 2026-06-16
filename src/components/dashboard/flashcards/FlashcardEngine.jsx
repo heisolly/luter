@@ -541,6 +541,19 @@ function FlashcardStyles({ children }) {
           color: var(--fc-text);
           font-family: var(--font-outfit), Outfit, Inter, sans-serif;
         }
+        :global(body.dark-mode) .fc-shell, :global(body.dark-mode) .fc-study-shell,
+        .dark-mode .fc-shell, .dark-mode .fc-study-shell {
+          --fc-bg: #111827;
+          --fc-surface: #1F2937;
+          --fc-text: #F9FAFB;
+          --fc-secondary: #D1D5DB;
+          --fc-muted: #9CA3AF;
+          --fc-border: #374151;
+          background:
+            radial-gradient(circle, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+            var(--fc-bg);
+          background-size: 14px 14px;
+        }
         .fc-top-row {
           display: grid;
           grid-template-columns: minmax(360px, auto) 156px minmax(132px, auto);

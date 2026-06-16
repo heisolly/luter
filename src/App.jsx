@@ -116,6 +116,7 @@ function useNavigatorOffline() {
   return offline
 }
 const GuestPlayPage = lazy(() => import('./components/dashboard/playground/GuestPlayPage'))
+const PublicFlashcardView = lazy(() => import('./components/dashboard/PublicFlashcardView'))
 
 function NavigateToWorkstation() {
   const { materialId } = useParams()
@@ -225,7 +226,7 @@ export default function App() {
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/onboarding" element={<Onboarding />} />
-
+          <Route path="/view/:materialId" element={<PublicFlashcardView />} />
           {/* DASHBOARD ROUTES (Available on dashboard host) */}
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<DashboardHome />} />

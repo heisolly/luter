@@ -21,6 +21,8 @@ import { LiveNoteEditor } from './NotesStudioPage';
 import { CommentsProvider } from './CommentsProvider';
 import WorkstationEmptyState from './WorkstationEmptyState';
 import VoiceChatWidget from './VoiceChatWidget';
+import WorkstationFlashcards from './WorkstationFlashcards';
+import WorkstationQuizzes from './WorkstationQuizzes';
 import './NotesStudioPage.css';
 import './workstation.css';
 
@@ -443,6 +445,12 @@ export default function WorkstationPage() {
                 {MAIN_TABS.map((tab, idx) => {
                   const TabIcon = tab.icon;
                   const isActive = activeMainTab === tab.id;
+                  let displayCount = tab.count;
+                  if (tab.id === 'Flashcards') {
+                    const flashcards = selectedMaterial?.analysis?.flashcards || [];
+                    displayCount = flashcards.length;
+                  }
+                  
                   return (
                     <React.Fragment key={tab.id}>
                       <button
@@ -463,8 +471,8 @@ export default function WorkstationPage() {
                       >
                         <TabIcon size={18} weight={isActive ? "bold" : "regular"} />
                         <span>{tab.label}</span>
-                        {tab.count !== undefined && (
-                          <span style={{ marginLeft: '4px', opacity: 0.6 }}>{tab.count}</span>
+                        {displayCount !== undefined && displayCount > 0 && (
+                          <span style={{ marginLeft: '4px', opacity: 0.6 }}>{displayCount}</span>
                         )}
                       </button>
                       {idx < MAIN_TABS.length - 1 && (
@@ -700,8 +708,9 @@ export default function WorkstationPage() {
           <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             
             {/* FLOATING SUB-HEADER (Document | Notes | Boards) */}
-            <div 
-              onMouseEnter={() => setIsSubNavHovered(true)}
+            {activeMainTab === 'Source' && (
+              <div 
+                onMouseEnter={() => setIsSubNavHovered(true)}
               onMouseLeave={() => setIsSubNavHovered(false)}
               style={{
                 position: 'absolute',
@@ -755,12 +764,23 @@ export default function WorkstationPage() {
                 )
               })}
             </div>
+            )}
 
             {/* VIEWER AREA */}
             <div style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden' }}>
               
+              {/* Flashcards View */}
+              {activeMainTab === 'Flashcards' && (
+                <WorkstationFlashcards 
+                  material={selectedMaterial} 
+                  items={selectedMaterial?.analysis?.flashcards || []} 
+                  isDark={isDark}
+                  user={user}
+                />
+              )}
+
               {/* Document/Notes Placeholder */}
-              {activeSubTab !== 'Boards' && (
+              {activeMainTab === 'Source' && activeSubTab !== 'Boards' && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
                   {activeSubTab === 'Document' && selectedMaterial ? (
                     <MaterialRenderer
@@ -842,7 +862,7 @@ export default function WorkstationPage() {
               )}
 
               {/* Excalidraw Board */}
-              {activeSubTab === 'Boards' && (
+              {activeMainTab === 'Source' && activeSubTab === 'Boards' && (
                 <div id="luter-board-container" style={isBoardFullScreen ? {
                   position: 'fixed', inset: 0, zIndex: 99999, backgroundColor: isDark ? '#111827' : '#F9FAFB',
                   display: 'flex', flexDirection: 'column'
@@ -880,10 +900,19 @@ export default function WorkstationPage() {
                 </div>
               )}
 
+              {/* Collaborative Quizzes View */}
+              {activeMainTab === 'Quizzes' && (
+                <WorkstationQuizzes 
+                  material={selectedMaterial} 
+                  isDark={isDark}
+                  user={user}
+                />
+              )}
+
             </div>
 
             {/* Centered Study Tools Toolbar Dock (Hidden in Boards and Notes tab) */}
-            {activeSubTab === 'Document' && (
+            {activeMainTab === 'Source' && activeSubTab === 'Document' && (
               <div style={{
                 position: 'absolute', bottom: '32px', left: '50%', transform: 'translateX(-50%)',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', zIndex: 40,

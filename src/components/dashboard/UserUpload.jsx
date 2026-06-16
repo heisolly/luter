@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext, useLocation } from 'react-router-dom'
 import { uploadMaterial, addYoutubeMaterial } from '../../services/materialsService'
 import { preloadingService } from '../../services/preloadingService'
+import { MaterialAnalysisService } from '../../services/materialAnalysisService'
 import { clearPageCache } from '../../lib/offlineCache'
 import { supabase } from '../../supabaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -148,6 +149,26 @@ export default function UserUpload() {
         clearPageCache(user.id, 'materials')
         preloadingService.clearCache()
         
+        // --- VIBRANT FLASHCARDS BACKGROUND GENERATION ---
+        // Fire-and-forget: Start generating 20 flashcards instantly on successful upload!
+        setTimeout(async () => {
+          try {
+            console.log(`[Auto-Gen] Starting background analysis for ${result.id}`);
+            const initAnalysis = await MaterialAnalysisService.getOrCreateAnalysis(result.id, result, user.id);
+            if (initAnalysis && initAnalysis.analysis) {
+               console.log(`[Auto-Gen] Analysis ready, generating 20 flashcards...`);
+               const fRes = await MaterialAnalysisService.generateFlashcards(initAnalysis.analysis, 20, result);
+               if (fRes.success && fRes.flashcards) {
+                  const newAnalysis = { ...initAnalysis.analysis, flashcards: fRes.flashcards };
+                  await MaterialAnalysisService.saveAnalysisToSupabase(result.id, newAnalysis, user.id);
+                  console.log(`[Auto-Gen] Successfully generated and saved 20 flashcards!`);
+               }
+            }
+          } catch (bgError) {
+            console.error("[Auto-Gen] Background flashcard generation failed:", bgError);
+          }
+        }, 1000); // 1s delay to let upload complete smoothly
+
         setStatus({ 
           type: 'success', 
           message: '🎉 Great! Your material has been added.',

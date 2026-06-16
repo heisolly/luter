@@ -370,11 +370,14 @@ Format:
 }
 
 Focus on:
-1. Key terms and definitions
-2. Important concepts
-3. Learning objectives
-4. Core ideas from the summary
-Avoid generic prompts like "What is the main topic?" or "What is the key concept?". Every card must mention a specific term, process, formula, event, or idea from the material.
+1. Specific terminology and their detailed definitions
+2. Cause and effect relationships
+3. Practical applications or examples
+4. Comparing or contrasting concepts
+
+CRITICAL RULE: DO NOT use repetitive phrasing like "What should you remember about X?". Write natural, varied questions.
+Examples of GOOD questions: "How does X affect Y?", "What are the three main components of Z?", "Define the term [concept]."
+Examples of BAD questions: "What should you remember about [topic]?", "What is the key idea of [topic]?"
 `
 
       const response = await callGroqAPI([
@@ -760,11 +763,14 @@ Format:
 }
 
 Focus on:
-1. Key terms and definitions
-2. Important concepts
-3. Main ideas from the content
-4. Practical applications
-Avoid generic prompts like "What is the key concept covered in this document?". Make every card specific and distinct.
+1. Specific terminology and their detailed definitions
+2. Cause and effect relationships
+3. Practical applications or examples
+4. Comparing or contrasting concepts
+
+CRITICAL RULE: DO NOT use repetitive phrasing like "What should you remember about X?". Write natural, varied questions.
+Examples of GOOD questions: "How does X affect Y?", "What are the three main components of Z?", "Define the term [concept]."
+Examples of BAD questions: "What should you remember about [topic]?", "What is the key idea of [topic]?"
 `
 
       let response

@@ -23,6 +23,11 @@ export default defineConfig(({ mode }) => {
   const clientId = env.VITE_GOOGLE_CLIENT_ID;
 
   return {
+    server: {
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups'
+      }
+    },
     plugins: [
       react(),
       tailwind(),
