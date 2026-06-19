@@ -26,6 +26,7 @@ import StreakPage from './components/dashboard/StreakPage'
 import ReferPage from './components/dashboard/ReferPage'
 import PlaygroundPage from './components/dashboard/PlaygroundPage'
 import ClutLivePage from './components/dashboard/ClutLivePage'
+import KnowledgeHeistPage from './components/dashboard/playground/KnowledgeHeistPage'
 import PricingPage from './components/dashboard/PricingPage'
 import ExamSessionView from './components/ExamSessionView'
 import SharedFlashcardsView from './components/SharedFlashcardsView'
@@ -256,6 +257,8 @@ export default function App() {
             <Route path="refer" element={<ReferPage />} />
             <Route path="compete" element={<PlaygroundPage />} />
             <Route path="playground/:roomId" element={<PlaygroundPage />} />
+            <Route path="heist" element={<KnowledgeHeistPage />} />
+            <Route path="heist/:roomId" element={<KnowledgeHeistPage />} />
             <Route path="upload" element={<UserUpload />} />
             <Route path="requests" element={<StudyRequestsPage />} />
             <Route path="study-groups" element={<StudyGroupsPage />} />
