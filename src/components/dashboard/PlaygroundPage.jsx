@@ -394,7 +394,7 @@ export default function PlaygroundPage() {
       background: '#f8fafc',
       display: 'flex',
       flexDirection: 'column',
-      fontFamily: "'Outfit', sans-serif"
+      fontFamily: "'DM Sans', sans-serif"
     }}>
       {renderToast()}
       

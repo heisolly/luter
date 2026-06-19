@@ -146,7 +146,7 @@ const Header = ({
               fontSize: 24,
               fontWeight: 700,
               color: '#111',
-              fontFamily: "'Outfit', 'Varela Round', sans-serif"
+              fontFamily: "'DM Sans', 'Inter', sans-serif"
             }}>
               {pageTitle}
             </div>
@@ -164,7 +164,7 @@ const Header = ({
                 border: '1px solid #e2e8f0',
                 borderRadius: 8,
                 padding: '8px 16px',
-                fontFamily: "'Varela Round', sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 15,
                 color: '#94a3b8',
                 minWidth: '250px'
@@ -182,7 +182,7 @@ const Header = ({
                   outline: 'none',
                   flex: 1,
                   fontSize: 15,
-                  fontFamily: "'Varela Round', sans-serif",
+                  fontFamily: "'Inter', sans-serif",
                   color: '#333',
                   opacity: searchQuery ? 1 : 0.5
                 }}
@@ -390,7 +390,7 @@ const Header = ({
                   fontWeight: 600,
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  fontFamily: "'Outfit', sans-serif"
+                  fontFamily: "'DM Sans', sans-serif"
                 }}
               >
                 {tab.label}

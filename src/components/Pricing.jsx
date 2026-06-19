@@ -52,7 +52,7 @@ export default function Pricing() {
   const [isSemester, setIsSemester] = useState(true);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#ffffff', color: '#111', position: 'relative', fontFamily: 'var(--font-varela)' }}>
+    <div style={{ minHeight: '100vh', background: '#ffffff', color: '#111', position: 'relative', fontFamily: 'var(--font-body)' }}>
       <PageBackground />
       <SharedNavbar />
 
@@ -71,7 +71,7 @@ export default function Pricing() {
             </div>
           </RevealDiv>
           <RevealDiv delay={0.1}>
-            <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', fontWeight: 800, fontFamily: 'var(--font-outfit)', color: '#111', marginBottom: 24, lineHeight: 1.1, letterSpacing: '-0.04em' }}>
+            <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', fontWeight: 800, fontFamily: 'var(--font-display)', color: '#111', marginBottom: 24, lineHeight: 1.1, letterSpacing: '-0.04em' }}>
               Simple pricing for{' '}
               <HighlightedText texts={['students']} />
             </h1>
@@ -90,7 +90,7 @@ export default function Pricing() {
                   background: !isSemester ? '#4B0082' : 'transparent', 
                   color: !isSemester ? 'white' : '#64748B', 
                   fontWeight: 800, fontSize: 14, border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                  fontFamily: 'var(--font-outfit)', textTransform: 'uppercase', letterSpacing: '0.05em'
+                  fontFamily: 'var(--font-display)', textTransform: 'uppercase', letterSpacing: '0.05em'
                 }}
               >Monthly</button>
               <button 
@@ -101,7 +101,7 @@ export default function Pricing() {
                   color: isSemester ? 'white' : '#64748B', 
                   fontWeight: 800, fontSize: 14, border: 'none', cursor: 'pointer', transition: 'all 0.2s', 
                   display: 'flex', alignItems: 'center', gap: 10,
-                  fontFamily: 'var(--font-outfit)', textTransform: 'uppercase', letterSpacing: '0.05em'
+                  fontFamily: 'var(--font-display)', textTransform: 'uppercase', letterSpacing: '0.05em'
                 }}
               >
                 Per Semester <span style={{ fontSize: 11, background: '#D1FAE5', color: '#059669', padding: '4px 12px', borderRadius: 9999, fontWeight: 900 }}>Save 40%</span>
@@ -157,7 +157,7 @@ export default function Pricing() {
                       borderRadius: 9999,
                       fontSize: 12,
                       fontWeight: 900,
-                      fontFamily: 'var(--font-outfit)',
+                      fontFamily: 'var(--font-display)',
                       letterSpacing: '0.05em'
                     }}>
                       POPULAR
@@ -169,14 +169,14 @@ export default function Pricing() {
                       fontSize: 28, 
                       fontWeight: 800, 
                       margin: '0 0 12px 0',
-                      fontFamily: 'var(--font-outfit)'
+                      fontFamily: 'var(--font-display)'
                     }}>{plan.name}</h3>
                     <p style={{ 
                       fontSize: 15, 
                       fontWeight: 600, 
                       margin: 0,
                       opacity: 0.8,
-                      fontFamily: 'var(--font-varela)'
+                      fontFamily: 'var(--font-body)'
                     }}>{plan.trial}</p>
                   </div>
 
@@ -185,7 +185,7 @@ export default function Pricing() {
                       fontSize: 56, 
                       fontWeight: 900, 
                       lineHeight: 1,
-                      fontFamily: 'var(--font-outfit)',
+                      fontFamily: 'var(--font-display)',
                       marginBottom: 8
                     }}>
                       {plan.priceMonthly === 0 ? '₦0' : `₦${isSemester ? plan.priceSemester.toLocaleString() : plan.priceMonthly.toLocaleString()}`}
@@ -195,7 +195,7 @@ export default function Pricing() {
                         fontSize: 16, 
                         fontWeight: 600, 
                         opacity: 0.7,
-                        fontFamily: 'var(--font-varela)'
+                        fontFamily: 'var(--font-body)'
                       }}>
                         per {isSemester ? 'semester' : 'month'}
                       </div>
@@ -233,7 +233,7 @@ export default function Pricing() {
                           fontSize: 16, 
                           fontWeight: 500, 
                           lineHeight: 1.4, 
-                          fontFamily: 'var(--font-varela)'
+                          fontFamily: 'var(--font-body)'
                         }}>{f}</span>
                       </div>
                     ))}
@@ -247,9 +247,9 @@ export default function Pricing() {
         {/* University Trust */}
         <RevealDiv>
           <div style={{ textAlign: 'center', marginBottom: 120 }}>
-            <p style={{ fontSize: 13, fontWeight: 800, color: '#94A3B8', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 40, fontFamily: 'var(--font-outfit)' }}>Trusted by students at</p>
+            <p style={{ fontSize: 13, fontWeight: 800, color: '#94A3B8', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 40, fontFamily: 'var(--font-display)' }}>Trusted by students at</p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 64, flexWrap: 'wrap', opacity: 0.5 }}>
-              {['Stanford', 'PRINCETON', 'MIT', 'Harvard', 'Oxford', 'UNILAG'].map(u => <span key={u} style={{ fontSize: 20, fontWeight: 900, fontFamily: 'var(--font-outfit)', color: '#64748B' }}>{u}</span>)}
+              {['Stanford', 'PRINCETON', 'MIT', 'Harvard', 'Oxford', 'UNILAG'].map(u => <span key={u} style={{ fontSize: 20, fontWeight: 900, fontFamily: 'var(--font-display)', color: '#64748B' }}>{u}</span>)}
             </div>
           </div>
         </RevealDiv>
@@ -268,7 +268,7 @@ export default function Pricing() {
               </div>
             </RevealDiv>
             <RevealDiv delay={0.1}>
-              <h2 style={{ fontSize: 'clamp(2.2rem, 5vw, 3.5rem)', fontWeight: 800, fontFamily: 'var(--font-outfit)', color: '#111', marginBottom: 0, letterSpacing: '-0.03em' }}>
+              <h2 style={{ fontSize: 'clamp(2.2rem, 5vw, 3.5rem)', fontWeight: 800, fontFamily: 'var(--font-display)', color: '#111', marginBottom: 0, letterSpacing: '-0.03em' }}>
                 Join 1,000,000+ smart learners
               </h2>
             </RevealDiv>
@@ -317,7 +317,7 @@ export default function Pricing() {
                         color: '#475569', 
                         fontWeight: 500, 
                         margin: 0,
-                        fontFamily: 'var(--font-varela)',
+                        fontFamily: 'var(--font-body)',
                         lineHeight: 1.6
                       }}>
                         "{testimonial.text}"
@@ -341,7 +341,7 @@ export default function Pricing() {
                           fontSize: 15, 
                           fontWeight: 800, 
                           color: '#111',
-                          fontFamily: 'var(--font-outfit)'
+                          fontFamily: 'var(--font-display)'
                         }}>
                           {testimonial.name}
                         </div>

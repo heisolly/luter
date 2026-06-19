@@ -439,7 +439,7 @@ const wrapper = {
   padding: '2.5rem 2rem',
   maxWidth: 1100,
   margin: '0 auto',
-  fontFamily: 'var(--font-outfit, Outfit, Inter, sans-serif)',
+  fontFamily: 'var(--font-display, DM Sans, Inter, sans-serif)',
 }
 const headerSection = {
   display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem',

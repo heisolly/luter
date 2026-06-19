@@ -57,7 +57,7 @@ export default function LuterAdminUploadPage() {
   }
 
   return (
-    <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto', fontFamily: 'Outfit' }}>
+    <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto', fontFamily: 'DM Sans' }}>
       <div style={{ marginBottom: '40px' }}>
         <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#1A102D', marginBottom: '8px' }}>Content Management</h1>
         <p style={{ color: '#718096' }}>Upload study materials, assignments, and curriculum content.</p>
@@ -70,7 +70,7 @@ export default function LuterAdminUploadPage() {
             <select 
               value={courseId} 
               onChange={e => setCourseId(e.target.value)}
-              style={{ padding: '12px', borderRadius: '12px', border: '1.5px solid #E2E8F0', outline: 'none', fontFamily: 'Outfit' }}
+              style={{ padding: '12px', borderRadius: '12px', border: '1.5px solid #E2E8F0', outline: 'none', fontFamily: 'DM Sans' }}
             >
               <option value="">Choose a course...</option>
               {courses.map(c => (
@@ -86,7 +86,7 @@ export default function LuterAdminUploadPage() {
               placeholder="e.g. Introduction to Thermodynamics" 
               value={title} 
               onChange={e => setTitle(e.target.value)} 
-              style={{ padding: '12px', borderRadius: '12px', border: '1.5px solid #E2E8F0', outline: 'none', fontFamily: 'Outfit' }}
+              style={{ padding: '12px', borderRadius: '12px', border: '1.5px solid #E2E8F0', outline: 'none', fontFamily: 'DM Sans' }}
             />
           </div>
 
@@ -98,7 +98,7 @@ export default function LuterAdminUploadPage() {
               max="52" 
               value={week} 
               onChange={e => setWeek(e.target.value)} 
-              style={{ padding: '12px', borderRadius: '12px', border: '1.5px solid #E2E8F0', outline: 'none', fontFamily: 'Outfit' }}
+              style={{ padding: '12px', borderRadius: '12px', border: '1.5px solid #E2E8F0', outline: 'none', fontFamily: 'DM Sans' }}
             />
           </div>
 
@@ -107,7 +107,7 @@ export default function LuterAdminUploadPage() {
             <select 
               value={type} 
               onChange={e => setType(e.target.value)}
-              style={{ padding: '12px', borderRadius: '12px', border: '1.5px solid #E2E8F0', outline: 'none', fontFamily: 'Outfit' }}
+              style={{ padding: '12px', borderRadius: '12px', border: '1.5px solid #E2E8F0', outline: 'none', fontFamily: 'DM Sans' }}
             >
               <option value="pdf">Study Material (PDF)</option>
               <option value="assignment">Official Assignment</option>

@@ -8,8 +8,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif', '"Plus Jakarta Sans"'],
-        serif: ['Besley', 'Georgia', 'serif'],
+        sans: ['Inter', 'sans-serif'],
+        display: ['"DM Sans"', 'sans-serif'],
+        body: ['Inter', 'sans-serif'],
       },
       colors: {
         primary: {

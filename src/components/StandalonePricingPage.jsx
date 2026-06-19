@@ -404,7 +404,7 @@ export default function StandalonePricingPage() {
           justify-content: center;
           padding: 100px 24px 40px; /* clear fixed header */
           background: #fcfbfe;
-          font-family: 'Outfit', 'Inter', sans-serif;
+          font-family: 'DM Sans', 'Inter', sans-serif;
         }
 
         /* PUBLIC NAVBAR HEADER */

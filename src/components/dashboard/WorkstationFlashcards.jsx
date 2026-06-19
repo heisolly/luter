@@ -365,7 +365,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
                <CircleNotch size={64} weight="bold" color="#C4B5FD" className="spin-animation" />
                <Sparkle size={24} weight="fill" color="#98FF98" style={{ position: 'absolute', top: '-10px', right: '-10px', animation: 'pulse 2s infinite' }} />
             </div>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '28px', color: isDark ? '#F9FAFB' : '#111827', fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>Magic is happening...</h3>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '28px', color: isDark ? '#F9FAFB' : '#111827', fontFamily: 'DM Sans, sans-serif', fontWeight: 800 }}>Magic is happening...</h3>
             <p style={{ margin: 0, fontSize: '16px', maxWidth: '320px', textAlign: 'center', lineHeight: 1.6, color: isDark ? '#D1D5DB' : '#4B5563' }}>
               We are analyzing your material and generating the perfect flashcards to supercharge your learning.
             </p>
@@ -388,7 +388,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
         <img src="/mascot.png" alt="Lumii Mascot" style={{ width: '120px', height: '120px', objectFit: 'contain', zIndex: 1, filter: isDark ? 'drop-shadow(0 0 20px rgba(99, 102, 241, 0.4))' : 'drop-shadow(0 8px 16px rgba(99, 102, 241, 0.2))', animation: 'float 6s ease-in-out infinite' }} />
         
         <div style={{ zIndex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <h3 style={{ fontSize: '28px', color: isDark ? '#F8FAFC' : '#0F172A', margin: 0, fontWeight: 800, fontFamily: 'Outfit, sans-serif' }}>No flashcards yet!</h3>
+          <h3 style={{ fontSize: '28px', color: isDark ? '#F8FAFC' : '#0F172A', margin: 0, fontWeight: 800, fontFamily: 'DM Sans, sans-serif' }}>No flashcards yet!</h3>
           <p style={{ color: isDark ? '#94A3B8' : '#64748B', margin: 0, maxWidth: '400px', lineHeight: 1.5, fontSize: '16px' }}>
             {readOnly ? "The creator hasn't generated any flashcards for this material yet." : "Let Lumii analyze this material and craft the perfect flashcards for your study session."}
           </p>
@@ -489,7 +489,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
           boxShadow: '0 24px 48px rgba(196, 181, 253, 0.15)', zIndex: 1
         }}>
           <GraduationCap size={64} weight="duotone" color={readyForNext ? "#98FF98" : "#FFD2A6"} style={{ marginBottom: '24px' }} />
-          <h3 style={{ margin: '0 0 12px 0', fontSize: '32px', color: textColor, fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>Deck Complete!</h3>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '32px', color: textColor, fontFamily: 'DM Sans, sans-serif', fontWeight: 800 }}>Deck Complete!</h3>
           <p style={{ margin: '0 0 32px 0', fontSize: '18px', textAlign: 'center', lineHeight: 1.6, color: subTextColor, fontWeight: 500 }}>
             You mastered <span style={{ color: '#98FF98', fontWeight: 800 }}>{sessionStats.good}</span> cards and found <span style={{ color: '#FFD2A6', fontWeight: 800 }}>{sessionStats.hard}</span> hard. <br/>
             Mastery: {masteryPercentage}%
@@ -504,7 +504,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
                 background: isGenerating ? (isDark ? '#374151' : '#E5E7EB') : (isBrutal ? 'linear-gradient(135deg, #C4B5FD 0%, #8B5CF6 100%)' : (isDark ? '#3B82F6' : '#2563EB')),
                 color: '#FFFFFF', fontWeight: 800, fontSize: '16px', cursor: isGenerating ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s', boxShadow: isGenerating ? 'none' : (isBrutal ? '0 12px 24px rgba(139, 92, 246, 0.3)' : '0 8px 16px rgba(37, 99, 235, 0.2)'),
-                fontFamily: 'Outfit, sans-serif'
+                fontFamily: 'DM Sans, sans-serif'
               }}
               onMouseEnter={e => { if(!isGenerating) e.currentTarget.style.transform = 'translateY(-2px)' }}
               onMouseLeave={e => { if(!isGenerating) e.currentTarget.style.transform = 'translateY(0)' }}
@@ -520,7 +520,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
                 background: isBrutal ? 'linear-gradient(135deg, #FFD2A6 0%, #F59E0B 100%)' : (isDark ? '#3B82F6' : '#2563EB'),
                 color: isBrutal ? '#111827' : '#FFFFFF', fontWeight: 800, fontSize: '16px', cursor: 'pointer',
                 transition: 'all 0.2s', boxShadow: isBrutal ? '0 12px 24px rgba(245, 158, 11, 0.3)' : '0 8px 16px rgba(37, 99, 235, 0.2)',
-                fontFamily: 'Outfit, sans-serif'
+                fontFamily: 'DM Sans, sans-serif'
               }}
             >
               <ArrowsClockwise size={24} weight="bold" /> Review Missed Concepts
@@ -534,7 +534,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
   const formatText = (text) => {
     if (!text) return '';
     if (isTypo) {
-      return text.replace(/\*\*(.*?)\*\*/g, `<span style="background-color: ${isDark ? '#3F3F46' : '#E4E4E7'}; padding: 4px 8px; border-radius: 4px; display: inline-block; font-family: 'Outfit', sans-serif; font-weight: 700;">$1</span>`).replace(/\*(.*?)\*/g, '<em>$1</em>');
+      return text.replace(/\*\*(.*?)\*\*/g, `<span style="background-color: ${isDark ? '#3F3F46' : '#E4E4E7'}; padding: 4px 8px; border-radius: 4px; display: inline-block; font-family: 'DM Sans', sans-serif; font-weight: 700;">$1</span>`).replace(/\*(.*?)\*/g, '<em>$1</em>');
     }
     return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
   };
@@ -663,7 +663,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
             <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981', boxShadow: '0 0 8px #10B981' }}></span>
             Live Study Room
           </span>
-          <span style={{ fontSize: '18px', fontWeight: 700, color: textColor, fontFamily: 'Outfit, sans-serif' }}>
+          <span style={{ fontSize: '18px', fontWeight: 700, color: textColor, fontFamily: 'DM Sans, sans-serif' }}>
             {material?.title || 'Untitled Material'}
           </span>
         </div>
@@ -676,14 +676,14 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
                 setCopyFeedback(true);
                 setTimeout(() => setCopyFeedback(false), 2000);
               }}
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'Outfit, sans-serif', opacity: 0.8 }}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'DM Sans, sans-serif', opacity: 0.8 }}
             >
                {copyFeedback ? <span style={{color: '#10B981'}}>Copied!</span> : <><Link size={20} weight="bold" /> Share</>}
             </button>
           )}
 
           <div style={{ position: 'relative' }}>
-            <button onClick={() => setShowFontMenu(!showFontMenu)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'Outfit, sans-serif', opacity: 0.8 }}>
+            <button onClick={() => setShowFontMenu(!showFontMenu)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'DM Sans, sans-serif', opacity: 0.8 }}>
               <TextAa size={20} weight="bold" /> Font
             </button>
             {showFontMenu && (
@@ -704,7 +704,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
             }}
             style={{ 
               background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-              color: textColor, fontWeight: 700, fontFamily: 'Outfit, sans-serif', opacity: 0.8
+              color: textColor, fontWeight: 700, fontFamily: 'DM Sans, sans-serif', opacity: 0.8
             }}
           >
              <PaintBrush size={20} weight="fill" /> 
@@ -932,7 +932,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
             style={{
               padding: '0 32px', height: '56px', borderRadius: '9999px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
               backgroundColor: isDark ? '#334155' : '#F1F5F9', color: textColor, fontWeight: 800, fontSize: '15px', cursor: 'pointer', transition: 'all 0.2s',
-              fontFamily: 'Outfit, sans-serif'
+              fontFamily: 'DM Sans, sans-serif'
             }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? '#475569' : '#E2E8F0'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#F1F5F9'}

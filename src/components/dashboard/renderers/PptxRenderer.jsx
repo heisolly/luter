@@ -134,10 +134,10 @@ export default function PptxRenderer({ fileUrl, title }) {
               <FilePpt size={28} color="#F97316" />
             </div>
             <div>
-              <h2 style={{ fontFamily: 'var(--font-outfit)', fontSize: 20, fontWeight: 800, color: '#1A102D', margin: 0 }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: '#1A102D', margin: 0 }}>
                 {title || 'Presentation'}
               </h2>
-              <p style={{ color: '#64748B', fontSize: 14, margin: '4px 0 0', fontFamily: 'var(--font-varela)' }}>
+              <p style={{ color: '#64748B', fontSize: 14, margin: '4px 0 0', fontFamily: 'var(--font-body)' }}>
                 {slides.length > 0 ? `${slides.length} slides` : 'Loading slides...'}
               </p>
             </div>
@@ -148,7 +148,7 @@ export default function PptxRenderer({ fileUrl, title }) {
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '10px 20px', background: '#4B0082', color: 'white',
               border: 'none', borderRadius: 12, cursor: 'pointer',
-              fontWeight: 600, fontFamily: 'var(--font-outfit)', fontSize: 14,
+              fontWeight: 600, fontFamily: 'var(--font-display)', fontSize: 14,
             }}
           >
             <Download size={18} /> Download PPTX
@@ -173,7 +173,7 @@ export default function PptxRenderer({ fileUrl, title }) {
             <div style={{ width: 64, height: 64, borderRadius: 20, background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
               <FilePpt size={32} color="#EF4444" />
             </div>
-            <h3 style={{ fontFamily: 'var(--font-outfit)', fontSize: 18, fontWeight: 700, color: '#111827', marginBottom: 8 }}>Couldn&apos;t read slides</h3>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700, color: '#111827', marginBottom: 8 }}>Couldn&apos;t read slides</h3>
             <p style={{ color: '#64748B', fontSize: 14, lineHeight: 1.6, marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>
               {error}
             </p>
@@ -182,7 +182,7 @@ export default function PptxRenderer({ fileUrl, title }) {
               style={{
                 padding: '10px 20px', background: '#4B0082', color: 'white',
                 border: 'none', borderRadius: 12, cursor: 'pointer',
-                fontWeight: 600, fontFamily: 'var(--font-outfit)',
+                fontWeight: 600, fontFamily: 'var(--font-display)',
               }}
             >
               Open in PowerPoint
@@ -201,19 +201,19 @@ export default function PptxRenderer({ fileUrl, title }) {
             }}>
               <div style={{
                 position: 'absolute', top: 24, right: 32,
-                fontFamily: 'var(--font-outfit)', fontSize: 14, fontWeight: 700,
+                fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700,
                 color: '#94A3B8',
               }}>
                 Slide {activeSlide + 1} / {slides.length}
               </div>
               <h3 style={{
-                fontFamily: 'var(--font-outfit)', fontSize: 24, fontWeight: 700,
+                fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700,
                 color: '#1A102D', marginBottom: 24,
               }}>
                 Slide {activeSlide + 1}
               </h3>
               <div style={{
-                fontFamily: 'var(--font-varela)', fontSize: 17, lineHeight: 1.8,
+                fontFamily: 'var(--font-body)', fontSize: 17, lineHeight: 1.8,
                 color: '#334155', whiteSpace: 'pre-wrap',
               }}>
                 {slides[activeSlide]?.text || 'This slide has no text content.'}
@@ -229,7 +229,7 @@ export default function PptxRenderer({ fileUrl, title }) {
                     background: activeSlide === 0 ? '#F8FAFC' : 'white',
                     color: activeSlide === 0 ? '#94A3B8' : '#1A102D',
                     cursor: activeSlide === 0 ? 'not-allowed' : 'pointer',
-                    fontWeight: 600, fontFamily: 'var(--font-outfit)',
+                    fontWeight: 600, fontFamily: 'var(--font-display)',
                   }}
                 >
                   Previous
@@ -242,7 +242,7 @@ export default function PptxRenderer({ fileUrl, title }) {
                     background: activeSlide >= slides.length - 1 ? '#F8FAFC' : '#4B0082',
                     color: activeSlide >= slides.length - 1 ? '#94A3B8' : 'white',
                     cursor: activeSlide >= slides.length - 1 ? 'not-allowed' : 'pointer',
-                    fontWeight: 600, fontFamily: 'var(--font-outfit)',
+                    fontWeight: 600, fontFamily: 'var(--font-display)',
                   }}
                 >
                   Next
@@ -264,14 +264,14 @@ export default function PptxRenderer({ fileUrl, title }) {
                   }}
                 >
                   <div style={{
-                    fontFamily: 'var(--font-outfit)', fontSize: 13, fontWeight: 700,
+                    fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700,
                     color: activeSlide === idx ? '#7a12cc' : '#94A3B8',
                     marginBottom: 8,
                   }}>
                     Slide {idx + 1}
                   </div>
                   <div style={{
-                    fontFamily: 'var(--font-varela)', fontSize: 13, lineHeight: 1.5,
+                    fontFamily: 'var(--font-body)', fontSize: 13, lineHeight: 1.5,
                     color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis',
                     display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical',
                     wordBreak: 'break-word',
@@ -290,7 +290,7 @@ export default function PptxRenderer({ fileUrl, title }) {
             boxShadow: '0 20px 50px rgba(0,0,0,0.05)', border: '1.5px solid #F1F5F9',
             textAlign: 'center',
           }}>
-            <p style={{ color: '#64748B', fontSize: 16, fontFamily: 'var(--font-varela)' }}>
+            <p style={{ color: '#64748B', fontSize: 16, fontFamily: 'var(--font-body)' }}>
               No readable slides found in this presentation.
             </p>
             <button
@@ -298,7 +298,7 @@ export default function PptxRenderer({ fileUrl, title }) {
               style={{
                 marginTop: 20, padding: '10px 20px', background: '#4B0082', color: 'white',
                 border: 'none', borderRadius: 12, cursor: 'pointer',
-                fontWeight: 600, fontFamily: 'var(--font-outfit)',
+                fontWeight: 600, fontFamily: 'var(--font-display)',
               }}
             >
               Download to open locally

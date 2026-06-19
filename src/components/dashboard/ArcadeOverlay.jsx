@@ -2,7 +2,7 @@
  * ArcadeOverlay — Luter brand redesign
  * Visual language: Sidebar (sb-*) + Sessions (sr-*) CSS vars
  * Colors: #7C3AED purple · #C4B5FD lavender · #98FF98 mint · #FFD2A6 peach
- * Font: Outfit
+ * Font: DM Sans
  */
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
@@ -86,7 +86,7 @@ function HubCard({ emoji, title, desc, accentColor, badge, selected, onClick }) 
         boxShadow: selected ? `0 0 0 4px ${accentColor}20` : 'none',
         transition: 'border-color 0.18s, box-shadow 0.18s, background 0.18s',
         position: 'relative',
-        fontFamily: "'Outfit','Inter',system-ui,sans-serif",
+        fontFamily: "'DM Sans','Inter',system-ui,sans-serif",
       }}
       onMouseEnter={e => { if (!selected) e.currentTarget.style.borderColor = accentColor }}
       onMouseLeave={e => { if (!selected) e.currentTarget.style.borderColor = 'var(--sb-border,#E5E7EB)' }}
@@ -126,7 +126,7 @@ function MenuRow({ emoji, iconBg, title, desc, onClick }) {
         borderBottom: '1px solid var(--sb-border-subtle,#F3F4F6)',
         cursor: 'pointer', textAlign: 'left',
         transition: 'background 0.13s',
-        fontFamily: "'Outfit','Inter',system-ui,sans-serif",
+        fontFamily: "'DM Sans','Inter',system-ui,sans-serif",
       }}
       onMouseEnter={e => e.currentTarget.style.background = 'var(--sb-border-subtle,#F9FAFB)'}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -165,7 +165,7 @@ function MaterialList({ materials, search, onSearch, onSelect }) {
             width: '100%', height: 40, padding: '0 12px 0 34px',
             border: '1.5px solid var(--sb-border,#E5E7EB)', borderRadius: 12,
             fontSize: 13, fontWeight: 500, outline: 'none', boxSizing: 'border-box',
-            fontFamily: "'Outfit','Inter',sans-serif", color: 'var(--sb-text,#0F172A)',
+            fontFamily: "'DM Sans','Inter',sans-serif", color: 'var(--sb-text,#0F172A)',
             background: 'var(--sb-surface,#fff)',
           }}
           onFocus={e => e.target.style.borderColor = '#C4B5FD'}
@@ -185,7 +185,7 @@ function MaterialList({ materials, search, onSearch, onSelect }) {
               textAlign: 'left', cursor: 'pointer', fontSize: 13, fontWeight: 600,
               color: 'var(--sb-text,#0F172A)', transition: 'background 0.12s',
               display: 'flex', alignItems: 'center', gap: 8,
-              fontFamily: "'Outfit','Inter',sans-serif",
+              fontFamily: "'DM Sans','Inter',sans-serif",
             }}
             onMouseEnter={e => e.currentTarget.style.background = '#F5F3FF'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -212,7 +212,7 @@ function TextAction({ value, onChange, placeholder, onSubmit, loading, btnLabel 
         style={{
           height: 48, border: '2px solid var(--sb-border,#E5E7EB)', borderRadius: 14,
           padding: '0 16px', fontSize: 15, fontWeight: 600, outline: 'none',
-          fontFamily: "'Outfit','Inter',sans-serif", color: 'var(--sb-text,#0F172A)',
+          fontFamily: "'DM Sans','Inter',sans-serif", color: 'var(--sb-text,#0F172A)',
           background: 'var(--sb-surface,#fff)', transition: 'border-color 0.15s',
         }}
         onFocus={e => e.target.style.borderColor = '#C4B5FD'}
@@ -225,7 +225,7 @@ function TextAction({ value, onChange, placeholder, onSubmit, loading, btnLabel 
           color: !value.trim() || loading ? '#9CA3AF' : '#fff',
           border: 'none', borderRadius: 14, fontWeight: 800, fontSize: 15,
           cursor: !value.trim() || loading ? 'not-allowed' : 'pointer',
-          fontFamily: "'Outfit','Inter',sans-serif", transition: 'background 0.15s',
+          fontFamily: "'DM Sans','Inter',sans-serif", transition: 'background 0.15s',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}
       >
@@ -407,7 +407,7 @@ export default function ArcadeOverlay({ onClose, user }) {
                 : 'linear-gradient(135deg, #7C3AED, #6D28D9)',
             color: '#fff', border: 'none', borderRadius: 16,
             fontWeight: 800, fontSize: 16, cursor: 'pointer',
-            fontFamily: "'Outfit','Inter',sans-serif",
+            fontFamily: "'DM Sans','Inter',sans-serif",
             letterSpacing: '-0.01em',
             boxShadow: `0 8px 24px ${accentColor}40`,
             transition: 'box-shadow 0.2s',
@@ -437,7 +437,7 @@ export default function ArcadeOverlay({ onClose, user }) {
             padding: '9px 22px', borderRadius: 999,
             border: '2.5px solid #F59E0B',
             color: '#0F172A', fontWeight: 800, fontSize: 15,
-            fontFamily: "'Outfit','Inter',sans-serif",
+            fontFamily: "'DM Sans','Inter',sans-serif",
           }}>
             ⚡ Clut Live
           </div>
@@ -533,7 +533,7 @@ export default function ArcadeOverlay({ onClose, user }) {
                 background: toast.type === 'error' ? '#EF4444' : toast.type === 'info' ? '#7C3AED' : '#16A34A',
                 color: '#fff', padding: '10px 22px', borderRadius: 20,
                 fontWeight: 800, fontSize: 13, zIndex: 1, whiteSpace: 'nowrap', pointerEvents: 'none',
-                fontFamily: "'Outfit','Inter',sans-serif",
+                fontFamily: "'DM Sans','Inter',sans-serif",
               }}
             >
               {toast.msg}
@@ -555,7 +555,7 @@ export default function ArcadeOverlay({ onClose, user }) {
             padding: '24px 24px 22px',
             width: '100%', maxWidth: isHub ? 580 : 480,
             boxShadow: '0 32px 80px rgba(15,23,42,0.22)',
-            fontFamily: "'Outfit','Inter',system-ui,sans-serif",
+            fontFamily: "'DM Sans','Inter',system-ui,sans-serif",
             transition: 'max-width 0.25s ease',
           }}
         >
@@ -602,7 +602,7 @@ export default function ArcadeOverlay({ onClose, user }) {
 
           {/* Footer */}
           {isHub && (
-            <p style={{ margin: '14px 0 0', textAlign: 'center', fontSize: 11, color: 'var(--sb-text-muted,#94A3B8)', fontWeight: 500, fontFamily: "'Outfit','Inter',sans-serif" }}>
+            <p style={{ margin: '14px 0 0', textAlign: 'center', fontSize: 11, color: 'var(--sb-text-muted,#94A3B8)', fontWeight: 500, fontFamily: "'DM Sans','Inter',sans-serif" }}>
               Press <kbd style={{ padding: '1px 5px', border: '1px solid var(--sb-border,#E5E7EB)', borderRadius: 5, fontSize: 10, fontWeight: 700, background: 'var(--sb-bg,#F9FAFB)' }}>Esc</kbd> to close
             </p>
           )}

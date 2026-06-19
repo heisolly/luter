@@ -444,7 +444,7 @@ function LuterBtn({ children, onClick, disabled, variant = "primary", fullWidth 
         borderRadius: "14px",
         background: bg, color, border, borderBottom,
         fontSize: "17px", fontWeight: 700,
-        fontFamily: "'Outfit', var(--font-outfit), sans-serif",
+        fontFamily: "'DM Sans', var(--font-display), sans-serif",
         cursor: disabled ? "not-allowed" : "pointer",
         transform, boxShadow: shadow,
         transition: "all 0.15s cubic-bezier(0.4,0,0.2,1)",
@@ -964,7 +964,7 @@ export default function Onboarding() {
         #F9FAFB
       `,
       display: "flex", flexDirection: "column", alignItems: "center",
-      fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       boxSizing: "border-box", padding: "0 16px 48px",
     }}>
       <style>{`

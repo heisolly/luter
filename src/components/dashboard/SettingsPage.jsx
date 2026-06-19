@@ -82,16 +82,15 @@ export default function SettingsPage() {
     const el = document.createElement('style');
     el.id = 'stp-styles';
     el.textContent = `
-      @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
       @keyframes stp-spin { to { transform: rotate(360deg); } }
-      .stp-input { width:100%;padding:12px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:14px;font-family:Outfit,Inter,sans-serif;color:#333;background:#fff;outline:none;transition:border-color 0.2s,box-shadow 0.2s;box-sizing:border-box; }
+      .stp-input { width:100%;padding:12px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:14px;font-family:var(--font-body);color:#333;background:#fff;outline:none;transition:border-color 0.2s,box-shadow 0.2s;box-sizing:border-box; }
       body.dark-mode .stp-input { background:#111827;border-color:#374151;color:#F9FAFB; }
       .stp-input:focus { border-color:#C4B5FD;box-shadow:0 0 0 3px rgba(196,181,253,0.2); }
-      .stp-select { width:100%;padding:12px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:14px;font-family:Outfit,Inter,sans-serif;color:#333;background:#fff;outline:none;transition:border-color 0.2s;box-sizing:border-box; }
+      .stp-select { width:100%;padding:12px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:14px;font-family:var(--font-body);color:#333;background:#fff;outline:none;transition:border-color 0.2s;box-sizing:border-box; }
       body.dark-mode .stp-select { background:#111827;border-color:#374151;color:#F9FAFB; }
-      .stp-label { display:block;font-size:13px;font-weight:700;color:#333;margin-bottom:8px;font-family:Outfit,Inter,sans-serif; }
+      .stp-label { display:block;font-size:13px;font-weight:700;color:#333;margin-bottom:8px;font-family:var(--font-body); }
       body.dark-mode .stp-label { color:#F9FAFB; }
-      .stp-save-btn { padding:13px 28px;background:#7a12cc;color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:Outfit,Inter,sans-serif;display:inline-flex;align-items:center;gap:8px;transition:all 0.2s; }
+      .stp-save-btn { padding:13px 28px;background:#7a12cc;color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font-display);display:inline-flex;align-items:center;gap:8px;transition:all 0.2s; }
       .stp-save-btn:hover { opacity:0.88;transform:translateY(-1px);box-shadow:0 8px 24px rgba(122,18,204,0.35); }
       .stp-save-btn:disabled { opacity:0.5;cursor:not-allowed;transform:none; }
       .stp-section-title { font-size:17px;font-weight:800;color:#333;margin:0 0 20px;padding-bottom:12px;border-bottom:2px solid #C4B5FD;display:inline-block; }
@@ -357,7 +356,7 @@ export default function SettingsPage() {
 
   if (loading && !profile) {
     return (
-      <div style={{ fontFamily: 'Outfit,Inter,sans-serif', minHeight: '100vh', background: bg }}>
+      <div style={{ fontFamily: 'DM Sans,Inter,sans-serif', minHeight: '100vh', background: bg }}>
 
         {/* ── Page Header ── */}
         <div style={{ padding: '28px 40px 20px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -378,7 +377,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div style={{ fontFamily: 'Outfit,Inter,sans-serif', minHeight: '100vh', background: bg, transition: 'background 0.3s' }}>
+    <div style={{ fontFamily: 'DM Sans,Inter,sans-serif', minHeight: '100vh', background: bg, transition: 'background 0.3s' }}>
 
       {/* ── Page Header ── */}
       <div style={{ padding: '28px 40px 20px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -406,7 +405,7 @@ export default function SettingsPage() {
               fontWeight: 700, fontSize: 14,
               boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
               display: 'flex', alignItems: 'center', gap: 10,
-              fontFamily: 'Outfit,Inter,sans-serif',
+              fontFamily: 'DM Sans,Inter,sans-serif',
             }}
           >
             {message.type === 'success' ? <Check size={18} /> : <X size={18} />}
@@ -641,7 +640,7 @@ export default function SettingsPage() {
                           border: '2px solid #e5e7eb',
                           borderRadius: '10px',
                           fontSize: '14px',
-                          fontFamily: 'Outfit, sans-serif',
+                          fontFamily: 'DM Sans, sans-serif',
                           transition: 'all 0.2s ease',
                           outline: 'none'
                         }}
@@ -663,7 +662,7 @@ export default function SettingsPage() {
                           border: '2px solid #e5e7eb',
                           borderRadius: '10px',
                           fontSize: '14px',
-                          fontFamily: 'Outfit, sans-serif',
+                          fontFamily: 'DM Sans, sans-serif',
                           backgroundColor: '#f9fafb',
                           color: '#6b7280',
                           cursor: 'not-allowed'
@@ -690,7 +689,7 @@ export default function SettingsPage() {
                               border: '2px solid #e5e7eb',
                               borderRadius: '10px',
                               fontSize: '14px',
-                              fontFamily: 'Outfit, sans-serif',
+                              fontFamily: 'DM Sans, sans-serif',
                               transition: 'all 0.2s ease',
                               outline: 'none'
                             }}
@@ -712,7 +711,7 @@ export default function SettingsPage() {
                               border: '2px solid #e5e7eb',
                               borderRadius: '10px',
                               fontSize: '14px',
-                              fontFamily: 'Outfit, sans-serif',
+                              fontFamily: 'DM Sans, sans-serif',
                               transition: 'all 0.2s ease',
                               outline: 'none'
                             }}
@@ -738,7 +737,7 @@ export default function SettingsPage() {
                               border: '2px solid #e5e7eb',
                               borderRadius: '10px',
                               fontSize: '14px',
-                              fontFamily: 'Outfit, sans-serif',
+                              fontFamily: 'DM Sans, sans-serif',
                               transition: 'all 0.2s ease',
                               outline: 'none'
                             }}
@@ -761,7 +760,7 @@ export default function SettingsPage() {
                               border: '2px solid #e5e7eb',
                               borderRadius: '10px',
                               fontSize: '14px',
-                              fontFamily: 'Outfit, sans-serif',
+                              fontFamily: 'DM Sans, sans-serif',
                               transition: 'all 0.2s ease',
                               outline: 'none'
                             }}
@@ -792,7 +791,7 @@ export default function SettingsPage() {
                               border: '2px solid #e5e7eb',
                               borderRadius: '10px',
                               fontSize: '14px',
-                              fontFamily: 'Outfit, sans-serif',
+                              fontFamily: 'DM Sans, sans-serif',
                               transition: 'all 0.2s ease',
                               outline: 'none'
                             }}
@@ -813,7 +812,7 @@ export default function SettingsPage() {
                               border: '2px solid #e5e7eb',
                               borderRadius: '10px',
                               fontSize: '14px',
-                              fontFamily: 'Outfit, sans-serif',
+                              fontFamily: 'DM Sans, sans-serif',
                               transition: 'all 0.2s ease',
                               outline: 'none',
                               backgroundColor: 'white'
@@ -845,7 +844,7 @@ export default function SettingsPage() {
                             border: '2px solid #e5e7eb',
                             borderRadius: '10px',
                             fontSize: '14px',
-                            fontFamily: 'Outfit, sans-serif',
+                            fontFamily: 'DM Sans, sans-serif',
                             transition: 'all 0.2s ease',
                             outline: 'none'
                           }}
@@ -875,7 +874,7 @@ export default function SettingsPage() {
                         border: '2px solid #e5e7eb',
                         borderRadius: '10px',
                         fontSize: '14px',
-                        fontFamily: 'Outfit, sans-serif',
+                        fontFamily: 'DM Sans, sans-serif',
                         transition: 'all 0.2s ease',
                         outline: 'none',
                         resize: 'vertical'
@@ -961,7 +960,7 @@ export default function SettingsPage() {
                             border: '2px solid #e5e7eb',
                             borderRadius: '10px',
                             fontSize: '14px',
-                            fontFamily: 'Outfit, sans-serif',
+                            fontFamily: 'DM Sans, sans-serif',
                             transition: 'all 0.2s ease',
                             outline: 'none'
                           }}
@@ -996,7 +995,7 @@ export default function SettingsPage() {
                             border: '2px solid #e5e7eb',
                             borderRadius: '10px',
                             fontSize: '14px',
-                            fontFamily: 'Outfit, sans-serif',
+                            fontFamily: 'DM Sans, sans-serif',
                             transition: 'all 0.2s ease',
                             outline: 'none'
                           }}
@@ -1031,7 +1030,7 @@ export default function SettingsPage() {
                             border: '2px solid #e5e7eb',
                             borderRadius: '10px',
                             fontSize: '14px',
-                            fontFamily: 'Outfit, sans-serif',
+                            fontFamily: 'DM Sans, sans-serif',
                             transition: 'all 0.2s ease',
                             outline: 'none'
                           }}
@@ -1374,7 +1373,7 @@ export default function SettingsPage() {
                       border: '2px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '14px',
-                      fontFamily: 'Outfit, sans-serif',
+                      fontFamily: 'DM Sans, sans-serif',
                       outline: 'none'
                     }}>
                       <option>Everyone</option>

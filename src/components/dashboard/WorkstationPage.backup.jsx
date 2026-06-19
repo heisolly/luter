@@ -1878,7 +1878,7 @@ function WorkstationContent() {
         gap: '16px',
         background: 'radial-gradient(120% 120% at 50% 0%, #FAF5FF 0%, #F5F3FF 50%, #F9FAFB 100%)',
         color: '#7C3AED',
-        fontFamily: 'var(--font-outfit)'
+        fontFamily: 'var(--font-display)'
       }}>
         <LuterPageLoader />
         <span style={{ fontSize: '14px', fontWeight: 600, color: '#6B7280' }}>Loading your study room...</span>
@@ -1957,7 +1957,7 @@ function WorkstationContent() {
                 <List size={22} weight="bold" />
               </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-outfit)' }}>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-display)' }}>
                   {selectedMaterial?.title || courseInfo?.code || 'Workstation'}
                 </span>
                 <span style={{ fontSize: '9px', fontWeight: 800, color: '#8B5CF6', background: '#F5F3FF', padding: '2px 7px', borderRadius: '20px', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', border: '1px solid #EDE9FE', flexShrink: 0 }}>
@@ -2585,7 +2585,7 @@ function WorkstationContent() {
                        <FileText size={20} color="#6D28D9" />
                      </div>
                      <div>
-                       <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#1A102D', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>Personal Study Notes</h1>
+                       <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#1A102D', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>Personal Study Notes</h1>
                        <p style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>Capture and organize your thoughts for {selectedMaterial.title}</p>
                      </div>
                   </div>
@@ -3233,7 +3233,7 @@ function WorkstationContent() {
                             setTyping(false)
                           }
                         }}
-                        style={{ flex: 1, border: 'none', outline: 'none', fontSize: '13px', color: '#1E293B', background: 'transparent', fontFamily: 'var(--font-outfit)', fontWeight: 500 }}
+                        style={{ flex: 1, border: 'none', outline: 'none', fontSize: '13px', color: '#1E293B', background: 'transparent', fontFamily: 'var(--font-display)', fontWeight: 500 }}
                       />
                       <button
                         onClick={() => { if (groupInput.trim()) { sendGroupMessage(groupInput); setGroupInput(''); setTyping(false); } }}
@@ -3249,7 +3249,7 @@ function WorkstationContent() {
                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white' }}>
                    <div style={{ padding: '16px 20px', borderBottom: '1px solid #EBEBEB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
                       <div>
-                        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1E293B', margin: 0, fontFamily: 'var(--font-outfit)' }}>Group Hub</h3>
+                        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1E293B', margin: 0, fontFamily: 'var(--font-display)' }}>Group Hub</h3>
                         <p style={{ fontSize: '11px', color: '#64748B', fontWeight: 500, margin: '2px 0 0' }}>Collaborative board & session sync</p>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -3377,7 +3377,7 @@ function WorkstationContent() {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1E293B', margin: 0, fontFamily: 'var(--font-outfit)' }}>Workspace Tools</h3>
+                    <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1E293B', margin: 0, fontFamily: 'var(--font-display)' }}>Workspace Tools</h3>
                     <button onClick={() => setShowMobileTools(false)} style={{ background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}>
                       <X size={16} weight="bold" />
                     </button>
@@ -3416,7 +3416,7 @@ function WorkstationContent() {
                           }}
                         >
                           <tool.icon size={28} weight={isActive ? "fill" : "regular"} />
-                          <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'var(--font-outfit)' }}>{tool.label}</span>
+                          <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'var(--font-display)' }}>{tool.label}</span>
                         </button>
                       )
                     })}
@@ -3465,7 +3465,7 @@ function WorkstationContent() {
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#111827', fontFamily: 'var(--font-outfit)' }}>Insert equation</h3>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#111827', fontFamily: 'var(--font-display)' }}>Insert equation</h3>
                   <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#6B7280', fontFamily: WORKSTATION_FONT_STACK }}>Write LaTeX and click insert, then place it on the page.</p>
                 </div>
                 <button
@@ -3591,7 +3591,7 @@ function WorkstationContent() {
                 <Sparkle size={40} weight="fill" />
               </div>
 
-              <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#111827', marginBottom: '12px', fontFamily: 'var(--font-outfit)' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#111827', marginBottom: '12px', fontFamily: 'var(--font-display)' }}>
                 Amazing Study Session!
               </h2>
               <p style={{ color: '#64748B', fontSize: '15px', lineHeight: '1.6', marginBottom: '32px' }}>

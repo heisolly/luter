@@ -86,7 +86,7 @@ export default function ExamSessionView() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#fff', fontFamily: "'Outfit', 'Varela Round', sans-serif" }}>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#fff', fontFamily: "'DM Sans', 'Inter', sans-serif" }}>
         <Loader2 className="animate-spin" size={40} color="#7a12cc" />
         <p style={{ marginTop: 16, color: '#64748b', fontWeight: 600 }}>loading session data...</p>
       </div>
@@ -95,7 +95,7 @@ export default function ExamSessionView() {
 
   if (error || !session) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#fcfaff', padding: 20, textAlign: 'center', fontFamily: "'Outfit', 'Varela Round', sans-serif" }}>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#fcfaff', padding: 20, textAlign: 'center', fontFamily: "'DM Sans', 'Inter', sans-serif" }}>
         <div style={{ background: '#fff', padding: 48, borderRadius: 32, boxShadow: '0 20px 50px rgba(0,0,0,0.05)', maxWidth: 440, border: '1px solid #f0f0f0' }}>
           <LuterLogo size={48} fontSize={40} />
           <h2 style={{ color: '#111', fontWeight: 1000, margin: '24px 0 12px', fontSize: 28 }}>Session missing</h2>
@@ -112,7 +112,7 @@ export default function ExamSessionView() {
     <div style={{ 
       minHeight: '100vh', 
       background: '#ffffff', 
-      fontFamily: "'Outfit', 'Varela Round', sans-serif",
+      fontFamily: "'DM Sans', 'Inter', sans-serif",
       color: '#111'
     }}>
       {/* Marketing Sticky Header */}

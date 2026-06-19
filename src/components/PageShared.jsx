@@ -126,7 +126,7 @@ export const PremiumButton = ({
     borderBottom: getBorderBottom(),
     fontSize: fontSize, 
     fontWeight: fontWeight, 
-    fontFamily: 'var(--font-outfit)',
+    fontFamily: 'var(--font-display)',
     textTransform: 'none',
     letterSpacing: isLarge ? '-0.01em' : 'normal',
     textDecoration: 'none', 
@@ -234,7 +234,7 @@ export const AuthNavbar = ({ type = 'signin' }) => {
       </Link>
       
       <div className="auth-navbar-side">
-        <span style={{ fontSize: 14, fontWeight: 500, color: '#64748B', fontFamily: 'var(--font-outfit)' }}>
+        <span style={{ fontSize: 14, fontWeight: 500, color: '#64748B', fontFamily: 'var(--font-display)' }}>
           {isSignIn ? "Don't have an account?" : "Already have an account?"}
         </span>
         <PremiumButton 
@@ -335,7 +335,7 @@ export function SharedFAQ({ items = [], title = "Frequently Asked Questions", su
             color: '#111', 
             marginBottom: 16, 
             letterSpacing: '-0.02em',
-            fontFamily: 'var(--font-outfit)'
+            fontFamily: 'var(--font-display)'
           }}>
             {title}
           </h2>
@@ -343,7 +343,7 @@ export function SharedFAQ({ items = [], title = "Frequently Asked Questions", su
             fontSize: 20, 
             color: '#475569', 
             fontWeight: 500,
-            fontFamily: 'var(--font-outfit)'
+            fontFamily: 'var(--font-display)'
           }}>
             {subtitle}
           </p>
@@ -398,7 +398,7 @@ export function SharedFAQ({ items = [], title = "Frequently Asked Questions", su
                   fontWeight: 800, 
                   color: '#111', 
                   margin: 0,
-                  fontFamily: 'var(--font-outfit)',
+                  fontFamily: 'var(--font-display)',
                   lineHeight: 1.4,
                   letterSpacing: '-0.01em'
                 }}>
@@ -421,7 +421,7 @@ export function SharedFAQ({ items = [], title = "Frequently Asked Questions", su
                       lineHeight: 1.7, 
                       fontWeight: 400, 
                       margin: '0 0 0 44px',
-                      fontFamily: 'var(--font-varela)'
+                      fontFamily: 'var(--font-body)'
                     }}>
                       {item.a}
                     </p>
@@ -457,7 +457,7 @@ const NavLink = ({ label, to: href, isActive, onMouseEnter, onMouseLeave, isDark
         fontSize: 16,
         fontWeight: isActive ? 800 : 600,
         color: isDark ? (isActive ? '#c4b5fd' : '#c4b5fd') : '#2e1065',
-        fontFamily: 'var(--font-outfit)',
+        fontFamily: 'var(--font-display)',
         paddingBottom: 4,
         transition: 'color 0.2s ease',
         letterSpacing: hovered ? '0.01em' : '0',
@@ -550,7 +550,7 @@ export function SharedNavbar() {
             alignItems: 'center',
             justifyContent: 'space-between',
             boxSizing: 'border-box',
-            fontFamily: 'var(--font-outfit)',
+            fontFamily: 'var(--font-display)',
             position: 'relative',
           }}
         >
@@ -659,7 +659,7 @@ export function SharedNavbar() {
                   border: '1px solid var(--border)',
                   background: 'var(--background)',
                   cursor: 'pointer',
-                  fontFamily: 'var(--font-outfit)',
+                  fontFamily: 'var(--font-display)',
                   transition: 'background 0.2s',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.02)' }}
@@ -703,7 +703,7 @@ export function SharedNavbar() {
                         placeholder="Search Language" 
                         value={langSearch}
                         onChange={(e) => setLangSearch(e.target.value)}
-                        style={{ border: 'none', outline: 'none', fontSize: 13, width: '100%', color: '#374151', fontFamily: 'var(--font-outfit)' }} 
+                        style={{ border: 'none', outline: 'none', fontSize: 13, width: '100%', color: '#374151', fontFamily: 'var(--font-display)' }} 
                       />
                     </div>
                     <div style={{ maxHeight: 240, overflowY: 'auto', padding: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -747,7 +747,7 @@ export function SharedNavbar() {
                 display: 'flex', alignItems: 'center',
                 color: '#2e1065',
                 textDecoration: 'none',
-                fontFamily: 'var(--font-outfit)',
+                fontFamily: 'var(--font-display)',
                 transition: 'color 0.2s',
               }}
               onMouseEnter={e => { e.currentTarget.style.color = '#1e1040'; }}
@@ -765,7 +765,7 @@ export function SharedNavbar() {
                 color: '#2E1065',
                 background: '#C4B5FD',
                 textDecoration: 'none',
-                fontFamily: 'var(--font-outfit)',
+                fontFamily: 'var(--font-display)',
                 transition: 'all 0.25s ease',
               }}
               onMouseEnter={e => { 
@@ -782,7 +782,7 @@ export function SharedNavbar() {
           {/* Mobile */}
           <div className="flex md:hidden" style={{ alignItems: 'center', gap: isTinyNav ? 4 : 8 }}>
             <ThemeToggle />
-            <Link to={getAppUrl('/signup')} style={{ fontSize: isSmallNav ? 13 : 14, fontWeight: 600, padding: isSmallNav ? '0 12px' : '0 16px', height: isSmallNav ? 36 : 40, display: isTinyNav ? 'none' : 'flex', alignItems: 'center', borderRadius: 100, color: '#2E1065', background: '#C4B5FD', textDecoration: 'none', fontFamily: 'var(--font-outfit)' }}>Start free</Link>
+            <Link to={getAppUrl('/signup')} style={{ fontSize: isSmallNav ? 13 : 14, fontWeight: 600, padding: isSmallNav ? '0 12px' : '0 16px', height: isSmallNav ? 36 : 40, display: isTinyNav ? 'none' : 'flex', alignItems: 'center', borderRadius: 100, color: '#2E1065', background: '#C4B5FD', textDecoration: 'none', fontFamily: 'var(--font-display)' }}>Start free</Link>
             <button onClick={() => setIsOpen(!isOpen)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: isSmallNav ? 36 : 40, height: isSmallNav ? 36 : 40, borderRadius: '50%', background: scrolled ? 'rgba(0,0,0,0.04)' : 'transparent', border: 'none', cursor: 'pointer', transition: 'background 0.2s' }} aria-label={isOpen ? 'Close menu' : 'Open menu'}>
               <Menu size={22} weight="light" color="#374151" />
             </button>
@@ -807,7 +807,7 @@ export function SharedNavbar() {
               display: 'flex',
               flexDirection: 'column',
               padding: '110px 24px 40px',
-              fontFamily: 'var(--font-varela)'
+              fontFamily: 'var(--font-body)'
             }}
           >
             {/* Top divider line */}
@@ -840,7 +840,7 @@ export function SharedNavbar() {
                       borderRadius: 24,
                       background: 'rgba(0,0,0,0.02)',
                       border: '1px solid rgba(0,0,0,0.03)',
-                      fontFamily: 'var(--font-outfit)'
+                      fontFamily: 'var(--font-display)'
                     }}
                   >
                     <div style={{ 
@@ -868,8 +868,8 @@ export function SharedNavbar() {
                 padding: 20, borderRadius: 24, marginBottom: 20,
                 border: '1px solid rgba(75, 0, 130, 0.1)'
               }}>
-                <h4 style={{ fontSize: 16, fontWeight: 800, color: '#111', marginBottom: 4, fontFamily: 'var(--font-outfit)' }}>Level Up Your Grades</h4>
-                <p style={{ fontSize: 13, color: '#111', opacity: 0.7, fontWeight: 500, fontFamily: 'var(--font-varela)' }}>Join 5M+ students using AI to master their curriculum.</p>
+                <h4 style={{ fontSize: 16, fontWeight: 800, color: '#111', marginBottom: 4, fontFamily: 'var(--font-display)' }}>Level Up Your Grades</h4>
+                <p style={{ fontSize: 13, color: '#111', opacity: 0.7, fontWeight: 500, fontFamily: 'var(--font-body)' }}>Join 5M+ students using AI to master their curriculum.</p>
               </div>
               <PremiumButton to={getAppUrl("/signup")} onClick={() => setIsOpen(false)} style={{ width: '100%', height: '56px' }}>
                 Start Free Today
@@ -900,17 +900,17 @@ export function StyledFAQ({ items = [] }) {
       radial-gradient(ellipse 80% 60% at 100% 50%, rgba(113,128,254,0.10) 0%, transparent 60%),
       radial-gradient(ellipse 70% 70% at 50%  0%,  rgba(196,181,253,0.14) 0%, transparent 55%),
       #FAF8FF
-    `, fontFamily: "'Outfit', sans-serif" }}>
+    `, fontFamily: "'DM Sans', sans-serif" }}>
       <div style={{ maxWidth: 900, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 80 }}>
           <h2 style={{
             fontSize: 'clamp(2rem,4.5vw,3rem)', fontWeight: 800,
-            color: 'var(--foreground)', fontFamily: "'Outfit', sans-serif",
+            color: 'var(--foreground)', fontFamily: "'DM Sans', sans-serif",
             letterSpacing: '-0.03em', lineHeight: 1.2, margin: 0, marginBottom: 16
           }}>
             Frequently Asked Questions
           </h2>
-          <p style={{ fontSize: 16, color: '#6B7280', fontFamily: "'Outfit', sans-serif", fontWeight: 500 }}>
+          <p style={{ fontSize: 16, color: '#6B7280', fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
             Everything you need to know about Luter
           </p>
         </div>
@@ -952,7 +952,7 @@ export function StyledFAQ({ items = [] }) {
                       transition={{ duration: 0.2 }}
                       style={{ overflow: 'hidden' }}
                     >
-                      <p style={{ fontSize: 15, color: '#374151', lineHeight: 1.7, fontWeight: 500, margin: 0, fontFamily: "'Outfit', sans-serif" }}>
+                      <p style={{ fontSize: 15, color: '#374151', lineHeight: 1.7, fontWeight: 500, margin: 0, fontFamily: "'DM Sans', sans-serif" }}>
                         {item.a}
                       </p>
                     </motion.div>
@@ -979,7 +979,7 @@ export function SharedFooter() {
     <footer style={{
       background: 'var(--background)',
       color: 'var(--foreground)',
-      fontFamily: 'var(--font-outfit)',
+      fontFamily: 'var(--font-display)',
       borderTop: '1px solid rgba(0,0,0,0.06)',
       position: 'relative',
       overflow: 'hidden',
@@ -1034,11 +1034,11 @@ export function SharedFooter() {
       {/* Main CTA Area */}
       <div style={{ padding: '120px 24px', position: 'relative', zIndex: 10, maxWidth: 1000, margin: '0 auto', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         
-        <h2 style={{ fontFamily: 'var(--font-outfit)', fontSize: 'clamp(2.5rem, 6.5vw, 4.8rem)', fontWeight: 800, color: 'var(--foreground)', lineHeight: 1.1, letterSpacing: '-0.03em', marginBottom: 24 }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.5rem, 6.5vw, 4.8rem)', fontWeight: 800, color: 'var(--foreground)', lineHeight: 1.1, letterSpacing: '-0.03em', marginBottom: 24 }}>
           Ready to ace<br />your next exam?
         </h2>
         
-        <p style={{ fontFamily: 'var(--font-varela)', fontSize: '1.25rem', color: 'var(--foreground)', maxWidth: 620, margin: '0 auto 48px', lineHeight: 1.7, opacity: 0.7 }}>
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: '1.25rem', color: 'var(--foreground)', maxWidth: 620, margin: '0 auto 48px', lineHeight: 1.7, opacity: 0.7 }}>
           Stop wasting time on inefficient study methods. Let our AI turn your notes into absolute mastery.
         </p>
         

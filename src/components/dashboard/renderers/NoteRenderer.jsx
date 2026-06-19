@@ -72,7 +72,7 @@ export default function NoteRenderer({ material, activeTab, analysisState, onRun
   const renderContent = () => {
     if (activeTab === 'content') {
       return (
-        <div style={{ fontFamily: 'Outfit', color: '#4C1D95', lineHeight: 1.8, maxWidth: '800px', margin: '0 auto' }}>
+        <div style={{ fontFamily: 'DM Sans', color: '#4C1D95', lineHeight: 1.8, maxWidth: '800px', margin: '0 auto' }}>
           <h1 className="ws-heading" style={{ fontSize: '32px', marginBottom: '24px' }}>{material.title}</h1>
           <div style={{ whiteSpace: 'pre-wrap' }}>
             {material.extracted_text ? (
@@ -91,7 +91,7 @@ export default function NoteRenderer({ material, activeTab, analysisState, onRun
       return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '16px' }}>
           <Loader2 className="animate-spin" color="#7a12cc" size={32} />
-          <p style={{ fontFamily: 'Outfit', color: '#4C1D95', fontWeight: 600 }}>Luter is thinking...</p>
+          <p style={{ fontFamily: 'DM Sans', color: '#4C1D95', fontWeight: 600 }}>Luter is thinking...</p>
         </div>
       )
     }
@@ -223,7 +223,7 @@ export default function NoteRenderer({ material, activeTab, analysisState, onRun
                  placeholder="Type your answer here..."
                  value={userAnswers[currentIdx] || ''}
                  onChange={(e) => setUserAnswers(prev => ({ ...prev, [currentIdx]: e.target.value }))}
-                 style={{ width: '100%', padding: '20px', borderRadius: '16px', border: '1.5px solid #E2E8F0', background: '#F8FAFC', outline: 'none', fontSize: '15px', minHeight: '120px', resize: 'none', fontFamily: 'Outfit' }}
+                 style={{ width: '100%', padding: '20px', borderRadius: '16px', border: '1.5px solid #E2E8F0', background: '#F8FAFC', outline: 'none', fontSize: '15px', minHeight: '120px', resize: 'none', fontFamily: 'DM Sans' }}
                />
                
                {showExplanation && (

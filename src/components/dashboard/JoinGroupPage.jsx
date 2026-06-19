@@ -69,7 +69,7 @@ export default function JoinGroupPage() {
       justifyContent: 'center',
       background: '#fff',
       padding: 24,
-      fontFamily: "'Outfit', sans-serif"
+      fontFamily: "'DM Sans', sans-serif"
     }}>
       {loading ? (
         <div style={{ textAlign: 'center' }}>

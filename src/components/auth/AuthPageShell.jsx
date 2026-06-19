@@ -68,7 +68,7 @@ export default function AuthPageShell({
             radial-gradient(circle at 88% 82%, rgba(152, 255, 152, 0.22) 0%, transparent 32%),
             #F9FAFB;
           color: #333333;
-          font-family: var(--font-varela);
+          font-family: var(--font-body);
         }
 
         .auth-love-background {
@@ -155,7 +155,7 @@ export default function AuthPageShell({
         .auth-simple-copy h1 {
           margin: 0;
           color: #333333;
-          font-family: var(--font-outfit);
+          font-family: var(--font-display);
           font-size: clamp(2rem, 5vw, 2.65rem);
           line-height: 1.05;
           letter-spacing: -0.035em;
@@ -212,7 +212,7 @@ export default function AuthPageShell({
           justify-content: center;
           border-radius: 999px;
           color: rgba(51, 51, 51, 0.72);
-          font-family: var(--font-outfit);
+          font-family: var(--font-display);
           font-size: 14px;
           font-weight: 800;
           text-decoration: none;
@@ -282,7 +282,7 @@ export default function AuthPageShell({
           padding: 0 18px 0 48px;
           font-size: 15px;
           font-weight: 700;
-          font-family: var(--font-varela);
+          font-family: var(--font-body);
           outline: none;
           transition: border-color 0.2s ease, box-shadow 0.2s ease;
           box-sizing: border-box;
@@ -304,7 +304,7 @@ export default function AuthPageShell({
           gap: 12px;
           margin: 16px 0;
           color: rgba(51, 51, 51, 0.68);
-          font-family: var(--font-outfit);
+          font-family: var(--font-display);
           font-size: 13px;
           font-weight: 800;
         }
@@ -387,7 +387,7 @@ export default function AuthPageShell({
         .auth-success-card h2 {
           margin: 0 0 12px;
           color: #333333;
-          font-family: var(--font-outfit);
+          font-family: var(--font-display);
           font-size: 32px;
           line-height: 1;
           letter-spacing: -0.03em;

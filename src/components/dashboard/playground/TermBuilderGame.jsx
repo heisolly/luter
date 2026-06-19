@@ -266,7 +266,7 @@ export default function TermBuilderGame({ room, participants, user, deck, onExit
       maxWidth: 800, 
       margin: '0 auto', 
       padding: '12px', 
-      fontFamily: "'Outfit', sans-serif",
+      fontFamily: "'DM Sans', sans-serif",
       boxSizing: 'border-box'
     }}>
       {room.created_by && (
@@ -294,7 +294,7 @@ export default function TermBuilderGame({ room, participants, user, deck, onExit
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time</div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#1e293b', fontVariantNumeric: 'tabular-nums', fontFamily: "'Outfit', sans-serif" }}>{timeElapsed.toFixed(1)}s</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: '#1e293b', fontVariantNumeric: 'tabular-nums', fontFamily: "'DM Sans', sans-serif" }}>{timeElapsed.toFixed(1)}s</div>
           </div>
         </div>
 

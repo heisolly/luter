@@ -39,7 +39,7 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <div style={{ minHeight: '100vh', background: '#ffffff', color: '#111', position: 'relative', fontFamily: 'var(--font-varela)' }}>
+    <div style={{ minHeight: '100vh', background: '#ffffff', color: '#111', position: 'relative', fontFamily: 'var(--font-body)' }}>
       <PageBackground />
       <SharedNavbar />
 
@@ -58,7 +58,7 @@ export default function HowItWorks() {
           </RevealDiv>
           
           <RevealDiv delay={0.1}>
-            <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', fontWeight: 800, color: '#111', marginBottom: 32, lineHeight: 1.1, letterSpacing: '-0.04em', fontFamily: 'var(--font-outfit)' }}>
+            <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', fontWeight: 800, color: '#111', marginBottom: 32, lineHeight: 1.1, letterSpacing: '-0.04em', fontFamily: 'var(--font-display)' }}>
               From complex data to <br /><span style={{ background: 'linear-gradient(to right, #A855F7, #4B0082)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>effortless understanding.</span>
             </h1>
           </RevealDiv>
@@ -98,10 +98,10 @@ export default function HowItWorks() {
                   }}>
                     {step.icon}
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: step.iconColor, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12, fontFamily: 'var(--font-outfit)' }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: step.iconColor, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12, fontFamily: 'var(--font-display)' }}>
                     Step 0{idx + 1}
                   </div>
-                  <h3 style={{ fontSize: 26, fontWeight: 800, color: '#111', marginBottom: 16, fontFamily: 'var(--font-outfit)' }}>{step.title}</h3>
+                  <h3 style={{ fontSize: 26, fontWeight: 800, color: '#111', marginBottom: 16, fontFamily: 'var(--font-display)' }}>{step.title}</h3>
                   <p style={{ fontSize: 17, color: '#64748B', lineHeight: 1.6, fontWeight: 500 }}>{step.desc}</p>
                 </div>
               </RevealDiv>
@@ -119,7 +119,7 @@ export default function HowItWorks() {
               borderRadius: 40, padding: '100px 40px', textAlign: 'center',
               boxShadow: '0 30px 60px rgba(75, 0, 130, 0.2)'
             }}>
-              <h2 style={{ fontSize: 42, fontWeight: 800, color: 'white', marginBottom: 24, fontFamily: 'var(--font-outfit)' }}>Stop studying hard. Start studying smart.</h2>
+              <h2 style={{ fontSize: 42, fontWeight: 800, color: 'white', marginBottom: 24, fontFamily: 'var(--font-display)' }}>Stop studying hard. Start studying smart.</h2>
               <p style={{ fontSize: 19, color: 'rgba(255,255,255,0.9)', fontWeight: 500, marginBottom: 48, maxWidth: 600, margin: '0 auto 48px' }}>
                 Join thousands of students who have automated their learning workflow with Luter.
               </p>

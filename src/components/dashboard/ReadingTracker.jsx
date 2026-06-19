@@ -333,7 +333,7 @@ export default function ReadingTracker({ material, activeTab, onProgressUpdate }
     return (
       <div style={{ 
         padding: '16px 24px', 
-        fontFamily: 'Outfit, sans-serif',
+        fontFamily: 'DM Sans, sans-serif',
         background: '#F8FAFC',
         height: '100%',
         overflow: 'auto'
@@ -496,7 +496,7 @@ export default function ReadingTracker({ material, activeTab, onProgressUpdate }
   return (
     <div style={{ 
       padding: '24px', 
-      fontFamily: 'Outfit, sans-serif',
+      fontFamily: 'DM Sans, sans-serif',
       background: '#F8FAFC',
       minHeight: '100vh'
     }}>

@@ -160,13 +160,13 @@ const PathCalculator = () => {
       ctx.fill();
     }
     ctx.fillStyle = '#7c3aed';
-    ctx.font = 'bold 18px Outfit';
+    ctx.font = 'bold 18px DM Sans';
     ctx.textAlign = 'center';
     ctx.fillText('CERTIFIED ACADEMIC PATH', 600, 212);
 
     // Title
     ctx.fillStyle = '#1e1b4b';
-    ctx.font = 'bold 64px Outfit';
+    ctx.font = 'bold 64px DM Sans';
     ctx.fillText('Commitment to Excellence', 600, 320);
     
     ctx.fillStyle = '#64748b';
@@ -184,11 +184,11 @@ const PathCalculator = () => {
     }
 
     ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.font = 'bold 20px Outfit';
+    ctx.font = 'bold 20px DM Sans';
     ctx.fillText('TARGET GRADUATION CGPA', 600, 520);
     
     ctx.fillStyle = 'white';
-    ctx.font = 'bold 180px Outfit';
+    ctx.font = 'bold 180px DM Sans';
     ctx.fillText(targetCGPA, 600, 700);
 
     // Requirements
@@ -201,12 +201,12 @@ const PathCalculator = () => {
     }
 
     ctx.fillStyle = '#94a3b8';
-    ctx.font = 'bold 16px Outfit';
+    ctx.font = 'bold 16px DM Sans';
     ctx.fillText('REQUIRED GPA', 440, 840);
     ctx.fillText('REMAINING', 760, 840);
 
     ctx.fillStyle = '#1e1b4b';
-    ctx.font = 'bold 36px Outfit';
+    ctx.font = 'bold 36px DM Sans';
     ctx.fillText(requiredGPA?.toFixed(2), 440, 890);
     ctx.fillText(`${totalSemesters - semestersCompleted} Sem`, 760, 890);
 
@@ -218,15 +218,15 @@ const PathCalculator = () => {
       ctx.fill();
     }
     ctx.fillStyle = 'white';
-    ctx.font = 'bold 32px Outfit';
+    ctx.font = 'bold 32px DM Sans';
     ctx.fillText('L', 525, 1038);
 
     ctx.fillStyle = '#1e1b4b';
     ctx.textAlign = 'left';
-    ctx.font = 'bold 24px Outfit';
+    ctx.font = 'bold 24px DM Sans';
     ctx.fillText('Luter Academy', 570, 1025);
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '16px Varela Round';
+    ctx.font = '16px Inter';
     ctx.fillText('Verified Roadmap', 570, 1045);
 
     // Final Download
@@ -284,7 +284,7 @@ const PathCalculator = () => {
             color: '#64748b', 
             textTransform: 'uppercase', 
             letterSpacing: '0.1em',
-            fontFamily: 'var(--font-outfit)',
+            fontFamily: 'var(--font-display)',
             display: 'flex',
             alignItems: 'center',
             gap: 8
@@ -300,7 +300,7 @@ const PathCalculator = () => {
             style={{
               fontSize: 13,
               fontWeight: 800,
-              fontFamily: 'var(--font-outfit)',
+              fontFamily: 'var(--font-display)',
               padding: '6px 16px',
               borderRadius: 12,
               textTransform: 'uppercase',
@@ -344,7 +344,7 @@ const PathCalculator = () => {
           color: '#64748b',
           textTransform: 'uppercase',
           letterSpacing: '0.05em',
-          fontFamily: 'var(--font-outfit)'
+          fontFamily: 'var(--font-display)'
         }}>
           <span>Minimum Effort</span>
           <span>Maximum Effort</span>
@@ -354,7 +354,7 @@ const PathCalculator = () => {
   };
 
   return (
-    <div ref={containerRef} style={{ minHeight: '100vh', background: '#ffffff', color: '#111', position: 'relative', fontFamily: 'var(--font-varela)' }}>
+    <div ref={containerRef} style={{ minHeight: '100vh', background: '#ffffff', color: '#111', position: 'relative', fontFamily: 'var(--font-body)' }}>
       <PageBackground />
       <SharedNavbar />
 
@@ -375,7 +375,7 @@ const PathCalculator = () => {
             <h1 style={{ 
               fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', 
               fontWeight: 300, 
-              fontFamily: 'var(--font-outfit)', 
+              fontFamily: 'var(--font-display)', 
               color: '#111', 
               marginBottom: 24, 
               lineHeight: 1.1, 
@@ -394,7 +394,7 @@ const PathCalculator = () => {
               margin: '0 auto 48px', 
               fontWeight: 300, 
               lineHeight: 1.8,
-              fontFamily: 'var(--font-outfit)',
+              fontFamily: 'var(--font-display)',
               letterSpacing: '0.005em'
             }}>
               Calculate your exact semester-by-semester GPA needed to reach your graduation goal.
@@ -431,7 +431,7 @@ const PathCalculator = () => {
                   fontWeight: 800,
                   color: '#64748b',
                   marginBottom: 16,
-                  fontFamily: 'var(--font-outfit)',
+                  fontFamily: 'var(--font-display)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.1em'
                 }}>
@@ -451,7 +451,7 @@ const PathCalculator = () => {
                     border: '2px solid #f1f5f9',
                     borderRadius: 24,
                     fontSize: 18,
-                    fontFamily: 'var(--font-outfit)',
+                    fontFamily: 'var(--font-display)',
                     transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                     background: '#ffffff',
                     fontWeight: 700,
@@ -480,7 +480,7 @@ const PathCalculator = () => {
                   fontWeight: 800,
                   color: '#64748b',
                   marginBottom: 16,
-                  fontFamily: 'var(--font-outfit)',
+                  fontFamily: 'var(--font-display)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.1em'
                 }}>
@@ -500,7 +500,7 @@ const PathCalculator = () => {
                     border: '2px solid #f1f5f9',
                     borderRadius: 24,
                     fontSize: 18,
-                    fontFamily: 'var(--font-outfit)',
+                    fontFamily: 'var(--font-display)',
                     transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                     background: '#ffffff',
                     fontWeight: 700,
@@ -529,7 +529,7 @@ const PathCalculator = () => {
                   fontWeight: 800,
                   color: '#64748b',
                   marginBottom: 16,
-                  fontFamily: 'var(--font-outfit)',
+                  fontFamily: 'var(--font-display)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.1em'
                 }}>
@@ -548,7 +548,7 @@ const PathCalculator = () => {
                     border: '2px solid #f1f5f9',
                     borderRadius: 24,
                     fontSize: 18,
-                    fontFamily: 'var(--font-outfit)',
+                    fontFamily: 'var(--font-display)',
                     transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                     background: '#ffffff',
                     fontWeight: 700,
@@ -577,7 +577,7 @@ const PathCalculator = () => {
                   fontWeight: 800,
                   color: '#64748b',
                   marginBottom: 16,
-                  fontFamily: 'var(--font-outfit)',
+                  fontFamily: 'var(--font-display)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.1em'
                 }}>
@@ -592,7 +592,7 @@ const PathCalculator = () => {
                     border: '2px solid #f1f5f9',
                     borderRadius: 24,
                     fontSize: 18,
-                    fontFamily: 'var(--font-outfit)',
+                    fontFamily: 'var(--font-display)',
                     transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                     background: '#ffffff',
                     fontWeight: 700,
@@ -641,7 +641,7 @@ const PathCalculator = () => {
                 gap: 8, 
                 color: '#94a3b8', 
                 fontSize: 14,
-                fontFamily: 'var(--font-varela)'
+                fontFamily: 'var(--font-body)'
               }}>
                 <Lightning size={16} weight="fill" color="#fbbf24" />
                 AI-Powered Strategic Planning
@@ -715,7 +715,7 @@ const PathCalculator = () => {
                         fontWeight: 800,
                         color: '#92400e',
                         marginBottom: 16,
-                        fontFamily: 'var(--font-outfit)',
+                        fontFamily: 'var(--font-display)',
                         letterSpacing: '-0.02em'
                       }}>
                         Let's Refine the Goal
@@ -724,7 +724,7 @@ const PathCalculator = () => {
                         fontSize: 18,
                         color: '#78350f',
                         marginBottom: 40,
-                        fontFamily: 'var(--font-varela)',
+                        fontFamily: 'var(--font-body)',
                         lineHeight: 1.7,
                         maxWidth: 500,
                         margin: '0 auto 40px',
@@ -770,7 +770,7 @@ const PathCalculator = () => {
                         fontWeight: 800,
                         color: '#1e1b4b',
                         marginBottom: 12,
-                        fontFamily: 'var(--font-outfit)',
+                        fontFamily: 'var(--font-display)',
                         letterSpacing: '-0.03em'
                       }}>
                         The Success Path
@@ -779,7 +779,7 @@ const PathCalculator = () => {
                         fontSize: 18,
                         color: '#64748b',
                         marginBottom: 50,
-                        fontFamily: 'var(--font-varela)',
+                        fontFamily: 'var(--font-body)',
                         lineHeight: 1.6
                       }}>
                         A strategic roadmap to secure your <span style={{ color: '#7c3aed', fontWeight: 700 }}>{targetCGPA} CGPA</span>
@@ -862,7 +862,7 @@ const PathCalculator = () => {
                                     fontSize: isCurrent ? 16 : 14,
                                     fontWeight: 800,
                                     color: isCompleted || isCurrent ? 'white' : '#94a3b8',
-                                    fontFamily: 'var(--font-outfit)'
+                                    fontFamily: 'var(--font-display)'
                                   }}>
                                     S{semesterNum}
                                   </span>
@@ -898,7 +898,7 @@ const PathCalculator = () => {
                                         borderRadius: 8,
                                         fontSize: 12,
                                         fontWeight: 700,
-                                        fontFamily: 'var(--font-outfit)',
+                                        fontFamily: 'var(--font-display)',
                                         boxShadow: isCurrent ? '0 4px 10px rgba(124, 58, 237, 0.2)' : 'none',
                                         border: isCurrent ? 'none' : '1px solid #e2e8f0'
                                       }}
@@ -942,14 +942,14 @@ const PathCalculator = () => {
                               fontWeight: 800,
                               color: '#1e1b4b',
                               marginBottom: 4,
-                              fontFamily: 'var(--font-outfit)'
+                              fontFamily: 'var(--font-display)'
                             }}>
                               Target: {targetCGPA} CGPA
                             </h4>
                             <p style={{
                               fontSize: 15,
                               color: '#64748b',
-                              fontFamily: 'var(--font-varela)',
+                              fontFamily: 'var(--font-body)',
                               margin: 0,
                               lineHeight: 1.5
                             }}>
@@ -978,7 +978,7 @@ const PathCalculator = () => {
                             borderRadius: 20,
                             fontSize: 16,
                             fontWeight: 700,
-                            fontFamily: 'var(--font-outfit)',
+                            fontFamily: 'var(--font-display)',
                             cursor: 'pointer',
                             boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
                             display: 'flex',
@@ -1002,7 +1002,7 @@ const PathCalculator = () => {
                             borderRadius: 20,
                             fontSize: 16,
                             fontWeight: 700,
-                            fontFamily: 'var(--font-outfit)',
+                            fontFamily: 'var(--font-display)',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -1110,7 +1110,7 @@ const PathCalculator = () => {
                     textTransform: 'uppercase',
                     letterSpacing: '0.1em',
                     marginBottom: 24,
-                    fontFamily: 'var(--font-outfit)'
+                    fontFamily: 'var(--font-display)'
                   }}>
                     <Star size={16} weight="fill" />
                     Certified Academic Path
@@ -1121,7 +1121,7 @@ const PathCalculator = () => {
                     fontWeight: 800,
                     color: '#1e1b4b',
                     marginBottom: 8,
-                    fontFamily: 'var(--font-outfit)',
+                    fontFamily: 'var(--font-display)',
                     letterSpacing: '-0.02em'
                   }}>
                     Commitment to Excellence
@@ -1130,7 +1130,7 @@ const PathCalculator = () => {
                     fontSize: 16,
                     color: '#64748b',
                     marginBottom: 32,
-                    fontFamily: 'var(--font-varela)'
+                    fontFamily: 'var(--font-body)'
                   }}>
                     A verified roadmap for academic distinction
                   </p>
@@ -1145,7 +1145,7 @@ const PathCalculator = () => {
                     boxShadow: '0 20px 40px rgba(30, 27, 75, 0.2)'
                   }}>
                     <div style={{ fontSize: 14, fontWeight: 700, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Target Graduation CGPA</div>
-                    <div style={{ fontSize: 72, fontWeight: 800, fontFamily: 'var(--font-outfit)', lineHeight: 1 }}>{targetCGPA}</div>
+                    <div style={{ fontSize: 72, fontWeight: 800, fontFamily: 'var(--font-display)', lineHeight: 1 }}>{targetCGPA}</div>
                     <div style={{ 
                       display: 'inline-flex', 
                       alignItems: 'center', 
@@ -1171,11 +1171,11 @@ const PathCalculator = () => {
                   }}>
                     <div style={{ background: '#f8fafc', padding: '20px', borderRadius: 20, border: '1px solid #f1f5f9' }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 }}>Required GPA</div>
-                      <div style={{ fontSize: 24, fontWeight: 800, color: '#1e1b4b', fontFamily: 'var(--font-outfit)' }}>{requiredGPA?.toFixed(2)}</div>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: '#1e1b4b', fontFamily: 'var(--font-display)' }}>{requiredGPA?.toFixed(2)}</div>
                     </div>
                     <div style={{ background: '#f8fafc', padding: '20px', borderRadius: 20, border: '1px solid #f1f5f9' }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 }}>Remaining</div>
-                      <div style={{ fontSize: 24, fontWeight: 800, color: '#1e1b4b', fontFamily: 'var(--font-outfit)' }}>{totalSemesters - semestersCompleted} Sem</div>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: '#1e1b4b', fontFamily: 'var(--font-display)' }}>{totalSemesters - semestersCompleted} Sem</div>
                     </div>
                   </div>
 
@@ -1217,7 +1217,7 @@ const PathCalculator = () => {
                     fontSize: 15,
                     fontWeight: 700,
                     cursor: 'pointer',
-                    fontFamily: 'var(--font-outfit)',
+                    fontFamily: 'var(--font-display)',
                     transition: 'all 0.2s ease'
                   }}
                   onMouseEnter={(e) => e.target.style.background = '#f8fafc'}

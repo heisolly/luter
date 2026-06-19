@@ -150,7 +150,7 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
 
   if (!material?.extracted_text) {
     return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: bgColor, fontFamily: 'Outfit, sans-serif' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: bgColor, fontFamily: 'DM Sans, sans-serif' }}>
         <p style={{ color: subTextColor }}>No document content available to generate a quiz.</p>
       </div>
     );
@@ -174,7 +174,7 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
           <h2 style={{ fontFamily: '"Lora", serif', fontWeight: 700, fontSize: '28px', color: textColor, margin: '0 0 12px 0' }}>
             Shared Study Sheet
           </h2>
-          <p style={{ fontFamily: 'Outfit, sans-serif', color: subTextColor, fontSize: '16px', lineHeight: 1.5, margin: '0 0 32px 0' }}>
+          <p style={{ fontFamily: 'DM Sans, sans-serif', color: subTextColor, fontSize: '16px', lineHeight: 1.5, margin: '0 0 32px 0' }}>
             Generate a collaborative quiz. Everyone in the workspace will vote on the answers in real-time.
           </p>
           
@@ -185,7 +185,7 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
               backgroundColor: isDark ? '#E5E5EA' : '#1C1C1E',
               color: isDark ? '#1C1C1E' : '#FFFFFF',
               border: 'none', padding: '16px 32px', borderRadius: '4px',
-              fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '16px',
+              fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px',
               cursor: isGenerating ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
               width: '100%', transition: 'transform 0.1s',
@@ -198,7 +198,7 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
           </button>
         </div>
         <style dangerouslySetInnerHTML={{__html: `
-          @import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&display=swap');
           @keyframes spin { 100% { transform: rotate(360deg); } }
           .spin-animation { animation: spin 1.5s linear infinite; }
         `}} />
@@ -232,7 +232,7 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
         }} />
 
         {/* Top Meta Info */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', fontFamily: 'Outfit, sans-serif' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', fontFamily: 'DM Sans, sans-serif' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: subTextColor, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>
             <div style={{ width: '8px', height: '8px', backgroundColor: '#FF3B30', borderRadius: '50%' }} />
             Live Sync
@@ -285,7 +285,7 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '16px 24px', borderRadius: '4px',
                   backgroundColor: optBg, border: optBorder, color: optTextColor,
-                  fontFamily: 'Outfit, sans-serif', fontSize: '18px', fontWeight: 500,
+                  fontFamily: 'DM Sans, sans-serif', fontSize: '18px', fontWeight: 500,
                   cursor: showAnswer ? 'default' : 'pointer', transition: 'all 0.1s',
                   textAlign: 'left', minHeight: '64px'
                 }}
@@ -336,7 +336,7 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
             border: `2px dashed ${isDark ? '#48484A' : '#D1D1D6'}`,
             backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'
           }}>
-            <h4 style={{ margin: '0 0 8px 0', fontFamily: 'Outfit, sans-serif', fontWeight: 800, color: textColor }}>
+            <h4 style={{ margin: '0 0 8px 0', fontFamily: 'DM Sans, sans-serif', fontWeight: 800, color: textColor }}>
               Explanation
             </h4>
             <p style={{ margin: 0, fontFamily: '"Lora", serif', fontSize: '16px', lineHeight: 1.6, color: subTextColor }}>
@@ -347,7 +347,7 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
 
         {/* Action Bar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '40px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: subTextColor, fontFamily: 'Outfit, sans-serif', fontSize: '14px', fontWeight: 600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: subTextColor, fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 600 }}>
             <Users size={20} weight="fill" />
             {others.length} peers in room
           </div>
@@ -358,7 +358,7 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
               style={{
                 backgroundColor: 'transparent', color: textColor,
                 border: `2px solid ${isDark ? '#E5E5EA' : '#1C1C1E'}`, padding: '12px 24px', borderRadius: '4px',
-                fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '16px',
+                fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px'
               }}
             >
@@ -370,7 +370,7 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
               style={{
                 backgroundColor: isDark ? '#E5E5EA' : '#1C1C1E', color: isDark ? '#1C1C1E' : '#FFFFFF',
                 border: 'none', padding: '12px 24px', borderRadius: '4px',
-                fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '16px',
+                fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px'
               }}
             >

@@ -83,8 +83,8 @@ body.dark-mode {
 
 ## 4. Typography
 
-- **Primary Font:** `Outfit` (Google Fonts) — import at `?family=Outfit:wght@400;500;600;700;800;900`
-- **Fallback:** `Inter`, `sans-serif`
+- **Display Font:** `DM Sans` (Google Fonts) — import at `?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000` (used for headings, hero text, buttons)
+- **Body Font:** `Inter` (Google Fonts) — import at `?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900` (used for body copy, small UI, inputs)
 
 ### Scale
 

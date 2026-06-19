@@ -50,7 +50,7 @@ export default function PublicFlashcardView() {
   if (error) {
     return (
       <div style={{ display: 'flex', height: '100vh', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAFAFA', gap: '16px' }}>
-        <h2 style={{ fontFamily: 'Outfit, sans-serif', color: '#111827' }}>Oops, we couldn't load this pack.</h2>
+        <h2 style={{ fontFamily: 'DM Sans, sans-serif', color: '#111827' }}>Oops, we couldn't load this pack.</h2>
         <p style={{ color: '#6B7280' }}>The link might be invalid or the creator removed it.</p>
         <Link to="/" style={{ color: '#6366F1', fontWeight: 600, textDecoration: 'none' }}>Go back to home</Link>
       </div>
@@ -68,10 +68,10 @@ export default function PublicFlashcardView() {
         zIndex: 50
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontFamily: 'Outfit' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontFamily: 'DM Sans' }}>
             L
           </div>
-          <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: '18px', color: '#111827' }}>
+          <span style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '18px', color: '#111827' }}>
             {material?.title || 'Shared Flashcards'}
           </span>
         </div>

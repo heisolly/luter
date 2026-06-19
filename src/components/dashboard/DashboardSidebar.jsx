@@ -221,7 +221,7 @@ export default function DashboardSidebar({
         />
         <span style={{
           display: 'none', fontWeight: 900, fontSize: 22,
-          color: '#7a12cc', fontFamily: 'Outfit, Inter, sans-serif'
+          color: '#7a12cc', fontFamily: 'DM Sans, Inter, sans-serif'
         }}>
           Luter
         </span>

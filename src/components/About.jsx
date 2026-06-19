@@ -81,7 +81,7 @@ export default function About() {
   const containerRef = useRef(null);
 
   return (
-    <div ref={containerRef} className={isDark ? 'dark' : ''} style={{ background: 'var(--background)', minHeight: '100vh', color: 'var(--foreground)', fontFamily: 'var(--font-outfit)', paddingTop: 72, overflowX: 'hidden' }}>
+    <div ref={containerRef} className={isDark ? 'dark' : ''} style={{ background: 'var(--background)', minHeight: '100vh', color: 'var(--foreground)', fontFamily: 'var(--font-body)', paddingTop: 72, overflowX: 'hidden' }}>
       <SharedNavbar />
 
       {/* ── HERO ── */}
@@ -102,7 +102,7 @@ export default function About() {
         </motion.div>
 
         <motion.h1 initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.1, ease: 'easeOut' }}
-          style={{ fontFamily: 'var(--font-outfit)', fontSize: 'clamp(2.8rem, 7vw, 5.2rem)', fontWeight: 800, color: 'var(--foreground)', lineHeight: 1.15, letterSpacing: '-0.03em', marginBottom: 32, maxWidth: 900 }}>
+          style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.8rem, 7vw, 5.2rem)', fontWeight: 800, color: 'var(--foreground)', lineHeight: 1.15, letterSpacing: '-0.03em', marginBottom: 32, maxWidth: 900 }}>
           We're on a mission to make
           <br />
           <WaveBadge text="every student" badgeStyle={{ background: '#C4B5FD', color: '#2E1065', border: '2px solid rgba(167,139,250,0.8)', borderBottom: '6px solid rgba(167,139,250,1)', transform: 'rotate(-1.5deg)', boxShadow: '0 8px 16px rgba(167,139,250,0.15)' }} />
@@ -110,7 +110,7 @@ export default function About() {
         </motion.h1>
 
         <motion.p initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }}
-          style={{ fontFamily: 'var(--font-varela)', fontSize: '1.2rem', color: 'var(--tt-gray-light-a-600)', maxWidth: 620, margin: '0 auto 56px', lineHeight: 1.8 }}>
+          style={{ fontFamily: 'var(--font-body)', fontSize: '1.2rem', color: 'var(--tt-gray-light-a-600)', maxWidth: 620, margin: '0 auto 56px', lineHeight: 1.8 }}>
           Luter started with a simple belief: great learning tools shouldn't be complicated. They should work quietly in the background, letting you focus on what matters most — understanding.
         </motion.p>
 
@@ -133,7 +133,7 @@ export default function About() {
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(139,92,246,0.08)', border: '1.5px solid rgba(139,92,246,0.2)', borderRadius: 9999, padding: '8px 20px', fontSize: 13, fontWeight: 800, color: '#7c3aed', marginBottom: 24, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                 <RocketLaunch size={14} weight="fill" color="#7c3aed" /> The Origin
               </div>
-              <h2 style={{ fontFamily: 'var(--font-outfit)', fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                 From a dorm room frustration<br />to a global platform
               </h2>
             </div>
@@ -154,7 +154,7 @@ export default function About() {
                   <div style={{ display: 'inline-block', fontSize: 12, fontWeight: 800, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16, padding: '4px 12px', background: 'rgba(196,181,253,0.2)', borderRadius: 999, border: '1px solid rgba(167,139,250,0.3)' }}>
                     {card.title}
                   </div>
-                  <p style={{ fontFamily: 'var(--font-varela)', fontSize: 16, color: 'var(--tt-gray-light-a-600)', lineHeight: 1.75, fontWeight: 500 }}>
+                  <p style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: 'var(--tt-gray-light-a-600)', lineHeight: 1.75, fontWeight: 500 }}>
                     {card.text}
                   </p>
                 </div>
@@ -172,7 +172,7 @@ export default function About() {
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(139,92,246,0.08)', border: '1.5px solid rgba(139,92,246,0.2)', borderRadius: 9999, padding: '8px 20px', fontSize: 13, fontWeight: 800, color: '#7c3aed', marginBottom: 24, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                 <Heart size={14} weight="fill" color="#7c3aed" /> What We Stand For
               </div>
-              <h2 style={{ fontFamily: 'var(--font-outfit)', fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
                 Our core values
               </h2>
             </div>
@@ -196,10 +196,10 @@ export default function About() {
                   <div style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, color: '#7c3aed', background: 'rgba(196,181,253,0.15)', padding: '4px 12px', borderRadius: 999, marginBottom: 16, letterSpacing: '0.04em', border: '1px solid rgba(167,139,250,0.2)' }}>
                     {val.tag}
                   </div>
-                  <h3 style={{ fontFamily: 'var(--font-outfit)', fontSize: 22, fontWeight: 800, color: 'var(--foreground)', marginBottom: 12 }}>
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: 'var(--foreground)', marginBottom: 12 }}>
                     {val.title}
                   </h3>
-                  <p style={{ fontFamily: 'var(--font-varela)', fontSize: 15, color: 'var(--tt-gray-light-a-600)', lineHeight: 1.75 }}>
+                  <p style={{ fontFamily: 'var(--font-body)', fontSize: 15, color: 'var(--tt-gray-light-a-600)', lineHeight: 1.75 }}>
                     {val.desc}
                   </p>
                 </div>
@@ -222,7 +222,6 @@ export default function About() {
             fontSize: '2.2rem', lineHeight: 1.55, fontWeight: 600,
             textAlign: 'center',
           }}>
-            <style>{`@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap');`}</style>
             {/* Floating stickers */}
             <div style={{ position: 'absolute', top: -28, right: 64, fontSize: '3.5rem', transform: 'rotate(15deg)', filter: 'drop-shadow(0 8px 12px rgba(0,0,0,0.1))', zIndex: 3 }}>🚀</div>
             <div style={{ position: 'absolute', bottom: 80, left: -18, fontSize: '3.5rem', transform: 'rotate(-15deg)', filter: 'drop-shadow(0 8px 12px rgba(0,0,0,0.1))', zIndex: 3 }}>🧠</div>
@@ -248,8 +247,8 @@ export default function About() {
 
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 32 }}>
                 <img src="/signature.png" alt="Michael Oluwayanmi Signature" style={{ height: 100, objectFit: 'contain', opacity: 0.9, mixBlendMode: 'multiply' }} />
-                <div style={{ fontSize: '1.1rem', color: 'var(--tt-gray-light-a-600)', marginTop: 4, fontFamily: 'var(--font-outfit)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Michael Oluwayanmi</div>
-                <div style={{ fontSize: '0.95rem', color: 'var(--tt-gray-light-a-600)', marginTop: 4, fontFamily: 'var(--font-outfit)' }}>CEO & Co-Founder, Luter</div>
+                <div style={{ fontSize: '1.1rem', color: 'var(--tt-gray-light-a-600)', marginTop: 4, fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Michael Oluwayanmi</div>
+                <div style={{ fontSize: '0.95rem', color: 'var(--tt-gray-light-a-600)', marginTop: 4, fontFamily: 'var(--font-body)' }}>CEO & Co-Founder, Luter</div>
               </div>
             </div>
           </div>
@@ -260,7 +259,7 @@ export default function About() {
       {/* ── FEATURES STRIP ── */}
       <section style={{ padding: '80px 24px', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--background)', overflow: 'hidden' }}>
         <RevealDiv style={{ textAlign: 'center', marginBottom: 56 }}>
-          <h2 style={{ fontFamily: 'var(--font-outfit)', fontSize: 'clamp(1.6rem, 3vw, 2.2rem)', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.6rem, 3vw, 2.2rem)', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
             Everything you need to ace your exams
           </h2>
         </RevealDiv>
@@ -286,8 +285,8 @@ export default function About() {
                   {feat.icon}
                 </div>
                 <div>
-                  <div style={{ fontFamily: 'var(--font-outfit)', fontSize: 15, fontWeight: 700, color: 'var(--foreground)' }}>{feat.label}</div>
-                  <div style={{ fontSize: 13, color: 'var(--tt-gray-light-a-600)', fontFamily: 'var(--font-varela)', marginTop: 2 }}>{feat.desc}</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700, color: 'var(--foreground)' }}>{feat.label}</div>
+                  <div style={{ fontSize: 13, color: 'var(--tt-gray-light-a-600)', fontFamily: 'var(--font-body)', marginTop: 2 }}>{feat.desc}</div>
                 </div>
               </div>
             </RevealDiv>
@@ -304,10 +303,10 @@ export default function About() {
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(139,92,246,0.08)', border: '1.5px solid rgba(139,92,246,0.2)', borderRadius: 9999, padding: '8px 20px', fontSize: 13, fontWeight: 800, color: '#7c3aed', marginBottom: 20, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
             <Lightning size={14} weight="fill" color="#7c3aed" /> Powered by AI
           </div>
-          <h2 style={{ fontFamily: 'var(--font-outfit)', fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em', marginBottom: 12 }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em', marginBottom: 12 }}>
             Everything Luter can do for you
           </h2>
-          <p style={{ fontFamily: 'var(--font-varela)', fontSize: 16, color: 'var(--tt-gray-light-a-600)' }}>
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: 'var(--tt-gray-light-a-600)' }}>
             Drag these around — it's more fun than studying the old way 😄
           </p>
         </RevealDiv>

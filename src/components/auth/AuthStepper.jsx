@@ -33,7 +33,7 @@ export const PerimeterInput = React.forwardRef(
             borderRadius: 12,
             padding: '16px 18px',
             fontSize: 15,
-            fontFamily: 'var(--font-inter)',
+            fontFamily: 'var(--font-body)',
             color: '#111',
             outline: 'none',
             transition: 'border-color 0.2s, box-shadow 0.2s',
@@ -109,7 +109,7 @@ export const UnlockButton = ({ label, onClick, loading, valid, shake }) => (
       borderRadius: 10,
       fontWeight: 700,
       fontSize: 14,
-      fontFamily: 'var(--font-inter)',
+      fontFamily: 'var(--font-body)',
       border: 'none',
       cursor: valid ? 'pointer' : 'default',
       letterSpacing: '-0.01em',
@@ -168,11 +168,11 @@ export const TimelinePanel = ({ steps, currentStep, complete }) => (
           >
             <p style={{
               fontSize: 14, fontWeight: 700, color: done ? 'var(--primary)' : active ? '#111' : '#666',
-              fontFamily: 'var(--font-inter)', lineHeight: 1.3, marginBottom: 3
+              fontFamily: 'var(--font-body)', lineHeight: 1.3, marginBottom: 3
             }}>
               {step.title}
             </p>
-            <p style={{ fontSize: 12, color: '#999', fontFamily: 'var(--font-inter)', fontWeight: 500 }}>
+            <p style={{ fontSize: 12, color: '#999', fontFamily: 'var(--font-body)', fontWeight: 500 }}>
               {done ? step.doneLabel : active ? step.activeLabel : step.pendingLabel}
             </p>
           </motion.div>

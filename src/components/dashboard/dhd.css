@@ -2,14 +2,11 @@
    LUTER DASHBOARD HOME — dhd.css
    Clean, integrated design
    ============================================== */
-
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap');
-
 .dhd-root {
   min-height: 100vh;
   background: var(--sb-bg, #F9FAFB);
   color: var(--sb-text, #090909);
-  font-family: 'Outfit', 'Inter', sans-serif;
+  font-family: var(--font-body);
   padding: 24px 32px;
   overflow-x: hidden;
 }

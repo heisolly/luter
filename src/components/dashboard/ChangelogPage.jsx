@@ -3,10 +3,8 @@ import { motion } from 'framer-motion'
 import { Sparkle, Bell, ArrowRight } from '@phosphor-icons/react'
 
 const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
   .clg-root {
-    font-family: 'Outfit', 'Inter', sans-serif;
+    font-family: var(--font-body);
     background: #F9FAFB;
     min-height: 100vh;
     padding-bottom: 64px;
@@ -224,7 +222,7 @@ const STYLES = `
     padding: 11px 16px;
     border-radius: 12px;
     border: none;
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--font-body);
     font-size: 0.92rem;
     outline: none;
     background: rgba(255,255,255,0.95);
@@ -236,7 +234,7 @@ const STYLES = `
     border: none;
     background: #FFD2A6;
     color: #92400e;
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--font-display);
     font-size: 0.92rem;
     font-weight: 700;
     cursor: pointer;
@@ -309,7 +307,7 @@ const CHANGELOG = [
     tag: 'NEW',
     title: 'Full App Redesign',
     bullets: [
-      'Brand-new UI system with Outfit typography, purple accent palette, and glassmorphism cards',
+      'Brand-new UI system with DM Sans typography, purple accent palette, and glassmorphism cards',
       'Redesigned sidebar with collapsible sections, quick actions, and search',
       'Dashboard Home now shows personalised study recommendations every day',
     ],

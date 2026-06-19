@@ -159,7 +159,7 @@ export default function PaymentSuccess() {
   );
 }
 
-const pageWrapperStyles = { minHeight: '100vh', background: '#f1f5f9', display: 'flex', flexDirection: 'column', fontFamily: "'Outfit', sans-serif" };
+const pageWrapperStyles = { minHeight: '100vh', background: '#f1f5f9', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif" };
 const containerStyles = { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' };
 const spinnerContainerStyles = { textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 };
 const spinnerStyles = { width: 40, height: 40, border: '3px solid #e2e8f0', borderTop: '3px solid #7a12cc', borderRadius: '50%', animation: 'spin 1s linear infinite' };

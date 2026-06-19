@@ -12,7 +12,7 @@ import { heistService } from '../../../services/heistService'
 import { supabase } from '../../../supabaseClient'
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../../services/creditService'
 
-const GAME_FONT = "'Outfit','Inter',system-ui,sans-serif"
+const GAME_FONT = "'DM Sans','Inter',system-ui,sans-serif"
 const PURPLE = '#7C3AED'
 const MINT = '#98FF98'
 const RED = '#EF4444'

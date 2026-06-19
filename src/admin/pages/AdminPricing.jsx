@@ -122,14 +122,14 @@ export default function AdminPricing() {
 
   if (loading) {
     return (
-      <div style={{ padding: '1.5rem 2rem', maxWidth: 1000, margin: '0 auto', fontFamily: 'var(--font-outfit, Inter, sans-serif)' }}>
+      <div style={{ padding: '1.5rem 2rem', maxWidth: 1000, margin: '0 auto', fontFamily: 'var(--font-display, Inter, sans-serif)' }}>
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>Loading pricing config...</p>
       </div>
     )
   }
 
   return (
-    <div style={{ padding: '1.5rem 2rem', maxWidth: 1000, margin: '0 auto', color: 'var(--color-text-primary)', fontFamily: 'var(--font-outfit, Inter, sans-serif)' }}>
+    <div style={{ padding: '1.5rem 2rem', maxWidth: 1000, margin: '0 auto', color: 'var(--color-text-primary)', fontFamily: 'var(--font-display, Inter, sans-serif)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 600, margin: 0 }}>Pricing Configuration</h1>

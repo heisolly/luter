@@ -74,7 +74,7 @@ export default function DocxRenderer({ fileUrl, title }) {
           box-shadow: 0 2px 16px rgba(0,0,0,0.06) !important;
         }
         .luter-docx-rendered p, .luter-docx-rendered span {
-          font-family: var(--font-varela), system-ui, sans-serif !important;
+          font-family: var(--font-body), system-ui, sans-serif !important;
         }
       `
       document.head.appendChild(style)
@@ -142,7 +142,7 @@ export default function DocxRenderer({ fileUrl, title }) {
               pointerEvents: 'auto',
             }}
           >
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#64748B', fontFamily: 'var(--font-outfit)', padding: '0 8px' }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#64748B', fontFamily: 'var(--font-display)', padding: '0 8px' }}>
               Word
             </span>
             <div style={{ width: 1, height: 16, background: '#E2E8F0' }} />
@@ -194,7 +194,7 @@ export default function DocxRenderer({ fileUrl, title }) {
               <div style={{ width: 64, height: 64, borderRadius: 20, background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
                 <FileText size={32} color="#EF4444" />
               </div>
-              <h3 style={{ fontFamily: 'var(--font-outfit)', fontSize: 18, fontWeight: 700, color: '#111827', marginBottom: 8 }}>Couldn&apos;t open document</h3>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700, color: '#111827', marginBottom: 8 }}>Couldn&apos;t open document</h3>
               <p style={{ color: '#64748B', fontSize: 14, lineHeight: 1.6, marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>
                 {error}
               </p>
@@ -208,7 +208,7 @@ export default function DocxRenderer({ fileUrl, title }) {
                   borderRadius: 12,
                   cursor: 'pointer',
                   fontWeight: 600,
-                  fontFamily: 'var(--font-outfit)',
+                  fontFamily: 'var(--font-display)',
                 }}
               >
                 Download Document

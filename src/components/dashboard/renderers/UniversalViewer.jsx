@@ -211,7 +211,7 @@ export default function UniversalViewer({
           <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
             <span style={{ fontSize: '32px' }}>🔗</span>
           </div>
-          <h3 style={{ fontFamily: 'var(--font-outfit)', fontSize: '18px', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>Source URL Missing</h3>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>Source URL Missing</h3>
           <p style={{ color: '#64748B', fontSize: '14px', lineHeight: '1.6' }}>
             We couldn&apos;t locate the source file. This might happen if the file was deleted or moved.
           </p>
@@ -248,7 +248,7 @@ export default function UniversalViewer({
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', fontFamily: 'var(--font-outfit)' }}>
+    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', fontFamily: 'var(--font-display)' }}>
       <div style={{ textAlign: 'center' }}>
         <p style={{ fontSize: '18px', fontWeight: 700 }}>Unsupported file format</p>
         <p style={{ fontSize: '14px' }}>{material?.title}</p>

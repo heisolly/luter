@@ -110,7 +110,7 @@ export default function StudyRequestsPage() {
     <div className="p-6 max-w-6xl mx-auto min-h-screen bg-[#fafbfc]">
       <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#1A102D] mb-2 font-outfit">Study Requests</h1>
+          <h1 className="text-3xl font-black text-[#1A102D] mb-2 font-display">Study Requests</h1>
           <p className="text-slate-500 font-medium">Request notes for missing topics in your courses.</p>
         </div>
         
@@ -236,7 +236,7 @@ export default function StudyRequestsPage() {
                   <span className="bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
                     {req.course?.code}
                   </span>
-                  <span className="text-slate-400 text-xs font-bold font-varela">
+                  <span className="text-slate-400 text-xs font-bold font-body">
                     {new Date(req.created_at).toLocaleDateString()}
                   </span>
                   {req.user_id === user.id && (
@@ -244,7 +244,7 @@ export default function StudyRequestsPage() {
                   )}
                 </div>
                 
-                <h3 className="text-xl font-extrabold text-[#1A102D] mb-1 font-outfit">
+                <h3 className="text-xl font-extrabold text-[#1A102D] mb-1 font-display">
                   {req.subject}
                 </h3>
                 <p className="text-slate-500 font-bold text-sm mb-4">
@@ -300,15 +300,15 @@ export default function StudyRequestsPage() {
         {requests.length === 0 && (
           <div className="py-24 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
             <BookOpen size={64} className="mx-auto text-slate-200 mb-6" />
-            <h3 className="text-2xl font-black text-[#1A102D] mb-2 font-outfit">No Requests Yet</h3>
+            <h3 className="text-2xl font-black text-[#1A102D] mb-2 font-display">No Requests Yet</h3>
             <p className="text-slate-400 max-w-sm mx-auto font-medium">Be the first to request notes for your course and we'll help you get them!</p>
           </div>
         )}
       </div>
       
       <style>{`
-        .font-outfit { font-family: 'Outfit', sans-serif; }
-        .font-varela { font-family: 'Varela Round', sans-serif; }
+        .font-display { font-family: 'DM Sans', sans-serif; }
+        .font-body { font-family: 'Inter', sans-serif; }
       `}</style>
     </div>
   );

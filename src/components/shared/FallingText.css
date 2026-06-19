@@ -15,7 +15,7 @@
   display: inline-block;
   margin: 0 4px;
   user-select: none;
-  font-family: var(--font-outfit), sans-serif;
+  font-family: var(--font-display), sans-serif;
 }
 
 .highlighted {

@@ -208,7 +208,7 @@ export default function PricingPage() {
   const mc = c.margin >= 20 ? 'ok' : c.margin >= 0 ? 'warn' : 'danger'
 
   return (
-    <div style={{ padding: '1.5rem 2rem', maxWidth: 1060, margin: '0 auto', color: 'var(--color-text-primary)', fontFamily: 'var(--font-outfit, Inter, sans-serif)' }}>
+    <div style={{ padding: '1.5rem 2rem', maxWidth: 1060, margin: '0 auto', color: 'var(--color-text-primary)', fontFamily: 'var(--font-display, Inter, sans-serif)' }}>
       <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 4 }}>Pricing Hub</h1>
       <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 20 }}>Plans, token costs, and profitability — all in one place.</p>
 

@@ -45,7 +45,7 @@ const features = [
 
 export default function Features() {
   return (
-    <div style={{ minHeight: '100vh', background: '#ffffff', color: '#111', fontFamily: 'var(--font-varela)' }}>
+    <div style={{ minHeight: '100vh', background: '#ffffff', color: '#111', fontFamily: 'var(--font-body)' }}>
       <PageBackground />
       <SharedNavbar />
 
@@ -65,7 +65,7 @@ export default function Features() {
           </RevealDiv>
           
           <RevealDiv delay={0.1}>
-            <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', fontWeight: 800, color: '#111', marginBottom: 32, lineHeight: 1.1, letterSpacing: '-0.04em', fontFamily: 'var(--font-outfit)' }}>
+            <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', fontWeight: 800, color: '#111', marginBottom: 32, lineHeight: 1.1, letterSpacing: '-0.04em', fontFamily: 'var(--font-display)' }}>
               Your brain, <span style={{ background: 'linear-gradient(to right, #A855F7, #4B0082)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>supercharged.</span>
             </h1>
           </RevealDiv>
@@ -118,7 +118,7 @@ export default function Features() {
                   }}>
                     {feature.icon}
                   </div>
-                  <h3 style={{ fontSize: 24, fontWeight: 800, color: '#111', marginBottom: 16, fontFamily: 'var(--font-outfit)' }}>
+                  <h3 style={{ fontSize: 24, fontWeight: 800, color: '#111', marginBottom: 16, fontFamily: 'var(--font-display)' }}>
                     {feature.title}
                   </h3>
                   <p style={{ fontSize: 16, color: '#64748B', lineHeight: 1.6, fontWeight: 500, margin: 0 }}>
@@ -140,8 +140,8 @@ export default function Features() {
               borderRadius: 40, padding: '100px 40px', textAlign: 'center',
               boxShadow: '0 30px 60px rgba(75, 0, 130, 0.2)', position: 'relative', overflow: 'hidden'
             }}>
-              <h2 style={{ fontSize: 42, fontWeight: 800, color: 'white', marginBottom: 24, fontFamily: 'var(--font-outfit)' }}>Ready to change the way you study?</h2>
-              <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.9)', fontWeight: 500, marginBottom: 48, fontFamily: 'var(--font-varela)' }}>No credit card required. Cancel anytime.</p>
+              <h2 style={{ fontSize: 42, fontWeight: 800, color: 'white', marginBottom: 24, fontFamily: 'var(--font-display)' }}>Ready to change the way you study?</h2>
+              <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.9)', fontWeight: 500, marginBottom: 48, fontFamily: 'var(--font-body)' }}>No credit card required. Cancel anytime.</p>
               <Link to="/signup" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 12, background: 'white', color: '#4B0082',
                 padding: '20px 48px', borderRadius: 9999, fontSize: 16, fontWeight: 800, textDecoration: 'none',
