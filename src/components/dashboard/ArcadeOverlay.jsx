@@ -244,6 +244,7 @@ function TextAction({ value, onChange, placeholder, onSubmit, loading, btnLabel 
 const HUB = [
   { id: 'memorize', emoji: '🧠', title: 'Memorize', desc: 'Active recall quizzes', accent: '#22C55E', badge: null    },
   { id: 'clut',     emoji: '⚡', title: 'Clut Live', desc: 'Play with your friends', accent: '#F59E0B', badge: 'LIVE' },
+  { id: 'heist',    emoji: '🕵️', title: 'Knowledge Heist', desc: 'Social deduction game', accent: '#EF4444', badge: 'NEW' },
   { id: 'games',    emoji: '🎮', title: 'Other games', desc: 'Matching, Stacker, Blitz', accent: '#7C3AED', badge: null },
 ]
 
@@ -288,6 +289,7 @@ export default function ArcadeOverlay({ onClose, user }) {
   const handleStart = () => {
     if (selected === 'memorize') { setStep('memorize'); return }
     if (selected === 'clut')     { setStep('clut-menu'); return }
+    if (selected === 'heist')    { navigate('/dashboard/heist'); onClose(); return }
     if (selected === 'games')    { navigate('/dashboard/compete?step=content'); onClose(); return }
   }
 

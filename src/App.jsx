@@ -25,6 +25,7 @@ const UpgradePage = lazy(() => import('./components/dashboard/UpgradePage'));
 const StreakPage = lazy(() => import('./components/dashboard/StreakPage'));
 const ReferPage = lazy(() => import('./components/dashboard/ReferPage'));
 const PlaygroundPage = lazy(() => import('./components/dashboard/PlaygroundPage'));
+const KnowledgeHeistPage = lazy(() => import('./components/dashboard/playground/KnowledgeHeistPage'));
 const ClutLivePage = lazy(() => import('./components/dashboard/ClutLivePage'));
 const PricingPage = lazy(() => import('./components/dashboard/PricingPage'));
 const ExamSessionView = lazy(() => import('./components/ExamSessionView'));
@@ -258,6 +259,8 @@ export default function App() {
             <Route path="refer" element={<ReferPage />} />
             <Route path="compete" element={<PlaygroundPage />} />
             <Route path="playground/:roomId" element={<PlaygroundPage />} />
+            <Route path="heist" element={<KnowledgeHeistPage />} />
+            <Route path="heist/:roomId" element={<KnowledgeHeistPage />} />
             <Route path="upload" element={<UserUpload />} />
             <Route path="requests" element={<StudyRequestsPage />} />
             <Route path="study-groups" element={<StudyGroupsPage />} />

@@ -35,7 +35,8 @@ const PLAYGROUND_GAMES = [
   { id: 'matching', name: 'Matching', icon: Cards, color: '#7c3aed', desc: 'Match terms with definitions as fast as you can.' },
   { id: 'stacker', name: 'Stacker', icon: Stack, color: '#16a34a', desc: 'Build a tower by picking the correct definitions.' },
   { id: 'term-builder', name: 'Term Builder', icon: PuzzlePiece, color: '#d97706', desc: 'Construct terms from scrambled letters.' },
-  { id: 'brain-blitz', name: 'Brain Blitz', icon: Lightning, color: '#ef4444', desc: 'Rapid-fire Yes/No study challenge.' }
+  { id: 'brain-blitz', name: 'Brain Blitz', icon: Lightning, color: '#ef4444', desc: 'Rapid-fire Yes/No study challenge.' },
+  { id: 'knowledge-heist', name: 'Knowledge Heist', icon: Brain, color: '#ef4444', desc: 'Social deduction learning game. Find the thieves!', isHeist: true }
 ]
 
 export default function PlaygroundPage() {
@@ -612,6 +613,10 @@ export default function PlaygroundPage() {
                           game={game} 
                           selected={selectedGame === game.id}
                           onSelect={() => {
+                            if (game.isHeist) {
+                              navigate('/dashboard/heist')
+                              return
+                            }
                             setSelectedGame(game.id)
                             setStep('mode')
                           }} 
