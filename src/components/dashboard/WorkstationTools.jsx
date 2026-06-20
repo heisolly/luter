@@ -108,14 +108,14 @@ function WorkstationNotesLegacy({ content, material, onRegenerate }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', fontFamily: "var(--font-varela)" }}
+      style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', fontFamily: 'var(--font-outfit)' }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', padding: '24px 32px', borderRadius: '24px', border: '1.5px solid #F1F5F9', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.04)' }}>
         <div>
-          <div style={{ color: '#4B0082', fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: "var(--font-outfit)" }}>
+          <div style={{ color: '#4B0082', fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-outfit)' }}>
              <BookOpen size={16} /> Structured study notes
           </div>
-          <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#1A102D', margin: 0, fontFamily: "var(--font-outfit)", letterSpacing: '-0.02em' }}>{material?.title}</h1>
+          <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#1A102D', margin: 0, fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>{material?.title}</h1>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <ActionButton onClick={() => window.print()} icon={Printer} label="Print" />
@@ -153,7 +153,7 @@ function WorkstationNotesLegacy({ content, material, onRegenerate }) {
           <WarningCircle weight="bold" size={28} color="#D97706" />
         </div>
         <div>
-          <h4 style={{ color: '#92400E', fontWeight: 700, marginBottom: '4px', fontSize: '18px', fontFamily: "var(--font-outfit)" }}>Professor's Insight</h4>
+          <h4 style={{ color: '#92400E', fontWeight: 700, marginBottom: '4px', fontSize: '18px', fontFamily: 'var(--font-outfit)' }}>Professor's Insight</h4>
           <p style={{ color: '#B45309', fontSize: '15px', margin: 0, fontWeight: 500 }}>These notes cover all major points from your lecture slides. Focus specifically on the "Core Mechanisms" section for the upcoming exam.</p>
         </div>
       </div>
@@ -354,7 +354,7 @@ function WorkstationNotesRichEditor({ content, material, onRegenerate, onCreateS
           padding: 24px 24px 40px;
           color: var(--wn-text);
           background: transparent;
-          font-family: var(--font-outfit), Outfit, Inter, sans-serif;
+          font-family: var(--font-sans), Outfit, Inter, sans-serif;
         }
         .wn-toolbar {
           width: fit-content;
@@ -650,7 +650,7 @@ function WorkstationNotesEditor({ content, material, onRegenerate, onCreateSumma
           padding: 24px 24px 40px;
           color: var(--wn-text);
           background: transparent;
-          font-family: var(--font-outfit), Outfit, Inter, sans-serif;
+          font-family: var(--font-sans), Outfit, Inter, sans-serif;
         }
         .wn-toolbar {
           width: fit-content;
@@ -815,13 +815,13 @@ export function WorkstationSummary({ content, material }) {
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', fontFamily: "var(--font-varela)" }}
+      style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', fontFamily: 'var(--font-outfit)' }}
     >
       <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-        <div style={{ display: 'inline-flex', padding: '10px 20px', background: 'rgba(75, 0, 130, 0.08)', borderRadius: '100px', color: '#4B0082', fontWeight: 600, fontSize: '12px', marginBottom: '20px', border: '1px solid rgba(75, 0, 130, 0.1)', fontFamily: "var(--font-outfit)", letterSpacing: '0.03em' }}>
+        <div style={{ display: 'inline-flex', padding: '10px 20px', background: 'rgba(75, 0, 130, 0.08)', borderRadius: '100px', color: '#4B0082', fontWeight: 600, fontSize: '12px', marginBottom: '20px', border: '1px solid rgba(75, 0, 130, 0.1)', fontFamily: 'var(--font-outfit)', letterSpacing: '0.03em' }}>
           ✨ Summary Brief
         </div>
-        <h2 style={{ fontSize: '36px', fontWeight: 700, color: '#1A102D', fontFamily: "var(--font-outfit)", letterSpacing: '-0.03em' }}>{material?.title}</h2>
+        <h2 style={{ fontSize: '36px', fontWeight: 700, color: '#1A102D', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.03em' }}>{material?.title}</h2>
       </div>
 
       <div style={{ background: 'linear-gradient(135deg, #4B0082 0%, #4C1D95 100%)', padding: '2px', borderRadius: '40px', marginBottom: '48px', boxShadow: '0 30px 60px -12px rgba(75, 0, 130, 0.2)' }}>
@@ -1514,7 +1514,7 @@ function WorkstationQuizRedesign({ quiz = [], items = [], material, onComplete, 
             var(--lq-bg);
           background-size: 14px 14px;
           padding: 28px 40px 110px;
-          font-family: var(--font-outfit), Outfit, Inter, sans-serif;
+          font-family: var(--font-sans), Outfit, Inter, sans-serif;
         }
         .lq-card {
           background: color-mix(in srgb, var(--lq-surface) 96%, transparent);
@@ -2588,7 +2588,7 @@ Return the assistance in markdown format. Be concise.`;
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '24px', background: 'white', fontFamily: 'var(--font-varela)' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '24px', background: 'white', fontFamily: 'var(--font-outfit)' }}>
       <header style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>

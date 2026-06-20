@@ -2258,7 +2258,7 @@ Please explain where I went wrong and why the correct answer is the right choice
   // --- MAIN RENDER ---
 
   return (
-    <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Outfit', 'Varela Round', sans-serif", position: 'relative' }}>
+    <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "var(--font-outfit), sans-serif", position: 'relative' }}>
       
 
 
@@ -2473,7 +2473,7 @@ Please explain where I went wrong and why the correct answer is the right choice
           <motion.div
             initial={{ x: 360, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 360, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: '360px', background: '#FFFFFF', borderLeft: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', zIndex: 1000, fontFamily: "'Outfit', 'Varela Round', sans-serif" }}
+            style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: '360px', background: '#FFFFFF', borderLeft: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', zIndex: 1000, fontFamily: "var(--font-outfit), sans-serif" }}
           >
             {/* Luter Chat Panel Content */}
             <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #E5E7EB', flexShrink: 0, gap: 8 }}>

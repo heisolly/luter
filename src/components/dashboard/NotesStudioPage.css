@@ -27,7 +27,7 @@
   min-height: 100dvh;
   background: var(--ns-bg);
   color: var(--ns-text);
-  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-outfit), system-ui, sans-serif;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -475,7 +475,7 @@ body.dark-mode .ns-share-room-id-left {
 .ns-page-controls button {
   background: transparent; border: none; color: var(--ns-text-3);
   font-size: 13px; cursor: pointer; padding: 6px 10px; border-radius: 8px;
-  font-weight: 600; transition: all 0.15s; font-family: 'Outfit', 'Inter', sans-serif;
+  font-weight: 600; transition: all 0.15s; font-family: var(--font-outfit), sans-serif;
 }
 .ns-page-controls button:hover { background: var(--ns-border-subtle); color: var(--ns-text); }
 
@@ -695,7 +695,7 @@ body.dark-mode .ns-share-room-id-left {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-outfit), system-ui, sans-serif;
   animation: ns-drop 0.15s ease;
 }
 
@@ -1016,7 +1016,7 @@ body.ns-dragging .ns-ai-drag-handle {
   margin-top: 10px; padding: 6px 14px; font-size: 12px; font-weight: 700;
   border: 1px solid var(--ns-purple); border-radius: 10px; background: rgba(196,181,253,0.1);
   color: var(--ns-purple-deep); cursor: pointer; transition: all 0.18s;
-  font-family: 'Outfit', 'Inter', sans-serif;
+  font-family: var(--font-outfit), sans-serif;
 }
 .ns-ai-insert-btn:hover { background: var(--ns-purple-deep); color: white; border-color: var(--ns-purple-deep); transform: scale(1.02); }
 

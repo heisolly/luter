@@ -1,10 +1,6 @@
 import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { useEffect, useState, lazy, Suspense } from 'react'
 import LandingPage from './components/LandingPage'
-const Features = lazy(() => import('./components/Features'));
-const HowItWorks = lazy(() => import('./components/HowItWorks'));
-const About = lazy(() => import('./components/About'));
-const PathCalculator = lazy(() => import('./components/PathCalculator'));
 const SignIn = lazy(() => import('./components/SignIn'));
 const SignUp = lazy(() => import('./components/SignUp'));
 const Onboarding = lazy(() => import('./components/Onboarding'));
@@ -66,6 +62,9 @@ const StudyGroupDetailsPage = lazy(() => import('./components/dashboard/StudyGro
 const JoinGroupPage = lazy(() => import('./components/dashboard/JoinGroupPage'));
 const LibraryPage = lazy(() => import('./components/dashboard/LibraryPage'));
 const TrashPage = lazy(() => import('./components/dashboard/TrashPage'));
+const ClassroomDashboard = lazy(() => import('./classroom/ClassroomDashboard'))
+const ClassView = lazy(() => import('./classroom/ClassView'))
+const ClassroomCalendar = lazy(() => import('./classroom/ClassroomCalendar'))
 const VaultPage = lazy(() => import('./components/dashboard/VaultPage'));
 const StudySessionPage = lazy(() => import('./components/dashboard/StudySessionPage'));
 const SessionsPage = lazy(() => import('./components/dashboard/SessionsPage'));
@@ -219,11 +218,7 @@ export default function App() {
 
           {/* MAIN APP ROUTES */}
           <Route path="/" element={<LandingPage />} />
-          <Route path="/features" element={<Features />} />
-          <Route path="/how-it-works" element={<HowItWorks />} />
-          <Route path="/about" element={<About />} />
           <Route path="/wall-of-love" element={<WallOfLove />} />
-          <Route path="/path-calculator" element={<PathCalculator />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/onboarding" element={<Onboarding />} />
@@ -267,6 +262,12 @@ export default function App() {
             <Route path="session/:sessionId" element={<StudySessionPage />} />
             <Route path="exam-session/:sessionId" element={<ExamSessionPage />} />
           </Route>
+
+          {/* CLASSROOM ROUTES (Standalone Layouts) */}
+          <Route path="/classrooms" element={<ClassroomDashboard />} />
+          <Route path="/classrooms/calendar" element={<ClassroomCalendar />} />
+          <Route path="/classrooms/c/:classId" element={<ClassView />} />
+          <Route path="/classroom" element={<Navigate to="/classrooms" replace />} />
 
           {/* ROOT LEVEL ALIASES */}
           <Route element={<Dashboard />}>

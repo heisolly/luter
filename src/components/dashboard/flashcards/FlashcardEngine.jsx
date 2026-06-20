@@ -539,7 +539,7 @@ function FlashcardStyles({ children }) {
             var(--fc-bg);
           background-size: 14px 14px;
           color: var(--fc-text);
-          font-family: var(--font-outfit), Outfit, Inter, sans-serif;
+          font-family: var(--font-sans), Outfit, Inter, sans-serif;
         }
         :global(body.dark-mode) .fc-shell, :global(body.dark-mode) .fc-study-shell,
         .dark-mode .fc-shell, .dark-mode .fc-study-shell {

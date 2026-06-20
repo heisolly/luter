@@ -87,7 +87,7 @@ body.dark-mode {
     var(--wsr-bg) !important;
   background-size: 22px 22px !important;
   color: var(--wsr-text) !important;
-  font-family: 'Outfit', 'Inter', system-ui, sans-serif !important;
+  font-family: var(--font-outfit), system-ui, sans-serif !important;
 }
 
 /* ── Topbar ─────────────────────────────────────────────────────── */
@@ -1066,7 +1066,7 @@ aside.ws-right-panel {
 .ws-right-panel button.ws-right-tab {
   font-size: 12.5px !important;
   font-weight: 700 !important;
-  font-family: 'Outfit', 'Inter', system-ui, sans-serif !important;
+  font-family: var(--font-outfit), system-ui, sans-serif !important;
   letter-spacing: 0.01em !important;
   color: var(--sb-text-muted, #475569) !important;
   padding: 0 12px !important;
@@ -1185,7 +1185,7 @@ aside.ws-right-panel {
 /* AI chat textarea input */
 .ws-right-panel input[placeholder*="Luter"],
 .ws-right-panel input[style*="flex: 1"] {
-  font-family: 'Outfit', 'Inter', system-ui, sans-serif !important;
+  font-family: var(--font-outfit), system-ui, sans-serif !important;
   font-size: 13.5px !important;
   color: var(--sb-text, #0F172A) !important;
   background: transparent !important;
@@ -1228,7 +1228,7 @@ body.dark-mode .ws-right-panel div[style*="background: white"][style*="borderRad
   background: var(--sb-purple-soft, #F3E8FF);
   border: 1px solid var(--sb-purple-border, #DDD6FE);
   border-radius: 9999px;
-  font-family: 'Outfit', 'Inter', sans-serif;
+  font-family: var(--font-outfit), sans-serif;
   font-size: 11px;
   font-weight: 700;
   color: #7C3AED;

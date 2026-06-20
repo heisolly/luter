@@ -6,7 +6,7 @@ const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
   .clg-root {
-    font-family: 'Outfit', 'Inter', sans-serif;
+    font-family: 'var(--font-outfit)', sans-serif;
     background: #F9FAFB;
     min-height: 100vh;
     padding-bottom: 64px;

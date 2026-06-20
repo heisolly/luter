@@ -43,7 +43,7 @@ export default function ImageSlidesRenderer({ slideImages = [], title, fileUrl }
                 <h2 style={{ fontFamily: 'var(--font-outfit)', fontSize: 20, fontWeight: 800, color: '#1A102D', margin: 0 }}>
                   {title || 'Presentation'}
                 </h2>
-                <p style={{ color: '#64748B', fontSize: 14, margin: '4px 0 0', fontFamily: 'var(--font-varela)' }}>
+                <p style={{ color: '#64748B', fontSize: 14, margin: '4px 0 0', fontFamily: 'var(--font-outfit)' }}>
                   {slideImages.length} slides
                 </p>
               </div>

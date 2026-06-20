@@ -180,12 +180,6 @@ export default function StandalonePricingPage() {
             <span className="upg-logo-text">luter<span style={{ color: '#ef4444' }}>.</span></span>
           </div>
           
-          <nav className="upg-nav-links">
-            <span onClick={() => navigate('/features')}>Features</span>
-            <span onClick={() => navigate('/how-it-works')}>How it works</span>
-            <span onClick={() => navigate('/about')}>About</span>
-          </nav>
-
           <div className="upg-nav-actions">
             {user ? (
               <button className="upg-nav-dash-btn" onClick={() => navigate('/dashboard')}>
@@ -404,7 +398,7 @@ export default function StandalonePricingPage() {
           justify-content: center;
           padding: 100px 24px 40px; /* clear fixed header */
           background: #fcfbfe;
-          font-family: 'Outfit', 'Inter', sans-serif;
+          font-family: 'var(--font-outfit)', sans-serif;
         }
 
         /* PUBLIC NAVBAR HEADER */

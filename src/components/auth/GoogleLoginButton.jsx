@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { supabase } from '../../supabaseClient';
 import { clearLuterCaches } from '../../utils/cacheUtils';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const queryParams = new URLSearchParams(window.location.search);
 const redirectPath = queryParams.get('redirect') || '/dashboard';
 
 const GoogleLoginButton = () => {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -26,8 +28,16 @@ const GoogleLoginButton = () => {
         return;
       }
       clearLuterCaches();
-      const targetPath = redirectPath.startsWith('/') ? redirectPath : `/${redirectPath}`;
-      navigate(targetPath);
+      
+      const queryParams = new URLSearchParams(window.location.search);
+      const redirectPath = queryParams.get('redirect') || '/dashboard';
+      
+      if (redirectPath.startsWith('http')) {
+        window.location.href = redirectPath;
+      } else {
+        const targetPath = redirectPath.startsWith('/') ? redirectPath : `/${redirectPath}`;
+        navigate(targetPath);
+      }
     } catch {
       setError('An error occurred. Please try again.');
       setLoading(false);
@@ -45,7 +55,7 @@ const GoogleLoginButton = () => {
           onSuccess={handleSuccess}
           onError={handleError}
           useOneTap={false}
-          theme="outline"
+          theme={isDark ? "filled_black" : "outline"}
           size="large"
           shape="pill"
           text="continue_with"
@@ -53,7 +63,7 @@ const GoogleLoginButton = () => {
         />
       </div>
       {error && (
-        <p style={{ marginTop: '8px', fontSize: '12px', color: '#DC2626', textAlign: 'center' }}>
+        <p style={{ marginTop: '8px', fontSize: '12px', color: isDark ? '#FCA5A5' : '#DC2626', textAlign: 'center' }}>
           {error}
         </p>
       )}

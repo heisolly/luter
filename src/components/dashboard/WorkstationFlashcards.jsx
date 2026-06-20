@@ -4,7 +4,7 @@ import { CaretLeft, CaretRight, ArrowsClockwise, GraduationCap, Users, Sparkle, 
 import { useBroadcastEvent, useEventListener, useOthers, useStorage } from './CollaborationProvider';
 import { MaterialAnalysisService } from '../../services/materialAnalysisService';
 
-export default function WorkstationFlashcards({ items = [], isDark = false, material, user, onViewContext, readOnly = false }) {
+export default function WorkstationFlashcards({ items = [], isDark = false, material, user, onViewContext, readOnly = false, isMobile = false }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [direction, setDirection] = useState(0); // 1 for right, -1 for left
@@ -101,12 +101,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
 
   const totalCards = cards.length;
 
-  // Auto-generate flashcards if none exist
-  useEffect(() => {
-    if (totalCards === 0 && material && user && !isGenerating && generatedItems === null) {
-      handleGenerate();
-    }
-  }, [totalCards, material, user, isGenerating, generatedItems]);
+  // Removed auto-generate useEffect to prevent generating without user permission
 
   useEffect(() => {
     setIsFlipped(false);
@@ -365,7 +360,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
                <CircleNotch size={64} weight="bold" color="#C4B5FD" className="spin-animation" />
                <Sparkle size={24} weight="fill" color="#98FF98" style={{ position: 'absolute', top: '-10px', right: '-10px', animation: 'pulse 2s infinite' }} />
             </div>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '28px', color: isDark ? '#F9FAFB' : '#111827', fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>Magic is happening...</h3>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '28px', color: isDark ? '#F9FAFB' : '#111827', fontFamily: 'var(--font-outfit)', fontWeight: 800 }}>Magic is happening...</h3>
             <p style={{ margin: 0, fontSize: '16px', maxWidth: '320px', textAlign: 'center', lineHeight: 1.6, color: isDark ? '#D1D5DB' : '#4B5563' }}>
               We are analyzing your material and generating the perfect flashcards to supercharge your learning.
             </p>
@@ -388,7 +383,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
         <img src="/mascot.png" alt="Lumii Mascot" style={{ width: '120px', height: '120px', objectFit: 'contain', zIndex: 1, filter: isDark ? 'drop-shadow(0 0 20px rgba(99, 102, 241, 0.4))' : 'drop-shadow(0 8px 16px rgba(99, 102, 241, 0.2))', animation: 'float 6s ease-in-out infinite' }} />
         
         <div style={{ zIndex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <h3 style={{ fontSize: '28px', color: isDark ? '#F8FAFC' : '#0F172A', margin: 0, fontWeight: 800, fontFamily: 'Outfit, sans-serif' }}>No flashcards yet!</h3>
+          <h3 style={{ fontSize: '28px', color: isDark ? '#F8FAFC' : '#0F172A', margin: 0, fontWeight: 800, fontFamily: 'var(--font-outfit)' }}>No flashcards yet!</h3>
           <p style={{ color: isDark ? '#94A3B8' : '#64748B', margin: 0, maxWidth: '400px', lineHeight: 1.5, fontSize: '16px' }}>
             {readOnly ? "The creator hasn't generated any flashcards for this material yet." : "Let Lumii analyze this material and craft the perfect flashcards for your study session."}
           </p>
@@ -489,7 +484,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
           boxShadow: '0 24px 48px rgba(196, 181, 253, 0.15)', zIndex: 1
         }}>
           <GraduationCap size={64} weight="duotone" color={readyForNext ? "#98FF98" : "#FFD2A6"} style={{ marginBottom: '24px' }} />
-          <h3 style={{ margin: '0 0 12px 0', fontSize: '32px', color: textColor, fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>Deck Complete!</h3>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '32px', color: textColor, fontFamily: 'var(--font-outfit)', fontWeight: 800 }}>Deck Complete!</h3>
           <p style={{ margin: '0 0 32px 0', fontSize: '18px', textAlign: 'center', lineHeight: 1.6, color: subTextColor, fontWeight: 500 }}>
             You mastered <span style={{ color: '#98FF98', fontWeight: 800 }}>{sessionStats.good}</span> cards and found <span style={{ color: '#FFD2A6', fontWeight: 800 }}>{sessionStats.hard}</span> hard. <br/>
             Mastery: {masteryPercentage}%
@@ -504,7 +499,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
                 background: isGenerating ? (isDark ? '#374151' : '#E5E7EB') : (isBrutal ? 'linear-gradient(135deg, #C4B5FD 0%, #8B5CF6 100%)' : (isDark ? '#3B82F6' : '#2563EB')),
                 color: '#FFFFFF', fontWeight: 800, fontSize: '16px', cursor: isGenerating ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s', boxShadow: isGenerating ? 'none' : (isBrutal ? '0 12px 24px rgba(139, 92, 246, 0.3)' : '0 8px 16px rgba(37, 99, 235, 0.2)'),
-                fontFamily: 'Outfit, sans-serif'
+                fontFamily: 'var(--font-outfit)'
               }}
               onMouseEnter={e => { if(!isGenerating) e.currentTarget.style.transform = 'translateY(-2px)' }}
               onMouseLeave={e => { if(!isGenerating) e.currentTarget.style.transform = 'translateY(0)' }}
@@ -520,7 +515,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
                 background: isBrutal ? 'linear-gradient(135deg, #FFD2A6 0%, #F59E0B 100%)' : (isDark ? '#3B82F6' : '#2563EB'),
                 color: isBrutal ? '#111827' : '#FFFFFF', fontWeight: 800, fontSize: '16px', cursor: 'pointer',
                 transition: 'all 0.2s', boxShadow: isBrutal ? '0 12px 24px rgba(245, 158, 11, 0.3)' : '0 8px 16px rgba(37, 99, 235, 0.2)',
-                fontFamily: 'Outfit, sans-serif'
+                fontFamily: 'var(--font-outfit)'
               }}
             >
               <ArrowsClockwise size={24} weight="bold" /> Review Missed Concepts
@@ -627,7 +622,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
     return (
       <div 
         style={{ 
-          fontSize: isFront ? '32px' : '24px', fontWeight: isFront ? 600 : 500, color: textColor, textAlign: 'center', lineHeight: 1.4, margin: 0,
+          fontSize: isFront ? (isMobile ? '22px' : '32px') : (isMobile ? '18px' : '24px'), fontWeight: isFront ? 600 : 500, color: textColor, textAlign: 'center', lineHeight: 1.4, margin: 0,
           fontFamily: currentFontFamily, width: '100%',
           letterSpacing: isScrapbook || isTypo ? '1px' : 'normal'
         }}
@@ -639,7 +634,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
   return (
     <div style={{ 
       flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      backgroundColor: bgColor, position: 'relative', overflow: 'hidden', padding: '24px',
+      backgroundColor: bgColor, position: 'relative', overflow: 'hidden', padding: isMobile ? '12px' : '24px',
       backgroundImage: isTypo ? `linear-gradient(to right, ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'} 1px, transparent 1px), linear-gradient(to bottom, ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'} 1px, transparent 1px)` : brutalDotGrid, 
       backgroundSize: isTypo ? '40px 40px' : '24px 24px'
     }}>
@@ -655,20 +650,21 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
       
       {/* Top Header / Collaboration Sync Status */}
       <div style={{
-        position: 'absolute', top: '32px', width: '100%', maxWidth: '800px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', zIndex: 10
+        position: 'absolute', top: isMobile ? '16px' : '32px', width: '100%', maxWidth: '800px',
+        display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', 
+        justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 24px', zIndex: 10, gap: isMobile ? '12px' : '0'
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: subTextColor, textTransform: 'uppercase', letterSpacing: '1.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981', boxShadow: '0 0 8px #10B981' }}></span>
             Live Study Room
           </span>
-          <span style={{ fontSize: '18px', fontWeight: 700, color: textColor, fontFamily: 'Outfit, sans-serif' }}>
+          <span style={{ fontSize: '18px', fontWeight: 700, color: textColor, fontFamily: 'var(--font-outfit)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: isMobile ? '200px' : '400px' }}>
             {material?.title || 'Untitled Material'}
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
           {!readOnly && material?.id && (
             <button 
               onClick={() => {
@@ -676,14 +672,14 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
                 setCopyFeedback(true);
                 setTimeout(() => setCopyFeedback(false), 2000);
               }}
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'Outfit, sans-serif', opacity: 0.8 }}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'var(--font-outfit)', opacity: 0.8 }}
             >
                {copyFeedback ? <span style={{color: '#10B981'}}>Copied!</span> : <><Link size={20} weight="bold" /> Share</>}
             </button>
           )}
 
           <div style={{ position: 'relative' }}>
-            <button onClick={() => setShowFontMenu(!showFontMenu)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'Outfit, sans-serif', opacity: 0.8 }}>
+            <button onClick={() => setShowFontMenu(!showFontMenu)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'var(--font-outfit)', opacity: 0.8 }}>
               <TextAa size={20} weight="bold" /> Font
             </button>
             {showFontMenu && (
@@ -704,7 +700,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
             }}
             style={{ 
               background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-              color: textColor, fontWeight: 700, fontFamily: 'Outfit, sans-serif', opacity: 0.8
+              color: textColor, fontWeight: 700, fontFamily: 'var(--font-outfit)', opacity: 0.8
             }}
           >
              <PaintBrush size={20} weight="fill" /> 
@@ -716,7 +712,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
             backgroundColor: isBrutal ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'),
             border: isBrutal ? brutalCardBorder : 'none',
             boxShadow: isBrutal ? (isDark ? '4px 4px 0px rgba(255,255,255,0.9)' : '4px 4px 0px #111827') : 'none',
-            fontSize: '14px', fontWeight: 700, color: textColor, fontFamily: 'monospace'
+            fontSize: '14px', fontWeight: 700, color: textColor, fontFamily: 'monospace', whiteSpace: 'nowrap'
           }}>
             {currentIndex + 1} / {totalCards}
           </div>
@@ -724,7 +720,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
       </div>
 
       {/* Visual Stack Background Cards */}
-      <div style={{ position: 'absolute', width: '100%', maxWidth: '640px', height: '420px', marginTop: '-40px' }}>
+      <div style={{ position: 'absolute', width: '100%', maxWidth: '640px', height: isMobile ? '480px' : '420px', marginTop: isMobile ? '30px' : '-40px' }}>
         {currentIndex < totalCards - 1 && (
            <div style={{
              position: 'absolute', width: '100%', height: '100%', 
@@ -749,9 +745,9 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
 
       {/* Main Draggable Card */}
       <div style={{
-        perspective: '1200px', width: '100%', maxWidth: '640px', height: '420px',
+        perspective: '1200px', width: '100%', maxWidth: '640px', height: isMobile ? '480px' : '420px',
         position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        marginTop: '-40px', zIndex: 10
+        marginTop: isMobile ? '30px' : '-40px', zIndex: 10
       }}>
         <AnimatePresence mode="popLayout" custom={direction}>
           <motion.div
@@ -899,13 +895,14 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
 
       {/* Floating Control Toolbar */}
       <div style={{
-        position: 'absolute', bottom: '48px', left: '50%', transform: 'translateX(-50%)',
-        display: 'flex', alignItems: 'center', gap: '16px', zIndex: 40,
+        position: 'absolute', bottom: isMobile ? '16px' : '48px', left: '50%', transform: 'translateX(-50%)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile ? '8px' : '16px', zIndex: 40,
+        flexWrap: isMobile ? 'wrap' : 'nowrap', width: isMobile ? '100%' : 'auto', padding: isMobile ? '0 16px' : '0'
       }}>
         
         <button 
           onClick={() => handleMastery(1)} 
-          style={{ background: isBrutal ? '#FFD2A6' : '#FEE2E2', color: isBrutal ? '#111827' : '#EF4444', border: isBrutal ? '2px solid #111827' : 'none', borderRadius: '16px', padding: '12px 24px', fontWeight: 800, cursor: 'pointer', fontFamily: '"Nunito", "Quicksand", "Comic Sans MS", sans-serif', boxShadow: isBrutal ? '4px 4px 0px #111827' : '0 4px 12px rgba(239, 68, 68, 0.2)' }}
+          style={{ background: isBrutal ? '#FFD2A6' : '#FEE2E2', color: isBrutal ? '#111827' : '#EF4444', border: isBrutal ? '2px solid #111827' : 'none', borderRadius: '16px', padding: isMobile ? '12px 16px' : '12px 24px', fontWeight: 800, cursor: 'pointer', fontFamily: '"Nunito", "Quicksand", "Comic Sans MS", sans-serif', boxShadow: isBrutal ? '4px 4px 0px #111827' : '0 4px 12px rgba(239, 68, 68, 0.2)', fontSize: isMobile ? '14px' : '16px', whiteSpace: 'nowrap' }}
         >
           Needs Work
         </button>
@@ -919,7 +916,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
           <button 
             onClick={handlePrev} disabled={currentIndex === 0}
             style={{
-              width: '56px', height: '56px', borderRadius: '50%', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: isMobile ? '48px' : '56px', height: isMobile ? '48px' : '56px', borderRadius: '50%', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
               backgroundColor: currentIndex === 0 ? 'transparent' : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'),
               color: currentIndex === 0 ? (isDark ? '#334155' : '#CBD5E1') : textColor, cursor: currentIndex === 0 ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
             }}
@@ -930,9 +927,9 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
           <button 
             onClick={handleFlip}
             style={{
-              padding: '0 32px', height: '56px', borderRadius: '9999px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-              backgroundColor: isDark ? '#334155' : '#F1F5F9', color: textColor, fontWeight: 800, fontSize: '15px', cursor: 'pointer', transition: 'all 0.2s',
-              fontFamily: 'Outfit, sans-serif'
+              padding: isMobile ? '0 20px' : '0 32px', height: isMobile ? '48px' : '56px', borderRadius: '9999px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+              backgroundColor: isDark ? '#334155' : '#F1F5F9', color: textColor, fontWeight: 800, fontSize: isMobile ? '14px' : '15px', cursor: 'pointer', transition: 'all 0.2s',
+              fontFamily: 'var(--font-outfit)'
             }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? '#475569' : '#E2E8F0'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#F1F5F9'}
@@ -946,7 +943,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
           <button 
             onClick={() => handleNext(1)} disabled={currentIndex === totalCards - 1}
             style={{
-              width: '56px', height: '56px', borderRadius: '50%', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: isMobile ? '48px' : '56px', height: isMobile ? '48px' : '56px', borderRadius: '50%', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
               backgroundColor: currentIndex === totalCards - 1 ? 'transparent' : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'),
               color: currentIndex === totalCards - 1 ? (isDark ? '#334155' : '#CBD5E1') : textColor, cursor: currentIndex === totalCards - 1 ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
             }}
@@ -957,7 +954,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
 
         <button 
           onClick={() => handleMastery(2)} 
-          style={{ background: isBrutal ? '#98FF98' : '#D1FAE5', color: isBrutal ? '#111827' : '#10B981', border: isBrutal ? '2px solid #111827' : 'none', borderRadius: '16px', padding: '12px 24px', fontWeight: 800, cursor: 'pointer', fontFamily: '"Nunito", "Quicksand", "Comic Sans MS", sans-serif', boxShadow: isBrutal ? '4px 4px 0px #111827' : '0 4px 12px rgba(16, 185, 129, 0.2)' }}
+          style={{ background: isBrutal ? '#98FF98' : '#D1FAE5', color: isBrutal ? '#111827' : '#10B981', border: isBrutal ? '2px solid #111827' : 'none', borderRadius: '16px', padding: isMobile ? '12px 16px' : '12px 24px', fontWeight: 800, cursor: 'pointer', fontFamily: '"Nunito", "Quicksand", "Comic Sans MS", sans-serif', boxShadow: isBrutal ? '4px 4px 0px #111827' : '0 4px 12px rgba(16, 185, 129, 0.2)', fontSize: isMobile ? '14px' : '16px', whiteSpace: 'nowrap' }}
         >
           Got It!
         </button>

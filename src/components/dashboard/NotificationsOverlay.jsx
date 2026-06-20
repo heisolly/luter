@@ -101,7 +101,7 @@ export default function NotificationsOverlay({ isOpen, onClose }) {
                 ? '0 20px 52px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.05)'
                 : '0 20px 52px rgba(0,0,0,0.13), 0 0 0 1px rgba(0,0,0,0.04)',
               zIndex:        9001,
-              fontFamily:    "'Outfit','Inter',sans-serif",
+              fontFamily:    "var(--font-outfit),sans-serif",
               display:       'flex',
               flexDirection: 'column',
               overflow:      'hidden',

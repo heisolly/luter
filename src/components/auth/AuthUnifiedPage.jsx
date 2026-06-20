@@ -12,18 +12,22 @@ import { clearLuterCaches } from '../../utils/cacheUtils';
 import { PremiumButton } from '../PageShared';
 import GoogleLoginButton from './GoogleLoginButton';
 import AuthPageShell from './AuthPageShell';
-
-const buttonStyle = {
-  width: '100%',
-  background: '#C4B5FD',
-  color: '#333333',
-  border: '1px solid #C4B5FD',
-  borderBottom: '4px solid #FFD2A6',
-  boxShadow: '0 10px 22px rgba(196, 181, 253, 0.32)'
-};
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function AuthUnifiedPage({ initialMode = 'signin' }) {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
+
+  const buttonStyle = {
+    width: '100%',
+    background: isDark ? '#6D5BA5' : '#C4B5FD',
+    color: isDark ? '#E0E0FF' : '#333333',
+    border: isDark ? '1px solid #6D5BA5' : '1px solid #C4B5FD',
+    borderBottom: isDark ? '4px solid #B8860B' : '4px solid #FFD2A6',
+    boxShadow: isDark
+      ? '0 10px 22px rgba(109, 91, 165, 0.35)'
+      : '0 10px 22px rgba(196, 181, 253, 0.32)'
+  };
   const [mode, setMode] = useState(initialMode);
   const [signInEmail, setSignInEmail] = useState('');
   const [signInPassword, setSignInPassword] = useState('');
@@ -47,7 +51,7 @@ export default function AuthUnifiedPage({ initialMode = 'signin' }) {
     setSignInError(null);
     setSignUpError(null);
     setSuccess(false);
-    window.history.pushState(null, '', path);
+    window.history.pushState(null, '', path + window.location.search);
   };
 
   const handleSignIn = async (e) => {
@@ -68,8 +72,12 @@ export default function AuthUnifiedPage({ initialMode = 'signin' }) {
 
     if (data?.session) {
       clearLuterCaches();
-      const targetPath = redirectPath.startsWith('/') ? redirectPath : `/${redirectPath}`;
-      navigate(targetPath);
+      if (redirectPath.startsWith('http')) {
+        window.location.href = redirectPath;
+      } else {
+        const targetPath = redirectPath.startsWith('/') ? redirectPath : `/${redirectPath}`;
+        navigate(targetPath);
+      }
     }
   };
 
@@ -96,8 +104,12 @@ export default function AuthUnifiedPage({ initialMode = 'signin' }) {
 
     if (data?.session) {
       clearLuterCaches();
-      const targetPath = redirectPath.startsWith('/') ? redirectPath : `/${redirectPath}`;
-      navigate(targetPath);
+      if (redirectPath.startsWith('http')) {
+        window.location.href = redirectPath;
+      } else {
+        const targetPath = redirectPath.startsWith('/') ? redirectPath : `/${redirectPath}`;
+        navigate(targetPath);
+      }
       return;
     }
 

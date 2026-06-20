@@ -1194,54 +1194,27 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Logo Cloud */}
-      <section className="landing-logo-cloud" style={{ padding: '80px 0', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0', background: 'var(--background)', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', marginBottom: 40, textAlign: 'center' }}>
-          <div className="trusted-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: '#F1F5F9', padding: '8px 16px', borderRadius: 999, border: '1px solid #E2E8F0', marginBottom: 16 }}>
-            <div style={{ display: 'flex' }}>
-              {[
-                'https://api.dicebear.com/7.x/avataaars/svg?seed=Nkechi&backgroundColor=b6e3f4',
-                'https://api.dicebear.com/7.x/avataaars/svg?seed=Tunde&backgroundColor=c0aede',
-                'https://api.dicebear.com/7.x/avataaars/svg?seed=Aisha&backgroundColor=ffdfbf',
-                'https://api.dicebear.com/7.x/avataaars/svg?seed=Chidi&backgroundColor=d1d4f9',
-                'https://api.dicebear.com/7.x/avataaars/svg?seed=Zainab&backgroundColor=b6e3f4'
-              ].map((avatar, i) => (
-                <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: `url(${avatar}) center/cover`, border: '2px solid #F1F5F9', marginLeft: i === 0 ? 0 : -10, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }} />
-              ))}
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--tt-gray-light-a-600)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Trusted by 100k+ Students</span>
+      {/* Minimal Logo Bar with Scrolling School Logos */}
+      <section className="landing-logo-cloud" style={{ padding: '48px 0', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0', background: 'var(--background)' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', gap: '40px' }}>
+          <div style={{ fontSize: '18px', color: '#64748B', fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}>
+            Trusted by the best
           </div>
-          <h3 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, color: 'var(--foreground)', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em', margin: 0 }}>
-            Empowering students at top universities worldwide.
-          </h3>
-        </div>
 
-        <LogoLoop
-          logos={logoItems.slice(0, 8)}
-          speed={60}
-          direction="left"
-          logoHeight={60}
-          gap={24}
-          hoverSpeed={0}
-          scaleOnHover={true}
-          fadeOut={true}
-          fadeOutColor="var(--background)"
-          ariaLabel="Partner universities row 1"
-        />
-        
-        <div style={{ marginTop: 24 }}>
-          <LogoLoop
-            logos={logoItems.slice(8, 16)}
-            speed={50}
-            direction="right"
-            logoHeight={60}
-            gap={24}
-            hoverSpeed={0}
-            scaleOnHover={true}
-            fadeOut={true}
-            fadeOutColor="var(--background)"
-            ariaLabel="Partner universities row 2"
-          />
+          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+            <LogoLoop
+              logos={logoItems}
+              speed={60}
+              direction="left"
+              logoHeight={60}
+              gap={24}
+              hoverSpeed={0}
+              scaleOnHover={true}
+              fadeOut={true}
+              fadeOutColor="var(--background)"
+              ariaLabel="Partner universities"
+            />
+          </div>
         </div>
       </section>
 

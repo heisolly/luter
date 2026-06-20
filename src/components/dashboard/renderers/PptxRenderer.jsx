@@ -137,7 +137,7 @@ export default function PptxRenderer({ fileUrl, title }) {
               <h2 style={{ fontFamily: 'var(--font-outfit)', fontSize: 20, fontWeight: 800, color: '#1A102D', margin: 0 }}>
                 {title || 'Presentation'}
               </h2>
-              <p style={{ color: '#64748B', fontSize: 14, margin: '4px 0 0', fontFamily: 'var(--font-varela)' }}>
+              <p style={{ color: '#64748B', fontSize: 14, margin: '4px 0 0', fontFamily: 'var(--font-outfit)' }}>
                 {slides.length > 0 ? `${slides.length} slides` : 'Loading slides...'}
               </p>
             </div>
@@ -213,7 +213,7 @@ export default function PptxRenderer({ fileUrl, title }) {
                 Slide {activeSlide + 1}
               </h3>
               <div style={{
-                fontFamily: 'var(--font-varela)', fontSize: 17, lineHeight: 1.8,
+                fontFamily: 'var(--font-outfit)', fontSize: 17, lineHeight: 1.8,
                 color: '#334155', whiteSpace: 'pre-wrap',
               }}>
                 {slides[activeSlide]?.text || 'This slide has no text content.'}
@@ -271,7 +271,7 @@ export default function PptxRenderer({ fileUrl, title }) {
                     Slide {idx + 1}
                   </div>
                   <div style={{
-                    fontFamily: 'var(--font-varela)', fontSize: 13, lineHeight: 1.5,
+                    fontFamily: 'var(--font-outfit)', fontSize: 13, lineHeight: 1.5,
                     color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis',
                     display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical',
                     wordBreak: 'break-word',
@@ -290,7 +290,7 @@ export default function PptxRenderer({ fileUrl, title }) {
             boxShadow: '0 20px 50px rgba(0,0,0,0.05)', border: '1.5px solid #F1F5F9',
             textAlign: 'center',
           }}>
-            <p style={{ color: '#64748B', fontSize: 16, fontFamily: 'var(--font-varela)' }}>
+            <p style={{ color: '#64748B', fontSize: 16, fontFamily: 'var(--font-outfit)' }}>
               No readable slides found in this presentation.
             </p>
             <button

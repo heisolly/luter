@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import WallOfLove from '../../pages/WallOfLove';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function AuthPageShell({
   type = 'signin',
@@ -10,8 +11,10 @@ export default function AuthPageShell({
   footer,
   bottomNote,
   error,
-  onModeChange
+  onModeChange,
+  hideModeSwitch = false
 }) {
+  const { isDark } = useTheme();
   const isSignIn = type === 'signin';
 
   const handleModeClick = (nextType, path) => (event) => {
@@ -21,7 +24,7 @@ export default function AuthPageShell({
   };
 
   return (
-    <div className="auth-simple-page">
+    <div className={`auth-simple-page${isDark ? ' dark' : ''}`}>
       <div className="auth-love-background" aria-hidden="true">
         <WallOfLove transparentBg />
       </div>
@@ -37,10 +40,12 @@ export default function AuthPageShell({
             <p>{subtitle}</p>
           </div>
 
-          <div className={`auth-mode-switch ${type === 'signin' ? 'is-signin' : 'is-signup'}`} aria-label="Authentication mode">
-            <Link className={type === 'signup' ? 'is-active' : ''} to="/signup" onClick={handleModeClick('signup', '/signup')}>Sign up</Link>
-            <Link className={type === 'signin' ? 'is-active' : ''} to="/signin" onClick={handleModeClick('signin', '/signin')}>Sign in</Link>
-          </div>
+          {!hideModeSwitch && (
+            <div className={`auth-mode-switch ${type === 'signin' ? 'is-signin' : 'is-signup'}`} aria-label="Authentication mode">
+              <Link className={type === 'signup' ? 'is-active' : ''} to="/signup" onClick={handleModeClick('signup', '/signup')}>Sign up</Link>
+              <Link className={type === 'signin' ? 'is-active' : ''} to="/signin" onClick={handleModeClick('signin', '/signin')}>Sign in</Link>
+            </div>
+          )}
 
           {error && (
             <div className="auth-alert" role="alert">
@@ -68,7 +73,7 @@ export default function AuthPageShell({
             radial-gradient(circle at 88% 82%, rgba(152, 255, 152, 0.22) 0%, transparent 32%),
             #F9FAFB;
           color: #333333;
-          font-family: var(--font-varela);
+          font-family: var(--font-sans);
         }
 
         .auth-love-background {
@@ -155,7 +160,7 @@ export default function AuthPageShell({
         .auth-simple-copy h1 {
           margin: 0;
           color: #333333;
-          font-family: var(--font-outfit);
+          font-family: var(--font-sans);
           font-size: clamp(2rem, 5vw, 2.65rem);
           line-height: 1.05;
           letter-spacing: -0.035em;
@@ -212,7 +217,7 @@ export default function AuthPageShell({
           justify-content: center;
           border-radius: 999px;
           color: rgba(51, 51, 51, 0.72);
-          font-family: var(--font-outfit);
+          font-family: var(--font-sans);
           font-size: 14px;
           font-weight: 800;
           text-decoration: none;
@@ -282,11 +287,20 @@ export default function AuthPageShell({
           padding: 0 18px 0 48px;
           font-size: 15px;
           font-weight: 700;
-          font-family: var(--font-varela);
+          font-family: var(--font-sans);
           outline: none;
           transition: border-color 0.2s ease, box-shadow 0.2s ease;
           box-sizing: border-box;
           text-transform: none;
+        }
+
+        .auth-input:-webkit-autofill,
+        .auth-input:-webkit-autofill:hover, 
+        .auth-input:-webkit-autofill:focus, 
+        .auth-input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0px 1000px #F9FAFB inset !important;
+          -webkit-text-fill-color: #333333 !important;
+          transition: background-color 5000s ease-in-out 0s;
         }
 
         .auth-input::placeholder {
@@ -304,7 +318,7 @@ export default function AuthPageShell({
           gap: 12px;
           margin: 16px 0;
           color: rgba(51, 51, 51, 0.68);
-          font-family: var(--font-outfit);
+          font-family: var(--font-sans);
           font-size: 13px;
           font-weight: 800;
         }
@@ -387,7 +401,7 @@ export default function AuthPageShell({
         .auth-success-card h2 {
           margin: 0 0 12px;
           color: #333333;
-          font-family: var(--font-outfit);
+          font-family: var(--font-sans);
           font-size: 32px;
           line-height: 1;
           letter-spacing: -0.03em;
@@ -562,6 +576,131 @@ export default function AuthPageShell({
           .auth-mode-switch {
             width: 190px;
           }
+        }
+
+        /* ---- Dark mode ---- */
+        .auth-simple-page.dark {
+          background:
+            radial-gradient(circle at 12% 18%, rgba(109, 91, 165, 0.3) 0%, transparent 30%),
+            radial-gradient(circle at 88% 82%, rgba(18, 120, 80, 0.25) 0%, transparent 32%),
+            #0A0A1A;
+          color: #C4C4E0;
+        }
+
+        .auth-simple-page.dark::after {
+          background:
+            linear-gradient(90deg, rgba(10, 10, 26, 0.4), rgba(10, 10, 26, 0.12), rgba(10, 10, 26, 0.4)),
+            radial-gradient(circle at center, rgba(10, 10, 26, 0.7) 0%, rgba(10, 10, 26, 0.3) 48%, rgba(10, 10, 26, 0.1) 100%);
+        }
+
+        .auth-simple-page.dark .auth-love-background .wol-card {
+          box-shadow: 0 18px 48px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        .auth-simple-page.dark .auth-simple-card {
+          background:
+            linear-gradient(180deg, rgba(18, 18, 42, 0.94), rgba(18, 18, 42, 0.9)),
+            radial-gradient(circle at 0% 0%, rgba(255, 210, 166, 0.12), transparent 36%),
+            radial-gradient(circle at 100% 100%, rgba(109, 91, 165, 0.2), transparent 42%);
+          border-color: rgba(196, 181, 253, 0.35);
+          box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+        }
+
+        .auth-simple-page.dark .auth-simple-copy h1 {
+          color: #E0E0FF;
+        }
+
+        .auth-simple-page.dark .auth-simple-copy p {
+          color: rgba(224, 224, 255, 0.55);
+        }
+
+        .auth-simple-page.dark .auth-mode-switch {
+          background: rgba(18, 18, 42, 0.85);
+          border-color: rgba(196, 181, 253, 0.35);
+          box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .auth-simple-page.dark .auth-mode-switch a {
+          color: rgba(224, 224, 255, 0.5);
+        }
+
+        .auth-simple-page.dark .auth-mode-switch a.is-active {
+          color: #0A0A1A;
+        }
+
+        .auth-simple-page.dark .auth-alert {
+          background: rgba(185, 28, 28, 0.2);
+          color: #FCA5A5;
+          border-color: rgba(252, 165, 165, 0.4);
+        }
+
+        .auth-simple-page.dark .auth-input {
+          background: rgba(26, 26, 53, 0.9);
+          border-color: rgba(196, 181, 253, 0.35);
+          color: #E0E0FF;
+        }
+
+        .auth-simple-page.dark .auth-input:-webkit-autofill,
+        .auth-simple-page.dark .auth-input:-webkit-autofill:hover, 
+        .auth-simple-page.dark .auth-input:-webkit-autofill:focus, 
+        .auth-simple-page.dark .auth-input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0px 1000px #1A1A35 inset !important;
+          -webkit-text-fill-color: #E0E0FF !important;
+          transition: background-color 5000s ease-in-out 0s;
+        }
+
+        .auth-simple-page.dark .auth-input::placeholder {
+          color: rgba(224, 224, 255, 0.35);
+        }
+
+        .auth-simple-page.dark .auth-input:focus {
+          border-color: #7C6FBF;
+          box-shadow: 0 0 0 4px rgba(124, 111, 191, 0.25);
+        }
+
+        .auth-simple-page.dark .auth-input-wrap svg {
+          color: #7C6FBF;
+        }
+
+        .auth-simple-page.dark .auth-divider {
+          color: rgba(224, 224, 255, 0.45);
+        }
+
+        .auth-simple-page.dark .auth-divider::before,
+        .auth-simple-page.dark .auth-divider::after {
+          background: rgba(196, 181, 253, 0.25);
+        }
+
+        .auth-simple-page.dark .auth-footer-link {
+          color: rgba(224, 224, 255, 0.5);
+        }
+
+        .auth-simple-page.dark .auth-footer-link a,
+        .auth-simple-page.dark .auth-inline-switch,
+        .auth-simple-page.dark .auth-bottom-note a {
+          color: #C4B5FD;
+          text-decoration-color: #7C6FBF;
+        }
+
+        .auth-simple-page.dark .auth-bottom-note {
+          color: rgba(224, 224, 255, 0.4);
+        }
+
+        .auth-simple-page.dark .auth-success-icon {
+          background: rgba(152, 255, 152, 0.2);
+          color: #98FF98;
+        }
+
+        .auth-simple-page.dark .auth-success-card h2 {
+          color: #E0E0FF;
+        }
+
+        .auth-simple-page.dark .auth-success-card p {
+          color: rgba(224, 224, 255, 0.55);
+        }
+
+        .auth-simple-page.dark .auth-success-card strong {
+          color: #C4B5FD;
         }
       `}</style>
     </div>

@@ -92,7 +92,7 @@ export default function SharedFlashcardsView() {
   const progress = (mastered.size / bundle.cards.length) * 100
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '40px 20px', fontFamily: "'Outfit', 'Varela Round', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '40px 20px', fontFamily: "var(--font-outfit), sans-serif" }}>
       <div style={{ maxWidth: '600px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
         
         {/* Header Branding */}

@@ -68,7 +68,8 @@ export default function DocumentViewer({
   drawMode,
   loadHighlights,
   setHighlightToolbox,
-  isDark
+  isDark,
+  isMobile
 }) {
   const { setViewportData, askAI } = useReadingSpace()
   const [viewMode, setViewMode] = useState('visuals')
@@ -155,7 +156,7 @@ export default function DocumentViewer({
       <div className="ws-property-card" style={{ marginBottom: '48px' }}>
         {isLandmark && <div className="ws-inst-logo" style={{ marginBottom: 24, background: '#6D28D9', color: 'white', border: 'none' }}>LMU</div>}
         <h1 className="ws-ntn-h1" style={{ fontSize: 42, fontWeight: 800, fontFamily: 'var(--font-outfit)', letterSpacing: '-0.04em', color: '#1A102D', marginBottom: '12px' }}>{material.course_code || 'STUDY MATERIAL'}</h1>
-        <p style={{ color: '#64748B', fontSize: 20, fontWeight: 500, margin: 0, fontFamily: 'var(--font-varela)', opacity: 0.8 }}>{material.title}</p>
+        <p style={{ color: '#64748B', fontSize: 20, fontWeight: 500, margin: 0, fontFamily: 'var(--font-outfit)', opacity: 0.8 }}>{material.title}</p>
         
         <div className="ws-property-grid" style={{ 
           marginTop: '40px', 
@@ -236,6 +237,7 @@ export default function DocumentViewer({
                     loadHighlights={loadHighlights}
                     setHighlightToolbox={setHighlightToolbox}
                     isDark={isDark}
+                    isMobile={isMobile}
                  />
             </div>
           )}
@@ -253,8 +255,8 @@ export default function DocumentViewer({
                         h1: ({ children }) => <h1 className="ws-ntn-h1" style={{ fontFamily: 'var(--font-outfit)', fontSize: '32px', fontWeight: 800, marginTop: '48px', marginBottom: '20px' }}>{children}</h1>,
                         h2: ({ children }) => <h2 className="ws-ntn-h2" style={{ fontFamily: 'var(--font-outfit)', fontSize: '24px', fontWeight: 700, marginTop: '36px', marginBottom: '16px', borderBottom: '1.5px solid #F1F5F9', paddingBottom: '8px' }}>{children}</h2>,
                         h3: ({ children }) => <h3 style={{ fontFamily: 'var(--font-outfit)', fontSize: '20px', fontWeight: 700, marginTop: '28px', marginBottom: '12px' }}>{children}</h3>,
-                        p: ({ children }) => <p className="ws-ntn-p" style={{ fontSize: `${fontSize}px`, fontFamily: 'var(--font-varela)', lineHeight: '1.8', color: '#334155', marginBottom: '24px' }}>{children}</p>,
-                        li: ({ children }) => <li style={{ fontFamily: 'var(--font-varela)', fontSize: `${fontSize - 1}px`, marginBottom: '12px', color: '#334155' }}>{children}</li>,
+                        p: ({ children }) => <p className="ws-ntn-p" style={{ fontSize: `${fontSize}px`, fontFamily: 'var(--font-outfit)', lineHeight: '1.8', color: '#334155', marginBottom: '24px' }}>{children}</p>,
+                        li: ({ children }) => <li style={{ fontFamily: 'var(--font-outfit)', fontSize: `${fontSize - 1}px`, marginBottom: '12px', color: '#334155' }}>{children}</li>,
                         em: ({ children, ...props }) => {
                           return <em {...props}>{children}</em>
                         },
@@ -385,7 +387,7 @@ function HighFidelityAudio({ material }) {
        </div>
        <div style={{ textAlign: 'center' }}>
          <h3 style={{ fontFamily: 'var(--font-outfit)', fontWeight: 800, fontSize: '20px', color: '#1A102D', marginBottom: '8px' }}>AUDIO LECTURE</h3>
-         <p style={{ fontFamily: 'var(--font-varela)', color: '#64748B', fontSize: '14px' }}>{material.title}</p>
+         <p style={{ fontFamily: 'var(--font-outfit)', color: '#64748B', fontSize: '14px' }}>{material.title}</p>
        </div>
        <audio controls src={material.source_url} style={{ width: '400px' }} />
     </div>
@@ -411,7 +413,7 @@ function PendingState({ material }) {
       </div>
       <div style={{ textAlign: 'center' }}>
         <p style={{ color: '#1A102D', fontWeight: 800, fontSize: '18px', fontFamily: 'var(--font-outfit)', marginBottom: '4px' }}>OPTIMIZING FOR STUDY</p>
-        <p style={{ color: '#64748B', fontWeight: 500, fontSize: '14px', fontFamily: 'var(--font-varela)' }}>{material?.title || 'Preparing your material'}...</p>
+        <p style={{ color: '#64748B', fontWeight: 500, fontSize: '14px', fontFamily: 'var(--font-outfit)' }}>{material?.title || 'Preparing your material'}...</p>
       </div>
     </div>
   )

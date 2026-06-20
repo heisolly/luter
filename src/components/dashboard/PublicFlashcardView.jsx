@@ -5,12 +5,20 @@ import WorkstationFlashcards from './WorkstationFlashcards';
 import { CaretLeft, CircleNotch } from '@phosphor-icons/react';
 import { MaterialAnalysisService } from '../../services/materialAnalysisService';
 import { CollaborationProvider } from './CollaborationProvider';
+import LuterLogo from '../shared/LuterLogo';
 
 export default function PublicFlashcardView() {
   const { materialId } = useParams();
   const [material, setMaterial] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     async function loadMaterial() {
@@ -50,7 +58,7 @@ export default function PublicFlashcardView() {
   if (error) {
     return (
       <div style={{ display: 'flex', height: '100vh', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAFAFA', gap: '16px' }}>
-        <h2 style={{ fontFamily: 'Outfit, sans-serif', color: '#111827' }}>Oops, we couldn't load this pack.</h2>
+        <h2 style={{ fontFamily: 'var(--font-outfit)', color: '#111827' }}>Oops, we couldn't load this pack.</h2>
         <p style={{ color: '#6B7280' }}>The link might be invalid or the creator removed it.</p>
         <Link to="/" style={{ color: '#6366F1', fontWeight: 600, textDecoration: 'none' }}>Go back to home</Link>
       </div>
@@ -68,10 +76,8 @@ export default function PublicFlashcardView() {
         zIndex: 50
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontFamily: 'Outfit' }}>
-            L
-          </div>
-          <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: '18px', color: '#111827' }}>
+          <LuterLogo size={28} fontSize={20} />
+          <span style={{ fontFamily: 'var(--font-outfit)', fontWeight: 700, fontSize: isMobile ? '16px' : '18px', color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: isMobile ? '150px' : 'auto' }}>
             {material?.title || 'Shared Flashcards'}
           </span>
         </div>
@@ -92,6 +98,7 @@ export default function PublicFlashcardView() {
             items={flashcards} 
             isDark={false}
             readOnly={true}
+            isMobile={isMobile}
           />
         </CollaborationProvider>
       </div>

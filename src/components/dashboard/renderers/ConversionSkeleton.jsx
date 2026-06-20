@@ -25,7 +25,7 @@ export default function ConversionSkeleton({ type = 'pptx', failed = false, onRe
             <h2 style={{ fontFamily: 'var(--font-outfit)', fontSize: 20, fontWeight: 800, color: '#1A102D', margin: 0 }}>
               {label}
             </h2>
-            <p style={{ color: '#64748B', fontSize: 14, margin: '4px 0 0', fontFamily: 'var(--font-varela)' }}>
+            <p style={{ color: '#64748B', fontSize: 14, margin: '4px 0 0', fontFamily: 'var(--font-outfit)' }}>
               Converting to high-fidelity PDF…
             </p>
           </div>

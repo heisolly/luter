@@ -9,7 +9,7 @@
   min-height: 100vh;
   background: var(--sb-bg, #F9FAFB);
   color: var(--sb-text, #090909);
-  font-family: 'Outfit', 'Inter', sans-serif;
+  font-family: var(--font-outfit), sans-serif;
   padding: 24px 32px;
   overflow-x: hidden;
 }
@@ -1693,4 +1693,128 @@ body.dark-mode .dhd-sc-arrow {
     padding-left: 10px;
     padding-right: 10px;
   }
+}
+
+/* ====================================================
+   Quiz Arena — Button System
+   ==================================================== */
+
+/* Primary purple CTA — "New Quiz", "Take your first quiz" */
+.qa-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  font-family: inherit;
+}
+
+.qa-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.42);
+}
+
+.qa-btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 10px rgba(139, 92, 246, 0.28);
+}
+
+/* Dark pill — "Continue" button on the active quiz banner */
+.qa-btn-continue {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  background: #111827;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, background 0.15s ease;
+  font-family: inherit;
+}
+
+body.dark-mode .qa-btn-continue {
+  background: #F9FAFB;
+  color: #111827;
+}
+
+.qa-btn-continue:hover {
+  transform: translateY(-1px);
+  background: #1E293B;
+}
+
+body.dark-mode .qa-btn-continue:hover {
+  background: #E5E7EB;
+}
+
+/* Ghost outline — secondary actions like "New Quiz" in history header */
+.qa-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 13px;
+  background: transparent;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  font-family: inherit;
+}
+
+body.dark-mode .qa-btn-ghost {
+  border-color: #374151;
+  color: #9CA3AF;
+}
+
+.qa-btn-ghost:hover {
+  border-color: #C4B5FD;
+  color: #7C3AED;
+  background: rgba(196, 181, 253, 0.07);
+}
+
+body.dark-mode .qa-btn-ghost:hover {
+  border-color: #C4B5FD;
+  color: #C4B5FD;
+  background: rgba(196, 181, 253, 0.07);
+}
+
+/* Per-row accent retake button */
+.qa-btn-retake {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 13px;
+  background: transparent;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease, color 0.15s ease;
+  font-family: inherit;
+}
+
+body.dark-mode .qa-btn-retake {
+  border-color: #374151;
+  color: #9CA3AF;
 }

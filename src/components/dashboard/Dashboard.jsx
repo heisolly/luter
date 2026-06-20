@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import DashboardSidebar from './DashboardSidebar'
 import { Loader2, Sword, X, ArrowRight, Sidebar as SidebarSimple } from 'lucide-react'
-import { Backpack, DotsThree, House, NotePencil, UsersThree } from '@phosphor-icons/react'
+import { Backpack, DotsThree, House, NotePencil, UsersThree, ChalkboardTeacher } from '@phosphor-icons/react'
 import { LuterPageLoader } from '../shared/LuterPageLoader'
 import { motion, AnimatePresence } from 'framer-motion'
 import LuterLogo from '../shared/LuterLogo'
@@ -21,6 +21,7 @@ function DashboardMobileBottomNav({ pathname, navigate, onMore }) {
   const isActive = (target) => {
     if (target === '/dashboard') return pathname === '/dashboard' || pathname === '/dashboard/' || pathname === '/home'
     if (target === '/dashboard/backpack') return pathname.startsWith('/dashboard/backpack') || pathname.startsWith('/backpack')
+    if (target === '/classrooms') return pathname.startsWith('/classrooms')
     if (target === '/sessions') return pathname.startsWith('/sessions') || pathname.startsWith('/dashboard/sessions')
     if (target === '/dashboard/notes') return pathname.startsWith('/dashboard/notes') || pathname.startsWith('/notes')
     return pathname === target || pathname.startsWith(`${target}/`)
@@ -28,6 +29,7 @@ function DashboardMobileBottomNav({ pathname, navigate, onMore }) {
 
   const items = [
     { label: 'Home', path: '/dashboard', icon: House },
+    { label: 'Classrooms', path: '/classrooms', icon: ChalkboardTeacher },
     { label: 'Backpack', path: '/dashboard/backpack', icon: Backpack },
     { label: 'Sessions', path: '/sessions', icon: UsersThree },
     { label: 'Notes', path: '/dashboard/notes', icon: NotePencil },
@@ -260,6 +262,8 @@ export default function Dashboard() {
 
   const isWorkstation = location.pathname.includes('/workstation') || location.pathname.includes('/notes/editor') || location.pathname.includes('/ai-chat')
   const isFocusPage = isWorkstation || location.pathname.includes('/mock-exam') || location.pathname.includes('/profile') || location.pathname.includes('/trash') || location.pathname.includes('/analytics')
+  // Classroom room view has its own sidebar — suppress the hover-peek trigger there
+  const isClassroomView = location.pathname.startsWith('/classrooms/c/')
   const isPlayground = location.pathname.includes('/playground')
   const [sidebarHovered, setSidebarHovered] = useState(false)
 
@@ -388,7 +392,7 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {!isMobile && sidebarCollapsed && (
+      {!isMobile && sidebarCollapsed && !isClassroomView && (
         <div 
           className="ws-sidebar-trigger" 
           onMouseEnter={() => setSidebarHovered(true)}
@@ -401,7 +405,7 @@ export default function Dashboard() {
         />
       )}
         <AnimatePresence>
-          {sidebarHovered && sidebarCollapsed && !isMobile && (
+          {sidebarHovered && sidebarCollapsed && !isMobile && !isClassroomView && (
             <motion.div
               initial={{ x: -290, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}

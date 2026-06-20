@@ -566,79 +566,7 @@ export function SharedNavbar() {
             />
           </Link>
 
-          {/* Desktop nav links - centered */}
-          <div className="hidden md:flex" style={{ 
-            gap: 40, alignItems: 'center', 
-            position: 'absolute', left: '50%', transform: 'translateX(-50%)' 
-          }}>
-            <div 
-              style={{ position: 'relative', padding: '20px 0' }}
-              onMouseEnter={() => setShowFeatures(true)}
-              onMouseLeave={() => setShowFeatures(false)}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
-                <NavLink label="Features" to={getAppUrl('/features')} isActive={location.pathname === '/features' || showFeatures} isDark={isDark} />
-                <motion.div animate={{ rotate: showFeatures ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                  <ChevronDown size={14} weight="bold" color="#2e1065" style={{ marginTop: 2 }} />
-                </motion.div>
-              </div>
 
-              {/* Features Popover */}
-              <AnimatePresence>
-                {showFeatures && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                    transition={{ duration: 0.15, ease: 'easeOut' }}
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      width: 280,
-                      background: 'var(--background)',
-                      borderRadius: 16,
-                      boxShadow: '0 12px 32px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.05)',
-                      border: '1px solid rgba(0,0,0,0.08)',
-                      padding: 12,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 4,
-                    }}
-                  >
-                    {featuresList.map((f, i) => (
-                      <Link
-                        key={i}
-                        to={getAppUrl('/features')}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 14,
-                          padding: '12px',
-                          borderRadius: 12,
-                          textDecoration: 'none',
-                          color: 'inherit',
-                          transition: 'background 0.2s',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.03)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
-                        <div style={{ width: 40, height: 40, borderRadius: 10, background: f.bg, border: `1px solid ${f.bg}80`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {f.icon}
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: 15, fontWeight: 600, color: '#111' }}>{f.title}</span>
-                          <span style={{ fontSize: 13, color: '#6B7280', marginTop: 1 }}>{f.desc}</span>
-                        </div>
-                      </Link>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-            <NavLink label="About us" to={getAppUrl('/about')} isActive={location.pathname === '/about'} isDark={isDark} />
-          </div>
 
           {/* Desktop right buttons */}
           <div className="hidden md:flex" style={{ alignItems: 'center', gap: 12 }}>
@@ -815,8 +743,7 @@ export function SharedNavbar() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[
-                { l: 'Features', p: '/features', i: <Stack size={22} weight="light" /> },
-                { l: 'About us', p: '/about', i: <Users size={22} weight="light" /> },
+                { l: 'Home', p: '/', i: <House size={22} weight="light" /> },
                 { l: 'Login', p: '/signin', i: <TrendingUp size={22} weight="light" /> }
               ].map((item, idx) => (
                 <motion.div
@@ -1064,16 +991,6 @@ export function SharedFooter() {
 
             {/* Links */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32 }}>
-              {[
-                { label: 'Features', to: '/features' },
-                { label: 'About Us', to: '/about' },
-                { label: 'Pricing', to: '/pricing' },
-                { label: 'Wall of Love', to: '/wall-of-love' },
-              ].map((link) => (
-                <Link key={link.label} to={getAppUrl(link.to)} style={{ fontSize: 16, fontWeight: 800, color: 'var(--foreground)', textDecoration: 'none', textTransform: 'uppercase', borderBottom: '3px solid transparent', transition: 'border-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.borderBottomColor = '#9718FB'} onMouseLeave={e => e.currentTarget.style.borderBottomColor = 'transparent'}>
-                  {link.label}
-                </Link>
-              ))}
             </div>
           </div>
 

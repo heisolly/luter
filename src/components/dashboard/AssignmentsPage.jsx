@@ -65,7 +65,7 @@ export default function AssignmentsPage() {
   const isAdded = (id) => activeDeckItems.some(item => item.content_id === id)
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'Outfit' }}>
+    <div style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'var(--font-outfit)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#1A102D', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>

@@ -74,7 +74,7 @@ export default function DocxRenderer({ fileUrl, title }) {
           box-shadow: 0 2px 16px rgba(0,0,0,0.06) !important;
         }
         .luter-docx-rendered p, .luter-docx-rendered span {
-          font-family: var(--font-varela), system-ui, sans-serif !important;
+          font-family: var(--font-sans), system-ui, sans-serif !important;
         }
       `
       document.head.appendChild(style)

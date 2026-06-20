@@ -27,7 +27,7 @@ body.dark-mode {
   padding: 32px 40px 80px;
   background: var(--lp-bg);
   color: var(--lp-text);
-  font-family: 'Outfit', 'Inter', sans-serif;
+  font-family: var(--font-outfit), sans-serif;
 }
 
 .lp-shell {
