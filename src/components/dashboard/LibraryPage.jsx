@@ -4,7 +4,6 @@ import { CardSkeleton } from '../shared/LuterPageLoader'
 import { supabase } from '../../supabaseClient'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import useTourStore from '../../store/useTourStore'
 
 const TABS = [
   { id: 'all', label: 'All Activity', icon: Layers },
@@ -22,20 +21,6 @@ export default function LibraryPage() {
   const [recentSessions, setRecentSessions] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (user) {
-      fetchLibraryContent()
-    }
-  }, [user])
-
-  const { startTour, hasCompletedTour, completedTours, currentUserId, isLoadingTours } = useTourStore()
-
-  useEffect(() => {
-    if (user?.id && currentUserId === user.id && !loading && !isLoadingTours && !hasCompletedTour('library')) {
-      const timer = setTimeout(() => startTour('library'), 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [user?.id, currentUserId, completedTours, loading, hasCompletedTour, startTour, isLoadingTours])
 
   async function fetchLibraryContent() {
     setLoading(true)

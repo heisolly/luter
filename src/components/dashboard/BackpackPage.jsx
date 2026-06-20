@@ -28,7 +28,6 @@ import { cachePageData, getCachedPageData } from '../../lib/offlineCache'
 import { supabase } from '../../supabaseClient'
 import CourseEnrollmentModal from '../shared/CourseEnrollmentModal'
 import UserUpload from './UserUpload'
-import useTourStore from '../../store/useTourStore'
 import './luterPages.css'
 
 import SharedMaterialPreview from '../shared/SharedMaterialPreview'
@@ -60,7 +59,6 @@ export default function BackpackPage() {
   const { bundle } = useDashboardPrefetch()
   const profile = bundle?.profile?.data || bundle?.profile
   const prefetchedStats = bundle?.stats?.data || bundle?.stats || {}
-  const { startTour, hasCompletedTour, completedTours, currentUserId, isLoadingTours } = useTourStore()
 
   const [tab, setTab] = useState(() => localStorage.getItem('backpackActiveTab') || 'folders')
   const [folders, setFolders] = useState([])
@@ -75,43 +73,6 @@ export default function BackpackPage() {
   const [editFolderName, setEditFolderName] = useState('')
   const [stats, setStats] = useState({ streak: 0, level: 1, coins: 0 })
 
-  useEffect(() => {
-    localStorage.setItem('backpackActiveTab', tab)
-  }, [tab])
-
-  // Initialize from prefetch bundle for instant load
-  useEffect(() => {
-    let prefetched = false;
-    if (bundle?.uc?.data) {
-      // Filter out entries where courses row was deleted (soft-delete handling)
-      const validData = (bundle.uc.data || []).filter(uc => uc.courses !== null)
-      setFolders(validData)
-      prefetched = true;
-    }
-    if (bundle?.materials?.data) {
-      // Only standalone materials (no course_id) show in the root backpack files tab
-      const standalone = bundle.materials.data.filter(m => !m.course_id)
-      setMaterials(standalone)
-      prefetched = true;
-    }
-    if (prefetched) {
-      setLoading(false)
-    }
-  }, [bundle?.uc?.data, bundle?.materials?.data])
-
-  useEffect(() => {
-    if (!user?.id) return
-    loadFolders()
-    loadMaterials()
-    loadGamification()
-  }, [user?.id])
-
-  useEffect(() => {
-    if (user?.id && currentUserId === user.id && !loading && !isLoadingTours && !hasCompletedTour('backpack')) {
-      const timer = setTimeout(() => startTour('backpack'), 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [user?.id, currentUserId, completedTours, loading, hasCompletedTour, startTour, isLoadingTours])
 
   const loadFolders = async () => {
     if (!bundle?.uc?.data) setLoading(true)

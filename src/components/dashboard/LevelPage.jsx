@@ -21,22 +21,6 @@ export default function LevelPage() {
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef(null)
 
-  useEffect(() => {
-    if (!user) return
-    loadGamificationData()
-    loadLevelInfo()
-    loadAchievements()
-    loadAvatar()
-  }, [user])
-
-  const { startTour, hasCompletedTour, isLoadingTours } = useTourStore()
-
-  useEffect(() => {
-    if (user?.id && !loading && !isLoadingTours && gamificationData && !hasCompletedTour('profile')) {
-      const timer = setTimeout(() => startTour('profile'), 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [user?.id, loading, isLoadingTours, gamificationData])
 
   const loadAvatar = async () => {
     try {

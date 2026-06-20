@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Bell, Coins, Moon, Sun, Star, Lightning, House, SidebarSimple, Compass, CheckCircle, Circle, CaretRight, CaretDown, Fire, CaretLeft, Target, X, FilePdf, YoutubeLogo, FileText, BookOpen, ClockCounterClockwise, FolderOpen } from '@phosphor-icons/react'
+import { Bell, Coins, Moon, Sun, Star, Lightning, House, SidebarSimple, Compass, CheckCircle, Circle, CaretRight, CaretDown, Fire, CaretLeft, Target, X, FilePdf, YoutubeLogo, FileText, BookOpen, ClockCounterClockwise, FolderOpen, Clock } from '@phosphor-icons/react'
 import { supabase } from '../../supabaseClient'
 import { useOutletContext, Link, useNavigate } from 'react-router-dom'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
@@ -722,21 +722,21 @@ function YourProgress({ bundle }) {
   )
 }
 
-function RecentSessions({ bundle }) {
+function RecentFolders({ bundle }) {
   const [isOpen, setIsOpen] = useState(true)
-  const studySessions = bundle?.studySessions?.data || []
-  const materials = bundle?.materials?.data || []
+  const courses = bundle?.uc?.data || []
 
-  if (studySessions.length === 0) return null
+  if (courses.length === 0) return null
 
-  // Lookup material details
-  const materialMap = new Map()
-  materials.forEach(m => materialMap.set(m.id, m))
-
-  // Sort sessions by updated_at descending
-  const sortedSessions = [...studySessions].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 4)
+  // Sort by last_studied_at or created_at descending
+  const sortedCourses = [...courses].sort((a, b) => {
+    const da = new Date(a.last_studied_at || a.created_at)
+    const db = new Date(b.last_studied_at || b.created_at)
+    return db - da
+  }).slice(0, 4)
 
   const timeAgo = (dateString) => {
+    if (!dateString) return ''
     const date = new Date(dateString)
     const now = new Date()
     const diffInSeconds = Math.floor((now - date) / 1000)
@@ -750,46 +750,38 @@ function RecentSessions({ bundle }) {
     return date.toLocaleDateString()
   }
 
-  const getIcon = (type) => {
-    if (type === 'pdf') return FilePdf
-    if (type === 'youtube') return YoutubeLogo
-    if (type === 'note') return FileText
-    return BookOpen
-  }
-
   return (
     <div className="dhd-combined-section dhd-sessions-section">
       <div className="dhd-combined-header">
         <button className="dhd-combined-toggle" onClick={() => setIsOpen(o => !o)}>
           {isOpen ? <CaretDown size={14} weight="bold" /> : <CaretRight size={14} weight="bold" />}
-          <Clock size={18} weight="regular" />
-          <span>Recent Sessions</span>
+          <FolderOpen size={18} weight="regular" />
+          <span>Recent Folders</span>
         </button>
       </div>
 
       {isOpen && (
         <div className="dhd-sessions-grid">
-          {sortedSessions.map((session, i) => {
-            const material = materialMap.get(session.material_id)
-            if (!material) return null
-
+          {sortedCourses.map((uc, i) => {
+            const course = uc.courses || {}
+            const title = uc.custom_name || course.name || 'Untitled Folder'
+            const courseId = course.id || uc.course_id
             const color = LUTER_COLORS[i % LUTER_COLORS.length]
-            const Icon = getIcon(material.type)
 
             return (
               <Link 
-                to={`/workstation?materialId=${material.id}`} 
-                key={session.id} 
+                to={`/backpack/${courseId}`} 
+                key={uc.id} 
                 className="dhd-session-card"
                 style={{ '--hover-color': color }}
               >
                 <div className="dhd-sc-icon" style={{ background: `${color}33`, color: color === '#98FF98' ? '#22C55E' : color === '#C4B5FD' ? '#7C3AED' : '#F97316' }}>
-                  <Icon size={20} weight="fill" />
+                  <FolderOpen size={20} weight="fill" />
                 </div>
                 <div className="dhd-sc-info">
-                  <h4 className="dhd-sc-title">{material.title}</h4>
+                  <h4 className="dhd-sc-title">{title}</h4>
                   <span className="dhd-sc-time">
-                    <Clock size={12} /> {timeAgo(session.updated_at)}
+                    <Clock size={12} /> {timeAgo(uc.last_studied_at || uc.created_at)}
                   </span>
                 </div>
                 <div className="dhd-sc-arrow">
@@ -901,7 +893,7 @@ export default function DashboardHome() {
           <CombinedMaterials bundle={bundle} />
         </div>
         <div className="dhd-col-right">
-          <RecentSessions bundle={bundle} />
+          <RecentFolders bundle={bundle} />
         </div>
       </section>
 

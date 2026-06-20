@@ -309,18 +309,6 @@ export default function DashboardSidebar({
           {!collapsed && <span className="dsb-nav-label">Home</span>}
         </button>
 
-        {/* Sessions */}
-        <button
-          id="nav-sessions"
-          className={`dsb-nav-pill${isNavActive(pathname, '/sessions') ? ' active' : ''}`}
-          onClick={() => go('/sessions')}
-        >
-          <div className="dsb-icon">
-            <UsersThree size={21} weight="regular" />
-          </div>
-          {!collapsed && <span className="dsb-nav-label">Sessions</span>}
-        </button>
-
         {/* Notes */}
         <button
           id="nav-notes"

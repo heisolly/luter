@@ -17,7 +17,6 @@ import {
 } from 'react-icons/ri'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
-import useTourStore from '../../store/useTourStore'
 import './study-groups.css'
 
 // Curated Luter palette
@@ -41,18 +40,6 @@ export default function StudyGroupsPage() {
   const [groups, setGroups] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (user) fetchGroups()
-  }, [user])
-
-  const { startTour, hasCompletedTour, completedTours, currentUserId, isLoadingTours } = useTourStore()
-
-  useEffect(() => {
-    if (user?.id && currentUserId === user.id && !loading && !isLoadingTours && !hasCompletedTour('study-groups')) {
-      const timer = setTimeout(() => startTour('study-groups'), 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [user?.id, currentUserId, completedTours, loading, hasCompletedTour, startTour, isLoadingTours])
 
   async function fetchGroups() {
     try {

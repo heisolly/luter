@@ -14,15 +14,13 @@ import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceSto
 import { preloadingService } from '../../services/preloadingService'
 import { LANDING_URL } from '../../utils/urlUtils'
 
-import { LuterTourGuide } from '../shared/tour/LuterTourGuide'
-import { useTourStore } from '../../store/useTourStore'
+
 
 function DashboardMobileBottomNav({ pathname, navigate, onMore }) {
   const isActive = (target) => {
     if (target === '/home') return pathname === '/home' || pathname === '/' || pathname === '/home'
     if (target === '/backpack') return pathname.startsWith('/backpack') || pathname.startsWith('/backpack')
     if (target === '/classrooms') return pathname.startsWith('/classrooms')
-    if (target === '/sessions') return pathname.startsWith('/sessions') || pathname.startsWith('/sessions')
     if (target === '/notes') return pathname.startsWith('/notes') || pathname.startsWith('/notes')
     return pathname === target || pathname.startsWith(`${target}/`)
   }
@@ -31,7 +29,6 @@ function DashboardMobileBottomNav({ pathname, navigate, onMore }) {
     { label: 'Home', path: '/home', icon: House },
     { label: 'Classrooms', path: '/classrooms', icon: ChalkboardTeacher },
     { label: 'Backpack', path: '/backpack', icon: Backpack },
-    { label: 'Sessions', path: '/sessions', icon: UsersThree },
     { label: 'Notes', path: '/notes', icon: NotePencil },
   ]
 
@@ -66,7 +63,7 @@ function DashboardMobileBottomNav({ pathname, navigate, onMore }) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const { isTourActive, currentTourId, startTour, hasCompletedTour, setUserId, completedTours, currentUserId, isLoadingTours } = useTourStore()
+
   const { initializeWorkspaces } = useUniversalWorkspaceStore()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [user, setUser] = useState(null)
@@ -76,35 +73,7 @@ export default function Dashboard() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
 
-  // Trigger tour for new users on dashboard home
-  useEffect(() => {
-    if (user?.id) {
-      setUserId(user.id)
-    }
-  }, [user?.id, setUserId])
 
-  useEffect(() => {
-    if (!loading && !isLoadingTours && user && currentUserId === user.id && window.location.pathname === '/home') {
-      if (!hasCompletedTour('dashboard-home')) {
-        const timer = setTimeout(() => startTour('dashboard-home'), 2000)
-        return () => clearTimeout(timer)
-      }
-      
-      // Trigger nav tour after home tour is done
-      if (hasCompletedTour('dashboard-home') && !hasCompletedTour('dashboard-nav')) {
-        const timer = setTimeout(() => startTour('dashboard-nav'), 1000)
-        return () => clearTimeout(timer)
-      }
-    }
-  }, [loading, isLoadingTours, user, currentUserId, completedTours, window.location.pathname, hasCompletedTour, startTour])
-
-  // Force sidebar open during nav tour
-  useEffect(() => {
-    if (isTourActive && currentTourId === 'dashboard-nav') {
-      setSidebarCollapsed(false)
-      if (isMobile) setMobileSidebarOpen(true)
-    }
-  }, [isTourActive, currentTourId, isMobile])
 
   const location = useLocation()
   
@@ -134,8 +103,6 @@ export default function Dashboard() {
           if (session?.user) {
             setUser(session.user)
             setUserId(session.user.id)
-            // Pre-load tours even before profile is fetched to set currentUserId
-            useTourStore.getState().loadCompletedTours(session.user.id)
             
             const profileCacheKey = `luter:profile:${session.user.id}`
             const offline = typeof navigator !== 'undefined' && !navigator.onLine
@@ -149,7 +116,7 @@ export default function Dashboard() {
             try {
               const { data, error } = await supabase
                 .from('profiles')
-                .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium, completed_tours')
+                .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium')
                 .eq('id', session.user.id)
                 .maybeSingle()
               
@@ -158,9 +125,6 @@ export default function Dashboard() {
               if (data) {
                 setProfile(data)
                 try { localStorage.setItem(profileCacheKey, JSON.stringify(data)) } catch {}
-                
-                // Sync tour state immediately if data is present
-                useTourStore.getState().loadCompletedTours(session.user.id)
               }
             } catch (error) {
               console.warn('Profile fetch failed:', error.message)
@@ -168,10 +132,9 @@ export default function Dashboard() {
                 console.log('🔄 Session appears stale (401), attempting refresh...')
                 const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession()
                 if (!refreshError && refreshedSession) {
-                  // Retry profile fetch once
                   const { data: retryP } = await supabase
                     .from('profiles')
-                    .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium, completed_tours')
+                    .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium')
                     .eq('id', refreshedSession.user.id)
                     .maybeSingle()
                   if (retryP) setProfile(retryP)
@@ -206,7 +169,6 @@ export default function Dashboard() {
             
             setLoading(false)
           } else {
-            // Wait a bit longer before redirecting - Supabase might still be initializing
             setTimeout(async () => {
               const { data: { session: finalCheck } } = await supabase.auth.getSession()
               console.log('🔄 Dashboard finalCheck inside handleSession(null):', finalCheck ? 'EXISTS' : 'NULL')
@@ -229,7 +191,6 @@ export default function Dashboard() {
         if (initialSession) {
           await handleSession(initialSession)
         } else {
-          // Listen for auth state change
           const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             console.log('🔄 Dashboard onAuthStateChange event:', event, 'session:', session ? 'EXISTS' : 'NULL')
             if (session) {
@@ -348,7 +309,6 @@ export default function Dashboard() {
 
   return (
     <DashboardPrefetchProvider userId={user?.id}>
-    <LuterTourGuide />
     <div className={`dash-root ${isMobile ? 'dash-root--mobile' : ''} ${isFocusPage ? 'ws-mode' : ''}`}>
       {isMobile && !isWorkstation && (
         <div

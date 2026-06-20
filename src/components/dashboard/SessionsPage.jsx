@@ -11,7 +11,6 @@ import {
   X,
 } from '@phosphor-icons/react'
 import { useSessionStore } from '../../store/useSessionStore'
-import useTourStore from '../../store/useTourStore'
 import './SessionsRedesign.css'
 import './StudySession.css'
 
@@ -42,7 +41,6 @@ export default function SessionsPage() {
     setActiveSession,
     updateLastAccessed,
   } = useSessionStore()
-  const { startTour, hasCompletedTour, completedTours, currentUserId, isLoadingTours } = useTourStore()
 
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -55,52 +53,6 @@ export default function SessionsPage() {
   const [joinError, setJoinError] = useState('')
   const [joining, setJoining] = useState(false)
 
-  useEffect(() => {
-    if (!user?.id) return
-    setLoading(true)
-    Promise.resolve(loadSessions(false, user.id)).finally(() => setLoading(false))
-  }, [user?.id, loadSessions])
-
-  useEffect(() => {
-    if (searchParams.get('new') === '1') {
-      setShowCreate(true)
-      setSearchParams(params => {
-        params.delete('new')
-        return params
-      }, { replace: true })
-    }
-  }, [searchParams, setSearchParams])
-
-  useEffect(() => {
-    const code = searchParams.get('join')
-    const materialId = searchParams.get('materialId')
-    if (!code || !user?.id) return
-
-    const joinFromUrl = async () => {
-      setJoining(true)
-      const result = await useSessionStore.getState().joinSharedSession(code)
-      setJoining(false)
-      if (result.success && result.session) {
-        setSearchParams({}, { replace: true })
-        navigate(materialId
-          ? `/workstation?sessionId=${result.session.id}&materialId=${materialId}&sessionType=group`
-          : `/session/${result.session.id}`)
-      } else {
-        setJoinCode(code)
-        setJoinError(result.error || 'That invite could not be opened.')
-        setShowJoin(true)
-      }
-    }
-
-    joinFromUrl()
-  }, [searchParams, setSearchParams, user?.id, navigate])
-
-  useEffect(() => {
-    if (user?.id && currentUserId === user.id && !loading && !isLoadingTours && !hasCompletedTour('sessions')) {
-      const timer = setTimeout(() => startTour('sessions'), 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [user?.id, currentUserId, completedTours, loading, hasCompletedTour, startTour, isLoadingTours])
 
   const visibleSessions = useMemo(() => {
     const q = search.trim().toLowerCase()
