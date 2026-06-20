@@ -31,7 +31,7 @@ export default function AdminSettings() {
           <span className={`adm-pill ${profile?.role === 'admin' ? 'adm-pill--warn' : ''}`}>{profile?.role || 'user'}</span>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-          <a href={`${DASHBOARD_URL}/dashboard`} className="adm-btn adm-btn--ghost">
+          <a href={`${DASHBOARD_URL}`} className="adm-btn adm-btn--ghost">
             <House size={16} /> Open student app
           </a>
           <button type="button" className="adm-btn adm-btn--primary" onClick={signOut}>

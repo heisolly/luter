@@ -56,11 +56,11 @@ function ExploreLuter({ bundle }) {
   const tasks = [
     { id: 1, label: 'Complete your profile', done: !!profile.username, xp: 5, path: '/profile' },
     { id: 2, label: 'Set a Daily Study Goal', done: !!stats.daily_goal_minutes, xp: 10, path: null, isGoal: true },
-    { id: 3, label: 'Create your first Deck', done: hasDeck, xp: 10, path: '/dashboard/decks?new=1' },
-    { id: 4, label: 'Upload a PDF to Backpack', done: hasPdf, xp: 15, path: '/dashboard/upload' },
-    { id: 5, label: 'Write your first Note', done: hasNote, xp: 12, path: '/dashboard/notes?new=1' },
+    { id: 3, label: 'Create your first Deck', done: hasDeck, xp: 10, path: '/decks?new=1' },
+    { id: 4, label: 'Upload a PDF to Backpack', done: hasPdf, xp: 15, path: '/upload' },
+    { id: 5, label: 'Write your first Note', done: hasNote, xp: 12, path: '/notes?new=1' },
     { id: 6, label: 'Earn your first XP', done: (stats.total_xp || 0) > 0, xp: 3, path: '/playground' },
-    { id: 7, label: 'Reach a 3-day streak', done: (stats.streak_days || 0) >= 3, xp: 20, path: '/dashboard' },
+    { id: 7, label: 'Reach a 3-day streak', done: (stats.streak_days || 0) >= 3, xp: 20, path: '/home' },
     { id: 8, label: 'Reach Level 2', done: (stats.total_xp || 0) >= 500, xp: 25, path: '/playground' },
   ]
   const completed = tasks.filter(t => t.done).length
@@ -778,7 +778,7 @@ function RecentSessions({ bundle }) {
 
             return (
               <Link 
-                to={`/dashboard/workstation?materialId=${material.id}`} 
+                to={`/workstation?materialId=${material.id}`} 
                 key={session.id} 
                 className="dhd-session-card"
                 style={{ '--hover-color': color }}

@@ -101,7 +101,7 @@ export default function StudyGroupsPage() {
       {/* Breadcrumbs */}
       <div id="tour-groups-header" className="sg-header">
         <div className="sg-breadcrumbs">
-          <button className="sg-breadcrumb-item" onClick={() => navigate('/dashboard')}>
+          <button className="sg-breadcrumb-item" onClick={() => navigate('/home')}>
             <Home size={14} />
             <span>Home</span>
           </button>
@@ -159,7 +159,7 @@ export default function StudyGroupsPage() {
                 key={group.id} 
                 className="sg-group-card"
                 whileHover={{ y: -5 }}
-                onClick={() => navigate(`/dashboard/study-groups/${group.id}`)}
+                onClick={() => navigate(`/study-groups/${group.id}`)}
                 style={{ cursor: 'pointer' }}
               >
                 <div className="sg-group-card-header" style={{ background: group.color }}>

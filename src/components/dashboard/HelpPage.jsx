@@ -81,7 +81,7 @@ const STYLES = `
     padding: 16px 20px 16px 52px;
     border-radius: 16px;
     border: none;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 1rem;
     color: #111827;
     outline: none;
@@ -263,7 +263,7 @@ const STYLES = `
     padding: 13px 24px;
     border-radius: 14px;
     border: none;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 0.92rem;
     font-weight: 700;
     cursor: pointer;

@@ -157,7 +157,7 @@ export default function LibraryPage() {
 
               <div style={{ display: 'grid', gap: '16px' }}>
                 {filteredSessions.map(session => (
-                  <SessionCard key={session.id} session={session} onClick={() => navigate(`/dashboard/exam-session/${session.id}`)} />
+                  <SessionCard key={session.id} session={session} onClick={() => navigate(`/exam-session/${session.id}`)} />
                 ))}
               </div>
             </section>

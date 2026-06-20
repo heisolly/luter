@@ -19,7 +19,7 @@ const CSS_STRING = `
   width: 100%;
   background: var(--sb-bg, #F7F7F8);
   color: var(--sb-text, #111827);
-  font-family: 'Outfit', 'Outfit', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Outfit', 'Outfit', sans-serif;
   overflow: hidden;
 }
 body.dark-mode .rv-root {

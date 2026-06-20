@@ -92,7 +92,7 @@ export default function StudyGroupDetailsPage() {
 
     } catch (err) {
       console.error('Error fetching group details:', err)
-      navigate('/dashboard/study-groups')
+      navigate('/study-groups')
     } finally {
       setLoading(false)
     }
@@ -117,7 +117,7 @@ export default function StudyGroupDetailsPage() {
       })
 
       if (!result.success) throw new Error(result.error)
-      navigate(`/dashboard/workstation?sessionId=${result.session.id}&groupId=${group.id}&sessionType=group`)
+      navigate(`/workstation?sessionId=${result.session.id}&groupId=${group.id}&sessionType=group`)
     } catch (error) {
       console.error('Unable to start group session:', error)
       alert('Could not start the group session yet. Make sure the session sharing SQL has been applied.')
@@ -139,7 +139,7 @@ export default function StudyGroupDetailsPage() {
       {/* Olly Style Header */}
       <div className="sg-olly-header">
         <div className="sg-olly-title-wrap">
-          <button className="sg-olly-back" onClick={() => navigate('/dashboard/study-groups')}>
+          <button className="sg-olly-back" onClick={() => navigate('/study-groups')}>
             <ChevronLeft size={20} />
           </button>
           <h1 className="sg-olly-logo">{group.name}</h1>
@@ -180,7 +180,7 @@ export default function StudyGroupDetailsPage() {
                 </div>
                 <button
                   className="sg-list-more"
-                  onClick={() => navigate(`/dashboard/workstation?sessionId=${session.id}&groupId=${group.id}&sessionType=group`)}
+                  onClick={() => navigate(`/workstation?sessionId=${session.id}&groupId=${group.id}&sessionType=group`)}
                   title="Open live session"
                 >
                   <MoreHorizontal size={18} />

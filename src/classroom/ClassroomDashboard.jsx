@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import ClassroomSidebar from './ClassroomSidebar';
+import { useSessionStore } from '../store/useSessionStore';
 
 const LEVELS = [
   { val: '100', label: '100 Level', desc: 'Introductory course materials' },
@@ -35,7 +36,7 @@ const CSS_STRING = `
   overflow: hidden;
   background-color: var(--sb-bg, #F9FAFB);
   color: var(--sb-text, #111827);
-  font-family: 'Outfit', 'Outfit', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Outfit', 'Outfit', sans-serif;
 }
 body.dark-mode .cls-container {
   background-color: #333333; 
@@ -196,7 +197,7 @@ body.dark-mode .cls-input {
   justify-content: center;
   align-items: center;
   z-index: 9999;
-  font-family: 'Outfit', 'Outfit', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Outfit', 'Outfit', sans-serif;
   overflow-y: auto;
   padding: 20px;
   box-sizing: border-box;
@@ -747,12 +748,15 @@ export default function ClassroomDashboard() {
     const nextIndex = Math.min(pastedData.length, 5);
     inputRefs.current[nextIndex].focus();
   };
-
-  const handleNext = () => {
+  const handleNext = async () => {
     const joinCode = code.join('');
     if (joinCode.length === 6) {
-      console.log('Joining class with code:', joinCode);
-      navigate(`/classrooms/c/${joinCode}`);
+      const result = await useSessionStore.getState().joinSharedSession(joinCode);
+      if (result.success && result.session) {
+        navigate(`/workstation?sessionId=${result.session.id}&type=classroom`);
+      } else {
+        alert(result.error || 'Failed to join room');
+      }
     }
   };
 
@@ -777,49 +781,27 @@ export default function ClassroomDashboard() {
     setStep(3);
   };
 
-  const handleSkipSchedule = () => {
+  const handleSkipSchedule = async () => {
     if (!roomName.trim()) return;
-
-    const classId = roomName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'new-class';
-    
-    const meta = {
-      title: roomName,
-      level: educationLevel === 'None' ? 'Not Specified' : `${educationLevel} Level`,
-      department: department || 'Not Specified',
-      schedule: null,
-      createdAt: new Date().toLocaleDateString()
-    };
-    localStorage.setItem(`luter_class_metadata_${classId}`, JSON.stringify(meta));
-
     setIsCreateOpen(false);
-    navigate(`/classrooms/c/${classId}`);
+    const { success, session } = await useSessionStore.getState().createSession(roomName, [], { sessionType: 'classroom', isShared: true });
+    if (success && session) {
+      navigate(`/workstation?sessionId=${session.id}&type=classroom`);
+    }
   };
 
-  const handleCreateRoomSubmit = (e) => {
+  const handleCreateRoomSubmit = async (e) => {
     e.preventDefault();
     if (step < 4) {
       setStep(step + 1);
       return;
     }
-
     if (!roomName.trim()) return;
-
-    const classId = roomName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'new-class';
-    
-    const meta = {
-      title: roomName,
-      level: educationLevel === 'None' ? 'Not Specified' : `${educationLevel} Level`,
-      department,
-      schedule: {
-        date: selectedDateStr,
-        time: selectedTimeSlot
-      },
-      createdAt: new Date().toLocaleDateString()
-    };
-    localStorage.setItem(`luter_class_metadata_${classId}`, JSON.stringify(meta));
-
     setIsCreateOpen(false);
-    navigate(`/classrooms/c/${classId}`);
+    const { success, session } = await useSessionStore.getState().createSession(roomName, [], { sessionType: 'classroom', isShared: true });
+    if (success && session) {
+      navigate(`/workstation?sessionId=${session.id}&type=classroom`);
+    }
   };
 
   const getNext5Days = () => {
@@ -848,28 +830,14 @@ export default function ClassroomDashboard() {
 
   // -- newly added logic for grid --
   const [user, setUser] = useState(null);
-  const [rooms, setRooms] = useState([]);
+  const { sessions, loadSessions } = useSessionStore();
+  const rooms = sessions.filter(s => s.session_type === 'classroom');
   const [isJoinOpen, setIsJoinOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data?.user));
-    
-    // Load rooms from localStorage
-    const loadRooms = () => {
-      const keys = Object.keys(localStorage);
-      const roomKeys = keys.filter(k => k.startsWith('luter_class_metadata_'));
-      const loaded = roomKeys.map(k => {
-        try {
-          return { id: k.replace('luter_class_metadata_', ''), ...JSON.parse(localStorage.getItem(k)) };
-        } catch {
-          return null;
-        }
-      }).filter(Boolean);
-      // reverse to show newest first
-      setRooms(loaded.reverse());
-    };
-    loadRooms();
-  }, [isCreateOpen]); // re-load when create modal closes
+    loadSessions();
+  }, [isCreateOpen, loadSessions]);
 
   const handleJoinOpen = () => {
     setCode(['', '', '', '', '', '']);
@@ -928,7 +896,7 @@ export default function ClassroomDashboard() {
               return (
                 <div 
                   key={room.id} 
-                  onClick={() => navigate(`/classrooms/c/${room.id}`)}
+                  onClick={() => navigate(`/workstation?sessionId=${room.id}&type=classroom`)}
                   style={{ 
                     background: bg, 
                     borderRadius: '16px', 
@@ -943,8 +911,8 @@ export default function ClassroomDashboard() {
                   onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'}
                   onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
                 >
-                  <h3 style={{ fontSize: '22px', fontWeight: 800, margin: '0 0 4px', maxWidth: '80%' }}>{room.title}</h3>
-                  <p style={{ fontSize: '14px', fontWeight: 600, opacity: 0.8, margin: 0 }}>{room.department}</p>
+                  <h3 style={{ fontSize: '22px', fontWeight: 800, margin: '0 0 4px', maxWidth: '80%' }}>{room.session_name}</h3>
+                  <p style={{ fontSize: '14px', fontWeight: 600, opacity: 0.8, margin: 0 }}>Luter Classroom</p>
                   <img src={`https://api.dicebear.com/7.x/micah/svg?seed=${seed}&backgroundColor=transparent`} alt="Room Bemoji" style={{ position: 'absolute', bottom: '-10px', right: '-10px', width: '100px', pointerEvents: 'none', opacity: 0.9 }} />
                 </div>
               );

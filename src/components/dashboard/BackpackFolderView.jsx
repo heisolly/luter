@@ -1,51 +1,73 @@
-import { useEffect, useState } from 'react'
-import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useParams, useNavigate, useOutletContext, Link } from 'react-router-dom'
 import {
-  ArrowLeft,
-  FileText,
-  FolderSimple,
-  UploadSimple,
-  MagnifyingGlass,
-  Plus,
-  PlayCircle,
-  BookOpen,
-  ShareNetwork,
-  DotsThreeVertical
-} from '@phosphor-icons/react'
+  Folder, Plus, Trash2, Play, ArrowLeft, FileText, Video, Music, Image as ImageIcon,
+  Upload, Clock, Pencil, Share2, Users, MoreHorizontal, ChevronRight
+} from 'lucide-react'
+import { MagnifyingGlass, House, SidebarSimple, Star, Lightning, Coins, Bell, Sun, Moon } from '@phosphor-icons/react'
 import { supabase } from '../../supabaseClient'
-import { fetchCourseMaterials } from '../../services/materialsService'
-import UserUpload from './UserUpload'
+import { fetchCourseMaterials, uploadMaterial } from '../../services/materialsService'
+import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
+import { getCreditBalance } from '../../services/creditService'
 import SharedMaterialPreview from '../shared/SharedMaterialPreview'
-import './luterPages.css'
-import './SessionsRedesign.css'
+import './StudySession.css'
+import './dhd.css'
 
-function dateLabel(value) {
-  if (!value) return 'Recently'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Recently'
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+function useDarkMode() {
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('luter-theme')
+    if (saved) return saved === 'dark'
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
+
+  useEffect(() => {
+    document.body.classList.toggle('dark-mode', isDark)
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light')
+    localStorage.setItem('luter-theme', isDark ? 'dark' : 'light')
+  }, [isDark])
+
+  return [isDark, setIsDark]
 }
 
 function materialLabel(material) {
   return material.title || material.file_name || material.name || 'Untitled material'
 }
 
-const COLORS = ['purple', 'mint', 'peach']
-
 export default function BackpackFolderView() {
   const { folderId } = useParams()
-  const { user } = useOutletContext()
   const navigate = useNavigate()
+  const { user, setNotificationsOpen, setSidebarCollapsed, sidebarCollapsed } = useOutletContext() || {}
+  const { bundle } = useDashboardPrefetch()
+  const [isDark, setIsDark] = useDarkMode()
+  const [creditsBalance, setCreditsBalance] = useState(Infinity)
+  
+  useEffect(() => {
+    if (!user?.id) return
+    getCreditBalance(user.id).then(b => {
+      if (typeof b === 'number') setCreditsBalance(b)
+    }).catch(() => {})
+  }, [user?.id])
+  
+  const stats = bundle?.stats?.data || {}
+  const profile = bundle?.profile?.data || bundle?.profile
+  const credits = typeof creditsBalance === 'number' ? creditsBalance : profile?.credits ?? 20000
+  const xp = stats?.total_xp ?? 0
+  const level = Math.floor(xp / 500) + 1
 
   const [courseName, setCourseName] = useState('')
   const [courseCode, setCourseCode] = useState('')
   const [materials, setMaterials] = useState([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [showUpload, setShowUpload] = useState(false)
+  
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const [sortBy, setSortBy] = useState('date') // Default to recent
+  const [activeTab, setActiveTab] = useState('materials')
+  const [showDropdown, setShowDropdown] = useState(false)
   const [previewMaterial, setPreviewMaterial] = useState(null)
-  const [activeTab, setActiveTab] = useState('All Materials')
 
   useEffect(() => {
     if (folderId && user?.id) {
@@ -78,240 +100,321 @@ export default function BackpackFolderView() {
     }
   }
 
-  const filteredMaterials = materials
-    .filter((m) => !search || materialLabel(m).toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  const handleDeleteFolder = async () => {
+    if (window.confirm('Are you sure you want to delete this folder?')) {
+      await supabase.from('courses').update({ is_archived: true }).eq('id', folderId)
+      navigate('/backpack')
+    }
+  }
 
-  const handleOpenMaterial = (material) => navigate(`/dashboard/workstation/${material.id}`, { state: { material } })
-  const handleStudyMaterial = (material) => navigate(`/dashboard/workstation/${material.id}`, { state: { material } })
+  const handleAddMaterial = async (files) => {
+    if (!files || !files.length || !user) return
+    setIsUploading(true); setUploadProgress(0)
+    const totalFiles = files.length
+
+    for (let i = 0; i < totalFiles; i++) {
+      const file = files[i]
+      try {
+        setUploadProgress(Math.round((i / totalFiles) * 100))
+        const ext = file.name.split('.').pop().toLowerCase()
+        let type = 'pdf'
+        if (['docx', 'doc'].includes(ext)) type = 'docx'
+        else if (['pptx', 'ppt'].includes(ext)) type = 'pptx'
+        else if (['mp4', 'webm', 'mov'].includes(ext)) type = 'video'
+        else if (['mp3', 'wav', 'm4a'].includes(ext)) type = 'audio'
+        else if (['jpg', 'png', 'jpeg', 'webp'].includes(ext)) type = 'image'
+        
+        await uploadMaterial({ file, courseId: folderId, userId: user.id, title: file.name, type, week: 1 })
+      } catch (err) { 
+        console.error('[Folder] Upload failed:', err) 
+      }
+    }
+    setUploadProgress(100)
+    setTimeout(() => { setIsUploading(false); setUploadProgress(0); loadMaterials() }, 500)
+  }
+
+  const handleFileSelect = (e) => handleAddMaterial(Array.from(e.target.files))
+  const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true) }
+  const handleDragLeave = (e) => { e.preventDefault(); setIsDragging(false) }
+  const handleDrop = (e) => { e.preventDefault(); setIsDragging(false); handleAddMaterial(Array.from(e.dataTransfer.files)) }
+
+  const handleRemoveItem = async (itemId) => {
+    if (window.confirm('Remove this material?')) {
+      await supabase.from('course_materials').delete().eq('id', itemId)
+      loadMaterials()
+    }
+  }
+
+  const handleStartStudying = () => {
+    if (!materials.length) return
+    navigate(`/workstation?courseId=${folderId}`)
+  }
+
+  const filteredItems = materials
+    .filter(item => materialLabel(item).toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => {
+      if (sortBy === 'name') return materialLabel(a).localeCompare(materialLabel(b))
+      if (sortBy === 'date') return new Date(b.created_at) - new Date(a.created_at)
+      if (sortBy === 'type') return a.type?.localeCompare(b.type)
+      return 0
+    })
+
+  // Close dropdown if clicked outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.ss-folder-menu-btn') && !e.target.closest('.ss-dropdown')) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="ss-loading">
+        <div className="ss-loading-inner">
+          <div className="ss-spinner" />
+          <span className="ss-loading-text" style={{ marginTop: 16 }}>Loading folder...</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="sr-container">
-      <div className="sr-content">
-
-        {/* ── Breadcrumb ── */}
-        <button
-          onClick={() => navigate('/dashboard/backpack')}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--sr-muted)', fontSize: 13, fontWeight: 600,
-            padding: 0, width: 'fit-content'
-          }}
-        >
-          <ArrowLeft size={16} /> Back to Courses
-        </button>
-
-        {/* ── Hero Header ── */}
-        <div className="sr-hero">
-          <div className="sr-hero-text" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{
-              width: 48, height: 48, borderRadius: 14,
-              background: 'rgba(196,181,253,0.18)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-              <FolderSimple size={26} weight="fill" color="#7C3AED" />
-            </div>
-            <div>
-              <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--sr-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                {courseCode}
-              </p>
-              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: 'var(--sr-text)', letterSpacing: '-0.02em' }}>
-                {courseName || 'Loading…'}
-              </h1>
-            </div>
+    <div className="ss-root" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+      {isDragging && (
+        <div className="ss-drag-overlay">
+          <div className="ss-drag-inner">
+            <Upload size={52} />
+            <span>Drop files to add to folder</span>
           </div>
+        </div>
+      )}
 
-          <div className="sr-hero-actions">
-            <button className="sr-btn" style={{ gap: 8, padding: '10px 16px', borderRadius: 999 }}>
-              <ShareNetwork size={16} weight="bold" /> Share
-            </button>
-            <button
-              className="sr-btn sr-btn-primary"
-              style={{ gap: 8, padding: '10px 20px', borderRadius: 999, background: '#98FF98', color: '#14532D', border: 'none', fontWeight: 700 }}
-              onClick={() => setShowUpload(true)}
+      {/* Top Navigation & Breadcrumbs */}
+      <header className="dhd-header ss-page-header">
+        <div className="dhd-header-left">
+          {sidebarCollapsed && (
+            <button 
+              className="dhd-sidebar-toggle"
+              onClick={() => setSidebarCollapsed(false)}
+              title="Toggle Sidebar"
             >
-              <UploadSimple size={16} weight="bold" /> Upload Document
+              <SidebarSimple size={14} weight="regular" />
             </button>
-            <button className="sr-btn" style={{ padding: '10px', borderRadius: 999, minWidth: 'unset' }}>
-              <DotsThreeVertical size={18} weight="bold" />
-            </button>
-          </div>
-        </div>
-
-        {/* ── Tabs + Stats Row ── */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {['All Materials', 'Recent'].map(tab => (
-              <button
-                key={tab}
-                className={`sr-tab ${activeTab === tab ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{
-              padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700,
-              background: 'rgba(196,181,253,0.2)', color: '#7C3AED'
-            }}>
-              Total: {materials.length}
-            </span>
-            <div className="sr-search" style={{ maxWidth: 240 }}>
-              <MagnifyingGlass size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--sr-muted)' }} />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search this folder…"
-                style={{
-                  width: '100%', padding: '9px 14px 9px 36px',
-                  borderRadius: 999, border: '1px solid var(--sr-border)',
-                  background: 'var(--sr-surface)', color: 'var(--sr-text)',
-                  fontSize: 13, fontWeight: 500, outline: 'none', boxSizing: 'border-box'
-                }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* ── Content ── */}
-        {loading ? (
-          <div className="sr-empty">
-            <div className="sr-empty-icon"><FolderSimple size={28} weight="duotone" /></div>
-            <h3>Loading Folder</h3>
-            <p>Fetching your materials…</p>
-          </div>
-        ) : filteredMaterials.length === 0 ? (
-          <div className="sr-empty">
-            <div className="sr-empty-icon">
-              <FileText size={28} weight="duotone" />
-            </div>
-            <h3>{search ? 'Nothing matched' : 'Folder is empty'}</h3>
-            <p>{search ? 'Try a different search term.' : 'Upload a PDF, note, video, or other study file to begin.'}</p>
-            {!search && (
-              <button
-                className="sr-btn sr-btn-primary"
-                style={{ borderRadius: 999, padding: '10px 20px', background: '#98FF98', color: '#14532D', border: 'none', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 8 }}
-                onClick={() => setShowUpload(true)}
-              >
-                <Plus size={16} weight="bold" /> Upload material
-              </button>
-            )}
-          </div>
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-            gap: 16
-          }}>
-            {filteredMaterials.map((material, index) => {
-              const color = COLORS[index % COLORS.length]
-              const isPdf = material.type === 'pdf'
-              const isDoc = material.type === 'docx'
-              const isYt = material.type === 'youtube'
-              const typeLabel = (material.type || 'file').toUpperCase()
-
-              const thumbBg = {
-                purple: '#1E1B4B',
-                mint: '#14532D',
-                peach: '#7C2D12',
-              }[color]
-
-              return (
-                <motion.div
-                  key={material.id}
-                  className="sr-card"
-                  data-color={color}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.04 }}
-                  onClick={() => handleOpenMaterial(material)}
-                  style={{ padding: 0, overflow: 'hidden', cursor: 'pointer', gap: 0 }}
-                >
-                  {/* Thumbnail */}
-                  <div style={{
-                    height: 110,
-                    background: thumbBg,
-                    display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center',
-                    borderRadius: '16px 16px 0 0',
-                    gap: 4, position: 'relative'
-                  }}>
-                    <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', position: 'absolute', top: 10, left: 12 }}>
-                      {typeLabel}
-                    </span>
-                    {isPdf && <BookOpen size={32} weight="fill" color="rgba(255,255,255,0.8)" />}
-                    {isDoc && <FileText size={32} weight="fill" color="rgba(255,255,255,0.8)" />}
-                    {isYt && <PlayCircle size={32} weight="fill" color="rgba(255,255,255,0.8)" />}
-                    {!isPdf && !isDoc && !isYt && <FileText size={32} weight="fill" color="rgba(255,255,255,0.8)" />}
-                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                      Document Preview
-                    </span>
-                  </div>
-
-                  {/* Info */}
-                  <div style={{ padding: '12px 14px' }}>
-                    <h3 style={{
-                      margin: '0 0 6px', fontSize: 13, fontWeight: 700,
-                      color: 'var(--sr-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
-                    }}>
-                      {materialLabel(material)}
-                    </h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 11, color: 'var(--sr-muted)', fontWeight: 500 }}>0 cards</span>
-                      <span style={{ fontSize: 11, color: '#C4B5FD', fontWeight: 600 }}>0 to-do</span>
-                    </div>
-                  </div>
-                </motion.div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Upload CTA at bottom */}
-        {!loading && filteredMaterials.length > 0 && (
-          <button
-            onClick={() => setShowUpload(true)}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              gap: 8, height: 48, border: '2px dashed var(--sr-border)', borderRadius: 12,
-              background: 'transparent', color: 'var(--sr-muted)', fontFamily: 'inherit',
-              fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
-            }}
+          )}
+          <div 
+            className="dhd-page-title" 
+            onClick={() => navigate('/backpack')} 
+            style={{ cursor: 'pointer', transition: 'opacity 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.7'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
           >
-            <Plus size={16} /> Add More Materials
+            <House size={16} weight="regular" />
+            <span>Backpack</span>
+          </div>
+          <ChevronRight size={14} style={{ color: '#9CA3AF' }} />
+          <div className="dhd-page-title" style={{ color: 'var(--foreground)' }}>
+            <span>{courseName || courseCode || 'Folder'}</span>
+          </div>
+        </div>
+        
+        <div className="dhd-header-right">
+          <Link to="/profile" className="dhd-badge dhd-badge-level" title="Your Level">
+            <Star size={16} weight="fill" />
+            <span>Lvl {level}</span>
+          </Link>
+
+          <Link to="/profile" className="dhd-badge dhd-badge-xp" title="Your XP">
+            <Lightning size={16} weight="fill" />
+            <span id="header-xp-display">{xp} XP</span>
+          </Link>
+
+          <Link to="/store" className="dhd-badge dhd-badge-coin" title="Your Coins">
+            <Coins size={16} weight="fill" />
+            <span>{credits >= 1000 ? `${Math.floor(credits / 1000)}k` : credits}</span>
+          </Link>
+
+          <button 
+            className="dhd-icon-btn" 
+            onClick={() => setNotificationsOpen?.(true)}
+            title="Notifications"
+          >
+            <Bell size={20} weight="regular" />
+            <span className="dhd-notif-dot" />
           </button>
+
+          <button 
+            className="dhd-icon-btn" 
+            onClick={() => setIsDark(!isDark)}
+            title="Toggle Dark Mode"
+          >
+            {isDark ? <Sun size={20} weight="regular" /> : <Moon size={20} weight="regular" />}
+          </button>
+        </div>
+      </header>
+
+      <div className="ss-shell">
+        {/* Hero Folder Header */}
+        <div className="ss-folder-header">
+          <div className="ss-folder-icon math" style={{ background: 'rgba(255,210,166,0.15)', color: '#FFD2A6' }}>
+            <Folder size={28} weight="fill" />
+          </div>
+          
+          <div className="ss-folder-title-group">
+            <h1 className="ss-folder-title">{courseName || courseCode || 'Folder'}</h1>
+          </div>
+
+          {/* Visible Share Button */}
+          <button 
+            className="ss-share-btn" 
+            onClick={() => navigate(`/workstation?courseId=${folderId}`)}
+            title="Share Folder"
+          >
+            <Share2 size={15} />
+            Share
+          </button>
+
+          <button className="ss-folder-menu-btn" onClick={() => setShowDropdown(!showDropdown)}>
+            <MoreHorizontal size={20} />
+          </button>
+
+          {showDropdown && (
+            <div className="ss-dropdown">
+              <button className="ss-dropdown-item danger" onClick={() => { handleDeleteFolder(); setShowDropdown(false); }}>
+                <Trash2 size={15} /> Delete Folder
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Toolbar & Filters */}
+        <div className="ss-toolbar">
+          <div className="ss-filters">
+            <button 
+              className={`ss-filter-btn ${activeTab === 'materials' ? 'active' : ''}`}
+              onClick={() => setActiveTab('materials')}
+            >
+              All Materials
+            </button>
+            <button 
+              className={`ss-filter-btn ${activeTab === 'members' ? 'active' : ''}`}
+              onClick={() => setActiveTab('members')}
+            >
+              <Users size={14} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }}/>
+              Members
+            </button>
+          </div>
+
+          <div className="ss-search-group">
+            <div className="ss-sort-dropdown">
+              Recent <ChevronRight size={12} style={{ transform: 'rotate(90deg)' }} />
+            </div>
+            <div className="ss-search-input-wrap">
+              <input 
+                className="ss-search-input" 
+                value={searchQuery} 
+                onChange={e => setSearchQuery(e.target.value)} 
+                placeholder="Search this folder" 
+              />
+              <MagnifyingGlass size={16} />
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'materials' && (
+          <>
+            <div className="ss-stats-bar">
+              <span className="ss-stats-total">Total: {filteredItems.length}</span>
+              <span className="ss-stats-todo">To-do: {filteredItems.length}</span>
+            </div>
+
+            {filteredItems.length === 0 ? (
+              <div className="ss-empty">
+                <Folder size={48} style={{ opacity: 0.2, marginBottom: 16 }} />
+                <h3>{searchQuery ? 'No materials found' : 'This folder is empty'}</h3>
+                <p>{searchQuery ? 'Try adjusting your search.' : 'Add files to start studying. Drag & drop works too.'}</p>
+              </div>
+            ) : (
+              <div className="ss-materials-grid">
+                {filteredItems.map((item, i) => {
+                  const title = materialLabel(item);
+                  return (
+                    <motion.div
+                      key={item.id}
+                      className="ss-preview-card"
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      onClick={() => navigate(`/workstation/${item.id}`, { state: { material: item } })}
+                    >
+                      <div className="ss-card-preview">
+                        <div className="ss-preview-title">{title?.split('.')[0]?.slice(0, 15)}</div>
+                        <div className="ss-preview-subtitle">DOCUMENT PREVIEW</div>
+                      </div>
+                      <div className="ss-card-body">
+                        <h4 className="ss-card-main-title">{title}</h4>
+                        <div className="ss-card-meta">
+                          <span>0 cards</span>
+                          <span>0 to-do</span>
+                          <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                            <button 
+                              className="ss-card-remove" 
+                              style={{ padding: 4, background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+                              onClick={(e) => { e.stopPropagation(); handleRemoveItem(item.id); }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            )}
+          </>
         )}
 
+        {activeTab === 'members' && (
+          <div className="ss-empty">
+            <Users size={48} style={{ opacity: 0.2, marginBottom: 16 }} />
+            <h3>No Members Yet</h3>
+            <p>Folders currently do not support live participants like Sessions do. Check back later!</p>
+          </div>
+        )}
       </div>
 
-      {/* ── Upload Modal ── */}
-      <AnimatePresence>
-        {showUpload && (
-          <motion.div
-            className="lp-modal-backdrop"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="lp-modal"
-              style={{ width: 'min(760px, 100%)' }}
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                <div>
-                  <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>Upload to {courseCode} · {courseName}</h2>
-                  <p style={{ margin: '4px 0 0', color: 'var(--lp-muted)', fontSize: 14 }}>Files uploaded here will be saved in this folder.</p>
-                </div>
-                <button className="lp-btn" onClick={() => { setShowUpload(false); loadMaterials() }}>Close</button>
-              </div>
-              <UserUpload initialCourseId={folderId} />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Floating Bottom Action Bar */}
+      {activeTab === 'materials' && (
+        <div className="ss-fab-container">
+          <div className="ss-fab">
+            <button className="ss-premium-btn outline" onClick={handleStartStudying}>
+              Study
+            </button>
+            <label className="ss-premium-btn">
+              <Upload size={16} /> Upload Document
+              <input type="file" multiple onChange={handleFileSelect} hidden />
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Progress Modal */}
+      {isUploading && (
+        <div className="ss-upload-overlay">
+          <div className="ss-upload-modal">
+            <div className="ss-upload-icon"><Upload size={24} /></div>
+            <h3>Uploading files</h3>
+            <p>{uploadProgress}% complete</p>
+            <div className="ss-progress-track">
+              <div className="ss-progress-fill" style={{ width: `${uploadProgress}%` }} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Preview Modal ── */}
       <AnimatePresence>
@@ -335,9 +438,9 @@ export default function BackpackFolderView() {
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
                     className="lp-btn lp-btn-primary"
-                    onClick={() => handleStudyMaterial(previewMaterial)}
+                    onClick={() => navigate(`/workstation/${previewMaterial.id}`, { state: { material: previewMaterial } })}
                   >
-                    <PlayCircle size={18} /> Open in Workstation
+                    <Play size={18} /> Open in Workstation
                   </button>
                   <button className="lp-btn" onClick={() => setPreviewMaterial(null)}>Close</button>
                 </div>

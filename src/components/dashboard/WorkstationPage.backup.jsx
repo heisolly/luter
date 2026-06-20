@@ -490,7 +490,7 @@ function WorkstationContent() {
       setActiveSessionId(session.id)
       setShareTargetSession(session)
       setShowShareModal(true)
-      navigate(`/dashboard/workstation?sessionId=${session.id}&materialId=${selectedMaterial.id}&sessionType=group`, { replace: true })
+      navigate(`/workstation?sessionId=${session.id}&materialId=${selectedMaterial.id}&sessionType=group`, { replace: true })
     } catch (error) {
       console.error('Failed to prepare shared workspace:', error)
       alert(error.message || 'Could not prepare the shared workspace.')
@@ -1368,13 +1368,13 @@ function WorkstationContent() {
         console.warn('❌ Material not found:', materialId)
         // Redirect to dashboard if material not found
         console.log('🔄 Redirecting to dashboard - material not found')
-        navigate('/dashboard')
+        navigate('/home')
       }
     } catch (err) {
       console.error('❌ Error loading standalone material:', err)
       // Redirect to dashboard on error
       console.log('🔄 Redirecting to dashboard - error occurred')
-      navigate('/dashboard')
+      navigate('/home')
     } finally {
       setLoading(false)
     }
@@ -2018,7 +2018,7 @@ function WorkstationContent() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
                 <button
                   type="button"
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => navigate('/home')}
                   style={{
                     width: 34, height: 34, borderRadius: 10, border: 'none',
                     background: 'transparent', cursor: 'pointer',
@@ -2555,7 +2555,7 @@ function WorkstationContent() {
                   Select a study material from the sidebar to begin.
                 </p>
                 <button
-                  onClick={() => navigate('/dashboard/upload')}
+                  onClick={() => navigate('/upload')}
                   style={{ padding: '10px 20px', background: '#111', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
                 >
                   Upload Material
@@ -3055,7 +3055,7 @@ function WorkstationContent() {
                         }))
                       }
                     } catch {}
-                    navigate('/dashboard/ai-chat')
+                    navigate('/ai-chat')
                   }}
                   title="Open full AI Chat"
                 >

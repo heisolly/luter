@@ -1,0 +1,19 @@
+.ns-markdown-generate-wrap {
+  transition: filter 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.ns-markdown-generate-wrap.is-generating {
+  /* Animate a slight blur over the whole block while typing to mimic the text generate effect */
+  animation: blurFadeIn 0.8s ease-out forwards;
+}
+
+@keyframes blurFadeIn {
+  0% {
+    opacity: 0.4;
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+  }
+}

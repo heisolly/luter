@@ -79,6 +79,26 @@ export default function BackpackPage() {
     localStorage.setItem('backpackActiveTab', tab)
   }, [tab])
 
+  // Initialize from prefetch bundle for instant load
+  useEffect(() => {
+    let prefetched = false;
+    if (bundle?.uc?.data) {
+      // Filter out entries where courses row was deleted (soft-delete handling)
+      const validData = (bundle.uc.data || []).filter(uc => uc.courses !== null)
+      setFolders(validData)
+      prefetched = true;
+    }
+    if (bundle?.materials?.data) {
+      // Only standalone materials (no course_id) show in the root backpack files tab
+      const standalone = bundle.materials.data.filter(m => !m.course_id)
+      setMaterials(standalone)
+      prefetched = true;
+    }
+    if (prefetched) {
+      setLoading(false)
+    }
+  }, [bundle?.uc?.data, bundle?.materials?.data])
+
   useEffect(() => {
     if (!user?.id) return
     loadFolders()
@@ -94,12 +114,12 @@ export default function BackpackPage() {
   }, [user?.id, currentUserId, completedTours, loading, hasCompletedTour, startTour, isLoadingTours])
 
   const loadFolders = async () => {
-    setLoading(true)
+    if (!bundle?.uc?.data) setLoading(true)
     const cached = getCachedPageData(user.id, 'courses')
     const offline = typeof navigator !== 'undefined' && !navigator.onLine
     if (offline && cached?.data) {
       setFolders(cached.data)
-      setLoading(false)
+      if (!bundle?.uc?.data) setLoading(false)
       return
     }
 
@@ -110,7 +130,7 @@ export default function BackpackPage() {
     } else if (cached?.data) {
       setFolders(cached.data)
     }
-    setLoading(false)
+    if (!bundle?.uc?.data) setLoading(false)
   }
 
   const loadMaterials = async () => {
@@ -188,15 +208,15 @@ export default function BackpackPage() {
 
   const openFolder = (item) => {
     const course = item.courses || item.course || item
-    navigate(`/dashboard/backpack/${course.id || item.course_id}`)
+    navigate(`/backpack/${course.id || item.course_id}`)
   }
 
   const openMaterial = (material) => {
-    navigate(`/dashboard/workstation/${material.id}`, { state: { material } })
+    navigate(`/workstation/${material.id}`, { state: { material } })
   }
 
   const handleStudyMaterial = (material) => {
-    navigate(`/dashboard/workstation/${material.id}`, { state: { material } })
+    navigate(`/workstation/${material.id}`, { state: { material } })
   }
 
   return (

@@ -56,7 +56,7 @@ export default function StreakPage() {
       padding: isMobile ? '24px 16px 80px' : '48px 40px', 
       maxWidth: 760, 
       margin: '0 auto', 
-      fontFamily: "'Inter', 'Inter', sans-serif",
+      fontFamily: "'Outfit', 'Outfit', sans-serif",
       boxSizing: 'border-box',
       color: '#333'
     }}>

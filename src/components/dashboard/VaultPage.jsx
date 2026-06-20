@@ -83,7 +83,7 @@ export default function VaultPage() {
         </div>
 
         <div style={{ display: 'flex', gap: 12 }}>
-           <button onClick={() => navigate('/dashboard/upload')} className="btn-primary" style={{ padding: '12px 24px', borderRadius: 14, display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600 }}>
+           <button onClick={() => navigate('/upload')} className="btn-primary" style={{ padding: '12px 24px', borderRadius: 14, display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600 }}>
              <UploadSimple size={18} weight="light" />
              Upload
            </button>
@@ -169,7 +169,7 @@ export default function VaultPage() {
       ) : viewMode === 'grid' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 24 }}>
           {filteredFiles.map((file) => (
-            <FileCard key={file.id} file={file} onOpen={() => navigate(`/dashboard/workstation?materialId=${file.id}`)} />
+            <FileCard key={file.id} file={file} onOpen={() => navigate(`/workstation?materialId=${file.id}`)} />
           ))}
         </div>
       ) : (
@@ -177,7 +177,7 @@ export default function VaultPage() {
           {filteredFiles.map((file, i) => (
             <div 
               key={file.id} 
-              onClick={() => navigate(`/dashboard/workstation?materialId=${file.id}`)}
+              onClick={() => navigate(`/workstation?materialId=${file.id}`)}
               style={{ 
                 display: 'flex', 
                 alignItems: 'center', 

@@ -13,7 +13,7 @@ const Header = ({
   onTabChange = null,
   pageTitle = null,
   showCreateButton = true,
-  createButtonPath = '/dashboard/upload',
+  createButtonPath = '/upload',
   sidebarCollapsed = false,
   setSidebarCollapsed = null
 }) => {
@@ -146,7 +146,7 @@ const Header = ({
               fontSize: 24,
               fontWeight: 700,
               color: '#111',
-              fontFamily: "'DM Sans', 'Inter', sans-serif"
+              fontFamily: "'Outfit', 'Outfit', sans-serif"
             }}>
               {pageTitle}
             </div>
@@ -164,7 +164,7 @@ const Header = ({
                 border: '1px solid #e2e8f0',
                 borderRadius: 8,
                 padding: '8px 16px',
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "'Outfit', sans-serif",
                 fontSize: 15,
                 color: '#94a3b8',
                 minWidth: '250px'
@@ -182,7 +182,7 @@ const Header = ({
                   outline: 'none',
                   flex: 1,
                   fontSize: 15,
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: "'Outfit', sans-serif",
                   color: '#333',
                   opacity: searchQuery ? 1 : 0.5
                 }}
@@ -222,7 +222,7 @@ const Header = ({
           {/* Streak Counter */}
           <button 
             className="MuiBox-root knowt-3peil5"
-            onClick={() => navigate('/dashboard/streak')}
+            onClick={() => navigate('/streak')}
             style={{
               background: 'none',
               border: 'none',
@@ -257,7 +257,7 @@ const Header = ({
           <div className="breakpoints-module__zbexiG__mdDownDisplayNone">
             <button 
               className="MuiBox-root knowt-3peil5"
-              onClick={() => navigate('/dashboard/profile')}
+              onClick={() => navigate('/profile')}
               style={{
                 background: 'none',
                 border: 'none',
@@ -293,7 +293,7 @@ const Header = ({
           {/* Coins */}
           <button 
             className="MuiBox-root knowt-3peil5"
-            onClick={() => navigate('/dashboard/store')}
+            onClick={() => navigate('/store')}
             style={{
               background: 'none',
               border: 'none',
@@ -323,7 +323,7 @@ const Header = ({
 
           {/* Profile Avatar - Links to profile page */}
           <button
-            onClick={() => navigate('/dashboard/profile')}
+            onClick={() => navigate('/profile')}
             style={{
               background: 'none',
               border: 'none',
@@ -390,7 +390,7 @@ const Header = ({
                   fontWeight: 600,
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  fontFamily: "'DM Sans', sans-serif"
+                  fontFamily: "'Outfit', sans-serif"
                 }}
               >
                 {tab.label}

@@ -119,7 +119,7 @@ const PaystackButton = ({
           planId,
           amount: amount,
           email,
-          callback_url: `${window.location.origin}/dashboard/payment/success`,
+          callback_url: `${window.location.origin}/payment/success`,
         }),
       });
 

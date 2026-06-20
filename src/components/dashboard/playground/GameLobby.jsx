@@ -85,7 +85,7 @@ export default function GameLobby({ room, participants, user, onStart, onRefresh
       display: 'flex',
       flexDirection: 'column',
       gap: 32,
-      fontFamily: "'DM Sans', sans-serif"
+      fontFamily: "'Outfit', sans-serif"
     }}>
       {/* ── HEADER ── */}
       <div style={{ textAlign: 'center' }}>

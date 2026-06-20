@@ -11,7 +11,7 @@ const getDomain = () => {
     return '.luter.app'; // Apex domain for production
   }
   if (hostname.includes('localhost')) {
-    return 'localhost'; // Domain for local development
+    return ''; // Browsers ignore domain=localhost; returning empty string sets it natively
   }
   return hostname;
 };

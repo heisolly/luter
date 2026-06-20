@@ -1323,7 +1323,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                     <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px', color: '#111' }}>No courses available</h3>
                     <p style={{ margin: 0, lineHeight: 1.6 }}>Please add courses to your backpack first to create mock exams.</p>
                     <button 
-                      onClick={() => navigate('/dashboard/backpack')}
+                      onClick={() => navigate('/backpack')}
                       style={{ 
                         marginTop: 24, 
                         padding: '12px 24px', 
@@ -1404,7 +1404,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {pastSessions.map((session, idx) => (
-                        <motion.div key={session.id || `session-${idx}`} whileHover={{ x: 4 }} onClick={() => navigate(`/dashboard/exam-session/${session.id}`)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderRadius: 16, border: '1.5px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s', background: 'white' }}>
+                        <motion.div key={session.id || `session-${idx}`} whileHover={{ x: 4 }} onClick={() => navigate(`/exam-session/${session.id}`)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderRadius: 16, border: '1.5px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s', background: 'white' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                             <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a12cc' }}>
                               <BookOpen size={20} />
@@ -2238,7 +2238,7 @@ Please explain where I went wrong and why the correct answer is the right choice
             {/*Retake and Share*/}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 24 }}>
               <button 
-                onClick={() => navigate(`/dashboard/exam-session/${currentSessionId}`)}
+                onClick={() => navigate(`/exam-session/${currentSessionId}`)}
                 disabled={!currentSessionId}
                 style={{ width: '100%', padding: '18px', borderRadius: 20, background: '#111', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontWeight: 900, fontSize: 16 }}
               >
@@ -2258,7 +2258,7 @@ Please explain where I went wrong and why the correct answer is the right choice
   // --- MAIN RENDER ---
 
   return (
-    <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', 'Inter', sans-serif", position: 'relative' }}>
+    <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Outfit', 'Outfit', sans-serif", position: 'relative' }}>
       
 
 
@@ -2283,7 +2283,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                 fontWeight: 600,
                 cursor: 'pointer',
                 transition: 'all 0.2s',
-                fontFamily: "'DM Sans', sans-serif"
+                fontFamily: "'Outfit', sans-serif"
               }}
             >
               Luter Arena
@@ -2300,7 +2300,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                 fontWeight: 600,
                 cursor: 'pointer',
                 transition: 'all 0.2s',
-                fontFamily: "'DM Sans', sans-serif"
+                fontFamily: "'Outfit', sans-serif"
               }}
             >
               Session History
@@ -2362,7 +2362,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, delay: i * 0.05 }}
                         whileHover={{ x: 6, borderColor: '#7a12cc' }}
-                        onClick={() => navigate(`/dashboard/exam-session/${session.id}`)} 
+                        onClick={() => navigate(`/exam-session/${session.id}`)} 
                         style={{ 
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
                           padding: '24px', borderRadius: 24, border: '1.5px solid #E2E8F0', 
@@ -2473,7 +2473,7 @@ Please explain where I went wrong and why the correct answer is the right choice
           <motion.div
             initial={{ x: 360, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 360, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: '360px', background: '#FFFFFF', borderLeft: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', zIndex: 1000, fontFamily: "'DM Sans', 'Inter', sans-serif" }}
+            style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: '360px', background: '#FFFFFF', borderLeft: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', zIndex: 1000, fontFamily: "'Outfit', 'Outfit', sans-serif" }}
           >
             {/* Luter Chat Panel Content */}
             <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #E5E7EB', flexShrink: 0, gap: 8 }}>
@@ -2498,7 +2498,7 @@ Please explain where I went wrong and why the correct answer is the right choice
                       fontWeight: 600,
                       cursor: 'pointer',
                       transition: 'all 0.2s',
-                      fontFamily: "'DM Sans', sans-serif",
+                      fontFamily: "'Outfit', sans-serif",
                       textTransform: 'lowercase'
                     }}
                   >

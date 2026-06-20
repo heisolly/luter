@@ -444,7 +444,7 @@ function LuterBtn({ children, onClick, disabled, variant = "primary", fullWidth 
         borderRadius: "14px",
         background: bg, color, border, borderBottom,
         fontSize: "17px", fontWeight: 700,
-        fontFamily: "'DM Sans', var(--font-display), sans-serif",
+        fontFamily: "'Outfit', var(--font-display), sans-serif",
         cursor: disabled ? "not-allowed" : "pointer",
         transform, boxShadow: shadow,
         transition: "all 0.15s cubic-bezier(0.4,0,0.2,1)",
@@ -833,7 +833,14 @@ export default function Onboarding() {
     setStep((p) => p + 1);
   }, [step, age, firstName, lastName, userName, usernameAvail, checkingUser, university, degree]);
 
-  const prevStep = () => setStep((p) => Math.max(p - 1, 1));
+  const prevStep = () => {
+    setStep((p) => {
+      if (p === 9 && purpose !== "University") {
+        return 5;
+      }
+      return Math.max(p - 1, 1);
+    });
+  };
 
   const handleLastContinue = () => {
     if (!userName.trim()) {
@@ -919,9 +926,9 @@ export default function Onboarding() {
       clearLuterCaches();
       setTimeout(() => { 
         if (createdMaterialId) {
-          window.location.href = `/dashboard/workstation?materialId=${encodeURIComponent(createdMaterialId)}`;
+          window.location.href = `/workstation?materialId=${encodeURIComponent(createdMaterialId)}`;
         } else {
-          window.location.href = "/dashboard"; 
+          window.location.href = "/home"; 
         }
       }, 700);
     } catch (err) {
@@ -947,6 +954,115 @@ export default function Onboarding() {
     11: "Upload learning material and we'll learn it together",
   };
 
+  const OnboardingStyles = React.memo(() => (
+    <style>{`
+      body { background: #EAE6FF; }
+      ::selection { background: rgba(124,57,246,0.2); }
+
+      /* Keyframes */
+      @keyframes slideInUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes fadeScaleIn {
+        from { opacity: 0; transform: scale(0.97); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      @keyframes checkPop {
+        0% { transform: scale(0.5); opacity: 0; }
+        50% { transform: scale(1.1); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+
+      .animate-in {
+        animation: slideInUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      }
+      .check-pop {
+        animation: checkPop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      }
+
+      /* Scrollbars */
+      .ob-page {
+        min-height: 100dvh !important;
+        overflow-x: clip;
+      }
+      .ob-shell {
+        width: min(100%, 640px);
+      }
+      .ob-scroll-list {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(124,57,246,0.2) transparent;
+      }
+      .ob-title {
+        overflow-wrap: anywhere;
+      }
+      ::-webkit-scrollbar { width: 4px; }
+      ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 99px; }
+
+      /* Remove number input arrows */
+      input[type=number]::-webkit-inner-spin-button,
+      input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+      input[type=number] { -moz-appearance: textfield; }
+
+      /* Keep placeholder lowercase */
+      input::placeholder { text-transform: none !important; }
+      textarea::placeholder { text-transform: none !important; }
+
+      @media (max-width: 900px) {
+        .ob-page {
+          padding: 0 14px 32px !important;
+        }
+        .ob-header {
+          max-width: 720px !important;
+          padding: 18px 0 !important;
+        }
+        .ob-shell {
+          max-width: 600px !important;
+          min-height: min(600px, calc(100dvh - 112px)) !important;
+          padding: 34px 40px 38px !important;
+        }
+      }
+      @media (max-width: 640px) {
+        .ob-page {
+          align-items: stretch !important;
+          min-height: 100svh !important;
+          padding: 0 10px 20px !important;
+        }
+        .ob-header {
+          padding: 14px 2px 12px !important;
+        }
+        .ob-header img {
+          height: 27px !important;
+        }
+        .ob-shell {
+          width: 100% !important;
+          min-height: auto !important;
+          padding: 24px 20px 28px !important;
+          border-radius: 20px !important;
+          flex: 1;
+        }
+        .ob-scroll-list {
+          max-height: min(300px, calc(100svh - 292px)) !important;
+        }
+      }
+      @media (max-width: 340px) {
+        .ob-shell {
+          padding-left: 12px !important;
+          padding-right: 12px !important;
+        }
+        .ob-title {
+          font-size: 1.18rem !important;
+        }
+        .ob-input,
+        .ob-search-input,
+        .ob-option-pill,
+        .ob-btn {
+          font-size: 14px !important;
+        }
+      }
+    `}</style>
+  ));
+
   const pct = STEP_PCT[step] || 5;
 
   /* ─────────────────────────────────────────────────────────────────
@@ -964,153 +1080,10 @@ export default function Onboarding() {
         #F9FAFB
       `,
       display: "flex", flexDirection: "column", alignItems: "center",
-      fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       boxSizing: "border-box", padding: "0 16px 48px",
     }}>
-      <style>{`
-        @keyframes ob-spin { to { transform: rotate(360deg); } }
-        .ob-page {
-          min-height: 100dvh !important;
-          overflow-x: clip;
-        }
-        .ob-shell {
-          width: min(100%, 640px);
-        }
-        .ob-scroll-list {
-          scrollbar-width: thin;
-          scrollbar-color: rgba(124,57,246,0.2) transparent;
-        }
-        .ob-title {
-          overflow-wrap: anywhere;
-        }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 99px; }
-        /* Remove number input arrows */
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { -moz-appearance: textfield; }
-        /* Keep placeholder lowercase */
-        input::placeholder { text-transform: none !important; }
-        textarea::placeholder { text-transform: none !important; }
-        @media (max-width: 900px) {
-          .ob-page {
-            padding: 0 14px 32px !important;
-          }
-          .ob-header {
-            max-width: 720px !important;
-            padding: 18px 0 !important;
-          }
-          .ob-shell {
-            max-width: 600px !important;
-            min-height: min(600px, calc(100dvh - 112px)) !important;
-            padding: 34px 40px 38px !important;
-          }
-        }
-        @media (max-width: 640px) {
-          .ob-page {
-            align-items: stretch !important;
-            min-height: 100svh !important;
-            padding: 0 10px 20px !important;
-          }
-          .ob-header {
-            padding: 14px 2px 12px !important;
-          }
-          .ob-header img {
-            height: 27px !important;
-          }
-          .ob-shell {
-            width: 100% !important;
-            min-height: auto !important;
-            margin: 0 auto !important;
-            border-radius: 22px !important;
-            padding: 24px 18px 26px !important;
-          }
-          .ob-progress-row {
-            gap: 10px !important;
-            margin-bottom: 20px !important;
-          }
-          .ob-mascot-row {
-            margin-bottom: 10px !important;
-          }
-          .ob-mascot-row img {
-            width: 40px !important;
-            height: 40px !important;
-          }
-          .ob-title {
-            font-size: clamp(1.35rem, 6.8vw, 1.8rem) !important;
-            line-height: 1.18 !important;
-            margin-bottom: 22px !important;
-            letter-spacing: 0 !important;
-          }
-          .ob-input,
-          .ob-option-pill {
-            height: 52px !important;
-            min-height: 52px !important;
-            font-size: 15px !important;
-            border-radius: 13px !important;
-          }
-          .ob-btn {
-            height: 52px !important;
-            padding: 0 18px !important;
-            font-size: 15px !important;
-            border-radius: 13px !important;
-          }
-          .ob-search-input {
-            height: 50px !important;
-            font-size: 14px !important;
-          }
-          .ob-scroll-list {
-            max-height: min(330px, calc(100svh - 320px)) !important;
-          }
-          .ob-scroll-list > button {
-            height: auto !important;
-            min-height: 50px !important;
-            padding: 10px 12px !important;
-            line-height: 1.25 !important;
-            white-space: normal !important;
-          }
-        }
-        @media (max-width: 420px) {
-          .ob-page {
-            padding-left: 8px !important;
-            padding-right: 8px !important;
-          }
-          .ob-shell {
-            padding: 20px 14px 22px !important;
-            border-radius: 18px !important;
-          }
-          .ob-title {
-            font-size: clamp(1.22rem, 7vw, 1.55rem) !important;
-          }
-          .ob-input,
-          .ob-option-pill,
-          .ob-btn {
-            height: 50px !important;
-            min-height: 50px !important;
-          }
-          .ob-option-pill {
-            gap: 8px !important;
-          }
-          .ob-scroll-list {
-            max-height: min(300px, calc(100svh - 292px)) !important;
-          }
-        }
-        @media (max-width: 340px) {
-          .ob-shell {
-            padding-left: 12px !important;
-            padding-right: 12px !important;
-          }
-          .ob-title {
-            font-size: 1.18rem !important;
-          }
-          .ob-input,
-          .ob-search-input,
-          .ob-option-pill,
-          .ob-btn {
-            font-size: 14px !important;
-          }
-        }
-      `}</style>
+      <OnboardingStyles />
 
       {/* ── TOP NAV ── */}
       <header className="ob-header" style={{

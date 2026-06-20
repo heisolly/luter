@@ -141,7 +141,7 @@ export default function FilesPage() {
 
   /* ── Navigate to workstation ── */
   const handleOpen = (file) => {
-    navigate(`/dashboard/workstation?materialId=${encodeURIComponent(file.id)}`)
+    navigate(`/workstation?materialId=${encodeURIComponent(file.id)}`)
   }
 
   const FILTERS = [
@@ -165,7 +165,7 @@ export default function FilesPage() {
           <p className="fp-eyebrow">Library</p>
           <h1 className="fp-title">My Files</h1>
         </div>
-        <button className="fp-upload-btn" onClick={() => navigate('/dashboard/upload')}>
+        <button className="fp-upload-btn" onClick={() => navigate('/upload')}>
           <UploadSimple size={17} weight="bold" />
           Upload
         </button>
@@ -203,7 +203,7 @@ export default function FilesPage() {
           <strong>{search ? 'No files match your search' : 'No files yet'}</strong>
           <span>Upload a PDF, Word doc, slides or YouTube link to get started.</span>
           {!search && (
-            <button className="fp-empty-cta" onClick={() => navigate('/dashboard/upload')}>
+            <button className="fp-empty-cta" onClick={() => navigate('/upload')}>
               <UploadSimple size={16} weight="bold" /> Upload your first file
             </button>
           )}

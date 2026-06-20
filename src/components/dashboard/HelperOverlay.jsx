@@ -102,7 +102,7 @@ export default function HelperOverlay({ type, onClose }) {
               zIndex: 10001,
               display: 'flex',
               flexDirection: 'column',
-              fontFamily: "'DM Sans', 'Inter', sans-serif",
+              fontFamily: "'Outfit', 'Outfit', sans-serif",
               overflowY: 'auto',
               boxShadow: '-8px 0 48px rgba(0,0,0,0.14)',
             }}

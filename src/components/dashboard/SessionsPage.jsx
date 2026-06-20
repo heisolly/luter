@@ -83,8 +83,8 @@ export default function SessionsPage() {
       if (result.success && result.session) {
         setSearchParams({}, { replace: true })
         navigate(materialId
-          ? `/dashboard/workstation?sessionId=${result.session.id}&materialId=${materialId}&sessionType=group`
-          : `/dashboard/session/${result.session.id}`)
+          ? `/workstation?sessionId=${result.session.id}&materialId=${materialId}&sessionType=group`
+          : `/session/${result.session.id}`)
       } else {
         setJoinCode(code)
         setJoinError(result.error || 'That invite could not be opened.')
@@ -120,7 +120,7 @@ export default function SessionsPage() {
       setActiveSession(session)
       setName('')
       setShowCreate(false)
-      navigate(`/dashboard/session/${session.id}`)
+      navigate(`/session/${session.id}`)
     }
   }
 
@@ -133,7 +133,7 @@ export default function SessionsPage() {
     if (result.success && result.session) {
       setShowJoin(false)
       setJoinCode('')
-      navigate(`/dashboard/session/${result.session.id}`)
+      navigate(`/session/${result.session.id}`)
     } else {
       setJoinError(result.error || 'Invalid invite code.')
     }
@@ -142,7 +142,7 @@ export default function SessionsPage() {
   const openSession = (session) => {
     updateLastAccessed(session.id)
     setActiveSession(session)
-    navigate(`/dashboard/session/${session.id}`)
+    navigate(`/session/${session.id}`)
   }
 
   return (

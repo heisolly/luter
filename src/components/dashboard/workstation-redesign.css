@@ -87,7 +87,7 @@ body.dark-mode {
     var(--wsr-bg) !important;
   background-size: 22px 22px !important;
   color: var(--wsr-text) !important;
-  font-family: 'DM Sans', 'Inter', system-ui, sans-serif !important;
+  font-family: 'Outfit', 'Outfit', system-ui, sans-serif !important;
 }
 
 /* ── Topbar ─────────────────────────────────────────────────────── */
@@ -170,7 +170,7 @@ body.dark-mode {
   border-radius: var(--wsr-radius-pill) !important;
   font-size: 13px !important;
   font-weight: 700 !important;
-  font-family: 'DM Sans', system-ui, sans-serif !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
   padding: 0 18px !important;
   background: transparent !important;
   border: none !important;
@@ -193,7 +193,7 @@ body.dark-mode {
   border-radius: var(--wsr-radius-pill) !important;
   color: var(--wsr-text-body) !important;
   box-shadow: var(--wsr-shadow-xs) !important;
-  font-family: 'DM Sans', system-ui, sans-serif !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
   font-weight: 700 !important;
   font-size: 13px !important;
   transition: background 150ms, border-color 150ms, box-shadow 150ms !important;
@@ -403,7 +403,7 @@ aside.ws-right-panel::before {
   justify-content: center !important;
   gap: 6px !important;
   padding: 0 14px !important;
-  font-family: 'DM Sans', system-ui, sans-serif !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
   font-size: 13px !important;
   font-weight: 700 !important;
   white-space: nowrap !important;
@@ -456,7 +456,7 @@ aside.ws-right-panel::before {
   align-items: center !important;
   justify-content: center !important;
   cursor: pointer !important;
-  font-family: 'DM Sans', system-ui, sans-serif !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
   font-size: 12px !important;
   font-weight: 700 !important;
   flex-shrink: 0 !important;
@@ -536,7 +536,7 @@ aside.ws-right-panel::before {
 .ws-ai-message-content li,
 .ws-plain-message p {
   color: var(--wsr-text-body) !important;
-  font-family: 'DM Sans', system-ui, sans-serif !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
 }
 
 /* Quick prompt chip row */
@@ -556,7 +556,7 @@ aside.ws-right-panel::before {
   color: var(--wsr-text-body) !important;
   font-size: 12px !important;
   font-weight: 700 !important;
-  font-family: 'DM Sans', system-ui, sans-serif !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
   transition: background 130ms, border-color 130ms, color 130ms !important;
 }
 .ws-right-panel div[style*="borderTop"] button:hover,
@@ -593,7 +593,7 @@ aside.ws-right-panel::before {
 .ws-right-panel input[style*="flex: 1"],
 .ws-right-panel input[placeholder*="Luter"] {
   color: var(--wsr-text) !important;
-  font-family: 'DM Sans', system-ui, sans-serif !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
   font-size: 14px !important;
   background: transparent !important;
   border: none !important;
@@ -659,7 +659,7 @@ aside.ws-right-panel::before {
 /* Tool buttons in dock */
 .ws-center-viewer div[style*="borderRadius: '9999px'"][style*="border: '1px solid'"],
 .ws-center-viewer button[style*="padding: '8px 14px'"][style*="borderRadius: '9999px'"] {
-  font-family: 'DM Sans', system-ui, sans-serif !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
   font-size: 13px !important;
   font-weight: 800 !important;
   border-radius: var(--wsr-radius-pill) !important;
@@ -769,7 +769,7 @@ body.dark-mode .selection-action-bar {
   color: var(--wsr-text-muted) !important;
   border-radius: 14px !important;
   min-height: 50px !important;
-  font-family: 'DM Sans', system-ui, sans-serif !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
   font-size: 10px !important;
   font-weight: 800 !important;
   transition: background 140ms, color 140ms !important;
@@ -1035,7 +1035,7 @@ aside.ws-right-panel {
 
 /* ── Tactile buttons (used in tools) ─────────────────────────────── */
 .ws-tactile-btn {
-  font-family: 'DM Sans', system-ui, sans-serif !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
   font-weight: 800 !important;
   transition: transform 120ms ease, box-shadow 120ms ease !important;
 }
@@ -1066,7 +1066,7 @@ aside.ws-right-panel {
 .ws-right-panel button.ws-right-tab {
   font-size: 12.5px !important;
   font-weight: 700 !important;
-  font-family: 'DM Sans', 'Inter', system-ui, sans-serif !important;
+  font-family: 'Outfit', 'Outfit', system-ui, sans-serif !important;
   letter-spacing: 0.01em !important;
   color: var(--sb-text-muted, #475569) !important;
   padding: 0 12px !important;
@@ -1185,7 +1185,7 @@ aside.ws-right-panel {
 /* AI chat textarea input */
 .ws-right-panel input[placeholder*="Luter"],
 .ws-right-panel input[style*="flex: 1"] {
-  font-family: 'DM Sans', 'Inter', system-ui, sans-serif !important;
+  font-family: 'Outfit', 'Outfit', system-ui, sans-serif !important;
   font-size: 13.5px !important;
   color: var(--sb-text, #0F172A) !important;
   background: transparent !important;
@@ -1228,7 +1228,7 @@ body.dark-mode .ws-right-panel div[style*="background: white"][style*="borderRad
   background: var(--sb-purple-soft, #F3E8FF);
   border: 1px solid var(--sb-purple-border, #DDD6FE);
   border-radius: 9999px;
-  font-family: 'DM Sans', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Outfit', sans-serif;
   font-size: 11px;
   font-weight: 700;
   color: #7C3AED;

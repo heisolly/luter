@@ -195,7 +195,7 @@ export default function MatchingGame({ room, participants, user, deck, onExit })
         background: 'white',
         borderRadius: 20,
         border: '2px solid #e2e8f0',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "'Outfit', sans-serif",
         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)'
       }}>
         {/* Left Side: Game Name */}

@@ -69,7 +69,7 @@ export default function PaymentSuccess() {
 
           setStatus('success');
           setMessage('Payment confirmed! Redirecting...');
-          setTimeout(() => navigate(`/dashboard/upgrade?payment=success&tier=${mapping?.tier || 'pro'}`), 2000);
+          setTimeout(() => navigate(`/upgrade?payment=success&tier=${mapping?.tier || 'pro'}`), 2000);
           return;
         }
 

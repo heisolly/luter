@@ -111,7 +111,7 @@ export default function AdminSidebar({ onNavigate }) {
 
       <div className="adm-sidebar-bottom">
         <a
-          href={`${DASHBOARD_URL}/dashboard`}
+          href={`${DASHBOARD_URL}`}
           className="adm-nav-item"
           style={{ marginBottom: 8 }}
         >

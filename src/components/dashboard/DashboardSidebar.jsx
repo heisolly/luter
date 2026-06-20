@@ -76,9 +76,9 @@ function useDarkMode() {
 
 /* ── active check ── */
 function isNavActive(pathname, navPath) {
-  if (navPath === '/dashboard') return pathname === '/dashboard' || pathname === '/dashboard/'
-  if (navPath === '/dashboard/backpack') return pathname.startsWith('/dashboard/backpack')
-  if (navPath === '/playground') return pathname.startsWith('/playground') || pathname.startsWith('/dashboard/compete')
+  if (navPath === '/home') return pathname === '/home' || pathname === '/'
+  if (navPath === '/backpack') return pathname.startsWith('/backpack')
+  if (navPath === '/playground') return pathname.startsWith('/playground') || pathname.startsWith('/compete')
   return pathname === navPath || pathname.startsWith(`${navPath}/`)
 }
 
@@ -114,7 +114,7 @@ export default function DashboardSidebar({
   const [showQuickCreate, setShowQuickCreate] = useState(false)
   const [selectedOption, setSelectedOption] = useState(null)
   const [backpackOpen, setBackpackOpen]     = useState(
-    () => pathname.startsWith('/dashboard/backpack')
+    () => pathname.startsWith('/backpack')
   )
   const [helperOverlay, setHelperOverlay]   = useState(null) // 'feedback' | 'changelog' | 'help' | null
   const [showArcade, setShowArcade]         = useState(false) // arcade overlay
@@ -192,8 +192,8 @@ export default function DashboardSidebar({
   }
 
   const CREATE_OPTIONS = [
-    { id: 'note',    emoji: '📝', title: 'New Note',    desc: 'Write and organize your thoughts',  path: '/dashboard/notes?new=1' },
-    { id: 'upload',  emoji: '📄', title: 'Upload PDF',  desc: 'Study from any document',           path: '/dashboard/upload' },
+    { id: 'note',    emoji: '📝', title: 'New Note',    desc: 'Write and organize your thoughts',  path: '/notes?new=1' },
+    { id: 'upload',  emoji: '📄', title: 'Upload PDF',  desc: 'Study from any document',           path: '/upload' },
     { id: 'session', emoji: '🧑‍🤝‍🧑', title: 'New Session',  desc: 'Collaborate with others live',      path: '/sessions?new=1' },
   ]
 
@@ -202,7 +202,7 @@ export default function DashboardSidebar({
     window.location.href = '/'
   }
 
-  const isBackpackActive = isNavActive(pathname, '/dashboard/backpack')
+  const isBackpackActive = isNavActive(pathname, '/backpack')
 
   return (
     <aside className={`dsb-redesign${collapsed ? ' collapsed' : ''}`}>
@@ -300,8 +300,8 @@ export default function DashboardSidebar({
         {/* Home */}
         <button
           id="nav-home"
-          className={`dsb-nav-pill${isNavActive(pathname, '/dashboard') ? ' active' : ''}`}
-          onClick={() => go('/dashboard')}
+          className={`dsb-nav-pill${isNavActive(pathname, '/home') ? ' active' : ''}`}
+          onClick={() => go('/home')}
         >
           <div className="dsb-icon">
             <House size={21} weight="regular" />
@@ -324,8 +324,8 @@ export default function DashboardSidebar({
         {/* Notes */}
         <button
           id="nav-notes"
-          className={`dsb-nav-pill${isNavActive(pathname, '/dashboard/notes') || isNavActive(pathname, '/notes') ? ' active' : ''}`}
-          onClick={() => go('/dashboard/notes')}
+          className={`dsb-nav-pill${isNavActive(pathname, '/notes') || isNavActive(pathname, '/notes') ? ' active' : ''}`}
+          onClick={() => go('/notes')}
         >
           <div className="dsb-icon">
             <NotePencil size={21} weight="regular" />
@@ -336,8 +336,8 @@ export default function DashboardSidebar({
         {/* AI Chat */}
         <button
           id="nav-ai-chat"
-          className={`dsb-nav-pill${isNavActive(pathname, '/dashboard/ai-chat') ? ' active' : ''}`}
-          onClick={() => go('/dashboard/ai-chat')}
+          className={`dsb-nav-pill${isNavActive(pathname, '/ai-chat') ? ' active' : ''}`}
+          onClick={() => go('/ai-chat')}
           title="Luter AI Chat"
         >
           <div className="dsb-icon">
@@ -349,8 +349,8 @@ export default function DashboardSidebar({
         {/* My Decks */}
         <button
           id="nav-decks"
-          className={`dsb-nav-pill${isNavActive(pathname, '/dashboard/decks') ? ' active' : ''}`}
-          onClick={() => go('/dashboard/decks')}
+          className={`dsb-nav-pill${isNavActive(pathname, '/decks') ? ' active' : ''}`}
+          onClick={() => go('/decks')}
         >
           <div className="dsb-icon">
             <Cards size={21} weight="regular" />
@@ -366,7 +366,7 @@ export default function DashboardSidebar({
               <button
                 id="nav-backpack"
                 className={`dsb-nav-pill dsb-backpack-pill${isBackpackActive ? ' active' : ''}`}
-                onClick={() => go('/dashboard/backpack')}
+                onClick={() => go('/backpack')}
               >
                 <div className="dsb-icon">
                   <Backpack size={21} weight="regular" />
@@ -395,7 +395,7 @@ export default function DashboardSidebar({
                   userCourses.map((uc, i) => {
                     const course = uc.courses || {}
                     const courseId = course.id || uc.course_id
-                    const coursePath = `/dashboard/backpack/${courseId}`
+                    const coursePath = `/backpack/${courseId}`
                     const isActive = pathname.startsWith(coursePath)
                     const name = uc.custom_name || course.name || 'Untitled'
                     const code = course.code || ''
@@ -421,7 +421,7 @@ export default function DashboardSidebar({
                 {/* View All link */}
                 <button
                   className="dsb-subnav-view-all"
-                  onClick={() => go('/dashboard/backpack')}
+                  onClick={() => go('/backpack')}
                 >
                   <ArrowRight size={13} weight="bold" />
                   View all
@@ -434,7 +434,7 @@ export default function DashboardSidebar({
           <button
             id="nav-backpack"
             className={`dsb-nav-pill${isBackpackActive ? ' active' : ''}`}
-            onClick={() => go('/dashboard/backpack')}
+            onClick={() => go('/backpack')}
             title="Backpack"
           >
             <div className="dsb-icon">
@@ -446,7 +446,7 @@ export default function DashboardSidebar({
         {/* Arcade */}
         <button
           id="nav-arcade"
-          className={`dsb-nav-pill${showArcade ? ' active arcade-pill' : isNavActive(pathname, '/playground') || isNavActive(pathname, '/dashboard/mock-exam') || isNavActive(pathname, '/dashboard/study-groups') ? ' active arcade-pill' : ''}`}
+          className={`dsb-nav-pill${showArcade ? ' active arcade-pill' : isNavActive(pathname, '/playground') || isNavActive(pathname, '/mock-exam') || isNavActive(pathname, '/study-groups') ? ' active arcade-pill' : ''}`}
           onClick={() => setShowArcade(v => !v)}
         >
           <div className="dsb-icon">

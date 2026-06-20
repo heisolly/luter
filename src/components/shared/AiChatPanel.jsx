@@ -207,8 +207,8 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
     setMenuOpen(false)
     // Only navigate when inside the Notes editor, never on the standalone /ai-chat page
     if (!isStandaloneChat) {
-      if (newMode === 'fullscreen') navigate(`/dashboard/ai-chat?note=${currentNoteId}`)
-      else navigate(`/dashboard/notes/editor?note=${currentNoteId}`)
+      if (newMode === 'fullscreen') navigate(`/ai-chat?note=${currentNoteId}`)
+      else navigate(`/notes/editor?note=${currentNoteId}`)
     }
   }
 
@@ -216,7 +216,7 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
     // On standalone /ai-chat there is no close â€” nothing to navigate back to
     if (isStandaloneChat) return
     if (mode === 'fullscreen') {
-      navigate(`/dashboard/notes/editor?note=${currentNoteId}`)
+      navigate(`/notes/editor?note=${currentNoteId}`)
       setMode('sidebar')
     }
     onClose()

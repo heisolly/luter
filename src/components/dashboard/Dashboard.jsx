@@ -19,20 +19,20 @@ import { useTourStore } from '../../store/useTourStore'
 
 function DashboardMobileBottomNav({ pathname, navigate, onMore }) {
   const isActive = (target) => {
-    if (target === '/dashboard') return pathname === '/dashboard' || pathname === '/dashboard/' || pathname === '/home'
-    if (target === '/dashboard/backpack') return pathname.startsWith('/dashboard/backpack') || pathname.startsWith('/backpack')
+    if (target === '/home') return pathname === '/home' || pathname === '/' || pathname === '/home'
+    if (target === '/backpack') return pathname.startsWith('/backpack') || pathname.startsWith('/backpack')
     if (target === '/classrooms') return pathname.startsWith('/classrooms')
-    if (target === '/sessions') return pathname.startsWith('/sessions') || pathname.startsWith('/dashboard/sessions')
-    if (target === '/dashboard/notes') return pathname.startsWith('/dashboard/notes') || pathname.startsWith('/notes')
+    if (target === '/sessions') return pathname.startsWith('/sessions') || pathname.startsWith('/sessions')
+    if (target === '/notes') return pathname.startsWith('/notes') || pathname.startsWith('/notes')
     return pathname === target || pathname.startsWith(`${target}/`)
   }
 
   const items = [
-    { label: 'Home', path: '/dashboard', icon: House },
+    { label: 'Home', path: '/home', icon: House },
     { label: 'Classrooms', path: '/classrooms', icon: ChalkboardTeacher },
-    { label: 'Backpack', path: '/dashboard/backpack', icon: Backpack },
+    { label: 'Backpack', path: '/backpack', icon: Backpack },
     { label: 'Sessions', path: '/sessions', icon: UsersThree },
-    { label: 'Notes', path: '/dashboard/notes', icon: NotePencil },
+    { label: 'Notes', path: '/notes', icon: NotePencil },
   ]
 
   return (
@@ -84,7 +84,7 @@ export default function Dashboard() {
   }, [user?.id, setUserId])
 
   useEffect(() => {
-    if (!loading && !isLoadingTours && user && currentUserId === user.id && window.location.pathname === '/dashboard') {
+    if (!loading && !isLoadingTours && user && currentUserId === user.id && window.location.pathname === '/home') {
       if (!hasCompletedTour('dashboard-home')) {
         const timer = setTimeout(() => startTour('dashboard-home'), 2000)
         return () => clearTimeout(timer)
@@ -110,7 +110,7 @@ export default function Dashboard() {
   
   // Set initial sidebar state based on page
   useEffect(() => {
-    const openPages = ['/dashboard', '/dashboard/']
+    const openPages = ['/home', '/']
     if (openPages.includes(location.pathname)) {
       setSidebarCollapsed(false)
     } else {
@@ -124,10 +124,13 @@ export default function Dashboard() {
 
     const fetchUser = async () => {
       try {
+        console.log('🔄 Dashboard fetchUser started')
         // Give Supabase a moment to recover session from storage
-        const { data: { session: initialSession } } = await supabase.auth.getSession()
+        const { data: { session: initialSession }, error: initialSessionError } = await supabase.auth.getSession()
+        console.log('🔄 Dashboard initialSession:', initialSession ? 'EXISTS' : 'NULL', 'Error:', initialSessionError?.message)
         
         const handleSession = async (session) => {
+          console.log('🔄 Dashboard handleSession called with session:', session ? 'EXISTS' : 'NULL')
           if (session?.user) {
             setUser(session.user)
             setUserId(session.user.id)
@@ -190,15 +193,32 @@ export default function Dashboard() {
             }
             updateHeartbeat()
             hb = setInterval(updateHeartbeat, 30000)
+            
+            // Clean up auth tokens from URL for a cleaner address bar
+            const url = new URL(window.location.href)
+            if (url.searchParams.has('code') || url.searchParams.has('error')) {
+              url.searchParams.delete('code')
+              url.searchParams.delete('error')
+              url.searchParams.delete('error_code')
+              url.searchParams.delete('error_description')
+              window.history.replaceState({}, document.title, url.pathname + url.search)
+            }
+            
             setLoading(false)
           } else {
             // Wait a bit longer before redirecting - Supabase might still be initializing
             setTimeout(async () => {
               const { data: { session: finalCheck } } = await supabase.auth.getSession()
+              console.log('🔄 Dashboard finalCheck inside handleSession(null):', finalCheck ? 'EXISTS' : 'NULL')
               if (!finalCheck) {
                 console.log('❌ No session found after wait, redirecting to signin')
-                const currentPath = window.location.pathname + window.location.search
-                window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(currentPath)}`
+                const url = new URL(window.location.href)
+                url.searchParams.delete('code')
+                url.searchParams.delete('error')
+                url.searchParams.delete('error_code')
+                url.searchParams.delete('error_description')
+                const cleanPath = url.pathname + url.search
+                window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(cleanPath)}`
               } else {
                 handleSession(finalCheck)
               }
@@ -211,6 +231,7 @@ export default function Dashboard() {
         } else {
           // Listen for auth state change
           const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('🔄 Dashboard onAuthStateChange event:', event, 'session:', session ? 'EXISTS' : 'NULL')
             if (session) {
               await handleSession(session)
               subscription.unsubscribe()
@@ -222,15 +243,43 @@ export default function Dashboard() {
           })
           
           // Absolute safety timeout - redirect if no user
-          setTimeout(() => {
-            if (loading && !user) {
-              const currentPath = window.location.pathname + window.location.search
-              window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(currentPath)}`
+          setTimeout(async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            console.log('🔄 Dashboard 4000ms safety timeout check, session:', session ? 'EXISTS' : 'NULL')
+            if (!session) {
+              console.log('❌ 4000ms safety timeout redirecting to signin')
+              const url = new URL(window.location.href)
+              url.searchParams.delete('code')
+              url.searchParams.delete('error')
+              const cleanPath = url.pathname + url.search
+              window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(cleanPath)}`
             }
           }, 4000)
         }
       } catch (error) {
-        console.warn('Dashboard session bootstrap failed:', error.message)
+        console.error('❌ Dashboard session bootstrap failed:', error.message, error)
+        const url = new URL(window.location.href)
+        if (url.searchParams.has('code') || url.searchParams.has('error')) {
+          url.searchParams.delete('code')
+          url.searchParams.delete('error')
+          url.searchParams.delete('error_code')
+          url.searchParams.delete('error_description')
+          window.history.replaceState({}, document.title, url.pathname + url.search)
+          try {
+            // Retry without the problematic code
+            const { data: { session }, error: retryErrorDetail } = await supabase.auth.getSession()
+            console.log('🔄 Dashboard retry after error, session:', session ? 'EXISTS' : 'NULL', 'error:', retryErrorDetail?.message)
+            if (session?.user) {
+              // We successfully recovered by stripping the stale code
+              setUser(session.user)
+              setUserId(session.user.id)
+              setLoading(false)
+              return
+            }
+          } catch (retryError) {
+            console.warn('Retry also failed:', retryError.message)
+          }
+        }
         setLoading(false)
       }
     }
@@ -246,7 +295,7 @@ export default function Dashboard() {
 
     const handleDeepLink = (e) => {
       if (e.detail?.page === 'mock-exam') {
-        navigate('/dashboard/mock-exam', { state: { preselectedCourse: e.detail.course || null } })
+        navigate('/mock-exam', { state: { preselectedCourse: e.detail.course || null } })
       }
     }
     window.addEventListener('DEEP_LINK_DASH', handleDeepLink)
@@ -287,8 +336,13 @@ export default function Dashboard() {
 
   // Redirect if no user after loading
   if (!user) {
-    const currentPath = window.location.pathname + window.location.search
-    window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(currentPath)}`
+    const url = new URL(window.location.href)
+    url.searchParams.delete('code')
+    url.searchParams.delete('error')
+    url.searchParams.delete('error_code')
+    url.searchParams.delete('error_description')
+    const cleanPath = url.pathname + url.search
+    window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(cleanPath)}`
     return null
   }
 
@@ -350,7 +404,7 @@ export default function Dashboard() {
 
           <div
             className="mobile-user-avatar"
-            onClick={() => navigate('/dashboard/profile')}
+            onClick={() => navigate('/profile')}
             style={{
               width: 32,
               height: 32,

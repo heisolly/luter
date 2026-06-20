@@ -827,17 +827,17 @@ export function StyledFAQ({ items = [] }) {
       radial-gradient(ellipse 80% 60% at 100% 50%, rgba(113,128,254,0.10) 0%, transparent 60%),
       radial-gradient(ellipse 70% 70% at 50%  0%,  rgba(196,181,253,0.14) 0%, transparent 55%),
       #FAF8FF
-    `, fontFamily: "'DM Sans', sans-serif" }}>
+    `, fontFamily: "'Outfit', sans-serif" }}>
       <div style={{ maxWidth: 900, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 80 }}>
           <h2 style={{
             fontSize: 'clamp(2rem,4.5vw,3rem)', fontWeight: 800,
-            color: 'var(--foreground)', fontFamily: "'DM Sans', sans-serif",
+            color: 'var(--foreground)', fontFamily: "'Outfit', sans-serif",
             letterSpacing: '-0.03em', lineHeight: 1.2, margin: 0, marginBottom: 16
           }}>
             Frequently Asked Questions
           </h2>
-          <p style={{ fontSize: 16, color: '#6B7280', fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
+          <p style={{ fontSize: 16, color: '#6B7280', fontFamily: "'Outfit', sans-serif", fontWeight: 500 }}>
             Everything you need to know about Luter
           </p>
         </div>
@@ -879,7 +879,7 @@ export function StyledFAQ({ items = [] }) {
                       transition={{ duration: 0.2 }}
                       style={{ overflow: 'hidden' }}
                     >
-                      <p style={{ fontSize: 15, color: '#374151', lineHeight: 1.7, fontWeight: 500, margin: 0, fontFamily: "'DM Sans', sans-serif" }}>
+                      <p style={{ fontSize: 15, color: '#374151', lineHeight: 1.7, fontWeight: 500, margin: 0, fontFamily: "'Outfit', sans-serif" }}>
                         {item.a}
                       </p>
                     </motion.div>

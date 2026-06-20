@@ -5,7 +5,7 @@ import {
   RiLoader4Line as CircleNotch,
   RiLockFill as Lock,
   RiMailFill as Envelope,
-  RiUserFill as User
+  RiAppleFill as Apple
 } from 'react-icons/ri';
 import { supabase } from '../../supabaseClient';
 import { clearLuterCaches } from '../../utils/cacheUtils';
@@ -20,20 +20,37 @@ export default function AuthUnifiedPage({ initialMode = 'signin' }) {
 
   const buttonStyle = {
     width: '100%',
-    background: isDark ? '#6D5BA5' : '#C4B5FD',
-    color: isDark ? '#E0E0FF' : '#333333',
-    border: isDark ? '1px solid #6D5BA5' : '1px solid #C4B5FD',
-    borderBottom: isDark ? '4px solid #B8860B' : '4px solid #FFD2A6',
+    height: '56px',
+    background: isDark 
+      ? 'linear-gradient(135deg, #6D5BA5 0%, #4C3C88 100%)' 
+      : 'linear-gradient(135deg, #111827 0%, #374151 100%)',
+    color: '#ffffff',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    borderRadius: '9999px',
     boxShadow: isDark
-      ? '0 10px 22px rgba(109, 91, 165, 0.35)'
-      : '0 10px 22px rgba(196, 181, 253, 0.32)'
+      ? '0 12px 28px rgba(109, 91, 165, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.2)'
+      : '0 12px 28px rgba(17, 24, 39, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.2)',
+    fontWeight: '700',
+    fontSize: '16px',
+    letterSpacing: '0.01em',
+    transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
   };
+
+  const secondaryButtonStyle = {
+    ...buttonStyle,
+    background: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.7)',
+    color: isDark ? '#ffffff' : '#1f2937',
+    border: isDark ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(0, 0, 0, 0.1)',
+    boxShadow: 'none',
+  };
+
   const [mode, setMode] = useState(initialMode);
+  const [showEmailForm, setShowEmailForm] = useState(false);
   const [signInEmail, setSignInEmail] = useState('');
   const [signInPassword, setSignInPassword] = useState('');
   const [signInLoading, setSignInLoading] = useState(false);
   const [signInError, setSignInError] = useState(null);
-  const [fullName, setFullName] = useState('');
+  
   const [signUpEmail, setSignUpEmail] = useState('');
   const [signUpPassword, setSignUpPassword] = useState('');
   const [signUpLoading, setSignUpLoading] = useState(false);
@@ -42,15 +59,14 @@ export default function AuthUnifiedPage({ initialMode = 'signin' }) {
   const [successEmail, setSuccessEmail] = useState('');
 
   const queryParams = new URLSearchParams(window.location.search);
-  const redirectPath = queryParams.get('redirect') || (mode === 'signup' ? '/onboarding' : '/dashboard');
-
-
+  const redirectPath = queryParams.get('redirect') || (mode === 'signup' ? '/onboarding' : '/home');
 
   const switchMode = (nextMode, path) => {
     setMode(nextMode);
     setSignInError(null);
     setSignUpError(null);
     setSuccess(false);
+    setShowEmailForm(false); // Reset to stacked buttons when switching modes
     window.history.pushState(null, '', path + window.location.search);
   };
 
@@ -89,11 +105,6 @@ export default function AuthUnifiedPage({ initialMode = 'signin' }) {
     const { data, error: err } = await supabase.auth.signUp({
       email: signUpEmail,
       password: signUpPassword,
-      options: {
-        data: {
-          full_name: fullName,
-        }
-      }
     });
 
     setSignUpLoading(false);
@@ -118,12 +129,12 @@ export default function AuthUnifiedPage({ initialMode = 'signin' }) {
   };
 
   const isSignUp = mode === 'signup';
-  const title = success ? 'Verify your email.' : isSignUp ? 'Create your study account.' : 'Welcome back.';
+  const title = success ? 'Verify your email.' : isSignUp ? "Let's get started!" : "Welcome back!";
   const subtitle = success
     ? 'Check your inbox to finish setting up Luter.'
     : isSignUp
-      ? 'Join Luter and turn your notes into flashcards, quizzes, summaries, and a cleaner study routine.'
-      : 'Sign in and pick up from your flashcards, notes, quizzes, and study streak.';
+      ? 'Join Luter and turn your notes into flashcards, quizzes, and summaries.'
+      : 'Sign in to pick up right where you left off.';
 
   return (
     <AuthPageShell
@@ -132,7 +143,7 @@ export default function AuthUnifiedPage({ initialMode = 'signin' }) {
       subtitle={subtitle}
       error={isSignUp ? signUpError : signInError}
       onModeChange={switchMode}
-      footer={!success && (
+      footer={!success && !showEmailForm && (
         isSignUp ? (
           <>
             Already have an account?{' '}
@@ -149,11 +160,6 @@ export default function AuthUnifiedPage({ initialMode = 'signin' }) {
           </>
         )
       )}
-      bottomNote={isSignUp && !success && (
-        <>
-          By signing up, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
-        </>
-      )}
     >
       {success ? (
         <div className="auth-success-card">
@@ -169,100 +175,108 @@ export default function AuthUnifiedPage({ initialMode = 'signin' }) {
             Go to Sign In
           </PremiumButton>
         </div>
+      ) : !showEmailForm ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <GoogleLoginButton />
+          
+          <div className="auth-divider">
+            <span>Other options</span>
+          </div>
+          
+          <button 
+            type="button" 
+            style={{...secondaryButtonStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'}}
+            onClick={() => setShowEmailForm(true)}
+            onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.9)'}
+            onMouseOut={(e) => e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.7)'}
+          >
+            <Envelope size={20} />
+            {isSignUp ? 'Sign up with Email' : 'Sign in with Email'}
+          </button>
+        </div>
       ) : isSignUp ? (
-        <>
-          <GoogleLoginButton />
+        <form onSubmit={handleSignUp} className="auth-form">
+          <label className="auth-input-wrap">
+            <Envelope />
+            <input
+              className="auth-input"
+              type="email"
+              required
+              value={signUpEmail}
+              onChange={(e) => setSignUpEmail(e.target.value)}
+              placeholder="Email address"
+              autoComplete="email"
+            />
+          </label>
 
-          <div className="auth-divider">
-            <span>or use email</span>
-          </div>
+          <label className="auth-input-wrap">
+            <Lock />
+            <input
+              className="auth-input"
+              type="password"
+              required
+              minLength={6}
+              value={signUpPassword}
+              onChange={(e) => setSignUpPassword(e.target.value)}
+              placeholder="Create password"
+              autoComplete="new-password"
+            />
+          </label>
 
-          <form onSubmit={handleSignUp} className="auth-form">
-            <label className="auth-input-wrap">
-              <User />
-              <input
-                className="auth-input"
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Full name"
-                autoComplete="name"
-              />
-            </label>
-
-            <label className="auth-input-wrap">
-              <Envelope />
-              <input
-                className="auth-input"
-                type="email"
-                required
-                value={signUpEmail}
-                onChange={(e) => setSignUpEmail(e.target.value)}
-                placeholder="Email address"
-                autoComplete="email"
-              />
-            </label>
-
-            <label className="auth-input-wrap">
-              <Lock />
-              <input
-                className="auth-input"
-                type="password"
-                required
-                minLength={6}
-                value={signUpPassword}
-                onChange={(e) => setSignUpPassword(e.target.value)}
-                placeholder="Create password"
-                autoComplete="new-password"
-              />
-            </label>
-
-            <PremiumButton type="submit" disabled={signUpLoading} size="lg" className="auth-submit" style={buttonStyle}>
-              {signUpLoading ? <CircleNotch className="animate-spin" size={24} /> : 'Create free account'}
-            </PremiumButton>
-          </form>
-        </>
+          <PremiumButton type="submit" disabled={signUpLoading} size="lg" className="auth-submit" style={buttonStyle}>
+            {signUpLoading ? <CircleNotch className="animate-spin" size={24} /> : 'Create account'}
+          </PremiumButton>
+          
+          <button 
+            type="button" 
+            className="auth-inline-switch" 
+            onClick={() => setShowEmailForm(false)}
+            style={{ marginTop: '16px', display: 'block', width: '100%', textAlign: 'center' }}
+          >
+            Back to options
+          </button>
+        </form>
       ) : (
-        <>
-          <GoogleLoginButton />
+        <form onSubmit={handleSignIn} className="auth-form">
+          <label className="auth-input-wrap">
+            <Envelope />
+            <input
+              className="auth-input"
+              type="email"
+              required
+              value={signInEmail}
+              onChange={(e) => setSignInEmail(e.target.value)}
+              placeholder="Email address"
+              autoComplete="email"
+            />
+          </label>
 
-          <div className="auth-divider">
-            <span>or use email</span>
-          </div>
+          <label className="auth-input-wrap">
+            <Lock />
+            <input
+              className="auth-input"
+              type="password"
+              required
+              value={signInPassword}
+              onChange={(e) => setSignInPassword(e.target.value)}
+              placeholder="Password"
+              autoComplete="current-password"
+            />
+          </label>
 
-          <form onSubmit={handleSignIn} className="auth-form">
-            <label className="auth-input-wrap">
-              <Envelope />
-              <input
-                className="auth-input"
-                type="email"
-                required
-                value={signInEmail}
-                onChange={(e) => setSignInEmail(e.target.value)}
-                placeholder="Email address"
-                autoComplete="email"
-              />
-            </label>
+          <PremiumButton type="submit" disabled={signInLoading} size="lg" className="auth-submit" style={buttonStyle}>
+            {signInLoading ? <CircleNotch className="animate-spin" size={24} /> : 'Sign in'}
+          </PremiumButton>
 
-            <label className="auth-input-wrap">
-              <Lock />
-              <input
-                className="auth-input"
-                type="password"
-                required
-                value={signInPassword}
-                onChange={(e) => setSignInPassword(e.target.value)}
-                placeholder="Password"
-                autoComplete="current-password"
-              />
-            </label>
-
-            <PremiumButton type="submit" disabled={signInLoading} size="lg" className="auth-submit" style={buttonStyle}>
-              {signInLoading ? <CircleNotch className="animate-spin" size={24} /> : 'Sign in'}
-            </PremiumButton>
-          </form>
-        </>
+          <button 
+            type="button" 
+            className="auth-inline-switch" 
+            onClick={() => setShowEmailForm(false)}
+            style={{ marginTop: '16px', display: 'block', width: '100%', textAlign: 'center' }}
+          >
+            Back to options
+          </button>
+        </form>
       )}
     </AuthPageShell>
   );

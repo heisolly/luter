@@ -12,7 +12,7 @@ import { heistService } from '../../../services/heistService'
 import { supabase } from '../../../supabaseClient'
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../../services/creditService'
 
-const GAME_FONT = "'DM Sans','Inter',system-ui,sans-serif"
+const GAME_FONT = "'Outfit','Outfit',system-ui,sans-serif"
 const PURPLE = '#7C3AED'
 const MINT = '#98FF98'
 const RED = '#EF4444'
@@ -141,7 +141,7 @@ export default function KnowledgeHeistPage() {
     setRoom(null)
     setParticipants([])
     setView('menu')
-    navigate('/dashboard/compete')
+    navigate('/compete')
   }
 
   const copyCode = () => {
@@ -179,7 +179,7 @@ export default function KnowledgeHeistPage() {
             onJoin={handleJoin}
             error={error}
             loading={loading}
-            onBack={() => navigate('/dashboard/compete')}
+            onBack={() => navigate('/compete')}
           />
         )}
         {view === 'lobby' && room && (
@@ -203,7 +203,7 @@ export default function KnowledgeHeistPage() {
             participants={participants}
             user={user}
             guestName={guestName}
-            onExit={() => { setRoom(null); setParticipants([]); setView('menu'); navigate('/dashboard/compete') }}
+            onExit={() => { setRoom(null); setParticipants([]); setView('menu'); navigate('/compete') }}
           />
         )}
       </AnimatePresence>

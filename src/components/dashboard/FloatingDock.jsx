@@ -101,7 +101,7 @@ const FloatingDock = ({ user, isMobile }) => {
       const { success, session } = await createSession(sessionName, uploadedItems);
       if (success && session) {
         setActiveSession(session);
-        navigate(`/dashboard/session/${session.id}`);
+        navigate(`/session/${session.id}`);
       }
     }
 
@@ -123,7 +123,7 @@ const FloatingDock = ({ user, isMobile }) => {
     const { success, session } = await createSession(newSessionName, []);
     if (success && session) {
       setActiveSession(session);
-      navigate(`/dashboard/session/${session.id}`);
+      navigate(`/session/${session.id}`);
       setShowCreateModal(false);
       setNewSessionName('');
     }
@@ -148,7 +148,7 @@ const FloatingDock = ({ user, isMobile }) => {
   const handleOpenSession = (session) => {
     updateLastAccessed(session.id);
     setActiveSession(session);
-    navigate(`/dashboard/session/${session.id}`);
+    navigate(`/session/${session.id}`);
   };
 
   const formatSessionDate = (dateString) => {
@@ -167,7 +167,7 @@ const FloatingDock = ({ user, isMobile }) => {
   };
 
   // Pages where the Floating Dock should appear
-  const allowedPages = ['/dashboard', '/dashboard/session', '/dashboard/flashcards', '/dashboard/playground'];
+  const allowedPages = ['/home', '/session', '/flashcards', '/playground'];
   
   // Check if current page should show the Floating Dock
   const shouldShowDock = allowedPages.some(page => location.pathname.startsWith(page));
