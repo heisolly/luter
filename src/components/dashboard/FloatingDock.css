@@ -8,7 +8,7 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 16px;
-  font-family: 'Inter', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   touch-action: none;
   user-select: none;
 }
@@ -282,7 +282,7 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  font-family: 'Inter', 'Outfit', sans-serif;
+  font-family: 'Inter', 'DM Sans', sans-serif;
   backdrop-filter: blur(8px);
 }
 
@@ -421,7 +421,7 @@
   font-weight: 500;
   outline: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: 'Inter', 'Outfit', sans-serif;
+  font-family: 'Inter', 'DM Sans', sans-serif;
   background: rgba(248, 250, 252, 0.8);
   backdrop-filter: blur(8px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -498,7 +498,7 @@
   font-size: 14px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: 'Inter', 'Outfit', sans-serif;
+  font-family: 'Inter', 'DM Sans', sans-serif;
   border: none;
   position: relative;
   overflow: hidden;

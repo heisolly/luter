@@ -9,7 +9,7 @@ const styles = {
     justifyContent: 'center',
     background: '#F8FAFC',
     padding: '24px',
-    fontFamily: "var(--font-outfit), system-ui, sans-serif",
+    fontFamily: "'DM Sans', 'Inter', system-ui, sans-serif",
     textAlign: 'center',
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,

@@ -239,7 +239,7 @@ export default function LevelPage() {
         justifyContent: 'center', 
         alignItems: 'center', 
         minHeight: '60vh',
-        fontFamily: "'Varela Round', sans-serif"
+        fontFamily: "'Inter', sans-serif"
       }}>
         <div>Loading profile...</div>
       </div>
@@ -254,7 +254,7 @@ export default function LevelPage() {
       padding: isMobile ? '24px 16px 80px' : '48px 40px', 
       maxWidth: 1200, 
       margin: '0 auto', 
-      fontFamily: "'Varela Round', 'Inter', sans-serif",
+      fontFamily: "'Inter', 'Inter', sans-serif",
       boxSizing: 'border-box',
       color: '#333'
     }}>

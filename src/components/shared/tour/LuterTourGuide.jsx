@@ -232,11 +232,11 @@ export const LuterTourGuide = () => {
               ) : null}
           </div>
 
-          <h3 style={{ fontSize: isSmallScreen ? '20px' : '24px', fontWeight: 800, color: '#1E1B4B', marginBottom: '10px', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>
+          <h3 style={{ fontSize: isSmallScreen ? '20px' : '24px', fontWeight: 800, color: '#1E1B4B', marginBottom: '10px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
             {step.title}
           </h3>
 
-          <p style={{ fontSize: isSmallScreen ? '14px' : '15.5px', color: '#4B5563', lineHeight: 1.6, marginBottom: '28px', fontFamily: 'var(--font-varela)', fontWeight: 500 }}>
+          <p style={{ fontSize: isSmallScreen ? '14px' : '15.5px', color: '#4B5563', lineHeight: 1.6, marginBottom: '28px', fontFamily: 'var(--font-body)', fontWeight: 500 }}>
             {step.content}
           </p>
 

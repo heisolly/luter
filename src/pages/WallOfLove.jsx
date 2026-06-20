@@ -229,7 +229,7 @@ const Modal = ({ card, paletteIndex, onClose }) => {
         <p style={{
           fontSize:17, color:"#1F2937", lineHeight:1.7,
           fontWeight:500, marginBottom:24,
-          fontFamily:"'Outfit', sans-serif",
+          fontFamily:"'DM Sans', sans-serif",
         }}>
           "{card.text}"
         </p>
@@ -307,7 +307,7 @@ const Card = ({ card, paletteIndex, onClick }) => {
       <p style={{
         fontSize:16, color:"#374151", lineHeight:1.6,
         fontWeight:500, marginBottom:24, flexGrow:1,
-        fontFamily:"'Outfit', sans-serif",
+        fontFamily:"'DM Sans', sans-serif",
       }}>
         "{card.text}"
       </p>
@@ -412,7 +412,7 @@ export default function WallOfLove({ transparentBg = false }) {
         `,
         display:"flex", flexDirection:"column", justifyContent:"center",
         padding:"60px 0", overflow:"hidden",
-        fontFamily:"'Outfit', sans-serif",
+        fontFamily:"'DM Sans', sans-serif",
       }}>
         <Row items={row1} direction="left"  speed={65} paletteOffset={0} onCardClick={(c,p) => setSelected({ card:c, paletteIndex:p })} />
         <Row items={row2} direction="right" speed={75} paletteOffset={2} onCardClick={(c,p) => setSelected({ card:c, paletteIndex:p })} />

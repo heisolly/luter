@@ -135,17 +135,17 @@ export default function AdminNotesManager() {
       </div>
       
       <div style={{ marginBottom: '8px' }}>
-        <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: 'var(--font-outfit)' }}>
+        <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: 'Inter' }}>
           {title}
         </div>
       </div>
       
-      <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A102D', marginBottom: '4px', fontFamily: 'var(--font-outfit)' }}>
+      <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A102D', marginBottom: '4px', fontFamily: 'DM Sans' }}>
         {value}
       </div>
       
       {subtitle && (
-        <div style={{ fontSize: '12px', color: '#64748b', fontFamily: 'var(--font-outfit)' }}>
+        <div style={{ fontSize: '12px', color: '#64748b', fontFamily: 'Inter' }}>
           {subtitle}
         </div>
       )}
@@ -153,7 +153,7 @@ export default function AdminNotesManager() {
       {trend && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '8px' }}>
           <ChartLineUp size={16} color={trend > 0 ? PALETTE[1] : '#ef4444'} />
-          <span style={{ fontSize: '12px', color: trend > 0 ? PALETTE[1] : '#ef4444', fontWeight: 600, fontFamily: 'var(--font-outfit)' }}>
+          <span style={{ fontSize: '12px', color: trend > 0 ? PALETTE[1] : '#ef4444', fontWeight: 600, fontFamily: 'Inter' }}>
             {trend > 0 ? '+' : ''}{trend}%
           </span>
         </div>
@@ -181,10 +181,10 @@ export default function AdminNotesManager() {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: PALETTE[0], fontFamily: 'var(--font-outfit)' }}>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: PALETTE[0], fontFamily: 'DM Sans' }}>
               {week.title}
             </h3>
-            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#64748b', fontFamily: 'var(--font-outfit)' }}>
+            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#64748b', fontFamily: 'Inter' }}>
               {week.description}
             </p>
           </div>
@@ -198,7 +198,7 @@ export default function AdminNotesManager() {
                 fontSize: '11px',
                 fontWeight: 700,
                 textTransform: 'uppercase',
-                fontFamily: 'var(--font-outfit)'
+                fontFamily: 'Inter'
               }}>
                 Published
               </div>
@@ -209,14 +209,14 @@ export default function AdminNotesManager() {
         <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <FileText size={16} color={PALETTE[0]} />
-            <span style={{ fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-outfit)' }}>
+            <span style={{ fontSize: '14px', fontWeight: 600, fontFamily: 'Inter' }}>
               {weekMaterials.length} materials
             </span>
           </div>
           {week.learning_objectives && week.learning_objectives.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Target size={16} color={PALETTE[2]} />
-              <span style={{ fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-outfit)' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, fontFamily: 'Inter' }}>
                 {week.learning_objectives.length} objectives
               </span>
             </div>
@@ -239,7 +239,7 @@ export default function AdminNotesManager() {
               fontSize: '12px',
               fontWeight: 700,
               cursor: 'pointer',
-              fontFamily: 'var(--font-outfit)'
+              fontFamily: 'Inter'
             }}
           >
             Edit Week
@@ -259,7 +259,7 @@ export default function AdminNotesManager() {
               fontSize: '12px',
               fontWeight: 700,
               cursor: 'pointer',
-              fontFamily: 'var(--font-outfit)'
+              fontFamily: 'Inter'
             }}
           >
             {week.is_published ? 'Unpublish' : 'Publish'}
@@ -290,10 +290,10 @@ export default function AdminNotesManager() {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
           <div style={{ flex: 1 }}>
-            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#1A102D', fontFamily: 'var(--font-outfit)' }}>
+            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#1A102D', fontFamily: 'DM Sans' }}>
               {request.subject}
             </h4>
-            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#64748b', fontFamily: 'var(--font-outfit)' }}>
+            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#64748b', fontFamily: 'Inter' }}>
               Week {request.week_number} • {request.topic}
             </p>
           </div>
@@ -305,14 +305,14 @@ export default function AdminNotesManager() {
             fontSize: '11px',
             fontWeight: 700,
             textTransform: 'uppercase',
-            fontFamily: 'var(--font-outfit)'
+            fontFamily: 'Inter'
           }}>
             {request.status.replace('_', ' ')}
           </div>
         </div>
         
         {request.description && (
-          <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#475569', lineHeight: '1.4', fontFamily: 'var(--font-outfit)' }}>
+          <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#475569', lineHeight: '1.4', fontFamily: 'Inter' }}>
             {request.description}
           </p>
         )}
@@ -320,7 +320,7 @@ export default function AdminNotesManager() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Clock size={12} color="#64748b" />
-            <span style={{ fontSize: '12px', color: '#64748b', fontFamily: 'var(--font-outfit)' }}>
+            <span style={{ fontSize: '12px', color: '#64748b', fontFamily: 'Inter' }}>
               {new Date(request.created_at).toLocaleDateString()}
             </span>
           </div>
@@ -334,7 +334,7 @@ export default function AdminNotesManager() {
               fontSize: '11px',
               fontWeight: 600,
               cursor: 'pointer',
-              fontFamily: 'var(--font-outfit)'
+              fontFamily: 'Inter'
             }}>
               View Details
             </button>
@@ -358,7 +358,7 @@ export default function AdminNotesManager() {
       <div style={{ marginBottom: '32px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 900, color: '#1A102D', display: 'flex', alignItems: 'center', gap: '12px', fontFamily: 'var(--font-outfit)' }}>
+            <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 900, color: '#1A102D', display: 'flex', alignItems: 'center', gap: '12px', fontFamily: 'DM Sans' }}>
               <div style={{
                 width: '48px',
                 height: '48px',
@@ -372,7 +372,7 @@ export default function AdminNotesManager() {
               </div>
               Notes Manager
             </h1>
-            <p style={{ margin: '8px 0 0', fontSize: '16px', color: '#64748b', fontFamily: 'var(--font-outfit)' }}>
+            <p style={{ margin: '8px 0 0', fontSize: '16px', color: '#64748b', fontFamily: 'Inter' }}>
               Manage semester notes, materials, and student requests
             </p>
           </div>
@@ -389,7 +389,7 @@ export default function AdminNotesManager() {
             alignItems: 'center',
             gap: '8px',
             boxShadow: `0 4px 20px ${PALETTE[0]}30`,
-            fontFamily: 'var(--font-outfit)'
+            fontFamily: 'Inter'
           }}>
             <Plus size={20} />
             Upload Notes
@@ -412,7 +412,7 @@ export default function AdminNotesManager() {
                 fontSize: '13px',
                 background: 'white',
                 width: '180px',
-                fontFamily: 'var(--font-outfit)',
+                fontFamily: 'Inter',
                 height: '42px'
               }}
             />
@@ -431,7 +431,7 @@ export default function AdminNotesManager() {
               fontWeight: 600,
               background: 'white',
               minWidth: '200px',
-              fontFamily: 'var(--font-outfit)',
+              fontFamily: 'Inter',
               height: '42px'
             }}
           >
@@ -460,7 +460,7 @@ export default function AdminNotesManager() {
                   fontWeight: 700,
                   cursor: 'pointer',
                   textTransform: 'uppercase',
-                  fontFamily: 'var(--font-outfit)'
+                  fontFamily: 'Inter'
                 }}
               >
                 {view}
@@ -511,7 +511,7 @@ export default function AdminNotesManager() {
             padding: '24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
           }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: '20px', fontWeight: 800, color: '#1A102D', fontFamily: 'var(--font-outfit)' }}>
+            <h3 style={{ margin: '0 0 20px', fontSize: '20px', fontWeight: 800, color: '#1A102D', fontFamily: 'DM Sans' }}>
               Recent Activity
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
@@ -552,7 +552,7 @@ export default function AdminNotesManager() {
             boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#1A102D', fontFamily: 'var(--font-outfit)' }}>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#1A102D', fontFamily: 'DM Sans' }}>
                 Course Materials ({filteredMaterials.length} total)
               </h3>
               
@@ -569,14 +569,14 @@ export default function AdminNotesManager() {
                     borderRadius: '8px',
                     fontSize: '13px',
                     width: '240px',
-                    fontFamily: 'var(--font-outfit)'
+                    fontFamily: 'Inter'
                   }}
                 />
               </div>
             </div>
 
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', fontFamily: 'var(--font-outfit)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', fontFamily: 'Inter' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
                     <th style={{ padding: '12px 16px', fontWeight: 700, color: '#475569' }}>Name</th>
@@ -634,7 +634,7 @@ export default function AdminNotesManager() {
             boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#1A102D', fontFamily: 'var(--font-outfit)' }}>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#1A102D', fontFamily: 'DM Sans' }}>
                 Student Notes Requests ({filteredRequests.length} matching)
               </h3>
               
@@ -652,7 +652,7 @@ export default function AdminNotesManager() {
                       borderRadius: '8px',
                       fontSize: '13px',
                       width: '200px',
-                      fontFamily: 'var(--font-outfit)'
+                      fontFamily: 'Inter'
                     }}
                   />
                 </div>
@@ -665,7 +665,7 @@ export default function AdminNotesManager() {
                     border: `2px solid ${PALETTE[0]}30`,
                     borderRadius: '8px',
                     fontSize: '13px',
-                    fontFamily: 'var(--font-outfit)'
+                    fontFamily: 'Inter'
                   }}
                 >
                   <option value="all">All Statuses</option>
@@ -682,7 +682,7 @@ export default function AdminNotesManager() {
                 <RequestCard key={request.id} request={request} />
               ))}
               {filteredRequests.length === 0 && (
-                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '48px', color: '#64748b', fontFamily: 'var(--font-outfit)' }}>
+                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '48px', color: '#64748b', fontFamily: 'Inter' }}>
                   No note requests match your query.
                 </div>
               )}

@@ -40,10 +40,10 @@ export default function ImageSlidesRenderer({ slideImages = [], title, fileUrl }
                 <FilePpt size={28} color="#F97316" />
               </div>
               <div>
-                <h2 style={{ fontFamily: 'var(--font-outfit)', fontSize: 20, fontWeight: 800, color: '#1A102D', margin: 0 }}>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: '#1A102D', margin: 0 }}>
                   {title || 'Presentation'}
                 </h2>
-                <p style={{ color: '#64748B', fontSize: 14, margin: '4px 0 0', fontFamily: 'var(--font-outfit)' }}>
+                <p style={{ color: '#64748B', fontSize: 14, margin: '4px 0 0', fontFamily: 'var(--font-body)' }}>
                   {slideImages.length} slides
                 </p>
               </div>
@@ -54,7 +54,7 @@ export default function ImageSlidesRenderer({ slideImages = [], title, fileUrl }
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 20px', background: '#4B0082', color: 'white',
                 border: 'none', borderRadius: 12, cursor: 'pointer',
-                fontWeight: 600, fontFamily: 'var(--font-outfit)', fontSize: 14,
+                fontWeight: 600, fontFamily: 'var(--font-display)', fontSize: 14,
               }}
             >
               <Download size={18} /> Download PPTX
@@ -123,7 +123,7 @@ export default function ImageSlidesRenderer({ slideImages = [], title, fileUrl }
               position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
               background: 'rgba(0,0,0,0.6)', color: 'white',
               padding: '6px 16px', borderRadius: 20,
-              fontFamily: 'var(--font-outfit)', fontSize: 13, fontWeight: 600,
+              fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 600,
               zIndex: 3,
             }}>
               {activeIdx + 1} / {slideImages.length}
@@ -160,7 +160,7 @@ export default function ImageSlidesRenderer({ slideImages = [], title, fileUrl }
                 <div style={{
                   position: 'absolute', bottom: 0, left: 0, right: 0,
                   background: 'rgba(0,0,0,0.5)', color: 'white',
-                  fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-outfit)',
+                  fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-display)',
                   padding: '4px 0', textAlign: 'center',
                 }}>
                   {idx + 1}

@@ -115,7 +115,7 @@ export default function GuestPlayPage() {
           <div style={{ width: 64, height: 64, background: '#f5f3ff', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', margin: '0 auto 16px' }}>
             <RiLoader4Line size={32} style={{ animation: 'spin 1s linear infinite' }} />
           </div>
-          <p style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700, color: '#64748b', fontSize: 16 }}>Loading game room...</p>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 700, color: '#64748b', fontSize: 16 }}>Loading game room...</p>
           <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
         </motion.div>
       </div>
@@ -128,7 +128,7 @@ export default function GuestPlayPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          style={{ maxWidth: 400, width: '100%', background: 'white', padding: 40, borderRadius: 32, textAlign: 'center', boxShadow: '0 20px 50px rgba(0,0,0,0.05)', fontFamily: "'Outfit', sans-serif" }}
+          style={{ maxWidth: 400, width: '100%', background: 'white', padding: 40, borderRadius: 32, textAlign: 'center', boxShadow: '0 20px 50px rgba(0,0,0,0.05)', fontFamily: "'DM Sans', sans-serif" }}
         >
           <div style={{ width: 64, height: 64, background: '#fef2f2', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', margin: '0 auto 24px' }}>
             <RiErrorWarningFill size={32} />
@@ -149,7 +149,7 @@ export default function GuestPlayPage() {
 
   if (!hasJoined) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', padding: 20, fontFamily: "'Outfit', sans-serif" }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', padding: 20, fontFamily: "'DM Sans', sans-serif" }}>
         {/* Toast */}
         <AnimatePresence>
           {toast && (
@@ -199,7 +199,7 @@ export default function GuestPlayPage() {
               width: '100%', padding: '16px 20px', borderRadius: 16,
               border: '2px solid #e2e8f0', marginBottom: 16, fontSize: 16,
               fontWeight: 600, outline: 'none', boxSizing: 'border-box',
-              fontFamily: "'Outfit', sans-serif", transition: 'border-color 0.2s'
+              fontFamily: "'DM Sans', sans-serif", transition: 'border-color 0.2s'
             }}
             onFocus={e => e.target.style.borderColor = '#7c3aed'}
             onBlur={e => e.target.style.borderColor = '#e2e8f0'}
@@ -230,7 +230,7 @@ export default function GuestPlayPage() {
   const commonProps = { room, participants, user, deck: room.metadata?.deck || [] }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: 20, fontFamily: "'Outfit', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: 20, fontFamily: "'DM Sans', sans-serif" }}>
       {/* Toast */}
       <AnimatePresence>
         {toast && (
@@ -274,7 +274,7 @@ function renderGame(type, props) {
     case 'term-builder': return <TermBuilderGame {...props} />
     case 'brain-blitz': return <BrainBlitzGame {...props} />
     default: return (
-      <div style={{ textAlign: 'center', padding: 40, fontFamily: "'Outfit', sans-serif", color: '#64748b' }}>
+      <div style={{ textAlign: 'center', padding: 40, fontFamily: "'DM Sans', sans-serif", color: '#64748b' }}>
         Game type not recognized.
       </div>
     )

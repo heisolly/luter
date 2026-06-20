@@ -98,7 +98,7 @@ export default function ThemeToggle({ className = '' }) {
                     border: 'none',
                     textAlign: 'left',
                     transition: 'background 0.2s',
-                    fontFamily: 'var(--font-outfit)'
+                    fontFamily: 'var(--font-display)'
                   }}
                   onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--border-light)' }}
                   onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}

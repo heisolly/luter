@@ -20,7 +20,7 @@ export default function AnimatedLayout({ children, title, subtitle }) {
       <nav className="navbar" style={{ padding: '0 40px', background: 'transparent', height: 80, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
           <img src={logo} alt="Luter AI logo" style={{ height: 32, width: 32, objectFit: 'contain' }} />
-          <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.03em', fontFamily: 'var(--font-outfit)', color: '#111' }}>Luter</span>
+          <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.03em', fontFamily: 'var(--font-display)', color: '#111' }}>Luter</span>
         </Link>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -34,7 +34,7 @@ export default function AnimatedLayout({ children, title, subtitle }) {
       <div style={{ position: 'relative', zIndex: 1, paddingTop: 120, paddingBottom: 120 }}>
         {title && (
           <div className="container-custom" style={{ textAlign: 'center', padding: '60px 20px 40px', color: '#111' }}>
-            <h1 className="page-title" style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', fontWeight: 700, fontFamily: 'var(--font-outfit)', marginBottom: 20, letterSpacing: '-0.02em' }}>{title}</h1>
+            <h1 className="page-title" style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', fontWeight: 700, fontFamily: 'var(--font-display)', marginBottom: 20, letterSpacing: '-0.02em' }}>{title}</h1>
             {subtitle && <p style={{ fontSize: 20, color: '#666', maxWidth: 600, margin: '0 auto', lineHeight: 1.6, fontWeight: 500 }}>{subtitle}</p>}
           </div>
         )}

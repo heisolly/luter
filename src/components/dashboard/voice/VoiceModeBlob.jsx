@@ -204,7 +204,7 @@ const VoiceModeBlob = ({ onExit }) => {
             background: isListening ? '#10B981' : isSpeaking ? '#7a12cc' : '#94A3B8',
             boxShadow: isListening ? '0 0 12px rgba(16, 185, 129, 0.5)' : 'none'
           }} />
-          <span style={{ fontSize: '14px', fontWeight: 600, color: '#1E293B', fontFamily: 'var(--font-outfit)' }}>
+          <span style={{ fontSize: '14px', fontWeight: 600, color: '#1E293B', fontFamily: 'var(--font-display)' }}>
             {isListening ? 'Luter is Listening' : isSpeaking ? 'Luter is Speaking' : 'Voice Mode Paused'}
           </span>
         </div>
@@ -252,7 +252,7 @@ const VoiceModeBlob = ({ onExit }) => {
       {/* Footer Controls */}
       <div style={{ position: 'absolute', bottom: '48px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', width: '100%', zIndex: 10 }}>
         <div style={{ textAlign: 'center' }}>
-          <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1E293B', marginBottom: '8px', fontFamily: 'var(--font-outfit)' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1E293B', marginBottom: '8px', fontFamily: 'var(--font-display)' }}>
             {isListening ? "Talk to me" : isSpeaking ? "Listen to Luter" : "Ready to start?"}
           </h3>
           <p style={{ fontSize: '14px', color: '#64748B', maxWidth: '240px', lineHeight: '1.5', fontWeight: 500 }}>

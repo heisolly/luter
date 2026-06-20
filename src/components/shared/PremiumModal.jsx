@@ -106,7 +106,7 @@ const modalStyles = {
   position: 'relative',
   boxShadow: '0 40px 100px rgba(0,0,0,0.8)',
   color: '#fff',
-  fontFamily: "'Outfit', sans-serif",
+  fontFamily: "'DM Sans', sans-serif",
 };
 
 const headerContainerStyles = {
@@ -199,7 +199,7 @@ const primaryBtnStyles = {
   color: '#FFFFFF',
   fontSize: '15px',
   fontWeight: 800,
-  fontFamily: 'var(--font-outfit)',
+  fontFamily: 'var(--font-display)',
   textTransform: 'uppercase',
   letterSpacing: '0.1em',
   border: 'none',

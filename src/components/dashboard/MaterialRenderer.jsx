@@ -69,7 +69,7 @@ export default function MaterialRenderer({
           <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
             <span style={{ fontSize: '32px' }}>⚠️</span>
           </div>
-          <h3 style={{ fontFamily: 'var(--font-outfit)', fontSize: '20px', fontWeight: 700, color: '#111827', marginBottom: '12px' }}>Processing Failed</h3>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 700, color: '#111827', marginBottom: '12px' }}>Processing Failed</h3>
           <p style={{ color: '#6B7280', fontSize: '14px', lineHeight: '1.6', marginBottom: '24px' }}>
             We encountered an issue while optimizing this material for your workstation. This usually happens with complex PDFs or network interruptions.
           </p>
@@ -84,7 +84,7 @@ export default function MaterialRenderer({
             style={{ 
               width: '100%', padding: '12px', background: 'var(--primary)', color: 'white', 
               border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer',
-              fontFamily: 'var(--font-outfit)'
+              fontFamily: 'var(--font-display)'
             }}
           >
             Retry Optimization

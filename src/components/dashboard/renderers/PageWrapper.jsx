@@ -89,7 +89,7 @@ export function ErrorCard({ icon, title, message, actionLabel, onAction }) {
       )}
       <h3
         style={{
-          fontFamily: 'var(--font-outfit)',
+          fontFamily: 'var(--font-display)',
           fontSize: 18,
           fontWeight: 700,
           color: '#111827',
@@ -120,7 +120,7 @@ export function ErrorCard({ icon, title, message, actionLabel, onAction }) {
             borderRadius: 12,
             cursor: 'pointer',
             fontWeight: 600,
-            fontFamily: 'var(--font-outfit)',
+            fontFamily: 'var(--font-display)',
             fontSize: 14,
           }}
         >

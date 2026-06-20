@@ -281,7 +281,7 @@ const BoardInner = ({ roomId, boardName, user }) => {
           <StatusDot />
           <span style={{
             fontSize: '13px', fontWeight: 700, color: '#1E293B',
-            fontFamily: 'var(--font-outfit)',
+            fontFamily: 'var(--font-display, system-ui)',
             maxWidth: '220px', overflow: 'hidden',
             textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
@@ -308,7 +308,7 @@ const BoardInner = ({ roomId, boardName, user }) => {
             color:  copied ? '#059669' : '#475569',
             fontSize: '12px', fontWeight: 700, cursor: 'pointer',
             transition: 'all 0.2s', flexShrink: 0,
-            fontFamily: 'var(--font-outfit)',
+            fontFamily: 'var(--font-display, system-ui)',
           }}
         >
           {copied ? (

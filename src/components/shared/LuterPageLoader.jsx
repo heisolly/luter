@@ -20,7 +20,7 @@ const CSS = `
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-family: 'Outfit', 'Inter', sans-serif;
+    font-family: 'DM Sans', 'Inter', sans-serif;
     background: transparent;
     gap: 24px;
     animation: lpl-fade-in 0.3s ease both;

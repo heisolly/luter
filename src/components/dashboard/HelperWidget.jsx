@@ -496,7 +496,7 @@ export default function HelperWidget({ type, onClose }) {
                 ? '0 24px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.05)'
                 : '0 24px 60px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.03)',
               zIndex:      10001,
-              fontFamily:  "var(--font-outfit),sans-serif",
+              fontFamily:  "'DM Sans','Inter',sans-serif",
               display:     'flex',
               flexDirection: 'column',
               overflow:    'hidden',

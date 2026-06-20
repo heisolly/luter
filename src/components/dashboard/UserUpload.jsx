@@ -215,7 +215,7 @@ export default function UserUpload() {
     <div style={{
       minHeight: '100vh',
       background: '#f8fafc',
-      fontFamily: "'Outfit', sans-serif"
+      fontFamily: "'DM Sans', sans-serif"
     }}>
       <div style={{
         maxWidth: '800px',

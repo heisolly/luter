@@ -2,7 +2,7 @@
    DecksPage.css  ·  Luter Design System
    My Decks — flashcard bundles and quizzes
    Brand: #7C3AED purple · #C4B5FD lavender · #98FF98 mint · #FFD2A6 peach
-   Font:  Outfit, Inter
+   Font:  DM Sans, Inter
    ═══════════════════════════════════════════════════════════════════ */
 
 /* ── Root ───────────────────────────────────────────────────────── */
@@ -10,7 +10,7 @@
   min-height: 100dvh;
   background: var(--sb-bg, #FFFFFF);
   color: var(--sb-text, #0F172A);
-  font-family: var(--font-outfit), system-ui, sans-serif;
+  font-family: 'DM Sans', 'Inter', system-ui, sans-serif;
   padding: 0 0 80px;
 }
 
@@ -95,7 +95,7 @@
   border: none;
   outline: none;
   background: transparent;
-  font-family: var(--font-outfit), sans-serif;
+  font-family: 'DM Sans', 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 500;
   color: var(--sb-text, #0F172A);
@@ -114,7 +114,7 @@
   background: #98FF98;
   border: none;
   border-radius: 12px;
-  font-family: var(--font-outfit), sans-serif;
+  font-family: 'DM Sans', 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: #166534;
@@ -210,7 +210,7 @@
   border: none;
   border-radius: 9px;
   background: transparent;
-  font-family: var(--font-outfit), sans-serif;
+  font-family: 'DM Sans', 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: var(--sb-text-muted, #475569);
@@ -256,7 +256,7 @@
   background: transparent;
   border: 1px solid var(--sb-border, #E5E7EB);
   border-radius: 10px;
-  font-family: var(--font-outfit), sans-serif;
+  font-family: 'DM Sans', 'Inter', sans-serif;
   font-size: 12px;
   font-weight: 600;
   color: var(--sb-text-muted, #475569);
@@ -474,7 +474,7 @@
   background: #7C3AED;
   border: none;
   border-radius: 9999px;
-  font-family: var(--font-outfit), sans-serif;
+  font-family: 'DM Sans', 'Inter', sans-serif;
   font-size: 12px;
   font-weight: 700;
   color: #fff;

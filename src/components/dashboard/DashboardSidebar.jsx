@@ -6,7 +6,6 @@ import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import {
   House,
   UsersThree,
-  ChalkboardTeacher,
   Cards,
   Backpack,
   NotePencil,
@@ -33,7 +32,6 @@ import {
 import './SidebarRedesign.css'
 import HelperWidget from './HelperWidget'
 import ArcadeOverlay from './ArcadeOverlay'
-import SettingsPage from './SettingsPage'
 import { getCreditBalance } from '../../services/creditService'
 
 /* ── dark mode hook ── */
@@ -106,8 +104,7 @@ export default function DashboardSidebar({
   onNavigate,
   hideToggle,
 }) {
-  const prefetch = useDashboardPrefetch() || {}
-  const { bundle } = prefetch
+  const { bundle } = useDashboardPrefetch()
   const location   = useLocation()
   const navigate   = useNavigate()
   const pathname   = location.pathname
@@ -121,7 +118,6 @@ export default function DashboardSidebar({
   )
   const [helperOverlay, setHelperOverlay]   = useState(null) // 'feedback' | 'changelog' | 'help' | null
   const [showArcade, setShowArcade]         = useState(false) // arcade overlay
-  const [showSettings, setShowSettings]     = useState(false) // settings overlay
   const [creditsBalance, setCreditsBalance] = useState(Infinity)
 
   // Fetch real credit balance
@@ -139,14 +135,6 @@ export default function DashboardSidebar({
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [showArcade])
-
-  // Close settings on Escape
-  useEffect(() => {
-    if (!showSettings) return
-    const handler = (e) => { if (e.key === 'Escape') setShowSettings(false) }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [showSettings])
 
   // Close arcade on Escape
   useEffect(() => {
@@ -233,7 +221,7 @@ export default function DashboardSidebar({
         />
         <span style={{
           display: 'none', fontWeight: 900, fontSize: 22,
-          color: '#7a12cc', fontFamily: 'var(--font-outfit)'
+          color: '#7a12cc', fontFamily: 'DM Sans, Inter, sans-serif'
         }}>
           Luter
         </span>
@@ -585,7 +573,7 @@ export default function DashboardSidebar({
                 <span className="dsb-dropdown-item-icon"><ChartBar size={16} /></span>
                 My Progress
               </button>
-              <button className="dsb-dropdown-item" onClick={() => { setShowPersonal(false); setShowSettings(true); }}>
+              <button className="dsb-dropdown-item" onClick={() => go('/settings')}>
                 <span className="dsb-dropdown-item-icon"><GearSix size={16} /></span>
                 Settings
               </button>
@@ -627,12 +615,6 @@ export default function DashboardSidebar({
         type={helperOverlay}
         onClose={() => setHelperOverlay(null)}
       />
-
-      {/* ── Settings Overlay ── */}
-      {showSettings && createPortal(
-        <SettingsPage onClose={() => setShowSettings(false)} />,
-        document.body
-      )}
 
       {/* ── Arcade Overlay ── */}
       {showArcade && <ArcadeOverlay user={user} onClose={() => setShowArcade(false)} />}

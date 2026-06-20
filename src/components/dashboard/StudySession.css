@@ -1,12 +1,11 @@
 /* ── StudySession.css — Folder Redesign ── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* ── Root ── */
 .ss-root {
   min-height: 100vh;
   background: #F9FAFB;
   color: var(--foreground, #0F172A);
-  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-family: var(--font-body);
   position: relative;
   padding-bottom: 120px; /* Space for floating bar */
 }
@@ -551,7 +550,7 @@ body.dark-mode .ss-fab-btn.outline:hover { background: rgba(196, 181, 253, 0.1);
   color: rgba(46, 16, 101, 1);
   border: 1px solid rgba(167, 139, 250, 1);
   border-bottom: 4px solid rgba(167, 139, 250, 1);
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;

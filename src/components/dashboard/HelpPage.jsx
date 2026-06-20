@@ -13,10 +13,8 @@ import {
 } from '@phosphor-icons/react'
 
 const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
   .hlp-root {
-    font-family: 'var(--font-outfit)', sans-serif;
+    font-family: var(--font-body);
     background: #F9FAFB;
     min-height: 100vh;
     padding-bottom: 64px;
@@ -83,7 +81,7 @@ const STYLES = `
     padding: 16px 20px 16px 52px;
     border-radius: 16px;
     border: none;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 1rem;
     color: #111827;
     outline: none;
@@ -265,7 +263,7 @@ const STYLES = `
     padding: 13px 24px;
     border-radius: 14px;
     border: none;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 0.92rem;
     font-weight: 700;
     cursor: pointer;

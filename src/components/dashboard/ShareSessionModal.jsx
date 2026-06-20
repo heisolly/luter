@@ -206,7 +206,7 @@ export default function ShareSessionModal({ isOpen, onClose, sessionId, session:
             width: '100%',
             maxWidth: '480px',
             position: 'relative',
-            fontFamily: 'var(--font-outfit)',
+            fontFamily: 'var(--font-display, system-ui, sans-serif)',
             overflow: 'hidden'
           }}
         >

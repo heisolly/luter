@@ -108,14 +108,14 @@ function WorkstationNotesLegacy({ content, material, onRegenerate }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', fontFamily: 'var(--font-outfit)' }}
+      style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', fontFamily: "var(--font-body)" }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', padding: '24px 32px', borderRadius: '24px', border: '1.5px solid #F1F5F9', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.04)' }}>
         <div>
-          <div style={{ color: '#4B0082', fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-outfit)' }}>
+          <div style={{ color: '#4B0082', fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: "var(--font-display)" }}>
              <BookOpen size={16} /> Structured study notes
           </div>
-          <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#1A102D', margin: 0, fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>{material?.title}</h1>
+          <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#1A102D', margin: 0, fontFamily: "var(--font-display)", letterSpacing: '-0.02em' }}>{material?.title}</h1>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <ActionButton onClick={() => window.print()} icon={Printer} label="Print" />
@@ -123,7 +123,7 @@ function WorkstationNotesLegacy({ content, material, onRegenerate }) {
           <ActionButton icon={ShareNetwork} label="Share" />
           <button
             onClick={onRegenerate}
-            style={{ padding: '12px 24px', borderRadius: '14px', background: '#6D28D9', color: 'white', border: 'none', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 10px 20px -5px rgba(109, 40, 217, 0.25)', fontFamily: 'var(--font-outfit)' }}
+            style={{ padding: '12px 24px', borderRadius: '14px', background: '#6D28D9', color: 'white', border: 'none', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 10px 20px -5px rgba(109, 40, 217, 0.25)', fontFamily: 'var(--font-display)' }}
           >
             <ArrowsClockwise size={16} /> Regenerate
           </button>
@@ -153,7 +153,7 @@ function WorkstationNotesLegacy({ content, material, onRegenerate }) {
           <WarningCircle weight="bold" size={28} color="#D97706" />
         </div>
         <div>
-          <h4 style={{ color: '#92400E', fontWeight: 700, marginBottom: '4px', fontSize: '18px', fontFamily: 'var(--font-outfit)' }}>Professor's Insight</h4>
+          <h4 style={{ color: '#92400E', fontWeight: 700, marginBottom: '4px', fontSize: '18px', fontFamily: "var(--font-display)" }}>Professor's Insight</h4>
           <p style={{ color: '#B45309', fontSize: '15px', margin: 0, fontWeight: 500 }}>These notes cover all major points from your lecture slides. Focus specifically on the "Core Mechanisms" section for the upcoming exam.</p>
         </div>
       </div>
@@ -354,7 +354,7 @@ function WorkstationNotesRichEditor({ content, material, onRegenerate, onCreateS
           padding: 24px 24px 40px;
           color: var(--wn-text);
           background: transparent;
-          font-family: var(--font-sans), Outfit, Inter, sans-serif;
+          font-family: var(--font-display), DM Sans, Inter, sans-serif;
         }
         .wn-toolbar {
           width: fit-content;
@@ -650,7 +650,7 @@ function WorkstationNotesEditor({ content, material, onRegenerate, onCreateSumma
           padding: 24px 24px 40px;
           color: var(--wn-text);
           background: transparent;
-          font-family: var(--font-sans), Outfit, Inter, sans-serif;
+          font-family: var(--font-display), DM Sans, Inter, sans-serif;
         }
         .wn-toolbar {
           width: fit-content;
@@ -815,13 +815,13 @@ export function WorkstationSummary({ content, material }) {
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', fontFamily: 'var(--font-outfit)' }}
+      style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px', fontFamily: "var(--font-body)" }}
     >
       <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-        <div style={{ display: 'inline-flex', padding: '10px 20px', background: 'rgba(75, 0, 130, 0.08)', borderRadius: '100px', color: '#4B0082', fontWeight: 600, fontSize: '12px', marginBottom: '20px', border: '1px solid rgba(75, 0, 130, 0.1)', fontFamily: 'var(--font-outfit)', letterSpacing: '0.03em' }}>
+        <div style={{ display: 'inline-flex', padding: '10px 20px', background: 'rgba(75, 0, 130, 0.08)', borderRadius: '100px', color: '#4B0082', fontWeight: 600, fontSize: '12px', marginBottom: '20px', border: '1px solid rgba(75, 0, 130, 0.1)', fontFamily: "var(--font-display)", letterSpacing: '0.03em' }}>
           ✨ Summary Brief
         </div>
-        <h2 style={{ fontSize: '36px', fontWeight: 700, color: '#1A102D', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.03em' }}>{material?.title}</h2>
+        <h2 style={{ fontSize: '36px', fontWeight: 700, color: '#1A102D', fontFamily: "var(--font-display)", letterSpacing: '-0.03em' }}>{material?.title}</h2>
       </div>
 
       <div style={{ background: 'linear-gradient(135deg, #4B0082 0%, #4C1D95 100%)', padding: '2px', borderRadius: '40px', marginBottom: '48px', boxShadow: '0 30px 60px -12px rgba(75, 0, 130, 0.2)' }}>
@@ -1514,7 +1514,7 @@ function WorkstationQuizRedesign({ quiz = [], items = [], material, onComplete, 
             var(--lq-bg);
           background-size: 14px 14px;
           padding: 28px 40px 110px;
-          font-family: var(--font-sans), Outfit, Inter, sans-serif;
+          font-family: var(--font-display), DM Sans, Inter, sans-serif;
         }
         .lq-card {
           background: color-mix(in srgb, var(--lq-surface) 96%, transparent);
@@ -1735,8 +1735,8 @@ function EmptyState({ icon: Icon, label, action }) {
            style={{ position: 'absolute', inset: -20, border: '2.5px solid #4B0082', borderRadius: '50%' }}
          />
       </div>
-      <p style={{ fontSize: '20px', fontWeight: 700, color: '#1A102D', letterSpacing: '-0.02em', fontFamily: 'var(--font-outfit)', marginBottom: '8px' }}>{label}</p>
-      <div style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', fontFamily: 'var(--font-outfit)', marginBottom: action ? '24px' : '0' }}>Luter is curating your space...</div>
+      <p style={{ fontSize: '20px', fontWeight: 700, color: '#1A102D', letterSpacing: '-0.02em', fontFamily: 'var(--font-display)', marginBottom: '8px' }}>{label}</p>
+      <div style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', fontFamily: 'var(--font-display)', marginBottom: action ? '24px' : '0' }}>Luter is curating your space...</div>
       {action && <div style={{ marginTop: '8px' }}>{action}</div>}
     </div>
   )
@@ -1930,7 +1930,7 @@ export function WorkstationSummaryEnhanced({
       <div style={{ padding: '28px 32px 0 32px', flexShrink: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
           <div>
-            <h1 style={{ fontSize: '26px', fontWeight: 700, color: '#111827', letterSpacing: '-0.02em', margin: 0, fontFamily: 'var(--font-outfit)' }}>
+            <h1 style={{ fontSize: '26px', fontWeight: 700, color: '#111827', letterSpacing: '-0.02em', margin: 0, fontFamily: 'var(--font-display)' }}>
               Course insights
             </h1>
             <p style={{ fontSize: '14px', color: '#9CA3AF', marginTop: '4px', margin: 0 }}>
@@ -2092,7 +2092,7 @@ export function WorkstationSummaryEnhanced({
         <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#EEF2F6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED', marginBottom: '24px' }}>
           <Sparkle size={36} />
         </div>
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginBottom: '8px', fontFamily: 'var(--font-outfit)' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginBottom: '8px', fontFamily: 'var(--font-display)' }}>
           No summary yet
         </h2>
         <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '24px', lineHeight: '1.5' }}>
@@ -2184,7 +2184,7 @@ export function WorkstationSummaryEnhanced({
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span style={{ fontSize: '11px', fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Length</span>
-                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#111827', fontFamily: 'var(--font-outfit)' }}>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#111827', fontFamily: 'var(--font-display)' }}>
                     {numPages ? `${numPages} pages` : '—'}
                   </span>
                 </div>
@@ -2216,7 +2216,7 @@ export function WorkstationSummaryEnhanced({
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span style={{ fontSize: '11px', fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Read time</span>
-                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#111827', fontFamily: 'var(--font-outfit)' }}>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#111827', fontFamily: 'var(--font-display)' }}>
                     {readTimeMin} min read
                   </span>
                 </div>
@@ -2248,7 +2248,7 @@ export function WorkstationSummaryEnhanced({
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span style={{ fontSize: '11px', fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Topics</span>
-                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#111827', fontFamily: 'var(--font-outfit)' }}>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#111827', fontFamily: 'var(--font-display)' }}>
                     {topicsCount} key areas
                   </span>
                 </div>
@@ -2257,7 +2257,7 @@ export function WorkstationSummaryEnhanced({
 
             {/* Key Points Card */}
             <div style={{ border: '1px solid #E5E7EB', borderRadius: '20px', background: 'white', padding: '24px 28px' }}>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: '#111827', marginBottom: '20px', fontFamily: 'var(--font-outfit)' }}>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: '#111827', marginBottom: '20px', fontFamily: 'var(--font-display)' }}>
                 Key points
               </div>
               <ul style={{ listStyleType: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -2336,7 +2336,7 @@ export function WorkstationSummaryEnhanced({
 
             {/* Full Summary Text Card */}
             <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: '20px', padding: '28px 32px' }}>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: '#111827', marginBottom: '20px', fontFamily: 'var(--font-outfit)' }}>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: '#111827', marginBottom: '20px', fontFamily: 'var(--font-display)' }}>
                 Full summary
               </div>
               <div className="markdown-body" style={{ fontSize: '15.5px', lineHeight: '1.8', color: '#374151' }}>
@@ -2391,7 +2391,7 @@ export function WorkstationSummaryEnhanced({
                 <div style={{ width: '64px', height: '64px', background: '#F5F3FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#7C3AED' }}>
                   <Sparkle size={32} />
                 </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#111827', marginBottom: '8px', fontFamily: 'var(--font-outfit)' }}>Page-by-Page Insights</h3>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#111827', marginBottom: '8px', fontFamily: 'var(--font-display)' }}>Page-by-Page Insights</h3>
                 <p style={{ color: '#6B7280', fontSize: '14px', marginBottom: '24px', maxWidth: '320px', margin: '0 auto 24px', lineHeight: 1.5 }}>Deep dive into every single page of your material with granular summaries.</p>
                 <button
                   onClick={handleFetchPages}
@@ -2452,7 +2452,7 @@ export function WorkstationSummaryEnhanced({
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '16px', fontWeight: 700, color: '#111827', fontFamily: 'var(--font-outfit)' }}>
+                        <span style={{ fontSize: '16px', fontWeight: 700, color: '#111827', fontFamily: 'var(--font-display)' }}>
                           Page {activePageKey}
                         </span>
                         <div style={{ display: 'flex', gap: '8px' }}>
@@ -2588,19 +2588,19 @@ Return the assistance in markdown format. Be concise.`;
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '24px', background: 'white', fontFamily: 'var(--font-outfit)' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '24px', background: 'white', fontFamily: 'var(--font-body)' }}>
       <header style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
-            <div style={{ color: '#4B0082', fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'var(--font-outfit)' }}>
+            <div style={{ color: '#4B0082', fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'var(--font-display)' }}>
               <PencilLine size={14} /> Notepad
             </div>
-            <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#1A102D', margin: 0, fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>Study jottings</h1>
+            <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#1A102D', margin: 0, fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>Study jottings</h1>
           </div>
           <button
             onClick={handleManualSave}
             disabled={isSaving}
-            style={{ padding: '10px 20px', borderRadius: '12px', background: '#4B0082', border: 'none', color: 'white', fontWeight: 600, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em', boxShadow: '0 4px 12px rgba(75, 0, 130, 0.2)' }}
+            style={{ padding: '10px 20px', borderRadius: '12px', background: '#4B0082', border: 'none', color: 'white', fontWeight: 600, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-display)', letterSpacing: '0.01em', boxShadow: '0 4px 12px rgba(75, 0, 130, 0.2)' }}
           >
             {isSaving ? <CircleNotch className="animate-spin" size={16} /> : <FloppyDisk size={16} />}
             {isSaving ? 'Saving' : 'Save'}
@@ -2611,14 +2611,14 @@ Return the assistance in markdown format. Be concise.`;
           <button
             onClick={() => handleAiAssist('points')}
             disabled={isAssisting}
-            style={{ flex: 1, padding: '10px', borderRadius: '12px', background: '#F5F3FF', border: '1.5px solid #DDD6FE', color: '#4B0082', fontWeight: 600, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em', transition: 'all 0.2s' }}
+            style={{ flex: 1, padding: '10px', borderRadius: '12px', background: '#F5F3FF', border: '1.5px solid #DDD6FE', color: '#4B0082', fontWeight: 600, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'var(--font-display)', letterSpacing: '0.01em', transition: 'all 0.2s' }}
           >
             <Sparkle size={14} /> AI points
           </button>
           <button
             onClick={() => handleAiAssist('formulas')}
             disabled={isAssisting}
-            style={{ flex: 1, padding: '10px', borderRadius: '12px', background: '#FFF7ED', border: '1.5px solid #FFEDD5', color: '#EA580C', fontWeight: 600, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'var(--font-outfit)', letterSpacing: '0.01em', transition: 'all 0.2s' }}
+            style={{ flex: 1, padding: '10px', borderRadius: '12px', background: '#FFF7ED', border: '1.5px solid #FFEDD5', color: '#EA580C', fontWeight: 600, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'var(--font-display)', letterSpacing: '0.01em', transition: 'all 0.2s' }}
           >
             <Lightning size={14} /> Formulas
           </button>
@@ -2633,7 +2633,7 @@ Return the assistance in markdown format. Be concise.`;
           style={{ width: '100%', height: '100%', border: 'none', resize: 'none', outline: 'none', fontSize: '15px', lineHeight: '1.6', color: '#334155', background: 'transparent', fontFamily: 'inherit' }}
         />
         {isAssisting && (
-          <div style={{ position: 'absolute', bottom: '16px', right: '16px', padding: '8px 16px', background: '#1A102D', borderRadius: '100px', color: 'white', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-outfit)', letterSpacing: '0.03em', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+          <div style={{ position: 'absolute', bottom: '16px', right: '16px', padding: '8px 16px', background: '#1A102D', borderRadius: '100px', color: 'white', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-display)', letterSpacing: '0.03em', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
             <CircleNotch size={14} className="animate-spin" />
             Luter is thinking...
           </div>

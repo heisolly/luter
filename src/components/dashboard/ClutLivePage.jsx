@@ -20,7 +20,7 @@ import {
 import { playgroundService } from '../../services/playgroundService'
 import { supabase } from '../../supabaseClient'
 
-const GAME_FONT = "'Varela Round','Inter',system-ui,sans-serif"
+const GAME_FONT = "'Inter','Inter',system-ui,sans-serif"
 const TEXT = '#172033'
 const MUTED = '#64748b'
 const MINT = '#98FF98'

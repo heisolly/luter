@@ -194,7 +194,7 @@ export default function BrainBlitzGame({ room, participants, user, deck, onExit 
       maxWidth: 800, 
       margin: '0 auto', 
       padding: '12px', 
-      fontFamily: "'Outfit', sans-serif",
+      fontFamily: "'DM Sans', sans-serif",
       boxSizing: 'border-box'
     }}>
       {room.created_by && (

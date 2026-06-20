@@ -22,10 +22,10 @@ export default function ConversionSkeleton({ type = 'pptx', failed = false, onRe
             <Icon size={28} color="#F97316" />
           </div>
           <div>
-            <h2 style={{ fontFamily: 'var(--font-outfit)', fontSize: 20, fontWeight: 800, color: '#1A102D', margin: 0 }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: '#1A102D', margin: 0 }}>
               {label}
             </h2>
-            <p style={{ color: '#64748B', fontSize: 14, margin: '4px 0 0', fontFamily: 'var(--font-outfit)' }}>
+            <p style={{ color: '#64748B', fontSize: 14, margin: '4px 0 0', fontFamily: 'var(--font-body)' }}>
               Converting to high-fidelity PDF…
             </p>
           </div>
@@ -146,7 +146,7 @@ export default function ConversionSkeleton({ type = 'pptx', failed = false, onRe
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#EF4444' }}>
               <Warning size={18} />
-              <span style={{ fontFamily: 'var(--font-outfit)', fontSize: 13, fontWeight: 600 }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 600 }}>
                 Conversion took too long. You can retry or view the original file.
               </span>
             </div>
@@ -155,7 +155,7 @@ export default function ConversionSkeleton({ type = 'pptx', failed = false, onRe
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '8px 16px', background: 'white', border: '1.5px solid #E2E8F0',
-                borderRadius: 10, cursor: 'pointer', fontFamily: 'var(--font-outfit)',
+                borderRadius: 10, cursor: 'pointer', fontFamily: 'var(--font-display)',
                 fontSize: 13, fontWeight: 600, color: '#475569',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
               }}
@@ -183,7 +183,7 @@ export default function ConversionSkeleton({ type = 'pptx', failed = false, onRe
               transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
               style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid #E2E8F0', borderTopColor: '#F97316' }}
             />
-            <span style={{ fontFamily: 'var(--font-outfit)', fontSize: 13, fontWeight: 600, color: '#64748B' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 600, color: '#64748B' }}>
               Preparing your document for the best reading experience…
             </span>
           </motion.div>

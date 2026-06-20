@@ -178,7 +178,7 @@ const UniversityLogoItem = ({ name, domain }) => {
           fontSize: 14,
           fontWeight: 800,
           color: '#64748B',
-          fontFamily: 'var(--font-outfit)',
+          fontFamily: 'var(--font-display)',
           border: '1px solid #F1F5F9'
         }}>
           {initial}
@@ -187,7 +187,7 @@ const UniversityLogoItem = ({ name, domain }) => {
           fontSize: '17px', 
           fontWeight: 700, 
           color: hovered ? '#2E1065' : '#64748B', 
-          fontFamily: 'var(--font-outfit)',
+          fontFamily: 'var(--font-display)',
           transition: 'color 0.3s ease',
           letterSpacing: '-0.01em'
         }}>
@@ -262,7 +262,7 @@ const UniversityLogoItem = ({ name, domain }) => {
         fontSize: '17px', 
         fontWeight: 700, 
         color: hovered ? '#2E1065' : '#64748B', 
-        fontFamily: 'var(--font-outfit)',
+        fontFamily: 'var(--font-display)',
         transition: 'color 0.3s ease',
         letterSpacing: '-0.01em'
       }}>
@@ -456,7 +456,7 @@ const ZIGZAG_FEATURES = [
         <div style={{ position: 'absolute', top: 20, left: 10, width: '100%', height: '100%', background: '#A7F3D0', borderRadius: 24, transform: 'rotate(-6deg)', zIndex: 1, border: '1px solid #6EE7B7' }} />
         <div style={{ position: 'absolute', top: 10, left: 5, width: '100%', height: '100%', background: '#6EE7B7', borderRadius: 24, transform: 'rotate(4deg)', zIndex: 2, border: '1px solid #34D399' }} />
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'var(--background)', borderRadius: 24, display: 'flex', flexDirection: 'column', padding: 32, boxShadow: '0 20px 40px rgba(0,0,0,0.08)', zIndex: 3, transform: 'rotate(-2deg)', border: '1px solid #F1F5F9' }}>
-           <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 16, color: 'var(--foreground)', fontFamily: 'var(--font-outfit)' }}>The Seat of Intelligence - Cerebrum</div>
+           <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 16, color: 'var(--foreground)', fontFamily: 'var(--font-display)' }}>The Seat of Intelligence - Cerebrum</div>
            <p style={{ fontSize: 13, color: 'var(--tt-gray-light-a-600)', lineHeight: 1.6, fontWeight: 600 }}>"Ever wondered how you think? That's your cerebrum — the boss of your brain. It handles your thoughts, memories, decisions — basically, you being you. No cerebrum? No thinking. No learning."</p>
            <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--tt-gray-light-a-600)' }}>{'<'}</div>
@@ -589,7 +589,6 @@ export default function LandingPage() {
     <div ref={containerRef} className={`landing-page ${isDark ? 'dark' : ''}`} style={{ background: 'var(--background)', minHeight: '100vh', paddingTop: 72 }}>
       <GlobalStyles />
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap');
         .landing-page {
           overflow-x: clip;
         }
@@ -614,7 +613,7 @@ export default function LandingPage() {
           flex-direction: column;
           gap: 24px;
           text-align: left;
-          font-family: var(--font-varela);
+          font-family: var(--font-body);
           overflow: hidden;
           min-width: 0;
         }
@@ -887,7 +886,7 @@ export default function LandingPage() {
             </div>
           }
         >
-          <div style={{ background: '#dcfce7', padding: '12px 20px', borderRadius: 16, border: '2px solid #166534', boxShadow: '0 6px 0 #166534', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-outfit)', fontWeight: 700, transform: 'rotate(-4deg)', fontSize: 14, color: '#166534' }}>
+          <div style={{ background: '#dcfce7', padding: '12px 20px', borderRadius: 16, border: '2px solid #166534', boxShadow: '0 6px 0 #166534', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-display)', fontWeight: 700, transform: 'rotate(-4deg)', fontSize: 14, color: '#166534' }}>
             <CheckCircle size={20} weight="fill" /> Quiz
           </div>
         </DraggableDoodle>
@@ -910,7 +909,7 @@ export default function LandingPage() {
             </div>
           }
         >
-          <div style={{ background: '#fef3c7', padding: '12px 20px', borderRadius: 16, border: '2px solid #92400e', boxShadow: '0 6px 0 #92400e', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-outfit)', fontWeight: 700, transform: 'rotate(5deg)', fontSize: 14, color: '#92400e' }}>
+          <div style={{ background: '#fef3c7', padding: '12px 20px', borderRadius: 16, border: '2px solid #92400e', boxShadow: '0 6px 0 #92400e', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-display)', fontWeight: 700, transform: 'rotate(5deg)', fontSize: 14, color: '#92400e' }}>
             <Cards size={20} weight="fill" /> Flashcards
           </div>
         </DraggableDoodle>
@@ -933,7 +932,7 @@ export default function LandingPage() {
             </div>
           }
         >
-          <div style={{ background: '#e0f2fe', padding: '12px 20px', borderRadius: 16, border: '2px solid #0369a1', boxShadow: '0 6px 0 #0369a1', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-outfit)', fontWeight: 700, transform: 'rotate(-6deg)', fontSize: 14, color: '#0369a1' }}>
+          <div style={{ background: '#e0f2fe', padding: '12px 20px', borderRadius: 16, border: '2px solid #0369a1', boxShadow: '0 6px 0 #0369a1', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-display)', fontWeight: 700, transform: 'rotate(-6deg)', fontSize: 14, color: '#0369a1' }}>
             <Brain size={20} weight="fill" /> Summary
           </div>
         </DraggableDoodle>
@@ -955,7 +954,7 @@ export default function LandingPage() {
             </div>
           }
         >
-          <div style={{ background: '#f3e8ff', padding: '12px 20px', borderRadius: 16, border: '2px solid #6b21a8', boxShadow: '0 6px 0 #6b21a8', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-outfit)', fontWeight: 700, transform: 'rotate(8deg)', fontSize: 14, color: '#6b21a8' }}>
+          <div style={{ background: '#f3e8ff', padding: '12px 20px', borderRadius: 16, border: '2px solid #6b21a8', boxShadow: '0 6px 0 #6b21a8', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-display)', fontWeight: 700, transform: 'rotate(8deg)', fontSize: 14, color: '#6b21a8' }}>
             <MonitorPlay size={20} weight="fill" /> Board
           </div>
         </DraggableDoodle>
@@ -977,14 +976,14 @@ export default function LandingPage() {
             </div>
           }
         >
-          <div style={{ background: '#ffe4e6', padding: '12px 20px', borderRadius: 16, border: '2px solid #be123c', boxShadow: '0 6px 0 #be123c', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-outfit)', fontWeight: 700, transform: 'rotate(-10deg)', fontSize: 14, color: '#be123c' }}>
+          <div style={{ background: '#ffe4e6', padding: '12px 20px', borderRadius: 16, border: '2px solid #be123c', boxShadow: '0 6px 0 #be123c', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-display)', fontWeight: 700, transform: 'rotate(-10deg)', fontSize: 14, color: '#be123c' }}>
             <Lightning size={20} weight="fill" /> Games
           </div>
         </DraggableDoodle>
 
         <div className="hero-content" style={{ position: 'relative', zIndex: 10, maxWidth: 950 }}>
           <h1 style={{ 
-            fontFamily: 'var(--font-outfit)', fontSize: 'clamp(2.5rem, 6.5vw, 4.8rem)', 
+            fontFamily: 'var(--font-display)', fontSize: 'clamp(2.5rem, 6.5vw, 4.8rem)', 
             fontWeight: 800, color: 'var(--foreground)', lineHeight: 1.25, letterSpacing: '-0.03em', marginBottom: 28 
           }}>
             Read <WaveBadge
@@ -1025,7 +1024,7 @@ export default function LandingPage() {
             />
           </h1>
           <p style={{ 
-            fontFamily: 'var(--font-varela)', fontSize: '1.25rem', color: 'var(--tt-gray-light-a-600)', 
+            fontFamily: 'var(--font-body)', fontSize: '1.25rem', color: 'var(--tt-gray-light-a-600)', 
             maxWidth: 620, margin: '0 auto 48px', lineHeight: 1.7 
           }}>
             Transform your academic journey with AI-powered tools that help you master your curriculum faster and remember longer. The intelligent way to excel.
@@ -1050,12 +1049,12 @@ export default function LandingPage() {
             <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#EF4444', border: '1.5px solid #333' }} />
             <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#F59E0B', border: '1.5px solid #333' }} />
             <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#98FF98', border: '1.5px solid #333' }} />
-            <div className="hero-mockup-header-url" style={{ marginLeft: 20, height: 28, background: 'var(--background)', borderRadius: 8, flex: 1, maxWidth: 400, border: '1.5px solid #333', display: 'flex', alignItems: 'center', padding: '0 12px', fontSize: 12, color: 'var(--tt-gray-light-a-600)', fontFamily: 'var(--font-varela)' }}>luter.app/dashboard</div>
+            <div className="hero-mockup-header-url" style={{ marginLeft: 20, height: 28, background: 'var(--background)', borderRadius: 8, flex: 1, maxWidth: 400, border: '1.5px solid #333', display: 'flex', alignItems: 'center', padding: '0 12px', fontSize: 12, color: 'var(--tt-gray-light-a-600)', fontFamily: 'var(--font-body)' }}>luter.app/dashboard</div>
           </div>
           {/* Mockup Body */}
           <div className="hero-mockup-body">
             {/* Sidebar */}
-            <div className="hidden md:block" style={{ width: 220, borderRight: '2px solid #333333', padding: '32px 16px', background: 'var(--background)', textAlign: 'left', fontFamily: 'var(--font-outfit)' }}>
+            <div className="hidden md:block" style={{ width: 220, borderRight: '2px solid #333333', padding: '32px 16px', background: 'var(--background)', textAlign: 'left', fontFamily: 'var(--font-display)' }}>
               {/* Logo inside sidebar */}
               <div style={{ padding: '0 8px 32px' }}>
                 <LuterLogo size={24} fontSize={18} />
@@ -1085,10 +1084,10 @@ export default function LandingPage() {
             <div className="hero-mockup-main">
               {/* Path indicator */}
               <div className="hero-mockup-path">
-                <div style={{ fontSize: 13, color: 'var(--tt-gray-light-a-600)', fontWeight: 700, fontFamily: 'var(--font-outfit)' }}>
+                <div style={{ fontSize: 13, color: 'var(--tt-gray-light-a-600)', fontWeight: 700, fontFamily: 'var(--font-display)' }}>
                   CURRICULUMS &gt; AP PSYCHOLOGY &gt; <span style={{ color: '#4B0082' }}>NEURAL SIGNALS</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, background: '#FEF3C7', color: '#B45309', padding: '4px 12px', borderRadius: 9999, fontWeight: 700, fontFamily: 'var(--font-outfit)', border: '1.5px solid #B45309' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, background: '#FEF3C7', color: '#B45309', padding: '4px 12px', borderRadius: 9999, fontWeight: 700, fontFamily: 'var(--font-display)', border: '1.5px solid #B45309' }}>
                   🔥 5 DAY STREAK
                 </div>
               </div>
@@ -1104,13 +1103,13 @@ export default function LandingPage() {
                 }}>
                   {/* Card Header tag */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, background: '#E0D9FF', color: '#4B0082', padding: '2px 8px', borderRadius: 6, fontWeight: 700, fontFamily: 'var(--font-outfit)', border: '1px solid rgba(167, 139, 250, 0.4)' }}>CONCEPT CARD</span>
+                    <span style={{ fontSize: 11, background: '#E0D9FF', color: '#4B0082', padding: '2px 8px', borderRadius: 6, fontWeight: 700, fontFamily: 'var(--font-display)', border: '1px solid rgba(167, 139, 250, 0.4)' }}>CONCEPT CARD</span>
                     <span style={{ fontSize: 12, color: 'var(--tt-gray-light-a-600)', fontWeight: 600 }}>Card 4 of 25</span>
                   </div>
 
                   {/* Card Body */}
                   <div style={{ margin: '12px 0' }}>
-                    <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--tt-gray-light-a-600)', marginBottom: 6, fontFamily: 'var(--font-outfit)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Question:</h4>
+                    <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--tt-gray-light-a-600)', marginBottom: 6, fontFamily: 'var(--font-display)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Question:</h4>
                     <p style={{ fontSize: 16, color: 'var(--foreground)', lineHeight: 1.5, fontWeight: 600 }}>
                       What is the key biological function of the <span style={{ borderBottom: '3px solid #C4B5FD', fontWeight: 700 }}>myelin sheath</span> in neurons?
                     </p>
@@ -1125,7 +1124,7 @@ export default function LandingPage() {
                         style={{
                           width: '100%', height: 42, border: '2px solid #333333', borderRadius: 10,
                           padding: '0 12px', fontSize: 13, background: '#F8FAFC', color: 'var(--foreground)',
-                          fontFamily: 'var(--font-varela)', boxSizing: 'border-box'
+                          fontFamily: 'var(--font-body)', boxSizing: 'border-box'
                         }} 
                       />
                       <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#059669', fontSize: 16, fontWeight: 'bold' }}>✓</span>
@@ -1136,7 +1135,7 @@ export default function LandingPage() {
                       padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10
                     }}>
                       <span style={{ fontSize: 16 }}>🎉</span>
-                      <div style={{ fontSize: 12, color: '#065F46', fontWeight: 700, fontFamily: 'var(--font-outfit)' }}>
+                      <div style={{ fontSize: 12, color: '#065F46', fontWeight: 700, fontFamily: 'var(--font-display)' }}>
                         Correct concept matched! +15 XP gained
                       </div>
                     </div>
@@ -1150,7 +1149,7 @@ export default function LandingPage() {
                 }}>
                   {/* Streak Tracker */}
                   <div>
-                    <h4 style={{ fontSize: 12, color: 'var(--tt-gray-light-a-600)', fontWeight: 700, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-outfit)' }}>Weekly Activity</h4>
+                    <h4 style={{ fontSize: 12, color: 'var(--tt-gray-light-a-600)', fontWeight: 700, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-display)' }}>Weekly Activity</h4>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
                       {['M','T','W','T','F','S','S'].map((day, idx) => {
                         const active = idx < 5;
@@ -1173,7 +1172,7 @@ export default function LandingPage() {
 
                   {/* Small Bar chart */}
                   <div>
-                    <h4 style={{ fontSize: 12, color: 'var(--tt-gray-light-a-600)', fontWeight: 700, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-outfit)' }}>XP Streak</h4>
+                    <h4 style={{ fontSize: 12, color: 'var(--tt-gray-light-a-600)', fontWeight: 700, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-display)' }}>XP Streak</h4>
                     <div style={{ display: 'flex', alignItems: 'flex-end', height: 80, gap: 8, paddingTop: 10 }}>
                       {[30, 45, 60, 20, 80, 0, 0].map((val, idx) => (
                         <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
@@ -1194,27 +1193,54 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Minimal Logo Bar with Scrolling School Logos */}
-      <section className="landing-logo-cloud" style={{ padding: '48px 0', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0', background: 'var(--background)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', gap: '40px' }}>
-          <div style={{ fontSize: '18px', color: '#64748B', fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}>
-            Trusted by the best
+      {/* Logo Cloud */}
+      <section className="landing-logo-cloud" style={{ padding: '80px 0', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0', background: 'var(--background)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', marginBottom: 40, textAlign: 'center' }}>
+          <div className="trusted-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: '#F1F5F9', padding: '8px 16px', borderRadius: 999, border: '1px solid #E2E8F0', marginBottom: 16 }}>
+            <div style={{ display: 'flex' }}>
+              {[
+                'https://api.dicebear.com/7.x/avataaars/svg?seed=Nkechi&backgroundColor=b6e3f4',
+                'https://api.dicebear.com/7.x/avataaars/svg?seed=Tunde&backgroundColor=c0aede',
+                'https://api.dicebear.com/7.x/avataaars/svg?seed=Aisha&backgroundColor=ffdfbf',
+                'https://api.dicebear.com/7.x/avataaars/svg?seed=Chidi&backgroundColor=d1d4f9',
+                'https://api.dicebear.com/7.x/avataaars/svg?seed=Zainab&backgroundColor=b6e3f4'
+              ].map((avatar, i) => (
+                <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: `url(${avatar}) center/cover`, border: '2px solid #F1F5F9', marginLeft: i === 0 ? 0 : -10, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }} />
+              ))}
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--tt-gray-light-a-600)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Trusted by 100k+ Students</span>
           </div>
+          <h3 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, color: 'var(--foreground)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', margin: 0 }}>
+            Empowering students at top universities worldwide.
+          </h3>
+        </div>
 
-          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-            <LogoLoop
-              logos={logoItems}
-              speed={60}
-              direction="left"
-              logoHeight={60}
-              gap={24}
-              hoverSpeed={0}
-              scaleOnHover={true}
-              fadeOut={true}
-              fadeOutColor="var(--background)"
-              ariaLabel="Partner universities"
-            />
-          </div>
+        <LogoLoop
+          logos={logoItems.slice(0, 8)}
+          speed={60}
+          direction="left"
+          logoHeight={60}
+          gap={24}
+          hoverSpeed={0}
+          scaleOnHover={true}
+          fadeOut={true}
+          fadeOutColor="var(--background)"
+          ariaLabel="Partner universities row 1"
+        />
+        
+        <div style={{ marginTop: 24 }}>
+          <LogoLoop
+            logos={logoItems.slice(8, 16)}
+            speed={50}
+            direction="right"
+            logoHeight={60}
+            gap={24}
+            hoverSpeed={0}
+            scaleOnHover={true}
+            fadeOut={true}
+            fadeOutColor="var(--background)"
+            ariaLabel="Partner universities row 2"
+          />
         </div>
       </section>
 
@@ -1228,7 +1254,7 @@ export default function LandingPage() {
                   <div style={{ display: 'inline-block', padding: '6px 16px', borderRadius: 999, background: `${feature.tagColor}15`, color: feature.tagColor, fontWeight: 800, textTransform: 'lowercase', fontSize: 14, marginBottom: 20, letterSpacing: '0.05em', border: `2px solid ${feature.tagColor}30` }}>
                     {feature.tag}
                   </div>
-                  <h2 style={{ fontSize: 'clamp(2.5rem, 4vw, 3.5rem)', fontWeight: 900, marginBottom: 24, fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em', color: 'var(--foreground)', lineHeight: 1.1 }}>
+                  <h2 style={{ fontSize: 'clamp(2.5rem, 4vw, 3.5rem)', fontWeight: 900, marginBottom: 24, fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', color: 'var(--foreground)', lineHeight: 1.1 }}>
                     {feature.title}
                   </h2>
                   <p style={{ fontSize: '1.25rem', color: 'var(--tt-gray-light-a-600)', lineHeight: 1.6, marginBottom: 40, fontWeight: 500 }}>

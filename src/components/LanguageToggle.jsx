@@ -69,7 +69,7 @@ export default function LanguageToggle() {
         style={{ 
           display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', 
           background: 'white', borderRadius: '12px', border: '1px solid #E5E7EB', 
-          cursor: 'pointer', fontFamily: 'var(--font-outfit)', fontSize: '14px', 
+          cursor: 'pointer', fontFamily: 'var(--font-display)', fontSize: '14px', 
           fontWeight: 600, color: '#111', boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
           minWidth: '100px', justifyContent: 'space-between'
         }}
@@ -103,7 +103,7 @@ export default function LanguageToggle() {
                 style={{ 
                   width: '100%', padding: '8px 8px 8px 30px', borderRadius: '8px', 
                   border: '1px solid #F3F4F6', background: '#F9FAFB', fontSize: '13px', 
-                  outline: 'none', fontFamily: 'var(--font-outfit)'
+                  outline: 'none', fontFamily: 'var(--font-display)'
                 }}
               />
             </div>

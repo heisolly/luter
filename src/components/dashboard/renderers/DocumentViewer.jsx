@@ -68,8 +68,7 @@ export default function DocumentViewer({
   drawMode,
   loadHighlights,
   setHighlightToolbox,
-  isDark,
-  isMobile
+  isDark
 }) {
   const { setViewportData, askAI } = useReadingSpace()
   const [viewMode, setViewMode] = useState('visuals')
@@ -155,8 +154,8 @@ export default function DocumentViewer({
     return (
       <div className="ws-property-card" style={{ marginBottom: '48px' }}>
         {isLandmark && <div className="ws-inst-logo" style={{ marginBottom: 24, background: '#6D28D9', color: 'white', border: 'none' }}>LMU</div>}
-        <h1 className="ws-ntn-h1" style={{ fontSize: 42, fontWeight: 800, fontFamily: 'var(--font-outfit)', letterSpacing: '-0.04em', color: '#1A102D', marginBottom: '12px' }}>{material.course_code || 'STUDY MATERIAL'}</h1>
-        <p style={{ color: '#64748B', fontSize: 20, fontWeight: 500, margin: 0, fontFamily: 'var(--font-outfit)', opacity: 0.8 }}>{material.title}</p>
+        <h1 className="ws-ntn-h1" style={{ fontSize: 42, fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.04em', color: '#1A102D', marginBottom: '12px' }}>{material.course_code || 'STUDY MATERIAL'}</h1>
+        <p style={{ color: '#64748B', fontSize: 20, fontWeight: 500, margin: 0, fontFamily: 'var(--font-body)', opacity: 0.8 }}>{material.title}</p>
         
         <div className="ws-property-grid" style={{ 
           marginTop: '40px', 
@@ -170,22 +169,22 @@ export default function DocumentViewer({
         }}>
            <div className="ws-prop-item" style={{ background: 'white', padding: '20px' }}>
               <span className="ws-prop-label" style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', marginBottom: '8px', display: 'block' }}>Course</span>
-              <span className="ws-prop-value" style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B', fontFamily: 'var(--font-outfit)' }}>{material.course_name || 'Natural Sciences'}</span>
+              <span className="ws-prop-value" style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B', fontFamily: 'var(--font-display)' }}>{material.course_name || 'Natural Sciences'}</span>
            </div>
            <div className="ws-prop-item" style={{ background: 'white', padding: '20px' }}>
               <span className="ws-prop-label" style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', marginBottom: '8px', display: 'block' }}>Type</span>
-              <span className="ws-prop-value" style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B', fontFamily: 'var(--font-outfit)' }}>{material.type || 'Document'}</span>
+              <span className="ws-prop-value" style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B', fontFamily: 'var(--font-display)' }}>{material.type || 'Document'}</span>
            </div>
            <div className="ws-prop-item" style={{ background: 'white', padding: '20px' }}>
               <span className="ws-prop-label" style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', marginBottom: '8px', display: 'block' }}>Status</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }} />
-                <span className="ws-prop-value" style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B', fontFamily: 'var(--font-outfit)' }}>Ready</span>
+                <span className="ws-prop-value" style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B', fontFamily: 'var(--font-display)' }}>Ready</span>
               </div>
            </div>
            <div className="ws-prop-item" style={{ background: 'white', padding: '20px' }}>
               <span className="ws-prop-label" style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', marginBottom: '8px', display: 'block' }}>Source</span>
-              <span className="ws-prop-value" style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B', fontFamily: 'var(--font-outfit)' }}>Luter cloud</span>
+              <span className="ws-prop-value" style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B', fontFamily: 'var(--font-display)' }}>Luter cloud</span>
            </div>
         </div>
       </div>
@@ -237,7 +236,6 @@ export default function DocumentViewer({
                     loadHighlights={loadHighlights}
                     setHighlightToolbox={setHighlightToolbox}
                     isDark={isDark}
-                    isMobile={isMobile}
                  />
             </div>
           )}
@@ -252,11 +250,11 @@ export default function DocumentViewer({
                     <ReactMarkdown 
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        h1: ({ children }) => <h1 className="ws-ntn-h1" style={{ fontFamily: 'var(--font-outfit)', fontSize: '32px', fontWeight: 800, marginTop: '48px', marginBottom: '20px' }}>{children}</h1>,
-                        h2: ({ children }) => <h2 className="ws-ntn-h2" style={{ fontFamily: 'var(--font-outfit)', fontSize: '24px', fontWeight: 700, marginTop: '36px', marginBottom: '16px', borderBottom: '1.5px solid #F1F5F9', paddingBottom: '8px' }}>{children}</h2>,
-                        h3: ({ children }) => <h3 style={{ fontFamily: 'var(--font-outfit)', fontSize: '20px', fontWeight: 700, marginTop: '28px', marginBottom: '12px' }}>{children}</h3>,
-                        p: ({ children }) => <p className="ws-ntn-p" style={{ fontSize: `${fontSize}px`, fontFamily: 'var(--font-outfit)', lineHeight: '1.8', color: '#334155', marginBottom: '24px' }}>{children}</p>,
-                        li: ({ children }) => <li style={{ fontFamily: 'var(--font-outfit)', fontSize: `${fontSize - 1}px`, marginBottom: '12px', color: '#334155' }}>{children}</li>,
+                        h1: ({ children }) => <h1 className="ws-ntn-h1" style={{ fontFamily: 'var(--font-display)', fontSize: '32px', fontWeight: 800, marginTop: '48px', marginBottom: '20px' }}>{children}</h1>,
+                        h2: ({ children }) => <h2 className="ws-ntn-h2" style={{ fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: 700, marginTop: '36px', marginBottom: '16px', borderBottom: '1.5px solid #F1F5F9', paddingBottom: '8px' }}>{children}</h2>,
+                        h3: ({ children }) => <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 700, marginTop: '28px', marginBottom: '12px' }}>{children}</h3>,
+                        p: ({ children }) => <p className="ws-ntn-p" style={{ fontSize: `${fontSize}px`, fontFamily: 'var(--font-body)', lineHeight: '1.8', color: '#334155', marginBottom: '24px' }}>{children}</p>,
+                        li: ({ children }) => <li style={{ fontFamily: 'var(--font-body)', fontSize: `${fontSize - 1}px`, marginBottom: '12px', color: '#334155' }}>{children}</li>,
                         em: ({ children, ...props }) => {
                           return <em {...props}>{children}</em>
                         },
@@ -386,8 +384,8 @@ function HighFidelityAudio({ material }) {
          <Music size={64} color="#4B0082" weight="bold" />
        </div>
        <div style={{ textAlign: 'center' }}>
-         <h3 style={{ fontFamily: 'var(--font-outfit)', fontWeight: 800, fontSize: '20px', color: '#1A102D', marginBottom: '8px' }}>AUDIO LECTURE</h3>
-         <p style={{ fontFamily: 'var(--font-outfit)', color: '#64748B', fontSize: '14px' }}>{material.title}</p>
+         <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '20px', color: '#1A102D', marginBottom: '8px' }}>AUDIO LECTURE</h3>
+         <p style={{ fontFamily: 'var(--font-body)', color: '#64748B', fontSize: '14px' }}>{material.title}</p>
        </div>
        <audio controls src={material.source_url} style={{ width: '400px' }} />
     </div>
@@ -412,8 +410,8 @@ function PendingState({ material }) {
         </div>
       </div>
       <div style={{ textAlign: 'center' }}>
-        <p style={{ color: '#1A102D', fontWeight: 800, fontSize: '18px', fontFamily: 'var(--font-outfit)', marginBottom: '4px' }}>OPTIMIZING FOR STUDY</p>
-        <p style={{ color: '#64748B', fontWeight: 500, fontSize: '14px', fontFamily: 'var(--font-outfit)' }}>{material?.title || 'Preparing your material'}...</p>
+        <p style={{ color: '#1A102D', fontWeight: 800, fontSize: '18px', fontFamily: 'var(--font-display)', marginBottom: '4px' }}>OPTIMIZING FOR STUDY</p>
+        <p style={{ color: '#64748B', fontWeight: 500, fontSize: '14px', fontFamily: 'var(--font-body)' }}>{material?.title || 'Preparing your material'}...</p>
       </div>
     </div>
   )

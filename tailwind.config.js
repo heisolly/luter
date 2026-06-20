@@ -8,10 +8,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-geist-mono)', 'ui-monospace', 'SFMono-Regular', 'monospace'],
-        pixel: ['var(--font-geist-pixel)', 'monospace'],
-        jakarta: ['"Plus Jakarta Sans"', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
+        display: ['"DM Sans"', 'sans-serif'],
+        body: ['Inter', 'sans-serif'],
       },
       colors: {
         primary: {

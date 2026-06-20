@@ -60,7 +60,7 @@ body.dark-mode {
   /* CRITICAL: Do NOT use overflow:hidden — it clips the dropdown */
   overflow: visible;
   position: relative;
-  font-family: var(--font-outfit), sans-serif;
+  font-family: 'DM Sans', 'Inter', sans-serif;
 }
 
 /* ── Logo Area ── */
@@ -101,7 +101,7 @@ body.dark-mode {
   cursor: pointer;
   box-shadow: none;
   transition: background 0.18s ease, border-color 0.18s ease;
-  font-family: 'Inter', 'Outfit', sans-serif;
+  font-family: 'Inter', 'DM Sans', sans-serif;
   letter-spacing: 0.01em;
 }
 
@@ -306,7 +306,7 @@ body.dark-mode {
   text-align: left;
   position: relative;
   white-space: nowrap;
-  font-family: var(--font-outfit), sans-serif;
+  font-family: 'DM Sans', 'Inter', sans-serif;
 }
 
 .dsb-nav-pill:hover {
@@ -468,7 +468,7 @@ body.dark-mode .dsb-backpack-caret-btn:hover {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: var(--font-outfit), sans-serif;
+  font-family: 'DM Sans', 'Inter', sans-serif;
 }
 
 .dsb-subnav-item:hover {
@@ -552,7 +552,7 @@ body.dark-mode .dsb-subnav-code {
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  font-family: var(--font-outfit), sans-serif;
+  font-family: 'DM Sans', 'Inter', sans-serif;
   transition: background 0.15s;
   margin-top: 2px;
 }
@@ -681,7 +681,7 @@ body.dark-mode .dsb-helper-btn.active-helper {
   border: none;
   cursor: pointer;
   transition: opacity 0.18s, transform 0.1s;
-  font-family: var(--font-outfit), sans-serif;
+  font-family: 'DM Sans', 'Inter', sans-serif;
 }
 
 .dsb-upgrade-btn:hover { opacity: 0.88; transform: scale(1.01); }
@@ -865,7 +865,7 @@ body.dark-mode .dsb-personal-dropdown {
   border: none;
   cursor: pointer;
   transition: opacity 0.18s;
-  font-family: var(--font-outfit), sans-serif;
+  font-family: 'DM Sans', 'Inter', sans-serif;
   margin-top: 2px;
 }
 
@@ -888,7 +888,7 @@ body.dark-mode .dsb-personal-dropdown {
   cursor: pointer;
   transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
   text-align: left;
-  font-family: var(--font-outfit), sans-serif;
+  font-family: 'DM Sans', 'Inter', sans-serif;
 }
 
 .dsb-dropdown-item:hover {
@@ -936,7 +936,7 @@ body.dark-mode .dsb-dropdown-item:hover {
   background: transparent;
   cursor: pointer;
   transition: background 0.16s ease, transform 0.16s ease;
-  font-family: var(--font-outfit), sans-serif;
+  font-family: 'DM Sans', 'Inter', sans-serif;
   user-select: none;
 }
 
@@ -1587,90 +1587,4 @@ body.dark-mode .dsb-arcade-footer kbd {
   }
   .dsb-arcade-card-body h3 { font-size: 15px; }
   .dsb-arcade-card-badge { display: none; }
-}
-
-/* ── rv-root and rv-main global layout ── */
-.rv-root {
-  display: flex;
-  height: 100vh;
-  width: 100%;
-  background: var(--sb-bg, #F7F7F8);
-  color: var(--sb-text, #111827);
-  font-family: 'Outfit', 'Inter', sans-serif;
-  overflow: hidden;
-}
-body.dark-mode .rv-root {
-  background: #1A1A2E;
-  color: #E5E7EB;
-}
-
-.rv-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
-}
-
-/* ── Collapsed Sidebar Redesign ── */
-.dsb-redesign {
-  transition: width 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
-}
-
-.dsb-redesign.collapsed {
-  width: 72px;
-}
-
-.dsb-redesign.collapsed .dsb-nav-label,
-.dsb-redesign.collapsed .dsb-logo-img,
-.dsb-redesign.collapsed .dsb-nav-item-shortcut,
-.dsb-redesign.collapsed .dsb-nav-section-title,
-.dsb-redesign.collapsed .dsb-helper-row,
-.dsb-redesign.collapsed .dsb-personal-info {
-  display: none !important;
-}
-
-.dsb-redesign.collapsed .dsb-nav-item {
-  justify-content: center;
-  padding: 0;
-}
-
-.dsb-redesign.collapsed .dsb-nav-item .dsb-nav-icon {
-  margin-right: 0;
-}
-
-.dsb-redesign.collapsed .dsb-personal-section {
-  padding: 12px 0;
-}
-
-.dsb-redesign.collapsed .dsb-personal-btn {
-  justify-content: center;
-  padding: 8px 0;
-}
-
-.dsb-redesign.collapsed .dsb-avatar-wrap {
-  margin-right: 0;
-}
-
-/* Hamburger toggle for Classroom Sidebar */
-.dsb-hamburger-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: var(--sb-text-secondary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  transition: background 0.2s;
-  margin-right: 12px;
-}
-.dsb-hamburger-btn:hover {
-  background: var(--sb-border-subtle);
-}
-.dsb-redesign.collapsed .dsb-hamburger-btn {
-  margin-right: 0;
-  margin-left: 17px;
 }

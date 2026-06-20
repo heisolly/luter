@@ -9,8 +9,7 @@ import {
 import { supabase } from '../../supabaseClient'
 
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
-.fbk-root{font-family:'Outfit',Inter,sans-serif;min-height:100vh;background:#F9FAFB;padding-bottom:80px}
+.fbk-root{font-family:var(--font-body);min-height:100vh;background:#F9FAFB;padding-bottom:80px}
 body.dark-mode .fbk-root{background:#111827}
 .fbk-hero{padding:52px 48px 44px;background:linear-gradient(135deg,#7a12cc 0%,#a855f7 55%,#C4B5FD 100%);position:relative;overflow:hidden}
 .fbk-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 80% 50%,rgba(152,255,152,0.12) 0%,transparent 60%);pointer-events:none}

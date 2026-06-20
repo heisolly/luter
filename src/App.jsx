@@ -21,6 +21,7 @@ const UpgradePage = lazy(() => import('./components/dashboard/UpgradePage'));
 const StreakPage = lazy(() => import('./components/dashboard/StreakPage'));
 const ReferPage = lazy(() => import('./components/dashboard/ReferPage'));
 const PlaygroundPage = lazy(() => import('./components/dashboard/PlaygroundPage'));
+const KnowledgeHeistPage = lazy(() => import('./components/dashboard/playground/KnowledgeHeistPage'));
 const ClutLivePage = lazy(() => import('./components/dashboard/ClutLivePage'));
 const PricingPage = lazy(() => import('./components/dashboard/PricingPage'));
 const ExamSessionView = lazy(() => import('./components/ExamSessionView'));
@@ -144,7 +145,7 @@ export default function App() {
         <div
           role="status"
           className="fixed top-0 left-0 right-0 z-[10000] px-4 py-2.5 text-center text-sm text-white shadow-md"
-          style={{ background: 'var(--primary-dark, #7a12cc)', fontFamily: 'var(--font-outfit, system-ui, sans-serif)' }}
+          style={{ background: 'var(--primary-dark, #7a12cc)', fontFamily: 'var(--font-display, system-ui, sans-serif)' }}
         >
           You are offline. The app will use cached pages and study data where possible; reconnect to sync.
         </div>
@@ -253,6 +254,8 @@ export default function App() {
             <Route path="refer" element={<ReferPage />} />
             <Route path="compete" element={<PlaygroundPage />} />
             <Route path="playground/:roomId" element={<PlaygroundPage />} />
+            <Route path="heist" element={<KnowledgeHeistPage />} />
+            <Route path="heist/:roomId" element={<KnowledgeHeistPage />} />
             <Route path="upload" element={<UserUpload />} />
             <Route path="requests" element={<StudyRequestsPage />} />
             <Route path="study-groups" element={<StudyGroupsPage />} />
