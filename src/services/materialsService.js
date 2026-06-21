@@ -844,23 +844,67 @@ export async function updateSessionLastAccessed(sessionId) {
 }
 
 /**
- * Generate a signed URL for a material's source file (overcomes non-public bucket restrictions).
- * Falls back to the public URL if signed URL generation fails.
+ * Generate a signed URL for a material file stored in a private Supabase bucket.
+ *
+ * Strategy:
+ * 1. If the URL is already signed (has `token=` query param) → return as-is.
+ * 2. If the URL is a public storage URL → extract bucket + path and call the
+ *    Supabase Storage REST API with the user's JWT so auth-based RLS passes.
+ * 3. Falls back to the original URL on any failure so the viewer still tries.
  */
 export async function getSignedFileUrl(sourceUrl) {
   if (!sourceUrl) return null
+
   try {
     const url = new URL(sourceUrl)
+
+    // ── Already a signed URL — nothing to do ──────────────────────────────
+    if (url.searchParams.has('token')) return sourceUrl
+
+    // ── Extract storage path from a public URL ───────────────────────────
+    // Supabase public URL format:
+    //   https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
     const parts = url.pathname.split('/')
     const publicIdx = parts.indexOf('public')
-    if (publicIdx !== -1 && parts.length > publicIdx + 2) {
-      const storagePath = parts.slice(publicIdx + 2).join('/')
-      const { data, error } = await supabase.storage.from('materials').createSignedUrl(storagePath, 3600)
-      if (error) throw error
-      return data?.signedUrl || sourceUrl
+    if (publicIdx === -1 || parts.length <= publicIdx + 2) return sourceUrl
+
+    const bucket = parts[publicIdx + 1]          // e.g. 'materials'
+    const storagePath = parts.slice(publicIdx + 2).join('/') // e.g. 'converted/abc.pdf'
+
+    // ── Call the REST endpoint with the user's JWT ───────────────────────
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token) {
+      console.warn('[getSignedFileUrl] No auth session; returning original URL')
+      return sourceUrl
     }
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    const res = await fetch(
+      `${supabaseUrl}/storage/v1/object/sign/${bucket}/${storagePath}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ expiresIn: 3600 }),
+      }
+    )
+
+    if (!res.ok) {
+      const err = await res.text()
+      throw new Error(`Storage sign API returned ${res.status}: ${err}`)
+    }
+
+    const json = await res.json()
+    const signedUrl = json?.signedURL
+      ? `${supabaseUrl}/storage/v1${json.signedURL}`
+      : json?.signedUrl
+
+    return signedUrl || sourceUrl
   } catch (e) {
-    console.warn('[getSignedFileUrl] Failed, using public URL:', e.message)
+    console.warn('[getSignedFileUrl] Failed, using original URL:', e.message)
   }
   return sourceUrl
 }

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStorage, useMutation, useOthers, useSelf, LiveList, LiveObject } from './CollaborationProvider';
 import { Trophy, Lightning, Play, Users } from '@phosphor-icons/react';
 import { ThinkingIndicator } from '../ui/thinking-indicator';
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient';
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService';
+import { supabase } from '../../supabaseClient';
 
 export const GroupQuiz = ({ materialText, isPresenter, user, profile }) => {
   const quizState   = useStorage((root) => root.quizState)   ?? 'idle';
@@ -17,6 +18,36 @@ export const GroupQuiz = ({ materialText, isPresenter, user, profile }) => {
 
   const [localAnswer, setLocalAnswer] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [hasCredited, setHasCredited] = useState(false);
+
+  const myConnectionId = self?.connectionId ? String(self.connectionId) : null;
+  const myScore = myConnectionId ? (quizScores[myConnectionId] ?? 0) : 0;
+
+  useEffect(() => {
+    if (quizState === 'results' && user?.id && myScore > 0 && !hasCredited) {
+      setHasCredited(true);
+      const xpGained = myScore * 10 + 20;
+      const coinsGained = myScore * 2 + 5;
+      
+      const creditStats = async () => {
+        try {
+          await supabase.rpc('update_user_gamification', {
+            p_user_id: user.id,
+            p_xp_gain: xpGained,
+            p_coins_gain: coinsGained,
+            p_questions_answered: questions.length,
+            p_sessions_completed: 1,
+            p_source: 'group_quiz'
+          });
+        } catch (err) {
+          console.error('[Group Quiz] Failed to update stats:', err);
+        }
+      };
+      creditStats();
+    } else if (quizState === 'active' || quizState === 'idle') {
+      setHasCredited(false);
+    }
+  }, [quizState, user?.id, myScore, hasCredited, questions.length]);
 
   const startQuiz = useMutation(async ({ storage }) => {
     if (!materialText) return;
@@ -136,6 +167,16 @@ export const GroupQuiz = ({ materialText, isPresenter, user, profile }) => {
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
           <Trophy size={40} color="#F59E0B" weight="fill" />
           <h2 style={{ fontSize: '18px', fontWeight: 800, marginTop: '8px', color: '#1E293B' }}>Quiz Finished!</h2>
+          {myScore > 0 && (
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12 }}>
+              <div style={{ padding: '4px 10px', background: '#F5F3FF', border: '1px solid #C4B5FD', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700, color: '#7a12cc', fontSize: 11 }}>
+                ⚡ +{myScore * 10 + 20} XP
+              </div>
+              <div style={{ padding: '4px 10px', background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700, color: '#D97706', fontSize: 11 }}>
+                🪙 +{myScore * 2 + 5} Coins
+              </div>
+            </div>
+          )}
         </div>
 
         <div style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '10px' }}>Leaderboard</div>

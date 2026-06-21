@@ -7,14 +7,14 @@ function useQuery() {
 }
 
 const TIER_MAP = {
-  pro: { tier: 'pro', monthlyCredits: 1500 },
-  pro_2weeks: { tier: 'pro', monthlyCredits: 1500 },
-  pro_yearly: { tier: 'pro', monthlyCredits: 1500 },
+  pro: { tier: 'pro', monthlyCredits: 2000 },
+  pro_2weeks: { tier: 'pro', monthlyCredits: 2000 },
+  pro_yearly: { tier: 'pro', monthlyCredits: 2000 },
   beast_monthly: { tier: 'beast', monthlyCredits: 999999 },
   beast_2weeks: { tier: 'beast', monthlyCredits: 999999 },
   beast_quarterly: { tier: 'beast', monthlyCredits: 999999 },
   beast_yearly: { tier: 'beast', monthlyCredits: 999999 },
-  starter: { tier: 'pro', monthlyCredits: 1500 },
+  starter: { tier: 'pro', monthlyCredits: 2000 },
 }
 
 export default function PaymentSuccess() {

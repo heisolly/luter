@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useOutletContext } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { useNavigate, useOutletContext, useLocation } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
 import {
   ArrowRight,
   BookOpen,
@@ -25,9 +25,11 @@ import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import { courseService } from '../../services/courseService'
 import { fetchUserStandaloneMaterials } from '../../services/materialsService'
 import { cachePageData, getCachedPageData } from '../../lib/offlineCache'
-import { supabase } from '../../supabaseClient'
 import CourseEnrollmentModal from '../shared/CourseEnrollmentModal'
 import UserUpload from './UserUpload'
+import { usePlanGate } from '../../hooks/usePlanGate'
+import LockedOverlay from '../shared/LockedOverlay'
+import { motion } from 'framer-motion'
 import './luterPages.css'
 
 import SharedMaterialPreview from '../shared/SharedMaterialPreview'
@@ -43,44 +45,48 @@ function materialLabel(material) {
   return material.title || material.file_name || material.name || 'Untitled material'
 }
 
-const THUMB_COLORS = ['lp-thumb-purple', 'lp-thumb-mint', 'lp-thumb-peach'];
-const getThumbColor = (id) => {
-  const index = Math.abs(id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % THUMB_COLORS.length;
-  return THUMB_COLORS[index];
-};
-
 // Map standard course colors to something folder-like or keep them
 const COURSE_COLORS = ['#C4B5FD','#98FF98','#FFD2A6','#93C5FD','#FCA5A5','#86EFAC','#FCD34D']
-const courseColor = (i) => COURSE_COLORS[i % COURSE_COLORS.length]
 
 export default function BackpackPage() {
   const { user } = useOutletContext()
   const navigate = useNavigate()
+  const location = useLocation()
   const { bundle } = useDashboardPrefetch()
-  const profile = bundle?.profile?.data || bundle?.profile
-  const prefetchedStats = bundle?.stats?.data || bundle?.stats || {}
 
   const [tab, setTab] = useState(() => localStorage.getItem('backpackActiveTab') || 'folders')
-  const [folders, setFolders] = useState([])
-  const [materials, setMaterials] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
+  const [folders, setFolders] = useState(() => bundle?.uc?.data || [])
+  const [materials, setMaterials] = useState(() => bundle?.materials?.data || [])
+  const [loading, setLoading] = useState(() => !bundle?.uc?.data && !bundle?.materials?.data)
   const [view, setView] = useState('grid')
   const [showUpload, setShowUpload] = useState(false)
   const [showEnroll, setShowEnroll] = useState(false)
   const [previewMaterial, setPreviewMaterial] = useState(null)
   const [editingFolder, setEditingFolder] = useState(null)
   const [editFolderName, setEditFolderName] = useState('')
-  const [stats, setStats] = useState({ streak: 0, level: 1, coins: 0 })
+  const [showResourceLock, setShowResourceLock] = useState(false)
+
+  const { profile } = useOutletContext()
+  const { maxFiles, maxFolders, getLockedItemIds } = usePlanGate(profile)
+
+  const lockedFolders = useMemo(() => getLockedItemIds(folders, maxFolders), [folders, maxFolders])
+  const lockedFiles = useMemo(() => getLockedItemIds(materials, maxFiles), [materials, maxFiles])
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (params.get('new') === '1') {
+      setShowEnroll(true)
+      navigate('/backpack', { replace: true })
+    }
+  }, [location.search, navigate])
 
 
   const loadFolders = async () => {
-    if (!bundle?.uc?.data) setLoading(true)
     const cached = getCachedPageData(user.id, 'courses')
     const offline = typeof navigator !== 'undefined' && !navigator.onLine
     if (offline && cached?.data) {
       setFolders(cached.data)
-      if (!bundle?.uc?.data) setLoading(false)
+      setLoading(false)
       return
     }
 
@@ -91,7 +97,7 @@ export default function BackpackPage() {
     } else if (cached?.data) {
       setFolders(cached.data)
     }
-    if (!bundle?.uc?.data) setLoading(false)
+    setLoading(false)
   }
 
   const loadMaterials = async () => {
@@ -99,6 +105,7 @@ export default function BackpackPage() {
     const offline = typeof navigator !== 'undefined' && !navigator.onLine
     if (offline && cached?.data) {
       setMaterials(cached.data)
+      setLoading(false)
       return
     }
 
@@ -112,71 +119,56 @@ export default function BackpackPage() {
       console.warn('Could not load materials:', error)
       if (cached?.data) setMaterials(cached.data)
     }
+    setLoading(false)
   }
 
-  const loadGamification = async () => {
-    const baseStats = {
-      streak: prefetchedStats.streak_days || 0,
-      level: Math.floor((prefetchedStats.total_xp || 0) / 500) + 1,
-      coins: 0,
+  useEffect(() => {
+    if (user?.id) {
+      Promise.resolve().then(() => {
+        loadFolders()
+        loadMaterials()
+      })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
 
-    setStats(baseStats)
-
-    try {
-      const { data, error } = await supabase
-        .from('user_gamification')
-        .select('level, coins')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (error) {
-        console.warn('Could not load gamification summary:', error)
-        return
-      }
-
-      if (data) {
-        setStats({
-          streak: baseStats.streak,
-          level: data.level || baseStats.level,
-          coins: data.coins || 0,
-        })
-      }
-    } catch (error) {
-      console.warn('Could not load gamification summary:', error)
-    }
-  }
+  useEffect(() => {
+    localStorage.setItem('backpackActiveTab', tab)
+  }, [tab])
 
   const filteredFolders = useMemo(() => {
-    const q = search.trim().toLowerCase()
     return folders
       .filter((item) => !item.is_archived)
-      .filter((item) => {
-        const course = item.courses || item.course || item
-        return !q || `${course.name || ''} ${course.code || ''}`.toLowerCase().includes(q)
-      })
       .sort((a, b) => ((a.courses?.name || a.name || '').localeCompare(b.courses?.name || b.name || '')))
-  }, [folders, search])
+  }, [folders])
 
   const filteredMaterials = useMemo(() => {
-    const q = search.trim().toLowerCase()
     return materials
-      .filter((material) => !q || materialLabel(material).toLowerCase().includes(q))
       .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))
-  }, [materials, search])
-
-  const activeItems = tab === 'folders' ? filteredFolders : filteredMaterials
+  }, [materials])
 
   const openFolder = (item) => {
     const course = item.courses || item.course || item
+    if (lockedFolders.has(item.id || course.id)) {
+      setShowResourceLock('Course limit reached')
+      return
+    }
     navigate(`/backpack/${course.id || item.course_id}`)
   }
 
   const openMaterial = (material) => {
+    if (lockedFiles.has(material.id)) {
+      setShowResourceLock('File limit reached')
+      return
+    }
     navigate(`/workstation/${material.id}`, { state: { material } })
   }
 
   const handleStudyMaterial = (material) => {
+    if (lockedFiles.has(material.id)) {
+      setShowResourceLock('File limit reached')
+      return
+    }
     navigate(`/workstation/${material.id}`, { state: { material } })
   }
 
@@ -229,11 +221,12 @@ export default function BackpackPage() {
               </div>
             ) : view === 'list' ? (
               <div className="lp-class-list-container">
-                {filteredFolders.map((item, index) => {
+                {filteredFolders.map((item) => {
                   const course = item.courses || item.course || item
+                  const isLocked = lockedFolders.has(item.id || course.id)
                   return (
                     <div key={item.id || course.id} className="lp-class-row" onClick={() => openFolder(item)}>
-                      <div className="lp-class-name">
+                      <div className="lp-class-name" style={{ opacity: isLocked ? 0.6 : 1 }}>
                         <span style={{ color: 'var(--lp-muted)', fontSize: 16 }}>+</span> {course.code ? `${course.code} · ` : ''}{item.custom_name || course.name || 'Untitled course'}
                         <button className="lp-file-menu" style={{ marginLeft: 8 }} onClick={(e) => {
                           e.stopPropagation()
@@ -243,7 +236,11 @@ export default function BackpackPage() {
                       </div>
                       <div className="lp-class-stats">
                         0 notes
-                        <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--lp-border)' }} />
+                        {isLocked ? (
+                          <div style={{ width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🔒</div>
+                        ) : (
+                          <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--lp-border)' }} />
+                        )}
                       </div>
                     </div>
                   )
@@ -251,24 +248,27 @@ export default function BackpackPage() {
               </div>
             ) : (
               <div className="lp-file-grid">
-                {filteredFolders.map((item, index) => {
+                {filteredFolders.map((item) => {
                   const course = item.courses || item.course || item
+                  const isLocked = lockedFolders.has(item.id || course.id)
                   return (
                     <div key={item.id || course.id} className="lp-file-card" onClick={() => openFolder(item)}>
                       <div className="lp-file-card-top">
                         <span className="lp-file-badge">COURSE</span>
-                        <button className="lp-file-menu" onClick={(e) => {
-                          e.stopPropagation()
-                          setEditFolderName(item.custom_name || course.name || '')
-                          setEditingFolder(item)
-                        }}><Pencil size={16} /></button>
+                        {isLocked ? <span style={{ fontSize: 12 }}>🔒</span> : (
+                          <button className="lp-file-menu" onClick={(e) => {
+                            e.stopPropagation()
+                            setEditFolderName(item.custom_name || course.name || '')
+                            setEditingFolder(item)
+                          }}><Pencil size={16} /></button>
+                        )}
                       </div>
-                      <div className="lp-file-icon-center">
+                      <div className="lp-file-icon-center" style={{ opacity: isLocked ? 0.6 : 1 }}>
                         <div className={`lp-file-icon-bg purple`}>
                           <Folder size={24} weight="fill" />
                         </div>
                       </div>
-                      <div className="lp-file-info">
+                      <div className="lp-file-info" style={{ opacity: isLocked ? 0.6 : 1 }}>
                         <h3 className="lp-file-title">{course.code ? `${course.code} · ` : ''}{item.custom_name || course.name || 'Untitled course'}</h3>
                         <span className="lp-file-date">0 notes</span>
                       </div>
@@ -289,11 +289,12 @@ export default function BackpackPage() {
               </div>
             ) : view === 'grid' ? (
               <div className="lp-file-grid">
-                {filteredMaterials.map((material, index) => {
+                {filteredMaterials.map((material) => {
                   const typeLabel = (material.type || 'file').toUpperCase()
                   const isPdf = material.type === 'pdf'
                   const isDoc = material.type === 'docx'
                   const isYt = material.type === 'youtube'
+                  const isLocked = lockedFiles.has(material.id)
                   
                   let iconBg = 'gray'
                   if (isPdf) iconBg = 'red'
@@ -304,9 +305,11 @@ export default function BackpackPage() {
                     <div key={material.id} className="lp-file-card" onClick={() => openMaterial(material)}>
                       <div className="lp-file-card-top">
                         <span className="lp-file-badge">{typeLabel}</span>
-                        <button className="lp-file-menu" onClick={(e) => { e.stopPropagation(); }}><DotsThreeVertical size={20} weight="bold" /></button>
+                        {isLocked ? <span style={{ fontSize: 12 }}>🔒</span> : (
+                          <button className="lp-file-menu" onClick={(e) => { e.stopPropagation(); }}><DotsThreeVertical size={20} weight="bold" /></button>
+                        )}
                       </div>
-                      <div className="lp-file-icon-center">
+                      <div className="lp-file-icon-center" style={{ opacity: isLocked ? 0.6 : 1 }}>
                         <div className={`lp-file-icon-bg ${iconBg}`}>
                           {isPdf && <BookOpen size={24} weight="fill" />}
                           {isDoc && <FileText size={24} weight="fill" />}
@@ -314,7 +317,7 @@ export default function BackpackPage() {
                           {!isPdf && !isDoc && !isYt && <FileText size={24} weight="fill" />}
                         </div>
                       </div>
-                      <div className="lp-file-info">
+                      <div className="lp-file-info" style={{ opacity: isLocked ? 0.6 : 1 }}>
                         <h3 className="lp-file-title">{materialLabel(material)}</h3>
                         <span className="lp-file-date">{dateLabel(material.updated_at || material.created_at)}</span>
                       </div>
@@ -324,16 +327,17 @@ export default function BackpackPage() {
               </div>
             ) : (
               <div className="lp-class-list-container">
-                {filteredMaterials.map((material, index) => {
+                {filteredMaterials.map((material) => {
                   const typeLabel = (material.type || 'file').toUpperCase()
+                  const isLocked = lockedFiles.has(material.id)
                   return (
                     <div key={material.id} className="lp-class-row" onClick={() => openMaterial(material)}>
-                      <div className="lp-class-name">
+                      <div className="lp-class-name" style={{ opacity: isLocked ? 0.6 : 1 }}>
                         <FileText size={18} color="var(--lp-muted)" /> {materialLabel(material)}
                       </div>
                       <div className="lp-class-stats">
                         <span className="lp-file-badge">{typeLabel}</span>
-                        {dateLabel(material.updated_at || material.created_at)}
+                        {isLocked ? '🔒 Locked' : dateLabel(material.updated_at || material.created_at)}
                       </div>
                     </div>
                   )
@@ -462,6 +466,54 @@ export default function BackpackPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Feature Gate Lock Modal */}
+      <AnimatePresence>
+        {showResourceLock && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowResourceLock(false)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 1000,
+              background: 'rgba(0,0,0,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: 'var(--color-background-primary, #fff)',
+                borderRadius: 20, width: '90%', maxWidth: 400,
+                boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                overflow: 'hidden', position: 'relative',
+              }}
+            >
+              <button
+                onClick={() => setShowResourceLock(false)}
+                style={{
+                  position: 'absolute', top: 12, right: 12,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--color-text-secondary, #666)', fontSize: 20,
+                  zIndex: 2,
+                }}
+              >×</button>
+              <LockedOverlay
+                inline
+                feature={showResourceLock}
+                description={
+                  showResourceLock.includes('Course')
+                    ? `You've reached your maximum limit of active courses (${maxFolders}). Upgrade to unlock more.`
+                    : `You've reached your maximum limit of files (${maxFiles}). Upgrade to unlock more.`
+                }
+                requiredPlan="Pro"
+                onUpgrade={() => { setShowResourceLock(false); navigate('/upgrade') }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   )
 }

@@ -92,20 +92,44 @@ export default function UniversalViewer({
   ...rest
 }) {
   const type = getFileType(material)
-  const [signedFileUrl, setSignedFileUrl] = useState(material?.source_url)
+
+  const needsSigning = (urlStr) => {
+    if (!urlStr) return false;
+    try {
+      const url = new URL(urlStr);
+      // Already a signed URL (token param) — works as-is, no re-signing needed
+      if (url.searchParams.has('token')) return false;
+      // Public storage URL — the materials bucket is private so these return 400
+      return url.pathname.includes('/storage/v1/object/public/');
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const [signedFileUrl, setSignedFileUrl] = useState(() => 
+    needsSigning(material?.source_url) ? null : material?.source_url
+  )
   const [conversionFailed, setConversionFailed] = useState(false)
 
   // Generate signed URL for file-based materials (PDF, images, etc.) to bypass bucket restrictions
   useEffect(() => {
     if (material?.source_url) {
-      getSignedFileUrl(material.source_url).then(url => {
-        if (url) setSignedFileUrl(url)
-      })
+      if (needsSigning(material.source_url)) {
+        getSignedFileUrl(material.source_url).then(url => {
+          if (url) setSignedFileUrl(url)
+        })
+      } else {
+        setSignedFileUrl(material.source_url)
+      }
+    } else {
+      setSignedFileUrl(null)
     }
   }, [material?.source_url])
 
   const [localConvertedUrl, setLocalConvertedUrl] = useState(material?.converted_url || null)
-  const [signedConvertedUrl, setSignedConvertedUrl] = useState(material?.converted_url || null)
+  const [signedConvertedUrl, setSignedConvertedUrl] = useState(() => 
+    needsSigning(material?.converted_url) ? null : material?.converted_url
+  )
 
   // Keep local mirror in sync if parent updates the material
   useEffect(() => {
@@ -117,9 +141,15 @@ export default function UniversalViewer({
   // Sign the converted URL so private buckets don't throw 400
   useEffect(() => {
     if (localConvertedUrl) {
-      getSignedFileUrl(localConvertedUrl).then(url => {
-        if (url) setSignedConvertedUrl(url)
-      })
+      if (needsSigning(localConvertedUrl)) {
+        getSignedFileUrl(localConvertedUrl).then(url => {
+          if (url) setSignedConvertedUrl(url)
+        })
+      } else {
+        setSignedConvertedUrl(localConvertedUrl)
+      }
+    } else {
+      setSignedConvertedUrl(null)
     }
   }, [localConvertedUrl])
 
@@ -129,6 +159,9 @@ export default function UniversalViewer({
     ...(signedConvertedUrl ? { converted_url: signedConvertedUrl } : {}),
     ...(signedFileUrl ? { source_url: signedFileUrl } : {})
   }), [material, signedConvertedUrl, signedFileUrl])
+
+  const isSigning = (needsSigning(material?.source_url) && !signedFileUrl) ||
+                    (needsSigning(material?.converted_url) && !signedConvertedUrl);
 
   // ─── Poll for converted_url when PPTX has no converted_url yet ────────────
   useEffect(() => {
@@ -155,6 +188,14 @@ export default function UniversalViewer({
   }, [material.id, type, localConvertedUrl, conversionFailed])
 
   const fileUrl = signedFileUrl || material?.source_url
+
+  if (isSigning) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 24, background: '#F8FAFC' }}>
+        <div style={{ color: '#64748B', fontWeight: 600 }}>Securing document connection...</div>
+      </div>
+    )
+  }
 
   if (!material) return null
 

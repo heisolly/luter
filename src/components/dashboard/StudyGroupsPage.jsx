@@ -17,6 +17,8 @@ import {
 } from 'react-icons/ri'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
+import { usePlanGate } from '../../hooks/usePlanGate'
+import LockedOverlay from '../shared/LockedOverlay'
 import './study-groups.css'
 
 // Curated Luter palette
@@ -32,11 +34,13 @@ const COLORS = [
 const EMOJIS = ['🤘', '🔥', '📚', '🚀', '🧠', '💡', '🎨', '⚡️', '🤝', '📖']
 
 export default function StudyGroupsPage() {
-  const { user } = useOutletContext()
+  const { user, profile } = useOutletContext()
   const navigate = useNavigate()
+  const { canGroup } = usePlanGate(profile)
   
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showJoinModal, setShowJoinModal] = useState(false)
+  const [showGroupLock, setShowGroupLock] = useState(false)
   const [groups, setGroups] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -188,30 +192,41 @@ export default function StudyGroupsPage() {
       {/* Floating Bottom Navigation */}
       <div className="sg-floating-nav">
         <div className="sg-nav-pills">
-          <button id="tour-groups-create" className="sg-nav-btn sg-nav-btn--primary" onClick={() => setShowCreateModal(true)}>
+          <button
+            id="tour-groups-create"
+            className="sg-nav-btn sg-nav-btn--primary"
+            onClick={() => canGroup ? setShowCreateModal(true) : setShowGroupLock(true)}
+            style={!canGroup ? { opacity: 0.7 } : {}}
+          >
             <div className="sg-nav-icon-circle">
                <Plus size={18} strokeWidth={3} />
             </div>
             <span>Create Study Group</span>
+            {!canGroup && <span style={{ fontSize: 13, marginLeft: 4 }}>🔒</span>}
           </button>
           <div className="sg-nav-divider" />
-          <button className="sg-nav-btn sg-nav-btn--secondary" onClick={() => setShowJoinModal(true)}>
+          <button
+            className="sg-nav-btn sg-nav-btn--secondary"
+            onClick={() => canGroup ? setShowJoinModal(true) : setShowGroupLock(true)}
+            style={!canGroup ? { opacity: 0.7 } : {}}
+          >
             <LogOut size={18} strokeWidth={2.5} style={{ transform: 'rotate(180deg)' }} />
             <span>Join Study Group</span>
+            {!canGroup && <span style={{ fontSize: 13, marginLeft: 4 }}>🔒</span>}
           </button>
         </div>
       </div>
 
       {/* Modals */}
       <AnimatePresence>
-        {showCreateModal && (
+        {showCreateModal && canGroup && (
           <CreateGroupModal 
             onClose={() => setShowCreateModal(false)} 
             user={user} 
             onCreated={fetchGroups}
           />
         )}
-        {showJoinModal && (
+        {showJoinModal && canGroup && (
           <JoinGroupModal 
             onClose={() => setShowJoinModal(false)} 
             user={user}
@@ -220,6 +235,44 @@ export default function StudyGroupsPage() {
               fetchGroups()
             }}
           />
+        )}
+        {showGroupLock && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowGroupLock(false)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 1000,
+              background: 'rgba(0,0,0,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: 'var(--color-background-primary, #fff)',
+                borderRadius: 20, width: '90%', maxWidth: 400,
+                boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                overflow: 'hidden', position: 'relative',
+              }}
+            >
+              <button
+                onClick={() => setShowGroupLock(false)}
+                style={{
+                  position: 'absolute', top: 12, right: 12,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--color-text-secondary, #666)', fontSize: 20,
+                }}
+              >×</button>
+              <LockedOverlay
+                inline
+                feature="Study Groups"
+                description="Create and join study groups to collaborate, share decks, and quiz each other live. Available on Pro and above."
+                requiredPlan="Pro"
+                onUpgrade={() => { setShowGroupLock(false); navigate('/upgrade') }}
+              />
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

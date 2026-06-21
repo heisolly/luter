@@ -69,9 +69,16 @@ Deno.serve(async (req) => {
 
     if (uploadError) throw uploadError
 
-    const { data: { publicUrl } } = supabase.storage
+    const TEN_YEARS_SECONDS = 60 * 60 * 24 * 365 * 10
+    const { data: signedData, error: signError } = await supabase.storage
       .from('study-materials')
-      .getPublicUrl(pdfPath)
+      .createSignedUrl(pdfPath, TEN_YEARS_SECONDS)
+
+    if (signError || !signedData?.signedUrl) {
+      throw new Error(`Failed to create signed URL: ${signError?.message}`)
+    }
+
+    const pdfUrl = signedData.signedUrl
 
     // 4. Update the material metadata in the database
     console.log('[Converter] Updating material metadata...')
@@ -79,7 +86,7 @@ Deno.serve(async (req) => {
       .from('materials')
       .update({ 
         metadata: { 
-          pdf_url: publicUrl, 
+          pdf_url: pdfUrl, 
           converted: true,
           conversion_date: new Date().toISOString()
         } 
@@ -88,7 +95,7 @@ Deno.serve(async (req) => {
 
     if (updateError) throw updateError
 
-    return new Response(JSON.stringify({ success: true, pdfUrl: publicUrl }), {
+    return new Response(JSON.stringify({ success: true, pdfUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     })
 

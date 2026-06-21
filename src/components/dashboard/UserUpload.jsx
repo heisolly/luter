@@ -13,12 +13,17 @@ import {
   RiLoader4Line as Loader2, RiCheckboxCircleFill as CheckCircle2, RiAlertFill as AlertCircle, 
   RiUploadCloudFill as UploadCloud, RiArrowLeftSLine as ChevronLeft, RiArrowRightLine as ArrowRight
 } from 'react-icons/ri'
+import { usePlanGate } from '../../hooks/usePlanGate'
+import LockedOverlay from '../shared/LockedOverlay'
+
+const AUDIO_VIDEO_EXTS = ['mp4', 'webm', 'mov', 'mp3', 'wav', 'm4a']
 
 export default function UserUpload() {
-  const { user } = useOutletContext()
+  const { user, profile } = useOutletContext()
   const navigate = useNavigate()
   const location = useLocation()
   const { addToDeck } = useDeckStore()
+  const { canAudio } = usePlanGate(profile)
   
   const queryParams = new URLSearchParams(location.search)
   const preSelectedCourse = queryParams.get('course_id') || ''
@@ -302,7 +307,9 @@ export default function UserUpload() {
                 ref={fileInputRef} 
                 hidden 
                 onChange={e => e.target.files[0] && setFile(e.target.files[0])}
-                accept=".pdf,.doc,.docx,.ppt,.pptx,.apkg,.mp4,.webm,.mov,.mp3,.wav,.m4a,.jpg,.png,.jpeg,.webp"
+                accept={canAudio
+                  ? '.pdf,.doc,.docx,.ppt,.pptx,.apkg,.mp4,.webm,.mov,.mp3,.wav,.m4a,.jpg,.png,.jpeg,.webp'
+                  : '.pdf,.doc,.docx,.ppt,.pptx,.apkg,.jpg,.png,.jpeg,.webp'}
               />
               
               {file ? (
@@ -378,11 +385,21 @@ export default function UserUpload() {
                     lineHeight: 1.5
                   }}>
                     PDF • PowerPoint • Word documents • Anki decks<br/>
-                    Audio files • Video files • Images
+                    {canAudio ? 'Audio files • Video files • ' : ''}Images
                   </p>
                 </div>
               )}
             </div>
+
+            {/* Audio / video lock for Free users */}
+            {!canAudio && file && AUDIO_VIDEO_EXTS.includes(file.name.split('.').pop().toLowerCase()) && (
+              <LockedOverlay
+                inline
+                feature="Audio & Video Upload"
+                description="Upload lecture recordings, podcasts, and video files to study from. Available on Pro and above."
+                requiredPlan="Pro"
+              />
+            )}
           </div>
 
           {/* Links Section */}

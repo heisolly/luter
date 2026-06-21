@@ -196,8 +196,8 @@ export default function DocumentViewer({
   }
 
   return (
-    <div className="ws-infinite-reader-container" ref={canvasRef} style={{ background: 'transparent' }}>
-      <div className="ws-canvas-scroller" style={{ padding: 0 }}>
+    <div className="ws-infinite-reader-container" ref={canvasRef} style={{ background: 'transparent', position: 'absolute', inset: 0, height: '100%', width: '100%', overflow: 'hidden' }}>
+      <div className="ws-canvas-scroller" style={{ padding: 0, height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         
         <div className="ws-canvas-surface" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
           {/* VISUAL VIEW: CLEAN DOCUMENT MODE */}
@@ -242,7 +242,7 @@ export default function DocumentViewer({
 
           {/* AI VIEW: STRUCTURED DATA MODE */}
           {viewMode === 'ai' && (
-            <div className="ws-native-canvas" style={{ background: 'white' }}>
+            <div className="ws-native-canvas" style={{ background: 'white', height: '100%', overflowY: 'auto', padding: '40px 20px', width: '100%' }}>
               <div className="ws-notion-layout" style={{ maxWidth: '850px' }}>
                 <PropertyGridHeader />
                 <div className="ws-notion-card" ref={aiReaderRef}>

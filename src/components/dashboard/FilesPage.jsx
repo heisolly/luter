@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import {
   ArrowRight,
@@ -13,10 +13,14 @@ import {
   UploadSimple,
   VideoCamera,
   YoutubeLogo,
+  Lock,
 } from '@phosphor-icons/react'
 import { supabase } from '../../supabaseClient'
 import { deleteMaterial } from '../../services/materialsService'
 import { LuterPageLoader } from '../shared/LuterPageLoader'
+import { usePlanGate } from '../../hooks/usePlanGate'
+import LockedOverlay from '../shared/LockedOverlay'
+import { motion, AnimatePresence } from 'framer-motion'
 import './FilesPage.css'
 
 /* ── helpers ── */
@@ -87,13 +91,17 @@ const STATUS_CONFIG = {
 
 export default function FilesPage() {
   const navigate = useNavigate()
-  const { user } = useOutletContext()
+  const { user, profile } = useOutletContext()
 
   const [files, setFiles]         = useState([])
   const [loading, setLoading]     = useState(true)
   const [search, setSearch]       = useState('')
   const [filter, setFilter]       = useState('all')  // all | pdf | doc | pptx | youtube
   const [deleting, setDeleting]   = useState(null)
+  const [showResourceLock, setShowResourceLock] = useState(false)
+
+  const { maxFiles, getLockedItemIds } = usePlanGate(profile)
+  const lockedFiles = useMemo(() => getLockedItemIds(files, maxFiles), [files, maxFiles])
 
   /* ── Load all user materials (standalone + course-attached) ── */
   const load = useCallback(async () => {
@@ -141,6 +149,10 @@ export default function FilesPage() {
 
   /* ── Navigate to workstation ── */
   const handleOpen = (file) => {
+    if (lockedFiles.has(file.id)) {
+      setShowResourceLock(true)
+      return
+    }
     navigate(`/workstation?materialId=${encodeURIComponent(file.id)}`)
   }
 
@@ -216,6 +228,7 @@ export default function FilesPage() {
           {filtered.map(file => {
             const colors = typeColor(file.type)
             const status = STATUS_CONFIG[file.processing_status] || STATUS_CONFIG.ready
+            const isLocked = lockedFiles.has(file.id)
 
             return (
               <article
@@ -226,6 +239,7 @@ export default function FilesPage() {
                 onKeyDown={e => e.key === 'Enter' && handleOpen(file)}
                 role="button"
                 aria-label={`Open ${file.title}`}
+                style={{ opacity: isLocked ? 0.6 : 1 }}
               >
                 {/* Thumbnail */}
                 <div className="fp-card-thumb">
@@ -253,14 +267,28 @@ export default function FilesPage() {
                       <TypeIcon type={file.type} size={12} />
                       {typeLabel(file.type)}
                     </span>
-                    <span className="fp-status-dot" style={{ '--dot': status.dot }}>
-                      {status.label}
-                    </span>
                   </div>
 
                   <p className="fp-card-title" title={file.title}>
                     {file.title || 'Untitled'}
                   </p>
+
+                  <div className="fp-card-meta-row" style={{ marginTop: 8 }}>
+                    <div className="fp-card-status">
+                      {isLocked ? (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#94A3B8', fontWeight: 600, fontSize: 12 }}>
+                          <Lock size={12} weight="bold" /> Locked
+                        </span>
+                      ) : (
+                        <>
+                          <span className="fp-status-dot" style={{ background: status.dot }} />
+                          <span className="fp-status-label" style={{ color: status.dot }}>
+                            {status.label}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
 
                   <div className="fp-card-footer">
                     <span className="fp-card-date">{formatRelativeDate(file.created_at)}</span>
@@ -291,6 +319,49 @@ export default function FilesPage() {
           })}
         </div>
       )}
+
+      {/* Feature Gate Lock Modal */}
+      <AnimatePresence>
+        {showResourceLock && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowResourceLock(false)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 1000,
+              background: 'rgba(0,0,0,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: 'var(--color-background-primary, #fff)',
+                borderRadius: 20, width: '90%', maxWidth: 400,
+                boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                overflow: 'hidden', position: 'relative',
+              }}
+            >
+              <button
+                onClick={() => setShowResourceLock(false)}
+                style={{
+                  position: 'absolute', top: 12, right: 12,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--color-text-secondary, #666)', fontSize: 20,
+                  zIndex: 2,
+                }}
+              >×</button>
+              <LockedOverlay
+                inline
+                feature="File limit reached"
+                description={`You've reached your maximum limit of files (${maxFiles}). Upgrade to unlock more.`}
+                requiredPlan="Pro"
+                onUpgrade={() => { setShowResourceLock(false); navigate('/upgrade') }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

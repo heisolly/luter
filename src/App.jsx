@@ -31,31 +31,16 @@ const AdminOverview = lazy(() => import('./admin/pages/AdminOverview'));
 const AdminUsers = lazy(() => import('./admin/pages/AdminUsers'));
 const AdminUserDetail = lazy(() => import('./admin/pages/AdminUserDetail'));
 const AdminCourses = lazy(() => import('./admin/pages/AdminCourses'));
-const AdminEnrollments = lazy(() => import('./admin/pages/AdminEnrollments'));
-const AdminMatches = lazy(() => import('./admin/pages/AdminMatches'));
 const AdminNotifications = lazy(() => import('./admin/pages/AdminNotifications'));
 const AdminActivity = lazy(() => import('./admin/pages/AdminActivity'));
-const AdminSystem = lazy(() => import('./admin/pages/AdminSystem'));
-const AdminSettings = lazy(() => import('./admin/pages/AdminSettings'));
 const AdminSyllabusManager = lazy(() => import('./admin/pages/AdminSyllabusManager'));
-const AdminNotesManager = lazy(() => import('./admin/pages/AdminNotesManager'));
 const AdminAudit = lazy(() => import('./admin/pages/AdminAudit'));
-const AdminAgents = lazy(() => import('./admin/pages/AdminAgents'));
-const AdminAgentBuilder = lazy(() => import('./admin/pages/AdminAgentBuilder'));
-const AdminAgentConsole = lazy(() => import('./admin/pages/AdminAgentConsole'));
-const AdminAgentMonitor = lazy(() => import('./admin/pages/AdminAgentMonitor'));
-const AdminAgentFactory = lazy(() => import('./admin/pages/AdminAgentFactory'));
-const AdminAnalytics = lazy(() => import('./admin/pages/AdminAnalytics'));
-const AdminSystemControls = lazy(() => import('./admin/pages/AdminSystemControls'));
-const AdminPricing = lazy(() => import('./admin/pages/AdminPricing'));
-const PaymentSettings = lazy(() => import('./components/admin/PaymentSettings'));
-const LuterAdminUploadPage = lazy(() => import('./admin/pages/LuterAdminUploadPage'));
+const AdminConfig = lazy(() => import('./admin/pages/AdminConfig'));
 const FilesPage = lazy(() => import('./components/dashboard/FilesPage'));
 const AssignmentsPage = lazy(() => import('./components/dashboard/AssignmentsPage'));
 const NotesStudioPage = lazy(() => import('./components/dashboard/NotesStudioPage'));
 const NotesDashboardPage = lazy(() => import('./components/dashboard/NotesDashboardPage'));
 const UserUpload = lazy(() => import('./components/dashboard/UserUpload'));
-const NotesRequestsAdmin = lazy(() => import('./components/dashboard/NotesRequestsAdmin'));
 const StudyRequestsPage = lazy(() => import('./components/dashboard/StudyRequestsPage'));
 const ExamSessionPage = lazy(() => import('./components/dashboard/ExamSessionPage'));
 const StudyGroupsPage = lazy(() => import('./components/dashboard/StudyGroupsPage'));
@@ -68,7 +53,6 @@ const ClassView = lazy(() => import('./classroom/ClassView'))
 const ClassroomCalendar = lazy(() => import('./classroom/ClassroomCalendar'))
 const VaultPage = lazy(() => import('./components/dashboard/VaultPage'));
 const StudySessionPage = lazy(() => import('./components/dashboard/StudySessionPage'));
-const SessionsPage = lazy(() => import('./components/dashboard/SessionsPage'));
 const LevelPage = lazy(() => import('./components/dashboard/LevelPage'));
 const StorePage = lazy(() => import('./components/dashboard/StorePage'));
 const SharedMaterialPreview = lazy(() => import('./components/shared/SharedMaterialPreview'));
@@ -76,7 +60,7 @@ const BoardPage = lazy(() => import('./components/board/BoardPage'));
 const NotificationsPage = lazy(() => import('./components/dashboard/NotificationsPage'));
 import { FeaturebaseProvider } from 'featurebase-js/react'
 import { DASHBOARD_URL, LANDING_URL, ADMIN_URL } from './utils/urlUtils'
-import { supabase } from './supabaseClient'
+import { loadPricingConfig } from './services/creditService'
 
 const OFFLINE_BAR_PT = '2.75rem'
 const FEATUREBASE_ENABLED =
@@ -137,7 +121,8 @@ export default function App() {
 
   // Subdomain logic removed - everything now on luter.app except Admin
   useEffect(() => {
-    // Optional: Add global auth check or tracking here if needed
+    // Load dynamic credit costs & daily limits from database
+    loadPricingConfig().catch(() => {})
   }, []);
 
   return (
@@ -160,28 +145,14 @@ export default function App() {
             <>
               <Route path="/" element={<AdminLayout />}>
                 <Route index element={<AdminOverview />} />
-                <Route path="notes-manager" element={<AdminNotesManager />} />
-                <Route path="requests" element={<NotesRequestsAdmin />} />
-                <Route path="upload" element={<LuterAdminUploadPage />} />
                 <Route path="users/:userId" element={<AdminUserDetail />} />
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="courses" element={<AdminCourses />} />
-                <Route path="enrollments" element={<AdminEnrollments />} />
-                <Route path="matches" element={<AdminMatches />} />
                 <Route path="notifications" element={<AdminNotifications />} />
                 <Route path="activity" element={<AdminActivity />} />
-                <Route path="system" element={<AdminSystem />} />
-                <Route path="payment-settings" element={<PaymentSettings />} />
-                <Route path="settings" element={<AdminSettings />} />
                 <Route path="syllabus" element={<AdminSyllabusManager />} />
                 <Route path="audit" element={<AdminAudit />} />
-                <Route path="agents" element={<AdminAgents />} />
-                <Route path="agents/new" element={<AdminAgentBuilder />} />
-                <Route path="agents/monitor" element={<AdminAgentMonitor />} />
-                <Route path="agents/factory" element={<AdminAgentFactory />} />
-                <Route path="agents/:id" element={<AdminAgentConsole />} />
-                <Route path="analytics" element={<AdminAnalytics />} />
-                <Route path="controls" element={<AdminSystemControls />} />
+                <Route path="config" element={<AdminConfig />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </>
@@ -190,29 +161,14 @@ export default function App() {
               {/* Path-based admin access on main domain and localhost */}
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminOverview />} />
-                <Route path="notes-manager" element={<AdminNotesManager />} />
-                <Route path="requests" element={<NotesRequestsAdmin />} />
-                <Route path="upload" element={<LuterAdminUploadPage />} />
                 <Route path="users/:userId" element={<AdminUserDetail />} />
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="courses" element={<AdminCourses />} />
-                <Route path="enrollments" element={<AdminEnrollments />} />
-                <Route path="matches" element={<AdminMatches />} />
                 <Route path="notifications" element={<AdminNotifications />} />
                 <Route path="activity" element={<AdminActivity />} />
-                <Route path="system" element={<AdminSystem />} />
-                <Route path="payment-settings" element={<PaymentSettings />} />
-                <Route path="settings" element={<AdminSettings />} />
                 <Route path="syllabus" element={<AdminSyllabusManager />} />
                 <Route path="audit" element={<AdminAudit />} />
-                <Route path="agents" element={<AdminAgents />} />
-                <Route path="agents/new" element={<AdminAgentBuilder />} />
-                <Route path="agents/monitor" element={<AdminAgentMonitor />} />
-                <Route path="agents/factory" element={<AdminAgentFactory />} />
-                <Route path="agents/:id" element={<AdminAgentConsole />} />
-                <Route path="analytics" element={<AdminAnalytics />} />
-                <Route path="controls" element={<AdminSystemControls />} />
-                <Route path="pricing" element={<AdminPricing />} />
+                <Route path="config" element={<AdminConfig />} />
                 <Route path="*" element={<Navigate to="/admin" replace />} />
               </Route>
             </>
@@ -262,7 +218,7 @@ export default function App() {
             <Route path="study-groups" element={<StudyGroupsPage />} />
             <Route path="study-groups/:groupId" element={<StudyGroupDetailsPage />} />
             <Route path="trash" element={<TrashPage />} />
-            <Route path="sessions" element={<SessionsPage />} />
+            <Route path="sessions" element={<Navigate to="/backpack" replace />} />
             <Route path="session/:sessionId" element={<StudySessionPage />} />
             <Route path="exam-session/:sessionId" element={<ExamSessionPage />} />
           </Route>
@@ -276,13 +232,12 @@ export default function App() {
           {/* ROOT LEVEL ALIASES */}
           <Route element={<Dashboard />}>
             <Route path="/home" element={<DashboardHome />} />
-            <Route path="/sessions" element={<SessionsPage />} />
+            <Route path="/sessions" element={<Navigate to="/backpack" replace />} />
             <Route path="/notes" element={<NotesDashboardPage />} />
             <Route path="/notes/editor" element={<NotesStudioPage />} />
             <Route path="/library" element={<LibraryPage />} />
             <Route path="/groups" element={<StudyGroupsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/backpack" element={<Navigate to="/backpack" replace />} />
             <Route path="/playground" element={<PlaygroundPage />} />
             <Route path="/mock-exams" element={<MockExamPage />} />
             <Route path="/progress" element={<AnalyticsPage />} />

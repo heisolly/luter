@@ -152,8 +152,21 @@ const BoardInner = ({ roomId, boardName, user }) => {
   const updateMyPresence = useUpdateMyPresence()
 
   // Liveblocks storage — serialized plain arrays/objects by useStorage
-  const storedElements = useStorage((root) => root.whiteboardData)
-  const storedAppState = useStorage((root) => root.whiteboardAppState)
+  const rawStoredElements = useStorage((root) => root.whiteboardData)
+  const rawStoredAppState = useStorage((root) => root.whiteboardAppState)
+
+  const storedElements = useMemo(() => {
+    if (!rawStoredElements) return [];
+    if (Array.isArray(rawStoredElements)) return rawStoredElements;
+    if (typeof rawStoredElements.toArray === 'function') return rawStoredElements.toArray();
+    return [];
+  }, [rawStoredElements]);
+
+  const storedAppState = useMemo(() => {
+    if (!rawStoredAppState) return null;
+    if (typeof rawStoredAppState.toObject === 'function') return rawStoredAppState.toObject();
+    return rawStoredAppState;
+  }, [rawStoredAppState]);
 
   // Prevent infinite loop: remote update → onChange → write → remote update
   const isRemoteUpdate = useRef(false)

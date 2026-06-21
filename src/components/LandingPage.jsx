@@ -143,59 +143,9 @@ const FloatingImage = ({ src, alt, style, delay, opacity, rotate }) => {
 const UniversityLogoItem = ({ name, domain }) => {
   const [hovered, setHovered] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
-  const [fallbackFailed, setFallbackFailed] = useState(false);
-  
-  const logoUrl = `https://logo.clearbit.com/${domain}`;
-  const fallbackUrl = `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${domain}&size=128`;
 
+  const logoUrl = `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${domain}&size=128`;
   const initial = name.charAt(0).toUpperCase();
-
-  if (logoFailed && fallbackFailed) {
-    return (
-      <div 
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 12, 
-          padding: '10px 20px',
-          borderRadius: '16px',
-          background: hovered ? 'rgba(196, 181, 253, 0.08)' : 'transparent',
-          border: hovered ? '1px solid rgba(167, 139, 250, 0.15)' : '1px solid transparent',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          cursor: 'default'
-        }}
-      >
-        <div style={{
-          width: 36,
-          height: 36,
-          borderRadius: 8,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#E2E8F0',
-          fontSize: 14,
-          fontWeight: 800,
-          color: '#64748B',
-          fontFamily: 'var(--font-display)',
-          border: '1px solid #F1F5F9'
-        }}>
-          {initial}
-        </div>
-        <span style={{ 
-          fontSize: '17px', 
-          fontWeight: 700, 
-          color: hovered ? '#2E1065' : '#64748B', 
-          fontFamily: 'var(--font-display)',
-          transition: 'color 0.3s ease',
-          letterSpacing: '-0.01em'
-        }}>
-          {name}
-        </span>
-      </div>
-    );
-  }
 
   return (
     <div 
@@ -242,20 +192,19 @@ const UniversityLogoItem = ({ name, domain }) => {
             }} 
           />
         ) : (
-          <img 
-            src={fallbackUrl} 
-            alt={`${name} logo`} 
-            loading="lazy"
-            onError={() => setFallbackFailed(true)}
-            style={{ 
-              width: '100%', 
-              height: '100%', 
-              objectFit: 'contain',
-              filter: hovered ? 'grayscale(0%)' : 'grayscale(100%) opacity(70%)',
-              transition: 'all 0.3s ease',
-              padding: 2
-            }} 
-          />
+          <div style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 14,
+            fontWeight: 800,
+            color: '#64748B',
+            fontFamily: 'var(--font-display)'
+          }}>
+            {initial}
+          </div>
         )}
       </div>
       <span style={{ 

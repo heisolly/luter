@@ -15,8 +15,10 @@ import { toPng } from 'html-to-image'
 import confetti from 'canvas-confetti'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService'
+import { usePlanGate } from '../../hooks/usePlanGate'
+import LockedOverlay from '../shared/LockedOverlay'
 import LuterLogo from '../shared/LuterLogo'
-import useTourStore from '../../store/useTourStore'
+
 
 // Sound Effects
 import correctSound from '../../assets/sounds/dragon-studio-correct-472358.mp3'
@@ -68,6 +70,7 @@ export default function MockExamPage() {
   const { ready, bundle } = useDashboardPrefetch() || { ready: false, bundle: null }
   const location = useLocation()
   const preselectedCourse = location.state?.preselectedCourse
+  const { canMockExam } = usePlanGate(profile)
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState('configure') // configure | preparing | exam | result
@@ -547,18 +550,15 @@ export default function MockExamPage() {
     const accuracy = Math.round((finalScore / totalQs) * 100);
 
     try {
-      // 1. Update user_stats (XP, Streak)
-      const { data: stats } = await supabase
-        .from('user_stats')
-        .select('total_xp')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      const newXP = (stats?.total_xp || 0) + (finalScore * 50);
-      await supabase
-        .from('user_stats')
-        .update({ total_xp: newXP })
-        .eq('user_id', user.id);
+      // 1. Update user gamification (XP, Coins) via RPC
+      await supabase.rpc('update_user_gamification', {
+        p_user_id: user.id,
+        p_xp_gain: finalScore * 50,
+        p_coins_gain: finalScore * 10,
+        p_questions_answered: totalQs,
+        p_sessions_completed: 1,
+        p_source: 'mock_exam'
+      });
 
       // 2. Update user_courses progress
       if (courseCode) {
@@ -2070,11 +2070,17 @@ Please explain where I went wrong and why the correct answer is the right choice
               </div>
               <div style={{ textAlign: 'center', marginBottom: isMobile ? 24 : 32, position: 'relative', zIndex: 1 }}>
                 <motion.div initial={{ rotate: -10, scale: 0 }} animate={{ rotate: 0, scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 20 }} style={{ display: 'inline-block', marginBottom: isMobile ? 16 : 20 }}>
-                  <div style={{ background: '#fffbeb', border: '1.5px solid #fbbf24', padding: isMobile ? '12px 16px' : '16px 24px', borderRadius: 20, boxShadow: '0 8px 16px rgba(251, 191, 36, 0.2)', display: 'flex', alignItems: 'center', gap: 10, position: 'relative' }}>
+                  <div style={{ background: '#fffbeb', border: '1.5px solid #fbbf24', padding: isMobile ? '12px 16px' : '16px 24px', borderRadius: 20, boxShadow: '0 8px 16px rgba(251, 191, 36, 0.2)', display: 'flex', alignItems: 'center', gap: 16, position: 'relative' }}>
                     <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }} transition={{ duration: 2, repeat: Infinity }}><Zap size={isMobile ? 20 : 28} fill="#fbbf24" color="#d97706" /></motion.div>
-                    <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontSize: 11, fontWeight: 900, color: '#d97706', textTransform: 'lowercase', letterSpacing: '0.05em' }}>daily reward</div>
-                      <div style={{ fontSize: isMobile ? 18 : 24, fontWeight: 1000, color: '#111', lineHeight: 1 }}>+{score * 50} xp</div>
+                    <div style={{ textAlign: 'left', display: 'flex', gap: 16 }}>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 900, color: '#d97706', textTransform: 'lowercase', letterSpacing: '0.05em' }}>daily reward</div>
+                        <div style={{ fontSize: isMobile ? 18 : 24, fontWeight: 1000, color: '#111', lineHeight: 1 }}>+{score * 50} xp</div>
+                      </div>
+                      <div style={{ borderLeft: '1px solid #fcd34d', paddingLeft: 16 }}>
+                        <div style={{ fontSize: 11, fontWeight: 900, color: '#d97706', textTransform: 'lowercase', letterSpacing: '0.05em' }}>coins earned</div>
+                        <div style={{ fontSize: isMobile ? 18 : 24, fontWeight: 1000, color: '#f59e0b', lineHeight: 1 }}>+{score * 10} coins</div>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -2252,10 +2258,21 @@ Please explain where I went wrong and why the correct answer is the right choice
 
   return (
     <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Outfit', 'Outfit', sans-serif", position: 'relative' }}>
-      
 
+      {/* Plan gate — Free users */}
+      {!canMockExam && (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+          <LockedOverlay
+            inline
+            feature="Mock Exams"
+            description="Test yourself with timed, full-length exams with AI-powered weakness analysis and tutoring. Upgrade to Pro to unlock."
+            requiredPlan="Pro"
+            onUpgrade={() => navigate('/upgrade')}
+          />
+        </div>
+      )}
 
-      {mode === 'configure' && (
+      {canMockExam && mode === 'configure' && (
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 32, marginBottom: 8 }}>
           <div style={{
             display: 'flex',
@@ -2302,9 +2319,9 @@ Please explain where I went wrong and why the correct answer is the right choice
         </div>
       )}
 
-      {/* Dynamic Content based on mode */}
-      {mode === 'preparing' && renderPreparing()}
-      {mode === 'configure' && (
+      {/* Dynamic Content based on mode — Pro/Beast only */}
+      {canMockExam && mode === 'preparing' && renderPreparing()}
+      {canMockExam && mode === 'configure' && (
         <AnimatePresence mode="wait">
           {activeTab === 'arena' ? (
             <motion.div

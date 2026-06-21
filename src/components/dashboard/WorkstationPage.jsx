@@ -25,6 +25,8 @@ import WorkstationEmptyState from './WorkstationEmptyState';
 import VoiceChatWidget from './VoiceChatWidget';
 import WorkstationFlashcards from './WorkstationFlashcards';
 import WorkstationQuizzes from './WorkstationQuizzes';
+import MaterialAnalysisService from '../../services/materialAnalysisService';
+import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService';
 import './NotesStudioPage.css';
 import './workstation.css';
 
@@ -133,6 +135,124 @@ export default function WorkstationPage() {
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [materials, setMaterials] = useState([]);
+
+  const [materialAnalysis, setMaterialAnalysis] = useState(null);
+  const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedMaterial?.id) {
+      setMaterialAnalysis(null);
+      return;
+    }
+    const loadAnalysis = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('material_analysis')
+          .select('*')
+          .eq('material_id', selectedMaterial.id)
+          .maybeSingle();
+        if (error) console.error("Error fetching material analysis:", error);
+        if (data) {
+          setMaterialAnalysis(data);
+        } else {
+          setMaterialAnalysis(null);
+        }
+      } catch (err) {
+        console.error("Error loading analysis:", err);
+      }
+    };
+    loadAnalysis();
+  }, [selectedMaterial?.id]);
+
+  const selectedMaterialWithAnalysis = useMemo(() => {
+    if (!selectedMaterial) return null;
+    const analysis = materialAnalysis ? {
+      summary: materialAnalysis.summary || materialAnalysis.analysis?.summary || null,
+      flashcards: materialAnalysis.flashcards || materialAnalysis.analysis?.flashcards || [],
+      quiz: materialAnalysis.quiz || materialAnalysis.analysis?.quiz || [],
+      notes: materialAnalysis.smart_notes || materialAnalysis.analysis?.smart_notes || materialAnalysis.analysis?.notes || null,
+      page_summaries: materialAnalysis.page_summaries || materialAnalysis.analysis?.page_summaries || {}
+    } : null;
+    return { ...selectedMaterial, analysis };
+  }, [selectedMaterial, materialAnalysis]);
+
+  const runAnalysis = async (type) => {
+    if (type !== 'quiz' || isAnalysisLoading || !selectedMaterial) return;
+    setIsAnalysisLoading(true);
+    try {
+      let materialText = selectedMaterial.extracted_text;
+      if (!materialText) {
+        const { data: latestMaterial } = await supabase
+          .from('materials')
+          .select('extracted_text')
+          .eq('id', selectedMaterial.id)
+          .single();
+        if (latestMaterial?.extracted_text) {
+          materialText = latestMaterial.extracted_text;
+          selectedMaterial.extracted_text = latestMaterial.extracted_text;
+        }
+      }
+
+      if (!materialText) {
+        console.log('[runAnalysis] Text still missing, triggering emergency extraction...');
+        const extractionRes = await MaterialAnalysisService.reprocessMaterial(selectedMaterial);
+        if (extractionRes.success && extractionRes.fullText) {
+          materialText = extractionRes.fullText;
+          selectedMaterial.extracted_text = materialText;
+        }
+      }
+
+      if (!materialText) {
+        throw new Error('Unable to extract text from this material. Please try re-uploading.');
+      }
+
+      let currentAnalysisRow = materialAnalysis;
+      if (!materialAnalysis) {
+        const { ok } = await checkAndDeductCredits(user?.id, CREDIT_COSTS.OPEN_MATERIAL, false);
+        if (!ok) { setIsAnalysisLoading(false); return; }
+        
+        const analysisResult = await MaterialAnalysisService.getOrCreateAnalysis(selectedMaterial.id, selectedMaterial, user?.id);
+        if (analysisResult.success) {
+          setMaterialAnalysis(analysisResult.analysis);
+          currentAnalysisRow = analysisResult.analysis;
+        } else {
+          throw new Error(analysisResult.error);
+        }
+      }
+
+      const { ok } = await checkAndDeductCredits(user?.id, CREDIT_COSTS.GENERATE_QUIZ, false);
+      if (!ok) { setIsAnalysisLoading(false); return; }
+
+      const qRes = await MaterialAnalysisService.generateQuiz(currentAnalysisRow, 5, 'medium', selectedMaterial);
+      const finalResult = qRes.success ? qRes.quiz : [];
+
+      if (finalResult && finalResult.length > 0) {
+        const updateData = {
+          material_id: selectedMaterial.id,
+          user_id: user?.id,
+          quiz: finalResult,
+          updated_at: new Date().toISOString()
+        };
+        if (currentAnalysisRow) {
+          updateData.analysis = currentAnalysisRow;
+        }
+        await supabase.from('material_analysis').upsert(updateData, { onConflict: 'material_id' });
+        
+        setMaterialAnalysis(prev => {
+          if (!prev) return { material_id: selectedMaterial.id, quiz: finalResult, analysis: currentAnalysisRow };
+          return {
+            ...prev,
+            quiz: finalResult,
+            analysis: prev.analysis ? { ...prev.analysis, quiz: finalResult } : currentAnalysisRow
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Quiz generation error:', error);
+    } finally {
+      setIsAnalysisLoading(false);
+    }
+  };
   const menuRef = useRef(null);
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -782,100 +902,100 @@ export default function WorkstationPage() {
               {/* Flashcards View */}
               {activeMainTab === 'Flashcards' && (
                 <WorkstationFlashcards 
-                  material={selectedMaterial} 
-                  items={selectedMaterial?.analysis?.flashcards || []} 
+                  material={selectedMaterialWithAnalysis} 
+                  items={selectedMaterialWithAnalysis?.analysis?.flashcards || []} 
                   isDark={isDark}
                   user={user}
                 />
               )}
 
               {/* Document/Notes Placeholder */}
-              {activeMainTab === 'Source' && activeSubTab !== 'Boards' && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                  {activeSubTab === 'Document' && selectedMaterial ? (
-                    <MaterialRenderer
-                      key={selectedMaterial.id}
-                      material={selectedMaterial}
-                      activeTab="source"
-                      annotateMode={activeWorkspaceTool === 'annotate'}
-                      highlightMode={activeWorkspaceTool === 'highlight'}
-                      pinMode={activeWorkspaceTool === 'pin'}
-                      annotationColor={strokeColor}
-                      annotationStrokeSize={strokeSize}
-                      isEraserMode={drawMode === 'eraser'}
-                      annotationToolType={drawMode}
-                      scrollContainerRef={{ current: null }}
-                      isDark={isDark}
-                    />
-                  ) : activeSubTab === 'Notes' ? (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'transparent' }}>
-                      {selectedMaterial && (
-                        <RoomProvider
-                          id={`luter:notes:${selectedMaterial.id}`}
-                          userInfo={{
+              {activeMainTab === 'Source' && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', height: '100%', minHeight: 0 }}>
+                  {selectedMaterial && (
+                    <div style={{ flex: 1, display: activeSubTab === 'Document' ? 'flex' : 'none', flexDirection: 'column', position: 'relative', height: '100%', minHeight: 0 }}>
+                      <MaterialRenderer
+                        key={selectedMaterial.id}
+                        material={selectedMaterial}
+                        activeTab="source"
+                        annotateMode={activeWorkspaceTool === 'annotate'}
+                        highlightMode={activeWorkspaceTool === 'highlight'}
+                        pinMode={activeWorkspaceTool === 'pin'}
+                        annotationColor={strokeColor}
+                        annotationStrokeSize={strokeSize}
+                        isEraserMode={drawMode === 'eraser'}
+                        annotationToolType={drawMode}
+                        scrollContainerRef={{ current: null }}
+                        isDark={isDark}
+                      />
+                    </div>
+                  )}
+
+                  {selectedMaterial && (
+                    <div style={{ flex: 1, display: activeSubTab === 'Notes' ? 'flex' : 'none', flexDirection: 'column', backgroundColor: 'transparent' }}>
+                      <RoomProvider
+                        id={`luter:notes:${selectedMaterial.id}`}
+                        userInfo={{
+                          id: user?.id || 'guest',
+                          name: displayName,
+                          avatar: displayAvatar,
+                          color: '#C4B5FD',
+                          role: 'editor'
+                        }}
+                        initialPresence={{
+                          cursor: null,
+                          cursorChat: null,
+                          status: 'active',
+                          currentTool: 'notes',
+                          user: {
                             id: user?.id || 'guest',
                             name: displayName,
-                            avatar: displayAvatar,
+                            avatar: profile?.avatar_url || user?.user_metadata?.avatar_url || null,
                             color: '#C4B5FD',
-                            role: 'editor'
-                          }}
-                          initialPresence={{
-                            cursor: null,
-                            cursorChat: null,
-                            status: 'active',
-                            currentTool: 'notes',
-                            user: {
-                              id: user?.id || 'guest',
-                              name: displayName,
-                              avatar: profile?.avatar_url || user?.user_metadata?.avatar_url || null,
-                              color: '#C4B5FD',
-                              role: 'editor',
-                            },
-                          }}
-                          initialStorage={{
-                            noteTitle: selectedMaterial.title || 'Untitled Note',
-                            noteIcon: '📄',
-                            noteCover: null
-                          }}
-                        >
-                          <ClientSideSuspense fallback={<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', color: '#6B7280', fontFamily: 'Outfit' }}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite', marginBottom: '12px', color: '#8B5CF6' }}><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg><div>Connecting Notes...</div></div>}>
-                            <CommentsProvider roomId={`luter:notes:${selectedMaterial.id}`}>
-                              <LiveNoteEditor 
-                                title={selectedMaterial.title} 
-                                roomId={`luter:notes:${selectedMaterial.id}`} 
-                                displayName={displayName} 
-                                user={user} 
-                                profile={profile} 
-                                hideHeader={true}
-                                workstationMode={true}
-                                onOpenAiChat={() => setIsChatOpen(true)}
-                                emptyState={(editor) => (
-                                  <WorkstationEmptyState 
-                                    editor={editor} 
-                                    material={selectedMaterial} 
-                                    isGenerating={isGenerating} 
-                                    setIsGenerating={setIsGenerating} 
-                                  />
-                                )}
-                              />
-                            </CommentsProvider>
-                          </ClientSideSuspense>
-                        </RoomProvider>
-                      )}
+                            role: 'editor',
+                          },
+                        }}
+                        initialStorage={{
+                          noteTitle: selectedMaterial.title || 'Untitled Note',
+                          noteIcon: '📄',
+                          noteCover: null
+                        }}
+                      >
+                        <ClientSideSuspense fallback={<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', color: '#6B7280', fontFamily: 'Outfit' }}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite', marginBottom: '12px', color: '#8B5CF6' }}><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg><div>Connecting Notes...</div></div>}>
+                          <CommentsProvider roomId={`luter:notes:${selectedMaterial.id}`}>
+                            <LiveNoteEditor 
+                              title={selectedMaterial.title} 
+                              roomId={`luter:notes:${selectedMaterial.id}`} 
+                              displayName={displayName} 
+                              user={user} 
+                              profile={profile} 
+                              hideHeader={true}
+                              workstationMode={true}
+                              onOpenAiChat={() => setIsChatOpen(true)}
+                              emptyState={(editor) => (
+                                <WorkstationEmptyState 
+                                  editor={editor} 
+                                  material={selectedMaterial} 
+                                  isGenerating={isGenerating} 
+                                  setIsGenerating={setIsGenerating} 
+                                />
+                              )}
+                            />
+                          </CommentsProvider>
+                        </ClientSideSuspense>
+                      </RoomProvider>
                     </div>
-                  ) : (
-                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
                   )}
                 </div>
               )}
 
               {/* Excalidraw Board */}
-              {activeMainTab === 'Source' && activeSubTab === 'Boards' && (
+              {activeMainTab === 'Source' && (
                 <div id="luter-board-container" style={isBoardFullScreen ? {
                   position: 'fixed', inset: 0, zIndex: 99999, backgroundColor: isDark ? '#111827' : '#F9FAFB',
-                  display: 'flex', flexDirection: 'column'
+                  display: activeSubTab === 'Boards' ? 'flex' : 'none', flexDirection: 'column'
                 } : {
-                  flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', width: '100%', height: '100%'
+                  flex: 1, position: 'relative', display: activeSubTab === 'Boards' ? 'flex' : 'none', flexDirection: 'column', width: '100%', height: '100%'
                 }}>
                   <div style={{ position: 'absolute', top: '10px', right: '16px', zIndex: 50 }}>
                     <button 
@@ -911,9 +1031,11 @@ export default function WorkstationPage() {
               {/* Collaborative Quizzes View */}
               {activeMainTab === 'Quizzes' && (
                 <WorkstationQuizzes 
-                  material={selectedMaterial} 
+                  material={selectedMaterialWithAnalysis} 
                   isDark={isDark}
                   user={user}
+                  onRegenerateQuiz={() => runAnalysis('quiz')}
+                  isAnalysisLoading={isAnalysisLoading}
                 />
               )}
 
@@ -985,6 +1107,9 @@ export default function WorkstationPage() {
               panelWidth="100%"
               setPanelWidth={setChatWidth}
               isDark={isDark}
+              user={user}
+              profile={profile}
+              currentNoteId={selectedMaterial?.id}
             />
           </div>
         ) : (
@@ -1003,6 +1128,9 @@ export default function WorkstationPage() {
               panelWidth={chatWidth}
               setPanelWidth={setChatWidth}
               isDark={isDark}
+              user={user}
+              profile={profile}
+              currentNoteId={selectedMaterial?.id}
             />
           </div>
         )}

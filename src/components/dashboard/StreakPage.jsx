@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { RiArrowLeftSLine as ChevronLeft, RiArrowRightSLine as ChevronRight } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
-import useTourStore from '../../store/useTourStore'
+
 
 export default function StreakPage() {
   const { user, isMobile } = useOutletContext()

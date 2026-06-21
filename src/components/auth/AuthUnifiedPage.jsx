@@ -177,7 +177,7 @@ export default function AuthUnifiedPage({ initialMode = 'signin' }) {
         </div>
       ) : !showEmailForm ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <GoogleLoginButton />
+          <GoogleLoginButton mode={mode} />
           
           <div className="auth-divider">
             <span>Other options</span>

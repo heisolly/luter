@@ -26,9 +26,32 @@ export const CREDIT_COSTS = {
 
 export const TIER_LIMITS = {
   free: 200,
-  pro: 1500,
+  pro: 2000,
   beast: Infinity,
 }
+
+export async function loadPricingConfig() {
+  try {
+    const { data } = await supabase
+      .from('pricing_config')
+      .select('costs, limits')
+      .eq('id', 1)
+      .maybeSingle()
+    if (data) {
+      if (data.costs && Object.keys(data.costs).length > 0) {
+        Object.assign(CREDIT_COSTS, data.costs)
+      }
+      if (data.limits && Object.keys(data.limits).length > 0) {
+        Object.assign(TIER_LIMITS, data.limits)
+      }
+    }
+  } catch (e) {
+    console.warn('[creditService] Failed to load dynamic pricing config:', e)
+  }
+}
+
+// Auto-run load
+loadPricingConfig().catch(() => {})
 
 export function getDailyLimit(tier = 'free') {
   return TIER_LIMITS[tier] ?? TIER_LIMITS.free
@@ -48,6 +71,28 @@ export async function getCreditBalance(userId) {
 export async function checkAndDeductCredits(userId, cost, isPremium) {
   if (isPremium) return { ok: true, remaining: Infinity }
   if (!userId) return { ok: false, remaining: 0, error: 'Not authenticated' }
+
+  // Synchronize dynamic limit for users who are not premium
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', userId)
+      .maybeSingle()
+
+    const tier = (profile?.subscription_tier || 'free').toLowerCase()
+    const expectedLimit = TIER_LIMITS[tier] || TIER_LIMITS.free
+
+    if (expectedLimit !== Infinity) {
+      await supabase
+        .from('user_stats')
+        .update({ ai_credits_monthly: expectedLimit })
+        .eq('user_id', userId)
+        .neq('ai_credits_monthly', expectedLimit)
+    }
+  } catch (e) {
+    console.warn('[Credits] Failed to sync user limit:', e)
+  }
 
   const { data, error } = await supabase.rpc('deduct_ai_credits', {
     p_user_id: userId,

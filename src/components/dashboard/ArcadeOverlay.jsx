@@ -10,13 +10,14 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X, ArrowLeft, CaretRight, MagnifyingGlass,
-  Sparkle, Hash, Folder,
+  Sparkle, Hash, Folder, Lock,
 } from '@phosphor-icons/react'
 import { RiGamepadFill as Gamepad } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
 import { playgroundService } from '../../services/playgroundService'
 import { callGroqAPI, GROQ_MODELS } from '../../groqClient'
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService'
+import { usePlanGate } from '../../hooks/usePlanGate'
 
 /* ────────────────────────────────────────────────────────────────── */
 /*  AI question generation using Groq directly (bypasses broken      */
@@ -148,7 +149,7 @@ function MenuRow({ emoji, iconBg, title, desc, onClick }) {
 }
 
 /** Material picker list */
-function MaterialList({ materials, search, onSearch, onSelect }) {
+function MaterialList({ materials, search, onSearch, onSelect, lockedFiles = new Set() }) {
   const filtered = materials.filter(m => {
     const q = search.trim().toLowerCase()
     return !q || `${m.title || ''} ${m.file_name || ''}`.toLowerCase().includes(q)
@@ -177,25 +178,29 @@ function MaterialList({ materials, search, onSearch, onSelect }) {
           <div style={{ padding: '28px 16px', textAlign: 'center', color: '#94A3B8', fontSize: 13, fontWeight: 600 }}>
             No materials — upload one in Backpack
           </div>
-        ) : filtered.map(m => (
-          <button key={m.id} onClick={() => onSelect(m)}
-            style={{
-              width: '100%', padding: '12px 16px', border: 'none',
-              borderBottom: '1px solid #F3F4F6', background: 'transparent',
-              textAlign: 'left', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-              color: 'var(--sb-text,#0F172A)', transition: 'background 0.12s',
-              display: 'flex', alignItems: 'center', gap: 8,
-              fontFamily: "'Outfit','Outfit',sans-serif",
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = '#F5F3FF'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-          >
-            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {m.title || m.file_name || 'Untitled'}
-            </span>
-            <CaretRight size={14} color="#C4B5FD" weight="bold" />
-          </button>
-        ))}
+        ) : filtered.map(m => {
+          const isLocked = lockedFiles.has(m.id)
+          return (
+            <button key={m.id} onClick={() => !isLocked && onSelect(m)}
+              style={{
+                width: '100%', padding: '12px 16px', border: 'none',
+                borderBottom: '1px solid #F3F4F6', background: 'transparent',
+                textAlign: 'left', cursor: isLocked ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600,
+                color: 'var(--sb-text,#0F172A)', transition: 'background 0.12s',
+                display: 'flex', alignItems: 'center', gap: 8,
+                fontFamily: "'Outfit','Outfit',sans-serif",
+                opacity: isLocked ? 0.5 : 1,
+              }}
+              onMouseEnter={e => { if (!isLocked) e.currentTarget.style.background = '#F5F3FF' }}
+              onMouseLeave={e => { if (!isLocked) e.currentTarget.style.background = 'transparent' }}
+            >
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {m.title || m.file_name || 'Untitled'}
+              </span>
+              {isLocked ? <Lock size={14} color="#94A3B8" weight="bold" /> : <CaretRight size={14} color="#C4B5FD" weight="bold" />}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
@@ -251,6 +256,15 @@ const HUB = [
 export default function ArcadeOverlay({ onClose, user }) {
   const navigate = useNavigate()
 
+  // Fetch profile to determine plan tier
+  const [profile, setProfile] = useState(null)
+  useEffect(() => {
+    if (!user?.id) return
+    supabase.from('profiles').select('subscription_tier,subscription_type').eq('id', user.id).maybeSingle()
+      .then(({ data }) => { if (data) setProfile(data) })
+  }, [user?.id])
+  const { canMultiplayer, maxFiles, getLockedItemIds } = usePlanGate(profile)
+
   const [selected, setSelected]   = useState('memorize')
   const [step, setStep]           = useState('hub')
   const [materials, setMaterials] = useState([])
@@ -259,6 +273,8 @@ export default function ArcadeOverlay({ onClose, user }) {
   const [codeVal, setCodeVal]     = useState('')
   const [loading, setLoading]     = useState(false)
   const [toast, setToast]         = useState(null)
+
+  const lockedFiles = getLockedItemIds(materials, maxFiles)
 
   // Esc close
   useEffect(() => {
@@ -288,8 +304,14 @@ export default function ArcadeOverlay({ onClose, user }) {
   /* ── Hub CTA ── */
   const handleStart = () => {
     if (selected === 'memorize') { setStep('memorize'); return }
-    if (selected === 'clut')     { setStep('clut-menu'); return }
-    if (selected === 'heist')    { navigate('/heist'); onClose(); return }
+    if (selected === 'clut')     {
+      if (!canMultiplayer) { navigate('/upgrade'); onClose(); return }
+      setStep('clut-menu'); return
+    }
+    if (selected === 'heist')    {
+      if (!canMultiplayer) { navigate('/upgrade'); onClose(); return }
+      navigate('/heist'); onClose(); return
+    }
     if (selected === 'games')    { navigate('/compete?step=content'); onClose(); return }
   }
 
@@ -380,18 +402,21 @@ export default function ArcadeOverlay({ onClose, user }) {
 
         {/* Cards */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 18 }}>
-          {HUB.map(c => (
-            <HubCard
-              key={c.id}
-              emoji={c.emoji}
-              title={c.title}
-              desc={c.desc}
-              accentColor={c.accent}
-              badge={c.badge}
-              selected={selected === c.id}
-              onClick={() => setSelected(c.id)}
-            />
-          ))}
+          {HUB.map(c => {
+            const isLocked = !canMultiplayer && (c.id === 'clut' || c.id === 'heist')
+            return (
+              <HubCard
+                key={c.id}
+                emoji={isLocked ? '🔒' : c.emoji}
+                title={c.title}
+                desc={isLocked ? 'Pro feature' : c.desc}
+                accentColor={isLocked ? '#94a3b8' : c.accent}
+                badge={isLocked ? 'PRO' : c.badge}
+                selected={selected === c.id}
+                onClick={() => setSelected(c.id)}
+              />
+            )
+          })}
         </div>
 
         {/* CTA */}

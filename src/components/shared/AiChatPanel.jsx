@@ -11,6 +11,7 @@ import { supabase } from '../../supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Typing } from '../ui/Typing';
 import { VoiceWave } from '../ui/VoiceWave';
+import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService';
 
 const HISTORY_KEY = 'luter-ai-chat-history'
 const MAX_SESSIONS = 20

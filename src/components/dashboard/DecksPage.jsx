@@ -1,262 +1,188 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useOutletContext } from 'react-router-dom'
+import { useNavigate, useOutletContext, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Cards,
   MagnifyingGlass,
   Plus,
   Question,
-  StackSimple,
-  Trophy,
-  Clock,
-  BookOpen,
+  Lightning,
+  Star,
+  Coins,
+  Bell,
+  Sun,
+  Moon,
+  SidebarSimple,
+  ArrowLeft,
+  CheckCircle,
+  XCircle,
   ArrowRight,
-  SortAscending,
-  Sparkle,
-  Brain,
-  Fire,
+  BookOpen,
+  Play,
+  Clock,
 } from '@phosphor-icons/react'
 import { supabase } from '../../supabaseClient'
+import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
+import { getCreditBalance } from '../../services/creditService'
+import './dhd.css'
 import './DecksPage.css'
+import './luterPages.css'
 
-// ── Helpers ────────────────────────────────────────────────────────
+function useDarkMode() {
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('luter-theme')
+    if (saved) return saved === 'dark'
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
+  useEffect(() => {
+    document.body.classList.toggle('dark-mode', isDark)
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light')
+    localStorage.setItem('luter-theme', isDark ? 'dark' : 'light')
+  }, [isDark])
+  return [isDark, setIsDark]
+}
+
 function formatDate(value) {
-  if (!value) return 'No date'
+  if (!value) return ''
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Recently'
-  const diff = (Date.now() - date) / 1000
-  if (diff < 3600)   return 'Just now'
-  if (diff < 86400)  return `${Math.floor(diff / 3600)}h ago`
-  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`
+  if (Number.isNaN(date.getTime())) return ''
+  const now = new Date()
+  const diffMs = now - date
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7) return `${diffDays}d ago`
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-function masteryPct(deck) {
-  const total    = deck.cards?.length || deck.card_count || 0
-  const mastered = deck.mastered_count || 0
-  if (!total) return 0
-  return Math.round((mastered / total) * 100)
-}
+const BRAND_COLORS = ['#98FF98', '#FFD2A6', '#C4B5FD']
+const BRAND_TEXT = ['#16a34a', '#c2410c', '#5b21b6']
+const BRAND_BG = ['rgba(152,255,152,0.12)', 'rgba(255,210,166,0.12)', 'rgba(196,181,253,0.12)']
 
-// Stripe colour based on index so each card feels distinct
-const STRIPE_COLORS = [
-  '#7C3AED', // purple
-  '#10B981', // mint-green
-  '#F59E0B', // amber
-  '#3B82F6', // blue
-  '#EC4899', // pink
-  '#8B5CF6', // violet
-  '#14B8A6', // teal
-  '#F97316', // orange
-]
-
-const ICON_STYLES = [
-  { bg: '#F3E8FF', color: '#7C3AED' },
-  { bg: '#DCFCE7', color: '#16A34A' },
-  { bg: '#FFF7ED', color: '#EA580C' },
-  { bg: '#DBEAFE', color: '#2563EB' },
-  { bg: '#FCE7F3', color: '#EC4899' },
-  { bg: '#EDE9FE', color: '#7C3AED' },
-]
-
-const getStyle = (id = '') =>
-  ICON_STYLES[String(id).split('').reduce((a, c) => a + c.charCodeAt(0), 0) % ICON_STYLES.length]
-
-const getStripe = (id = '') =>
-  STRIPE_COLORS[String(id).split('').reduce((a, c) => a + c.charCodeAt(0), 0) % STRIPE_COLORS.length]
-
-// ── Skeleton loader ────────────────────────────────────────────────
-function SkeletonGrid() {
-  return (
-    <div className="dk-skeleton">
-      {[1, 2, 3, 4, 5, 6].map(i => (
-        <div key={i} className="dk-skel-card" />
-      ))}
-    </div>
-  )
-}
-
-// ── Single deck card ───────────────────────────────────────────────
-function DeckCard({ item, type, index, onOpen }) {
-  const style   = getStyle(item.id)
-  const stripe  = getStripe(item.id)
-  const cardCount = item.cards?.length || item.card_count || item.question_count || 0
-  const pct     = masteryPct(item)
-  const score   = item.latest_score
-
-  return (
-    <motion.div
-      className="dk-card"
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04, duration: 0.24, ease: 'easeOut' }}
-      onClick={() => onOpen(item)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onOpen(item)}
-    >
-      {/* Top colour stripe */}
-      <div className="dk-card-stripe" style={{ background: stripe }} />
-
-      <div className="dk-card-body">
-        <div className="dk-card-header">
-          {/* Icon */}
-          <div className="dk-card-icon" style={{ background: style.bg }}>
-            {type === 'flashcards'
-              ? <Cards size={20} color={style.color} weight="duotone" />
-              : <Question size={20} color={style.color} weight="duotone" />}
-          </div>
-          {/* Badge */}
-          <span className={`dk-card-badge ${type === 'flashcards' ? 'flash' : 'quiz'}`}>
-            {type === 'flashcards' ? '⚡ Flashcards' : '🧠 Quiz'}
-          </span>
-        </div>
-
-        {/* Title + source */}
-        <div>
-          <h3 className="dk-card-title">
-            {item.title || item.name || 'Untitled deck'}
-          </h3>
-          <p className="dk-card-source">
-            {item.subject || item.source_title || item.material_title || 'Study material'}
-          </p>
-        </div>
-
-        {/* Mastery progress — only for flashcards with card counts */}
-        {type === 'flashcards' && cardCount > 0 && (
-          <div className="dk-card-progress">
-            <div className="dk-progress-row">
-              <span>Mastery</span>
-              <span style={{ color: pct >= 80 ? '#16A34A' : '#7C3AED' }}>{pct}%</span>
-            </div>
-            <div className="dk-progress-track">
-              <div className="dk-progress-fill" style={{ width: `${pct}%` }} />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="dk-card-footer">
-        <div className="dk-card-meta">
-          <span className="dk-meta-chip">
-            <StackSimple size={13} />
-            {cardCount} {type === 'flashcards' ? 'cards' : 'questions'}
-          </span>
-          {score !== undefined && score !== null && (
-            <span className="dk-meta-chip" style={{ color: score >= 80 ? '#16A34A' : '#F59E0B' }}>
-              <Trophy size={13} />
-              {score}%
-            </span>
-          )}
-          <span className="dk-meta-chip">
-            <Clock size={13} />
-            {formatDate(item.created_at)}
-          </span>
-        </div>
-        <button
-          className="dk-card-action"
-          onClick={(e) => { e.stopPropagation(); onOpen(item) }}
-          title="Study now"
-        >
-          <ArrowRight size={15} />
-        </button>
-      </div>
-
-      {/* Hover study button */}
-      <button
-        className="dk-study-now"
-        onClick={(e) => { e.stopPropagation(); onOpen(item) }}
-      >
-        <Sparkle size={13} weight="fill" />
-        Study now
-      </button>
-    </motion.div>
-  )
-}
-
-// ── Empty state ────────────────────────────────────────────────────
-function EmptyState({ tab, search, onGenerate }) {
-  const isSearch = search.trim().length > 0
-  return (
-    <div className="dk-empty">
-      <div className="dk-empty-icon" style={{ background: tab === 'flashcards' ? '#F3E8FF' : '#DCFCE7' }}>
-        {tab === 'flashcards'
-          ? <Cards size={32} color="#7C3AED" weight="duotone" />
-          : <Question size={32} color="#16A34A" weight="duotone" />}
-      </div>
-      <h3>
-        {isSearch
-          ? 'No matching decks'
-          : tab === 'flashcards'
-            ? 'No flashcard decks yet'
-            : 'No quizzes yet'}
-      </h3>
-      <p>
-        {isSearch
-          ? 'Try a different search term or clear the filter.'
-          : tab === 'flashcards'
-            ? 'Open a study material in the Workstation, generate flashcards, and they will appear here automatically.'
-            : 'Take a quiz inside the Workstation and your results will be saved here for review.'}
-      </p>
-      {!isSearch && (
-        <button className="dk-cta-btn" onClick={onGenerate}>
-          <Plus size={16} weight="bold" />
-          Open Workstation
-        </button>
-      )}
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// Main Component
-// ═══════════════════════════════════════════════════════════════════
 export default function DecksPage() {
-  const { user } = useOutletContext()
+  const { user, setNotificationsOpen, sidebarCollapsed, setSidebarCollapsed } = useOutletContext() || {}
   const navigate = useNavigate()
+  const { bundle } = useDashboardPrefetch()
+  const [isDark, setIsDark] = useDarkMode()
+  const [creditsBalance, setCreditsBalance] = useState(Infinity)
+
+  useEffect(() => {
+    if (!user?.id) return
+    getCreditBalance(user.id).then(b => {
+      if (typeof b === 'number') setCreditsBalance(b)
+    }).catch(() => {})
+  }, [user?.id])
+
+  const stats = bundle?.stats?.data || {}
+  const profile = bundle?.profile?.data || bundle?.profile
+  const xp = stats?.total_xp ?? 0
+  const level = Math.floor(xp / 500) + 1
+  const credits = typeof creditsBalance === 'number' ? creditsBalance : profile?.credits ?? 20000
 
   const [flashcards, setFlashcards] = useState([])
-  const [quizzes,    setQuizzes]    = useState([])
-  const [loading,    setLoading]    = useState(true)
-  const [tab,        setTab]        = useState('flashcards')
-  const [search,     setSearch]     = useState('')
-  const [sort,       setSort]       = useState('newest')
+  const [quizzes, setQuizzes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState('flashcards')
+  const [search, setSearch] = useState('')
 
-  // ── Fetch ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!user?.id) return
     const load = async () => {
       setLoading(true)
       try {
-        // Flashcard bundles
         const { data: fcData } = await supabase
           .from('flashcard_bundles')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
 
-        if (fcData) setFlashcards(fcData)
-
-        // Quiz results — from material_analysis where quiz exists
-        const { data: qaData } = await supabase
+        const { data: maData } = await supabase
           .from('material_analysis')
-          .select('id, material_id, quiz, created_at, updated_at')
+          .select('id, material_id, analysis, quiz, created_at, updated_at')
           .eq('user_id', user.id)
-          .not('quiz', 'is', null)
-          .order('updated_at', { ascending: false })
 
-        if (qaData) {
-          // Shape into the same card format
-          setQuizzes(qaData.map(r => ({
-            id:            r.id,
-            material_id:   r.material_id,
-            title:         `Quiz — ${r.material_id?.slice(0, 8) || 'Material'}`,
-            question_count: Array.isArray(r.quiz) ? r.quiz.length : 0,
-            created_at:    r.updated_at || r.created_at,
-            _raw:          r,
-          })))
+        let materialsMap = {}
+        if (maData && maData.length > 0) {
+          const materialIds = maData.map(r => r.material_id).filter(Boolean)
+          if (materialIds.length > 0) {
+            const { data: matData } = await supabase
+              .from('materials')
+              .select('id, title, name')
+              .in('id', materialIds)
+            if (matData) {
+              materialsMap = matData.reduce((acc, m) => {
+                acc[m.id] = m
+                return acc
+              }, {})
+            }
+          }
         }
+
+        const formattedFlashcards = []
+        if (fcData) {
+          fcData.forEach(bundle => {
+            formattedFlashcards.push({
+              id: bundle.id,
+              material_id: bundle.material_id,
+              title: bundle.title || bundle.name || 'Flashcard Deck',
+              cards: bundle.cards || [],
+              card_count: bundle.cards?.length || bundle.card_count || 0,
+              created_at: bundle.created_at,
+              source_title: 'Manual Deck',
+              is_generated: false,
+            })
+          })
+        }
+        if (maData) {
+          maData.forEach(row => {
+            const cards = row.analysis?.flashcards || row.flashcards || []
+            if (cards.length > 0) {
+              const material = materialsMap[row.material_id]
+              const title = material?.title || material?.name || 'Generated Deck'
+              formattedFlashcards.push({
+                id: row.id,
+                material_id: row.material_id,
+                title: `Flashcards: ${title}`,
+                cards,
+                card_count: cards.length,
+                created_at: row.created_at,
+                source_title: title,
+                is_generated: true,
+              })
+            }
+          })
+        }
+        formattedFlashcards.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        setFlashcards(formattedFlashcards)
+
+        const formattedQuizzes = []
+        if (maData) {
+          maData.forEach(row => {
+            let questions = []
+            if (row.quiz) {
+              if (Array.isArray(row.quiz)) questions = row.quiz
+              else if (row.quiz.questions && Array.isArray(row.quiz.questions)) questions = row.quiz.questions
+              else if (typeof row.quiz === 'object') questions = row.quiz.questions || []
+            }
+            if (questions.length > 0) {
+              const material = materialsMap[row.material_id]
+              const title = material?.title || material?.name || 'Generated Quiz'
+              formattedQuizzes.push({
+                id: row.id,
+                material_id: row.material_id,
+                title: row.quiz?.title || `Quiz: ${title}`,
+                questions,
+                question_count: questions.length,
+                created_at: row.created_at,
+                source_title: title,
+                is_generated: true,
+                _raw: row,
+              })
+            }
+          })
+        }
+        formattedQuizzes.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        setQuizzes(formattedQuizzes)
       } catch (err) {
         console.warn('DecksPage load error:', err)
       } finally {
@@ -266,159 +192,228 @@ export default function DecksPage() {
     load()
   }, [user?.id])
 
-  // ── Filter + sort ──────────────────────────────────────────────
   const filtered = useMemo(() => {
-    const q     = search.trim().toLowerCase()
-    const pool  = tab === 'flashcards' ? flashcards : quizzes
-    const items = q
-      ? pool.filter(i => (i.title || i.name || i.subject || '').toLowerCase().includes(q))
-      : pool
-    if (sort === 'name')    return [...items].sort((a, b) => (a.title || '').localeCompare(b.title || ''))
-    if (sort === 'mastery') return [...items].sort((a, b) => masteryPct(b) - masteryPct(a))
-    return items // newest (default — already ordered by DB)
-  }, [flashcards, quizzes, tab, search, sort])
+    const q = search.trim().toLowerCase()
+    const pool = tab === 'flashcards' ? flashcards : quizzes
+    if (!q) return pool
+    return pool.filter(item =>
+      (item.title || '').toLowerCase().includes(q) ||
+      (item.source_title || '').toLowerCase().includes(q)
+    )
+  }, [flashcards, quizzes, tab, search])
 
-  // ── Stats ──────────────────────────────────────────────────────
-  const totalCards   = flashcards.reduce((s, d) => s + (d.cards?.length || d.card_count || 0), 0)
-  const totalMastered = flashcards.reduce((s, d) => s + (d.mastered_count || 0), 0)
-
-  // ── Navigation ─────────────────────────────────────────────────
-  const openDeck = (item) => {
-    // Navigate to workstation — the correct existing route
-    navigate('/workstation', {
-      state: { openFlashcard: item.id, materialId: item.material_id },
-    })
+  const handleOpen = (item) => {
+    if (tab === 'flashcards') {
+      navigate('/workstation', { state: { openFlashcard: item.id, materialId: item.material_id } })
+    } else {
+      navigate('/workstation', { state: { openQuiz: item.id, materialId: item.material_id } })
+    }
   }
 
-  const openQuiz = (item) => {
-    navigate('/workstation', {
-      state: { openQuiz: item.id, materialId: item.material_id },
-    })
-  }
-
-  const sortLabel = sort === 'newest' ? 'Newest' : sort === 'name' ? 'A → Z' : 'Mastery'
+  // Summary stats
+  const totalDecks = flashcards.length
+  const totalQuizzes = quizzes.length
+  const totalCards = flashcards.reduce((sum, d) => sum + (d.card_count || 0), 0)
+  const totalQs = quizzes.reduce((sum, q) => sum + (q.question_count || 0), 0)
 
   return (
-    <div className="dk-root">
-      {/* ── Topbar ─────────────────────────────────────────────── */}
-      <header className="dk-topbar">
-        <div className="dk-topbar-left">
-          <div className="dk-topbar-icon">
-            <Cards size={22} color="#fff" weight="duotone" />
-          </div>
-          <div className="dk-topbar-titles">
-            <span className="dk-topbar-title">My Decks</span>
-            <span className="dk-topbar-sub">Flashcards, quizzes &amp; generated study sets</span>
+    <div className="dhd-root">
+      {/* ─── Top Header (same as Home / FolderView) ─── */}
+      <header className="dhd-header">
+        <div className="dhd-header-left">
+          {sidebarCollapsed && (
+            <button className="dhd-sidebar-toggle" onClick={() => setSidebarCollapsed(false)} title="Toggle Sidebar">
+              <SidebarSimple size={14} weight="regular" />
+            </button>
+          )}
+          <div className="dhd-page-title">
+            <Cards size={16} weight="regular" />
+            <span>My Decks</span>
           </div>
         </div>
 
-        <div className="dk-topbar-right">
-          <div className="dk-search">
-            <MagnifyingGlass size={16} weight="bold" color="#9CA3AF" />
-            <input
-              type="text"
-              placeholder="Search decks…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-          </div>
-          <button className="dk-cta-btn" onClick={() => navigate('/workstation')}>
-            <Plus size={15} weight="bold" />
-            Generate
+        <div className="dhd-header-right">
+          <Link to="/profile" className="dhd-badge dhd-badge-level" title="Your Level">
+            <Star size={16} weight="fill" />
+            <span>Lvl {level}</span>
+          </Link>
+          <Link to="/profile" className="dhd-badge dhd-badge-xp" title="Your XP">
+            <Lightning size={16} weight="fill" />
+            <span>{xp} XP</span>
+          </Link>
+          <Link to="/store" className="dhd-badge dhd-badge-coin" title="Your Coins">
+            <Coins size={16} weight="fill" />
+            <span>{credits >= 1000 ? `${Math.floor(credits / 1000)}k` : credits}</span>
+          </Link>
+          <button className="dhd-icon-btn" onClick={() => setNotificationsOpen?.(true)} title="Notifications">
+            <Bell size={20} weight="regular" />
+            <span className="dhd-notif-dot" />
+          </button>
+          <button className="dhd-icon-btn" onClick={() => setIsDark(!isDark)} title="Toggle Dark Mode">
+            {isDark ? <Sun size={20} weight="regular" /> : <Moon size={20} weight="regular" />}
           </button>
         </div>
       </header>
 
-      {/* ── Stats ──────────────────────────────────────────────── */}
-      <div className="dk-stats">
-        <div className="dk-stat">
-          <div className="dk-stat-icon purple"><Cards size={20} weight="duotone" /></div>
-          <div className="dk-stat-body">
-            <span className="dk-stat-value">{flashcards.length}</span>
-            <span className="dk-stat-label">Flashcard decks</span>
-          </div>
-        </div>
-        <div className="dk-stat">
-          <div className="dk-stat-icon mint"><Brain size={20} weight="duotone" /></div>
-          <div className="dk-stat-body">
-            <span className="dk-stat-value">{quizzes.length}</span>
-            <span className="dk-stat-label">Saved quizzes</span>
-          </div>
-        </div>
-        <div className="dk-stat">
-          <div className="dk-stat-icon blue"><StackSimple size={20} weight="duotone" /></div>
-          <div className="dk-stat-body">
-            <span className="dk-stat-value">{totalCards}</span>
-            <span className="dk-stat-label">Total cards</span>
-          </div>
-        </div>
-        <div className="dk-stat">
-          <div className="dk-stat-icon peach"><Fire size={20} weight="duotone" /></div>
-          <div className="dk-stat-body">
-            <span className="dk-stat-value">{totalMastered}</span>
-            <span className="dk-stat-label">Mastered</span>
-          </div>
-        </div>
-      </div>
+      <div className="dk2-shell">
 
-      {/* ── Toolbar ────────────────────────────────────────────── */}
-      <div className="dk-toolbar">
-        <div className="dk-tabs">
-          <button
-            className={`dk-tab${tab === 'flashcards' ? ' active' : ''}`}
-            onClick={() => setTab('flashcards')}
-          >
-            <Cards size={15} weight={tab === 'flashcards' ? 'fill' : 'regular'} />
-            Flashcards
-            <span className="dk-tab-count">{flashcards.length}</span>
-          </button>
-          <button
-            className={`dk-tab${tab === 'quizzes' ? ' active' : ''}`}
-            onClick={() => setTab('quizzes')}
-          >
-            <Question size={15} weight={tab === 'quizzes' ? 'fill' : 'regular'} />
-            Quizzes
-            <span className="dk-tab-count">{quizzes.length}</span>
-          </button>
+
+
+        {/* ─── Stats Summary Row ─── */}
+        <div className="dk2-stats-row">
+          <div className="dk2-stat-chip" style={{ '--chip-color': '#98FF98', '--chip-text': '#16a34a' }}>
+            <Cards size={18} weight="fill" />
+            <div>
+              <span className="dk2-stat-val">{totalDecks}</span>
+              <span className="dk2-stat-lbl">Decks</span>
+            </div>
+          </div>
+          <div className="dk2-stat-chip" style={{ '--chip-color': '#C4B5FD', '--chip-text': '#5b21b6' }}>
+            <BookOpen size={18} weight="fill" />
+            <div>
+              <span className="dk2-stat-val">{totalCards}</span>
+              <span className="dk2-stat-lbl">Total Cards</span>
+            </div>
+          </div>
+          <div className="dk2-stat-chip" style={{ '--chip-color': '#FFD2A6', '--chip-text': '#c2410c' }}>
+            <Question size={18} weight="fill" />
+            <div>
+              <span className="dk2-stat-val">{totalQuizzes}</span>
+              <span className="dk2-stat-lbl">Quizzes</span>
+            </div>
+          </div>
+          <div className="dk2-stat-chip" style={{ '--chip-color': '#98FF98', '--chip-text': '#16a34a' }}>
+            <Play size={18} weight="fill" />
+            <div>
+              <span className="dk2-stat-val">{totalQs}</span>
+              <span className="dk2-stat-lbl">Total Questions</span>
+            </div>
+          </div>
         </div>
 
-        {/* Sort */}
-        <button
-          className="dk-sort-btn"
-          onClick={() => setSort(s => s === 'newest' ? 'name' : s === 'name' ? 'mastery' : 'newest')}
-          title="Cycle sort order"
-        >
-          <SortAscending size={14} />
-          {sortLabel}
-        </button>
-      </div>
+        {/* ─── Tab + Search Toolbar ─── */}
+        <div className="dk2-toolbar">
+          <div className="dk2-tabs">
+            <button
+              className={`dk2-tab ${tab === 'flashcards' ? 'active' : ''}`}
+              onClick={() => setTab('flashcards')}
+            >
+              <Cards size={16} weight={tab === 'flashcards' ? 'fill' : 'regular'} />
+              Flashcard Decks
+              <span className="dk2-tab-count">{flashcards.length}</span>
+            </button>
+            <button
+              className={`dk2-tab ${tab === 'quizzes' ? 'active' : ''}`}
+              onClick={() => setTab('quizzes')}
+            >
+              <Question size={16} weight={tab === 'quizzes' ? 'fill' : 'regular'} />
+              Quizzes
+              <span className="dk2-tab-count">{quizzes.length}</span>
+            </button>
+          </div>
 
-      {/* ── Content ────────────────────────────────────────────── */}
-      <div className="dk-content">
-        {loading ? (
-          <SkeletonGrid />
-        ) : filtered.length === 0 ? (
-          <div className="dk-grid">
-            <EmptyState
-              tab={tab}
-              search={search}
-              onGenerate={() => navigate('/workstation')}
+          <div className="dk2-search">
+            <MagnifyingGlass size={15} weight="bold" />
+            <input
+              type="text"
+              placeholder={`Search ${tab}…`}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
             />
           </div>
-        ) : (
-          <div className="dk-grid">
-            <AnimatePresence mode="popLayout">
-              {filtered.map((item, i) => (
-                <DeckCard
-                  key={item.id}
-                  item={item}
-                  type={tab}
-                  index={i}
-                  onOpen={tab === 'flashcards' ? openDeck : openQuiz}
-                />
-              ))}
-            </AnimatePresence>
+        </div>
+
+        {/* ─── Content ─── */}
+        {loading ? (
+          <div className="lp-file-grid">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="lp-file-card skeleton" />
+            ))}
           </div>
+        ) : filtered.length === 0 ? (
+          <div className="dk2-empty">
+            <div className="dk2-empty-icon">
+              {tab === 'flashcards' ? <Cards size={36} /> : <Question size={36} />}
+            </div>
+            <h3>{search ? 'No results found' : tab === 'flashcards' ? 'No flashcard decks yet' : 'No quizzes yet'}</h3>
+            <p>
+              {search
+                ? 'Try a different search term.'
+                : 'Open any study material in the Workstation to generate your custom study set.'}
+            </p>
+            <button className="dk2-empty-btn" onClick={() => navigate('/workstation')}>
+              Go to Workstation <ArrowRight size={16} weight="bold" />
+            </button>
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={tab}
+              className="lp-file-grid"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {filtered.map((item, i) => {
+                const colorIdx = i % 3
+                const isFlashcard = tab === 'flashcards'
+                const count = isFlashcard ? item.card_count : item.question_count
+                const countLabel = isFlashcard ? 'cards' : 'questions'
+
+                // Map brand colors
+                const colors = [
+                  { bg: 'rgba(152, 255, 152, 0.15)', text: '#16a34a', border: '#98FF98' }, // Mint
+                  { bg: 'rgba(255, 210, 166, 0.15)', text: '#c2410c', border: '#FFD2A6' }, // Peach
+                  { bg: 'rgba(196, 181, 253, 0.15)', text: '#5b21b6', border: '#C4B5FD' }  // Lavender
+                ]
+                const theme = colors[colorIdx]
+
+                return (
+                  <motion.div
+                    key={item.id}
+                    className="lp-file-card"
+                    style={{
+                      border: `1.5px solid ${theme.border}`,
+                    }}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04, duration: 0.2 }}
+                    onClick={() => handleOpen(item)}
+                  >
+                    <div className="lp-file-card-top">
+                      <span 
+                        className="lp-file-badge"
+                        style={{ background: theme.bg, color: theme.text }}
+                      >
+                        {isFlashcard ? 'FLASHCARD' : 'QUIZ'}
+                      </span>
+                    </div>
+
+                    <div className="lp-file-icon-center">
+                      <div 
+                        className="lp-file-icon-bg"
+                        style={{ background: theme.bg, color: theme.text }}
+                      >
+                        {isFlashcard
+                          ? <Cards size={24} weight="fill" />
+                          : <Question size={24} weight="fill" />}
+                      </div>
+                    </div>
+
+                    <div className="lp-file-info">
+                      <h3 className="lp-file-title" title={item.title}>
+                        {item.title}
+                      </h3>
+                      <span className="lp-file-date">
+                        {count} {countLabel} · {formatDate(item.created_at)}
+                      </span>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </motion.div>
+          </AnimatePresence>
         )}
       </div>
     </div>

@@ -3,37 +3,37 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import DashboardSidebar from './DashboardSidebar'
 import { Loader2, Sword, X, ArrowRight, Sidebar as SidebarSimple } from 'lucide-react'
-import { Backpack, DotsThree, House, NotePencil, UsersThree, ChalkboardTeacher } from '@phosphor-icons/react'
+import { Backpack, DotsThree, House, NotePencil, Cards } from '@phosphor-icons/react'
 import { LuterPageLoader } from '../shared/LuterPageLoader'
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion'
 import LuterLogo from '../shared/LuterLogo'
 import './dashboard.css'
 import { DashboardPrefetchProvider } from '../../context/DashboardPrefetchContext'
 import NotificationsOverlay from './NotificationsOverlay'
 import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceStore'
-import { preloadingService } from '../../services/preloadingService'
 import { LANDING_URL } from '../../utils/urlUtils'
 
 
 
 function DashboardMobileBottomNav({ pathname, navigate, onMore }) {
   const isActive = (target) => {
-    if (target === '/home') return pathname === '/home' || pathname === '/' || pathname === '/home'
-    if (target === '/backpack') return pathname.startsWith('/backpack') || pathname.startsWith('/backpack')
-    if (target === '/classrooms') return pathname.startsWith('/classrooms')
-    if (target === '/notes') return pathname.startsWith('/notes') || pathname.startsWith('/notes')
+    if (target === '/home') return pathname === '/home' || pathname === '/'
+    if (target === '/backpack') return pathname.startsWith('/backpack')
+    if (target === '/notes') return pathname.startsWith('/notes')
     return pathname === target || pathname.startsWith(`${target}/`)
   }
 
   const items = [
     { label: 'Home', path: '/home', icon: House },
-    { label: 'Classrooms', path: '/classrooms', icon: ChalkboardTeacher },
-    { label: 'Backpack', path: '/backpack', icon: Backpack },
+    { label: 'Folders', path: '/backpack', icon: Backpack },
     { label: 'Notes', path: '/notes', icon: NotePencil },
+    { label: 'Decks', path: '/decks', icon: Cards },
   ]
 
   return (
     <nav className="dash-mobile-bottom-nav" aria-label="Dashboard quick navigation">
+      {/* eslint-disable-next-line no-unused-vars */}
       {items.map(({ label, path, icon: Icon }) => {
         const active = isActive(path)
         return (
@@ -93,7 +93,7 @@ export default function Dashboard() {
 
     const fetchUser = async () => {
       try {
-        console.log('🔄 Dashboard fetchUser started')
+        console.log('🔄 Dashboard fetchUser started, URL:', window.location.href)
         // Give Supabase a moment to recover session from storage
         const { data: { session: initialSession }, error: initialSessionError } = await supabase.auth.getSession()
         console.log('🔄 Dashboard initialSession:', initialSession ? 'EXISTS' : 'NULL', 'Error:', initialSessionError?.message)
@@ -102,16 +102,14 @@ export default function Dashboard() {
           console.log('🔄 Dashboard handleSession called with session:', session ? 'EXISTS' : 'NULL')
           if (session?.user) {
             setUser(session.user)
-            setUserId(session.user.id)
             
             const profileCacheKey = `luter:profile:${session.user.id}`
-            const offline = typeof navigator !== 'undefined' && !navigator.onLine
 
             // Fast boot: load cache first regardless of network status
             try {
               const raw = localStorage.getItem(profileCacheKey)
               if (raw) setProfile(JSON.parse(raw))
-            } catch {}
+            } catch { /* ignore cache parse errors */ }
 
             try {
               const { data, error } = await supabase
@@ -124,7 +122,7 @@ export default function Dashboard() {
               
               if (data) {
                 setProfile(data)
-                try { localStorage.setItem(profileCacheKey, JSON.stringify(data)) } catch {}
+                try { localStorage.setItem(profileCacheKey, JSON.stringify(data)) } catch { /* ignore cache write errors */ }
               }
             } catch (error) {
               console.warn('Profile fetch failed:', error.message)
@@ -144,7 +142,7 @@ export default function Dashboard() {
 
             try {
               await initializeWorkspaces()
-            } catch {}
+            } catch { /* ignore workspace init errors */ }
 
             const updateHeartbeat = async () => {
               if (typeof navigator !== 'undefined' && !navigator.onLine) return
@@ -152,7 +150,7 @@ export default function Dashboard() {
                 await supabase.from('profiles')
                   .update({ last_active_at: new Date().toISOString() })
                   .eq('id', session.user.id)
-              } catch {}
+              } catch { /* ignore heartbeat update errors */ }
             }
             updateHeartbeat()
             hb = setInterval(updateHeartbeat, 30000)
@@ -233,7 +231,6 @@ export default function Dashboard() {
             if (session?.user) {
               // We successfully recovered by stripping the stale code
               setUser(session.user)
-              setUserId(session.user.id)
               setLoading(false)
               return
             }
@@ -262,19 +259,19 @@ export default function Dashboard() {
     window.addEventListener('DEEP_LINK_DASH', handleDeepLink)
 
     return () => {
+      console.log('🔄 Dashboard useEffect cleanup called, URL:', window.location.href)
       if (hb) clearInterval(hb)
       if (channel) supabase.removeChannel(channel)
       window.removeEventListener('DEEP_LINK_DASH', handleDeepLink)
       window.removeEventListener('resize', handleResize)
     }
-  }, [navigate])
+  }, [])
 
 
   const isWorkstation = location.pathname.includes('/workstation') || location.pathname.includes('/notes/editor') || location.pathname.includes('/ai-chat')
   const isFocusPage = isWorkstation || location.pathname.includes('/mock-exam') || location.pathname.includes('/profile') || location.pathname.includes('/trash') || location.pathname.includes('/analytics')
   // Classroom room view has its own sidebar — suppress the hover-peek trigger there
   const isClassroomView = location.pathname.startsWith('/classrooms/c/')
-  const isPlayground = location.pathname.includes('/playground')
   const [sidebarHovered, setSidebarHovered] = useState(false)
 
   // Subscription tier display for mobile topbar

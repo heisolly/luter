@@ -10,6 +10,10 @@ import { queryStudyMaterials, reprocessMaterial } from './langchainPipeline' // 
 
 export class MaterialAnalysisService {
   
+  static async reprocessMaterial(material) {
+    return reprocessMaterial(material);
+  }
+  
   /**
    * Get or create material analysis
    * Returns cached analysis if exists, generates new one if not

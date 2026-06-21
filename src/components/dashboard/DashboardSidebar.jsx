@@ -5,7 +5,6 @@ import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import {
   House,
-  UsersThree,
   Cards,
   Backpack,
   NotePencil,
@@ -194,7 +193,7 @@ export default function DashboardSidebar({
   const CREATE_OPTIONS = [
     { id: 'note',    emoji: '📝', title: 'New Note',    desc: 'Write and organize your thoughts',  path: '/notes?new=1' },
     { id: 'upload',  emoji: '📄', title: 'Upload PDF',  desc: 'Study from any document',           path: '/upload' },
-    { id: 'session', emoji: '🧑‍🤝‍🧑', title: 'New Session',  desc: 'Collaborate with others live',      path: '/sessions?new=1' },
+    { id: 'folder',  emoji: '📁', title: 'New Folder',  desc: 'Organize files into folders',       path: '/backpack?new=1' },
   ]
 
   const handleSignOut = async () => {
@@ -308,6 +307,8 @@ export default function DashboardSidebar({
           </div>
           {!collapsed && <span className="dsb-nav-label">Home</span>}
         </button>
+
+
 
         {/* Notes */}
         <button

@@ -1,13 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCollaboration, useOthers } from './CollaborationProvider';
 import { callGroqAPI, GROQ_MODELS } from '../../groqClient';
 import { 
   CircleNotch, Sparkle, Checks, X, PaperPlaneRight, 
   Users, UserCircle, CaretRight, ShieldCheck
 } from '@phosphor-icons/react';
+import { supabase } from '../../supabaseClient';
+import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService';
 
-export default function WorkstationQuizzes({ material, isDark, user }) {
-  const { provider, yDoc, awareness } = useCollaboration();
+import { WorkstationQuiz } from './WorkstationTools';
+
+export default function WorkstationQuizzes({ material, isDark, onRegenerateQuiz, isAnalysisLoading, user }) {
+  const { yDoc, awareness } = useCollaboration();
   const others = useOthers() || [];
   
   // Yjs State
@@ -15,6 +19,11 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const [quizMode, setQuizMode] = useState(() => {
+    if (material?.analysis?.quiz && material.analysis.quiz.length > 0) return 'solo';
+    return 'group';
+  });
 
   // Local Voting State
   const [myVote, setMyVote] = useState(null);
@@ -84,6 +93,17 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
   const generateQuiz = async () => {
     if (!material?.extracted_text || !yQuestions || !yQuizState) return;
     
+    // Check and deduct credits for generating quiz
+    try {
+      const { ok, error } = await checkAndDeductCredits(user?.id, CREDIT_COSTS.GENERATE_QUIZ, false);
+      if (!ok) {
+        alert(error || 'Insufficient credits to generate quiz.');
+        return;
+      }
+    } catch (e) {
+      console.warn('[Quiz Credits] Failed to check credits:', e);
+    }
+
     yQuizState.set('isGenerating', true);
     
     try {
@@ -148,10 +168,94 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
   
   const brutalShadow = isDark ? '4px 4px 0px #000000' : '4px 4px 0px #1C1C1E';
 
-  if (!material?.extracted_text) {
+  const renderSelector = () => (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      backgroundColor: isDark ? '#2C2C2E' : '#EAE6DF',
+      padding: '4px',
+      borderRadius: '9999px',
+      border: `2px solid ${isDark ? '#48484A' : '#1C1C1E'}`,
+      marginBottom: '24px',
+      boxShadow: isDark ? '2px 2px 0px #000' : '2px 2px 0px #1C1C1E',
+      alignSelf: 'center',
+      width: 'fit-content',
+      flexShrink: 0
+    }}>
+      <button
+        onClick={() => setQuizMode('solo')}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          padding: '6px 16px',
+          borderRadius: '9999px',
+          border: 'none',
+          fontSize: '13px',
+          fontWeight: 600,
+          cursor: 'pointer',
+          backgroundColor: quizMode === 'solo' ? (isDark ? '#E5E5EA' : '#1C1C1E') : 'transparent',
+          color: quizMode === 'solo' ? (isDark ? '#1C1C1E' : '#FFFFFF') : subTextColor,
+          transition: 'all 0.2s'
+        }}
+      >
+        Solo Practice
+      </button>
+      <button
+        onClick={() => setQuizMode('group')}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          padding: '6px 16px',
+          borderRadius: '9999px',
+          border: 'none',
+          fontSize: '13px',
+          fontWeight: 600,
+          cursor: 'pointer',
+          backgroundColor: quizMode === 'group' ? (isDark ? '#E5E5EA' : '#1C1C1E') : 'transparent',
+          color: quizMode === 'group' ? (isDark ? '#1C1C1E' : '#FFFFFF') : subTextColor,
+          transition: 'all 0.2s'
+        }}
+      >
+        Group Live Sync
+      </button>
+    </div>
+  );
+
+  const handleQuizComplete = async ({ score, total }) => {
+    if (!user?.id) return;
+    
+    const xpGained = score * 10 + 20;
+    const coinsGained = score * 2 + 5;
+    
+    try {
+      await supabase.rpc('update_user_gamification', {
+        p_user_id: user.id,
+        p_xp_gain: xpGained,
+        p_coins_gain: coinsGained,
+        p_questions_answered: total,
+        p_sessions_completed: 1,
+        p_source: 'solo_quiz'
+      });
+    } catch (err) {
+      console.error('[Quiz Complete] Failed to update user stats:', err);
+    }
+  };
+
+  if (quizMode === 'solo') {
     return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: bgColor, fontFamily: 'DM Sans, sans-serif' }}>
-        <p style={{ color: subTextColor }}>No document content available to generate a quiz.</p>
+      <div style={{ 
+        flex: 1, display: 'flex', flexDirection: 'column', 
+        backgroundColor: bgColor, padding: '24px', overflowY: 'auto',
+        width: '100%', boxSizing: 'border-box'
+      }}>
+        {renderSelector()}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '800px', margin: '0 auto' }}>
+          <WorkstationQuiz 
+            quiz={material?.analysis?.quiz || []}
+            material={material}
+            onRegenerate={onRegenerateQuiz}
+            isLoading={isAnalysisLoading}
+            onComplete={handleQuizComplete}
+          />
+        </div>
       </div>
     );
   }
@@ -159,10 +263,12 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
   if (questions.length === 0) {
     return (
       <div style={{ 
-        flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
-        backgroundColor: bgColor, padding: '32px'
+        flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', 
+        backgroundColor: bgColor, padding: '32px', overflowY: 'auto', width: '100%', boxSizing: 'border-box'
       }}>
+        {renderSelector()}
         <div style={{
+          marginTop: '24px',
           backgroundColor: paperColor, padding: '48px', borderRadius: '8px',
           border: `2px solid ${isDark ? '#48484A' : '#1C1C1E'}`,
           boxShadow: brutalShadow,
@@ -178,24 +284,30 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
             Generate a collaborative quiz. Everyone in the workspace will vote on the answers in real-time.
           </p>
           
-          <button 
-            onClick={generateQuiz}
-            disabled={isGenerating}
-            style={{
-              backgroundColor: isDark ? '#E5E5EA' : '#1C1C1E',
-              color: isDark ? '#1C1C1E' : '#FFFFFF',
-              border: 'none', padding: '16px 32px', borderRadius: '4px',
-              fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px',
-              cursor: isGenerating ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-              width: '100%', transition: 'transform 0.1s',
-            }}
-            onMouseDown={e => { if(!isGenerating) e.currentTarget.style.transform = 'translate(2px, 2px)' }}
-            onMouseUp={e => { if(!isGenerating) e.currentTarget.style.transform = 'translate(0px, 0px)' }}
-          >
-            {isGenerating ? <CircleNotch size={20} weight="bold" className="spin-animation" /> : <Sparkle size={20} weight="fill" />}
-            {isGenerating ? 'Printing Sheet...' : 'Generate Study Sheet'}
-          </button>
+          {!material?.extracted_text ? (
+            <p style={{ color: '#FF3B30', fontWeight: 600, fontSize: '14px', margin: 0, fontFamily: 'DM Sans, sans-serif' }}>
+              ⚠️ No document content available to generate a collaborative quiz.
+            </p>
+          ) : (
+            <button 
+              onClick={generateQuiz}
+              disabled={isGenerating}
+              style={{
+                backgroundColor: isDark ? '#E5E5EA' : '#1C1C1E',
+                color: isDark ? '#1C1C1E' : '#FFFFFF',
+                border: 'none', padding: '16px 32px', borderRadius: '4px',
+                fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px',
+                cursor: isGenerating ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                width: '100%', transition: 'transform 0.1s',
+              }}
+              onMouseDown={e => { if(!isGenerating) e.currentTarget.style.transform = 'translate(2px, 2px)' }}
+              onMouseUp={e => { if(!isGenerating) e.currentTarget.style.transform = 'translate(0px, 0px)' }}
+            >
+              {isGenerating ? <CircleNotch size={20} weight="bold" className="spin-animation" /> : <Sparkle size={20} weight="fill" />}
+              {isGenerating ? 'Printing Sheet...' : 'Generate Study Sheet'}
+            </button>
+          )}
         </div>
         <style dangerouslySetInnerHTML={{__html: `
           @import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&display=swap');
@@ -215,6 +327,7 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
       flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', 
       backgroundColor: bgColor, padding: '40px 24px', overflowY: 'auto'
     }}>
+      {renderSelector()}
       {/* Quiz Container */}
       <div style={{
         backgroundColor: paperColor,
@@ -307,7 +420,7 @@ export default function WorkstationQuizzes({ material, isDark, user }) {
                 </div>
 
                 {/* Avatar Cluster for Live Votes */}
-                {(!showAnswer || true) && optionVotes.length > 0 && (
+                {optionVotes.length > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     {optionVotes.map((v, idx) => (
                       <div key={v.connectionId} style={{ 

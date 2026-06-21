@@ -71,7 +71,7 @@ export default defineConfig(async ({ mode }) => {
             }
           ]
         },
-        devOptions: { enabled: true },
+        devOptions: { enabled: false },
       }),
       {
         name: 'api-server',

@@ -515,10 +515,12 @@ export default function CleanDocumentViewer({
   
   const fileToLoad = React.useMemo(() => fileSource, [fileSource]);
   
-  // Reset numPages when file changes to prevent Page components from rendering during document load
-  useEffect(() => {
+  // Track previous file source to reset page count synchronously during render
+  const [prevFileSource, setPrevFileSource] = useState(fileSource);
+  if (fileSource !== prevFileSource) {
+    setPrevFileSource(fileSource);
     setNumPages(null);
-  }, [fileSource]);
+  }
 
   // Memoize options to prevent react-pdf from remounting the document on every render
   const pdfOptions = React.useMemo(() => ({

@@ -5,7 +5,7 @@ import { RiArrowLeftSLine as ChevronLeft, RiArrowRightSLine as ChevronRight, RiT
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import Header from '../shared/Header'
-import useTourStore from '../../store/useTourStore'
+
 
 export default function LevelPage() {
   const { user, isMobile } = useOutletContext()

@@ -7,7 +7,7 @@ const PAGE = 25
 
 const PLAN_CONFIG = {
   free:  { label: 'Free',  monthlyCredits: 200,   isPremium: false },
-  pro:   { label: 'Pro',   monthlyCredits: 1500,  isPremium: true  },
+  pro:   { label: 'Pro',   monthlyCredits: 2000,  isPremium: true  },
   beast: { label: 'Beast', monthlyCredits: 999999, isPremium: true  },
 }
 

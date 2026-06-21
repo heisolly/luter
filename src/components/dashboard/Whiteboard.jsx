@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Excalidraw, WelcomeScreen, Footer } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import { LiveList, LiveObject, useStorage, useMutation, useSelf, useStatus, useOthers, useUpdateMyPresence } from './CollaborationProvider';
@@ -123,15 +123,38 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
   }, []);
 
   // Liveblocks storage
-  const storedElements  = useStorage((root) => root.whiteboardData);
-  const storedAppState  = useStorage((root) => root.whiteboardAppState);
-  const storedFiles     = useStorage((root) => root.whiteboardFiles);
+  const rawStoredElements = useStorage((root) => root.whiteboardData);
+  const rawStoredAppState = useStorage((root) => root.whiteboardAppState);
+  const rawStoredFiles    = useStorage((root) => root.whiteboardFiles);
+
+  const storedElements = useMemo(() => {
+    if (!rawStoredElements) return [];
+    if (Array.isArray(rawStoredElements)) return rawStoredElements;
+    if (typeof rawStoredElements.toArray === 'function') return rawStoredElements.toArray();
+    if (Array.isArray(rawStoredElements.data)) return rawStoredElements.data;
+    return [];
+  }, [rawStoredElements]);
+
+  const storedAppState = useMemo(() => {
+    if (!rawStoredAppState) return null;
+    if (typeof rawStoredAppState.toObject === 'function') return rawStoredAppState.toObject();
+    if (rawStoredAppState.data) return rawStoredAppState.data;
+    return rawStoredAppState;
+  }, [rawStoredAppState]);
+
+  const storedFiles = useMemo(() => {
+    if (!rawStoredFiles) return null;
+    if (typeof rawStoredFiles.toObject === 'function') return rawStoredFiles.toObject();
+    if (rawStoredFiles.data) return rawStoredFiles.data;
+    return rawStoredFiles;
+  }, [rawStoredFiles]);
+
   const status          = useStatus();
   const isStorageLoaded = !isCollaborative || (
     status === 'connected' &&
-    storedElements !== undefined &&
-    storedAppState !== undefined &&
-    storedFiles !== undefined
+    rawStoredElements !== undefined &&
+    rawStoredAppState !== undefined &&
+    rawStoredFiles !== undefined
   );
   const isStorageLoadedRef = useRef(false);
   const self            = useSelf();

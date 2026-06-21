@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useTheme } from '../../contexts/ThemeContext';
 
-const GoogleLoginButton = () => {
+const GoogleLoginButton = ({ mode }) => {
   const { isDark } = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -12,7 +12,7 @@ const GoogleLoginButton = () => {
     setError(null);
     try {
       const queryParams = new URLSearchParams(window.location.search);
-      let redirectPath = queryParams.get('redirect') || '/home';
+      let redirectPath = queryParams.get('redirect') || (mode === 'signup' ? '/onboarding' : '/home');
       if (!redirectPath.startsWith('/')) redirectPath = `/${redirectPath}`;
       
       const { error: authError } = await supabase.auth.signInWithOAuth({

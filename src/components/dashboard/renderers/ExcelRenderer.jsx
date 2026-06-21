@@ -23,7 +23,7 @@ export default function ExcelRenderer({ fileUrl }) {
   }, [fileUrl])
 
   return (
-    <div className="bg-gray-100 min-h-full py-10" style={{ background: '#F8FAFC' }}>
+    <div style={{ background: '#F8FAFC', padding: '40px 20px', height: '100%', overflowY: 'auto' }}>
       <div className="max-w-6xl mx-auto" style={{ background: 'white', borderRadius: '24px', padding: '40px', boxShadow: '0 20px 50px rgba(0,0,0,0.05)', border: '1.5px solid #F1F5F9', overflowX: 'auto' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#64748B' }}>Loading Spreadsheet...</div>

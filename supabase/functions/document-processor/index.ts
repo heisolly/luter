@@ -137,16 +137,28 @@ Deno.serve(async (req) => {
     }
     console.log('[EdgeFunction] Storage upload success:', pdfPath)
 
-    const { data: { publicUrl } } = supabase.storage
+    // ─── 5. GENERATE A LONG-LIVED SIGNED URL (10 years) ─────────────────────
+    // The 'materials' bucket is private; getPublicUrl() returns 400.
+    // We use createSignedUrl with a very long expiry so the stored URL works.
+    const TEN_YEARS_SECONDS = 60 * 60 * 24 * 365 * 10 // 315,360,000 s
+    const { data: signedData, error: signError } = await supabase.storage
       .from('materials')
-      .getPublicUrl(pdfPath)
+      .createSignedUrl(pdfPath, TEN_YEARS_SECONDS)
 
-    // ─── 5. UPDATE MATERIALS TABLE ───────────────────────────────────────────
+    if (signError || !signedData?.signedUrl) {
+      console.error('[EdgeFunction] Failed to create signed URL:', signError)
+      throw new Error(`Failed to create signed URL: ${signError?.message}`)
+    }
+
+    const convertedUrl = signedData.signedUrl
+    console.log('[EdgeFunction] Signed URL created successfully')
+
+    // ─── 6. UPDATE MATERIALS TABLE ───────────────────────────────────────────
     console.log(`[Processor] Updating material ${materialId} with converted URL`)
     const { error: updateError } = await supabase
       .from('materials')
       .update({
-        converted_url: publicUrl,
+        converted_url: convertedUrl,
         converted_type: outputType,
         converted_at: new Date().toISOString(),
       })
@@ -156,14 +168,14 @@ Deno.serve(async (req) => {
       console.error('[EdgeFunction] CRITICAL: DB update failed:', updateError)
       throw new Error(`DB update failed: ${updateError.message}`)
     }
-    console.log('[EdgeFunction] DB updated successfully:', publicUrl)
+    console.log('[EdgeFunction] DB updated successfully')
 
-    // ─── 6. MARK JOB COMPLETED ───────────────────────────────────────────────
+    // ─── 7. MARK JOB COMPLETED ───────────────────────────────────────────────
     await supabase
       .from('conversion_jobs')
       .update({
         status: 'completed',
-        output_urls: { converted_url: publicUrl },
+        output_urls: { converted_url: convertedUrl },
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -171,7 +183,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      convertedUrl: publicUrl,
+      convertedUrl,
       materialId,
       fileType,
     }), {

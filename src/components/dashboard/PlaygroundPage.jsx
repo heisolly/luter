@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { playgroundService } from '../../services/playgroundService'
 import { supabase } from '../../supabaseClient'
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService'
+import { usePlanGate } from '../../hooks/usePlanGate'
 import GameLobby from './playground/GameLobby'
 import MatchingGame from './playground/MatchingGame'
 import StackerGame from './playground/StackerGame'
@@ -43,6 +44,7 @@ export default function PlaygroundPage() {
   const { isMobile, user, profile } = useOutletContext()
   const navigate = useNavigate()
   const { roomId } = useParams()
+  const { canMultiplayer, maxFiles, getLockedItemIds } = usePlanGate(profile)
   
   const [activeTab, setActiveTab] = useState('arena') // arena | history
   const [step, setStep] = useState('hub') // hub | quiz-material | clut-menu | clut-material | clut-topic | clut-code | content | game | mode | play
@@ -277,8 +279,10 @@ export default function PlaygroundPage() {
   const filteredMaterials = materials.filter((material) => {
     const q = materialSearch.trim().toLowerCase()
     const name = `${material.title || ''} ${material.file_name || ''} ${material.type || ''}`.toLowerCase()
-    return !q || name.includes(q)
+    return name.includes(q)
   })
+
+  const lockedFiles = getLockedItemIds(materials, maxFiles)
 
   const openMaterialQuiz = (material) => {
     navigate(`/workstation?materialId=${encodeURIComponent(material.id)}&tool=quiz`)
@@ -510,6 +514,7 @@ export default function PlaygroundPage() {
                       materials={filteredMaterials}
                       search={materialSearch}
                       onSearch={setMaterialSearch}
+                      lockedFiles={lockedFiles}
                       onSelect={openMaterialQuiz}
                       emptyAction={() => navigate('/backpack')}
                     />
@@ -543,6 +548,7 @@ export default function PlaygroundPage() {
                       materials={filteredMaterials}
                       search={materialSearch}
                       onSearch={setMaterialSearch}
+                      lockedFiles={lockedFiles}
                       onSelect={(material) => openClutLive({ material })}
                       emptyAction={() => navigate('/backpack')}
                     />
@@ -644,11 +650,15 @@ export default function PlaygroundPage() {
                       />
                       <ModeCard 
                         icon={TeamIcon} 
-                        title="Battle with Friends" 
-                        desc="Create a room and invite friends"
-                        onSelect={() => { setPlayMode('multiplayer'); handleStartGame('multiplayer') }}
-                        color="#16a34a"
-                        disabled={loading}
+                        title={canMultiplayer ? 'Battle with Friends' : '🔒 Battle with Friends'}
+                        desc={canMultiplayer ? 'Create a room and invite friends' : 'Pro & Beast feature — tap to upgrade'}
+                        onSelect={() => {
+                          if (!canMultiplayer) { navigate('/upgrade'); return }
+                          setPlayMode('multiplayer')
+                          handleStartGame('multiplayer')
+                        }}
+                        color={canMultiplayer ? '#16a34a' : '#94a3b8'}
+                        disabled={loading || !canMultiplayer}
                       />
                     </div>
                     {loading && (
@@ -747,30 +757,38 @@ function ArcadeChoiceCard({ icon: Icon, title, desc, color, selected, onClick })
   )
 }
 
-function MaterialPickPanel({ title, subtitle, materials, search, onSearch, onSelect, emptyAction }) {
+function MaterialPickPanel({ title, subtitle, materials, search, onSearch, onSelect, lockedFiles = new Set(), emptyAction }) {
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto', background: 'white', borderRadius: 28, border: '1px solid #e2e8f0', padding: 24, boxShadow: '0 24px 80px rgba(15,23,42,0.10)' }}>
-      <div style={{ textAlign: 'center', marginBottom: 22 }}>
-        <h2 style={{ margin: 0, fontSize: 24, color: '#0f172a', fontWeight: 950 }}>{title}</h2>
-        <p style={{ margin: '8px auto 0', color: '#64748b', fontWeight: 650, maxWidth: 520 }}>{subtitle}</p>
+    <div style={{ maxWidth: 600, margin: '0 auto', width: '100%', background: 'white', borderRadius: 24, boxShadow: '0 12px 40px rgba(15,23,42,0.06)', overflow: 'hidden' }}>
+      <div style={{ padding: 24, borderBottom: '1px solid #e2e8f0' }}>
+        <h2 style={{ fontSize: 24, fontWeight: 900, marginBottom: 8, color: '#0f172a' }}>{title}</h2>
+        <p style={{ color: '#64748b', fontWeight: 650, margin: 0 }}>{subtitle}</p>
+        <div style={{ marginTop: 20, position: 'relative' }}>
+          <Folder style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={20} />
+          <input
+            value={search}
+            onChange={e => onSearch(e.target.value)}
+            placeholder="Search materials"
+            style={{ width: '100%', padding: '14px 16px 14px 44px', borderRadius: 16, border: '2px solid #e2e8f0', outline: 'none', fontWeight: 700, color: '#0f172a' }}
+          />
+        </div>
       </div>
-      <input
-        value={search}
-        onChange={(event) => onSearch(event.target.value)}
-        placeholder="Search materials"
-        style={{ width: '100%', height: 52, border: '3px solid #3b82f6', borderRadius: 999, padding: '0 18px', fontSize: 15, fontWeight: 650, outline: 'none', marginBottom: 18 }}
-      />
-      <div style={{ border: '1px solid #e2e8f0', borderRadius: 18, overflow: 'hidden', maxHeight: 420, overflowY: 'auto' }}>
-        {materials.length ? materials.map((material) => (
-          <button key={material.id} onClick={() => onSelect(material)} style={{ width: '100%', border: 'none', borderBottom: '1px solid #e2e8f0', background: 'white', padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer', textAlign: 'left' }}>
-            <span style={{ width: 46, height: 46, borderRadius: 16, background: '#f1f5f9', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Folder size={24} /></span>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <strong style={{ display: 'block', color: '#0f172a', fontSize: 16, fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{material.title || material.file_name || 'Untitled material'}</strong>
-              <span style={{ color: '#64748b', fontWeight: 650, fontSize: 13 }}>{material.type || 'material'} {material.extracted_text ? '• ready' : '• needs text'}</span>
-            </span>
-            <CaretRight size={22} weight="bold" color="#334155" />
-          </button>
-        )) : (
+      <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+        {materials.length ? materials.map((material) => {
+          const isLocked = lockedFiles.has(material.id)
+          return (
+            <button key={material.id} onClick={() => !isLocked && onSelect(material)} style={{ width: '100%', border: 'none', borderBottom: '1px solid #e2e8f0', background: 'white', padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16, cursor: isLocked ? 'not-allowed' : 'pointer', textAlign: 'left', opacity: isLocked ? 0.6 : 1 }}>
+              <div style={{ width: 44, height: 44, background: '#f1f5f9', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', flexShrink: 0 }}>
+                <Folder size={24} weight="duotone" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <strong style={{ display: 'block', color: '#0f172a', fontSize: 16, fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{material.title || material.file_name || 'Untitled material'}</strong>
+                <span style={{ color: '#64748b', fontWeight: 650, fontSize: 13 }}>{material.type || 'material'} {material.extracted_text ? '• ready' : '• needs text'}</span>
+              </div>
+              {isLocked ? <span style={{ fontSize: 13 }}>🔒</span> : <ArrowLeft style={{ color: '#cbd5e1', transform: 'rotate(180deg)' }} size={20} />}
+            </button>
+          )
+        }) : (
           <div style={{ padding: 36, textAlign: 'center' }}>
             <Folder size={42} color="#94a3b8" />
             <h3 style={{ margin: '12px 0 6px', color: '#0f172a' }}>No materials found</h3>

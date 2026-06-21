@@ -1648,6 +1648,14 @@ function WorkstationQuizRedesign({ quiz = [], items = [], material, onComplete, 
               <div className="lq-stat mint"><span>Correct</span><strong>{score}</strong></div>
               <div className="lq-stat peach"><span>Review</span><strong>{Math.max(0, safeQuestions.length - score)}</strong></div>
             </div>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', margin: '20px 0' }}>
+              <div style={{ padding: '8px 16px', background: '#F5F3FF', border: '1.5px solid #C4B5FD', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, color: '#7a12cc', fontSize: 14 }}>
+                ⚡ +{score * 10 + 20} XP
+              </div>
+              <div style={{ padding: '8px 16px', background: '#FFFBEB', border: '1.5px solid #FCD34D', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, color: '#D97706', fontSize: 14 }}>
+                🪙 +{score * 2 + 5} Coins
+              </div>
+            </div>
             <div className="lq-actions" style={{ justifyContent: 'center' }}>
               <button type="button" className="lq-btn primary" onClick={() => resetQuiz(quizType)}><ArrowsClockwise size={18} weight="bold" /> Retry</button>
               <button type="button" className="lq-btn" onClick={() => setMode('home')}><CaretLeft size={18} weight="bold" /> Dashboard</button>

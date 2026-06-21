@@ -1856,6 +1856,8 @@ export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSh
       .eq('user_id', user.id)
       .maybeSingle()
       .then(({ data, error }) => {
+        if (!editor || editor.isDestroyed) return
+
         if (error) {
           console.error('Error loading note from Supabase:', error)
           supabaseNoteReadyRef.current = true
@@ -1888,6 +1890,7 @@ export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSh
 
     const flushSave = () => {
       clearTimeout(saveTimeoutRef.current)
+      if (editor.isDestroyed) return
       latestHtmlRef.current = editor.getHTML()
       rememberLocalNote(latestHtmlRef.current)
       saveToSupabase(latestHtmlRef.current)
@@ -1908,7 +1911,7 @@ export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSh
 
   // Save when metadata changes
   useEffect(() => {
-    if (editor) {
+    if (editor && !editor.isDestroyed) {
        latestHtmlRef.current = editor.getHTML()
        rememberLocalNote(latestHtmlRef.current)
        clearTimeout(saveTimeoutRef.current)
@@ -1920,7 +1923,7 @@ export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSh
   
   const [isSaving, setIsSaving] = useState(false)
   const handleManualSave = async () => {
-    if (!editor) return
+    if (!editor || editor.isDestroyed) return
     setIsSaving(true)
     const html = editor.getHTML()
     latestHtmlRef.current = html
