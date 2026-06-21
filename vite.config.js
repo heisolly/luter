@@ -200,6 +200,7 @@ export default defineConfig(async ({ mode }) => {
     build: {
       modulePreload: false,
       rollupOptions: {
+        external: ['@e2b/code-interpreter'],
         output: {
           manualChunks: {
             'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],

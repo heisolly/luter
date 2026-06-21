@@ -5,7 +5,6 @@ import { RiArrowLeftSLine as ChevronLeft, RiArrowRightSLine as ChevronRight } fr
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 
-
 export default function StreakPage() {
   const { user, isMobile } = useOutletContext()
   const { ready, bundle } = useDashboardPrefetch()

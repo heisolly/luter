@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /**
  * ArcadeOverlay — Luter brand redesign
  * Visual language: Sidebar (sb-*) + Sessions (sr-*) CSS vars
@@ -10,7 +11,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X, ArrowLeft, CaretRight, MagnifyingGlass,
-  Sparkle, Hash, Folder, Lock,
+  Sparkle, Hash, Folder, Lock, Lightning, Brain,
 } from '@phosphor-icons/react'
 import { RiGamepadFill as Gamepad } from 'react-icons/ri'
 import { supabase } from '../../supabaseClient'
@@ -18,6 +19,7 @@ import { playgroundService } from '../../services/playgroundService'
 import { callGroqAPI, GROQ_MODELS } from '../../groqClient'
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService'
 import { usePlanGate } from '../../hooks/usePlanGate'
+import './arcade.css'
 
 /* ────────────────────────────────────────────────────────────────── */
 /*  AI question generation using Groq directly (bypasses broken      */
@@ -69,51 +71,62 @@ CRITICAL: Output ONLY valid JSON. No markdown, no extra text.
 
 /** Large hub card — mascot emoji, brand accent border */
 function HubCard({ emoji, title, desc, accentColor, badge, selected, onClick }) {
+  const glowColor = `${accentColor}25`
   return (
     <motion.button
       type="button"
+      whileHover={{ y: -4 }}
       whileTap={{ scale: 0.96 }}
       onClick={onClick}
+      className="arcade-glass-card"
       style={{
         flex: 1, minWidth: 0,
-        background: selected ? `${accentColor}12` : 'var(--sb-surface,#fff)',
-        border: `2.5px solid ${selected ? accentColor : 'var(--sb-border,#E5E7EB)'}`,
-        borderRadius: 22,
-        cursor: 'pointer',
-        padding: '26px 14px 22px',
+        background: selected ? `${accentColor}06` : undefined,
+        border: `2px solid ${selected ? accentColor : 'var(--arcade-card-border)'}`,
+        padding: '24px 12px 18px',
         display: 'flex', flexDirection: 'column',
-        alignItems: 'center', gap: 10,
+        alignItems: 'center', gap: 8,
         textAlign: 'center',
-        boxShadow: selected ? `0 0 0 4px ${accentColor}20` : 'none',
-        transition: 'border-color 0.18s, box-shadow 0.18s, background 0.18s',
+        boxShadow: selected ? `0 8px 24px -4px ${glowColor}` : 'none',
         position: 'relative',
         fontFamily: "'Outfit','Outfit',system-ui,sans-serif",
       }}
-      onMouseEnter={e => { if (!selected) e.currentTarget.style.borderColor = accentColor }}
-      onMouseLeave={e => { if (!selected) e.currentTarget.style.borderColor = 'var(--sb-border,#E5E7EB)' }}
+      onMouseEnter={e => {
+        if (!selected) {
+          e.currentTarget.style.borderColor = accentColor
+          e.currentTarget.style.boxShadow = `0 12px 30px -10px ${glowColor}`
+        }
+      }}
+      onMouseLeave={e => {
+        if (!selected) {
+          e.currentTarget.style.borderColor = 'var(--arcade-card-border)'
+          e.currentTarget.style.boxShadow = 'none'
+        }
+      }}
     >
       {badge && (
         <span style={{
           position: 'absolute', top: 10, right: 10,
           background: accentColor, color: '#fff',
-          fontSize: 9, fontWeight: 800, letterSpacing: '0.06em',
+          fontSize: 8.5, fontWeight: 900, letterSpacing: '0.06em',
           textTransform: 'uppercase', padding: '2px 7px', borderRadius: 9999,
         }}>
           {badge}
         </span>
       )}
-      <span style={{ fontSize: 52, lineHeight: 1, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.12))' }}>
+      <span style={{ fontSize: 44, lineHeight: 1, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.08))', marginBottom: 6 }}>
         {emoji}
       </span>
-      <strong style={{ color: 'var(--sb-text,#0F172A)', fontSize: 15, fontWeight: 800, letterSpacing: '-0.01em' }}>
+      <strong style={{ color: 'var(--arcade-text-primary)', fontSize: 14.5, fontWeight: 850, letterSpacing: '-0.01em' }}>
         {title}
       </strong>
-      <span style={{ color: 'var(--sb-text-muted,#475569)', fontSize: 12, fontWeight: 600, lineHeight: 1.45 }}>
+      <span style={{ color: 'var(--arcade-text-secondary)', fontSize: 11.5, fontWeight: 600, lineHeight: 1.45 }}>
         {desc}
       </span>
     </motion.button>
   )
 }
+
 
 /** Row inside a sub-menu (Sessions-style) */
 function MenuRow({ emoji, iconBg, title, desc, onClick }) {
@@ -124,12 +137,12 @@ function MenuRow({ emoji, iconBg, title, desc, onClick }) {
         width: '100%', display: 'flex', alignItems: 'center', gap: 14,
         padding: '15px 18px', border: 'none',
         background: 'transparent',
-        borderBottom: '1px solid var(--sb-border-subtle,#F3F4F6)',
+        borderBottom: '1px solid var(--arcade-border-subtle)',
         cursor: 'pointer', textAlign: 'left',
         transition: 'background 0.13s',
         fontFamily: "'Outfit','Outfit',system-ui,sans-serif",
       }}
-      onMouseEnter={e => e.currentTarget.style.background = 'var(--sb-border-subtle,#F9FAFB)'}
+      onMouseEnter={e => e.currentTarget.style.background = 'var(--arcade-inner-bg)'}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
     >
       <div style={{
@@ -140,8 +153,8 @@ function MenuRow({ emoji, iconBg, title, desc, onClick }) {
         {emoji}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--sb-text,#0F172A)' }}>{title}</div>
-        <div style={{ fontWeight: 500, fontSize: 12, color: 'var(--sb-text-muted,#475569)' }}>{desc}</div>
+        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--arcade-text-primary)' }}>{title}</div>
+        <div style={{ fontWeight: 500, fontSize: 12, color: 'var(--arcade-text-secondary)' }}>{desc}</div>
       </div>
       <CaretRight size={16} color="#C4B5FD" weight="bold" />
     </button>
@@ -157,25 +170,25 @@ function MaterialList({ materials, search, onSearch, onSelect, lockedFiles = new
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       <div style={{ position: 'relative', marginBottom: 12 }}>
-        <MagnifyingGlass size={15} color="#9CA3AF"
+        <MagnifyingGlass size={15} color="var(--arcade-text-muted)"
           style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
         <input
           value={search} onChange={e => onSearch(e.target.value)}
           placeholder="Search materials…" autoFocus
           style={{
             width: '100%', height: 40, padding: '0 12px 0 34px',
-            border: '1.5px solid var(--sb-border,#E5E7EB)', borderRadius: 12,
+            border: '1.5px solid var(--arcade-card-border)', borderRadius: 12,
             fontSize: 13, fontWeight: 500, outline: 'none', boxSizing: 'border-box',
-            fontFamily: "'Outfit','Outfit',sans-serif", color: 'var(--sb-text,#0F172A)',
-            background: 'var(--sb-surface,#fff)',
+            fontFamily: "'DM Sans','Inter',sans-serif", color: 'var(--arcade-text-primary)',
+            background: 'var(--arcade-inner-bg)',
           }}
           onFocus={e => e.target.style.borderColor = '#C4B5FD'}
-          onBlur={e => e.target.style.borderColor = 'var(--sb-border,#E5E7EB)'}
+          onBlur={e => e.target.style.borderColor = 'var(--arcade-card-border)'}
         />
       </div>
-      <div style={{ border: '1px solid var(--sb-border,#E5E7EB)', borderRadius: 14, overflow: 'hidden', maxHeight: 240, overflowY: 'auto' }}>
+      <div style={{ border: '1px solid var(--arcade-card-border)', borderRadius: 14, overflow: 'hidden', maxHeight: 240, overflowY: 'auto' }}>
         {filtered.length === 0 ? (
-          <div style={{ padding: '28px 16px', textAlign: 'center', color: '#94A3B8', fontSize: 13, fontWeight: 600 }}>
+          <div style={{ padding: '28px 16px', textAlign: 'center', color: 'var(--arcade-text-muted)', fontSize: 13, fontWeight: 600 }}>
             No materials — upload one in Backpack
           </div>
         ) : filtered.map(m => {
@@ -184,14 +197,14 @@ function MaterialList({ materials, search, onSearch, onSelect, lockedFiles = new
             <button key={m.id} onClick={() => !isLocked && onSelect(m)}
               style={{
                 width: '100%', padding: '12px 16px', border: 'none',
-                borderBottom: '1px solid #F3F4F6', background: 'transparent',
+                borderBottom: '1px solid var(--arcade-border-subtle)', background: 'transparent',
                 textAlign: 'left', cursor: isLocked ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600,
-                color: 'var(--sb-text,#0F172A)', transition: 'background 0.12s',
+                color: 'var(--arcade-text-primary)', transition: 'background 0.12s',
                 display: 'flex', alignItems: 'center', gap: 8,
                 fontFamily: "'Outfit','Outfit',sans-serif",
                 opacity: isLocked ? 0.5 : 1,
               }}
-              onMouseEnter={e => { if (!isLocked) e.currentTarget.style.background = '#F5F3FF' }}
+              onMouseEnter={e => { if (!isLocked) e.currentTarget.style.background = 'var(--arcade-inner-bg)' }}
               onMouseLeave={e => { if (!isLocked) e.currentTarget.style.background = 'transparent' }}
             >
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -215,19 +228,19 @@ function TextAction({ value, onChange, placeholder, onSubmit, loading, btnLabel 
         onKeyDown={e => e.key === 'Enter' && value.trim() && !loading && onSubmit()}
         placeholder={placeholder}
         style={{
-          height: 48, border: '2px solid var(--sb-border,#E5E7EB)', borderRadius: 14,
+          height: 48, border: '2px solid var(--arcade-card-border)', borderRadius: 14,
           padding: '0 16px', fontSize: 15, fontWeight: 600, outline: 'none',
-          fontFamily: "'Outfit','Outfit',sans-serif", color: 'var(--sb-text,#0F172A)',
-          background: 'var(--sb-surface,#fff)', transition: 'border-color 0.15s',
+          fontFamily: "'DM Sans','Inter',sans-serif", color: 'var(--arcade-text-primary)',
+          background: 'var(--arcade-inner-bg)', transition: 'border-color 0.15s',
         }}
         onFocus={e => e.target.style.borderColor = '#C4B5FD'}
-        onBlur={e => e.target.style.borderColor = 'var(--sb-border,#E5E7EB)'}
+        onBlur={e => e.target.style.borderColor = 'var(--arcade-card-border)'}
       />
       <button
         onClick={onSubmit} disabled={!value.trim() || loading}
         style={{
-          height: 50, background: !value.trim() || loading ? '#E5E7EB' : btnColor,
-          color: !value.trim() || loading ? '#9CA3AF' : '#fff',
+          height: 50, background: !value.trim() || loading ? 'var(--arcade-border-subtle)' : btnColor,
+          color: !value.trim() || loading ? 'var(--arcade-text-muted)' : '#fff',
           border: 'none', borderRadius: 14, fontWeight: 800, fontSize: 15,
           cursor: !value.trim() || loading ? 'not-allowed' : 'pointer',
           fontFamily: "'Outfit','Outfit',sans-serif", transition: 'background 0.15s',
@@ -275,6 +288,15 @@ export default function ArcadeOverlay({ onClose, user }) {
   const [toast, setToast]         = useState(null)
 
   const lockedFiles = getLockedItemIds(materials, maxFiles)
+  const [streak, setStreak]       = useState(0)
+  const [history, setHistory]     = useState([])
+  const [isMobile, setIsMobile]   = useState(window.innerWidth <= 768)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // Esc close
   useEffect(() => {
@@ -283,7 +305,7 @@ export default function ArcadeOverlay({ onClose, user }) {
     return () => window.removeEventListener('keydown', fn)
   }, [onClose])
 
-  // Fetch user's materials
+  // Fetch user's materials and stats
   useEffect(() => {
     if (!user?.id) return
     supabase
@@ -294,7 +316,48 @@ export default function ArcadeOverlay({ onClose, user }) {
       .order('created_at', { ascending: false })
       .limit(40)
       .then(({ data }) => { if (data) setMaterials(data) })
+
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => { if (data) setProfile(data) })
+
+    supabase
+      .from('user_stats')
+      .select('streak_days')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setStreak(data.streak_days || 0) })
+
+    supabase
+      .from('playground_sessions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => { if (data) setHistory(data) })
   }, [user?.id])
+
+  const totalXP = history.reduce((sum, h) => sum + (h.score || 0), 0)
+
+  const getLevelAndProgress = (xp) => {
+    const level = Math.floor(Math.sqrt(xp / 100)) + 1
+    const xpForCurrentLevel = 100 * (level - 1) * (level - 1)
+    const xpForNextLevel = 100 * level * level
+    const progress = xpForNextLevel === xpForCurrentLevel ? 0 : ((xp - xpForCurrentLevel) / (xpForNextLevel - xpForCurrentLevel)) * 100
+    return { level, progress, nextXP: xpForNextLevel, currentXP: xp }
+  }
+
+  const getScholarRank = (lvl) => {
+    if (lvl <= 1) return 'Novice Scholar'
+    if (lvl === 2) return 'Apprentice Scholar'
+    if (lvl === 3) return 'Academic Practitioner'
+    if (lvl === 4) return 'Active Researcher'
+    if (lvl === 5) return 'Expert Mind'
+    if (lvl >= 6) return 'Grandmaster Scholar'
+    return 'Luter Scholar'
+  }
 
   const flash = (msg, type = 'error') => {
     setToast({ msg, type })
@@ -386,62 +449,106 @@ export default function ArcadeOverlay({ onClose, user }) {
   /* ── Content per step ── */
   const renderContent = () => {
     /* ── HUB ── */
-    if (step === 'hub') return (
-      <motion.div key="hub" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-        {/* Mascot + heading */}
-        <div style={{ textAlign: 'center', marginBottom: 22 }}>
-          <img
-            src="/mascot.png" alt="Luter mascot"
-            style={{ width: 72, height: 72, marginBottom: 8, filter: 'drop-shadow(0 4px 12px rgba(124,58,237,0.2))', animation: 'ao-float 4s ease-in-out infinite' }}
-            onError={e => { e.target.style.display = 'none' }}
-          />
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--sb-text,#0F172A)', letterSpacing: '-0.025em' }}>
-            How do you want to study?
-          </h2>
-        </div>
-
-        {/* Cards */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 18 }}>
-          {HUB.map(c => {
-            const isLocked = !canMultiplayer && (c.id === 'clut' || c.id === 'heist')
-            return (
-              <HubCard
-                key={c.id}
-                emoji={isLocked ? '🔒' : c.emoji}
-                title={c.title}
-                desc={isLocked ? 'Pro feature' : c.desc}
-                accentColor={isLocked ? '#94a3b8' : c.accent}
-                badge={isLocked ? 'PRO' : c.badge}
-                selected={selected === c.id}
-                onClick={() => setSelected(c.id)}
+    if (step === 'hub') {
+      const { level, progress, nextXP, currentXP } = getLevelAndProgress(totalXP)
+      return (
+        <motion.div key="hub" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '200px 1fr', gap: 20 }}>
+          {/* Left Column: Scholar mini bento profile card */}
+          <div className="arcade-glass-card" style={{ padding: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 12, background: 'rgba(255,255,255,0.4)', justifyContent: 'center' }}>
+            <div className="xp-avatar-container" style={{ width: 68, height: 68, marginBottom: 4 }}>
+              <svg className="xp-ring-svg" viewBox="0 0 80 80">
+                <circle className="xp-ring-bg" cx="40" cy="40" r="36" />
+                <circle 
+                  className="xp-ring-fill" 
+                  cx="40" 
+                  cy="40" 
+                  r="36" 
+                  stroke="#7c3aed"
+                  strokeDasharray={`${2 * Math.PI * 36}`}
+                  strokeDashoffset={`${2 * Math.PI * 36 * (1 - progress / 100)}`}
+                />
+              </svg>
+              <img 
+                className="xp-avatar-img" 
+                src={profile?.avatar_url || '/mascot.png'} 
+                alt={profile?.username || 'User avatar'} 
+                onError={(e) => { e.target.src = '/mascot.png' }}
+                style={{ width: 54, height: 54 }}
               />
-            )
-          })}
-        </div>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <strong style={{ fontSize: 14.5, color: 'var(--sb-text,#0F172A)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
+                {profile?.username ? `@${profile.username}` : user?.email?.split('@')[0] || 'Scholar'}
+              </strong>
+              <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: 'rgba(124, 58, 237, 0.08)', color: '#7c3aed', width: 'fit-content', margin: '2px auto' }}>
+                Lvl {level}
+              </span>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary,#64748b)', fontWeight: 650 }}>
+                {getScholarRank(level)}
+              </p>
+            </div>
 
-        {/* CTA */}
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={handleStart}
-          style={{
-            width: '100%', height: 54,
-            background: accentColor === '#22C55E'
-              ? 'linear-gradient(135deg, #22C55E, #16A34A)'
-              : accentColor === '#F59E0B'
-                ? 'linear-gradient(135deg, #F59E0B, #D97706)'
-                : 'linear-gradient(135deg, #7C3AED, #6D28D9)',
-            color: '#fff', border: 'none', borderRadius: 16,
-            fontWeight: 800, fontSize: 16, cursor: 'pointer',
-            fontFamily: "'Outfit','Outfit',sans-serif",
-            letterSpacing: '-0.01em',
-            boxShadow: `0 8px 24px ${accentColor}40`,
-            transition: 'box-shadow 0.2s',
-          }}
-        >
-          Start learning →
-        </motion.button>
-      </motion.div>
-    )
+            <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle, rgba(226, 232, 240, 0.5))', width: '100%', margin: '2px 0' }} />
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: 'var(--text-secondary, #475569)' }}>
+                <Sparkle size={14} weight="fill" style={{ color: '#ea580c' }} />
+                <span>{streak} day streak</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: 'var(--text-secondary, #475569)' }}>
+                <Lightning size={14} weight="fill" style={{ color: '#16a34a' }} />
+                <span style={{ fontSize: 11 }}>{(profile?.credits ?? 20000).toLocaleString()} Creds</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Grid and Actions */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Grid of options */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {HUB.map(c => {
+                const isLocked = !canMultiplayer && (c.id === 'clut' || c.id === 'heist')
+                return (
+                  <HubCard
+                    key={c.id}
+                    emoji={isLocked ? '🔒' : c.emoji}
+                    title={c.title}
+                    desc={isLocked ? 'Pro feature' : c.desc}
+                    accentColor={isLocked ? '#94a3b8' : c.accent}
+                    badge={isLocked ? 'PRO' : c.badge}
+                    selected={selected === c.id}
+                    onClick={() => setSelected(c.id)}
+                  />
+                )
+              })}
+            </div>
+
+            {/* CTA */}
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={handleStart}
+              style={{
+                width: '100%', height: 48,
+                background: accentColor === '#22C55E'
+                  ? 'linear-gradient(135deg, #22C55E, #16A34A)'
+                  : accentColor === '#F59E0B'
+                    ? 'linear-gradient(135deg, #F59E0B, #D97706)'
+                    : 'linear-gradient(135deg, #7C3AED, #6D28D9)',
+                color: '#fff', border: 'none', borderRadius: 14,
+                fontWeight: 800, fontSize: 14.5, cursor: 'pointer',
+                fontFamily: "'DM Sans','Inter',sans-serif",
+                letterSpacing: '-0.01em',
+                boxShadow: `0 8px 24px ${accentColor}40`,
+                transition: 'box-shadow 0.2s',
+              }}
+            >
+              Start learning →
+            </motion.button>
+          </div>
+        </motion.div>
+      )
+    }
 
     /* ── MEMORIZE ── */
     if (step === 'memorize') return (
@@ -573,17 +680,15 @@ export default function ArcadeOverlay({ onClose, user }) {
           exit={{ opacity: 0, scale: 0.91, y: 24 }}
           transition={{ type: 'spring', stiffness: 380, damping: 28 }}
           onClick={e => e.stopPropagation()}
-          style={{
-            background: 'var(--sb-surface,#fff)',
-            border: '1px solid var(--sb-border,#E5E7EB)',
-            borderRadius: 28,
-            padding: '24px 24px 22px',
-            width: '100%', maxWidth: isHub ? 580 : 480,
-            boxShadow: '0 32px 80px rgba(15,23,42,0.22)',
-            fontFamily: "'Outfit','Outfit',system-ui,sans-serif",
-            transition: 'max-width 0.25s ease',
-          }}
+            className="arcade-glass-card"
+            style={{
+              padding: '24px 24px 22px',
+              width: '100%', maxWidth: isHub ? 640 : 480,
+              fontFamily: "'DM Sans','Inter',system-ui,sans-serif",
+              transition: 'max-width 0.25s ease',
+            }}
         >
+
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
