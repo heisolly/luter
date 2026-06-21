@@ -194,7 +194,7 @@ export default function UpgradePage() {
             amount: cycle.amount,
             email: user.email,
             currency: 'NGN',
-            callback_url: `${window.location.origin}/dashboard/payment/success`,
+            callback_url: `${window.location.origin}/payment/success`,
           }),
         }
       )
@@ -219,7 +219,7 @@ export default function UpgradePage() {
         metadata: { plan_id: cycle.paystackPlanId || planId, user_id: user.id, source: 'upgrade_page' },
         onSuccess: () => {
           setSubmitting(null)
-          navigate(`/dashboard/payment/success?reference=${data.reference}`)
+          navigate(`/payment/success?reference=${data.reference}`)
         },
         onCancel: () => {
           setSubmitting(null)

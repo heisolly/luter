@@ -11,7 +11,7 @@
   min-height: 100dvh;
   background: var(--sb-bg, #FFFFFF);
   color: var(--sb-text, #0F172A);
-  font-family: 'DM Sans', 'Inter', system-ui, sans-serif;
+  font-family: 'Outfit', 'Outfit', system-ui, sans-serif;
 }
 
 /* ── Top Bar ────────────────────────────────────────────────────── */
@@ -54,7 +54,7 @@
   border: none;
   padding: 10px 20px;
   border-radius: 14px;
-  font-family: 'DM Sans', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Outfit', sans-serif;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
@@ -97,7 +97,7 @@
   background: none;
   border: none;
   color: var(--sb-text-muted, #475569);
-  font-family: 'DM Sans', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Outfit', sans-serif;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -360,7 +360,7 @@
   border: none;
   border-radius: 10px;
   background: transparent;
-  font-family: 'DM Sans', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Outfit', sans-serif;
   font-size: 13px;
   font-weight: 500;
   color: var(--sb-text, #0F172A);

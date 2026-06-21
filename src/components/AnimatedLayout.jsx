@@ -23,14 +23,6 @@ export default function AnimatedLayout({ children, title, subtitle }) {
           <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.03em', fontFamily: 'var(--font-display)', color: '#111' }}>Luter</span>
         </Link>
 
-        <div className="hidden md:flex" style={{ gap: 32, fontSize: 14, fontWeight: 600, color: '#555' }}>
-          {[['Features','/features'],['How it works','/how-it-works'],['Pricing','/pricing'],['About','/about']].map(([l,p]) => (
-            <Link key={l} to={p} style={{ transition: 'color 0.2s', color: location.pathname === p ? '#111' : '#555', textDecoration: 'none' }}
-              onMouseEnter={e => e.target.style.color='#000'}
-              onMouseLeave={e => e.target.style.color= location.pathname === p ? '#111' : '#555'}>{l}</Link>
-          ))}
-        </div>
-
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button className="btn-primary" style={{ padding: '10px 20px', fontSize: 14 }}>
             Get Started <ArrowRight style={{ width: 15, height: 15 }} />

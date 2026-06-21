@@ -131,7 +131,7 @@ export default function PlaygroundPage() {
         .single()
       
       if (error || !roomData) {
-        navigate('/dashboard/compete')
+        navigate('/compete')
         return
       }
 
@@ -141,7 +141,7 @@ export default function PlaygroundPage() {
       await playgroundService.joinRoom(id, user.id)
       fetchParticipants(id)
     } catch (e) {
-      navigate('/dashboard/compete')
+      navigate('/compete')
     } finally {
       setLoading(false)
     }
@@ -252,7 +252,7 @@ export default function PlaygroundPage() {
       }
       
       // MOVE TO SESSION URL
-      navigate(`/dashboard/playground/${newRoom.id}`)
+      navigate(`/playground/${newRoom.id}`)
     } catch (error) {
       console.error("Failed to start game:", error)
       showToast("Error setting up game. Please try again.", "error")
@@ -268,7 +268,7 @@ export default function PlaygroundPage() {
       return
     }
     if (roomId) {
-      navigate('/dashboard/compete')
+      navigate('/compete')
     } else if (['quiz-material', 'clut-menu'].includes(step)) setStep('hub')
     else if (['clut-material', 'clut-topic', 'clut-code'].includes(step)) setStep('clut-menu')
     else if (step === 'mode') setStep('game')
@@ -284,7 +284,7 @@ export default function PlaygroundPage() {
   })
 
   const openMaterialQuiz = (material) => {
-    navigate(`/dashboard/workstation?materialId=${encodeURIComponent(material.id)}&tool=quiz`)
+    navigate(`/workstation?materialId=${encodeURIComponent(material.id)}&tool=quiz`)
   }
 
   const createClutCode = () => String(Math.floor(100000000 + Math.random() * 900000000))
@@ -684,7 +684,7 @@ export default function PlaygroundPage() {
                       search={materialSearch}
                       onSearch={setMaterialSearch}
                       onSelect={openMaterialQuiz}
-                      emptyAction={() => navigate('/dashboard/backpack')}
+                      emptyAction={() => navigate('/backpack')}
                     />
                   </motion.div>
                 )}
@@ -717,7 +717,7 @@ export default function PlaygroundPage() {
                       search={materialSearch}
                       onSearch={setMaterialSearch}
                       onSelect={(material) => openClutLive({ material })}
-                      emptyAction={() => navigate('/dashboard/backpack')}
+                      emptyAction={() => navigate('/backpack')}
                     />
                   </motion.div>
                 )}
@@ -785,7 +785,7 @@ export default function PlaygroundPage() {
                           selected={selectedGame === game.id}
                           onSelect={() => {
                             if (game.isHeist) {
-                              navigate('/dashboard/heist')
+                              navigate('/heist')
                               return
                             }
                             setSelectedGame(game.id)

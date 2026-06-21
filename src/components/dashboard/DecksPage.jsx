@@ -285,13 +285,13 @@ export default function DecksPage() {
   // ── Navigation ─────────────────────────────────────────────────
   const openDeck = (item) => {
     // Navigate to workstation — the correct existing route
-    navigate('/dashboard/workstation', {
+    navigate('/workstation', {
       state: { openFlashcard: item.id, materialId: item.material_id },
     })
   }
 
   const openQuiz = (item) => {
-    navigate('/dashboard/workstation', {
+    navigate('/workstation', {
       state: { openQuiz: item.id, materialId: item.material_id },
     })
   }
@@ -322,7 +322,7 @@ export default function DecksPage() {
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-          <button className="dk-cta-btn" onClick={() => navigate('/dashboard/workstation')}>
+          <button className="dk-cta-btn" onClick={() => navigate('/workstation')}>
             <Plus size={15} weight="bold" />
             Generate
           </button>
@@ -402,7 +402,7 @@ export default function DecksPage() {
             <EmptyState
               tab={tab}
               search={search}
-              onGenerate={() => navigate('/dashboard/workstation')}
+              onGenerate={() => navigate('/workstation')}
             />
           </div>
         ) : (

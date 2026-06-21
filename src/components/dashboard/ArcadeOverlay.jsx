@@ -89,7 +89,7 @@ function HubCard({ emoji, title, desc, accentColor, badge, selected, onClick }) 
         textAlign: 'center',
         boxShadow: selected ? `0 8px 24px -4px ${glowColor}` : 'none',
         position: 'relative',
-        fontFamily: "'DM Sans','Inter',system-ui,sans-serif",
+        fontFamily: "'Outfit','Outfit',system-ui,sans-serif",
       }}
       onMouseEnter={e => {
         if (!selected) {
@@ -140,7 +140,7 @@ function MenuRow({ emoji, iconBg, title, desc, onClick }) {
         borderBottom: '1px solid var(--arcade-border-subtle)',
         cursor: 'pointer', textAlign: 'left',
         transition: 'background 0.13s',
-        fontFamily: "'DM Sans','Inter',system-ui,sans-serif",
+        fontFamily: "'Outfit','Outfit',system-ui,sans-serif",
       }}
       onMouseEnter={e => e.currentTarget.style.background = 'var(--arcade-inner-bg)'}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -199,7 +199,7 @@ function MaterialList({ materials, search, onSearch, onSelect }) {
               textAlign: 'left', cursor: 'pointer', fontSize: 13, fontWeight: 600,
               color: 'var(--arcade-text-primary)', transition: 'background 0.12s',
               display: 'flex', alignItems: 'center', gap: 8,
-              fontFamily: "'DM Sans','Inter',sans-serif",
+              fontFamily: "'Outfit','Outfit',sans-serif",
             }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--arcade-inner-bg)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -239,7 +239,7 @@ function TextAction({ value, onChange, placeholder, onSubmit, loading, btnLabel 
           color: !value.trim() || loading ? 'var(--arcade-text-muted)' : '#fff',
           border: 'none', borderRadius: 14, fontWeight: 800, fontSize: 15,
           cursor: !value.trim() || loading ? 'not-allowed' : 'pointer',
-          fontFamily: "'DM Sans','Inter',sans-serif", transition: 'background 0.15s',
+          fontFamily: "'Outfit','Outfit',sans-serif", transition: 'background 0.15s',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}
       >
@@ -355,13 +355,13 @@ export default function ArcadeOverlay({ onClose, user }) {
   const handleStart = () => {
     if (selected === 'memorize') { setStep('memorize'); return }
     if (selected === 'clut')     { setStep('clut-menu'); return }
-    if (selected === 'heist')    { navigate('/dashboard/heist'); onClose(); return }
-    if (selected === 'games')    { navigate('/dashboard/compete?step=content'); onClose(); return }
+    if (selected === 'heist')    { navigate('/heist'); onClose(); return }
+    if (selected === 'games')    { navigate('/compete?step=content'); onClose(); return }
   }
 
   /* ── Memorize ── */
   const openMemorize = m => {
-    navigate(`/dashboard/workstation?materialId=${encodeURIComponent(m.id)}&tool=quiz`)
+    navigate(`/workstation?materialId=${encodeURIComponent(m.id)}&tool=quiz`)
     onClose()
   }
 
@@ -547,7 +547,7 @@ export default function ArcadeOverlay({ onClose, user }) {
             padding: '9px 22px', borderRadius: 999,
             border: '2.5px solid #F59E0B',
             color: '#0F172A', fontWeight: 800, fontSize: 15,
-            fontFamily: "'DM Sans','Inter',sans-serif",
+            fontFamily: "'Outfit','Outfit',sans-serif",
           }}>
             ⚡ Clut Live
           </div>
@@ -643,7 +643,7 @@ export default function ArcadeOverlay({ onClose, user }) {
                 background: toast.type === 'error' ? '#EF4444' : toast.type === 'info' ? '#7C3AED' : '#16A34A',
                 color: '#fff', padding: '10px 22px', borderRadius: 20,
                 fontWeight: 800, fontSize: 13, zIndex: 1, whiteSpace: 'nowrap', pointerEvents: 'none',
-                fontFamily: "'DM Sans','Inter',sans-serif",
+                fontFamily: "'Outfit','Outfit',sans-serif",
               }}
             >
               {toast.msg}
@@ -710,7 +710,7 @@ export default function ArcadeOverlay({ onClose, user }) {
 
           {/* Footer */}
           {isHub && (
-            <p style={{ margin: '14px 0 0', textAlign: 'center', fontSize: 11, color: 'var(--sb-text-muted,#94A3B8)', fontWeight: 500, fontFamily: "'DM Sans','Inter',sans-serif" }}>
+            <p style={{ margin: '14px 0 0', textAlign: 'center', fontSize: 11, color: 'var(--sb-text-muted,#94A3B8)', fontWeight: 500, fontFamily: "'Outfit','Outfit',sans-serif" }}>
               Press <kbd style={{ padding: '1px 5px', border: '1px solid var(--sb-border,#E5E7EB)', borderRadius: 5, fontSize: 10, fontWeight: 700, background: 'var(--sb-bg,#F9FAFB)' }}>Esc</kbd> to close
             </p>
           )}

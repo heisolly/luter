@@ -424,7 +424,7 @@ export default function PaymentSettings() {
 }
 
 // ── STYLES ──
-const containerStyles = { maxWidth: 1100, margin: '0 auto', padding: '40px 20px', fontFamily: "'DM Sans', sans-serif" };
+const containerStyles = { maxWidth: 1100, margin: '0 auto', padding: '40px 20px', fontFamily: "'Outfit', sans-serif" };
 const headerSectionStyles = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 };
 const titleStyles = { fontSize: 28, fontWeight: 800, color: '#1e293b', margin: '0 0 8px 0' };
 const subtitleStyles = { fontSize: 15, color: '#64748b', margin: 0 };

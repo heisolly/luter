@@ -652,7 +652,7 @@ export default function LandingPage() {
           border-radius: 32px;
           box-shadow: var(--card-shadow-letter, 0 25px 50px -12px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.02));
           border: var(--card-border-letter, none);
-          font-family: 'Caveat', cursive;
+          font-family: 'Varela Round', cursive;
           color: var(--card-text-letter, #334155);
           font-size: 2.4rem;
           line-height: 1.5;
@@ -1049,7 +1049,7 @@ export default function LandingPage() {
             <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#EF4444', border: '1.5px solid #333' }} />
             <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#F59E0B', border: '1.5px solid #333' }} />
             <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#98FF98', border: '1.5px solid #333' }} />
-            <div className="hero-mockup-header-url" style={{ marginLeft: 20, height: 28, background: 'var(--background)', borderRadius: 8, flex: 1, maxWidth: 400, border: '1.5px solid #333', display: 'flex', alignItems: 'center', padding: '0 12px', fontSize: 12, color: 'var(--tt-gray-light-a-600)', fontFamily: 'var(--font-body)' }}>luter.app/dashboard</div>
+            <div className="hero-mockup-header-url" style={{ marginLeft: 20, height: 28, background: 'var(--background)', borderRadius: 8, flex: 1, maxWidth: 400, border: '1.5px solid #333', display: 'flex', alignItems: 'center', padding: '0 12px', fontSize: 12, color: 'var(--tt-gray-light-a-600)', fontFamily: 'var(--font-body)' }}>luter.app/home</div>
           </div>
           {/* Mockup Body */}
           <div className="hero-mockup-body">
@@ -1303,7 +1303,7 @@ export default function LandingPage() {
             borderRadius: 32,
             boxShadow: 'var(--card-shadow-letter, 0 25px 50px -12px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.02))',
             border: 'var(--card-border-letter, none)',
-            fontFamily: "'Caveat', cursive",
+            fontFamily: "'Varela Round', cursive",
             color: 'var(--card-text-letter, #334155)',
             fontSize: '2.4rem',
             lineHeight: '1.5',
@@ -1349,10 +1349,10 @@ export default function LandingPage() {
               
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 40 }}>
                 <img src="/signature.png" alt="Michael Oluwayanmi Signature" style={{ height: 110, objectFit: 'contain', opacity: 0.9, mixBlendMode: 'multiply' }} />
-                <div style={{ fontSize: '1.2rem', color: 'var(--tt-gray-light-a-600)', marginTop: 4, fontFamily: "'Inter', sans-serif", fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '1.2rem', color: 'var(--tt-gray-light-a-600)', marginTop: 4, fontFamily: "'Outfit', sans-serif", fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                   Michael Oluwayanmi
                 </div>
-                <div style={{ fontSize: '1rem', color: 'var(--tt-gray-light-a-600)', marginTop: 4, fontFamily: "'Inter', sans-serif" }}>
+                <div style={{ fontSize: '1rem', color: 'var(--tt-gray-light-a-600)', marginTop: 4, fontFamily: "'Outfit', sans-serif" }}>
                   CEO & Co-Founder
                 </div>
               </div>

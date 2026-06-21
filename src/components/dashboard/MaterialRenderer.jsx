@@ -50,6 +50,7 @@ export default function MaterialRenderer({
   loadHighlights,
   setHighlightToolbox,
   isDark,
+  isMobile = false,
 }) {
   if (!material) return null
 
@@ -129,6 +130,7 @@ export default function MaterialRenderer({
           loadHighlights={loadHighlights}
           setHighlightToolbox={setHighlightToolbox}
           isDark={isDark}
+          isMobile={isMobile}
         />
       </Suspense>
     </div>

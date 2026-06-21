@@ -59,7 +59,7 @@ body.dark-mode .dhd-sidebar-toggle:hover {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Outfit', system-ui, sans-serif;
   font-size: 15px;
   font-weight: 500;
   color: var(--sb-text-secondary, #475569);
@@ -172,7 +172,7 @@ body.dark-mode .dhd-badge-coin {
 /* Welcome Message */
 .dhd-welcome {
   margin-top: 16px;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Outfit', system-ui, sans-serif;
 }
 
 .dhd-welcome-title {

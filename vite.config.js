@@ -5,6 +5,7 @@ import tailwind from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { visualizer } from 'rollup-plugin-visualizer'
 import { OAuth2Client } from 'google-auth-library'
 import { createClient } from '@supabase/supabase-js'
 import {
@@ -18,7 +19,7 @@ import { runMapboxSchoolSearch } from './api/lib/mapboxSchools.js'
 import { handleLiveKitTokenRequest } from './api/lib/livekitToken.js'
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(async ({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const clientId = env.VITE_GOOGLE_CLIENT_ID;
 
@@ -197,17 +198,29 @@ export default defineConfig(({ mode }) => {
       }
     ],
     build: {
+      modulePreload: false,
       rollupOptions: {
         output: {
           manualChunks: {
-            'vendor-three': ['three', '@react-three/fiber', '@react-three/drei', 'postprocessing', '@react-three/postprocessing'],
+            'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
             'vendor-pdf': ['pdfjs-dist', 'react-pdf'],
             'vendor-excel': ['xlsx'],
-            'vendor-langchain': ['langchain', '@langchain/core', '@langchain/community', '@langchain/google-genai'],
+            'vendor-langchain': ['@langchain/core', '@langchain/google-genai', '@langchain/groq'],
             'vendor-utils': ['jspdf', 'mammoth', 'jszip', 'docx-preview'],
-            'vendor-ui': ['framer-motion', 'gsap', '@phosphor-icons/react'],
+            'vendor-ui': ['framer-motion', 'gsap', '@phosphor-icons/react', 'lucide-react'],
+            'vendor-editor': ['@tiptap/react', '@tiptap/starter-kit'],
+            'vendor-db': ['@supabase/supabase-js'],
+            'vendor-charts': ['chart.js'],
           }
-        }
+        },
+        plugins: [
+          process.env.VISUALIZER === 'true' && visualizer({
+            open: true,
+            filename: 'stats.html',
+            gzipSize: true,
+            brotliSize: true,
+          })
+        ].filter(Boolean),
       },
       chunkSizeWarningLimit: 1000,
     },
@@ -223,8 +236,6 @@ export default defineConfig(({ mode }) => {
       include: [
         '@excalidraw/excalidraw',
         'docx-preview',
-        'react-player',
-        'react-quick-pinch-zoom',
         '@phosphor-icons/react'
       ]
     },

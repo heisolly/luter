@@ -132,7 +132,7 @@ export const MultiplayerHUD = ({ participants, user, color = '#7c3aed' }) => {
   return (
     <div style={{
       position: 'fixed', top: 20, right: 20, display: 'flex', flexDirection: 'column',
-      gap: 12, zIndex: 1000, fontFamily: "'DM Sans', sans-serif", pointerEvents: 'none'
+      gap: 12, zIndex: 1000, fontFamily: "'Outfit', sans-serif", pointerEvents: 'none'
     }}>
       <AnimatePresence>
         {participants
@@ -211,7 +211,7 @@ export const GameOverScreen = ({ score, total, xp, accuracy, onRetry, onExit, co
   return (
     <div style={{ 
       minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '20px', position: 'relative', fontFamily: "'DM Sans', sans-serif"
+      padding: '20px', position: 'relative', fontFamily: "'Outfit', sans-serif"
     }}>
       <AnimatePresence>
         {copied && (

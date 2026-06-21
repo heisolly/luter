@@ -127,63 +127,68 @@ export default function AuthPageShell({
           max-height: calc(100dvh - 48px);
           overflow-y: auto;
           overscroll-behavior: contain;
-          background:
-            linear-gradient(180deg, rgba(249, 250, 251, 0.94), rgba(249, 250, 251, 0.9)),
-            radial-gradient(circle at 0% 0%, rgba(255, 210, 166, 0.2), transparent 36%),
-            radial-gradient(circle at 100% 100%, rgba(196, 181, 253, 0.24), transparent 42%);
-          border: 1px solid rgba(196, 181, 253, 0.72);
-          border-radius: 28px;
-          box-shadow: 0 30px 90px rgba(51, 51, 51, 0.14);
-          backdrop-filter: blur(18px);
-          padding: 32px 28px 28px;
+          background: rgba(255, 255, 255, 0.55);
+          border: 1px solid rgba(255, 255, 255, 0.6);
+          border-top: 1px solid rgba(255, 255, 255, 0.9);
+          border-left: 1px solid rgba(255, 255, 255, 0.8);
+          border-radius: 32px;
+          box-shadow: 
+            0 24px 64px rgba(31, 38, 135, 0.12),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+          backdrop-filter: blur(40px);
+          -webkit-backdrop-filter: blur(40px);
+          padding: 44px 36px 40px;
           text-align: center;
           box-sizing: border-box;
+          position: relative;
         }
 
         .auth-simple-logo-link {
           display: inline-flex;
           align-self: center;
-          margin-bottom: 18px;
+          margin-bottom: 24px;
         }
 
         .auth-simple-logo {
-          height: 42px;
+          height: 48px;
           width: auto;
           display: block;
         }
 
         .auth-simple-copy h1 {
           margin: 0;
-          color: #333333;
+          color: #1f2937;
           font-family: var(--font-display);
-          font-size: clamp(2rem, 5vw, 2.65rem);
-          line-height: 1.05;
-          letter-spacing: -0.035em;
-          font-weight: 900;
+          font-size: clamp(2.15rem, 5vw, 2.75rem);
+          line-height: 1.1;
+          letter-spacing: -0.04em;
+          font-weight: 800;
         }
 
         .auth-simple-copy p {
           margin: 12px auto 0;
           max-width: 400px;
-          color: rgba(51, 51, 51, 0.72);
+          color: #4b5563;
           font-size: 15px;
-          line-height: 1.55;
-          font-weight: 700;
+          line-height: 1.6;
+          font-weight: 500;
         }
 
         .auth-mode-switch {
           position: relative;
-          width: min(100%, 220px);
-          height: 52px;
-          margin: 26px auto 26px;
-          border: 1px solid rgba(196, 181, 253, 0.76);
+          width: min(100%, 240px);
+          height: 56px;
+          margin: 32px auto 28px;
+          border: 1px solid rgba(255, 255, 255, 0.5);
           border-radius: 999px;
-          background: rgba(249, 250, 251, 0.78);
+          background: rgba(255, 255, 255, 0.4);
           padding: 4px;
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 4px;
-          box-shadow: inset 0 1px 4px rgba(51, 51, 51, 0.05);
+          box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
           overflow: hidden;
         }
 
@@ -195,9 +200,9 @@ export default function AuthPageShell({
           left: 4px;
           width: calc(50% - 6px);
           border-radius: 999px;
-          background: #C4B5FD;
-          box-shadow: 0 8px 18px rgba(196, 181, 253, 0.35);
-          transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+          background: #ffffff;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
         .auth-mode-switch.is-signin::before {
@@ -211,16 +216,16 @@ export default function AuthPageShell({
           align-items: center;
           justify-content: center;
           border-radius: 999px;
-          color: rgba(51, 51, 51, 0.72);
+          color: #6b7280;
           font-family: var(--font-display);
-          font-size: 14px;
-          font-weight: 800;
+          font-size: 15px;
+          font-weight: 700;
           text-decoration: none;
           transition: color 0.18s ease, transform 0.18s ease;
         }
 
         .auth-mode-switch a.is-active {
-          color: #333333;
+          color: #111827;
           transform: translateY(-1px);
         }
 
@@ -264,49 +269,64 @@ export default function AuthPageShell({
 
         .auth-input-wrap svg {
           position: absolute;
-          left: 18px;
+          left: 20px;
           top: 50%;
           transform: translateY(-50%);
-          color: #C4B5FD;
-          font-size: 18px;
+          color: #6b7280;
+          font-size: 20px;
           pointer-events: none;
+          transition: color 0.2s ease;
         }
 
         .auth-input {
           width: 100%;
-          min-height: 54px;
+          min-height: 56px;
           border-radius: 999px;
-          border: 1px solid rgba(196, 181, 253, 0.62);
-          background: rgba(249, 250, 251, 0.9);
-          color: #333333;
-          padding: 0 18px 0 48px;
+          border: 1px solid rgba(255, 255, 255, 0.6);
+          background: rgba(255, 255, 255, 0.4);
+          box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          color: #1f2937;
+          padding: 0 24px 0 52px;
           font-size: 15px;
-          font-weight: 700;
+          font-weight: 600;
           font-family: var(--font-body);
           outline: none;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: all 0.25s ease;
           box-sizing: border-box;
           text-transform: none;
         }
 
         .auth-input::placeholder {
-          color: rgba(51, 51, 51, 0.5);
+          color: #9ca3af;
+          font-weight: 500;
         }
 
         .auth-input:focus {
-          border-color: #C4B5FD;
-          box-shadow: 0 0 0 4px rgba(196, 181, 253, 0.28);
+          border-color: #ffffff;
+          background: rgba(255, 255, 255, 0.7);
+          box-shadow: 
+            inset 0 2px 4px rgba(0, 0, 0, 0.02),
+            0 0 0 4px rgba(255, 255, 255, 0.4);
+        }
+        
+        .auth-input:focus + svg,
+        .auth-input:focus ~ svg {
+          color: #1f2937;
         }
 
         .auth-divider {
           display: flex;
           align-items: center;
-          gap: 12px;
-          margin: 16px 0;
-          color: rgba(51, 51, 51, 0.68);
+          gap: 16px;
+          margin: 24px 0;
+          color: #6b7280;
           font-family: var(--font-display);
           font-size: 13px;
-          font-weight: 800;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
 
         .auth-divider::before,
@@ -314,7 +334,7 @@ export default function AuthPageShell({
           content: '';
           flex: 1;
           height: 1px;
-          background: rgba(196, 181, 253, 0.5);
+          background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.1), transparent);
         }
 
         .auth-divider span {
@@ -326,27 +346,28 @@ export default function AuthPageShell({
         }
 
         .auth-footer-link {
-          margin-top: 18px;
-          color: rgba(51, 51, 51, 0.68);
-          font-size: 14px;
-          font-weight: 700;
+          margin-top: 24px;
+          color: #4b5563;
+          font-size: 15px;
+          font-weight: 500;
         }
 
         .auth-footer-link a,
         .auth-inline-switch,
         .auth-bottom-note a {
-          color: #333333;
-          font-weight: 900;
+          color: #111827;
+          font-weight: 700;
           text-decoration: underline;
-          text-decoration-color: #C4B5FD;
+          text-decoration-color: rgba(17, 24, 39, 0.3);
           text-decoration-thickness: 2px;
-          text-underline-offset: 3px;
+          text-underline-offset: 4px;
+          transition: all 0.2s ease;
         }
 
         .auth-footer-link a:hover,
         .auth-inline-switch:hover,
         .auth-bottom-note a:hover {
-          text-decoration: underline;
+          text-decoration-color: #111827;
         }
 
         .auth-inline-switch {
@@ -360,11 +381,11 @@ export default function AuthPageShell({
         }
 
         .auth-bottom-note {
-          margin-top: 20px;
-          color: rgba(51, 51, 51, 0.55);
-          font-size: 12px;
-          font-weight: 700;
-          line-height: 1.55;
+          margin-top: 24px;
+          color: #6b7280;
+          font-size: 13px;
+          font-weight: 500;
+          line-height: 1.6;
         }
 
         .auth-success-card {

@@ -22,7 +22,7 @@ export function WorkstationHeader({ courseCode = 'Course', fileName = 'Document'
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
         <button
           type="button"
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/home')}
           style={{
             width: 34, height: 34, borderRadius: 10, border: 'none',
             background: 'transparent', cursor: 'pointer',

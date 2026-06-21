@@ -210,13 +210,13 @@ export default function NotesDashboardPage() {
       return
     }
 
-    navigate(`/dashboard/notes/editor?note=${newId}`)
+    navigate(`/notes/editor?note=${newId}`)
   }, [creating, navigate, user?.id])
 
   useEffect(() => {
     const sharedNoteId = searchParams.get('note')
     if (sharedNoteId) {
-      navigate(`/dashboard/notes/editor?note=${encodeURIComponent(sharedNoteId)}&shared=1`, { replace: true })
+      navigate(`/notes/editor?note=${encodeURIComponent(sharedNoteId)}&shared=1`, { replace: true })
       return
     }
 
@@ -231,7 +231,7 @@ export default function NotesDashboardPage() {
   const handleOpen = (noteOrId) => {
     const note = typeof noteOrId === 'object' ? noteOrId : notes.find((item) => item.id === noteOrId)
     const id = typeof noteOrId === 'object' ? noteOrId.id : noteOrId
-    navigate(`/dashboard/notes/editor?note=${encodeURIComponent(id)}${note?.shared ? '&shared=1' : ''}`)
+    navigate(`/notes/editor?note=${encodeURIComponent(id)}${note?.shared ? '&shared=1' : ''}`)
   }
 
   const handleDelete = async (id) => {

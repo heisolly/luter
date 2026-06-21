@@ -129,7 +129,7 @@ export default function StudySessionPage() {
   const handleDeleteSession = async () => {
     if (window.confirm('Are you sure you want to delete this session?')) {
       await deleteSession(sessionId)
-      navigate('/dashboard/sessions')
+      navigate('/sessions')
     }
   }
 
@@ -172,7 +172,7 @@ export default function StudySessionPage() {
   const handleStartStudying = () => {
     const items = session?.items || []
     if (!items.length) return
-    if (items[0].id) navigate(`/dashboard/workstation?materialId=${items[0].id}&sessionId=${session.id}`)
+    if (items[0].id) navigate(`/workstation?materialId=${items[0].id}&sessionId=${session.id}`)
   }
 
   const getFileIcon = (type) => {
@@ -248,7 +248,7 @@ export default function StudySessionPage() {
           )}
           <div 
             className="dhd-page-title" 
-            onClick={() => navigate('/dashboard/sessions')} 
+            onClick={() => navigate('/sessions')} 
             style={{ cursor: 'pointer', transition: 'opacity 0.2s' }}
             onMouseEnter={e => e.currentTarget.style.opacity = '0.7'}
             onMouseLeave={e => e.currentTarget.style.opacity = '1'}
@@ -405,7 +405,7 @@ export default function StudySessionPage() {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04 }}
-                    onClick={() => navigate(`/dashboard/workstation?materialId=${item.id}&sessionId=${session.id}`)}
+                    onClick={() => navigate(`/workstation?materialId=${item.id}&sessionId=${session.id}`)}
                   >
                     <div className="ss-card-preview">
                       <div className="ss-preview-title">{item.title?.split('.')[0]?.slice(0, 15)}</div>

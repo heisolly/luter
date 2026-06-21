@@ -1,5 +1,7 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { useOutletContext, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
+import { MarkdownGenerateEffect } from '../ui/markdown-generate-effect'
+import { TextGenerateEffect } from '../ui/text-generate-effect'
 import { Extension } from '@tiptap/core'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
@@ -592,8 +594,8 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
     setMenuOpen(false)
     // Only navigate when inside the Notes editor, never on the standalone /ai-chat page
     if (!isStandaloneChat) {
-      if (newMode === 'fullscreen') navigate(`/dashboard/ai-chat?note=${currentNoteId}`)
-      else navigate(`/dashboard/notes/editor?note=${currentNoteId}`)
+      if (newMode === 'fullscreen') navigate(`/ai-chat?note=${currentNoteId}`)
+      else navigate(`/notes/editor?note=${currentNoteId}`)
     }
   }
 
@@ -601,7 +603,7 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
     // On standalone /ai-chat there is no close — nothing to navigate back to
     if (isStandaloneChat) return
     if (mode === 'fullscreen') {
-      navigate(`/dashboard/notes/editor?note=${currentNoteId}`)
+      navigate(`/notes/editor?note=${currentNoteId}`)
       setMode('sidebar')
     }
     onClose()
@@ -681,6 +683,7 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
         role: 'assistant',
         content: shouldEditDocument ? 'Done. I updated the note so everyone in the room can see the new content live.' : responseText,
         id: Date.now() + 1,
+        isNew: true
       }])
     } catch (err) {
       console.error(err)
@@ -1015,7 +1018,7 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
                 )}
                 <div className="ns-ai-msg-bubble">
                   {msg.role === 'assistant' ? (
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    <MarkdownGenerateEffect content={msg.content} isNew={msg.isNew} />
                   ) : msg.content}
                   {msg.role === 'assistant' && editor && !isFullscreen && aiModeType !== 'Ask' && (
                     <button className="ns-ai-insert-btn" onClick={() => insertToNote(msg.content)}>+ Insert</button>
@@ -1026,8 +1029,8 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
             {loading && (
               <div className="ns-ai-msg assistant">
                 <img src="/mascot.png" className="ns-ai-msg-avatar" alt="AI" />
-                <div className="ns-ai-msg-bubble ns-ai-typing">
-                  <span /><span /><span />
+                <div className="ns-ai-msg-bubble" style={{ backgroundColor: 'transparent', padding: '8px 0', border: 'none' }}>
+                  <TextGenerateEffect words="Thinking..." className="text-gray-400 text-sm" duration={1.5} filter={true} />
                 </div>
               </div>
             )}
@@ -1439,7 +1442,31 @@ async function runSelectionAiAction(editor, action) {
   )
   const text = response?.choices?.[0]?.message?.content || ''
   if (text.trim()) {
-    editor.chain().focus().insertContent(`<blockquote><p>${escapeHtml(text).replace(/\n/g, '<br/>')}</p></blockquote>`).run()
+    // Move to end of selection, insert a newline, and start a blockquote
+    editor.chain().focus().setTextSelection(editor.state.selection.to).insertContent('\n').setBlockquote().run()
+    
+    const words = text.split(' ')
+    let i = 0
+    const typeInterval = setInterval(() => {
+      if (i >= words.length) {
+        clearInterval(typeInterval)
+        editor.chain().focus().insertContent('\n').unsetBlockquote().run()
+        return
+      }
+      
+      const word = words[i]
+      if (word.includes('\n')) {
+        const parts = word.split('\n')
+        parts.forEach((p, idx) => {
+          editor.chain().focus().insertContent(p).run()
+          if (idx < parts.length - 1) editor.chain().focus().insertContent('\n').run()
+        })
+        editor.chain().focus().insertContent(' ').run()
+      } else {
+        editor.chain().focus().insertContent(word + ' ').run()
+      }
+      i++
+    }, 25)
   }
 }
 
@@ -1979,7 +2006,7 @@ export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSh
           {isMobile && (
             <button
               className="ns-exit-btn"
-              onClick={() => navigate('/dashboard/notes')}
+              onClick={() => navigate('/notes')}
               aria-label="Exit note"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -2237,7 +2264,7 @@ export default function NotesStudioPage() {
   const roomId = useMemo(() => `luter:notes:${noteIdRaw}`, [noteIdRaw])
 
   const location = useLocation()
-  const isAiChatRootRoute = location.pathname === '/dashboard/ai-chat' || location.pathname === '/ai-chat'
+  const isAiChatRootRoute = location.pathname === '/ai-chat' || location.pathname === '/ai-chat'
 
   // Automatically update the URL if ?note= is missing so link sharing works perfectly
   // — but NOT on the /ai-chat route, where we never want a ?note= in the URL
@@ -2276,7 +2303,7 @@ export default function NotesStudioPage() {
         noteCover: null
       }}
     >
-      <ClientSideSuspense fallback={<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100dvh', width: '100%', color: '#7C3AED', fontFamily: 'DM Sans' }}><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite', marginBottom: '16px' }}><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg><div>Loading Note...</div></div>}>
+      <ClientSideSuspense fallback={<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100dvh', width: '100%', color: '#7C3AED', fontFamily: 'Outfit' }}><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite', marginBottom: '16px' }}><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg><div>Loading Note...</div></div>}>
         <CommentsProvider roomId={roomId}>
           <LiveNoteEditor title={title} roomId={roomId} displayName={displayName} user={user} profile={profile} isSharedLink={isSharedLink} />
         </CommentsProvider>

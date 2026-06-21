@@ -215,7 +215,7 @@ export default function UserUpload() {
     <div style={{
       minHeight: '100vh',
       background: '#f8fafc',
-      fontFamily: "'DM Sans', sans-serif"
+      fontFamily: "'Outfit', sans-serif"
     }}>
       <div style={{
         maxWidth: '800px',
@@ -598,7 +598,7 @@ export default function UserUpload() {
                     </div>
                     {status.materialId && (
                       <button
-                        onClick={() => navigate(`/dashboard/workstation?materialId=${status.materialId}`)}
+                        onClick={() => navigate(`/workstation?materialId=${status.materialId}`)}
                         style={{
                           padding: '0.5rem 1rem',
                           background: 'white',

@@ -88,6 +88,7 @@ export default function UniversalViewer({
   drawMode,
   setHighlightToolbox,
   isDark,
+  isMobile,
   ...rest
 }) {
   const type = getFileType(material)

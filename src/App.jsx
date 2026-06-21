@@ -1,10 +1,6 @@
-import { Routes, Route, Navigate, useParams } from 'react-router-dom'
+import { Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom'
 import { useEffect, useState, lazy, Suspense } from 'react'
 import LandingPage from './components/LandingPage'
-const Features = lazy(() => import('./components/Features'));
-const HowItWorks = lazy(() => import('./components/HowItWorks'));
-const About = lazy(() => import('./components/About'));
-const PathCalculator = lazy(() => import('./components/PathCalculator'));
 const SignIn = lazy(() => import('./components/SignIn'));
 const SignUp = lazy(() => import('./components/SignUp'));
 const Onboarding = lazy(() => import('./components/Onboarding'));
@@ -67,6 +63,9 @@ const StudyGroupDetailsPage = lazy(() => import('./components/dashboard/StudyGro
 const JoinGroupPage = lazy(() => import('./components/dashboard/JoinGroupPage'));
 const LibraryPage = lazy(() => import('./components/dashboard/LibraryPage'));
 const TrashPage = lazy(() => import('./components/dashboard/TrashPage'));
+const ClassroomDashboard = lazy(() => import('./classroom/ClassroomDashboard'))
+const ClassView = lazy(() => import('./classroom/ClassView'))
+const ClassroomCalendar = lazy(() => import('./classroom/ClassroomCalendar'))
 const VaultPage = lazy(() => import('./components/dashboard/VaultPage'));
 const StudySessionPage = lazy(() => import('./components/dashboard/StudySessionPage'));
 const SessionsPage = lazy(() => import('./components/dashboard/SessionsPage'));
@@ -99,22 +98,23 @@ function OptionalFeaturebaseProvider({ children }) {
 }
 
 function useNavigatorOffline() {
-  const [offline, setOffline] = useState(() =>
-    typeof navigator !== 'undefined' ? !navigator.onLine : false,
-  )
-
+  const [offline, setOffline] = useState(!navigator.onLine)
   useEffect(() => {
-    const on = () => setOffline(false)
-    const off = () => setOffline(true)
-    window.addEventListener('online', on)
-    window.addEventListener('offline', off)
+    const handleOnline = () => setOffline(false)
+    const handleOffline = () => setOffline(true)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
     return () => {
-      window.removeEventListener('online', on)
-      window.removeEventListener('offline', off)
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
     }
   }, [])
-
   return offline
+}
+
+function NavigateToWithSearch({ to }) {
+  const location = useLocation()
+  return <Navigate to={{ pathname: to, search: location.search }} replace />
 }
 const GuestPlayPage = lazy(() => import('./components/dashboard/playground/GuestPlayPage'))
 const PublicFlashcardView = lazy(() => import('./components/dashboard/PublicFlashcardView'))
@@ -122,8 +122,8 @@ const PublicFlashcardView = lazy(() => import('./components/dashboard/PublicFlas
 function NavigateToWorkstation() {
   const { materialId } = useParams()
   const target = materialId
-    ? `/dashboard/workstation?materialId=${encodeURIComponent(materialId)}`
-    : '/dashboard/workstation'
+    ? `/workstation?materialId=${encodeURIComponent(materialId)}`
+    : '/workstation'
 
   return <Navigate to={target} replace />
 }
@@ -153,7 +153,7 @@ export default function App() {
       )}
       <div style={{ paddingTop: offline ? OFFLINE_BAR_PT : undefined }}>
         <OptionalFeaturebaseProvider>
-        <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-[#111116]"><div className="w-8 h-8 border-4 border-[#9718fb] border-t-transparent rounded-full animate-spin"></div></div>}>
+        <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-transparent"></div>}>
           <Routes>
           {/* ADMIN HOST SPECIFIC ROUTES */}
           {isAdminHost ? (
@@ -220,25 +220,21 @@ export default function App() {
 
           {/* MAIN APP ROUTES */}
           <Route path="/" element={<LandingPage />} />
-          <Route path="/features" element={<Features />} />
-          <Route path="/how-it-works" element={<HowItWorks />} />
-          <Route path="/about" element={<About />} />
           <Route path="/wall-of-love" element={<WallOfLove />} />
-          <Route path="/path-calculator" element={<PathCalculator />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/view/:materialId" element={<PublicFlashcardView />} />
-          {/* DASHBOARD ROUTES (Available on dashboard host) */}
-          <Route path="/dashboard" element={<Dashboard />}>
-            <Route index element={<DashboardHome />} />
+          {/* DASHBOARD ROUTES */}
+          <Route element={<Dashboard />}>
+            <Route path="/home" element={<DashboardHome />} />
             <Route path="backpack" element={<BackpackPage />} />
             <Route path="backpack/:folderId" element={<BackpackFolderView />} />
             <Route path="library" element={<LibraryPage />} />
             <Route path="files" element={<FilesPage />} />
             <Route path="notes" element={<NotesDashboardPage />} />
             <Route path="notes/editor" element={<NotesStudioPage />} />
-            <Route path="ai-notes" element={<Navigate to="/dashboard/notes" replace />} />
+            <Route path="ai-notes" element={<Navigate to="/notes" replace />} />
             <Route path="ai-chat" element={<NotesStudioPage />} />
             <Route path="assignments" element={<AssignmentsPage />} />
             <Route path="decks" element={<DecksPage />} />
@@ -271,6 +267,12 @@ export default function App() {
             <Route path="exam-session/:sessionId" element={<ExamSessionPage />} />
           </Route>
 
+          {/* CLASSROOM ROUTES (Standalone Layouts) */}
+          <Route path="/classrooms" element={<ClassroomDashboard />} />
+          <Route path="/classrooms/calendar" element={<ClassroomCalendar />} />
+          <Route path="/classrooms/c/:classId" element={<ClassView />} />
+          <Route path="/classroom" element={<Navigate to="/classrooms" replace />} />
+
           {/* ROOT LEVEL ALIASES */}
           <Route element={<Dashboard />}>
             <Route path="/home" element={<DashboardHome />} />
@@ -280,7 +282,7 @@ export default function App() {
             <Route path="/library" element={<LibraryPage />} />
             <Route path="/groups" element={<StudyGroupsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/backpack" element={<Navigate to="/dashboard/backpack" replace />} />
+            <Route path="/backpack" element={<Navigate to="/backpack" replace />} />
             <Route path="/playground" element={<PlaygroundPage />} />
             <Route path="/mock-exams" element={<MockExamPage />} />
             <Route path="/progress" element={<AnalyticsPage />} />
@@ -302,6 +304,10 @@ export default function App() {
           <Route path="/board/:roomId" element={<BoardPage />} />
 
 
+
+          {/* BACKWARD COMPATIBILITY REDIRECTS */}
+          <Route path="/dashboard/home" element={<NavigateToWithSearch to="/home" />} />
+          <Route path="/dashboard/*" element={<NavigateToWithSearch to="/home" />} />
 
           {/* DEFAULT REDIRECTS */}
           <Route path="*" element={<Navigate to="/" replace />} />

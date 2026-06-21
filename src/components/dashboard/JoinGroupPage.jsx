@@ -51,7 +51,7 @@ export default function JoinGroupPage() {
       if (joinErr) throw joinErr
 
       // 4. Success! Redirect to group details
-      navigate(`/dashboard/study-groups/${group.id}`)
+      navigate(`/study-groups/${group.id}`)
     } catch (err) {
       console.error('Error joining group:', err)
       setError(err.message)
@@ -69,7 +69,7 @@ export default function JoinGroupPage() {
       justifyContent: 'center',
       background: '#fff',
       padding: 24,
-      fontFamily: "'DM Sans', sans-serif"
+      fontFamily: "'Outfit', sans-serif"
     }}>
       {loading ? (
         <div style={{ textAlign: 'center' }}>
@@ -88,7 +88,7 @@ export default function JoinGroupPage() {
           <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Oops!</h2>
           <p style={{ color: '#666', fontWeight: 600, marginBottom: 32 }}>{error}</p>
           <button 
-            onClick={() => navigate('/dashboard/study-groups')}
+            onClick={() => navigate('/study-groups')}
             style={{ 
               background: '#111', color: 'white', padding: '14px 28px', 
               borderRadius: 16, border: 'none', fontWeight: 800, cursor: 'pointer' 

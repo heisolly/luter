@@ -106,7 +106,7 @@ const modalStyles = {
   position: 'relative',
   boxShadow: '0 40px 100px rgba(0,0,0,0.8)',
   color: '#fff',
-  fontFamily: "'DM Sans', sans-serif",
+  fontFamily: "'Outfit', sans-serif",
 };
 
 const headerContainerStyles = {

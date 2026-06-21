@@ -63,12 +63,12 @@
   --dark-border: #3a3a3a;
   --background-alt: #F1F5F9;
 
-  --font-display: 'DM Sans', sans-serif;
-  --font-body: 'Inter', sans-serif;
-  --font-body: var(--font-body);
-  --font-display: var(--font-display);
-  --font-body: var(--font-body);
-  --font-body: var(--font-body);
+  --font-outfit: 'Outfit', sans-serif;
+  --font-geist-sans: 'Outfit', sans-serif;
+  --font-geist-mono: 'Varela Round', sans-serif;
+  --font-geist-pixel: 'Varela Round', sans-serif;
+  --font-jakarta: 'Outfit', sans-serif;
+  --font-sans: 'Outfit', sans-serif;
 
   --transition-fast: 0.1s cubic-bezier(0.46, 0.03, 0.52, 0.96);
   --transition-base: 0.2s cubic-bezier(0.46, 0.03, 0.52, 0.96);
@@ -288,7 +288,7 @@
   border: 1px solid var(--card-border) !important;
 }
 
-.dark section > div > div[style*="fontFamily: 'Caveat'"] {
+.dark section > div > div[style*="fontFamily: 'Varela Round'"] {
   background: var(--card-bg-dark) !important;
   color: var(--card-text) !important;
   box-shadow: var(--card-shadow-dark) !important;

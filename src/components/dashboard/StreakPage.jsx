@@ -11,28 +11,6 @@ export default function StreakPage() {
   const { ready, bundle } = useDashboardPrefetch()
   const [streak, setStreak] = useState(0)
 
-  useEffect(() => {
-    if (!user) return
-    if (!ready) return
-    if (bundle?.stats?.data && !bundle.stats.error) {
-      setStreak(bundle.stats.data.streak_days || 0)
-      return
-    }
-    const getStreak = async () => {
-      const { data } = await supabase.from('user_stats').select('streak_days').eq('user_id', user.id).maybeSingle()
-      if (data) setStreak(data.streak_days || 0)
-    }
-    getStreak()
-  }, [user, ready, bundle])
-
-  const { startTour, hasCompletedTour, isLoadingTours } = useTourStore()
-
-  useEffect(() => {
-    if (user?.id && ready && !isLoadingTours && !hasCompletedTour('streak')) {
-      const timer = setTimeout(() => startTour('streak'), 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [user?.id, ready, isLoadingTours])
 
   const DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
   
@@ -56,7 +34,7 @@ export default function StreakPage() {
       padding: isMobile ? '24px 16px 80px' : '48px 40px', 
       maxWidth: 760, 
       margin: '0 auto', 
-      fontFamily: "'Inter', 'Inter', sans-serif",
+      fontFamily: "'Outfit', 'Outfit', sans-serif",
       boxSizing: 'border-box',
       color: '#333'
     }}>

@@ -7,7 +7,7 @@ import { useInView } from 'react-intersection-observer';
 class PageErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, errorCount: 0 };
   }
 
   static getDerivedStateFromError(error) {
@@ -16,6 +16,11 @@ class PageErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('PdfPageWrapper ErrorBoundary caught an error rendering <Page>:', error, errorInfo);
+    if (this.state.errorCount < 3) {
+      setTimeout(() => {
+        this.setState(s => ({ hasError: false, errorCount: s.errorCount + 1 }));
+      }, 500);
+    }
   }
 
   render() {
@@ -36,6 +41,18 @@ class PageErrorBoundary extends React.Component {
         }}>
           <div style={{ fontWeight: 600 }}>Failed to render page</div>
           <div style={{ fontSize: '13px', opacity: 0.8 }}>This page contains unsupported fonts or corrupted elements.</div>
+          {this.props.fileUrl && (
+            <button 
+              onClick={() => window.open(this.props.fileUrl, '_blank')}
+              style={{
+                marginTop: '12px', padding: '8px 16px', background: '#ef4444', 
+                color: 'white', borderRadius: '4px', border: 'none', 
+                cursor: 'pointer', fontWeight: 600, fontFamily: 'var(--font-outfit)'
+              }}
+            >
+              Download Original
+            </button>
+          )}
         </div>
       );
     }
@@ -118,7 +135,8 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
   onRemoveStroke,
   onAnnotationClick,
   activeAnnotationId,
-  isDark
+  isDark,
+  fileUrl
 }) {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
@@ -336,7 +354,7 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
           filter: isDark ? 'invert(0.92) hue-rotate(180deg)' : 'none',
           transition: 'filter 0.3s ease'
         }}>
-          <PageErrorBoundary width={pageWidth}>
+          <PageErrorBoundary width={pageWidth} fileUrl={fileUrl}>
             <Page 
               pageNumber={pageNumber} 
               scale={scale} 

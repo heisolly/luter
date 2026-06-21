@@ -1,13 +1,9 @@
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import { GoogleOAuthProvider } from '@react-oauth/google'
 import './index.css'
 import './i18n'
 import App from './App.jsx'
 import AppErrorBoundary from './AppErrorBoundary.jsx'
-
-const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
-
 if (typeof window !== 'undefined') {
   window.addEventListener('vite:preloadError', (event) => {
     event.preventDefault()
@@ -50,11 +46,9 @@ function mountApp() {
     <AppErrorBoundary>
       <ThemeProvider>
         <IconProvider>
-          <GoogleOAuthProvider clientId={clientId}>
-            <BrowserRouter>
-              <App />
-            </BrowserRouter>
-          </GoogleOAuthProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
         </IconProvider>
       </ThemeProvider>
     </AppErrorBoundary>,

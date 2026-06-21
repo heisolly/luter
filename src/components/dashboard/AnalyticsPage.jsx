@@ -115,7 +115,7 @@ export default function AnalyticsPage() {
   const criticalLacking = sortedPerformance[0]
 
   return (
-    <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', 'Inter', sans-serif" }}>
+    <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Outfit', 'Outfit', sans-serif" }}>
       <div className="dh-topbar" style={{ background: isMobile ? 'transparent' : '#fff', borderBottom: isMobile ? 'none' : '1px solid #eee', padding: isMobile ? '20px 20px 0' : '20px 40px' }}>
         <div className="dh-topbar-left">
           <h1 className="dh-page-title" style={{ fontSize: isMobile ? 24 : 28, fontWeight: 900, textTransform: 'lowercase' }}>Analytics Engine</h1>

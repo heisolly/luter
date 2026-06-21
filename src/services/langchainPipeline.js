@@ -676,8 +676,9 @@ export async function reprocessMaterial(material) {
   try {
     console.log(`[LangChain] Triggering emergency re-processing for: ${material.title}`)
     
-    // 1. Fetch the file as a Blob
-    const response = await fetch(material.source_url)
+    // 1. Prefer converted PDF if available (enables Mistral OCR for image-heavy PPTX)
+    const fileUrl = material.converted_pdf_url || material.source_url
+    const response = await fetch(fileUrl)
     const blob = await response.blob()
     
     // 2. Create a File object (simulating a user upload)
@@ -687,7 +688,7 @@ export async function reprocessMaterial(material) {
     // 3. Call ingestMaterial
     return await ingestMaterial({
       file,
-      type: material.type,
+      type: material.converted_pdf_url ? 'pdf' : material.type,
       url: null,
       metadata: {
         materialId: material.id,

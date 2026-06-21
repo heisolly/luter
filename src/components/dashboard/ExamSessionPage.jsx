@@ -135,7 +135,7 @@ export default function ExamSessionPage() {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
         <XCircle size={48} color="#ef4444" />
         <h2 style={{ marginTop: 16, fontWeight: 800 }}>Session not found</h2>
-        <button onClick={() => navigate('/dashboard/library')} style={{ marginTop: 24, padding: '12px 24px', background: '#111', color: '#fff', borderRadius: 12, border: 'none', fontWeight: 700, cursor: 'pointer' }}>Back to Library</button>
+        <button onClick={() => navigate('/library')} style={{ marginTop: 24, padding: '12px 24px', background: '#111', color: '#fff', borderRadius: 12, border: 'none', fontWeight: 700, cursor: 'pointer' }}>Back to Library</button>
       </div>
     )
   }
@@ -144,12 +144,12 @@ export default function ExamSessionPage() {
   const pass = accuracy >= 50
 
   return (
-    <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', 'Inter', sans-serif" }}>
+    <div className="dh-root" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Outfit', 'Outfit', sans-serif" }}>
       {/* Premium Header */}
       <header style={{ padding: '24px 40px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <button 
-            onClick={() => navigate('/dashboard/library')}
+            onClick={() => navigate('/library')}
             style={{ padding: '8px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
           >
             <ChevronLeft size={20} />
@@ -316,7 +316,7 @@ export default function ExamSessionPage() {
             {/* Actions */}
             <div style={{ display: 'flex', gap: 16, marginTop: 48 }}>
               <button 
-                onClick={() => navigate('/dashboard/mock-exam')}
+                onClick={() => navigate('/mock-exam')}
                 style={{ flex: 1, padding: '18px', borderRadius: 20, background: '#f8f8f8', color: '#111', border: '1.5px solid #111', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontWeight: 900, fontSize: 16 }}
               >
                 <RotateCcw size={22} /> Retake Exam

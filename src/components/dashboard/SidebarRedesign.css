@@ -60,7 +60,7 @@ body.dark-mode {
   /* CRITICAL: Do NOT use overflow:hidden — it clips the dropdown */
   overflow: visible;
   position: relative;
-  font-family: 'DM Sans', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Outfit', sans-serif;
 }
 
 /* ── Logo Area ── */
@@ -101,7 +101,7 @@ body.dark-mode {
   cursor: pointer;
   box-shadow: none;
   transition: background 0.18s ease, border-color 0.18s ease;
-  font-family: 'Inter', 'DM Sans', sans-serif;
+  font-family: 'Outfit', 'Outfit', sans-serif;
   letter-spacing: 0.01em;
 }
 
@@ -161,7 +161,7 @@ body.dark-mode {
   font-weight: 700;
   color: #0F172A;
   margin: 0 0 4px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Outfit', sans-serif;
   letter-spacing: -0.01em;
 }
 
@@ -169,7 +169,7 @@ body.dark-mode {
   font-size: 13px;
   color: #64748B;
   margin: 0 0 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Outfit', sans-serif;
 }
 
 .dsb-create-options {
@@ -190,7 +190,7 @@ body.dark-mode {
   transition: border-color 0.18s ease, background 0.18s ease;
   text-align: left;
   width: 100%;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Outfit', sans-serif;
 }
 
 .dsb-create-option:hover {
@@ -251,7 +251,7 @@ body.dark-mode {
   font-weight: 700;
   border: none;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Outfit', sans-serif;
   transition: background 0.18s ease;
   letter-spacing: 0.01em;
 }
@@ -306,7 +306,7 @@ body.dark-mode {
   text-align: left;
   position: relative;
   white-space: nowrap;
-  font-family: 'DM Sans', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Outfit', sans-serif;
 }
 
 .dsb-nav-pill:hover {
@@ -468,7 +468,7 @@ body.dark-mode .dsb-backpack-caret-btn:hover {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: 'DM Sans', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Outfit', sans-serif;
 }
 
 .dsb-subnav-item:hover {
@@ -552,7 +552,7 @@ body.dark-mode .dsb-subnav-code {
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  font-family: 'DM Sans', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Outfit', sans-serif;
   transition: background 0.15s;
   margin-top: 2px;
 }
@@ -681,7 +681,7 @@ body.dark-mode .dsb-helper-btn.active-helper {
   border: none;
   cursor: pointer;
   transition: opacity 0.18s, transform 0.1s;
-  font-family: 'DM Sans', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Outfit', sans-serif;
 }
 
 .dsb-upgrade-btn:hover { opacity: 0.88; transform: scale(1.01); }
@@ -865,7 +865,7 @@ body.dark-mode .dsb-personal-dropdown {
   border: none;
   cursor: pointer;
   transition: opacity 0.18s;
-  font-family: 'DM Sans', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Outfit', sans-serif;
   margin-top: 2px;
 }
 
@@ -888,7 +888,7 @@ body.dark-mode .dsb-personal-dropdown {
   cursor: pointer;
   transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
   text-align: left;
-  font-family: 'DM Sans', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Outfit', sans-serif;
 }
 
 .dsb-dropdown-item:hover {
@@ -936,7 +936,7 @@ body.dark-mode .dsb-dropdown-item:hover {
   background: transparent;
   cursor: pointer;
   transition: background 0.16s ease, transform 0.16s ease;
-  font-family: 'DM Sans', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Outfit', sans-serif;
   user-select: none;
 }
 

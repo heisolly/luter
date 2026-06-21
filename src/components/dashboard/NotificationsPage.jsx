@@ -7,7 +7,7 @@ export default function NotificationsPage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    navigate('/dashboard', { replace: true })
+    navigate('/home', { replace: true })
   }, [navigate])
 
   return (

@@ -367,152 +367,6 @@ function WorkstationContent() {
   const isResizing = useRef(false)
   const createStudyRoomSession = useSessionStore((state) => state.createSession)
 
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!isResizing.current) return
-      const newWidth = window.innerWidth - e.clientX - 12
-      if (newWidth >= 280 && newWidth <= 600) {
-        setPanelWidth(newWidth)
-        localStorage.setItem('luter-panel-width', String(newWidth))
-      }
-    }
-    const handleMouseUp = () => {
-      isResizing.current = false
-      setIsResizeActive(false)
-      document.body.style.cursor = ''
-    }
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('mouseup', handleMouseUp)
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [])
-
-  // Session Timer
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setElapsedTime(prev => prev + 1)
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
-
-  // Study Time Logger — logs 1 minute to Supabase every 60s while tab is focused
-  useEffect(() => {
-    if (!user?.id) return
-    const logInterval = setInterval(() => {
-      if (document.hasFocus()) {
-        supabase.rpc('log_study_time', { p_minutes: 1 }).then().catch(e => console.warn('Study log error:', e))
-      }
-    }, 60000)
-    return () => clearInterval(logInterval)
-  }, [user?.id])
-
-  // Fetch credit balance on mount
-  useEffect(() => {
-    if (!user?.id) return
-    getCreditBalance(user.id).then(balance => {
-      if (typeof balance === 'number') setCreditsBalance(balance)
-    }).catch(() => {})
-  }, [user?.id])
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')} elapsed`
-  }
-  const { startTour, hasCompletedTour, isLoadingTours } = useTourStore()
-
-  const [chatInput, setChatInput] = useState('')
-  const [messages, setMessages] = useState([])
-  const [isProcessingLoading, setIsProcessingLoading] = useState(false)
-  const [courseMaterials, setCourseMaterials] = useState([])
-  const [selectedMaterial, setSelectedMaterial] = useState(null)
-
-  // Sync selectedMaterial text to sessionStorage for shared AI Chat panel context
-  useEffect(() => {
-    if (selectedMaterial) {
-      try {
-        sessionStorage.setItem('luter-ws-ai-context', JSON.stringify({
-          title: selectedMaterial.title || selectedMaterial.file_name || 'Study material',
-          text: (selectedMaterial.extracted_text || '').slice(0, 8000),
-        }))
-      } catch (e) {
-        console.warn('Failed to save material context to sessionStorage:', e)
-      }
-    } else {
-      sessionStorage.removeItem('luter-ws-ai-context')
-    }
-  }, [selectedMaterial])
-  const [elapsedTime, setElapsedTime] = useState(0)
-  const [isGroupSession, setIsGroupSession] = useState(false)
-  const [isThumbnailsOpen, setIsThumbnailsOpen] = useState(false)
-  const [showExitSummary, setShowExitSummary] = useState(false)
-  const [activePanelContext, setActivePanelContext] = useState('default') // default, explanation, quiz, flashcard
-  const [activeExplanation, setActiveExplanation] = useState(null)
-
-  const handleShareCurrentWorkspace = useCallback(async () => {
-    setShowMoreMenu(false)
-
-    const existingSessionId = activeSessionId || sessionIdParam
-    if (existingSessionId) {
-      setShareTargetSession({ id: existingSessionId })
-      setShowShareModal(true)
-      return
-    }
-
-    if (!selectedMaterial?.id || !user?.id || isPreparingShare) return
-
-    setIsPreparingShare(true)
-    try {
-      const result = await createStudyRoomSession(
-        selectedMaterial.title ? `${selectedMaterial.title} live room` : 'Live material room',
-        [{
-          id: selectedMaterial.id,
-          content_id: selectedMaterial.id,
-          materialId: selectedMaterial.id,
-          title: selectedMaterial.title || 'Study material',
-          type: selectedMaterial.type || 'material',
-          url: selectedMaterial.source_url || selectedMaterial.url || null,
-        }],
-        {
-          sessionType: 'group',
-          isShared: true,
-          role: 'owner',
-        },
-      )
-
-      if (!result?.success || !result.session?.id) {
-        throw new Error(result?.error || 'Could not create a live material room')
-      }
-
-      const session = result.session
-      setActiveSessionId(session.id)
-      setShareTargetSession(session)
-      setShowShareModal(true)
-      navigate(`/dashboard/workstation?sessionId=${session.id}&materialId=${selectedMaterial.id}&sessionType=group`, { replace: true })
-    } catch (error) {
-      console.error('Failed to prepare shared workspace:', error)
-      alert(error.message || 'Could not prepare the shared workspace.')
-    } finally {
-      setIsPreparingShare(false)
-    }
-  }, [
-    activeSessionId,
-    sessionIdParam,
-    selectedMaterial,
-    user?.id,
-    isPreparingShare,
-    createStudyRoomSession,
-    navigate,
-  ])
-  // Tour effect — must come AFTER selectedMaterial declaration
-  useEffect(() => {
-    if (user?.id && selectedMaterial && !isLoadingTours && !hasCompletedTour('workstation')) {
-      const timer = setTimeout(() => startTour('workstation'), 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [user?.id, selectedMaterial, hasCompletedTour, startTour, isLoadingTours])
   const [analysisCache, setAnalysisCache] = useState({})
   const [materialAnalysis, setMaterialAnalysis] = useState(null)
   const [showTools, setShowTools] = useState(false)
@@ -1368,13 +1222,13 @@ function WorkstationContent() {
         console.warn('❌ Material not found:', materialId)
         // Redirect to dashboard if material not found
         console.log('🔄 Redirecting to dashboard - material not found')
-        navigate('/dashboard')
+        navigate('/home')
       }
     } catch (err) {
       console.error('❌ Error loading standalone material:', err)
       // Redirect to dashboard on error
       console.log('🔄 Redirecting to dashboard - error occurred')
-      navigate('/dashboard')
+      navigate('/home')
     } finally {
       setLoading(false)
     }
@@ -2018,7 +1872,7 @@ function WorkstationContent() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
                 <button
                   type="button"
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => navigate('/home')}
                   style={{
                     width: 34, height: 34, borderRadius: 10, border: 'none',
                     background: 'transparent', cursor: 'pointer',
@@ -2555,7 +2409,7 @@ function WorkstationContent() {
                   Select a study material from the sidebar to begin.
                 </p>
                 <button
-                  onClick={() => navigate('/dashboard/upload')}
+                  onClick={() => navigate('/upload')}
                   style={{ padding: '10px 20px', background: '#111', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
                 >
                   Upload Material
@@ -3055,7 +2909,7 @@ function WorkstationContent() {
                         }))
                       }
                     } catch {}
-                    navigate('/dashboard/ai-chat')
+                    navigate('/ai-chat')
                   }}
                   title="Open full AI Chat"
                 >

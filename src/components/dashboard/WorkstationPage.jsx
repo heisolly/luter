@@ -7,10 +7,12 @@ import {
   Highlighter, PencilLine, PencilSimple, Chalkboard, Square, PushPin,
   WhatsappLogo, ChatsCircle, DiscordLogo, RedditLogo, LinkedinLogo, Sparkle, SidebarSimple, ChatTeardropText
 } from '@phosphor-icons/react';
-import { fetchUserStandaloneMaterials, joinMaterial, fetchMaterialCollaborators } from '../../services/materialsService';
+import { fetchUserStandaloneMaterials, joinMaterial, fetchMaterialCollaborators, fetchCourseMaterials } from '../../services/materialsService';
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext';
 import AnnotationToolbar from './AnnotationToolbar';
 import { supabase } from '../../supabaseClient';
+import { useSessionStore } from '../../store/useSessionStore';
+import LuterLogo from '../shared/LuterLogo';
 import { CollaborationProvider } from './CollaborationProvider';
 import { ReadingSpaceProvider } from './ReadingSpaceContext';
 import { Whiteboard } from './Whiteboard';
@@ -108,15 +110,17 @@ export default function WorkstationPage() {
   const sessionIdParam = searchParams.get('sessionId')
   const shareCodeParam = searchParams.get('share')
   const groupIdParam = searchParams.get('groupId')
+  const courseIdParam = searchParams.get('courseId')
 
   const roomId = useMemo(() => {
     if (sessionIdParam) return `luter-session-${sessionIdParam}`
+    if (courseIdParam) return `luter-course-${courseIdParam}`
     if (shareCodeParam) return `luter-share-${shareCodeParam}`
     if (groupIdParam) return `luter-group-${groupIdParam}`
     if (urlMaterialId) return `luter-material-v2-${urlMaterialId}`
     if (stateMaterial?.id) return `luter-material-v2-${stateMaterial.id}`
     return `luter-empty-${user?.id || 'guest'}`
-  }, [sessionIdParam, shareCodeParam, groupIdParam, urlMaterialId, stateMaterial?.id, user?.id])
+  }, [sessionIdParam, shareCodeParam, groupIdParam, urlMaterialId, stateMaterial?.id, user?.id, courseIdParam])
 
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatWidth, setChatWidth] = useState(400); 
@@ -185,7 +189,13 @@ export default function WorkstationPage() {
             await joinMaterial(urlMaterialId, user.id);
           }
           
-          const data = await fetchUserStandaloneMaterials(user.id);
+          let data = [];
+          if (courseIdParam) {
+            data = await fetchCourseMaterials(courseIdParam, user.id);
+          } else {
+            data = await fetchUserStandaloneMaterials(user.id);
+          }
+
           if (data && data.length > 0) {
             setMaterials(data);
             let targetMaterial = null;
@@ -193,10 +203,10 @@ export default function WorkstationPage() {
             else if (urlMaterialId) targetMaterial = data.find(m => String(m.id) === String(urlMaterialId));
             
             if (targetMaterial) {
-              setNoteName(targetMaterial.title);
+              setNoteName(targetMaterial.title || 'Course Material');
               setSelectedMaterial(targetMaterial);
             } else if (noteName === 'Untitled Workspace') {
-               setNoteName(data[0].title);
+               setNoteName(courseIdParam ? 'Course Workspace' : data[0].title);
                setSelectedMaterial(data[0]);
             }
           } else if (stateMaterial) {
@@ -210,7 +220,7 @@ export default function WorkstationPage() {
       
       init();
     }
-  }, [user?.id, stateMaterial, urlMaterialId]);
+  }, [user?.id, stateMaterial, urlMaterialId, courseIdParam]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -828,7 +838,7 @@ export default function WorkstationPage() {
                             noteCover: null
                           }}
                         >
-                          <ClientSideSuspense fallback={<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', color: '#6B7280', fontFamily: 'DM Sans' }}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite', marginBottom: '12px', color: '#8B5CF6' }}><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg><div>Connecting Notes...</div></div>}>
+                          <ClientSideSuspense fallback={<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', color: '#6B7280', fontFamily: 'Outfit' }}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite', marginBottom: '12px', color: '#8B5CF6' }}><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg><div>Connecting Notes...</div></div>}>
                             <CommentsProvider roomId={`luter:notes:${selectedMaterial.id}`}>
                               <LiveNoteEditor 
                                 title={selectedMaterial.title} 
@@ -854,9 +864,7 @@ export default function WorkstationPage() {
                       )}
                     </div>
                   ) : (
-                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: subTextColor, fontWeight: 500 }}>
-                       Loading Document...
-                     </div>
+                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
                   )}
                 </div>
               )}

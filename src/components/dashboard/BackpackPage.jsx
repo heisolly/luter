@@ -28,7 +28,6 @@ import { cachePageData, getCachedPageData } from '../../lib/offlineCache'
 import { supabase } from '../../supabaseClient'
 import CourseEnrollmentModal from '../shared/CourseEnrollmentModal'
 import UserUpload from './UserUpload'
-import useTourStore from '../../store/useTourStore'
 import './luterPages.css'
 
 import SharedMaterialPreview from '../shared/SharedMaterialPreview'
@@ -60,7 +59,6 @@ export default function BackpackPage() {
   const { bundle } = useDashboardPrefetch()
   const profile = bundle?.profile?.data || bundle?.profile
   const prefetchedStats = bundle?.stats?.data || bundle?.stats || {}
-  const { startTour, hasCompletedTour, completedTours, currentUserId, isLoadingTours } = useTourStore()
 
   const [tab, setTab] = useState(() => localStorage.getItem('backpackActiveTab') || 'folders')
   const [folders, setFolders] = useState([])
@@ -75,31 +73,14 @@ export default function BackpackPage() {
   const [editFolderName, setEditFolderName] = useState('')
   const [stats, setStats] = useState({ streak: 0, level: 1, coins: 0 })
 
-  useEffect(() => {
-    localStorage.setItem('backpackActiveTab', tab)
-  }, [tab])
-
-  useEffect(() => {
-    if (!user?.id) return
-    loadFolders()
-    loadMaterials()
-    loadGamification()
-  }, [user?.id])
-
-  useEffect(() => {
-    if (user?.id && currentUserId === user.id && !loading && !isLoadingTours && !hasCompletedTour('backpack')) {
-      const timer = setTimeout(() => startTour('backpack'), 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [user?.id, currentUserId, completedTours, loading, hasCompletedTour, startTour, isLoadingTours])
 
   const loadFolders = async () => {
-    setLoading(true)
+    if (!bundle?.uc?.data) setLoading(true)
     const cached = getCachedPageData(user.id, 'courses')
     const offline = typeof navigator !== 'undefined' && !navigator.onLine
     if (offline && cached?.data) {
       setFolders(cached.data)
-      setLoading(false)
+      if (!bundle?.uc?.data) setLoading(false)
       return
     }
 
@@ -110,7 +91,7 @@ export default function BackpackPage() {
     } else if (cached?.data) {
       setFolders(cached.data)
     }
-    setLoading(false)
+    if (!bundle?.uc?.data) setLoading(false)
   }
 
   const loadMaterials = async () => {
@@ -188,15 +169,15 @@ export default function BackpackPage() {
 
   const openFolder = (item) => {
     const course = item.courses || item.course || item
-    navigate(`/dashboard/backpack/${course.id || item.course_id}`)
+    navigate(`/backpack/${course.id || item.course_id}`)
   }
 
   const openMaterial = (material) => {
-    navigate(`/dashboard/workstation/${material.id}`, { state: { material } })
+    navigate(`/workstation/${material.id}`, { state: { material } })
   }
 
   const handleStudyMaterial = (material) => {
-    navigate(`/dashboard/workstation/${material.id}`, { state: { material } })
+    navigate(`/workstation/${material.id}`, { state: { material } })
   }
 
   return (

@@ -307,8 +307,8 @@ export default function StudyRequestsPage() {
       </div>
       
       <style>{`
-        .font-display { font-family: 'DM Sans', sans-serif; }
-        .font-body { font-family: 'Inter', sans-serif; }
+        .font-display { font-family: 'Outfit', sans-serif; }
+        .font-body { font-family: 'Outfit', sans-serif; }
       `}</style>
     </div>
   );

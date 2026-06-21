@@ -68,7 +68,7 @@ export default function PublicFlashcardView() {
         zIndex: 50
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontFamily: 'DM Sans' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontFamily: 'Outfit' }}>
             L
           </div>
           <span style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '18px', color: '#111827' }}>

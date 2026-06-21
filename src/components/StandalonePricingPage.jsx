@@ -108,7 +108,7 @@ export default function StandalonePricingPage() {
           amount: amount,
           email: user.email,
           currency: currency,
-          callback_url: `${window.location.origin}/dashboard/payment/success`,
+          callback_url: `${window.location.origin}/payment/success`,
         }),
       });
 
@@ -134,7 +134,7 @@ export default function StandalonePricingPage() {
         },
         onSuccess: (transaction) => {
           setLoadingCheckout(null);
-          navigate(`/dashboard/payment/success?reference=${transaction.reference}`);
+          navigate(`/payment/success?reference=${transaction.reference}`);
         },
         onCancel: () => {
           setLoadingCheckout(null);
@@ -188,7 +188,7 @@ export default function StandalonePricingPage() {
 
           <div className="upg-nav-actions">
             {user ? (
-              <button className="upg-nav-dash-btn" onClick={() => navigate('/dashboard')}>
+              <button className="upg-nav-dash-btn" onClick={() => navigate('/home')}>
                 Go to Dashboard
               </button>
             ) : (
@@ -404,7 +404,7 @@ export default function StandalonePricingPage() {
           justify-content: center;
           padding: 100px 24px 40px; /* clear fixed header */
           background: #fcfbfe;
-          font-family: 'DM Sans', 'Inter', sans-serif;
+          font-family: 'Outfit', 'Outfit', sans-serif;
         }
 
         /* PUBLIC NAVBAR HEADER */

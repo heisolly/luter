@@ -72,14 +72,14 @@ export default function SharedFlashcardsView() {
   }
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#fff', fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#fff', fontFamily: "'Outfit', sans-serif" }}>
       <RefreshCw className="animate-spin" size={40} color="#7a12cc" />
       <p style={{ marginTop: 16, color: '#64748b', fontWeight: 600, textTransform: 'lowercase' }}>loading flashcards...</p>
     </div>
   )
 
   if (!bundle) return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '24px', background: '#fff', textAlign: 'center', padding: '20px', fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '24px', background: '#fff', textAlign: 'center', padding: '20px', fontFamily: "'Outfit', sans-serif" }}>
       <div style={{ background: '#FEF2F2', padding: '32px', borderRadius: '24px', border: '1.5px solid #EF4444', maxWidth: '400px' }}>
         <h2 style={{ fontSize: '24px', fontWeight: 900, color: '#991b1b', textTransform: 'lowercase' }}>oops!</h2>
         <p style={{ color: '#b91c1c', fontWeight: 500 }}>we couldn't find this shared deck. it might have been moved or deleted.</p>
@@ -92,7 +92,7 @@ export default function SharedFlashcardsView() {
   const progress = (mastered.size / bundle.cards.length) * 100
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '40px 20px', fontFamily: "'DM Sans', 'Inter', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '40px 20px', fontFamily: "'Outfit', 'Outfit', sans-serif" }}>
       <div style={{ maxWidth: '600px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
         
         {/* Header Branding */}

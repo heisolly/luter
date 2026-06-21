@@ -534,7 +534,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
   const formatText = (text) => {
     if (!text) return '';
     if (isTypo) {
-      return text.replace(/\*\*(.*?)\*\*/g, `<span style="background-color: ${isDark ? '#3F3F46' : '#E4E4E7'}; padding: 4px 8px; border-radius: 4px; display: inline-block; font-family: 'DM Sans', sans-serif; font-weight: 700;">$1</span>`).replace(/\*(.*?)\*/g, '<em>$1</em>');
+      return text.replace(/\*\*(.*?)\*\*/g, `<span style="background-color: ${isDark ? '#3F3F46' : '#E4E4E7'}; padding: 4px 8px; border-radius: 4px; display: inline-block; font-family: 'Outfit', sans-serif; font-weight: 700;">$1</span>`).replace(/\*(.*?)\*/g, '<em>$1</em>');
     }
     return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
   };
@@ -544,7 +544,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
     if (selectedFont === 'serif') return '"Lora", "Merriweather", serif';
     if (selectedFont === 'mono') return '"JetBrains Mono", monospace';
     if (selectedFont === 'system') {
-      if (isScrapbook) return '"Caveat", "Comic Sans MS", cursive';
+      if (isScrapbook) return '"Varela Round", "Comic Sans MS", cursive';
       if (isTypo) return '"Lora", "Merriweather", serif'; 
       return '"Nunito", "Quicksand", sans-serif';
     }

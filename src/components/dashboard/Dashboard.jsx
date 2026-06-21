@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import DashboardSidebar from './DashboardSidebar'
 import { Loader2, Sword, X, ArrowRight, Sidebar as SidebarSimple } from 'lucide-react'
-import { Backpack, DotsThree, House, NotePencil, UsersThree } from '@phosphor-icons/react'
+import { Backpack, DotsThree, House, NotePencil, UsersThree, ChalkboardTeacher } from '@phosphor-icons/react'
 import { LuterPageLoader } from '../shared/LuterPageLoader'
 import { motion, AnimatePresence } from 'framer-motion'
 import LuterLogo from '../shared/LuterLogo'
@@ -14,23 +14,22 @@ import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceSto
 import { preloadingService } from '../../services/preloadingService'
 import { LANDING_URL } from '../../utils/urlUtils'
 
-import { LuterTourGuide } from '../shared/tour/LuterTourGuide'
-import { useTourStore } from '../../store/useTourStore'
+
 
 function DashboardMobileBottomNav({ pathname, navigate, onMore }) {
   const isActive = (target) => {
-    if (target === '/dashboard') return pathname === '/dashboard' || pathname === '/dashboard/' || pathname === '/home'
-    if (target === '/dashboard/backpack') return pathname.startsWith('/dashboard/backpack') || pathname.startsWith('/backpack')
-    if (target === '/sessions') return pathname.startsWith('/sessions') || pathname.startsWith('/dashboard/sessions')
-    if (target === '/dashboard/notes') return pathname.startsWith('/dashboard/notes') || pathname.startsWith('/notes')
+    if (target === '/home') return pathname === '/home' || pathname === '/' || pathname === '/home'
+    if (target === '/backpack') return pathname.startsWith('/backpack') || pathname.startsWith('/backpack')
+    if (target === '/classrooms') return pathname.startsWith('/classrooms')
+    if (target === '/notes') return pathname.startsWith('/notes') || pathname.startsWith('/notes')
     return pathname === target || pathname.startsWith(`${target}/`)
   }
 
   const items = [
-    { label: 'Home', path: '/dashboard', icon: House },
-    { label: 'Backpack', path: '/dashboard/backpack', icon: Backpack },
-    { label: 'Sessions', path: '/sessions', icon: UsersThree },
-    { label: 'Notes', path: '/dashboard/notes', icon: NotePencil },
+    { label: 'Home', path: '/home', icon: House },
+    { label: 'Classrooms', path: '/classrooms', icon: ChalkboardTeacher },
+    { label: 'Backpack', path: '/backpack', icon: Backpack },
+    { label: 'Notes', path: '/notes', icon: NotePencil },
   ]
 
   return (
@@ -64,7 +63,7 @@ function DashboardMobileBottomNav({ pathname, navigate, onMore }) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const { isTourActive, currentTourId, startTour, hasCompletedTour, setUserId, completedTours, currentUserId, isLoadingTours } = useTourStore()
+
   const { initializeWorkspaces } = useUniversalWorkspaceStore()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [user, setUser] = useState(null)
@@ -74,41 +73,13 @@ export default function Dashboard() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
 
-  // Trigger tour for new users on dashboard home
-  useEffect(() => {
-    if (user?.id) {
-      setUserId(user.id)
-    }
-  }, [user?.id, setUserId])
 
-  useEffect(() => {
-    if (!loading && !isLoadingTours && user && currentUserId === user.id && window.location.pathname === '/dashboard') {
-      if (!hasCompletedTour('dashboard-home')) {
-        const timer = setTimeout(() => startTour('dashboard-home'), 2000)
-        return () => clearTimeout(timer)
-      }
-      
-      // Trigger nav tour after home tour is done
-      if (hasCompletedTour('dashboard-home') && !hasCompletedTour('dashboard-nav')) {
-        const timer = setTimeout(() => startTour('dashboard-nav'), 1000)
-        return () => clearTimeout(timer)
-      }
-    }
-  }, [loading, isLoadingTours, user, currentUserId, completedTours, window.location.pathname, hasCompletedTour, startTour])
-
-  // Force sidebar open during nav tour
-  useEffect(() => {
-    if (isTourActive && currentTourId === 'dashboard-nav') {
-      setSidebarCollapsed(false)
-      if (isMobile) setMobileSidebarOpen(true)
-    }
-  }, [isTourActive, currentTourId, isMobile])
 
   const location = useLocation()
   
   // Set initial sidebar state based on page
   useEffect(() => {
-    const openPages = ['/dashboard', '/dashboard/']
+    const openPages = ['/home', '/']
     if (openPages.includes(location.pathname)) {
       setSidebarCollapsed(false)
     } else {
@@ -122,15 +93,16 @@ export default function Dashboard() {
 
     const fetchUser = async () => {
       try {
+        console.log('🔄 Dashboard fetchUser started')
         // Give Supabase a moment to recover session from storage
-        const { data: { session: initialSession } } = await supabase.auth.getSession()
+        const { data: { session: initialSession }, error: initialSessionError } = await supabase.auth.getSession()
+        console.log('🔄 Dashboard initialSession:', initialSession ? 'EXISTS' : 'NULL', 'Error:', initialSessionError?.message)
         
         const handleSession = async (session) => {
+          console.log('🔄 Dashboard handleSession called with session:', session ? 'EXISTS' : 'NULL')
           if (session?.user) {
             setUser(session.user)
             setUserId(session.user.id)
-            // Pre-load tours even before profile is fetched to set currentUserId
-            useTourStore.getState().loadCompletedTours(session.user.id)
             
             const profileCacheKey = `luter:profile:${session.user.id}`
             const offline = typeof navigator !== 'undefined' && !navigator.onLine
@@ -144,7 +116,7 @@ export default function Dashboard() {
             try {
               const { data, error } = await supabase
                 .from('profiles')
-                .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium, completed_tours')
+                .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium')
                 .eq('id', session.user.id)
                 .maybeSingle()
               
@@ -153,9 +125,6 @@ export default function Dashboard() {
               if (data) {
                 setProfile(data)
                 try { localStorage.setItem(profileCacheKey, JSON.stringify(data)) } catch {}
-                
-                // Sync tour state immediately if data is present
-                useTourStore.getState().loadCompletedTours(session.user.id)
               }
             } catch (error) {
               console.warn('Profile fetch failed:', error.message)
@@ -163,10 +132,9 @@ export default function Dashboard() {
                 console.log('🔄 Session appears stale (401), attempting refresh...')
                 const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession()
                 if (!refreshError && refreshedSession) {
-                  // Retry profile fetch once
                   const { data: retryP } = await supabase
                     .from('profiles')
-                    .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium, completed_tours')
+                    .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium')
                     .eq('id', refreshedSession.user.id)
                     .maybeSingle()
                   if (retryP) setProfile(retryP)
@@ -188,15 +156,31 @@ export default function Dashboard() {
             }
             updateHeartbeat()
             hb = setInterval(updateHeartbeat, 30000)
+            
+            // Clean up auth tokens from URL for a cleaner address bar
+            const url = new URL(window.location.href)
+            if (url.searchParams.has('code') || url.searchParams.has('error')) {
+              url.searchParams.delete('code')
+              url.searchParams.delete('error')
+              url.searchParams.delete('error_code')
+              url.searchParams.delete('error_description')
+              window.history.replaceState({}, document.title, url.pathname + url.search)
+            }
+            
             setLoading(false)
           } else {
-            // Wait a bit longer before redirecting - Supabase might still be initializing
             setTimeout(async () => {
               const { data: { session: finalCheck } } = await supabase.auth.getSession()
+              console.log('🔄 Dashboard finalCheck inside handleSession(null):', finalCheck ? 'EXISTS' : 'NULL')
               if (!finalCheck) {
                 console.log('❌ No session found after wait, redirecting to signin')
-                const currentPath = window.location.pathname + window.location.search
-                window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(currentPath)}`
+                const url = new URL(window.location.href)
+                url.searchParams.delete('code')
+                url.searchParams.delete('error')
+                url.searchParams.delete('error_code')
+                url.searchParams.delete('error_description')
+                const cleanPath = url.pathname + url.search
+                window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(cleanPath)}`
               } else {
                 handleSession(finalCheck)
               }
@@ -207,8 +191,8 @@ export default function Dashboard() {
         if (initialSession) {
           await handleSession(initialSession)
         } else {
-          // Listen for auth state change
           const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('🔄 Dashboard onAuthStateChange event:', event, 'session:', session ? 'EXISTS' : 'NULL')
             if (session) {
               await handleSession(session)
               subscription.unsubscribe()
@@ -220,15 +204,43 @@ export default function Dashboard() {
           })
           
           // Absolute safety timeout - redirect if no user
-          setTimeout(() => {
-            if (loading && !user) {
-              const currentPath = window.location.pathname + window.location.search
-              window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(currentPath)}`
+          setTimeout(async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            console.log('🔄 Dashboard 4000ms safety timeout check, session:', session ? 'EXISTS' : 'NULL')
+            if (!session) {
+              console.log('❌ 4000ms safety timeout redirecting to signin')
+              const url = new URL(window.location.href)
+              url.searchParams.delete('code')
+              url.searchParams.delete('error')
+              const cleanPath = url.pathname + url.search
+              window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(cleanPath)}`
             }
           }, 4000)
         }
       } catch (error) {
-        console.warn('Dashboard session bootstrap failed:', error.message)
+        console.error('❌ Dashboard session bootstrap failed:', error.message, error)
+        const url = new URL(window.location.href)
+        if (url.searchParams.has('code') || url.searchParams.has('error')) {
+          url.searchParams.delete('code')
+          url.searchParams.delete('error')
+          url.searchParams.delete('error_code')
+          url.searchParams.delete('error_description')
+          window.history.replaceState({}, document.title, url.pathname + url.search)
+          try {
+            // Retry without the problematic code
+            const { data: { session }, error: retryErrorDetail } = await supabase.auth.getSession()
+            console.log('🔄 Dashboard retry after error, session:', session ? 'EXISTS' : 'NULL', 'error:', retryErrorDetail?.message)
+            if (session?.user) {
+              // We successfully recovered by stripping the stale code
+              setUser(session.user)
+              setUserId(session.user.id)
+              setLoading(false)
+              return
+            }
+          } catch (retryError) {
+            console.warn('Retry also failed:', retryError.message)
+          }
+        }
         setLoading(false)
       }
     }
@@ -244,7 +256,7 @@ export default function Dashboard() {
 
     const handleDeepLink = (e) => {
       if (e.detail?.page === 'mock-exam') {
-        navigate('/dashboard/mock-exam', { state: { preselectedCourse: e.detail.course || null } })
+        navigate('/mock-exam', { state: { preselectedCourse: e.detail.course || null } })
       }
     }
     window.addEventListener('DEEP_LINK_DASH', handleDeepLink)
@@ -260,6 +272,8 @@ export default function Dashboard() {
 
   const isWorkstation = location.pathname.includes('/workstation') || location.pathname.includes('/notes/editor') || location.pathname.includes('/ai-chat')
   const isFocusPage = isWorkstation || location.pathname.includes('/mock-exam') || location.pathname.includes('/profile') || location.pathname.includes('/trash') || location.pathname.includes('/analytics')
+  // Classroom room view has its own sidebar — suppress the hover-peek trigger there
+  const isClassroomView = location.pathname.startsWith('/classrooms/c/')
   const isPlayground = location.pathname.includes('/playground')
   const [sidebarHovered, setSidebarHovered] = useState(false)
 
@@ -283,14 +297,18 @@ export default function Dashboard() {
 
   // Redirect if no user after loading
   if (!user) {
-    const currentPath = window.location.pathname + window.location.search
-    window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(currentPath)}`
+    const url = new URL(window.location.href)
+    url.searchParams.delete('code')
+    url.searchParams.delete('error')
+    url.searchParams.delete('error_code')
+    url.searchParams.delete('error_description')
+    const cleanPath = url.pathname + url.search
+    window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(cleanPath)}`
     return null
   }
 
   return (
     <DashboardPrefetchProvider userId={user?.id}>
-    <LuterTourGuide />
     <div className={`dash-root ${isMobile ? 'dash-root--mobile' : ''} ${isFocusPage ? 'ws-mode' : ''}`}>
       {isMobile && !isWorkstation && (
         <div
@@ -346,7 +364,7 @@ export default function Dashboard() {
 
           <div
             className="mobile-user-avatar"
-            onClick={() => navigate('/dashboard/profile')}
+            onClick={() => navigate('/profile')}
             style={{
               width: 32,
               height: 32,
@@ -388,7 +406,7 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {!isMobile && sidebarCollapsed && (
+      {!isMobile && sidebarCollapsed && !isClassroomView && (
         <div 
           className="ws-sidebar-trigger" 
           onMouseEnter={() => setSidebarHovered(true)}
@@ -401,7 +419,7 @@ export default function Dashboard() {
         />
       )}
         <AnimatePresence>
-          {sidebarHovered && sidebarCollapsed && !isMobile && (
+          {sidebarHovered && sidebarCollapsed && !isMobile && !isClassroomView && (
             <motion.div
               initial={{ x: -290, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
