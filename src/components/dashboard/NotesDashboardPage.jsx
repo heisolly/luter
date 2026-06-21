@@ -57,7 +57,7 @@ function ContextMenu({ note, onClose, onDelete, onDuplicate, onOpen, anchorRef }
   }, [])
 
   const copyLink = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/dashboard/notes/editor?note=${note.id}&shared=1`)
+    navigator.clipboard.writeText(`${window.location.origin}/notes/editor?note=${note.id}&shared=1`)
     onClose()
   }
 

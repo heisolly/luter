@@ -1049,7 +1049,7 @@ function ShareDropdown({ roomId, onClose }) {
   const shortId = roomId.split(':').pop()
   
   // Construct the absolute share URL with the exact note ID
-  const shareUrl = `${window.location.origin}/dashboard/notes/editor?note=${shortId}&shared=1`
+  const shareUrl = `${window.location.origin}/notes/editor?note=${shortId}&shared=1`
 
   const handleCopy = async () => {
     try { await navigator.clipboard.writeText(shareUrl) } catch { }

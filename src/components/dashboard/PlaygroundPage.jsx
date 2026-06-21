@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react'
-import { useOutletContext, useNavigate, useParams } from 'react-router-dom'
+import { useOutletContext, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { 
   RiStackFill as MatchingIcon, 
   RiStackLine as StackerIcon, 
@@ -46,10 +46,21 @@ export default function PlaygroundPage() {
   const { isMobile, user, profile } = useOutletContext()
   const navigate = useNavigate()
   const { roomId } = useParams()
+  const [searchParams] = useSearchParams()
   const { canMultiplayer, maxFiles, getLockedItemIds } = usePlanGate(profile)
   
   const [activeTab, setActiveTab] = useState('arena') // arena | history
-  const [step, setStep] = useState('hub') // hub | quiz-material | clut-menu | clut-material | clut-topic | clut-code | content | game | mode | play
+  const [step, setStep] = useState(searchParams.get('step') || 'hub') // hub | quiz-material | clut-menu | clut-material | clut-topic | clut-code | content | game | mode | play
+
+  useEffect(() => {
+    const s = searchParams.get('step')
+    if (s) {
+      setStep(s)
+      const newParams = new URLSearchParams(searchParams)
+      newParams.delete('step')
+      navigate({ search: newParams.toString() }, { replace: true })
+    }
+  }, [searchParams, navigate])
   const [selectedMaterial, setSelectedMaterial] = useState(null)
   const [selectedGame, setSelectedGame] = useState(null)
   const [playMode, setPlayMode] = useState(null) // solo | multiplayer
@@ -925,7 +936,7 @@ export default function PlaygroundPage() {
                     onClick={() => {
                       setShowGamesDrawer(false)
                       if (game.isHeist) {
-                        navigate('/dashboard/heist')
+                        navigate('/heist')
                       } else {
                         setStep('content')
                       }
