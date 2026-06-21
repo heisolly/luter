@@ -1,0 +1,550 @@
+/* ==========================================================================
+   LUTER ARCADE - BENTO GRID DESIGN SYSTEM
+   Visual Vibe: Modern Google/Apple Dashboard (Clean Educative Gamification)
+   ========================================================================== */
+
+:root {
+  --color-lavender: #C4B5FD;
+  --color-mint: #98FF98;
+  --color-peach: #FFD2A6;
+  --color-purple-deep: #7a12cc;
+
+  /* Theme variables for Arcade */
+  --arcade-bg: #f8fafc;
+  --arcade-card-bg: #ffffff;
+  --arcade-card-border: rgba(226, 232, 240, 0.9);
+  --arcade-text-primary: #0f172a;
+  --arcade-text-secondary: #334155;
+  --arcade-text-muted: #64748b;
+  --arcade-border-subtle: rgba(226, 232, 240, 0.8);
+  --arcade-inner-bg: #f1f5f9;
+
+  /* Global variable bridge for children */
+  --text-primary: var(--arcade-text-primary);
+  --text-secondary: var(--arcade-text-secondary);
+  --text-muted: var(--arcade-text-muted);
+  --border: var(--arcade-card-border);
+  --border-subtle: var(--arcade-border-subtle);
+  --card-bg: var(--arcade-card-bg);
+}
+
+body.dark-mode {
+  --arcade-bg: #0b0914;
+  --arcade-card-bg: #151226;
+  --arcade-card-border: rgba(255, 255, 255, 0.1);
+  --arcade-text-primary: #f9fafb;
+  --arcade-text-secondary: #cbd5e1;
+  --arcade-text-muted: #94a3b8;
+  --arcade-border-subtle: rgba(255, 255, 255, 0.06);
+  --arcade-inner-bg: #1d1835;
+
+  /* Global variable bridge for children */
+  --text-primary: var(--arcade-text-primary);
+  --text-secondary: var(--arcade-text-secondary);
+  --text-muted: var(--arcade-text-muted);
+  --border: var(--arcade-card-border);
+  --border-subtle: var(--arcade-border-subtle);
+  --card-bg: var(--arcade-card-bg);
+}
+
+/* Helper Components & Adapters */
+.arcade-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-weight: 650;
+  border-radius: 14px;
+  border: 1.5px solid var(--arcade-card-border);
+  background: var(--arcade-inner-bg);
+  color: var(--arcade-text-primary);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.arcade-input::placeholder {
+  color: var(--arcade-text-muted);
+  opacity: 0.85;
+}
+
+.arcade-input:focus {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+  background: var(--arcade-card-bg);
+}
+
+body.dark-mode .arcade-input:focus {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.2);
+}
+
+.arcade-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 14px;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-weight: 850;
+  font-size: 14.5px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #ffffff;
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25);
+}
+
+.arcade-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.35);
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.arcade-btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.arcade-btn-primary:disabled {
+  background: var(--arcade-border-subtle) !important;
+  color: var(--arcade-text-muted) !important;
+  cursor: not-allowed;
+  box-shadow: none !important;
+  transform: none !important;
+  opacity: 0.6;
+}
+
+body.dark-mode .arcade-btn-primary {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
+}
+
+body.dark-mode .arcade-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+  box-shadow: 0 6px 20px rgba(167, 139, 250, 0.4);
+}
+
+.arcade-btn-clut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 14px;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-weight: 850;
+  font-size: 14.5px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #ffffff;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
+}
+
+.arcade-btn-clut:hover:not(:disabled) {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35);
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.arcade-btn-clut:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.arcade-btn-clut:disabled {
+  background: var(--arcade-border-subtle) !important;
+  color: var(--arcade-text-muted) !important;
+  cursor: not-allowed;
+  box-shadow: none !important;
+  transform: none !important;
+  opacity: 0.6;
+}
+
+body.dark-mode .arcade-btn-clut {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.2);
+}
+
+body.dark-mode .arcade-btn-clut:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fde047 0%, #fbbf24 100%);
+  box-shadow: 0 6px 20px rgba(251, 191, 36, 0.3);
+}
+
+/* 1. Main Page Layout & Mesh Background */
+.playground-root {
+  position: relative;
+  background-color: var(--arcade-bg);
+  overflow-x: hidden;
+  transition: background-color 0.3s ease;
+  z-index: 1;
+}
+
+.playground-root::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at 10% 15%, rgba(196, 181, 253, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 90% 85%, rgba(255, 210, 166, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(152, 255, 152, 0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+  transition: background-image 0.3s ease;
+}
+
+body.dark-mode .playground-root::before {
+  background-image: 
+    radial-gradient(circle at 10% 15%, rgba(124, 58, 237, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 90% 85%, rgba(251, 146, 60, 0.06) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(52, 211, 153, 0.02) 0%, transparent 50%);
+}
+
+/* 2. Sleek Typography */
+.arcade-title {
+  font-family: var(--font-display, 'DM Sans', sans-serif);
+  font-weight: 850;
+  font-size: 34px;
+  letter-spacing: -0.025em;
+  background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: inline-block;
+  margin: 0;
+}
+
+body.dark-mode .arcade-title {
+  background: linear-gradient(135deg, #a78bfa 0%, #c4b5fd 50%, #f472b6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 3. Glassmorphic Bento Cards */
+.arcade-glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 24px;
+  box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.04);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+body.dark-mode .arcade-glass-card {
+  background: rgba(22, 28, 45, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+}
+
+.arcade-glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.08);
+  border-color: rgba(124, 58, 237, 0.3);
+}
+
+body.dark-mode .arcade-glass-card:hover {
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+  border-color: rgba(196, 181, 253, 0.2);
+}
+
+/* 4. Bento Grid Layout */
+.arcade-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-gap: 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.bento-tile-tall {
+  grid-column: 1 / 2;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+}
+
+.bento-tile-wide {
+  grid-column: 2 / 4;
+  grid-row: 1 / 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.bento-tile-normal {
+  display: flex;
+  flex-direction: column;
+}
+
+.bento-tile-full {
+  grid-column: 1 / 4;
+}
+
+/* Mobile Stacking Resets */
+@media (max-width: 900px) {
+  .arcade-bento-grid {
+    grid-template-columns: 1fr;
+    grid-gap: 16px;
+  }
+  .bento-tile-tall,
+  .bento-tile-wide,
+  .bento-tile-normal,
+  .bento-tile-full {
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+}
+
+/* 5. Scholar Command Center Details */
+.xp-avatar-container {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.xp-ring-svg {
+  transform: rotate(-90deg);
+  width: 100%;
+  height: 100%;
+}
+
+.xp-ring-bg {
+  stroke: #e2e8f0;
+  stroke-width: 4px;
+  fill: none;
+}
+
+body.dark-mode .xp-ring-bg {
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.xp-ring-fill {
+  stroke-linecap: round;
+  stroke-width: 4px;
+  fill: none;
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.xp-avatar-img {
+  position: absolute;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--color-peach);
+  border: 2px solid var(--arcade-bg);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+/* Daily Quests List */
+.bento-quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+  width: 100%;
+}
+
+.bento-quest-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--arcade-text-secondary);
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--arcade-inner-bg);
+  border: 1px solid var(--arcade-border-subtle);
+  transition: all 0.2s ease;
+}
+
+.bento-quest-item.completed {
+  opacity: 0.6;
+  text-decoration: line-through;
+  background: rgba(152, 255, 152, 0.06);
+  border-color: rgba(152, 255, 152, 0.15);
+  color: #16a34a;
+}
+
+body.dark-mode .bento-quest-item.completed {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.04);
+  border-color: rgba(52, 211, 153, 0.08);
+}
+
+/* 6. Clut Live Arena elements */
+.clut-arena-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #f59e0b;
+  box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  animation: clut-pulse 1.8s infinite;
+}
+
+@keyframes clut-pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(245, 158, 11, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+/* 7. Scoreboard Ticker elements */
+.arcade-scoreboard-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  background: var(--arcade-inner-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--arcade-border-subtle);
+  border-radius: 16px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.arcade-scoreboard-row:hover {
+  border-color: #a78bfa;
+  background: var(--arcade-card-bg);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.05);
+}
+
+body.dark-mode .arcade-scoreboard-row:hover {
+  background: rgba(30, 41, 59, 0.55);
+  border-color: #c4b5fd;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.scoreboard-score-badge {
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--arcade-inner-bg);
+  color: var(--arcade-text-primary);
+  border: 1px solid var(--arcade-border-subtle);
+  font-weight: 800;
+  font-size: 14.5px;
+  text-align: center;
+  min-width: 50px;
+}
+
+.tab-underline-indicator {
+  position: absolute;
+  bottom: -24px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #7c3aed;
+  border-radius: 3px 3px 0 0;
+}
+
+body.dark-mode .tab-underline-indicator {
+  background: #a78bfa;
+}
+
+/* 8. Game Cards in drawer and lists */
+.arcade-game-card {
+  background: var(--arcade-card-bg);
+  border: 1px solid var(--arcade-card-border);
+  border-radius: 22px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.arcade-game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--card-theme-color);
+  box-shadow: 0 12px 30px -10px var(--card-glow-color);
+}
+
+/* Outlined Buttons */
+.arcade-btn-outline-clut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1.5px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  background: rgba(245, 158, 11, 0.06);
+  color: #d97706;
+  transition: all 0.2s ease;
+}
+
+.arcade-btn-outline-clut:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.5);
+  transform: translateY(-1px);
+}
+
+body.dark-mode .arcade-btn-outline-clut {
+  background: rgba(245, 158, 11, 0.1);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+body.dark-mode .arcade-btn-outline-clut:hover {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.6);
+}
+
+.arcade-btn-outline-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1.5px solid rgba(124, 58, 237, 0.3);
+  border-radius: 12px;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  background: rgba(124, 58, 237, 0.06);
+  color: #7c3aed;
+  transition: all 0.2s ease;
+}
+
+.arcade-btn-outline-primary:hover {
+  background: rgba(124, 58, 237, 0.15);
+  border-color: rgba(124, 58, 237, 0.5);
+  transform: translateY(-1px);
+}
+
+body.dark-mode .arcade-btn-outline-primary {
+  background: rgba(124, 58, 237, 0.1);
+  color: #a78bfa;
+  border-color: rgba(124, 58, 237, 0.35);
+}
+
+body.dark-mode .arcade-btn-outline-primary:hover {
+  background: rgba(124, 58, 237, 0.18);
+  border-color: rgba(124, 58, 237, 0.6);
+}
