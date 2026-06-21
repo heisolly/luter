@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
-import { TOOL_CATEGORIES, TOOL_DESCRIPTIONS, DANGEROUS_TOOLS } from '../agents/toolRegistry'
+import { TOOL_CATEGORIES, TOOL_DESCRIPTIONS, DANGEROUS_TOOLS } from '../agents/toolMetadata'
 import { Robot, CheckSquare, Square, CircleNotch, FloppyDisk, Warning, Lightbulb } from '@phosphor-icons/react'
 import { getAdminPath } from '../../utils/urlUtils'
 

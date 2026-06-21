@@ -16,7 +16,6 @@ import confetti from 'canvas-confetti'
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient'
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService'
 import LuterLogo from '../shared/LuterLogo'
-import useTourStore from '../../store/useTourStore'
 
 // Sound Effects
 import correctSound from '../../assets/sounds/dragon-studio-correct-472358.mp3'
