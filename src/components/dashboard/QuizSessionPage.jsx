@@ -959,8 +959,8 @@ export default function QuizSessionPage() {
                     display: 'flex',
                     alignItems: 'stretch',
                     width: '100%',
-                    minHeight: '68px',
-                    borderRadius: '16px',
+                    minHeight: '88px',
+                    borderRadius: '20px',
                     border: optBorder,
                     backgroundColor: optBg,
                     color: optColor,
@@ -976,14 +976,14 @@ export default function QuizSessionPage() {
                   className="quiz-option-button"
                 >
                   <div style={{
-                    width: '56px',
+                    width: '64px',
                     background: badgeBg,
                     color: badgeColor,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontWeight: 900,
-                    fontSize: '18px',
+                    fontSize: '22px',
                     borderRight: optBorder,
                     flexShrink: 0,
                     transition: 'all 0.18s ease'
@@ -992,8 +992,8 @@ export default function QuizSessionPage() {
                   </div>
                   <div style={{
                     flex: 1,
-                    padding: '16px 20px',
-                    fontSize: '16px',
+                    padding: '20px 24px',
+                    fontSize: '18px',
                     fontWeight: 800,
                     display: 'flex',
                     alignItems: 'center',
@@ -1117,22 +1117,28 @@ export default function QuizSessionPage() {
                 justifyContent: 'space-between',
                 background: isDark ? '#111827' : '#F9FAFB'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ 
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  background: isDark ? '#1F2937' : '#F3F4F6',
+                  padding: '6px 16px 6px 6px',
+                  borderRadius: '9999px',
+                  border: `1.5px solid ${isDark ? '#374151' : '#E5E7EB'}`
+                }}>
                   <div style={{
-                    width: '32px',
-                    height: '32px',
+                    width: '36px',
+                    height: '36px',
                     borderRadius: '50%',
                     backgroundColor: '#C4B5FD',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '16px'
+                    overflow: 'hidden'
                   }}>
-                    🤖
+                    <img src="/mascot.png" alt="Gizmo Mascot" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '14px', fontWeight: 800, color: fontColor }}>Explain AI</div>
-                    <div style={{ fontSize: '11px', color: '#10B981', fontWeight: 700 }}>Gizmo Online</div>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: fontColor, lineHeight: 1.2 }}>Explain AI</div>
+                    <div style={{ fontSize: '11px', color: '#10B981', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Gizmo Online</div>
                   </div>
                 </div>
                 <button
