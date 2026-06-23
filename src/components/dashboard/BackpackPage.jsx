@@ -205,14 +205,9 @@ export default function BackpackPage() {
               Switch to {tab === 'folders' ? 'Files' : 'Folders'}
             </button>
             {tab === 'folders' ? (
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button className="lp-btn lp-btn-primary" onClick={() => setShowCreateFolder(true)}>
-                  <Plus size={16} weight="bold" /> New Folder
-                </button>
-                <button className="lp-btn" onClick={() => setShowEnroll(true)}>
-                  <Plus size={16} weight="bold" /> Add Course
-                </button>
-              </div>
+              <button className="lp-btn lp-btn-primary" onClick={() => setShowCreateFolder(true)}>
+                <Plus size={16} weight="bold" /> New Folder
+              </button>
             ) : (
               <button className="lp-btn lp-btn-primary" onClick={() => setShowUpload(true)}>
                 <Plus size={16} weight="bold" /> Upload
@@ -245,10 +240,7 @@ export default function BackpackPage() {
             ) : filteredFolders.length === 0 ? (
               <div className="lp-empty" style={{ minHeight: 200, border: 'none' }}>
                 <h3>No folders yet</h3>
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '12px' }}>
-                  <button className="lp-btn lp-btn-primary" onClick={() => setShowCreateFolder(true)}>Create Folder</button>
-                  <button className="lp-btn" onClick={() => setShowEnroll(true)}>Add Course</button>
-                </div>
+                <button className="lp-btn lp-btn-primary" onClick={() => setShowCreateFolder(true)} style={{ marginTop: '12px' }}>Create Folder</button>
               </div>
             ) : view === 'list' ? (
               <div className="lp-class-list-container">
