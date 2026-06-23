@@ -58,16 +58,19 @@ USING (bucket_id = 'avatars' AND (auth.uid())::text = (storage.foldername(name))
 -- For materials:
 DROP POLICY IF EXISTS "Allow authenticated read" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated users can read materials" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can read own materials" ON storage.objects;
 CREATE POLICY "Authenticated users can read own materials" ON storage.objects FOR SELECT 
 USING (bucket_id = 'materials' AND (auth.uid())::text = (storage.foldername(name))[1]);
 
 -- For admin_audio:
 DROP POLICY IF EXISTS "Allow authenticated read admin_audio" ON storage.objects;
+DROP POLICY IF EXISTS "Allow authenticated read own admin_audio" ON storage.objects;
 CREATE POLICY "Allow authenticated read own admin_audio" ON storage.objects FOR SELECT 
 USING (bucket_id = 'admin_audio' AND (auth.uid())::text = (storage.foldername(name))[1]);
 
 -- For study-materials:
 DROP POLICY IF EXISTS "Authenticated users can read study-materials" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can read own study-materials" ON storage.objects;
 CREATE POLICY "Authenticated users can read own study-materials" ON storage.objects FOR SELECT 
 USING (bucket_id = 'study-materials' AND (auth.uid())::text = (storage.foldername(name))[1]);
 
