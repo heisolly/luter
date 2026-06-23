@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
-    "dev:client": "vite",
+    "dev:client": "node --max-old-space-size=4096 node_modules/vite/bin/vite.js",
     "dev:server": "cd server && npm run dev",
     "dev:windows": "start-dev.bat",
     "dev:ps": "powershell -ExecutionPolicy Bypass -File start-dev.ps1",
-    "build": "vite build",
+    "build": "node --max-old-space-size=4096 node_modules/vite/bin/vite.js build",
     "lint": "eslint .",
     "preview": "vite preview",
     "server": "cd server && npm run dev",

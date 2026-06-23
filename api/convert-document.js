@@ -3,6 +3,7 @@
  * Professional document conversion service
  * Users never see this - it's a silent background process
  */
+import mammoth from 'mammoth';
 
 // Dynamic import for CloudConvert (only when needed)
 let CloudConvert = null;
@@ -206,18 +207,17 @@ async function base64ToText(base64, format) {
   try {
     const buffer = Buffer.from(base64, 'base64');
     
-    // For DOCX files, we'll extract text content
+    // For DOCX files, we'll extract text content using mammoth
     if (format === 'docx') {
-      // Simple text extraction for demonstration
-      // In production, you'd use a proper DOCX parser
-      return buffer.toString('utf-8');
+      const result = await mammoth.extractRawText({ buffer });
+      return result.value;
     }
     
     return buffer.toString('utf-8');
     
   } catch (error) {
     console.error('Failed to convert base64 to text:', error);
-    throw new Error('Failed to process converted file');
+    throw new Error('Failed to process converted file: ' + error.message);
   }
 }
 

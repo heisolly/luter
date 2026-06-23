@@ -10,16 +10,72 @@ export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState(null);
+  const [errorMsg, setErrorMsg] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
   const reference = searchParams.get('reference');
   const receiptRef = useRef(null);
 
   useEffect(() => {
-    if (!loading && paymentStatus && paymentStatus.status === 'completed') {
-      // Navigate to dashboard after successful payment
-      navigate('/home');
+    if (!reference) {
+      setErrorMsg('Missing transaction reference.');
+      setLoading(false);
+      return;
     }
-  }, [loading, paymentStatus]);
+
+    let cancelled = false;
+    let pollCount = 0;
+    const MAX_POLLS = 30; // 60 seconds total
+
+    const pollPaymentStatus = async () => {
+      while (!cancelled && pollCount < MAX_POLLS) {
+        try {
+          const { data: tx, error: txError } = await supabase
+            .from('payment_transactions')
+            .select('*')
+            .eq('reference', reference)
+            .maybeSingle();
+
+          if (txError) throw txError;
+
+          if (tx && tx.status === 'completed') {
+            // Fetch profile for name/email
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('full_name, email')
+              .eq('id', tx.user_id)
+              .maybeSingle();
+
+            if (!cancelled) {
+              setPaymentStatus({
+                status: 'completed',
+                plan: tx.plan_id.replace(/_/g, ' ').toUpperCase(),
+                amount: tx.amount,
+                date: tx.completed_at || tx.created_at,
+                method: tx.gateway || 'Card',
+                customerName: profile?.full_name || 'Student',
+                customerEmail: profile?.email || 'N/A',
+              });
+              setLoading(false);
+            }
+            return;
+          }
+        } catch (err) {
+          console.warn('Error polling payment status:', err.message);
+        }
+
+        pollCount++;
+        await new Promise(r => setTimeout(r, 2000));
+      }
+
+      if (!cancelled) {
+        setErrorMsg('Payment verification timed out. If you were debited, please contact support with reference: ' + reference);
+        setLoading(false);
+      }
+    };
+
+    pollPaymentStatus();
+    return () => { cancelled = true; };
+  }, [reference]);
 
   const handleDownloadReceipt = async () => {
     if (!receiptRef.current) return;
@@ -46,6 +102,20 @@ export default function PaymentSuccess() {
   };
 
   const handleGoHome = () => navigate('/home');
+
+  if (errorMsg) {
+    return (
+      <div style={containerStyles}>
+        <div style={spinnerContainerStyles}>
+          <div style={{ color: '#ef4444', fontSize: 18, fontWeight: 700 }}>Payment Verification Error</div>
+          <div style={{ fontSize: 14, color: '#64748b', maxWidth: 320, lineHeight: 1.5 }}>{errorMsg}</div>
+          <button onClick={handleGoHome} style={actionBtnStyles}>
+            Go back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading && !paymentStatus) {
     return (
