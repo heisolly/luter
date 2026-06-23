@@ -9,11 +9,20 @@ function useQuery() {
 const TIER_MAP = {
   pro: { tier: 'pro', monthlyCredits: 2000 },
   pro_2weeks: { tier: 'pro', monthlyCredits: 2000 },
+  pro_weekly: { tier: 'pro', monthlyCredits: 2000 },
+  pro_weekly_oneoff: { tier: 'pro', monthlyCredits: 2000 },
+  pro_promo: { tier: 'pro', monthlyCredits: 2000 },
+  pro_monthly: { tier: 'pro', monthlyCredits: 2000 },
   pro_yearly: { tier: 'pro', monthlyCredits: 2000 },
+  pro_monthly_usd: { tier: 'pro', monthlyCredits: 2000 },
+  pro_yearly_usd: { tier: 'pro', monthlyCredits: 2000 },
   beast_monthly: { tier: 'beast', monthlyCredits: 999999 },
-  beast_2weeks: { tier: 'beast', monthlyCredits: 999999 },
-  beast_quarterly: { tier: 'beast', monthlyCredits: 999999 },
+  beast_weekly: { tier: 'beast', monthlyCredits: 999999 },
+  beast_weekly_oneoff: { tier: 'beast', monthlyCredits: 999999 },
+  beast_promo: { tier: 'beast', monthlyCredits: 999999 },
   beast_yearly: { tier: 'beast', monthlyCredits: 999999 },
+  beast_monthly_usd: { tier: 'beast', monthlyCredits: 999999 },
+  beast_yearly_usd: { tier: 'beast', monthlyCredits: 999999 },
   starter: { tier: 'pro', monthlyCredits: 2000 },
 }
 
@@ -65,11 +74,18 @@ export default function PaymentSuccess() {
                   { onConflict: 'user_id' }
                 ),
             ])
+            try {
+              localStorage.removeItem(`luter:profile:${data.user_id}`)
+            } catch (e) {
+              console.warn('Failed to clear cache:', e)
+            }
           }
 
           setStatus('success');
           setMessage('Payment confirmed! Redirecting...');
-          setTimeout(() => navigate(`/upgrade?payment=success&tier=${mapping?.tier || 'pro'}`), 2000);
+          setTimeout(() => {
+            window.location.href = `/upgrade?payment=success&tier=${mapping?.tier || 'pro'}`
+          }, 2000);
           return;
         }
 

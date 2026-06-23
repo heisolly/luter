@@ -116,7 +116,7 @@ export default function DashboardSidebar({
     () => pathname.startsWith('/backpack')
   )
   const [helperOverlay, setHelperOverlay]   = useState(null) // 'feedback' | 'changelog' | 'help' | null
-  const [showArcade, setShowArcade]         = useState(false) // arcade overlay
+  const [showComingSoon, setShowComingSoon] = useState(false)
   const [creditsBalance, setCreditsBalance] = useState(Infinity)
 
   // Fetch real credit balance
@@ -127,20 +127,13 @@ export default function DashboardSidebar({
     }).catch(() => {})
   }, [user?.id])
 
-  // Close arcade on Escape
+  // Close coming soon modal on Escape
   useEffect(() => {
-    if (!showArcade) return
-    const handler = (e) => { if (e.key === 'Escape') setShowArcade(false) }
+    if (!showComingSoon) return
+    const handler = (e) => { if (e.key === 'Escape') setShowComingSoon(false) }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [showArcade])
-
-  // Close arcade on Escape
-  useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') setShowArcade(false) }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [showComingSoon])
 
   const personalRef = useRef(null)
   const profileBtnRef = useRef(null)
@@ -388,6 +381,7 @@ export default function DashboardSidebar({
                     const isActive = pathname.startsWith(coursePath)
                     const name = uc.custom_name || course.name || 'Untitled'
                     const code = course.code || ''
+                    const isCustomFolder = code.startsWith('FOLDER_')
 
                     return (
                       <button
@@ -398,10 +392,16 @@ export default function DashboardSidebar({
                       >
                         <span
                           className="dsb-subnav-dot"
-                          style={{ background: isActive ? '#7a12cc' : courseColor(i) }}
+                          style={{ 
+                            background: isActive 
+                              ? '#7a12cc' 
+                              : isCustomFolder 
+                                ? (i % 2 === 0 ? '#98FF98' : '#FFD2A6') 
+                                : '#C4B5FD' 
+                          }}
                         />
                         <span className="dsb-subnav-label">{name}</span>
-                        {code && <span className="dsb-subnav-code">{code}</span>}
+                        {!isCustomFolder && code && <span className="dsb-subnav-code">{code}</span>}
                       </button>
                     )
                   })
@@ -435,11 +435,11 @@ export default function DashboardSidebar({
         {/* Arcade */}
         <button
           id="nav-arcade"
-          className={`dsb-nav-pill${showArcade ? ' active arcade-pill' : isNavActive(pathname, '/playground') || isNavActive(pathname, '/mock-exam') || isNavActive(pathname, '/study-groups') ? ' active arcade-pill' : ''}`}
-          onClick={() => setShowArcade(v => !v)}
+          className={`dsb-nav-pill${showComingSoon ? ' active arcade-pill' : ''}`}
+          onClick={() => setShowComingSoon(true)}
         >
           <div className="dsb-icon">
-            <GameController size={21} weight={showArcade ? 'fill' : 'regular'} />
+            <GameController size={21} weight={showComingSoon ? 'fill' : 'regular'} />
           </div>
           {!collapsed && <span className="dsb-nav-label">Arcade</span>}
         </button>
@@ -605,8 +605,99 @@ export default function DashboardSidebar({
         onClose={() => setHelperOverlay(null)}
       />
 
-      {/* ── Arcade Overlay ── */}
-      {showArcade && <ArcadeOverlay user={user} onClose={() => setShowArcade(false)} />}
+      {/* ── Coming Soon Modal ── */}
+      {showComingSoon && createPortal(
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            background: 'rgba(11, 9, 20, 0.45)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)'
+          }}
+          onClick={() => setShowComingSoon(false)}
+        >
+          <div 
+            style={{
+              width: '90%',
+              maxWidth: 400,
+              background: 'var(--arcade-card-bg, #ffffff)',
+              border: '2px solid var(--arcade-card-border, #C4B5FD)',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
+              borderRadius: 24,
+              padding: '32px 24px',
+              textAlign: 'center',
+              position: 'relative',
+              fontFamily: "'Outfit', 'Inter', sans-serif"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div 
+              style={{
+                width: 64,
+                height: 64,
+                margin: '0 auto 20px',
+                borderRadius: 20,
+                background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(59, 130, 246, 0.12))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#7c3aed',
+                boxShadow: '0 8px 24px rgba(124, 58, 237, 0.15)'
+              }}
+            >
+              <GameController size={32} weight="duotone" />
+            </div>
+            <h2 style={{ fontSize: 22, fontWeight: 900, color: 'var(--arcade-text-primary, #0f172a)', margin: '0 0 10px 0' }}>
+              Luter Arcade
+            </h2>
+            <div 
+              style={{
+                display: 'inline-block',
+                background: '#f5f3ff',
+                color: '#7c3aed',
+                padding: '4px 14px',
+                borderRadius: 99,
+                fontSize: 12,
+                fontWeight: 800,
+                marginBottom: 16,
+                border: '1px solid #ede9fe'
+              }}
+            >
+              COMING SOON
+            </div>
+            <p style={{ fontSize: 14, color: 'var(--arcade-text-muted, #64748b)', margin: '0 0 24px 0', lineHeight: 1.6, fontWeight: 500 }}>
+              The ultimate learning arena is currently undergoing construction. Get ready for active recall battles, social deduction games, and daily quests soon!
+            </p>
+            <button 
+              onClick={() => setShowComingSoon(false)}
+              style={{
+                width: '100%',
+                height: 48,
+                borderRadius: 14,
+                border: 'none',
+                background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                color: 'white',
+                fontSize: 15,
+                fontWeight: 850,
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(124, 58, 237, 0.25)',
+                fontFamily: 'inherit',
+                transition: 'transform 0.15s ease'
+              }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+            >
+              Awesome
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
 
     </aside>
   )

@@ -193,5 +193,5 @@ const totalLabel = { fontSize: 15, fontWeight: 700, color: '#1e293b' };
 const totalValue = { fontSize: 18, fontWeight: 800, color: '#7a12cc' };
 const customerBox = { marginTop: 24, padding: '0 4px' };
 const receiptFooter = { padding: '0 32px 40px', textAlign: 'center' };
-const barcodePlaceholder = { height: 40, background: 'linear-gradient(to right, #1e293b 2px, transparent 2px)', backgroundSize: '6px 100%', marginBottom: 12, opacity: 0.1 };
+const barcodePlaceholder = { height: 40, backgroundImage: 'linear-gradient(to right, #1e293b 2px, transparent 2px)', backgroundSize: '6px 100%', marginBottom: 12, opacity: 0.1 };
 const footerNote = { fontSize: 11, color: '#94a3b8', margin: 0 };

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import { CircleNotch, List, X, ShieldWarning, Sun, Moon } from '@phosphor-icons/react'
+import { CircleNotch, List, X, ShieldWarning, ShieldCheck, Sun, Moon } from '@phosphor-icons/react'
 import { isAdminUser } from './adminAuth'
 import AdminSidebar from './AdminSidebar'
 import AdminChatPanel from './AdminChatPanel'
@@ -92,15 +92,15 @@ export default function AdminLayout() {
     }
 
     return (
-      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--adm-bg, #fafafa)', padding: 20, fontFamily: 'Outfit, sans-serif' }}>
-        <form onSubmit={handleLogin} style={{ background: 'var(--adm-surface, #fff)', padding: '36px 32px', borderRadius: 20, border: '1px solid var(--adm-border, #e5e7eb)', width: '100%', maxWidth: 400, boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.08)' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-            <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: 16, borderRadius: '50%', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-              <ShieldWarning size={32} color="#ef4444" />
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--adm-bg, #f8fafc)', padding: 20, fontFamily: 'Outfit, sans-serif' }}>
+        <form onSubmit={handleLogin} style={{ background: 'var(--adm-surface, #ffffff)', padding: '40px 32px', borderRadius: 24, border: '1px solid var(--adm-border, #e2e8f0)', width: '100%', maxWidth: 400, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+            <div style={{ background: 'rgba(255, 210, 166, 0.15)', padding: 18, borderRadius: '50%', border: '1px solid rgba(255, 210, 166, 0.4)' }}>
+              <ShieldCheck size={36} color="#fb923c" weight="duotone" />
             </div>
           </div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, textAlign: 'center', marginBottom: 8, color: 'var(--adm-text, #0f172a)', letterSpacing: '-0.02em' }}>Admin Access</h2>
-          <p style={{ fontSize: 14, color: 'var(--adm-text-secondary, #475569)', textAlign: 'center', marginBottom: 24 }}>Enter admin password to continue</p>
+          <h2 style={{ fontSize: 24, fontWeight: 800, textAlign: 'center', marginBottom: 8, color: 'var(--adm-text, #0f172a)', letterSpacing: '-0.02em' }}>Admin Access</h2>
+          <p style={{ fontSize: 15, color: 'var(--adm-text-secondary, #475569)', textAlign: 'center', marginBottom: 32 }}>Enter master password to continue</p>
           
           <input
             type="password"
@@ -111,39 +111,30 @@ export default function AdminLayout() {
               setPassword(e.target.value)
               setAuthError(false)
             }}
+            className="adm-input"
             style={{ 
               width: '100%', 
-              padding: '12px 16px', 
-              borderRadius: 12, 
-              border: `1.5px solid ${authError ? '#ef4444' : 'var(--adm-border, #e5e7eb)'}`,
-              background: 'var(--adm-bg, #fafafa)',
-              color: 'var(--adm-text, #0f172a)',
+              padding: '14px 16px',
               fontSize: 16,
-              marginBottom: 16,
-              outline: 'none',
-              transition: 'all 0.2s',
-              fontFamily: 'inherit'
+              marginBottom: 20,
+              borderColor: authError ? '#ef4444' : undefined
             }}
           />
 
           {authError && (
-            <p style={{ color: '#ef4444', fontSize: 13, textAlign: 'center', marginBottom: 16, fontWeight: 600 }}>Invalid password. Please try again.</p>
+            <p style={{ color: '#ef4444', fontSize: 13, textAlign: 'center', marginBottom: 20, fontWeight: 600 }}>Invalid password. Please try again.</p>
           )}
 
           <button
             type="submit"
+            className="adm-btn adm-btn--primary"
             style={{
               width: '100%',
-              padding: '12px',
+              justifyContent: 'center',
+              padding: '14px',
+              fontSize: 15,
               borderRadius: 12,
-              background: 'var(--adm-mint, #98ff98)',
-              color: '#14532d',
-              fontWeight: 700,
-              fontSize: 14,
-              border: 'none',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              transition: 'background 0.15s ease'
+              letterSpacing: '0.01em'
             }}
           >
             Access Dashboard

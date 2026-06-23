@@ -18,6 +18,7 @@ const FeedbackPage = lazy(() => import('./components/dashboard/FeedbackPage'));
 const ChangelogPage = lazy(() => import('./components/dashboard/ChangelogPage'));
 const HelpPage = lazy(() => import('./components/dashboard/HelpPage'));
 const UpgradePage = lazy(() => import('./components/dashboard/UpgradePage'));
+const PaymentSuccess = lazy(() => import('./pages/dashboard/payment/success'));
 const StreakPage = lazy(() => import('./components/dashboard/StreakPage'));
 const ReferPage = lazy(() => import('./components/dashboard/ReferPage'));
 const PlaygroundPage = lazy(() => import('./components/dashboard/PlaygroundPage'));
@@ -58,6 +59,7 @@ const StorePage = lazy(() => import('./components/dashboard/StorePage'));
 const SharedMaterialPreview = lazy(() => import('./components/shared/SharedMaterialPreview'));
 const BoardPage = lazy(() => import('./components/board/BoardPage'));
 const NotificationsPage = lazy(() => import('./components/dashboard/NotificationsPage'));
+const QuizSessionPage = lazy(() => import('./components/dashboard/QuizSessionPage'));
 import { FeaturebaseProvider } from 'featurebase-js/react'
 import { DASHBOARD_URL, LANDING_URL, ADMIN_URL } from './utils/urlUtils'
 import { loadPricingConfig } from './services/creditService'
@@ -181,6 +183,7 @@ export default function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/view/:materialId" element={<PublicFlashcardView />} />
+          <Route path="/payment/success" element={<PaymentSuccess />} />
           {/* DASHBOARD ROUTES */}
           <Route element={<Dashboard />}>
             <Route path="/home" element={<DashboardHome />} />
@@ -250,6 +253,7 @@ export default function App() {
 
           {/* SHARED ROUTES (Available on both) */}
           <Route path="/exam-session/:sessionId" element={<ExamSessionView />} />
+          <Route path="/quiz/:materialId" element={<QuizSessionPage />} />
           <Route path="/share/flashcards/:bundleId" element={<SharedFlashcardsView />} />
           <Route path="/shared/:shareToken" element={<SharedMaterialPreview />} />
           <Route path="/workspace/:materialId" element={<NavigateToWorkstation />} />

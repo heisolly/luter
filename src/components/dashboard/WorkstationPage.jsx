@@ -103,7 +103,7 @@ export default function WorkstationPage() {
   const [isDark, setIsDark] = useDarkMode();
 
   const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { materialId: routeMaterialId } = useParams();
   const urlMaterialId = routeMaterialId || searchParams.get('materialId');
   
@@ -126,7 +126,41 @@ export default function WorkstationPage() {
 
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatWidth, setChatWidth] = useState(400); 
-  const [activeMainTab, setActiveMainTab] = useState('Source');
+
+  const getInitialTab = () => {
+    const view = searchParams.get('view');
+    if (view === 'quizzes') return 'Quizzes';
+    if (view === 'flashcards') return 'Flashcards';
+    return 'Source';
+  };
+
+  const [activeMainTab, setActiveMainTab] = useState(getInitialTab);
+
+  // Sync URL view parameter to activeMainTab
+  const viewParam = searchParams.get('view');
+  useEffect(() => {
+    if (viewParam === 'quizzes') {
+      setActiveMainTab('Quizzes');
+    } else if (viewParam === 'flashcards') {
+      setActiveMainTab('Flashcards');
+    } else {
+      setActiveMainTab('Source');
+    }
+  }, [viewParam]);
+
+  const handleTabChange = (tabId) => {
+    setActiveMainTab(tabId);
+    const newParams = new URLSearchParams(searchParams);
+    if (tabId === 'Quizzes') {
+      newParams.set('view', 'quizzes');
+    } else if (tabId === 'Flashcards') {
+      newParams.set('view', 'flashcards');
+    } else {
+      newParams.delete('view');
+    }
+    setSearchParams(newParams);
+  };
+
   const [activeSubTab, setActiveSubTab] = useState('Document');
   const [isBoardFullScreen, setIsBoardFullScreen] = useState(false);
   const [isSubNavHovered, setIsSubNavHovered] = useState(false);
@@ -224,19 +258,42 @@ export default function WorkstationPage() {
       if (!ok) { setIsAnalysisLoading(false); return; }
 
       const qRes = await MaterialAnalysisService.generateQuiz(currentAnalysisRow, 5, 'medium', selectedMaterial);
-      const finalResult = qRes.success ? qRes.quiz : [];
+      const finalResult = qRes.success ? qRes.quiz : null;
 
-      if (finalResult && finalResult.length > 0) {
-        const updateData = {
-          material_id: selectedMaterial.id,
-          user_id: user?.id,
-          quiz: finalResult,
-          updated_at: new Date().toISOString()
-        };
-        if (currentAnalysisRow) {
-          updateData.analysis = currentAnalysisRow;
+      const questionsList = Array.isArray(finalResult)
+        ? finalResult
+        : (finalResult?.questions || []);
+
+      if (finalResult && questionsList.length > 0) {
+        // Check if record exists
+        const { data: existing, error: selectError } = await supabase
+          .from('material_analysis')
+          .select('id')
+          .eq('material_id', selectedMaterial.id)
+          .eq('user_id', user?.id)
+          .maybeSingle();
+
+        if (existing) {
+          await supabase
+            .from('material_analysis')
+            .update({
+              quiz: finalResult,
+              ...(currentAnalysisRow ? { analysis: currentAnalysisRow } : {}),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existing.id);
+        } else {
+          await supabase
+            .from('material_analysis')
+            .insert({
+              material_id: selectedMaterial.id,
+              user_id: user?.id,
+              quiz: finalResult,
+              analysis: currentAnalysisRow || {},
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
         }
-        await supabase.from('material_analysis').upsert(updateData, { onConflict: 'material_id' });
         
         setMaterialAnalysis(prev => {
           if (!prev) return { material_id: selectedMaterial.id, quiz: finalResult, analysis: currentAnalysisRow };
@@ -584,7 +641,7 @@ export default function WorkstationPage() {
                   return (
                     <React.Fragment key={tab.id}>
                       <button
-                        onClick={() => setActiveMainTab(tab.id)}
+                        onClick={() => handleTabChange(tab.id)}
                         style={{
                           display: 'flex', alignItems: 'center', gap: '6px',
                           padding: '6px 16px',

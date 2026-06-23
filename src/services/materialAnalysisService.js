@@ -107,18 +107,51 @@ export class MaterialAnalysisService {
    */
   static async saveAnalysisToSupabase(materialId, analysis, userId) {
     try {
-      const { error } = await supabase
+      let finalUserId = userId
+      if (!finalUserId) {
+        const { data: { session } } = await supabase.auth.getSession()
+        finalUserId = session?.user?.id
+      }
+
+      // Check if record exists
+      let query = supabase
         .from('material_analysis')
-        .upsert({
-          material_id: materialId,
-          user_id: userId,
-          analysis: analysis,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-      
-      if (error) {
-        throw error
+        .select('id')
+        .eq('material_id', materialId)
+
+      if (finalUserId) {
+        query = query.eq('user_id', finalUserId)
+      }
+
+      const { data: existing, error: selectError } = await query.maybeSingle()
+
+      if (selectError) {
+        console.error('Error checking existing analysis:', selectError)
+      }
+
+      if (existing) {
+        const { error: updateError } = await supabase
+          .from('material_analysis')
+          .update({
+            analysis: analysis,
+            updated_at: new Date().toISOString(),
+            ...(finalUserId ? { user_id: finalUserId } : {})
+          })
+          .eq('id', existing.id)
+
+        if (updateError) throw updateError
+      } else {
+        const { error: insertError } = await supabase
+          .from('material_analysis')
+          .insert({
+            material_id: materialId,
+            user_id: finalUserId,
+            analysis: analysis,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+
+        if (insertError) throw insertError
       }
       
       return true

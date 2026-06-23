@@ -44,7 +44,8 @@ BEGIN
     SET 
         subscription_tier = NEW.tier,
         subscription_status = NEW.status,
-        stripe_customer_id = NEW.stripe_customer_id
+        stripe_customer_id = NEW.stripe_customer_id,
+        is_premium = (NEW.tier != 'free' AND NEW.status = 'active')
     WHERE id = NEW.user_id;
     RETURN NEW;
 END;

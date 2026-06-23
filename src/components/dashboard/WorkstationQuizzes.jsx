@@ -1,499 +1,940 @@
 import React, { useState, useEffect } from 'react';
-import { useCollaboration, useOthers } from './CollaborationProvider';
-import { callGroqAPI, GROQ_MODELS } from '../../groqClient';
+import { useNavigate } from 'react-router-dom';
 import { 
-  CircleNotch, Sparkle, Checks, X, PaperPlaneRight, 
-  Users, UserCircle, CaretRight, ShieldCheck
+  Trophy, CheckCircle, XCircle, ArrowLeft, 
+  Sparkle, CircleNotch, Trash, Play,
+  BookOpen, ChartBar, CalendarBlank
 } from '@phosphor-icons/react';
 import { supabase } from '../../supabaseClient';
-import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService';
 
-import { WorkstationQuiz } from './WorkstationTools';
-
-export default function WorkstationQuizzes({ material, isDark, onRegenerateQuiz, isAnalysisLoading, user }) {
-  const { yDoc, awareness } = useCollaboration();
-  const others = useOthers() || [];
+export default function WorkstationQuizzes({ 
+  material, 
+  isDark, 
+  onRegenerateQuiz, 
+  isAnalysisLoading, 
+  user 
+}) {
+  const navigate = useNavigate();
+  const [view, setView] = useState('dashboard'); // 'dashboard' | 'quiz'
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(false);
   
-  // Yjs State
-  const [questions, setQuestions] = useState([]);
+  // Active Quiz State
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [showAnswer, setShowAnswer] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [score, setScore] = useState(0);
 
-  const [quizMode, setQuizMode] = useState(() => {
-    if (material?.analysis?.quiz && material.analysis.quiz.length > 0) return 'solo';
-    return 'group';
-  });
-
-  // Local Voting State
-  const [myVote, setMyVote] = useState(null);
-
-  // Get Yjs Shared Types
-  const yQuestions = yDoc?.getArray('quiz_questions');
-  const yQuizState = yDoc?.getMap('quiz_state');
-
-  // 1. Sync Yjs State to Local React State
+  // Load history from Supabase on mount or material change
   useEffect(() => {
-    if (!yQuestions || !yQuizState) return;
+    if (material?.id && user?.id) {
+      const fetchHistory = async () => {
+        setLoading(true);
+        try {
+          const { data, error } = await supabase
+            .from('quiz_attempts')
+            .select('*')
+            .eq('material_id', material.id)
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
 
-    const syncQuestions = () => {
-      setQuestions(yQuestions.toArray());
-    };
-    
-    const syncState = () => {
-      const idx = yQuizState.get('currentIndex');
-      if (idx !== undefined) setCurrentIndex(idx);
-      
-      const showing = yQuizState.get('showAnswer');
-      if (showing !== undefined) setShowAnswer(showing);
-      
-      const generating = yQuizState.get('isGenerating');
-      if (generating !== undefined) setIsGenerating(generating);
-    };
-
-    yQuestions.observe(syncQuestions);
-    yQuizState.observe(syncState);
-    
-    // Initial sync
-    syncQuestions();
-    syncState();
-
-    return () => {
-      yQuestions.unobserve(syncQuestions);
-      yQuizState.unobserve(syncState);
-    };
-  }, [yQuestions, yQuizState]);
-
-  // 2. Handle Voting via Awareness
-  const handleVote = (optionIndex) => {
-    if (showAnswer) return; // Can't vote after reveal
-    setMyVote(optionIndex);
-    if (awareness) {
-      const currentLocalState = awareness.getLocalState() || {};
-      awareness.setLocalState({
-        ...currentLocalState,
-        quizVote: optionIndex
-      });
+          if (error) {
+            console.error("Error fetching quiz attempts:", error);
+          } else if (data) {
+            setHistory(data.map(row => ({
+              id: row.id,
+              date: row.created_at,
+              score: row.score,
+              total: row.total,
+              accuracy: row.accuracy,
+              correct: row.correct,
+              wrong: row.wrong
+            })));
+          }
+        } catch (e) {
+          console.error("Error loading quiz history:", e);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchHistory();
+    } else {
+      setHistory([]);
     }
-  };
+  }, [material?.id, user?.id]);
 
-  // Reset vote when moving to next question
-  useEffect(() => {
-    setMyVote(null);
-    if (awareness) {
-      const currentLocalState = awareness.getLocalState() || {};
-      awareness.setLocalState({
-        ...currentLocalState,
-        quizVote: null
-      });
-    }
-  }, [currentIndex, awareness]);
-
-  // 3. AI Quiz Generation
-  const generateQuiz = async () => {
-    if (!material?.extracted_text || !yQuestions || !yQuizState) return;
+  // Save history helper
+  const saveHistory = async (newAttempt) => {
+    if (!material?.id || !user?.id) return;
     
-    // Check and deduct credits for generating quiz
     try {
-      const { ok, error } = await checkAndDeductCredits(user?.id, CREDIT_COSTS.GENERATE_QUIZ, false);
-      if (!ok) {
-        alert(error || 'Insufficient credits to generate quiz.');
-        return;
+      const { data, error } = await supabase
+        .from('quiz_attempts')
+        .insert([{
+          user_id: user.id,
+          material_id: material.id,
+          score: newAttempt.score,
+          total: newAttempt.total,
+          accuracy: newAttempt.accuracy,
+          correct: newAttempt.correct,
+          wrong: newAttempt.wrong
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error inserting quiz attempt:", error);
+      } else if (data) {
+        setHistory(prev => [{
+          id: data.id,
+          date: data.created_at,
+          score: data.score,
+          total: data.total,
+          accuracy: data.accuracy,
+          correct: data.correct,
+          wrong: data.wrong
+        }, ...prev]);
       }
     } catch (e) {
-      console.warn('[Quiz Credits] Failed to check credits:', e);
+      console.error("Error saving quiz attempt:", e);
     }
+  };
 
-    yQuizState.set('isGenerating', true);
-    
-    try {
-      const prompt = `Generate a 5-question multiple choice quiz based on this text. Structure your response exactly as a JSON array of objects. Each object must have: "question" (string), "options" (array of exactly 4 strings), "answer" (string, must exactly match one of the options), and "explanation" (string). \n\nText:\n${material.extracted_text.slice(0, 10000)}`;
-      
-      const response = await callGroqAPI([{ role: 'user', content: prompt }], GROQ_MODELS.PROFESSOR);
-      const content = response.choices?.[0]?.message?.content || '';
-      
-      // Extract JSON array
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          yQuestions.delete(0, yQuestions.length);
-          yQuestions.push(parsed);
-          yQuizState.set('currentIndex', 0);
-          yQuizState.set('showAnswer', false);
+  // Clear history
+  const handleClearHistory = async () => {
+    if (window.confirm("Are you sure you want to clear your quiz history for this document?")) {
+      try {
+        const { error } = await supabase
+          .from('quiz_attempts')
+          .delete()
+          .eq('material_id', material.id)
+          .eq('user_id', user.id);
+
+        if (error) {
+          console.error("Error clearing quiz attempts:", error);
+        } else {
+          setHistory([]);
         }
+      } catch (e) {
+        console.error("Error clearing quiz history:", e);
       }
-    } catch (error) {
-      console.error("Failed to generate collaborative quiz", error);
-    } finally {
-      yQuizState.set('isGenerating', false);
     }
   };
 
-  const handleReveal = () => {
-    if (yQuizState) yQuizState.set('showAnswer', true);
+  // Helper to parse correct answer index from various shapes
+  const getCorrectIndex = (q) => {
+    if (!q) return -1;
+    const ans = q.correctAnswer ?? q.correct_answer ?? q.answer;
+    if (ans === undefined || ans === null) return -1;
+    if (typeof ans === 'number') return ans;
+
+    if (typeof ans === 'string') {
+      const lower = ans.trim().toLowerCase();
+      if (lower === 'a') return 0;
+      if (lower === 'b') return 1;
+      if (lower === 'c') return 2;
+      if (lower === 'd') return 3;
+      if (lower === 'true' || lower === 'yes') return 1;
+      if (lower === 'false' || lower === 'no') return 0;
+      const parsed = parseInt(lower, 10);
+      if (!isNaN(parsed)) return parsed;
+      if (q.options) {
+        const idx = q.options.findIndex(opt => {
+          const text = (typeof opt === 'object' ? (opt.text || opt.choice || "") : opt).toString().toLowerCase();
+          return text === lower;
+        });
+        if (idx !== -1) return idx;
+      }
+    }
+    return -1;
   };
 
-  const handleNext = () => {
-    if (!yQuizState) return;
+  // Stats calculation
+  const totalCorrect = history.reduce((sum, h) => sum + (h.correct || 0), 0);
+  const totalWrong = history.reduce((sum, h) => sum + (h.wrong || 0), 0);
+  const totalQuestions = history.reduce((sum, h) => sum + (h.total || 0), 0);
+  const todayAverage = history.length > 0 
+    ? Math.round(history.reduce((sum, h) => sum + h.accuracy, 0) / history.length)
+    : 'N/A';
+
+  // Get active quiz questions
+  const quizObj = material?.analysis?.quiz;
+  const questions = Array.isArray(quizObj) 
+    ? quizObj 
+    : (quizObj?.questions || []);
+
+  const handleStartQuiz = () => {
+    if (questions.length === 0) {
+      if (onRegenerateQuiz) onRegenerateQuiz();
+      return;
+    }
+    navigate(`/quiz/${material.id}`);
+  };
+
+  const handleSelectOption = (idx) => {
+    if (showFeedback) return;
+    setSelectedOption(idx);
+  };
+
+  const handleConfirmAnswer = () => {
+    if (selectedOption === null || showFeedback) return;
+    
+    const currentQ = questions[currentIndex];
+    const correctIdx = getCorrectIndex(currentQ);
+    const isCorrect = selectedOption === correctIdx;
+    
+    if (isCorrect) {
+      setScore(s => s + 1);
+    }
+    setShowFeedback(true);
+  };
+
+  const handleNextQuestion = () => {
     if (currentIndex < questions.length - 1) {
-      yQuizState.set('currentIndex', currentIndex + 1);
-      yQuizState.set('showAnswer', false);
+      setCurrentIndex(c => c + 1);
+      setSelectedOption(null);
+      setShowFeedback(false);
     } else {
-      // Finished!
-      yQuizState.set('currentIndex', 0);
-      yQuizState.set('showAnswer', false);
+      // Quiz Finished!
+      const finalScore = score + (selectedOption === getCorrectIndex(questions[currentIndex]) ? 1 : 0);
+      const finalAccuracy = Math.round((finalScore / questions.length) * 100);
+      const newAttempt = {
+        score: finalScore,
+        total: questions.length,
+        accuracy: finalAccuracy,
+        correct: finalScore,
+        wrong: questions.length - finalScore
+      };
+      
+      saveHistory(newAttempt);
+      setView('dashboard');
     }
   };
 
-  // 4. Render Helpers
-  const currentQ = questions[currentIndex];
-  
-  // Aggregate Votes
-  const votes = {};
-  others.forEach(o => {
-    const v = o.presence?.quizVote ?? o.info?.quizVote ?? (awareness?.getStates().get(o.connectionId)?.quizVote);
-    if (v !== undefined && v !== null) {
-      if (!votes[v]) votes[v] = [];
-      votes[v].push(o);
-    }
-  });
+  // Home Design Card Visual Tokens
+  const cardBg = isDark ? '#1F2937' : '#FFFFFF';
+  const cardShadow = isDark 
+    ? '0 8px 32px rgba(0, 0, 0, 0.35)' 
+    : '0 8px 32px rgba(15, 23, 42, 0.05), 0 2px 8px rgba(15, 23, 42, 0.03)';
+  const cardBorder = 'none';
+  const cardRadius = '24px';
 
-  // Theme Constants (Tactile/Physical Paper Look)
-  const bgColor = isDark ? '#1C1C1E' : '#F4F0EB';
-  const paperColor = isDark ? '#2C2C2E' : '#FDFBF7';
-  const textColor = isDark ? '#E5E5EA' : '#1C1C1E';
-  const subTextColor = isDark ? '#8E8E93' : '#6B6B6B';
-  const borderColor = isDark ? '#48484A' : '#D1D1D6';
-  
-  const brutalShadow = isDark ? '4px 4px 0px #000000' : '4px 4px 0px #1C1C1E';
+  // SVG Chart Dimensions & plotting
+  const chartWidth = 500;
+  const chartHeight = 160;
+  const paddingLeft = 40;
+  const paddingRight = 20;
+  const paddingTop = 20;
+  const paddingBottom = 30;
 
-  const renderSelector = () => (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      backgroundColor: isDark ? '#2C2C2E' : '#EAE6DF',
-      padding: '4px',
-      borderRadius: '9999px',
-      border: `2px solid ${isDark ? '#48484A' : '#1C1C1E'}`,
-      marginBottom: '24px',
-      boxShadow: isDark ? '2px 2px 0px #000' : '2px 2px 0px #1C1C1E',
-      alignSelf: 'center',
-      width: 'fit-content',
-      flexShrink: 0
-    }}>
-      <button
-        onClick={() => setQuizMode('solo')}
-        style={{
-          display: 'flex', alignItems: 'center', gap: '6px',
-          padding: '6px 16px',
-          borderRadius: '9999px',
-          border: 'none',
+  const renderGraph = () => {
+    if (history.length === 0) {
+      return (
+        <div style={{
+          height: '160px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: '16px',
+          color: 'var(--wsr-text-muted)',
           fontSize: '13px',
           fontWeight: 600,
-          cursor: 'pointer',
-          backgroundColor: quizMode === 'solo' ? (isDark ? '#E5E5EA' : '#1C1C1E') : 'transparent',
-          color: quizMode === 'solo' ? (isDark ? '#1C1C1E' : '#FFFFFF') : subTextColor,
-          transition: 'all 0.2s'
-        }}
-      >
-        Solo Practice
-      </button>
-      <button
-        onClick={() => setQuizMode('group')}
-        style={{
-          display: 'flex', alignItems: 'center', gap: '6px',
-          padding: '6px 16px',
-          borderRadius: '9999px',
-          border: 'none',
-          fontSize: '13px',
-          fontWeight: 600,
-          cursor: 'pointer',
-          backgroundColor: quizMode === 'group' ? (isDark ? '#E5E5EA' : '#1C1C1E') : 'transparent',
-          color: quizMode === 'group' ? (isDark ? '#1C1C1E' : '#FFFFFF') : subTextColor,
-          transition: 'all 0.2s'
-        }}
-      >
-        Group Live Sync
-      </button>
-    </div>
-  );
-
-  const handleQuizComplete = async ({ score, total }) => {
-    if (!user?.id) return;
-    
-    const xpGained = score * 10 + 20;
-    const coinsGained = score * 2 + 5;
-    
-    try {
-      await supabase.rpc('update_user_gamification', {
-        p_user_id: user.id,
-        p_xp_gain: xpGained,
-        p_coins_gain: coinsGained,
-        p_questions_answered: total,
-        p_sessions_completed: 1,
-        p_source: 'solo_quiz'
-      });
-    } catch (err) {
-      console.error('[Quiz Complete] Failed to update user stats:', err);
+          background: isDark ? '#111827' : '#F8FAFC'
+        }}>
+          <ChartBar size={32} style={{ marginBottom: '8px', opacity: 0.6 }} />
+          <span>No quiz progress recorded yet</span>
+        </div>
+      );
     }
-  };
 
-  if (quizMode === 'solo') {
+    const dataPoints = [...history].reverse();
+    
+    const getCoordinates = (idx) => {
+      const totalPoints = dataPoints.length;
+      const x = totalPoints > 1 
+        ? paddingLeft + (idx / (totalPoints - 1)) * (chartWidth - paddingLeft - paddingRight)
+        : paddingLeft + (chartWidth - paddingLeft - paddingRight) / 2;
+      const y = chartHeight - paddingBottom - (dataPoints[idx].accuracy / 100) * (chartHeight - paddingTop - paddingBottom);
+      return { x, y };
+    };
+
+    let linePath = "";
+    let areaPath = "";
+    
+    if (dataPoints.length > 0) {
+      const start = getCoordinates(0);
+      linePath = `M ${start.x} ${start.y}`;
+      areaPath = `M ${start.x} ${chartHeight - paddingBottom} L ${start.x} ${start.y}`;
+      
+      for (let i = 1; i < dataPoints.length; i++) {
+        const pt = getCoordinates(i);
+        linePath += ` L ${pt.x} ${pt.y}`;
+        areaPath += ` L ${pt.x} ${pt.y}`;
+      }
+      
+      const end = getCoordinates(dataPoints.length - 1);
+      areaPath += ` L ${end.x} ${chartHeight - paddingBottom} Z`;
+    }
+
     return (
-      <div style={{ 
-        flex: 1, display: 'flex', flexDirection: 'column', 
-        backgroundColor: bgColor, padding: '24px', overflowY: 'auto',
-        width: '100%', boxSizing: 'border-box'
-      }}>
-        {renderSelector()}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '800px', margin: '0 auto' }}>
-          <WorkstationQuiz 
-            quiz={material?.analysis?.quiz || []}
-            material={material}
-            onRegenerate={onRegenerateQuiz}
-            isLoading={isAnalysisLoading}
-            onComplete={handleQuizComplete}
-          />
-        </div>
-      </div>
-    );
-  }
+      <div style={{ position: 'relative', width: '100%', overflow: 'hidden' }}>
+        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+          <defs>
+            <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#C4B5FD" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#C4B5FD" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
 
-  if (questions.length === 0) {
-    return (
-      <div style={{ 
-        flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', 
-        backgroundColor: bgColor, padding: '32px', overflowY: 'auto', width: '100%', boxSizing: 'border-box'
-      }}>
-        {renderSelector()}
-        <div style={{
-          marginTop: '24px',
-          backgroundColor: paperColor, padding: '48px', borderRadius: '8px',
-          border: `2px solid ${isDark ? '#48484A' : '#1C1C1E'}`,
-          boxShadow: brutalShadow,
-          maxWidth: '500px', width: '100%', textAlign: 'center',
-          position: 'relative', overflow: 'hidden'
-        }}>
-          {/* subtle paper noise texture via css radial gradients could go here, keeping it flat for now */}
-          <ShieldCheck size={48} weight="duotone" color={isDark ? '#E5E5EA' : '#1C1C1E'} style={{ marginBottom: '16px' }} />
-          <h2 style={{ fontFamily: '"Lora", serif', fontWeight: 700, fontSize: '28px', color: textColor, margin: '0 0 12px 0' }}>
-            Shared Study Sheet
-          </h2>
-          <p style={{ fontFamily: 'DM Sans, sans-serif', color: subTextColor, fontSize: '16px', lineHeight: 1.5, margin: '0 0 32px 0' }}>
-            Generate a collaborative quiz. Everyone in the workspace will vote on the answers in real-time.
-          </p>
-          
-          {!material?.extracted_text ? (
-            <p style={{ color: '#FF3B30', fontWeight: 600, fontSize: '14px', margin: 0, fontFamily: 'DM Sans, sans-serif' }}>
-              ⚠️ No document content available to generate a collaborative quiz.
-            </p>
-          ) : (
-            <button 
-              onClick={generateQuiz}
-              disabled={isGenerating}
-              style={{
-                backgroundColor: isDark ? '#E5E5EA' : '#1C1C1E',
-                color: isDark ? '#1C1C1E' : '#FFFFFF',
-                border: 'none', padding: '16px 32px', borderRadius: '4px',
-                fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px',
-                cursor: isGenerating ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                width: '100%', transition: 'transform 0.1s',
-              }}
-              onMouseDown={e => { if(!isGenerating) e.currentTarget.style.transform = 'translate(2px, 2px)' }}
-              onMouseUp={e => { if(!isGenerating) e.currentTarget.style.transform = 'translate(0px, 0px)' }}
-            >
-              {isGenerating ? <CircleNotch size={20} weight="bold" className="spin-animation" /> : <Sparkle size={20} weight="fill" />}
-              {isGenerating ? 'Printing Sheet...' : 'Generate Study Sheet'}
-            </button>
-          )}
-        </div>
-        <style dangerouslySetInnerHTML={{__html: `
-          @import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&display=swap');
-          @keyframes spin { 100% { transform: rotate(360deg); } }
-          .spin-animation { animation: spin 1.5s linear infinite; }
-        `}} />
-      </div>
-    );
-  }
-
-  if (!currentQ) return null;
-
-  const isCorrectOption = (opt) => opt === currentQ.answer;
-
-  return (
-    <div style={{ 
-      flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', 
-      backgroundColor: bgColor, padding: '40px 24px', overflowY: 'auto'
-    }}>
-      {renderSelector()}
-      {/* Quiz Container */}
-      <div style={{
-        backgroundColor: paperColor,
-        border: `2px solid ${isDark ? '#48484A' : '#1C1C1E'}`,
-        boxShadow: brutalShadow,
-        borderRadius: '4px', padding: '40px',
-        maxWidth: '800px', width: '100%',
-        position: 'relative'
-      }}>
-        
-        {/* Header Ribbon */}
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: '8px',
-          backgroundColor: isDark ? '#48484A' : '#1C1C1E'
-        }} />
-
-        {/* Top Meta Info */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', fontFamily: 'DM Sans, sans-serif' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: subTextColor, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-            <div style={{ width: '8px', height: '8px', backgroundColor: '#FF3B30', borderRadius: '50%' }} />
-            Live Sync
-          </div>
-          <div style={{ fontWeight: 800, fontSize: '16px', color: textColor }}>
-            Question {currentIndex + 1} / {questions.length}
-          </div>
-        </div>
-
-        {/* Question Text */}
-        <h3 style={{ 
-          fontFamily: '"Lora", serif', fontWeight: 600, fontSize: '26px', color: textColor, 
-          lineHeight: 1.5, margin: '0 0 32px 0' 
-        }}>
-          {currentQ.question}
-        </h3>
-
-        {/* Options */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {currentQ.options.map((opt, i) => {
-            const isSelectedByMe = myVote === i;
-            const optionVotes = votes[i] || [];
-            
-            // Physical paper states
-            let optBg = 'transparent';
-            let optBorder = `2px solid ${borderColor}`;
-            let optTextColor = textColor;
-
-            if (showAnswer) {
-              if (isCorrectOption(opt)) {
-                optBg = isDark ? 'rgba(52, 199, 89, 0.15)' : 'rgba(52, 199, 89, 0.1)';
-                optBorder = `2px solid #34C759`; // Correct Green
-                optTextColor = isDark ? '#34C759' : '#248A3D';
-              } else if (isSelectedByMe && !isCorrectOption(opt)) {
-                optBg = isDark ? 'rgba(255, 59, 48, 0.15)' : 'rgba(255, 59, 48, 0.1)';
-                optBorder = `2px solid #FF3B30`; // Wrong Red
-                optTextColor = isDark ? '#FF3B30' : '#C92A2A';
-              }
-            } else if (isSelectedByMe) {
-              optBg = isDark ? '#3A3A3C' : '#E5E5EA';
-              optBorder = `2px solid ${isDark ? '#8E8E93' : '#1C1C1E'}`;
-            }
-
+          {/* Grid lines */}
+          {[0, 25, 50, 75, 100].map((val) => {
+            const y = chartHeight - paddingBottom - (val / 100) * (chartHeight - paddingTop - paddingBottom);
             return (
-              <button 
-                key={i}
-                disabled={showAnswer}
-                onClick={() => handleVote(i)}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '16px 24px', borderRadius: '4px',
-                  backgroundColor: optBg, border: optBorder, color: optTextColor,
-                  fontFamily: 'DM Sans, sans-serif', fontSize: '18px', fontWeight: 500,
-                  cursor: showAnswer ? 'default' : 'pointer', transition: 'all 0.1s',
-                  textAlign: 'left', minHeight: '64px'
-                }}
-                onMouseEnter={e => { if(!showAnswer && !isSelectedByMe) e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' }}
-                onMouseLeave={e => { if(!showAnswer && !isSelectedByMe) e.currentTarget.style.backgroundColor = 'transparent' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{ 
-                    width: '32px', height: '32px', borderRadius: '50%', 
-                    border: `2px solid ${showAnswer && isCorrectOption(opt) ? '#34C759' : (isSelectedByMe ? (isDark ? '#E5E5EA' : '#1C1C1E') : borderColor)}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    backgroundColor: showAnswer && isCorrectOption(opt) ? '#34C759' : (isSelectedByMe && !showAnswer ? (isDark ? '#E5E5EA' : '#1C1C1E') : 'transparent'),
-                    color: showAnswer && isCorrectOption(opt) ? '#FFF' : (isSelectedByMe && !showAnswer ? (isDark ? '#1C1C1E' : '#FFF') : textColor),
-                    fontWeight: 800, fontSize: '14px'
-                  }}>
-                    {showAnswer && isCorrectOption(opt) ? <Checks weight="bold" /> : String.fromCharCode(65 + i)}
-                  </div>
-                  <span>{opt}</span>
-                </div>
-
-                {/* Avatar Cluster for Live Votes */}
-                {optionVotes.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    {optionVotes.map((v, idx) => (
-                      <div key={v.connectionId} style={{ 
-                        width: '32px', height: '32px', borderRadius: '50%', border: `2px solid ${paperColor}`, 
-                        marginLeft: idx > 0 ? '-12px' : 0, overflow: 'hidden', backgroundColor: '#D1D1D6',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                      }} title={v.info?.name || 'Collaborator'}>
-                        {v.info?.avatar ? (
-                          <img src={v.info.avatar} alt="avatar" style={{width:'100%', height:'100%', objectFit:'cover'}} />
-                        ) : (
-                          <UserCircle size={24} color="#6B6B6B" weight="fill" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </button>
+              <g key={val}>
+                <line 
+                  x1={paddingLeft} 
+                  y1={y} 
+                  x2={chartWidth - paddingRight} 
+                  y2={y} 
+                  stroke={isDark ? '#374151' : '#E2E8F0'} 
+                  strokeWidth="1" 
+                  strokeDasharray="4 4"
+                />
+                <text 
+                  x={paddingLeft - 10} 
+                  y={y + 4} 
+                  textAnchor="end" 
+                  fill={isDark ? '#9CA3AF' : '#64748B'} 
+                  style={{ fontSize: '10px', fontWeight: 700, fontFamily: 'Outfit, sans-serif' }}
+                >
+                  {val}%
+                </text>
+              </g>
             );
           })}
+
+          {/* Shaded Area */}
+          {dataPoints.length > 1 && (
+            <path d={areaPath} fill="url(#chartGradient)" />
+          )}
+
+          {/* Trend Line */}
+          {dataPoints.length > 1 && (
+            <path 
+              d={linePath} 
+              fill="none" 
+              stroke="#C4B5FD" 
+              strokeWidth="3.5" 
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
+
+          {/* Data points */}
+          {dataPoints.map((pt, idx) => {
+            const coords = getCoordinates(idx);
+            return (
+              <g key={pt.id}>
+                <circle 
+                  cx={coords.x} 
+                  cy={coords.y} 
+                  r="5" 
+                  fill={isDark ? '#1F2937' : '#FFFFFF'} 
+                  stroke="#C4B5FD" 
+                  strokeWidth="3" 
+                />
+                {dataPoints.length < 8 && (
+                  <text
+                    x={coords.x}
+                    y={coords.y - 10}
+                    textAnchor="middle"
+                    fill={isDark ? '#F9FAFC' : '#0F172A'}
+                    style={{ fontSize: '10px', fontWeight: 800, fontFamily: 'Outfit, sans-serif' }}
+                  >
+                    {pt.accuracy}%
+                  </text>
+                )}
+              </g>
+            );
+          })}
+
+          {/* X Axis labels */}
+          {dataPoints.map((pt, idx) => {
+            const coords = getCoordinates(idx);
+            if (dataPoints.length > 6 && idx % 2 !== 0) return null;
+            return (
+              <text
+                key={pt.id}
+                x={coords.x}
+                y={chartHeight - 10}
+                textAnchor="middle"
+                fill={isDark ? '#9CA3AF' : '#64748B'}
+                style={{ fontSize: '10px', fontWeight: 700, fontFamily: 'Outfit, sans-serif' }}
+              >
+                Q{dataPoints.length - idx}
+              </text>
+            );
+          })}
+        </svg>
+      </div>
+    );
+  };
+
+  if (view === 'quiz') {
+    if (questions.length === 0) return null;
+    const currentQ = questions[currentIndex];
+    const correctIdx = getCorrectIndex(currentQ);
+
+    return (
+      <div style={{
+        maxWidth: '680px',
+        margin: '40px auto',
+        width: '100%',
+        padding: '0 16px',
+        fontFamily: 'Outfit, sans-serif'
+      }}>
+        {/* Quiz Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+          <button 
+            onClick={() => setView('dashboard')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: 'none',
+              background: 'none',
+              color: isDark ? '#9CA3AF' : '#64748B',
+              fontWeight: 700,
+              fontSize: '14px',
+              cursor: 'pointer'
+            }}
+          >
+            <ArrowLeft size={16} /> Exit Quiz
+          </button>
+          
+          <span style={{ fontSize: '14px', fontWeight: 700, color: isDark ? '#9CA3AF' : '#64748B' }}>
+            Question {currentIndex + 1} of {questions.length}
+          </span>
         </div>
 
-        {/* Explanation Block (Ink Stamp style) */}
-        {showAnswer && (
-          <div style={{ 
-            marginTop: '32px', padding: '24px', borderRadius: '4px',
-            border: `2px dashed ${isDark ? '#48484A' : '#D1D1D6'}`,
-            backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'
-          }}>
-            <h4 style={{ margin: '0 0 8px 0', fontFamily: 'DM Sans, sans-serif', fontWeight: 800, color: textColor }}>
-              Explanation
-            </h4>
-            <p style={{ margin: 0, fontFamily: '"Lora", serif', fontSize: '16px', lineHeight: 1.6, color: subTextColor }}>
-              {currentQ.explanation || "The AI didn't provide a detailed explanation for this question."}
-            </p>
-          </div>
-        )}
+        {/* Progress Bar */}
+        <div style={{
+          height: '6px',
+          width: '100%',
+          backgroundColor: isDark ? '#374151' : '#E2E8F0',
+          borderRadius: '9999px',
+          overflow: 'hidden',
+          marginBottom: '32px'
+        }}>
+          <div style={{
+            height: '100%',
+            width: `${((currentIndex + (showFeedback ? 1 : 0)) / questions.length) * 100}%`,
+            backgroundColor: '#C4B5FD',
+            borderRadius: 'inherit',
+            transition: 'width 0.3s ease'
+          }} />
+        </div>
 
-        {/* Action Bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '40px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: subTextColor, fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 600 }}>
-            <Users size={20} weight="fill" />
-            {others.length} peers in room
+        {/* Question Card */}
+        <div style={{
+          background: cardBg,
+          border: cardBorder,
+          borderRadius: cardRadius,
+          padding: '36px',
+          boxShadow: isDark ? '0 12px 40px rgba(0, 0, 0, 0.45)' : '0 16px 48px rgba(15, 23, 42, 0.08)'
+        }}>
+          <h2 style={{
+            fontSize: '20px',
+            fontWeight: 800,
+            lineHeight: 1.4,
+            color: isDark ? '#F9FAFC' : '#0F172A',
+            marginBottom: '28px',
+            marginTop: 0
+          }}>
+            {currentQ.question}
+          </h2>
+
+          {/* Options Grid */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+            {currentQ.options.map((opt, i) => {
+              const isSelected = selectedOption === i;
+              const isCorrect = i === correctIdx;
+              const optionText = typeof opt === 'object' ? (opt.text || opt.choice || '') : opt;
+              
+              let optBg = 'transparent';
+              let optBorder = `1.5px solid ${isDark ? '#374151' : '#E2E8F0'}`;
+              let optColor = isDark ? '#D1D5DB' : '#334155';
+              
+              if (showFeedback) {
+                if (isCorrect) {
+                  optBg = isDark ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.08)';
+                  optBorder = '1.5px solid #10B981';
+                  optColor = '#10B981';
+                } else if (isSelected) {
+                  optBg = isDark ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.08)';
+                  optBorder = '1.5px solid #EF4444';
+                  optColor = '#EF4444';
+                }
+              } else if (isSelected) {
+                optBg = isDark ? 'rgba(196, 181, 253, 0.12)' : 'rgba(196, 181, 253, 0.08)';
+                optBorder = '1.5px solid #C4B5FD';
+                optColor = isDark ? '#C4B5FD' : '#7C3AED';
+              }
+
+              return (
+                <button
+                  key={i}
+                  disabled={showFeedback}
+                  onClick={() => handleSelectOption(i)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '14px',
+                    padding: '16px 20px',
+                    borderRadius: '16px',
+                    backgroundColor: optBg,
+                    border: optBorder,
+                    color: optColor,
+                    fontSize: '15px',
+                    fontWeight: 700,
+                    textAlign: 'left',
+                    cursor: showFeedback ? 'default' : 'pointer',
+                    transition: 'all 0.15s ease',
+                    outline: 'none',
+                    transform: (!showFeedback && isSelected) ? 'translateY(-1px)' : 'none',
+                    boxShadow: (!showFeedback && isSelected) ? '0 4px 12px rgba(15, 23, 42, 0.05)' : 'none'
+                  }}
+                  onMouseEnter={e => {
+                    if (!showFeedback && !isSelected) {
+                      e.currentTarget.style.borderColor = '#C4B5FD';
+                      e.currentTarget.style.background = isDark ? '#374151' : '#F8FAFC';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!showFeedback && !isSelected) {
+                      e.currentTarget.style.borderColor = isDark ? '#374151' : '#E2E8F0';
+                      e.currentTarget.style.background = 'transparent';
+                    }
+                  }}
+                >
+                  <div style={{
+                    width: '26px',
+                    height: '26px',
+                    borderRadius: '50%',
+                    border: `1.5px solid ${isSelected || (showFeedback && isCorrect) ? 'transparent' : (isDark ? '#4B5563' : '#CBD5E1')}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: showFeedback && isCorrect 
+                      ? '#10B981' 
+                      : (showFeedback && isSelected && !isCorrect ? '#EF4444' : (isSelected ? '#C4B5FD' : 'transparent')),
+                    color: isSelected || showFeedback ? '#FFFFFF' : (isDark ? '#9CA3AF' : '#64748B'),
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    flexShrink: 0
+                  }}>
+                    {showFeedback && isCorrect ? '✓' : (showFeedback && isSelected && !isCorrect ? '✗' : String.fromCharCode(65 + i))}
+                  </div>
+                  <span>{optionText}</span>
+                </button>
+              );
+            })}
           </div>
-          
-          {!showAnswer ? (
-            <button 
-              onClick={handleReveal}
-              style={{
-                backgroundColor: 'transparent', color: textColor,
-                border: `2px solid ${isDark ? '#E5E5EA' : '#1C1C1E'}`, padding: '12px 24px', borderRadius: '4px',
-                fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px'
-              }}
-            >
-              Reveal Answer
-            </button>
-          ) : (
-            <button 
-              onClick={handleNext}
-              style={{
-                backgroundColor: isDark ? '#E5E5EA' : '#1C1C1E', color: isDark ? '#1C1C1E' : '#FFFFFF',
-                border: 'none', padding: '12px 24px', borderRadius: '4px',
-                fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px'
-              }}
-            >
-              {currentIndex < questions.length - 1 ? 'Next Question' : 'Finish Sheet'}
-              <CaretRight weight="bold" />
-            </button>
+
+          {/* Explanation Banner */}
+          {showFeedback && currentQ.explanation && (
+            <div style={{
+              padding: '20px',
+              borderRadius: '16px',
+              backgroundColor: isDark ? 'rgba(196, 181, 253, 0.08)' : '#F5F3FF',
+              border: '1.5px dashed #C4B5FD',
+              color: isDark ? '#D1D5DB' : '#4C1D95',
+              fontSize: '14px',
+              lineHeight: 1.5,
+              fontWeight: 500,
+              marginBottom: '28px'
+            }}>
+              <strong style={{ display: 'block', color: isDark ? '#C4B5FD' : '#6D28D9', marginBottom: '8px', fontWeight: 800 }}>Explanation</strong>
+              {currentQ.explanation}
+            </div>
           )}
+
+          {/* Action button */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            {!showFeedback ? (
+              <button
+                onClick={handleConfirmAnswer}
+                disabled={selectedOption === null}
+                style={{
+                  padding: '12px 28px',
+                  borderRadius: '9999px',
+                  border: 'none',
+                  backgroundColor: selectedOption === null ? (isDark ? '#374151' : '#F1F5F9') : '#98FF98',
+                  color: selectedOption === null ? (isDark ? '#4B5563' : '#94A3B8') : '#14532D',
+                  fontWeight: 800,
+                  fontSize: '14px',
+                  cursor: selectedOption === null ? 'default' : 'pointer',
+                  boxShadow: selectedOption !== null ? '0 4px 14px rgba(152, 255, 152, 0.3)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Confirm
+              </button>
+            ) : (
+              <button
+                onClick={handleNextQuestion}
+                style={{
+                  padding: '12px 28px',
+                  borderRadius: '9999px',
+                  border: 'none',
+                  backgroundColor: '#C4B5FD',
+                  color: '#1E1B4B',
+                  fontWeight: 800,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {currentIndex < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
+              </button>
+            )}
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  // Dashboard / Landing view
+  return (
+    <div style={{
+      maxWidth: '1100px',
+      margin: '24px auto',
+      width: '100%',
+      padding: '0 24px',
+      fontFamily: 'Outfit, sans-serif'
+    }}>
+      
+      {/* Top Banner */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '28px',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 900, color: isDark ? '#F9FAFC' : '#0F172A', margin: '0 0 4px 0' }}>Quiz Room</h1>
+          <p style={{ fontSize: '13px', color: isDark ? '#9CA3AF' : '#64748B', margin: 0 }}>Review performance diagnostics and master your recall</p>
+        </div>
+
+        {questions.length > 0 && (
+          <button
+            onClick={handleStartQuiz}
+            disabled={isAnalysisLoading}
+            style={{
+              padding: '12px 26px',
+              borderRadius: '9999px',
+              border: 'none',
+              backgroundColor: '#98FF98',
+              color: '#14532D',
+              fontWeight: 800,
+              fontSize: '14px',
+              cursor: isAnalysisLoading ? 'default' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 8px 24px rgba(152, 255, 152, 0.25)',
+              transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 12px 28px rgba(152, 255, 152, 0.35)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(152, 255, 152, 0.25)';
+            }}
+          >
+            {isAnalysisLoading ? <CircleNotch className="spin" size={16} /> : <Play size={16} weight="fill" />}
+            {isAnalysisLoading ? 'Generating' : (history.length > 0 ? 'Retake Quiz' : 'Start Quiz')}
+          </button>
+        )}
+      </div>
+
+      {/* Main Grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 360px',
+        gap: '24px',
+        alignItems: 'start'
+      }}>
+        
+        {/* Left Stats & Graph Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* Your Performance Metrics - Dashboard-like row */}
+          <div style={{
+            background: cardBg,
+            border: cardBorder,
+            borderRadius: cardRadius,
+            padding: '24px',
+            boxShadow: cardShadow,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '20px'
+          }}>
+            <h2 style={{ fontSize: '15px', fontWeight: 800, color: isDark ? '#F9FAFC' : '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Trophy size={18} color="#FFD2A6" weight="fill" /> Your Performance
+            </h2>
+
+            {/* Heatmap-like inline stats metrics */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+              {/* Correct */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                <span style={{ fontSize: '10px', fontWeight: 800, color: '#10B981', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Correct</span>
+                <span style={{ fontSize: '24px', fontWeight: 900, color: isDark ? '#F9FAFC' : '#0F172A', lineHeight: 1.1, marginTop: '2px' }}>{totalCorrect}</span>
+              </div>
+              
+              <div style={{ width: '1px', height: '24px', background: isDark ? '#374151' : '#E2E8F0' }} />
+
+              {/* Wrong */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                <span style={{ fontSize: '10px', fontWeight: 800, color: '#EF4444', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Wrong</span>
+                <span style={{ fontSize: '24px', fontWeight: 900, color: isDark ? '#F9FAFC' : '#0F172A', lineHeight: 1.1, marginTop: '2px' }}>{totalWrong}</span>
+              </div>
+
+              <div style={{ width: '1px', height: '24px', background: isDark ? '#374151' : '#E2E8F0' }} />
+
+              {/* Total */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                <span style={{ fontSize: '10px', fontWeight: 800, color: '#C4B5FD', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total</span>
+                <span style={{ fontSize: '24px', fontWeight: 900, color: isDark ? '#F9FAFC' : '#0F172A', lineHeight: 1.1, marginTop: '2px' }}>{totalQuestions}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Learning Progress Trend Chart */}
+          <div style={{
+            background: cardBg,
+            border: cardBorder,
+            borderRadius: cardRadius,
+            padding: '24px',
+            boxShadow: cardShadow
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '15px', fontWeight: 800, color: isDark ? '#F9FAFC' : '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ChartBar size={18} color="#C4B5FD" weight="bold" /> Learning progress
+              </h2>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: '10px', fontWeight: 800, color: isDark ? '#9CA3AF' : '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Today's average</span>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: isDark ? '#F9FAFC' : '#0F172A', lineHeight: 1.1, marginTop: '2px' }}>{todayAverage === 'N/A' ? 'N/A' : `${todayAverage}%`}</div>
+              </div>
+            </div>
+
+            {loading ? (
+              <div style={{
+                height: '160px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--wsr-text-muted)'
+              }}>
+                <CircleNotch className="spin" size={24} />
+              </div>
+            ) : renderGraph()}
+          </div>
+
+        </div>
+
+        {/* Right Attempt History Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* Past Quizzes Card */}
+          <div style={{
+            background: cardBg,
+            border: cardBorder,
+            borderRadius: cardRadius,
+            padding: '24px',
+            minHeight: '290px',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: cardShadow
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '15px', fontWeight: 800, color: isDark ? '#F9FAFC' : '#0F172A', margin: 0 }}>Past Quizzes</h2>
+              {history.length > 0 && (
+                <button
+                  onClick={handleClearHistory}
+                  style={{
+                    border: 'none',
+                    background: 'none',
+                    color: '#EF4444',
+                    cursor: 'pointer',
+                    padding: 4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    opacity: 0.8
+                  }}
+                  title="Clear history"
+                >
+                  <Trash size={16} />
+                </button>
+              )}
+            </div>
+
+            {loading ? (
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--wsr-text-muted)'
+              }}>
+                <CircleNotch className="spin" size={24} />
+              </div>
+            ) : history.length === 0 ? (
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                padding: '20px 12px'
+              }}>
+                <div style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '50%',
+                  background: isDark ? 'rgba(196, 181, 253, 0.12)' : '#F5F3FF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '16px',
+                  color: '#C4B5FD'
+                }}>
+                  <BookOpen size={24} weight="bold" />
+                </div>
+                <h3 style={{ fontSize: '15px', fontWeight: 800, color: isDark ? '#F9FAFC' : '#0F172A', margin: '0 0 6px 0' }}>You have no Quiz yet</h3>
+                <p style={{ fontSize: '12px', color: isDark ? '#9CA3AF' : '#64748B', margin: '0 0 20px 0', lineHeight: 1.4 }}>
+                  Create a new Quiz to test your knowledge and keep track of it!
+                </p>
+
+                {questions.length === 0 ? (
+                  <button
+                    onClick={onRegenerateQuiz}
+                    disabled={isAnalysisLoading}
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: '9999px',
+                      border: 'none',
+                      backgroundColor: isDark ? 'rgba(196, 181, 253, 0.12)' : '#EDE9FE',
+                      color: isDark ? '#C4B5FD' : '#4C1D95',
+                      fontWeight: 800,
+                      fontSize: '13px',
+                      cursor: isAnalysisLoading ? 'default' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    {isAnalysisLoading ? <CircleNotch className="spin" size={14} /> : <Sparkle size={14} weight="bold" />}
+                    {isAnalysisLoading ? 'Generating' : 'Generate Quiz'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleStartQuiz}
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: '9999px',
+                      border: 'none',
+                      backgroundColor: '#98FF98',
+                      color: '#14532D',
+                      fontWeight: 800,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <Play size={14} weight="fill" /> Start Quiz
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '8px', 
+                overflowY: 'auto', 
+                maxHeight: '300px',
+                paddingRight: '4px'
+              }}>
+                {history.map((att, idx) => (
+                  <div
+                    key={att.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '12px 14px',
+                      borderRadius: '16px',
+                      background: 'transparent',
+                      transition: 'background 0.2s, transform 0.2s',
+                      cursor: 'default'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = isDark ? '#374151' : '#F8FAFC';
+                      e.currentTarget.style.transform = 'translateX(2px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.transform = 'none';
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <CalendarBlank size={16} color={isDark ? '#9CA3AF' : '#64748B'} />
+                      <div>
+                        <strong style={{ display: 'block', fontSize: '13px', color: isDark ? '#F9FAFC' : '#0F172A', fontWeight: 800 }}>
+                          Attempt #{history.length - idx}
+                        </strong>
+                        <span style={{ fontSize: '11px', color: isDark ? '#9CA3AF' : '#64748B' }}>
+                          {new Date(att.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ 
+                        display: 'block', 
+                        fontSize: '14px', 
+                        fontWeight: 900,
+                        color: att.accuracy >= 70 ? '#10B981' : (att.accuracy >= 50 ? '#F59E0B' : '#EF4444')
+                      }}>
+                        {att.score}/{att.total}
+                      </span>
+                      <span style={{ fontSize: '10px', color: isDark ? '#9CA3AF' : '#64748B', fontWeight: 700 }}>
+                        {att.accuracy}% Accuracy
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
 
       </div>
+
     </div>
   );
 }

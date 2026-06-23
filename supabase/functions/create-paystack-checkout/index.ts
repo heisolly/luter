@@ -17,7 +17,7 @@ serve(async (req) => {
   }
 
   try {
-    const { planId, email, amount, currency = 'NGN', callback_url } = await req.json()
+    const { planId, planCode, email, amount, currency = 'NGN', callback_url } = await req.json()
     const authHeader = req.headers.get('Authorization')!
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -54,7 +54,7 @@ serve(async (req) => {
     }
 
     // Create Paystack payment initialization
-    const paymentData = {
+    const paymentData: any = {
       email: email || user.email,
       amount: amount * 100, // Paystack expects amount in kobo (cents)
       currency: currency,
@@ -74,6 +74,10 @@ serve(async (req) => {
           }
         ]
       }
+    }
+
+    if (planCode && planCode !== 'oneoff' && !planId.endsWith('_oneoff') && !planId.endsWith('_promo')) {
+      paymentData.plan = planCode
     }
 
     const response = await fetch('https://api.paystack.co/transaction/initialize', {

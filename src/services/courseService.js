@@ -160,6 +160,50 @@ export const courseService = {
     
     return { data, error }
   },
+
+  /**
+   * Create a custom folder for the user
+   */
+  async createCustomFolder(userId, name) {
+    if (!userId || !name) return { error: 'User ID and folder name required' }
+    
+    try {
+      const uniqueCode = 'FOLDER_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now()
+      
+      const { data: globalCourse, error: courseError } = await supabase
+        .from('courses')
+        .insert({
+          code: uniqueCode,
+          name: name,
+          faculty: 'General',
+          source_type: 'user_folder',
+          is_active: true
+        })
+        .select()
+        .single()
+        
+      if (courseError) throw courseError
+      
+      const { data: userCourse, error: linkError } = await supabase
+        .from('user_courses')
+        .insert({
+          user_id: userId,
+          course_id: globalCourse.id,
+          progress: 0,
+          target_score: 75,
+          semester: '1st'
+        })
+        .select('*, courses(*)')
+        .single()
+        
+      if (linkError) throw linkError
+      
+      return { data: userCourse, error: null }
+    } catch (err) {
+      console.error('Custom folder creation failed:', err)
+      return { error: err.message }
+    }
+  },
   
   // =====================================================
   // ENHANCED UNIVERSAL SYSTEM METHODS

@@ -84,7 +84,8 @@ export default function BackpackFolderView() {
       .single()
     if (data) {
       setCourseName(data.name)
-      setCourseCode(data.code)
+      const isCustomFolder = data.code?.startsWith('FOLDER_')
+      setCourseCode(isCustomFolder ? '' : data.code)
     }
   }
 

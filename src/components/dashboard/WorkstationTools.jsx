@@ -87,7 +87,10 @@ import {
   Export,
   ChartBar,
   Question,
-  Plus
+  Plus,
+  Coins,
+  SpeakerSlash,
+  Gear
 } from '@phosphor-icons/react'
 import ReactMarkdown from 'react-markdown'
 import { supabase } from '../../supabaseClient'
@@ -858,7 +861,1039 @@ export function WorkstationFlashcards({ flashcards = [], items = [], material, u
 
 
 export function WorkstationQuiz(props) {
-  return <WorkstationQuizRedesign {...props} />
+  return <WorkstationQuizCustom {...props} />
+}
+
+function WorkstationQuizCustom({ quiz = [], items = [], material, onComplete, onRegenerate, isLoading = false }) {
+  const [idx, setIdx] = useState(0)
+  const [selected, setSelected] = useState({})
+  const [typeInAnswers, setTypeInAnswers] = useState({})
+  const [isFinished, setIsFinished] = useState(false)
+  const [showExplanation, setShowExplanation] = useState(false)
+  const [soundOn, setSoundOn] = useState(true)
+  const [userStats, setUserStats] = useState({ xp: 100, coins: 10 })
+  const [followUpQuery, setFollowUpQuery] = useState('')
+  const [followUpAnswer, setFollowUpAnswer] = useState(null)
+  const [followUpLoading, setFollowUpLoading] = useState(false)
+
+  // Fetch actual user stats from profiles table to make it live
+  useEffect(() => {
+    const fetchUserStats = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          const { data, error } = await supabase
+            .from('user_gamification')
+            .select('xp, coins')
+            .eq('user_id', session.user.id)
+            .maybeSingle()
+          if (data) {
+            setUserStats({ xp: data.xp || 0, coins: data.coins || 0 })
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch user stats:', err)
+      }
+    }
+    fetchUserStats()
+  }, [])
+
+  const getQuestions = () => {
+    if (Array.isArray(quiz) && quiz.length > 0) return quiz
+    if (quiz?.questions && Array.isArray(quiz.questions)) return quiz.questions
+    if (quiz?.items && Array.isArray(quiz.items)) return quiz.items
+    if (Array.isArray(items) && items.length > 0) return items
+    if (items?.questions && Array.isArray(items.questions)) return items.questions
+    return []
+  }
+
+  const safeQuestions = getQuestions()
+  const questionSignature = safeQuestions.map((q) => q?.id || q?.question || '').join('|')
+
+  useEffect(() => {
+    setIdx(0)
+    setSelected({})
+    setTypeInAnswers({})
+    setIsFinished(false)
+    setShowExplanation(false)
+    setFollowUpAnswer(null)
+    setFollowUpQuery('')
+  }, [questionSignature, material?.id])
+
+  if (safeQuestions.length === 0) {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', padding: '24px' }}>
+        <div style={{ position: 'relative', marginBottom: '32px' }}>
+          <div style={{ width: '100px', height: '100px', background: '#F5F3FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Question weight="bold" size={48} color="#7C3AED" />
+          </div>
+        </div>
+        <p style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>No quiz generated yet.</p>
+        <p style={{ fontSize: '13px', color: '#9CA3AF', marginBottom: '24px' }}>Generate a quiz to test your knowledge</p>
+        {onRegenerate && (
+          <button
+            onClick={onRegenerate}
+            disabled={isLoading}
+            style={{
+              padding: '12px 24px', background: '#C4B5FD', color: '#4C1D95', border: 'none', borderRadius: '9999px',
+              fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+              fontSize: '14px',
+              opacity: isLoading ? 0.65 : 1
+            }}
+          >
+            <Sparkle size={16} /> {isLoading ? 'Generating...' : 'Generate Quiz'}
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  const currentQuestion = safeQuestions[idx]
+  const isAnswered = selected[idx] !== undefined || typeInAnswers[idx] !== undefined
+
+  const getCorrectIndex = (q) => {
+    if (!q) return -1
+    const ans = q.correctAnswer ?? q.correct_answer ?? q.answer
+    if (ans === undefined || ans === null) return -1
+    if (typeof ans === 'number') return ans
+
+    if (typeof ans === 'string') {
+      const lower = ans.trim().toLowerCase()
+      if (lower === 'a') return 0
+      if (lower === 'b') return 1
+      if (lower === 'c') return 2
+      if (lower === 'd') return 3
+      if (lower === 'true' || lower === 'yes') return 1
+      if (lower === 'false' || lower === 'no') return 0
+      const parsed = parseInt(lower, 10)
+      if (!isNaN(parsed)) return parsed
+      if (q.options) {
+        const idx = q.options.findIndex(opt => {
+          const text = (typeof opt === 'object' ? (opt.text || opt.choice || "") : opt).toString().toLowerCase()
+          return text === lower
+        })
+        if (idx !== -1) return idx
+      }
+    }
+    return -1
+  }
+
+  const correctIdx = getCorrectIndex(currentQuestion)
+
+  const calculateScore = () => {
+    return safeQuestions.reduce((acc, q, index) => {
+      if (q.type === 'typein') {
+        const userText = (typeInAnswers[index] || '').trim().toLowerCase()
+        const expected = (q.expected_answer || q.answer || '').trim().toLowerCase()
+        return acc + (userText && userText === expected ? 1 : 0)
+      }
+      const uAns = selected[index]
+      const cIdx = getCorrectIndex(q)
+      return acc + (uAns === cIdx ? 1 : 0)
+    }, 0)
+  }
+
+  const handleSelect = (choiceIdx) => {
+    if (isAnswered) return
+    setSelected(prev => ({ ...prev, [idx]: choiceIdx }))
+    if (soundOn) {
+      try {
+        const isCorrect = choiceIdx === correctIdx
+        const audio = new Audio(isCorrect ? '/sounds/correct.mp3' : '/sounds/incorrect.mp3')
+        audio.volume = 0.4
+        audio.play().catch(() => {})
+      } catch (e) {}
+    }
+  }
+
+  const handleNext = () => {
+    if (idx < safeQuestions.length - 1) {
+      setIdx(idx + 1)
+      setShowExplanation(false)
+      setFollowUpAnswer(null)
+      setFollowUpQuery('')
+    } else {
+      setIsFinished(true)
+      onComplete?.({ score: calculateScore(), total: safeQuestions.length })
+    }
+  }
+
+  const handleExplainToggle = () => {
+    if (!isAnswered) return
+    if (!showExplanation) {
+      setShowExplanation(true)
+    } else {
+      setFollowUpAnswer(null)
+      setFollowUpQuery('')
+    }
+  }
+
+  const handleFollowUpSubmit = async (e) => {
+    e.preventDefault()
+    if (!followUpQuery.trim() || followUpLoading) return
+    setFollowUpLoading(true)
+    const query = followUpQuery
+    setFollowUpQuery('')
+
+    try {
+      const messages = [
+        {
+          role: 'system',
+          content: `You are explaining a quiz question to a student.
+Question: "${currentQuestion.question}"
+Options: ${currentQuestion.options?.map((opt, i) => `${String.fromCharCode(65 + i)}: ${typeof opt === 'object' ? opt.text || opt.choice : opt}`).join(', ')}
+Correct Answer: Option ${String.fromCharCode(65 + correctIdx)}
+Explanation: "${currentQuestion.explanation || ''}"`
+        },
+        {
+          role: 'user',
+          content: query
+        }
+      ]
+
+      const response = await callGroqAPI(messages, GROQ_MODELS.PROFESSOR)
+      const reply = response.choices?.[0]?.message?.content || 'Sorry, I could not generate an answer.'
+      setFollowUpAnswer(reply)
+    } catch (err) {
+      console.error('Follow-up error:', err)
+      setFollowUpAnswer('Failed to get answer from AI. Please try again.')
+    } finally {
+      setFollowUpLoading(false)
+    }
+  }
+
+  const getAnswerState = (index) => {
+    if (safeQuestions[index]?.type === 'typein') {
+      const userText = (typeInAnswers[index] || '').trim().toLowerCase()
+      if (!userText) return 'unanswered'
+      const expected = (safeQuestions[index].expected_answer || safeQuestions[index].answer || '').trim().toLowerCase()
+      return userText === expected ? 'correct' : 'incorrect'
+    }
+    const userSelection = selected[index]
+    if (userSelection === undefined) return 'unanswered'
+    const correctSelection = getCorrectIndex(safeQuestions[index])
+    return userSelection === correctSelection ? 'correct' : 'incorrect'
+  }
+
+  const optionText = (option) => {
+    if (typeof option === 'object') return option.text || option.choice || JSON.stringify(option)
+    return option
+  }
+
+  const score = calculateScore()
+  const accuracy = safeQuestions.length ? Math.round((score / safeQuestions.length) * 100) : 0
+
+  const resetQuiz = () => {
+    setIdx(0)
+    setSelected({})
+    setTypeInAnswers({})
+    setIsFinished(false)
+    setShowExplanation(false)
+    setFollowUpAnswer(null)
+    setFollowUpQuery('')
+  }
+
+  if (isFinished) {
+    return (
+      <div className="custom-quiz-shell">
+        <style>{`
+          .custom-quiz-shell {
+            --cq-bg: #F8FAFC;
+            --cq-text: #0F172A;
+            --cq-border: #E2E8F0;
+            --cq-surface: #FFFFFF;
+            --cq-purple: #C4B5FD;
+            --cq-mint: #98FF98;
+            --cq-peach: #FFD2A6;
+            
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            min-height: 100%;
+            background: var(--cq-bg);
+            color: var(--cq-text);
+            padding: 0 0 60px 0;
+            box-sizing: border-box;
+            font-family: Outfit, sans-serif;
+          }
+          body.dark-mode .custom-quiz-shell {
+            --cq-bg: #0B0F19;
+            --cq-text: #F8FAFC;
+            --cq-border: #1E293B;
+            --cq-surface: #131C2E;
+          }
+          .cq-header {
+            width: 100%;
+            height: 64px;
+            background: var(--cq-surface);
+            border-bottom: 1px solid var(--cq-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            box-sizing: border-box;
+            margin-bottom: 32px;
+          }
+          .cq-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+          .cq-header-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--cq-text);
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+          .cq-header-middle {
+            flex: 1;
+            max-width: 400px;
+            margin: 0 20px;
+          }
+          .cq-progress-bar {
+            display: flex;
+            gap: 6px;
+            width: 100%;
+          }
+          .cq-progress-segment {
+            height: 6px;
+            border-radius: 99px;
+            flex: 1;
+            background: var(--cq-border);
+            transition: all 0.2s ease;
+          }
+          .cq-progress-segment.active {
+            background: #F87171;
+          }
+          .cq-progress-segment.correct {
+            background: #22C55E;
+          }
+          .cq-progress-segment.incorrect {
+            background: #EF4444;
+          }
+          .cq-header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+          }
+          .cq-header-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 800;
+            color: #D97706;
+          }
+          .cq-header-btn {
+            background: transparent;
+            border: none;
+            color: var(--cq-text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            border-radius: 8px;
+            transition: background 0.15s;
+          }
+          .cq-header-btn:hover {
+            background: var(--cq-border);
+          }
+          .cq-leave-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--cq-border);
+            background: var(--cq-surface);
+            color: var(--cq-text);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+          }
+          .cq-leave-btn:hover {
+            background: var(--cq-border);
+          }
+          .cq-card {
+            width: 100%;
+            max-width: 800px;
+            background: var(--cq-surface);
+            border: 1px solid var(--cq-border);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04);
+            box-sizing: border-box;
+            margin-bottom: 24px;
+            text-align: center;
+          }
+        `}</style>
+
+        <div className="cq-header">
+          <div className="cq-header-left">
+            <FileDoc size={20} weight="fill" color="#9CA3AF" />
+            <span className="cq-header-title">{material?.name || 'Quiz Session'}</span>
+          </div>
+          <div className="cq-header-middle">
+            <div className="cq-progress-bar">
+              {safeQuestions.map((_, i) => (
+                <div key={i} className="cq-progress-segment correct" />
+              ))}
+            </div>
+          </div>
+          <div className="cq-header-right">
+            <div className="cq-header-stat">
+              <Sparkle size={16} weight="fill" color="#EAB308" />
+              <span>+{userStats.xp} XP</span>
+            </div>
+            <div className="cq-header-stat">
+              <Coins size={16} weight="fill" color="#EAB308" />
+              <span>{userStats.coins} Coins</span>
+            </div>
+            <button type="button" className="cq-header-btn" onClick={() => setSoundOn(!soundOn)}>
+              {soundOn ? <SpeakerHigh size={18} /> : <SpeakerSlash size={18} />}
+            </button>
+            <button type="button" className="cq-header-btn">
+              <Gear size={18} />
+            </button>
+            <button type="button" className="cq-leave-btn" onClick={() => onComplete?.({ score, total: safeQuestions.length })}>
+              <SignOut size={16} weight="bold" />
+              <span>Leave Quiz</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="cq-card">
+          <img src="/mascot.png" alt="Mascot" style={{ width: 86, height: 86, marginBottom: 16 }} />
+          <h2 style={{ fontSize: 28, fontWeight: 900, marginBottom: 8 }}>
+            {accuracy >= 70 ? 'Solid run!' : 'Good attempt!'}
+          </h2>
+          <p style={{ color: 'var(--cq-text-secondary)', fontWeight: 600, margin: '0 0 24px' }}>
+            You got {score} of {safeQuestions.length} questions correct.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+            <div style={{ padding: 16, background: 'var(--cq-bg)', borderRadius: 14, border: '1px solid var(--cq-border)' }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--cq-text-muted)', textTransform: 'uppercase' }}>Accuracy</div>
+              <div style={{ fontSize: 24, fontWeight: 900, marginTop: 4 }}>{accuracy}%</div>
+            </div>
+            <div style={{ padding: 16, background: 'var(--cq-bg)', borderRadius: 14, border: '1px solid var(--cq-border)' }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--cq-text-muted)', textTransform: 'uppercase' }}>Correct</div>
+              <div style={{ fontSize: 24, fontWeight: 900, marginTop: 4 }}>{score}</div>
+            </div>
+            <div style={{ padding: 16, background: 'var(--cq-bg)', borderRadius: 14, border: '1px solid var(--cq-border)' }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--cq-text-muted)', textTransform: 'uppercase' }}>Review</div>
+              <div style={{ fontSize: 24, fontWeight: 900, marginTop: 4 }}>{safeQuestions.length - score}</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 32 }}>
+            <div style={{ padding: '8px 16px', background: '#F5F3FF', border: '1.5px solid #C4B5FD', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, color: '#7a12cc', fontSize: 14 }}>
+              ⚡ +{score * 10 + 20} XP
+            </div>
+            <div style={{ padding: '8px 16px', background: '#FFFBEB', border: '1.5px solid #FCD34D', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, color: '#D97706', fontSize: 14 }}>
+              🪙 +{score * 2 + 5} Coins
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <button type="button" className="cq-leave-btn" onClick={resetQuiz} style={{ background: 'var(--cq-purple)', border: 'none', color: '#4C1D95' }}>
+              Retry
+            </button>
+            <button type="button" className="cq-leave-btn" onClick={() => onComplete?.({ score, total: safeQuestions.length })}>
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="custom-quiz-shell">
+      <style>{`
+        .custom-quiz-shell {
+          --cq-bg: #F8FAFC;
+          --cq-text: #0F172A;
+          --cq-border: #E2E8F0;
+          --cq-surface: #FFFFFF;
+          --cq-purple: #C4B5FD;
+          --cq-mint: #98FF98;
+          --cq-peach: #FFD2A6;
+          
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: 100%;
+          min-height: 100%;
+          background: var(--cq-bg);
+          color: var(--cq-text);
+          padding: 0 0 60px 0;
+          box-sizing: border-box;
+          font-family: Outfit, sans-serif;
+        }
+        body.dark-mode .custom-quiz-shell {
+          --cq-bg: #0B0F19;
+          --cq-text: #F8FAFC;
+          --cq-border: #1E293B;
+          --cq-surface: #131C2E;
+        }
+        .cq-header {
+          width: 100%;
+          height: 64px;
+          background: var(--cq-surface);
+          border-bottom: 1px solid var(--cq-border);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 24px;
+          box-sizing: border-box;
+          margin-bottom: 32px;
+        }
+        .cq-header-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .cq-header-title {
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--cq-text);
+          max-width: 250px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .cq-header-middle {
+          flex: 1;
+          max-width: 400px;
+          margin: 0 20px;
+        }
+        .cq-progress-bar {
+          display: flex;
+          gap: 6px;
+          width: 100%;
+        }
+        .cq-progress-segment {
+          height: 6px;
+          border-radius: 99px;
+          flex: 1;
+          background: var(--cq-border);
+          transition: all 0.2s ease;
+        }
+        .cq-progress-segment.active {
+          background: #F87171;
+        }
+        .cq-progress-segment.correct {
+          background: #22C55E;
+        }
+        .cq-progress-segment.incorrect {
+          background: #EF4444;
+        }
+        .cq-header-right {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        .cq-header-stat {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 800;
+          color: #D97706;
+        }
+        .cq-header-btn {
+          background: transparent;
+          border: none;
+          color: var(--cq-text);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 6px;
+          border-radius: 8px;
+          transition: background 0.15s;
+        }
+        .cq-header-btn:hover {
+          background: var(--cq-border);
+        }
+        .cq-leave-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px;
+          border-radius: 10px;
+          border: 1px solid var(--cq-border);
+          background: var(--cq-surface);
+          color: var(--cq-text);
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.15s;
+          font-family: inherit;
+        }
+        .cq-leave-btn:hover {
+          background: var(--cq-border);
+        }
+        .cq-card {
+          width: 100%;
+          max-width: 800px;
+          background: var(--cq-surface);
+          border: 1px solid var(--cq-border);
+          border-radius: 24px;
+          padding: 32px;
+          box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04);
+          box-sizing: border-box;
+          margin-bottom: 24px;
+        }
+        .cq-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 24px;
+        }
+        .cq-live-sync {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 12px;
+          font-weight: 800;
+          color: #EF4444;
+        }
+        .cq-live-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #EF4444;
+          animation: cq-pulse-dot 2s infinite;
+        }
+        @keyframes cq-pulse-dot {
+          0% { transform: scale(0.95); opacity: 0.5; }
+          50% { transform: scale(1.1); opacity: 1; }
+          100% { transform: scale(0.95); opacity: 0.5; }
+        }
+        .cq-question-number {
+          font-size: 14px;
+          font-weight: 800;
+          color: var(--cq-text);
+        }
+        .cq-question-box {
+          width: 100%;
+          background: #F4FBE7;
+          border: 1.5px solid #D8F3B8;
+          border-radius: 16px;
+          padding: 24px;
+          font-size: 18px;
+          font-weight: 700;
+          text-align: center;
+          color: #1A3008;
+          margin-bottom: 24px;
+          box-sizing: border-box;
+        }
+        body.dark-mode .cq-question-box {
+          background: #1B2918;
+          border-color: #2F4D27;
+          color: #D8F3B8;
+        }
+        .cq-options-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
+          margin-bottom: 24px;
+        }
+        @media (max-width: 600px) {
+          .cq-options-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        .cq-option {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 18px 16px;
+          border-radius: 14px;
+          border: 1.5px solid var(--cq-border);
+          background: var(--cq-surface);
+          color: var(--cq-text);
+          font-size: 14px;
+          font-weight: 700;
+          text-align: left;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          font-family: inherit;
+        }
+        .cq-option:hover:not(:disabled) {
+          border-color: var(--cq-purple);
+          background: var(--cq-bg);
+        }
+        .cq-option-letter {
+          width: 28px;
+          height: 28px;
+          border-radius: 8px;
+          background: var(--cq-border);
+          color: var(--cq-text);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 800;
+          font-size: 13px;
+          flex-shrink: 0;
+        }
+        .cq-option.selected {
+          border-color: #FFA500;
+          background: #FFD2A6;
+          color: #7C2D12;
+        }
+        .cq-option.selected .cq-option-letter {
+          background: #FFA500;
+          color: white;
+        }
+        .cq-option.correct {
+          border-color: #4ADE80;
+          background: #DCFCE7;
+          color: #14532D;
+        }
+        .cq-option.correct .cq-option-letter {
+          background: #22C55E;
+          color: white;
+        }
+        .cq-option.wrong {
+          border-color: #F87171;
+          background: #FEE2E2;
+          color: #7F1D1D;
+        }
+        .cq-option.wrong .cq-option-letter {
+          background: #EF4444;
+          color: white;
+        }
+        .cq-explanation-box {
+          background: var(--cq-bg);
+          border-radius: 16px;
+          padding: 20px;
+          margin-top: 24px;
+          text-align: left;
+          position: relative;
+        }
+        .cq-explanation-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+        .cq-explanation-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+          font-weight: 800;
+          color: #7C3AED;
+        }
+        .cq-explain-avatar {
+          font-size: 18px;
+        }
+        .cq-explanation-close {
+          background: transparent;
+          border: none;
+          color: var(--cq-text-muted);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 4px;
+          border-radius: 6px;
+        }
+        .cq-explanation-close:hover {
+          background: var(--cq-border);
+        }
+        .cq-explanation-body {
+          font-size: 14px;
+          line-height: 1.55;
+          color: var(--cq-text);
+          margin-bottom: 16px;
+          font-weight: 500;
+        }
+        .cq-followup-form {
+          display: flex;
+          align-items: center;
+          background: var(--cq-surface);
+          border: 1px solid var(--cq-border);
+          border-radius: 99px;
+          padding: 4px 6px 4px 16px;
+          box-sizing: border-box;
+          position: relative;
+        }
+        .cq-followup-input {
+          flex: 1;
+          border: none;
+          background: transparent;
+          outline: none;
+          font-size: 13px;
+          color: var(--cq-text);
+          font-family: inherit;
+        }
+        .cq-followup-send {
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          background: #7C3AED;
+          color: white;
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.15s;
+        }
+        .cq-followup-send:hover:not(:disabled) {
+          background: #6D28D9;
+        }
+        .cq-followup-send:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .cq-typing-indicator {
+          display: flex;
+          gap: 4px;
+          margin-top: 8px;
+        }
+        .cq-typing-indicator span {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--cq-text-muted);
+          animation: cq-bounce 1.4s infinite ease-in-out both;
+        }
+        .cq-typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .cq-typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes cq-bounce {
+          0%, 80%, 100% { transform: scale(0); }
+          40% { transform: scale(1.0); }
+        }
+        .cq-footer {
+          display: flex;
+          gap: 12px;
+          width: 100%;
+          max-width: 800px;
+        }
+        .cq-footer-btn {
+          flex: 1;
+          height: 48px;
+          border-radius: 16px;
+          border: 1px solid var(--cq-border);
+          background: var(--cq-surface);
+          color: var(--cq-text);
+          font-size: 14px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          cursor: pointer;
+          transition: all 0.15s;
+          font-family: inherit;
+        }
+        .cq-footer-btn:hover:not(:disabled) {
+          background: var(--cq-border);
+        }
+        .cq-footer-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .cq-btn-badge {
+          background: var(--cq-bg);
+          border: 1px solid var(--cq-border);
+          color: var(--cq-text-secondary);
+          border-radius: 6px;
+          padding: 2px 6px;
+          font-size: 11px;
+          font-family: monospace;
+        }
+      `}</style>
+
+      <div className="cq-header">
+        <div className="cq-header-left">
+          <FileDoc size={20} weight="fill" color="#9CA3AF" />
+          <span className="cq-header-title">{material?.name || 'Quiz Session'}</span>
+        </div>
+        <div className="cq-header-middle">
+          <div className="cq-progress-bar">
+            {safeQuestions.map((_, i) => (
+              <div
+                key={i}
+                className={`cq-progress-segment ${i === idx ? 'active' : ''} ${getAnswerState(i) === 'correct' ? 'correct' : ''} ${getAnswerState(i) === 'incorrect' ? 'incorrect' : ''}`}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="cq-header-right">
+          <div className="cq-header-stat">
+            <Sparkle size={16} weight="fill" color="#EAB308" />
+            <span>+{userStats.xp} XP</span>
+          </div>
+          <div className="cq-header-stat">
+            <Coins size={16} weight="fill" color="#EAB308" />
+            <span>{userStats.coins} Coins</span>
+          </div>
+          <button type="button" className="cq-header-btn" onClick={() => setSoundOn(!soundOn)}>
+            {soundOn ? <SpeakerHigh size={18} /> : <SpeakerSlash size={18} />}
+          </button>
+          <button type="button" className="cq-header-btn">
+            <Gear size={18} />
+          </button>
+          <button type="button" className="cq-leave-btn" onClick={() => onComplete?.({ score: calculateScore(), total: safeQuestions.length })}>
+            <SignOut size={16} weight="bold" />
+            <span>Leave Quiz</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="cq-card">
+        <div className="cq-card-header">
+          <div className="cq-live-sync">
+            <span className="cq-live-dot" />
+            <span>LIVE SYNC</span>
+          </div>
+          <div className="cq-question-number">
+            Question {idx + 1}/{safeQuestions.length}
+          </div>
+        </div>
+
+        <div className="cq-question-box">
+          {currentQuestion?.question || 'Untitled Question'}
+        </div>
+
+        {currentQuestion?.type === 'typein' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <input
+              type="text"
+              className="cq-followup-input"
+              value={typeInAnswers[idx] || ''}
+              placeholder="Type your answer here..."
+              style={{
+                width: '100%',
+                padding: '16px',
+                borderRadius: '12px',
+                border: '1.5px solid var(--cq-border)',
+                background: 'var(--cq-bg)',
+                color: 'var(--cq-text)',
+                fontSize: '15px'
+              }}
+              onChange={(e) => setTypeInAnswers(prev => ({ ...prev, [idx]: e.target.value }))}
+              disabled={isAnswered}
+            />
+            {!isAnswered && (
+              <button
+                type="button"
+                className="cq-footer-btn"
+                style={{ background: 'var(--cq-purple)', color: '#4C1D95', border: 'none' }}
+                onClick={() => {
+                  if (typeInAnswers[idx]?.trim()) {
+                    setTypeInAnswers(prev => ({ ...prev, [idx]: typeInAnswers[idx] }))
+                    setShowExplanation(true)
+                  }
+                }}
+                disabled={!typeInAnswers[idx]?.trim()}
+              >
+                Submit
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="cq-options-grid">
+            {(currentQuestion?.options || []).slice(0, 4).map((option, optionIdx) => {
+              const isSelected = selected[idx] === optionIdx
+              const isCorrect = isAnswered && optionIdx === correctIdx
+              const isWrong = isAnswered && isSelected && optionIdx !== correctIdx
+
+              let optionClass = ''
+              if (isCorrect) optionClass = 'correct'
+              else if (isWrong) optionClass = 'wrong'
+              else if (isSelected) optionClass = 'selected'
+
+              return (
+                <button
+                  key={optionIdx}
+                  type="button"
+                  className={`cq-option ${optionClass}`}
+                  onClick={() => handleSelect(optionIdx)}
+                  disabled={isAnswered}
+                >
+                  <div className="cq-option-letter">{String.fromCharCode(65 + optionIdx)}</div>
+                  <div className="cq-option-text">{optionText(option)}</div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {showExplanation && (
+          <div className="cq-explanation-box">
+            <div className="cq-explanation-header">
+              <div className="cq-explanation-title">
+                <div className="cq-explain-avatar">🔮</div>
+                <span>Explain</span>
+              </div>
+              <button type="button" className="cq-explanation-close" onClick={() => setShowExplanation(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="cq-explanation-body">
+              {followUpAnswer || currentQuestion?.explanation || (correctIdx >= 0 ? `Correct answer: Option ${String.fromCharCode(65 + correctIdx)}.` : 'No explanation available.')}
+              {followUpLoading && (
+                <div className="cq-typing-indicator">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              )}
+            </div>
+            <form className="cq-followup-form" onSubmit={handleFollowUpSubmit}>
+              <input
+                type="text"
+                className="cq-followup-input"
+                placeholder="Ask for a follow up"
+                value={followUpQuery}
+                onChange={(e) => setFollowUpQuery(e.target.value)}
+                disabled={followUpLoading}
+              />
+              <button type="submit" className="cq-followup-send" disabled={!followUpQuery.trim() || followUpLoading}>
+                <PaperPlaneRight size={16} weight="fill" />
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+
+      <div className="cq-footer">
+        <button
+          type="button"
+          className="cq-footer-btn"
+          onClick={handleExplainToggle}
+          disabled={!isAnswered}
+        >
+          <div className="cq-btn-badge">E</div>
+          <span>{showExplanation ? 'Explain Again' : 'Explain'}</span>
+        </button>
+        <button
+          type="button"
+          className="cq-footer-btn"
+          style={{ background: isAnswered ? 'var(--cq-purple)' : 'var(--cq-surface)', color: isAnswered ? '#4C1D95' : 'var(--cq-text-secondary)', border: isAnswered ? 'none' : '1px solid var(--cq-border)' }}
+          onClick={handleNext}
+          disabled={!isAnswered}
+        >
+          <div className="cq-btn-badge">↵</div>
+          <span>{idx === safeQuestions.length - 1 ? 'Finish' : 'Next'}</span>
+        </button>
+      </div>
+    </div>
+  )
 }
 
 function WorkstationQuizLegacy({ quiz = [], items = [], material, onComplete, onRegenerate, isLoading = false }) {

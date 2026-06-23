@@ -39,21 +39,36 @@ serve(async (req) => {
   const planMap: { [key: string]: { tier: string; type: string; is_premium: boolean } } = {
     "price_1TQBBYHPD8pnlRZIniqKwUo0": { tier: "pro", type: "monthly", is_premium: true },
     "price_1TQBBcHPD8pnlRZImYqlm80o": { tier: "pro", type: "semester", is_premium: true },
-    "price_1TQBBdHPD8pnlRZIp7HSWNQj": { tier: "premium", type: "monthly", is_premium: true },
-    "price_1TQBBeHPD8pnlRZIeg7YvWbb": { tier: "premium", type: "semester", is_premium: true },
+    "price_1TQBBdHPD8pnlRZIp7HSWNQj": { tier: "beast", type: "monthly", is_premium: true },
+    "price_1TQBBeHPD8pnlRZIeg7YvWbb": { tier: "beast", type: "semester", is_premium: true },
+    "pro_monthly_usd": { tier: "pro", type: "monthly", is_premium: true },
+    "pro_yearly_usd": { tier: "pro", type: "yearly", is_premium: true },
+    "beast_monthly_usd": { tier: "beast", type: "monthly", is_premium: true },
+    "beast_yearly_usd": { tier: "beast", type: "yearly", is_premium: true },
     "ultimate": { tier: "pro", type: "monthly", is_premium: true },
-    "premium": { tier: "premium", type: "monthly", is_premium: true },
-    "starter": { tier: "starter", type: "starter", is_premium: false },
-    "beast_monthly": { tier: "premium", type: "monthly", is_premium: true },
-    "beast_quarterly": { tier: "premium", type: "quarterly", is_premium: true },
-    "beast_yearly": { tier: "premium", type: "yearly", is_premium: true },
-    "beast_annual": { tier: "premium", type: "yearly", is_premium: true },
-    "wizard_monthly": { tier: "premium", type: "monthly", is_premium: true },
-    "wizard_quarterly": { tier: "premium", type: "quarterly", is_premium: true },
-    "wizard_annual": { tier: "premium", type: "yearly", is_premium: true },
-    "monthly": { tier: "premium", type: "monthly", is_premium: true },
-    "quarterly": { tier: "premium", type: "quarterly", is_premium: true },
-    "annual": { tier: "premium", type: "yearly", is_premium: true },
+    "premium": { tier: "beast", type: "monthly", is_premium: true },
+    "starter": { tier: "pro", type: "starter", is_premium: true },
+    "pro": { tier: "pro", type: "monthly", is_premium: true },
+    "pro_2weeks": { tier: "pro", type: "2weeks", is_premium: true },
+    "pro_weekly": { tier: "pro", type: "weekly", is_premium: true },
+    "pro_weekly_oneoff": { tier: "pro", type: "weekly", is_premium: true },
+    "pro_promo": { tier: "pro", type: "monthly", is_premium: true },
+    "pro_monthly": { tier: "pro", type: "monthly", is_premium: true },
+    "pro_yearly": { tier: "pro", type: "yearly", is_premium: true },
+    "beast_2weeks": { tier: "beast", type: "2weeks", is_premium: true },
+    "beast_weekly": { tier: "beast", type: "weekly", is_premium: true },
+    "beast_weekly_oneoff": { tier: "beast", type: "weekly", is_premium: true },
+    "beast_promo": { tier: "beast", type: "monthly", is_premium: true },
+    "beast_monthly": { tier: "beast", type: "monthly", is_premium: true },
+    "beast_quarterly": { tier: "beast", type: "quarterly", is_premium: true },
+    "beast_yearly": { tier: "beast", type: "yearly", is_premium: true },
+    "beast_annual": { tier: "beast", type: "yearly", is_premium: true },
+    "wizard_monthly": { tier: "beast", type: "monthly", is_premium: true },
+    "wizard_quarterly": { tier: "beast", type: "quarterly", is_premium: true },
+    "wizard_annual": { tier: "beast", type: "yearly", is_premium: true },
+    "monthly": { tier: "beast", type: "monthly", is_premium: true },
+    "quarterly": { tier: "beast", type: "quarterly", is_premium: true },
+    "annual": { tier: "beast", type: "yearly", is_premium: true },
   };
 
   const planInfo = planMap[tx.plan_id];
@@ -80,6 +95,8 @@ serve(async (req) => {
   else if (planInfo.type === "quarterly") expiry.setMonth(expiry.getMonth() + 4);
   else if (planInfo.type === "starter") expiry.setDate(expiry.getDate() + 14);
   else if (planInfo.type === "semester") expiry.setMonth(expiry.getMonth() + 4);
+  else if (planInfo.type === "2weeks") expiry.setDate(expiry.getDate() + 14);
+  else if (planInfo.type === "weekly") expiry.setDate(expiry.getDate() + 7);
   else expiry.setMonth(expiry.getMonth() + 1);
 
   const { error: updErr } = await supabaseClient

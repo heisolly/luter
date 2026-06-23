@@ -69,10 +69,9 @@ export async function getCreditBalance(userId) {
 }
 
 export async function checkAndDeductCredits(userId, cost, isPremium) {
-  if (isPremium) return { ok: true, remaining: Infinity }
   if (!userId) return { ok: false, remaining: 0, error: 'Not authenticated' }
 
-  // Synchronize dynamic limit for users who are not premium
+  let tier = 'free'
   try {
     const { data: profile } = await supabase
       .from('profiles')
@@ -80,18 +79,27 @@ export async function checkAndDeductCredits(userId, cost, isPremium) {
       .eq('id', userId)
       .maybeSingle()
 
-    const tier = (profile?.subscription_tier || 'free').toLowerCase()
-    const expectedLimit = TIER_LIMITS[tier] || TIER_LIMITS.free
+    tier = (profile?.subscription_tier || 'free').toLowerCase()
+  } catch (e) {
+    console.warn('[Credits] Failed to sync user limit:', e)
+  }
 
-    if (expectedLimit !== Infinity) {
+  if (tier === 'beast') {
+    return { ok: true, remaining: Infinity }
+  }
+
+  const expectedLimit = TIER_LIMITS[tier] || TIER_LIMITS.free
+
+  if (expectedLimit !== Infinity) {
+    try {
       await supabase
         .from('user_stats')
         .update({ ai_credits_monthly: expectedLimit })
         .eq('user_id', userId)
         .neq('ai_credits_monthly', expectedLimit)
+    } catch (e) {
+      console.warn('[Credits] Failed to sync user limit:', e)
     }
-  } catch (e) {
-    console.warn('[Credits] Failed to sync user limit:', e)
   }
 
   const { data, error } = await supabase.rpc('deduct_ai_credits', {

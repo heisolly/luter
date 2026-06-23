@@ -3,78 +3,24 @@ import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom
 import { supabase } from '../../supabaseClient'
 import { TIER_LIMITS } from '../../services/creditService'
 import PaystackPop from '@paystack/inline-js'
-
-const PLANS = [
-  {
-    id: 'free',
-    name: 'Free',
-    colors: { base: '#8B5CF6', soft: '#F3E8FF', border: '#C4B5FD', text: '#5B21B6', bg: '#F8F6FF' },
-    badge: null,
-    credits: TIER_LIMITS.free,
-    label: '200 credits/day',
-    monthlyCredits: 200,
-    cycles: [
-      { key: '2weeks', price: '$0', sub: '', naira: '₦0', amount: 0, discount: null },
-    ],
-    features: [
-      '200 AI credits daily',
-      'AI chat (~10 messages/day)',
-      'AI Notes (~2 sets/day)',
-      'Flashcards & quizzes',
-      'Explain text & Image OCR',
-    ],
-    limits: ['Audio & video upload', 'Group study sessions', 'Mock exams'],
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    colors: { base: '#F97316', soft: '#FFF7ED', border: '#FFD2A6', text: '#9A3412', bg: '#FFFAF5' },
-    badge: 'Most popular',
-    credits: TIER_LIMITS.pro,
-    label: '2,000 credits/day',
-    monthlyCredits: 2000,
-    cycles: [
-      { key: '2weeks', price: '$3.50', sub: '/2 weeks', naira: '₦4,795', amount: 4795, discount: null, paystackPlanId: 'pro_2weeks' },
-      { key: 'monthly', price: '$7', sub: '/mo', naira: '₦9,590/mo · save 0%', amount: 9590, discount: null, paystackPlanId: 'pro' },
-      { key: 'yearly', price: '$65', sub: '/yr', naira: '₦89,050/yr · save 23%', amount: 89050, discount: 'Save $19', paystackPlanId: 'pro_yearly' },
-    ],
-    features: [
-      '2,000 AI credits daily',
-      'AI chat (~100 messages/day)',
-      'AI Notes (~25 sets/day)',
-      'Audio upload (5 files/day)',
-      'Group study & Mock exams',
-    ],
-    limits: ['Unlimited credits'],
-  },
-  {
-    id: 'beast',
-    name: 'Beast',
-    colors: { base: '#059669', soft: '#ECFDF5', border: '#98FF98', text: '#065F46', bg: '#F2FEF2' },
-    badge: 'Unlimited',
-    credits: 'Unlimited',
-    label: 'Unlimited credits',
-    monthlyCredits: 999999,
-    cycles: [
-      { key: '2weeks', price: '$7.50', sub: '/2 weeks', naira: '₦10,275', amount: 10275, discount: null, paystackPlanId: 'beast_2weeks' },
-      { key: 'monthly', price: '$15', sub: '/mo', naira: '₦20,550/mo · save 0%', amount: 20550, discount: null, paystackPlanId: 'beast_monthly' },
-      { key: 'yearly', price: '$140', sub: '/yr', naira: '₦191,800/yr · save 22%', amount: 191800, discount: 'Save $40', paystackPlanId: 'beast_yearly' },
-    ],
-    features: [
-      'Unlimited AI credits',
-      'Unlimited AI chat & Notes',
-      'Unlimited audio upload',
-      'Unlimited group study',
-      'Unlimited mock exams',
-    ],
-    limits: [],
-  },
-]
+import { 
+  Check, 
+  Crown, 
+  Sparkle, 
+  Lock, 
+  ShieldCheck, 
+  Info, 
+  CreditCard, 
+  ToggleLeft, 
+  ToggleRight,
+  MapPin,
+  ArrowRight
+} from '@phosphor-icons/react'
 
 const CYCLE_LABELS = {
-  '2weeks': 'Pay Per 2 Weeks',
+  'weekly': 'Weekly Plan',
   'monthly': 'Monthly',
-  'yearly': 'Yearly',
+  'yearly': 'Yearly (18% Off)',
 }
 
 export default function UpgradePage() {
@@ -86,14 +32,47 @@ export default function UpgradePage() {
   const [messageType, setMessageType] = useState('ok')
   const [paymentMode, setPaymentMode] = useState('demo')
   const [loadingSettings, setLoadingSettings] = useState(true)
-  const [billingCycle, setBillingCycle] = useState('monthly')
+  
+  // Geopricing States
+  const [currency, setCurrency] = useState('USD') // 'NGN' or 'USD'
+  const [detectedLocation, setDetectedLocation] = useState(null)
+  const [billingCycle, setBillingCycle] = useState('monthly') // 'weekly', 'monthly', 'yearly'
+  const [weeklyAutoRenew, setWeeklyAutoRenew] = useState(true)
 
   const currentTier = (profile?.subscription_tier || 'free').toLowerCase()
   const isPremium = profile?.is_premium || false
-  const isAdmin = profile?.role === 'teacher'
+  const isAdmin = profile?.role === 'teacher' || profile?.role === 'admin'
 
   const paymentSuccess = searchParams.get('payment') === 'success'
   const upgradedTier = searchParams.get('tier')
+
+  // Auto-detect location on load
+  useEffect(() => {
+    fetch('https://ipapi.co/json/')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.country_code === 'NG') {
+          setCurrency('NGN')
+          setBillingCycle('monthly')
+          setDetectedLocation('Nigeria')
+        } else {
+          setCurrency('USD')
+          setBillingCycle('monthly')
+          setDetectedLocation(data.country_name || 'International')
+        }
+      })
+      .catch(() => {
+        // Fallback using timezone detection
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+        if (tz && tz.includes('Lagos')) {
+          setCurrency('NGN')
+          setDetectedLocation('Nigeria')
+        } else {
+          setCurrency('USD')
+          setDetectedLocation('International')
+        }
+      })
+  }, [])
 
   useEffect(() => {
     supabase
@@ -108,7 +87,10 @@ export default function UpgradePage() {
   }, [])
 
   useEffect(() => {
-    if (message) { const t = setTimeout(() => setMessage(null), 5000); return () => clearTimeout(t) }
+    if (message) { 
+      const t = setTimeout(() => setMessage(null), 5000)
+      return () => clearTimeout(t) 
+    }
   }, [message])
 
   useEffect(() => {
@@ -129,7 +111,236 @@ export default function UpgradePage() {
     }
   }
 
-  const getCycle = (plan) => plan.cycles.find(c => c.key === billingCycle) || plan.cycles[0]
+  // Compile Dynamic pricing tiers
+  const getDynamicPlans = () => {
+    if (currency === 'NGN') {
+      return [
+        {
+          id: 'free',
+          name: 'Free',
+          badge: null,
+          credits: TIER_LIMITS.free,
+          label: '200 credits/day',
+          monthlyCredits: 200,
+          description: 'Basic study tools for single-device learning.',
+          tags: ['Flashcards', 'Quizzes', 'OCR'],
+          colors: { 
+            base: 'var(--color-slate-600)', 
+            soft: 'var(--color-slate-100)', 
+            border: 'var(--color-slate-200)', 
+            text: 'var(--color-slate-700)', 
+            bg: 'var(--color-slate-50)' 
+          },
+          cycles: {
+            weekly: { price: '₦0', sub: '', naira: '₦0', amount: 0 },
+            monthly: { price: '₦0', sub: '', naira: '₦0', amount: 0 },
+            yearly: { price: '₦0', sub: '', naira: '₦0', amount: 0 },
+          },
+          features: [
+            '200 AI credits daily',
+            'AI chat (~10 messages/day)',
+            'AI Notes (~2 sets/day)',
+            'Flashcards & quizzes',
+            'Explain text & Image OCR',
+          ],
+          limits: ['Audio & video upload', 'Group study sessions', 'Mock exams'],
+        },
+        {
+          id: 'pro',
+          name: 'Pro',
+          badge: 'Most Popular',
+          credits: TIER_LIMITS.pro,
+          label: '2,000 credits/day',
+          monthlyCredits: 2000,
+          description: 'Advanced features for dedicated students.',
+          tags: ['Audio Study', 'Mock Exams', 'Group Play'],
+          colors: { 
+            base: 'var(--color-purple-600)', 
+            soft: 'var(--color-purple-100)', 
+            border: 'var(--color-purple-200)', 
+            text: 'var(--color-purple-700)', 
+            bg: 'var(--color-purple-50)' 
+          },
+          cycles: {
+            weekly: { 
+              price: '₦750', 
+              sub: '/week', 
+              naira: weeklyAutoRenew ? '₦750/week · Recurring' : '₦750 · One-off week', 
+              amount: 750, 
+              paystackPlanId: weeklyAutoRenew ? 'pro_weekly' : 'pro_weekly_oneoff' 
+            },
+            monthly: { 
+              price: '₦1,500', 
+              sub: '/1st month', 
+              naira: 'Introductory Promo · then ₦4,999/mo', 
+              amount: 1500, 
+              discount: 'Promo price', 
+              paystackPlanId: 'pro_promo' 
+            },
+            yearly: { 
+              price: '₦49,190', 
+              sub: '/year', 
+              naira: '₦4,099/mo equivalent · save 18%', 
+              amount: 49190, 
+              discount: 'Save 18%', 
+              paystackPlanId: 'pro_yearly' 
+            },
+          },
+          features: [
+            '2,000 AI credits daily',
+            'AI chat (~100 messages/day)',
+            'AI Notes (~25 sets/day)',
+            'Audio upload (5 files/day)',
+            'Group study & Mock exams',
+          ],
+          limits: ['Unlimited credits'],
+        },
+        {
+          id: 'beast',
+          name: 'Beast',
+          badge: 'Unlimited Power',
+          credits: 'Unlimited',
+          label: 'Unlimited credits',
+          monthlyCredits: 999999,
+          description: 'Unlimited power for high-achieving learners.',
+          tags: ['Voice Chat', 'Unlimited AI', 'Priority Queue'],
+          colors: { 
+            base: 'var(--color-green-600)', 
+            soft: 'var(--color-green-100)', 
+            border: 'var(--color-green-200)', 
+            text: 'var(--color-green-700)', 
+            bg: 'var(--color-green-50)' 
+          },
+          cycles: {
+            weekly: { 
+              price: '₦1,500', 
+              sub: '/week', 
+              naira: weeklyAutoRenew ? '₦1,500/week · Recurring' : '₦1,500 · One-off week', 
+              amount: 1500, 
+              paystackPlanId: weeklyAutoRenew ? 'beast_weekly' : 'beast_weekly_oneoff' 
+            },
+            monthly: { 
+              price: '₦3,300', 
+              sub: '/1st month', 
+              naira: 'Introductory Promo · then ₦8,999/mo', 
+              amount: 3300, 
+              discount: 'Promo price', 
+              paystackPlanId: 'beast_promo' 
+            },
+            yearly: { 
+              price: '₦88,550', 
+              sub: '/year', 
+              naira: '₦7,379/mo equivalent · save 18%', 
+              amount: 88550, 
+              discount: 'Save 18%', 
+              paystackPlanId: 'beast_yearly' 
+            },
+          },
+          features: [
+            'Unlimited AI credits',
+            'Unlimited AI chat & Notes',
+            'Unlimited audio upload',
+            'Unlimited group study',
+            'Unlimited mock exams',
+          ],
+          limits: [],
+        },
+      ]
+    } else {
+      // USD Pricing - processed via Paystack alone
+      return [
+        {
+          id: 'free',
+          name: 'Free',
+          badge: null,
+          credits: TIER_LIMITS.free,
+          label: '200 credits/day',
+          monthlyCredits: 200,
+          description: 'Basic study tools for single-device learning.',
+          tags: ['Flashcards', 'Quizzes', 'OCR'],
+          colors: { 
+            base: 'var(--color-slate-600)', 
+            soft: 'var(--color-slate-100)', 
+            border: 'var(--color-slate-200)', 
+            text: 'var(--color-slate-700)', 
+            bg: 'var(--color-slate-50)' 
+          },
+          cycles: {
+            monthly: { price: '$0', sub: '', naira: '$0', amount: 0 },
+            yearly: { price: '$0', sub: '', naira: '$0', amount: 0 },
+          },
+          features: [
+            '200 AI credits daily',
+            'AI chat (~10 messages/day)',
+            'AI Notes (~25 sets/day)',
+            'Flashcards & quizzes',
+            'Explain text & Image OCR',
+          ],
+          limits: ['Audio & video upload', 'Group study sessions', 'Mock exams'],
+        },
+        {
+          id: 'pro',
+          name: 'Pro',
+          badge: 'Most Popular',
+          credits: TIER_LIMITS.pro,
+          label: '2,000 credits/day',
+          monthlyCredits: 2000,
+          description: 'Advanced features for dedicated students.',
+          tags: ['Audio Study', 'Mock Exams', 'Group Play'],
+          colors: { 
+            base: 'var(--color-purple-600)', 
+            soft: 'var(--color-purple-100)', 
+            border: 'var(--color-purple-200)', 
+            text: 'var(--color-purple-700)', 
+            bg: 'var(--color-purple-50)' 
+          },
+          cycles: {
+            monthly: { price: '$9.99', sub: '/mo', naira: '$9.99/mo · recurring', amount: 9.99, paystackPlanId: 'pro_monthly_usd' },
+            yearly: { price: '$98.30', sub: '/yr', naira: '$8.19/mo equivalent · save 18%', amount: 98.30, discount: 'Save 18%', paystackPlanId: 'pro_yearly_usd' },
+          },
+          features: [
+            '2,000 AI credits daily',
+            'AI chat (~100 messages/day)',
+            'AI Notes (~25 sets/day)',
+            'Audio upload (5 files/day)',
+            'Group study & Mock exams',
+          ],
+          limits: ['Unlimited credits'],
+        },
+        {
+          id: 'beast',
+          name: 'Beast',
+          badge: 'Unlimited Power',
+          credits: 'Unlimited',
+          label: 'Unlimited credits',
+          monthlyCredits: 999999,
+          description: 'Unlimited power for high-achieving learners.',
+          tags: ['Voice Chat', 'Unlimited AI', 'Priority Queue'],
+          colors: { 
+            base: 'var(--color-green-600)', 
+            soft: 'var(--color-green-100)', 
+            border: 'var(--color-green-200)', 
+            text: 'var(--color-green-700)', 
+            bg: 'var(--color-green-50)' 
+          },
+          cycles: {
+            monthly: { price: '$18.99', sub: '/mo', naira: '$18.99/mo · recurring', amount: 18.99, paystackPlanId: 'beast_monthly_usd' },
+            yearly: { price: '$186.80', sub: '/yr', naira: '$15.56/mo equivalent · save 18%', amount: 186.80, discount: 'Save 18%', paystackPlanId: 'beast_yearly_usd' },
+          },
+          features: [
+            'Unlimited AI credits',
+            'Unlimited AI chat & Notes',
+            'Unlimited audio upload',
+            'Unlimited group study',
+            'Unlimited mock exams',
+          ],
+          limits: [],
+        },
+      ]
+    }
+  }
+
+  const currentPlansList = getDynamicPlans()
 
   async function handleUpgrade(planId) {
     if (!user?.id) {
@@ -137,11 +348,11 @@ export default function UpgradePage() {
       return
     }
 
-    const plan = PLANS.find(p => p.id === planId)
+    const plan = currentPlansList.find(p => p.id === planId)
     if (!plan) return
-    const cycle = getCycle(plan)
+    const cycle = plan.cycles[billingCycle] || plan.cycles['monthly']
 
-    // Demo mode — direct DB upgrade
+    // Demo Sandbox Mode - direct DB upgrade
     if (paymentMode === 'demo') {
       setSubmitting(planId)
       setMessage(null)
@@ -170,7 +381,7 @@ export default function UpgradePage() {
       return
     }
 
-    // Live mode — Paystack checkout
+    // Live Mode: Paystack Checkout (for both NGN and USD)
     setSubmitting(planId)
     setMessage(null)
     try {
@@ -180,6 +391,10 @@ export default function UpgradePage() {
         return
       }
 
+      // Determine proper Paystack Plan Code
+      let paystackPlanId = cycle.paystackPlanId
+      const isUsd = currency === 'USD'
+      
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-paystack-checkout`,
         {
@@ -190,22 +405,26 @@ export default function UpgradePage() {
             apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
           },
           body: JSON.stringify({
-            planId: cycle.paystackPlanId || planId,
+            planId: paystackPlanId, // Detailed plan ID
+            planCode: (billingCycle === 'weekly' && !weeklyAutoRenew) || billingCycle === 'monthly' && currency === 'NGN' && planId !== 'pro_monthly' && planId !== 'beast_monthly' ? 'oneoff' : paystackPlanId, // send 'oneoff' for one-off / promos
             amount: cycle.amount,
             email: user.email,
-            currency: 'NGN',
+            currency: currency, // 'NGN' or 'USD'
             callback_url: `${window.location.origin}/payment/success`,
           }),
         }
       )
 
-      if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Payment initialization failed') }
+      if (!response.ok) { 
+        const err = await response.json()
+        throw new Error(err.error || 'Paystack payment initialization failed') 
+      }
 
       const data = await response.json()
 
       const publicKey = data.publicKey || import.meta.env.VITE_PAYSTACK_PUBLIC_KEY
       if (!publicKey) {
-        throw new Error('Paystack public key is not configured. Check VITE_PAYSTACK_PUBLIC_KEY in .env or Edge Function secrets.')
+        throw new Error('Paystack public key is not configured.')
       }
 
       const paystack = new PaystackPop()
@@ -213,10 +432,10 @@ export default function UpgradePage() {
       paystack.newTransaction({
         key: publicKey,
         email: user.email,
-        amount: Number(cycle.amount) * 100,
-        currency: 'NGN',
+        amount: Number(cycle.amount) * 100, // Paystack expects amount in cents / kobo
+        currency: currency,
         ref: data.reference,
-        metadata: { plan_id: cycle.paystackPlanId || planId, user_id: user.id, source: 'upgrade_page' },
+        metadata: { plan_id: paystackPlanId, user_id: user.id, source: 'upgrade_page' },
         onSuccess: () => {
           setSubmitting(null)
           navigate(`/payment/success?reference=${data.reference}`)
@@ -240,299 +459,547 @@ export default function UpgradePage() {
   }
 
   return (
-    <div style={wrapper}>
-      {/* HEADER */}
-      <div style={headerSection}>
-        <div>
-          <h1 style={heading}>Upgrade your plan</h1>
-          <p style={subheading}>
-            {isPremium
-              ? `You're on the <strong>${currentTier.charAt(0).toUpperCase() + currentTier.slice(1)}</strong> plan.`
-              : 'Free tier: <strong>200 credits/day</strong>. Unlock more with Pro or Beast.'}
-          </p>
+    <div className="upg-outer">
+      <div className="upg-container">
+      {/* Dynamic Style Sheet Injection */}
+      <style>{`
+        .upg-outer {
+          background: #98FF98;
+          min-height: 100vh;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 2.5rem 1.5rem;
+          box-sizing: border-box;
+        }
+        .upg-container {
+          background: transparent;
+          max-width: 1100px;
+          width: 100%;
+          font-family: var(--font-sans);
+          color: #072C20;
+          box-sizing: border-box;
+        }
+        .upg-cycle-selector {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 2.25rem;
+        }
+        .upg-cycle-bar {
+          display: flex;
+          background: rgba(7, 44, 32, 0.06);
+          border-radius: 9999px;
+          padding: 4px;
+          border: 1.5px solid #072C20;
+        }
+        .upg-cycle-btn {
+          padding: 8px 22px;
+          border-radius: 9999px;
+          border: none;
+          font-size: 0.86rem;
+          font-weight: 750;
+          cursor: pointer;
+          background: transparent;
+          color: #072C20;
+          transition: all 0.2s ease-in-out;
+        }
+        .upg-cycle-btn.active {
+          background: #072C20;
+          color: #98FF98;
+        }
+        .upg-banner {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 16px;
+          border-radius: 9999px;
+          margin: 0 auto 1.5rem;
+          border: 1.5px solid #072C20;
+          font-size: 0.85rem;
+          font-weight: 700;
+          background: #FFFFFF;
+          color: #072C20;
+        }
+        .upg-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1.5rem;
+          align-items: stretch;
+          width: 100%;
+        }
+        @media (max-width: 1024px) {
+          .upg-grid {
+            gap: 1rem;
+          }
+          .upg-card {
+            padding: 2rem 1.25rem;
+          }
+          .upg-price {
+            font-size: 2.25rem;
+          }
+        }
+        @media (max-width: 768px) {
+          .upg-outer {
+            justify-content: flex-start;
+            padding: 2.5rem 1rem;
+          }
+          .upg-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            max-width: 420px;
+            margin: 0 auto 2rem;
+          }
+          .upg-card {
+            padding: 2.25rem 1.75rem;
+          }
+        }
+        .upg-card {
+          background: #FFFFFF;
+          border: 1.5px solid #072C20;
+          border-radius: 20px;
+          padding: 2.5rem 2rem;
+          display: flex;
+          flex-direction: column;
+          position: relative;
+          color: #072C20;
+          text-align: left;
+          transition: transform 0.2s;
+        }
+        .upg-card:hover {
+          transform: translateY(-4px);
+        }
+        .upg-card.free-card {
+          background: #FFFFFF;
+        }
+        .upg-card.pro-card {
+          background: #C4B5FD;
+        }
+        .upg-card.beast-card {
+          background: #FFD2A6;
+        }
+        .upg-card-badge {
+          position: absolute;
+          top: 18px;
+          right: 18px;
+          font-size: 0.65rem;
+          font-weight: 850;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 4px 10px;
+          border-radius: 9999px;
+          background: #072C20;
+          color: #FFFFFF;
+        }
+        .upg-card-top {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          width: 100%;
+        }
+        .upg-tier-name {
+          font-size: 1.5rem;
+          font-weight: 800;
+          color: #072C20;
+          margin-bottom: 4px;
+        }
+        .upg-card-desc {
+          font-size: 0.82rem;
+          color: #072C20;
+          opacity: 0.8;
+          margin-bottom: 1.25rem;
+          line-height: 1.35;
+        }
+        .upg-price-row {
+          display: flex;
+          align-items: baseline;
+          gap: 2px;
+          margin-bottom: 2px;
+        }
+        .upg-price {
+          font-size: 2.5rem;
+          font-weight: 850;
+          color: #072C20;
+          letter-spacing: -0.03em;
+        }
+        .upg-price-sub {
+          font-size: 1rem;
+          color: #072C20;
+          opacity: 0.75;
+          font-weight: 600;
+        }
+        .upg-naira {
+          font-size: 0.82rem;
+          font-weight: 650;
+          color: #072C20;
+          opacity: 0.8;
+          margin-bottom: 1.25rem;
+        }
+        .upg-action {
+          width: 100%;
+          margin-bottom: 0.5rem;
+        }
+        .upg-btn {
+          width: 100%;
+          padding: 12px 18px;
+          border-radius: 9999px;
+          font-size: 0.9rem;
+          font-weight: 750;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: 1.5px solid #072C20;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+        }
+        .upg-btn-free, .upg-btn-pro, .upg-btn-beast {
+          background: #072C20;
+          color: #FFFFFF;
+        }
+        .upg-btn:hover:not(:disabled) {
+          background: #0f4c33;
+          border-color: #0f4c33;
+        }
+        .upg-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        .upg-btn-current {
+          background: transparent;
+          border: 1.5px dashed #072C20;
+          color: #072C20;
+          cursor: default;
+        }
+        .upg-sec-link {
+          display: block;
+          text-align: center;
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-decoration: underline;
+          color: #072C20;
+          margin-top: 0.5rem;
+          cursor: pointer;
+          opacity: 0.8;
+        }
+        .upg-sec-link:hover {
+          opacity: 1;
+        }
+        .upg-divider {
+          width: 100%;
+          height: 1.5px;
+          background: #072C20;
+          margin: 1.5rem 0;
+          opacity: 0.9;
+        }
+        .upg-features-section {
+          width: 100%;
+        }
+        .upg-section-label {
+          font-size: 0.75rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #072C20;
+          margin-bottom: 8px;
+        }
+        .upg-feature-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          padding: 4px 0;
+        }
+        .upg-feature-text {
+          font-size: 0.85rem;
+          color: #072C20;
+          line-height: 1.35;
+          font-weight: 600;
+        }
+        .upg-admin {
+          margin-top: 3rem;
+          padding: 1.5rem;
+          border-radius: 20px;
+          background: #FFFFFF;
+          border: 1.5px solid #072C20;
+          box-shadow: 0 10px 25px rgba(7, 44, 32, 0.04);
+          color: #072C20;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .upg-admin-title-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 1rem;
+        }
+        .upg-admin-label-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .upg-admin-label {
+          font-size: 0.95rem;
+          font-weight: 800;
+          color: #072C20;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .upg-admin-pill {
+          font-size: 0.6rem;
+          font-weight: 850;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 3px 8px;
+          border-radius: 9999px;
+          background: #072C20;
+          color: #FFFFFF;
+        }
+        .upg-admin-toggle-btn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+          display: flex;
+          align-items: center;
+        }
+        .upg-admin-body {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .upg-admin-mode-text {
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: #072C20;
+          margin-bottom: 4px;
+        }
+        .upg-admin-subtext {
+          font-size: 0.8rem;
+          color: #072C20;
+          opacity: 0.8;
+        }
+        .upg-footer {
+          margin-top: 3rem;
+          text-align: center;
+          max-width: 800px;
+        }
+        .upg-footer-text {
+          font-size: 0.72rem;
+          color: #072C20;
+          opacity: 0.6;
+          margin: 0;
+          font-weight: 600;
+          line-height: 1.4;
+        }
+      `}</style>
+
+      {/* BANNER NOTIFICATIONS */}
+      {message && (
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div className="upg-banner">
+            <ShieldCheck size={16} weight="fill" />
+            <span>{message}</span>
+          </div>
+        </div>
+      )}
+
+      {/* BILLING CYCLE SELECTOR */}
+      <div className="upg-cycle-selector">
+        <div className="upg-cycle-bar">
+          {currency === 'NGN' && (
+            <button
+              onClick={() => setBillingCycle('weekly')}
+              className={`upg-cycle-btn ${billingCycle === 'weekly' ? 'active' : ''}`}
+            >
+              Weekly
+            </button>
+          )}
+          <button
+            onClick={() => setBillingCycle('monthly')}
+            className={`upg-cycle-btn ${billingCycle === 'monthly' ? 'active' : ''}`}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setBillingCycle('yearly')}
+            className={`upg-cycle-btn ${billingCycle === 'yearly' ? 'active' : ''}`}
+          >
+            Yearly
+          </button>
         </div>
       </div>
 
-      {/* BILLING CYCLE TOGGLE */}
-      <div style={cycleToggleRow}>
-        {['2weeks', 'monthly', 'yearly'].map(key => (
+      {/* AUTO-RENEW TOGGLE FOR WEEKLY PLANS */}
+      {currency === 'NGN' && billingCycle === 'weekly' && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', alignItems: 'center', marginBottom: '2rem' }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#072C20' }}>
+            Auto-renew every week (Recurring subscription)
+          </span>
           <button
-            key={key}
-            onClick={() => setBillingCycle(key)}
-            style={{
-              ...cycleBtn,
-              background: billingCycle === key ? '#7C3AED' : 'var(--sb-bg, #fff)',
-              color: billingCycle === key ? '#fff' : 'var(--sb-text-muted, #475569)',
-              borderColor: billingCycle === key ? '#7C3AED' : 'var(--sb-border, #E5E7EB)',
-            }}
+            onClick={() => setWeeklyAutoRenew(prev => !prev)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+            title="Toggle recurring billing"
           >
-            {CYCLE_LABELS[key]}
+            {weeklyAutoRenew ? (
+              <ToggleRight size={28} weight="fill" style={{ color: '#072C20' }} />
+            ) : (
+              <ToggleLeft size={28} style={{ color: '#072C20', opacity: 0.5 }} />
+            )}
           </button>
-        ))}
-      </div>
-
-      {/* BANNER */}
-      {message && (
-        <div style={{
-          ...banner,
-          background: messageType === 'ok' ? '#ECFDF5' : '#FEF2F2',
-          color: messageType === 'ok' ? '#065F46' : '#991B1B',
-          borderColor: messageType === 'ok' ? '#A7F3D0' : '#FECACA',
-        }}>
-          <span style={{ fontSize: 16 }}>{messageType === 'ok' ? '✓' : '✕'}</span>
-          <span>{message}</span>
         </div>
       )}
 
       {/* PLANS GRID */}
-      <div style={grid}>
-        {PLANS.map(plan => {
+      <div className="upg-grid">
+        {currentPlansList.map(plan => {
           const active = plan.id === currentTier
-          const cycle = getCycle(plan)
+          const cycle = plan.cycles[billingCycle] || plan.cycles['monthly']
+          const isPro = plan.id === 'pro'
+          const isBeast = plan.id === 'beast'
+          const cardClass = `upg-card ${active ? 'active-plan' : ''} ${plan.id === 'free' ? 'free-card' : isPro ? 'pro-card' : 'beast-card'}`
 
           return (
-            <div key={plan.id} style={{
-              ...card,
-              borderColor: active ? plan.colors.base : 'var(--sb-border, #E5E7EB)',
-              boxShadow: active
-                ? `0 0 0 2px ${plan.colors.base}, 0 8px 28px rgba(0,0,0,0.07)`
-                : '0 4px 16px rgba(0,0,0,0.04)',
-              transform: active ? 'scale(1.02)' : 'scale(1)',
-            }}>
+            <div key={plan.id} className={cardClass}>
               {/* BADGE */}
-              {plan.badge && <div style={{ ...pill, background: plan.colors.soft, color: plan.colors.text }}>{plan.badge}</div>}
-
-              {/* HEADER */}
-              <div style={{ ...cardTop, background: plan.colors.bg, borderBottom: `1px solid ${plan.colors.border}` }}>
-                <div style={tierName}>{plan.name}</div>
-                <div style={priceRow}>
-                  <span style={price}>{cycle.price}</span>
-                  <span style={priceSub}>{cycle.sub}</span>
+              {plan.badge && (
+                <div className="upg-card-badge">
+                  {plan.badge}
                 </div>
-                <div style={nairaText}>{cycle.naira}</div>
-                {cycle.discount && (
-                  <div style={{ ...discountBadge, background: plan.colors.soft, color: plan.colors.text }}>
-                    {cycle.discount}
-                  </div>
-                )}
-                <div style={creditLine}>
-                  {plan.credits === 'Unlimited'
-                    ? <span style={{ fontWeight: 600, color: plan.colors.base }}>♾ Unlimited</span>
-                    : <span style={{ fontWeight: 600 }}>{plan.credits.toLocaleString()}</span>
-                  }
-                  <span style={{ color: '#6B7280' }}> credits/day</span>
+              )}
+
+              {/* CARD TOP */}
+              <div className="upg-card-top">
+                <div className="upg-tier-name">{plan.name}</div>
+                {plan.description && <div className="upg-card-desc">{plan.description}</div>}
+                
+                <div className="upg-price-row">
+                  <span className="upg-price">{cycle.price}</span>
+                  <span className="upg-price-sub">{cycle.sub}</span>
+                </div>
+                <div className="upg-naira">{cycle.naira}</div>
+                
+                {/* ACTION BUTTON (Inside card top, before features!) */}
+                <div className="upg-action">
+                  {active ? (
+                    <div className="upg-btn upg-btn-current">
+                      <Check size={16} weight="bold" />
+                      Current plan
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleUpgrade(plan.id)}
+                      disabled={submitting !== null || plan.id === 'free'}
+                      className={`upg-btn ${
+                        plan.id === 'free' 
+                          ? 'upg-btn-free' 
+                          : plan.id === 'pro' 
+                            ? 'upg-btn-pro' 
+                            : 'upg-btn-beast'
+                      }`}
+                      style={{
+                        cursor: (submitting === plan.id || plan.id === 'free') ? 'default' : 'pointer',
+                        opacity: submitting === plan.id ? 0.75 : 1,
+                      }}
+                    >
+                      {submitting === plan.id ? (
+                        'Processing...'
+                      ) : (
+                        <>
+                          {plan.id === 'free' ? 'Always Free' : `Get ${plan.name}`}
+                          {plan.id !== 'free' && <ArrowRight size={16} weight="bold" />}
+                        </>
+                      )}
+                    </button>
+                  )}
+                  {plan.id !== 'free' && (
+                    <div className="upg-sec-link">
+                      Secure checkout via Paystack
+                    </div>
+                  )}
+                  {plan.id === 'free' && (
+                    <div className="upg-sec-link" style={{ textDecoration: 'none', cursor: 'default' }}>
+                      No credit card required
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* INCLUDED FEATURES */}
-              <div style={featuresSection}>
-                <div style={sectionLabel}>Includes</div>
+              {/* DIVIDER LINE */}
+              <div className="upg-divider" />
+
+              {/* FEATURES SECTION (At the bottom!) */}
+              <div className="upg-features-section">
+                <div className="upg-section-label">Includes</div>
                 {plan.features.map((f, i) => (
-                  <div key={i} style={featureRow}>
-                    <span style={{ ...checkIcon, color: plan.colors.base, background: `${plan.colors.base}15` }}>✓</span>
-                    <span style={{ fontSize: 13.5, color: 'var(--sb-text, #0F172A)' }}>{f}</span>
+                  <div key={i} className="upg-feature-row">
+                    <Check 
+                      size={14} 
+                      weight="bold" 
+                      style={{ 
+                        color: '#072C20', 
+                        marginTop: '3px',
+                        flexShrink: 0 
+                      }} 
+                    />
+                    <span className="upg-feature-text">{f}</span>
                   </div>
                 ))}
-                {plan.limits.length > 0 && (
-                  <>
-                    <div style={{ ...sectionLabel, marginTop: 12 }}>Limits</div>
-                    {plan.limits.map((f, i) => (
-                      <div key={i} style={featureRow}>
-                        <span style={{ ...checkIcon, color: '#9CA3AF', background: '#F3F4F6' }}>—</span>
-                        <span style={{ fontSize: 13.5, color: '#9CA3AF' }}>{f}</span>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </div>
-
-              {/* ACTION */}
-              <div style={actionArea}>
-                {active ? (
-                  <div style={{ ...actionBtn, background: plan.colors.bg, color: plan.colors.base, border: `1.5px solid ${plan.colors.border}`, cursor: 'default' }}>
-                    ✓ Current plan
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => handleUpgrade(plan.id)}
-                    disabled={submitting !== null}
-                    style={{
-                      ...actionBtn,
-                      border: 'none',
-                      background: plan.colors.base,
-                      color: '#fff',
-                      cursor: submitting === plan.id ? 'wait' : 'pointer',
-                      opacity: submitting === plan.id ? 0.7 : 1,
-                      fontSize: 15,
-                      padding: '14px 0',
-                      boxShadow: `0 4px 12px ${plan.colors.base}40`,
-                    }}
-                  >
-                    {submitting === plan.id
-                      ? 'Processing...'
-                      : plan.id === 'free'
-                        ? 'Downgrade to Free'
-                        : `Upgrade to ${plan.name}`}
-                  </button>
-                )}
               </div>
             </div>
           )
         })}
       </div>
 
-      {/* ADMIN: PAYMENT MODE TOGGLE */}
+      {/* ADMIN: PAYMENT GATEWAY TOGGLE PANEL */}
       {isAdmin && !loadingSettings && (
-        <div style={adminPanel}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--sb-text, #0F172A)' }}>⚡ Payment Mode</span>
-            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '3px 10px', borderRadius: 999, background: '#F3E8FF', color: '#7C3AED' }}>Admin only</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--sb-text, #0F172A)' }}>
-                {paymentMode === 'demo' ? 'Demo mode' : 'Live payments'}
-              </div>
-              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
-                {paymentMode === 'demo'
-                  ? 'Upgrades happen instantly — no real payment required.'
-                  : 'Users pay via Paystack. Real charges apply.'}
-              </div>
+        <div className="upg-admin">
+          <div className="upg-admin-title-row">
+            <div className="upg-admin-label-wrapper">
+              <span className="upg-admin-label">
+                <CreditCard size={18} weight="fill" />
+                Payment Mode Settings
+              </span>
+              <span className="upg-admin-pill">Admin Only</span>
             </div>
+            
             <button
               onClick={togglePaymentMode}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '8px 18px', borderRadius: 999, border: 'none',
-                background: paymentMode === 'live' ? '#7C3AED' : '#E5E7EB',
-                color: paymentMode === 'live' ? '#fff' : '#374151',
-                fontSize: 13, fontWeight: 700, cursor: 'pointer',
-              }}
+              className="upg-admin-toggle-btn"
+              title="Toggle payment mode"
             >
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: paymentMode === 'live' ? '#98FF98' : '#9CA3AF', display: 'inline-block' }} />
-              {paymentMode === 'live' ? 'Live' : 'Demo'}
+              {paymentMode === 'live' ? (
+                <ToggleRight size={32} weight="fill" style={{ color: '#072C20' }} />
+              ) : (
+                <ToggleLeft size={32} style={{ color: '#072C20', opacity: 0.5 }} />
+              )}
             </button>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 12, borderTop: '1px solid #DDD6FE', fontSize: 12, color: '#6B7280' }}>
-            <span>Paystack pricing:</span>
-            {['pro', 'beast'].flatMap(p => PLANS.find(x => x.id === p).cycles.map(c =>
-              <span key={`${p}-${c.key}`} style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6, background: '#EDE9FE', color: '#5B21B6' }}>
-                {PLANS.find(x => x.id === p).name} {c.key}: ₦{c.amount.toLocaleString()}
-              </span>
-            ))}
+
+          <div className="upg-admin-body">
+            <div>
+              <div className="upg-admin-mode-text">
+                Currently running: {paymentMode === 'live' ? 'Live Paystack Checkout' : 'Offline Sandbox Demo Mode'}
+              </div>
+              <div className="upg-admin-subtext">
+                {paymentMode === 'live'
+                  ? 'All local (NGN) and international (USD) checkouts are routed to Paystack.'
+                  : 'Upgrades happen instantly without charging real cards. Perfect for sandbox testing.'}
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* FOOTER */}
-      <div style={footer}>
-        <p style={{ fontSize: 13.5, color: '#6B7280', margin: 0 }}>
-          All plans include AI study tools. Credits reset daily. Cancel anytime.
+      <div className="upg-footer">
+        <p className="upg-footer-text">
+          Subscriptions reset credits daily. Introductory promotional rates renew at standard recurring rates. Secure payments via Paystack. Cancel anytime.
         </p>
       </div>
     </div>
+    </div>
   )
-}
-
-// ── STYLES ──
-const wrapper = {
-  padding: '2.5rem 2rem',
-  maxWidth: 1100,
-  margin: '0 auto',
-  fontFamily: 'var(--font-display, DM Sans, Inter, sans-serif)',
-}
-const headerSection = {
-  display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem',
-}
-const heading = {
-  fontSize: 26, fontWeight: 700, margin: '0 0 4px',
-  color: 'var(--sb-text, #0F172A)', letterSpacing: '-0.01em',
-}
-const subheading = {
-  fontSize: 14.5, color: '#6B7280', margin: 0,
-}
-const cycleToggleRow = {
-  display: 'flex', gap: 6,
-  background: 'var(--sb-border-subtle, #F3F4F6)',
-  borderRadius: 10, padding: 4, marginBottom: '1.75rem',
-  width: 'fit-content',
-}
-const cycleBtn = {
-  padding: '8px 20px', borderRadius: 8, border: '1px solid transparent',
-  fontSize: 13, fontWeight: 600, cursor: 'pointer',
-  transition: 'all 0.15s',
-}
-const banner = {
-  display: 'flex', alignItems: 'center', gap: 10,
-  padding: '12px 16px', borderRadius: 10, fontSize: 13.5, fontWeight: 500,
-  marginBottom: '1.75rem', border: '1px solid',
-}
-const grid = {
-  display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24,
-}
-const card = {
-  borderRadius: 18, border: '1px solid', overflow: 'hidden',
-  background: 'var(--sb-bg, #fff)', display: 'flex', flexDirection: 'column',
-  position: 'relative', transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-}
-const pill = {
-  position: 'absolute', top: 14, right: 14, zIndex: 2,
-  fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
-  padding: '4px 10px', borderRadius: 999,
-}
-const cardTop = {
-  padding: '1.6rem 1.25rem 1.2rem', textAlign: 'center',
-}
-const tierName = {
-  fontSize: 12, fontWeight: 600, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#6B7280', marginBottom: 6,
-}
-const priceRow = {
-  marginBottom: 2, display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 2,
-}
-const price = {
-  fontSize: 32, fontWeight: 700, color: 'var(--sb-text, #0F172A)', letterSpacing: '-0.02em',
-}
-const priceSub = {
-  fontSize: 14, color: '#6B7280',
-}
-const nairaText = {
-  fontSize: 12, color: '#6B7280', marginBottom: 4,
-}
-const discountBadge = {
-  display: 'inline-block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.04em', padding: '2px 8px', borderRadius: 999, marginBottom: 6,
-}
-const creditLine = {
-  fontSize: 13.5, color: 'var(--sb-text, #0F172A)',
-}
-const featuresSection = {
-  padding: '1.1rem 1.25rem', flex: 1,
-}
-const sectionLabel = {
-  fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
-  letterSpacing: '0.06em', color: '#9CA3AF', marginBottom: 4,
-}
-const featureRow = {
-  display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0',
-}
-const checkIcon = {
-  width: 20, height: 20, borderRadius: '50%',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  fontSize: 11, fontWeight: 700, flexShrink: 0,
-}
-const actionArea = {
-  padding: '0 1.25rem 1.25rem',
-}
-const actionBtn = {
-  width: '100%', padding: '12px 0', borderRadius: 10,
-  fontSize: 14, fontWeight: 600, textAlign: 'center',
-  transition: 'opacity 0.15s',
-}
-const adminPanel = {
-  marginTop: '2.5rem', padding: '1.25rem 1.5rem', borderRadius: 14,
-  border: '1px solid #DDD6FE', background: '#FAF5FF',
-}
-const footer = {
-  marginTop: '2rem', textAlign: 'center',
 }

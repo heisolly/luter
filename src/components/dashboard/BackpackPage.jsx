@@ -66,6 +66,10 @@ export default function BackpackPage() {
   const [editFolderName, setEditFolderName] = useState('')
   const [showResourceLock, setShowResourceLock] = useState(false)
 
+  const [showCreateFolder, setShowCreateFolder] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+  const [creatingFolder, setCreatingFolder] = useState(false)
+
   const { profile } = useOutletContext()
   const { maxFiles, maxFolders, getLockedItemIds } = usePlanGate(profile)
 
@@ -75,10 +79,29 @@ export default function BackpackPage() {
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     if (params.get('new') === '1') {
-      setShowEnroll(true)
+      setShowCreateFolder(true)
       navigate('/backpack', { replace: true })
     }
   }, [location.search, navigate])
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return
+    setCreatingFolder(true)
+    try {
+      const { error } = await courseService.createCustomFolder(user.id, newFolderName.trim())
+      if (error) {
+        alert('Failed to create folder: ' + error)
+      } else {
+        setNewFolderName('')
+        setShowCreateFolder(false)
+        await loadFolders()
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setCreatingFolder(false)
+    }
+  }
 
 
   const loadFolders = async () => {
@@ -176,15 +199,20 @@ export default function BackpackPage() {
     <div className="lp-root">
       <div className="lp-shell">
         <div className="lp-header-row">
-          <h1 className="lp-header-title">{tab === 'folders' ? 'Courses' : 'Files'}</h1>
+          <h1 className="lp-header-title">{tab === 'folders' ? 'Folders' : 'Files'}</h1>
           <div className="lp-actions">
             <button className="lp-btn" onClick={() => setTab(tab === 'folders' ? 'materials' : 'folders')}>
-              Switch to {tab === 'folders' ? 'Files' : 'Courses'}
+              Switch to {tab === 'folders' ? 'Files' : 'Folders'}
             </button>
             {tab === 'folders' ? (
-              <button className="lp-btn lp-btn-primary" onClick={() => setShowEnroll(true)}>
-                <Plus size={16} weight="bold" /> create new course
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="lp-btn lp-btn-primary" onClick={() => setShowCreateFolder(true)}>
+                  <Plus size={16} weight="bold" /> New Folder
+                </button>
+                <button className="lp-btn" onClick={() => setShowEnroll(true)}>
+                  <Plus size={16} weight="bold" /> Add Course
+                </button>
+              </div>
             ) : (
               <button className="lp-btn lp-btn-primary" onClick={() => setShowUpload(true)}>
                 <Plus size={16} weight="bold" /> Upload
@@ -213,21 +241,38 @@ export default function BackpackPage() {
           <>
             <p className="lp-header-subtitle">Active</p>
             {loading ? (
-              <div className="lp-empty"><h3>Loading courses...</h3></div>
+              <div className="lp-empty"><h3>Loading folders...</h3></div>
             ) : filteredFolders.length === 0 ? (
               <div className="lp-empty" style={{ minHeight: 200, border: 'none' }}>
-                <h3>No courses yet</h3>
-                <button className="lp-btn" onClick={() => setShowEnroll(true)}>Create one</button>
+                <h3>No folders yet</h3>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '12px' }}>
+                  <button className="lp-btn lp-btn-primary" onClick={() => setShowCreateFolder(true)}>Create Folder</button>
+                  <button className="lp-btn" onClick={() => setShowEnroll(true)}>Add Course</button>
+                </div>
               </div>
             ) : view === 'list' ? (
               <div className="lp-class-list-container">
-                {filteredFolders.map((item) => {
+                {filteredFolders.map((item, i) => {
                   const course = item.courses || item.course || item
                   const isLocked = lockedFolders.has(item.id || course.id)
+                  const code = course.code || ''
+                  const isCustomFolder = code.startsWith('FOLDER_')
+                  const displayName = item.custom_name || course.name || (isCustomFolder ? 'Untitled folder' : 'Untitled course')
+
                   return (
                     <div key={item.id || course.id} className="lp-class-row" onClick={() => openFolder(item)}>
                       <div className="lp-class-name" style={{ opacity: isLocked ? 0.6 : 1 }}>
-                        <span style={{ color: 'var(--lp-muted)', fontSize: 16 }}>+</span> {course.code ? `${course.code} · ` : ''}{item.custom_name || course.name || 'Untitled course'}
+                        <Folder 
+                          size={18} 
+                          weight="fill" 
+                          style={{ 
+                            color: isCustomFolder ? (i % 2 === 0 ? '#16a34a' : '#ea580c') : '#9333ea',
+                            marginRight: 8,
+                            verticalAlign: 'middle',
+                            display: 'inline-block'
+                          }} 
+                        />
+                        {!isCustomFolder && code ? `${code} · ` : ''}{displayName}
                         <button className="lp-file-menu" style={{ marginLeft: 8 }} onClick={(e) => {
                           e.stopPropagation()
                           setEditFolderName(item.custom_name || course.name || '')
@@ -248,13 +293,17 @@ export default function BackpackPage() {
               </div>
             ) : (
               <div className="lp-file-grid">
-                {filteredFolders.map((item) => {
+                {filteredFolders.map((item, i) => {
                   const course = item.courses || item.course || item
                   const isLocked = lockedFolders.has(item.id || course.id)
+                  const code = course.code || ''
+                  const isCustomFolder = code.startsWith('FOLDER_')
+                  const displayName = item.custom_name || course.name || (isCustomFolder ? 'Untitled folder' : 'Untitled course')
+
                   return (
                     <div key={item.id || course.id} className="lp-file-card" onClick={() => openFolder(item)}>
                       <div className="lp-file-card-top">
-                        <span className="lp-file-badge">COURSE</span>
+                        {!isCustomFolder && <span className="lp-file-badge">COURSE</span>}
                         {isLocked ? <span style={{ fontSize: 12 }}>🔒</span> : (
                           <button className="lp-file-menu" onClick={(e) => {
                             e.stopPropagation()
@@ -264,12 +313,18 @@ export default function BackpackPage() {
                         )}
                       </div>
                       <div className="lp-file-icon-center" style={{ opacity: isLocked ? 0.6 : 1 }}>
-                        <div className={`lp-file-icon-bg purple`}>
+                        <div 
+                          className={`lp-file-icon-bg ${isCustomFolder ? '' : 'purple'}`}
+                          style={{
+                            background: isCustomFolder ? (i % 2 === 0 ? 'rgba(152, 255, 152, 0.22)' : 'rgba(255, 210, 166, 0.28)') : undefined,
+                            color: isCustomFolder ? (i % 2 === 0 ? '#16a34a' : '#ea580c') : undefined
+                          }}
+                        >
                           <Folder size={24} weight="fill" />
                         </div>
                       </div>
                       <div className="lp-file-info" style={{ opacity: isLocked ? 0.6 : 1 }}>
-                        <h3 className="lp-file-title">{course.code ? `${course.code} · ` : ''}{item.custom_name || course.name || 'Untitled course'}</h3>
+                        <h3 className="lp-file-title">{!isCustomFolder && code ? `${code} · ` : ''}{displayName}</h3>
                         <span className="lp-file-date">0 notes</span>
                       </div>
                     </div>
@@ -421,7 +476,59 @@ export default function BackpackPage() {
         modalDescription="Search for a course code to add it."
       />
 
-      {/* Edit Course Modal */}
+      {/* Create Folder Modal */}
+      <AnimatePresence>
+        {showCreateFolder && (
+          <motion.div 
+            className="lp-modal-backdrop" 
+            onClick={() => setShowCreateFolder(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div 
+              className="lp-modal" 
+              style={{ width: 400 }} 
+              onClick={e => e.stopPropagation()}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+            >
+              <div className="lp-modal-header">
+                <h2><Folder size={20} /> New Folder</h2>
+                <button className="lp-modal-close" onClick={() => setShowCreateFolder(false)}>&times;</button>
+              </div>
+              <div className="lp-input-group">
+                <label>Folder Name</label>
+                <input 
+                  className="lp-input" 
+                  value={newFolderName} 
+                  onChange={e => setNewFolderName(e.target.value)} 
+                  autoFocus 
+                  placeholder="e.g. Science Projects"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && newFolderName.trim() && !creatingFolder) {
+                      handleCreateFolder()
+                    }
+                  }}
+                />
+              </div>
+              <div className="lp-modal-actions">
+                <button className="lp-btn" onClick={() => setShowCreateFolder(false)}>Cancel</button>
+                <button 
+                  className="lp-btn lp-btn-primary" 
+                  disabled={!newFolderName.trim() || creatingFolder}
+                  onClick={handleCreateFolder}
+                >
+                  {creatingFolder ? 'Creating...' : 'Create Folder'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Folder Modal */}
       <AnimatePresence>
         {editingFolder && (
           <motion.div 
@@ -440,17 +547,17 @@ export default function BackpackPage() {
               exit={{ scale: 0.95, opacity: 0 }}
             >
               <div className="lp-modal-header">
-                <h2><Pencil size={20} /> Edit course</h2>
+                <h2><Pencil size={20} /> Edit folder</h2>
                 <button className="lp-modal-close" onClick={() => setEditingFolder(null)}>&times;</button>
               </div>
               <div className="lp-input-group">
-                <label>Course Name</label>
+                <label>Folder Name</label>
                 <input 
                   className="lp-input" 
                   value={editFolderName} 
                   onChange={e => setEditFolderName(e.target.value)} 
                   autoFocus 
-                  placeholder="e.g. Maths 101"
+                  placeholder="e.g. Science Projects"
                 />
               </div>
               <div className="lp-modal-actions">
