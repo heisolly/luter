@@ -71,7 +71,36 @@ serve(async (req) => {
     "annual": { tier: "beast", type: "yearly", is_premium: true },
   };
 
-  const planInfo = planMap[tx.plan_id];
+  let resolvedPlanId = tx.plan_id
+  const PRO_VARS = [
+    'PAYSTACK_PLAN_PRO_MONTHLY',
+    'PAYSTACK_PLAN_PRO_WEEKLY',
+    'PAYSTACK_PLAN_PRO_YEARLY',
+    'PAYSTACK_PLAN_PRO_MONTHLY_USD',
+    'PAYSTACK_PLAN_PRO_YEARLY_USD'
+  ]
+  const BEAST_VARS = [
+    'PAYSTACK_PLAN_BEAST_MONTHLY',
+    'PAYSTACK_PLAN_BEAST_WEEKLY',
+    'PAYSTACK_PLAN_BEAST_YEARLY',
+    'PAYSTACK_PLAN_BEAST_MONTHLY_USD',
+    'PAYSTACK_PLAN_BEAST_YEARLY_USD'
+  ]
+
+  for (const envVar of PRO_VARS) {
+    if (Deno.env.get(envVar) === tx.plan_id) {
+      resolvedPlanId = envVar.replace('PAYSTACK_PLAN_', '').toLowerCase()
+      break
+    }
+  }
+  for (const envVar of BEAST_VARS) {
+    if (Deno.env.get(envVar) === tx.plan_id) {
+      resolvedPlanId = envVar.replace('PAYSTACK_PLAN_', '').toLowerCase()
+      break
+    }
+  }
+
+  const planInfo = planMap[resolvedPlanId];
   if (!planInfo) {
     return new Response(JSON.stringify({ error: "Unrecognized plan id" }), { status: 400, headers: { "Content-Type": "application/json" } });
   }

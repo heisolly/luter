@@ -77,7 +77,12 @@ serve(async (req) => {
     }
 
     if (planCode && planCode !== 'oneoff' && !planId.endsWith('_oneoff') && !planId.endsWith('_promo')) {
-      paymentData.plan = planCode
+      const mappedPlanCode = Deno.env.get(`PAYSTACK_PLAN_${planCode.toUpperCase()}`)
+      if (mappedPlanCode) {
+        paymentData.plan = mappedPlanCode
+      } else {
+        console.warn(`Paystack plan code for ${planCode} is not set in environment variables. Falling back to one-off payment.`)
+      }
     }
 
     const response = await fetch('https://api.paystack.co/transaction/initialize', {

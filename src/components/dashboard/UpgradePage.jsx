@@ -39,6 +39,7 @@ export default function UpgradePage() {
   const [billingCycle, setBillingCycle] = useState('monthly') // 'weekly', 'monthly', 'yearly'
   const [weeklyAutoRenew, setWeeklyAutoRenew] = useState(true)
 
+  const [selectedPlanId, setSelectedPlanId] = useState('pro')
   const currentTier = (profile?.subscription_tier || 'free').toLowerCase()
   const isPremium = profile?.is_premium || false
   const isAdmin = profile?.role === 'teacher' || profile?.role === 'admin'
@@ -459,547 +460,172 @@ export default function UpgradePage() {
   }
 
   return (
-    <div className="upg-outer">
-      <div className="upg-container">
-      {/* Dynamic Style Sheet Injection */}
-      <style>{`
-        .upg-outer {
-          background: #98FF98;
-          min-height: 100vh;
-          width: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 2.5rem 1.5rem;
-          box-sizing: border-box;
-        }
-        .upg-container {
-          background: transparent;
-          max-width: 1100px;
-          width: 100%;
-          font-family: var(--font-sans);
-          color: #072C20;
-          box-sizing: border-box;
-        }
-        .upg-cycle-selector {
-          display: flex;
-          justify-content: center;
-          margin-bottom: 2.25rem;
-        }
-        .upg-cycle-bar {
-          display: flex;
-          background: rgba(7, 44, 32, 0.06);
-          border-radius: 9999px;
-          padding: 4px;
-          border: 1.5px solid #072C20;
-        }
-        .upg-cycle-btn {
-          padding: 8px 22px;
-          border-radius: 9999px;
-          border: none;
-          font-size: 0.86rem;
-          font-weight: 750;
-          cursor: pointer;
-          background: transparent;
-          color: #072C20;
-          transition: all 0.2s ease-in-out;
-        }
-        .upg-cycle-btn.active {
-          background: #072C20;
-          color: #98FF98;
-        }
-        .upg-banner {
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          padding: 8px 16px;
-          border-radius: 9999px;
-          margin: 0 auto 1.5rem;
-          border: 1.5px solid #072C20;
-          font-size: 0.85rem;
-          font-weight: 700;
-          background: #FFFFFF;
-          color: #072C20;
-        }
-        .upg-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1.5rem;
-          align-items: stretch;
-          width: 100%;
-        }
-        @media (max-width: 1024px) {
-          .upg-grid {
-            gap: 1rem;
-          }
-          .upg-card {
-            padding: 2rem 1.25rem;
-          }
-          .upg-price {
-            font-size: 2.25rem;
-          }
-        }
-        @media (max-width: 768px) {
-          .upg-outer {
-            justify-content: flex-start;
-            padding: 2.5rem 1rem;
-          }
-          .upg-grid {
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
-            max-width: 420px;
-            margin: 0 auto 2rem;
-          }
-          .upg-card {
-            padding: 2.25rem 1.75rem;
-          }
-        }
-        .upg-card {
-          background: #FFFFFF;
-          border: 1.5px solid #072C20;
-          border-radius: 20px;
-          padding: 2.5rem 2rem;
-          display: flex;
-          flex-direction: column;
-          position: relative;
-          color: #072C20;
-          text-align: left;
-          transition: transform 0.2s;
-        }
-        .upg-card:hover {
-          transform: translateY(-4px);
-        }
-        .upg-card.free-card {
-          background: #FFFFFF;
-        }
-        .upg-card.pro-card {
-          background: #C4B5FD;
-        }
-        .upg-card.beast-card {
-          background: #FFD2A6;
-        }
-        .upg-card-badge {
-          position: absolute;
-          top: 18px;
-          right: 18px;
-          font-size: 0.65rem;
-          font-weight: 850;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          padding: 4px 10px;
-          border-radius: 9999px;
-          background: #072C20;
-          color: #FFFFFF;
-        }
-        .upg-card-top {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          width: 100%;
-        }
-        .upg-tier-name {
-          font-size: 1.5rem;
-          font-weight: 800;
-          color: #072C20;
-          margin-bottom: 4px;
-        }
-        .upg-card-desc {
-          font-size: 0.82rem;
-          color: #072C20;
-          opacity: 0.8;
-          margin-bottom: 1.25rem;
-          line-height: 1.35;
-        }
-        .upg-price-row {
-          display: flex;
-          align-items: baseline;
-          gap: 2px;
-          margin-bottom: 2px;
-        }
-        .upg-price {
-          font-size: 2.5rem;
-          font-weight: 850;
-          color: #072C20;
-          letter-spacing: -0.03em;
-        }
-        .upg-price-sub {
-          font-size: 1rem;
-          color: #072C20;
-          opacity: 0.75;
-          font-weight: 600;
-        }
-        .upg-naira {
-          font-size: 0.82rem;
-          font-weight: 650;
-          color: #072C20;
-          opacity: 0.8;
-          margin-bottom: 1.25rem;
-        }
-        .upg-action {
-          width: 100%;
-          margin-bottom: 0.5rem;
-        }
-        .upg-btn {
-          width: 100%;
-          padding: 12px 18px;
-          border-radius: 9999px;
-          font-size: 0.9rem;
-          font-weight: 750;
-          text-align: center;
-          cursor: pointer;
-          transition: all 0.2s;
-          border: 1.5px solid #072C20;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-        }
-        .upg-btn-free, .upg-btn-pro, .upg-btn-beast {
-          background: #072C20;
-          color: #FFFFFF;
-        }
-        .upg-btn:hover:not(:disabled) {
-          background: #0f4c33;
-          border-color: #0f4c33;
-        }
-        .upg-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-        .upg-btn-current {
-          background: transparent;
-          border: 1.5px dashed #072C20;
-          color: #072C20;
-          cursor: default;
-        }
-        .upg-sec-link {
-          display: block;
-          text-align: center;
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-decoration: underline;
-          color: #072C20;
-          margin-top: 0.5rem;
-          cursor: pointer;
-          opacity: 0.8;
-        }
-        .upg-sec-link:hover {
-          opacity: 1;
-        }
-        .upg-divider {
-          width: 100%;
-          height: 1.5px;
-          background: #072C20;
-          margin: 1.5rem 0;
-          opacity: 0.9;
-        }
-        .upg-features-section {
-          width: 100%;
-        }
-        .upg-section-label {
-          font-size: 0.75rem;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: #072C20;
-          margin-bottom: 8px;
-        }
-        .upg-feature-row {
-          display: flex;
-          align-items: flex-start;
-          gap: 8px;
-          padding: 4px 0;
-        }
-        .upg-feature-text {
-          font-size: 0.85rem;
-          color: #072C20;
-          line-height: 1.35;
-          font-weight: 600;
-        }
-        .upg-admin {
-          margin-top: 3rem;
-          padding: 1.5rem;
-          border-radius: 20px;
-          background: #FFFFFF;
-          border: 1.5px solid #072C20;
-          box-shadow: 0 10px 25px rgba(7, 44, 32, 0.04);
-          color: #072C20;
-          width: 100%;
-          box-sizing: border-box;
-        }
-        .upg-admin-title-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 1rem;
-        }
-        .upg-admin-label-wrapper {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        .upg-admin-label {
-          font-size: 0.95rem;
-          font-weight: 800;
-          color: #072C20;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .upg-admin-pill {
-          font-size: 0.6rem;
-          font-weight: 850;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          padding: 3px 8px;
-          border-radius: 9999px;
-          background: #072C20;
-          color: #FFFFFF;
-        }
-        .upg-admin-toggle-btn {
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 0;
-          display: flex;
-          align-items: center;
-        }
-        .upg-admin-body {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .upg-admin-mode-text {
-          font-size: 0.88rem;
-          font-weight: 700;
-          color: #072C20;
-          margin-bottom: 4px;
-        }
-        .upg-admin-subtext {
-          font-size: 0.8rem;
-          color: #072C20;
-          opacity: 0.8;
-        }
-        .upg-footer {
-          margin-top: 3rem;
-          text-align: center;
-          max-width: 800px;
-        }
-        .upg-footer-text {
-          font-size: 0.72rem;
-          color: #072C20;
-          opacity: 0.6;
-          margin: 0;
-          font-weight: 600;
-          line-height: 1.4;
-        }
-      `}</style>
+    <div className="flex flex-col min-h-screen w-full m-0 p-0 font-sans text-gray-900 dark:text-gray-100 dark:bg-gray-950">
+      <div className="flex flex-col min-h-screen mx-auto pt-16 pb-8 w-full relative">
+        {/* Iridescent Background Overlay */}
+        <div className="fixed inset-0 w-screen h-screen -z-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-50 via-white to-purple-50 dark:from-purple-900/40 dark:via-gray-950 dark:to-purple-900/20" />
 
-      {/* BANNER NOTIFICATIONS */}
-      {message && (
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <div className="upg-banner">
-            <ShieldCheck size={16} weight="fill" />
-            <span>{message}</span>
+        {message && (
+          <div className="flex justify-center mb-6 z-10">
+            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border-[1.5px] border-gray-900 dark:border-gray-100 text-sm font-bold bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+              <ShieldCheck size={16} weight="fill" />
+              <span>{message}</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* BILLING CYCLE SELECTOR */}
-      <div className="upg-cycle-selector">
-        <div className="upg-cycle-bar">
-          {currency === 'NGN' && (
-            <button
-              onClick={() => setBillingCycle('weekly')}
-              className={`upg-cycle-btn ${billingCycle === 'weekly' ? 'active' : ''}`}
-            >
-              Weekly
-            </button>
-          )}
-          <button
-            onClick={() => setBillingCycle('monthly')}
-            className={`upg-cycle-btn ${billingCycle === 'monthly' ? 'active' : ''}`}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setBillingCycle('yearly')}
-            className={`upg-cycle-btn ${billingCycle === 'yearly' ? 'active' : ''}`}
-          >
-            Yearly
-          </button>
-        </div>
-      </div>
+        {/* Content Wrapper */}
+        <div className="flex flex-col items-center w-full z-10 px-6">
+          {/* Header Illustration */}
+          <div className="flex flex-col items-center mb-8">
+            <img src="/mascot.png" width="96" height="96" className="block mx-auto drop-shadow-md" alt="Mascot" />
+          </div>
 
-      {/* AUTO-RENEW TOGGLE FOR WEEKLY PLANS */}
-      {currency === 'NGN' && billingCycle === 'weekly' && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', alignItems: 'center', marginBottom: '2rem' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#072C20' }}>
-            Auto-renew every week (Recurring subscription)
-          </span>
-          <button
-            onClick={() => setWeeklyAutoRenew(prev => !prev)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-            title="Toggle recurring billing"
-          >
-            {weeklyAutoRenew ? (
-              <ToggleRight size={28} weight="fill" style={{ color: '#072C20' }} />
-            ) : (
-              <ToggleLeft size={28} style={{ color: '#072C20', opacity: 0.5 }} />
-            )}
-          </button>
-        </div>
-      )}
+          <h1 className="font-serif text-[32px] text-gray-900 dark:text-white font-normal text-center mb-4 leading-tight">
+            Unlock the full Luter experience
+          </h1>
+          
+          <p className="text-center text-base text-gray-800 dark:text-gray-300 mb-8">
+            Premium gives you unlimited learning, personalized tutoring, and more.
+          </p>
 
-      {/* PLANS GRID */}
-      <div className="upg-grid">
-        {currentPlansList.map(plan => {
-          const active = plan.id === currentTier
-          const cycle = plan.cycles[billingCycle] || plan.cycles['monthly']
-          const isPro = plan.id === 'pro'
-          const isBeast = plan.id === 'beast'
-          const cardClass = `upg-card ${active ? 'active-plan' : ''} ${plan.id === 'free' ? 'free-card' : isPro ? 'pro-card' : 'beast-card'}`
-
-          return (
-            <div key={plan.id} className={cardClass}>
-              {/* BADGE */}
-              {plan.badge && (
-                <div className="upg-card-badge">
-                  {plan.badge}
-                </div>
+          {/* Billing Cycle Selector */}
+          <div className="flex justify-center mb-12">
+            <div className="flex bg-black/5 dark:bg-white/10 rounded-full p-1">
+              {currency === 'NGN' && (
+                <button
+                  onClick={() => setBillingCycle('weekly')}
+                  className={`px-6 py-2 rounded-full font-bold text-sm cursor-pointer transition-all duration-200 ${billingCycle === 'weekly' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'bg-transparent text-gray-900 dark:text-white'}`}
+                >
+                  Weekly
+                </button>
               )}
-
-              {/* CARD TOP */}
-              <div className="upg-card-top">
-                <div className="upg-tier-name">{plan.name}</div>
-                {plan.description && <div className="upg-card-desc">{plan.description}</div>}
-                
-                <div className="upg-price-row">
-                  <span className="upg-price">{cycle.price}</span>
-                  <span className="upg-price-sub">{cycle.sub}</span>
-                </div>
-                <div className="upg-naira">{cycle.naira}</div>
-                
-                {/* ACTION BUTTON (Inside card top, before features!) */}
-                <div className="upg-action">
-                  {active ? (
-                    <div className="upg-btn upg-btn-current">
-                      <Check size={16} weight="bold" />
-                      Current plan
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleUpgrade(plan.id)}
-                      disabled={submitting !== null || plan.id === 'free'}
-                      className={`upg-btn ${
-                        plan.id === 'free' 
-                          ? 'upg-btn-free' 
-                          : plan.id === 'pro' 
-                            ? 'upg-btn-pro' 
-                            : 'upg-btn-beast'
-                      }`}
-                      style={{
-                        cursor: (submitting === plan.id || plan.id === 'free') ? 'default' : 'pointer',
-                        opacity: submitting === plan.id ? 0.75 : 1,
-                      }}
-                    >
-                      {submitting === plan.id ? (
-                        'Processing...'
-                      ) : (
-                        <>
-                          {plan.id === 'free' ? 'Always Free' : `Get ${plan.name}`}
-                          {plan.id !== 'free' && <ArrowRight size={16} weight="bold" />}
-                        </>
-                      )}
-                    </button>
-                  )}
-                  {plan.id !== 'free' && (
-                    <div className="upg-sec-link">
-                      Secure checkout via Paystack
-                    </div>
-                  )}
-                  {plan.id === 'free' && (
-                    <div className="upg-sec-link" style={{ textDecoration: 'none', cursor: 'default' }}>
-                      No credit card required
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* DIVIDER LINE */}
-              <div className="upg-divider" />
-
-              {/* FEATURES SECTION (At the bottom!) */}
-              <div className="upg-features-section">
-                <div className="upg-section-label">Includes</div>
-                {plan.features.map((f, i) => (
-                  <div key={i} className="upg-feature-row">
-                    <Check 
-                      size={14} 
-                      weight="bold" 
-                      style={{ 
-                        color: '#072C20', 
-                        marginTop: '3px',
-                        flexShrink: 0 
-                      }} 
-                    />
-                    <span className="upg-feature-text">{f}</span>
-                  </div>
-                ))}
-              </div>
+              <button
+                onClick={() => setBillingCycle('monthly')}
+                className={`px-6 py-2 rounded-full font-bold text-sm cursor-pointer transition-all duration-200 ${billingCycle === 'monthly' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'bg-transparent text-gray-900 dark:text-white'}`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingCycle('yearly')}
+                className={`px-6 py-2 rounded-full font-bold text-sm cursor-pointer transition-all duration-200 ${billingCycle === 'yearly' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'bg-transparent text-gray-900 dark:text-white'}`}
+              >
+                Yearly
+              </button>
             </div>
-          )
-        })}
-      </div>
+          </div>
 
-      {/* ADMIN: PAYMENT GATEWAY TOGGLE PANEL */}
-      {isAdmin && !loadingSettings && (
-        <div className="upg-admin">
-          <div className="upg-admin-title-row">
-            <div className="upg-admin-label-wrapper">
-              <span className="upg-admin-label">
-                <CreditCard size={18} weight="fill" />
-                Payment Mode Settings
-              </span>
-              <span className="upg-admin-pill">Admin Only</span>
-            </div>
+          <div className="flex flex-row justify-center items-end flex-wrap gap-5 w-full max-w-[1000px] pb-8">
             
-            <button
-              onClick={togglePaymentMode}
-              className="upg-admin-toggle-btn"
-              title="Toggle payment mode"
-            >
-              {paymentMode === 'live' ? (
-                <ToggleRight size={32} weight="fill" style={{ color: '#072C20' }} />
-              ) : (
-                <ToggleLeft size={32} style={{ color: '#072C20', opacity: 0.5 }} />
-              )}
-            </button>
-          </div>
+            {currentPlansList.map(plan => {
+              const isSelected = selectedPlanId === plan.id;
+              const cycle = plan.cycles[billingCycle] || plan.cycles['monthly'];
+              const isCurrentTier = plan.id === currentTier;
 
-          <div className="upg-admin-body">
-            <div>
-              <div className="upg-admin-mode-text">
-                Currently running: {paymentMode === 'live' ? 'Live Paystack Checkout' : 'Offline Sandbox Demo Mode'}
-              </div>
-              <div className="upg-admin-subtext">
-                {paymentMode === 'live'
-                  ? 'All local (NGN) and international (USD) checkouts are routed to Paystack.'
-                  : 'Upgrades happen instantly without charging real cards. Perfect for sandbox testing.'}
-              </div>
+              return (
+                <div key={plan.id} 
+                  className={`relative flex-[1_1_280px] max-w-[320px] rounded-[20px] transition-all duration-200 cursor-${isCurrentTier ? 'default' : 'pointer'} ${isSelected ? 'p-[28px_4px_4px_4px] bg-[linear-gradient(86deg,#7491FF_-7.44%,#FF90E0_44.8%,#F7C325_102.54%)] -translate-y-1 shadow-[0_12px_24px_rgba(0,0,0,0.1)] dark:shadow-[0_12px_24px_rgba(0,0,0,0.5)]' : 'p-1 bg-black/5 dark:bg-white/10'}`}
+                  onClick={() => !isCurrentTier && setSelectedPlanId(plan.id)}
+                >
+                  {isSelected && (
+                    <div className="absolute -top-8 left-0 right-0 flex justify-center pointer-events-none">
+                      <img src="/mascot.png" width="46" className="block drop-shadow-md" alt="Selected Mascot" />
+                    </div>
+                  )}
+                  
+                  {isSelected && (
+                    <p className="absolute top-1 left-0 right-0 text-center text-[13px] font-extrabold text-gray-900 uppercase m-0">
+                      {plan.badge ? plan.badge : 'SELECTED'}
+                    </p>
+                  )}
+                  
+                  <div className={`bg-white dark:bg-gray-900 rounded-[16px] flex flex-col items-center justify-center min-h-[120px] p-4 sm:p-5 shadow-[0_4px_10px_rgba(0,0,0,0.02)] ${isSelected ? 'border-none' : 'border border-black/10 dark:border-white/10'}`}>
+                    <p className="text-[22px] font-bold m-0 text-gray-900 dark:text-white">{plan.name}</p>
+                    <div className="flex items-center gap-1 mt-2 mb-2">
+                      <span className="font-extrabold text-[18px] text-gray-900 dark:text-white">{cycle.price}</span>
+                      <span className="text-[16px] text-gray-600 dark:text-gray-400">{cycle.sub}</span>
+                    </div>
+                    <p className="text-[13px] text-gray-600 dark:text-gray-400 m-0 text-center">{cycle.naira}</p>
+                    {isCurrentTier && (
+                       <div className="mt-3 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs px-3 py-1 rounded-full font-bold">Current Plan</div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          
+          <p className="text-xs text-gray-600 dark:text-gray-400 text-center mt-4 max-w-[600px]">
+            *Billed as one payment. Renews {billingCycle}. Cancel anytime. You can turn off auto-renew from your settings.
+          </p>
+
+        </div>
+
+        {/* Sticky Footer */}
+        <div className="sticky bottom-0 left-0 w-full p-6 flex justify-center items-center z-10 bg-gradient-to-t from-white via-white to-transparent dark:from-gray-950 dark:via-gray-950">
+          <button 
+            disabled={submitting !== null || selectedPlanId === currentTier || selectedPlanId === 'free'}
+            onClick={() => handleUpgrade(selectedPlanId)}
+            onMouseDown={(e) => {
+               if(submitting !== null || selectedPlanId === currentTier || selectedPlanId === 'free') return;
+               e.currentTarget.querySelector('span[data-face]').style.transform = 'translateY(0)';
+               e.currentTarget.querySelector('span[data-face]').style.boxShadow = 'none';
+            }}
+            onMouseUp={(e) => {
+               if(submitting !== null || selectedPlanId === currentTier || selectedPlanId === 'free') return;
+               e.currentTarget.querySelector('span[data-face]').style.transform = 'translateY(-4px)';
+               e.currentTarget.querySelector('span[data-face]').style.boxShadow = '0 4px 0 0 #A78BFA';
+            }}
+            onMouseLeave={(e) => {
+               if(submitting !== null || selectedPlanId === currentTier || selectedPlanId === 'free') return;
+               e.currentTarget.querySelector('span[data-face]').style.transform = 'translateY(-4px)';
+               e.currentTarget.querySelector('span[data-face]').style.boxShadow = '0 4px 0 0 #A78BFA';
+            }}
+            style={{
+              padding: 0,
+              border: 'none',
+              background: 'transparent',
+              position: 'relative',
+              width: '100%',
+              maxWidth: '358px',
+              borderRadius: '56px',
+              cursor: (submitting !== null || selectedPlanId === currentTier || selectedPlanId === 'free') ? 'not-allowed' : 'pointer',
+              opacity: (submitting !== null || selectedPlanId === currentTier || selectedPlanId === 'free') ? 0.6 : 1
+            }}
+          >
+            <span data-face="true" style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              padding: '14px 24px',
+              borderRadius: '60px',
+              background: '#C4B5FD',
+              color: '#1a1a1a',
+              fontSize: '16px',
+              fontWeight: 700,
+              border: '1.5px solid #1a1a1a',
+              transform: 'translateY(-4px)',
+              boxShadow: '0 4px 0 0 #A78BFA',
+              transition: 'transform 0.1s cubic-bezier(0,0,0.2,1), box-shadow 0.1s cubic-bezier(0,0,0.2,1)'
+            }}>
+              {submitting !== null ? 'Processing...' : 'Subscribe now'}
+            </span>
+          </button>
+        </div>
+
+        {/* Admin Debug Toggle */}
+        {isAdmin && !loadingSettings && (
+          <div className="mt-auto p-6 flex justify-center">
+            <div className="flex items-center gap-3 bg-black/5 dark:bg-white/5 px-6 py-3 rounded-2xl">
+              <span className="text-[13px] font-bold text-gray-900 dark:text-gray-100">Admin: Mode [{paymentMode}]</span>
+              <button onClick={togglePaymentMode} className="bg-transparent border-none cursor-pointer text-gray-900 dark:text-gray-100">
+                {paymentMode === 'live' ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+              </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* FOOTER */}
-      <div className="upg-footer">
-        <p className="upg-footer-text">
-          Subscriptions reset credits daily. Introductory promotional rates renew at standard recurring rates. Secure payments via Paystack. Cancel anytime.
-        </p>
+        )}
       </div>
-    </div>
     </div>
   )
 }

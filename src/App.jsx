@@ -5,6 +5,7 @@ const SignIn = lazy(() => import('./components/SignIn'));
 const SignUp = lazy(() => import('./components/SignUp'));
 const Onboarding = lazy(() => import('./components/Onboarding'));
 const WallOfLove = lazy(() => import('./pages/WallOfLove'));
+const ComponentPage = lazy(() => import('./pages/ComponentPage'));
 const Dashboard = lazy(() => import('./components/dashboard/Dashboard'));
 const DashboardHome = lazy(() => import('./components/dashboard/DashboardHome'));
 const BackpackPage = lazy(() => import('./components/dashboard/BackpackPage'));
@@ -178,6 +179,7 @@ export default function App() {
 
           {/* MAIN APP ROUTES */}
           <Route path="/" element={<LandingPage />} />
+          <Route path="/component" element={<ComponentPage />} />
           <Route path="/wall-of-love" element={<WallOfLove />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />

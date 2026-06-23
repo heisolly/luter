@@ -139,7 +139,40 @@ serve(async (req) => {
           .eq('id', tx.id)
       }
 
-      // Determine plan tier from plan_id
+      // Determine standard plan ID from environment mapping if exists
+      let resolvedPlanId = planId || 'pro_monthly'
+      
+      const PRO_VARS = [
+        'PAYSTACK_PLAN_PRO_MONTHLY',
+        'PAYSTACK_PLAN_PRO_WEEKLY',
+        'PAYSTACK_PLAN_PRO_YEARLY',
+        'PAYSTACK_PLAN_PRO_MONTHLY_USD',
+        'PAYSTACK_PLAN_PRO_YEARLY_USD'
+      ]
+      const BEAST_VARS = [
+        'PAYSTACK_PLAN_BEAST_MONTHLY',
+        'PAYSTACK_PLAN_BEAST_WEEKLY',
+        'PAYSTACK_PLAN_BEAST_YEARLY',
+        'PAYSTACK_PLAN_BEAST_MONTHLY_USD',
+        'PAYSTACK_PLAN_BEAST_YEARLY_USD'
+      ]
+
+      if (planId) {
+        for (const envVar of PRO_VARS) {
+          if (Deno.env.get(envVar) === planId) {
+            resolvedPlanId = envVar.replace('PAYSTACK_PLAN_', '').toLowerCase()
+            break
+          }
+        }
+        for (const envVar of BEAST_VARS) {
+          if (Deno.env.get(envVar) === planId) {
+            resolvedPlanId = envVar.replace('PAYSTACK_PLAN_', '').toLowerCase()
+            break
+          }
+        }
+      }
+
+      // Determine plan tier from resolvedPlanId
       const TIER_MAP: Record<string, { tier: string; monthlyCredits: number }> = {
         pro: { tier: 'pro', monthlyCredits: 2000 },
         pro_2weeks: { tier: 'pro', monthlyCredits: 2000 },
@@ -161,16 +194,16 @@ serve(async (req) => {
         starter: { tier: 'pro', monthlyCredits: 2000 },
       }
 
-      const mapping = planId ? TIER_MAP[planId] : null
+      const mapping = TIER_MAP[resolvedPlanId]
       if (mapping && userId) {
         const now = new Date()
         let expiresAt: Date
         let subscriptionType = 'monthly'
 
-        if (planId.includes('weekly') || planId.includes('week')) {
+        if (resolvedPlanId.includes('weekly') || resolvedPlanId.includes('week')) {
           expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
           subscriptionType = 'weekly'
-        } else if (planId.includes('yearly') || planId.includes('year')) {
+        } else if (resolvedPlanId.includes('yearly') || resolvedPlanId.includes('year')) {
           expiresAt = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate())
           subscriptionType = 'yearly'
         } else {
@@ -198,8 +231,9 @@ serve(async (req) => {
         console.log(`Upgraded user ${userId} to ${mapping.tier} (Expires: ${expiresAt.toISOString()})`)
 
         // Promo subscription chaining
-        if (planId === 'pro_promo' || planId === 'beast_promo') {
-          const standardPlanCode = planId === 'pro_promo' ? 'pro_monthly' : 'beast_monthly'
+        if (resolvedPlanId === 'pro_promo' || resolvedPlanId === 'beast_promo') {
+          const standardPlanCode = resolvedPlanId === 'pro_promo' ? 'pro_monthly' : 'beast_monthly'
+          const mappedStandardPlanCode = Deno.env.get(`PAYSTACK_PLAN_${standardPlanCode.toUpperCase()}`) || standardPlanCode
           const authCode = data.authorization?.authorization_code
           const customerEmail = data.customer?.email
 
@@ -209,7 +243,7 @@ serve(async (req) => {
             startDate.setMonth(startDate.getMonth() + 1)
             const startIso = startDate.toISOString()
 
-            console.log(`Chaining recurring subscription for ${customerEmail} to ${standardPlanCode} starting ${startIso}`)
+            console.log(`Chaining recurring subscription for ${customerEmail} to ${mappedStandardPlanCode} starting ${startIso}`)
 
             try {
               const subResponse = await fetch('https://api.paystack.co/subscription', {
@@ -220,7 +254,7 @@ serve(async (req) => {
                 },
                 body: JSON.stringify({
                   customer: customerEmail,
-                  plan: standardPlanCode,
+                  plan: mappedStandardPlanCode,
                   authorization: authCode,
                   start_date: startIso
                 })
