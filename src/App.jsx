@@ -18,6 +18,7 @@ const FeedbackPage = lazy(() => import('./components/dashboard/FeedbackPage'));
 const ChangelogPage = lazy(() => import('./components/dashboard/ChangelogPage'));
 const HelpPage = lazy(() => import('./components/dashboard/HelpPage'));
 const UpgradePage = lazy(() => import('./components/dashboard/UpgradePage'));
+const PaymentSuccess = lazy(() => import('./components/dashboard/PaymentSuccess'));
 const StreakPage = lazy(() => import('./components/dashboard/StreakPage'));
 const ReferPage = lazy(() => import('./components/dashboard/ReferPage'));
 const PlaygroundPage = lazy(() => import('./components/dashboard/PlaygroundPage'));
@@ -181,6 +182,8 @@ export default function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/view/:materialId" element={<PublicFlashcardView />} />
+          <Route path="/payment/success" element={<PaymentSuccess />} />
+          <Route path="/dashboard/payment/success" element={<PaymentSuccess />} />
           {/* DASHBOARD ROUTES */}
           <Route element={<Dashboard />}>
             <Route path="/home" element={<DashboardHome />} />

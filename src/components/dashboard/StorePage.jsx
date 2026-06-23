@@ -107,64 +107,22 @@ export default function StorePage() {
     setPurchaseLoading(item.id)
     
     try {
-      // Start transaction
-      const { data: gamificationData, error: gamifError } = await supabase
-        .from('user_gamification')
-        .select('coins')
-        .eq('user_id', user.id)
-        .single()
+      // Call secure purchase RPC
+      const { data, error } = await supabase.rpc('purchase_store_item', {
+        p_item_id: item.id
+      })
 
-      if (gamifError) throw gamifError
-
-      if (gamificationData.coins < item.price) {
-        alert('Not enough coins!')
-        return
-      }
-
-      // Deduct coins
-      const { error: updateError } = await supabase
-        .from('user_gamification')
-        .update({
-          coins: gamificationData.coins - item.price,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id)
-
-      if (updateError) throw updateError
-
-      // Record purchase
-      const { error: purchaseError } = await supabase
-        .from('user_purchases')
-        .insert({
-          user_id: user.id,
-          item_id: item.id,
-          coins_spent: item.price,
-          purchase_data: item.item_data
-        })
-
-      if (purchaseError) throw purchaseError
-
-      // Record coin transaction
-      await supabase
-        .from('coin_transactions')
-        .insert({
-          user_id: user.id,
-          amount: -item.price,
-          balance_after: gamificationData.coins - item.price,
-          source: 'purchase',
-          source_id: item.id,
-          description: `Purchased ${item.name}`
-        })
+      if (error) throw error
 
       // Update local state
-      setUserCoins(gamificationData.coins - item.price)
+      setUserCoins(prev => prev - item.price)
       await loadUserPurchases()
       
       alert(`Successfully purchased ${item.name}!`)
       
     } catch (error) {
       console.error('Error making purchase:', error)
-      alert('Purchase failed. Please try again.')
+      alert(`Purchase failed: ${error.message || error}`)
     } finally {
       setPurchaseLoading(null)
     }

@@ -4,9 +4,9 @@
  * Deploy to Vercel, Netlify, or AWS Lambda
  */
 
-const CloudConvert = require('cloudconvert');
-const fs = require('fs');
-const path = require('path');
+import CloudConvert from 'cloudconvert';
+import fs from 'fs';
+import path from 'path';
 
 // Initialize CloudConvert client
 const cloudConvert = new CloudConvert(process.env.CLOUDCONVERT_API_KEY);
