@@ -1,0 +1,759 @@
+﻿diff --git a/src/components/dashboard/QuizSessionPage.jsx b/src/components/dashboard/QuizSessionPage.jsx
+index 7b2be2c..53457e0 100644
+--- a/src/components/dashboard/QuizSessionPage.jsx
++++ b/src/components/dashboard/QuizSessionPage.jsx
+@@ -1 +1 @@
+-import React, { useState, useEffect, useMemo } from 'react';
++import React, { useState, useEffect } from 'react';
+@@ -7 +7 @@ import {
+-  PaperPlaneRight, ArrowsCounterClockwise
++  PaperPlaneRight, ArrowsCounterClockwise, Plant, MagicWand, Lightning
+@@ -213 +213 @@ export default function QuizSessionPage() {
+-  const [hearts, setHearts] = useState(5);
++  const [, setHearts] = useState(5);
+@@ -222 +222 @@ export default function QuizSessionPage() {
+-  const [savingResult, setSavingResult] = useState(false);
++  const [, setSavingResult] = useState(false);
+@@ -232,0 +233 @@ export default function QuizSessionPage() {
++  const [isChatOpen, setIsChatOpen] = useState(false);
+@@ -355,0 +357,37 @@ export default function QuizSessionPage() {
++  // Text-To-Speech (TTS) voice feedback
++  const playVoiceFeedback = (isCorrectAnswer) => {
++    if (!sfxEnabled) return; // Respect the sound toggle
++    
++    if (!('speechSynthesis' in window)) return;
++    
++    const correctPhrases = [
++      "Wow, nice try!",
++      "Nice bro, harder!",
++      "You're a genius!",
++      "Spot on! Keep it up bro.",
++      "Amazing work bro!",
++      "Yes! You got this bro!"
++    ];
++    
++    const wrongPhrases = [
++      "Not quite, but keep up bro.",
++      "That's why your CGPA keeps dropping faster than your hairline.",
++      "Are you even trying? Come on bro.",
++      "Bro, did you even read the question?",
++      "Wrong! My grandma could have answered that.",
++      "Ouch... that was painful to watch."
++    ];
++    
++    const phrases = isCorrectAnswer ? correctPhrases : wrongPhrases;
++    const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
++    
++    // Cancel any ongoing speech so it doesn't overlap
++    window.speechSynthesis.cancel();
++    
++    const utterance = new SpeechSynthesisUtterance(randomPhrase);
++    utterance.rate = 1.0;
++    utterance.pitch = 1.0;
++    
++    window.speechSynthesis.speak(utterance);
++  };
++
+@@ -374,0 +413,2 @@ export default function QuizSessionPage() {
++    
++    playVoiceFeedback(correct);
+@@ -391,17 +430,0 @@ export default function QuizSessionPage() {
+-  // Stats-bar chevron navigation
+-  const handlePrevChevron = () => {
+-    if (currentIndex > 0) {
+-      playClickSound();
+-      setCurrentIndex(idx => idx - 1);
+-      setSelectedOption(null);
+-      setSubmitted(false);
+-      setDisabledOptions([]);
+-      setShowExplain(false);
+-    }
+-  };
+-
+-  const handleNextChevron = () => {
+-    if (currentIndex < questions.length - 1) {
+-      handleNext();
+-    }
+-  };
+@@ -680 +703 @@ export default function QuizSessionPage() {
+-      minHeight: '100vh',
++      height: '100dvh',
+@@ -682 +705 @@ export default function QuizSessionPage() {
+-      backgroundColor: pageBg,
++      backgroundColor: isDark ? '#0B0F19' : '#FFFFFF',
+@@ -684,2 +706,0 @@ export default function QuizSessionPage() {
+-      backgroundImage: `radial-gradient(${gridDotColor} 1.5px, transparent 1.5px)`,
+-      backgroundSize: '28px 28px',
+@@ -689 +710 @@ export default function QuizSessionPage() {
+-      overflowX: 'hidden'
++      overflow: 'hidden'
+@@ -693 +714 @@ export default function QuizSessionPage() {
+-          HEADER CONTROLS
++          HEADER CONTROLS (Top Navbar)
+@@ -696 +717,2 @@ export default function QuizSessionPage() {
+-        padding: '18px 32px',
++        height: '64px',
++        padding: '0 24px',
+@@ -700,3 +722 @@ export default function QuizSessionPage() {
+-        background: cardBg,
+-        borderBottom: `1.5px solid ${borderCol}`,
+-        zIndex: 50
++        flexShrink: 0
+@@ -704 +724,30 @@ export default function QuizSessionPage() {
+-        {/* Left Side: Document Symbol & Title */}
++        {/* Left Side: X Button */}
++        <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
++          <button
++            onClick={() => navigate(`/workstation/${materialId}?view=quizzes`)}
++            style={{
++              background: 'transparent',
++              border: 'none',
++              cursor: 'pointer',
++              color: subFontColor,
++              display: 'flex',
++              alignItems: 'center',
++              justifyContent: 'center',
++              padding: '8px'
++            }}
++          >
++            <X size={20} weight="bold" />
++          </button>
++        </div>
++
++        {/* Center: Progress Bar Area */}
++        <div style={{ display: 'flex', flex: 2, alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
++          <div style={{ width: '100%', maxWidth: '400px', height: '12px', background: isDark ? '#334155' : '#DDD6FE', borderRadius: '999px', overflow: 'hidden' }}>
++            <div style={{ width: `${((currentIndex) / questions.length) * 100}%`, height: '100%', background: '#7C3AED', borderRadius: '999px', transition: 'width 0.3s ease' }} />
++          </div>
++          {/* Decorative dots to match screenshot */}
++          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isDark ? '#334155' : '#F3F4F6' }} />
++          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isDark ? '#334155' : '#F3F4F6' }} />
++        </div>
++
++        {/* Right Side: XP and Streak */}
+@@ -709,3 +758,2 @@ export default function QuizSessionPage() {
+-          fontWeight: 800,
+-          fontSize: '16px',
+-          maxWidth: '300px'
++          flex: 1,
++          justifyContent: 'flex-end'
+@@ -713,14 +761,5 @@ export default function QuizSessionPage() {
+-          <div style={{
+-            width: '12px',
+-            height: '12px',
+-            borderRadius: '4px',
+-            backgroundColor: '#C4B5FD'
+-          }} />
+-          <span style={{
+-            overflow: 'hidden',
+-            textOverflow: 'ellipsis',
+-            whiteSpace: 'nowrap',
+-            color: fontColor
+-          }}>
+-            {material?.name || 'Quiz Session'}
+-          </span>
++          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '16px', fontWeight: 600, color: subFontColor }}>
++            <span>{xp}</span>
++            <Sparkle size={20} weight="regular" color={subFontColor} />
++            <Lightning size={20} weight="fill" color="#FACC15" />
++          </div>
+@@ -727,0 +767 @@ export default function QuizSessionPage() {
++      </div>
+@@ -729,22 +769,37 @@ export default function QuizSessionPage() {
+-        {/* Center: Segmented Progress Bar */}
+-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+-          {questions.map((_, qIdx) => {
+-            let segmentBg = isDark ? '#334155' : '#E2E8F0';
+-            if (qIdx < currentIndex) {
+-              segmentBg = '#98FF98'; // Mint for completed questions
+-            } else if (qIdx === currentIndex) {
+-              segmentBg = '#C4B5FD'; // Lavender for current question
+-            }
+-            return (
+-              <div
+-                key={qIdx}
+-                style={{
+-                  width: '42px',
+-                  height: '8px',
+-                  borderRadius: '9999px',
+-                  background: segmentBg,
+-                  transition: 'background-color 0.25s ease'
+-                }}
+-              />
+-            );
+-          })}
++      {/* ==========================================
++          MAIN LAYOUT CONTAINER (Rounded Card)
++          ========================================== */}
++      <div style={{
++        flex: 1,
++        margin: '0 24px 24px 24px',
++        border: submitted 
++          ? `2px solid ${isCorrect ? '#4ADE80' : '#FBBF24'}`
++          : `2px solid ${isDark ? '#1E293B' : '#E5E7EB'}`,
++        borderRadius: '32px',
++        background: isDark ? '#0F172A' : '#FFFFFF',
++        position: 'relative',
++        display: 'flex',
++        flexDirection: 'column',
++        overflow: 'hidden',
++        boxShadow: submitted
++          ? (isCorrect 
++              ? '0 0 0 4px rgba(74, 222, 128, 0.15)'
++              : '0 0 0 4px rgba(251, 191, 36, 0.15)'
++            )
++          : (isDark ? 'none' : '0 10px 40px rgba(0,0,0,0.02)'),
++        transition: 'border 0.3s ease, box-shadow 0.3s ease',
++        position: 'relative',
++        display: 'flex',
++        flexDirection: 'column',
++        overflow: 'hidden',
++        boxShadow: isDark ? 'none' : '0 10px 40px rgba(0,0,0,0.02)'
++      }}>
++        
++        {/* Floating Top Left Icons */}
++        <div style={{ position: 'absolute', top: '24px', left: '24px', display: 'flex', flexDirection: 'column', gap: '20px', zIndex: 20 }}>
++          <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1D5DB' }}>
++            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256"><path d="M224,112v24a8,8,0,0,1-16,0V112a48,48,0,0,0-48-48H120a8,8,0,0,1,0-16h40A64.07,64.07,0,0,1,224,112Z" fill="currentColor"></path><path d="M192,208H40V48A8,8,0,0,0,24,48V208a8,8,0,0,0,16,0h16a8,8,0,0,0,0-16H40V120H152a48.05,48.05,0,0,1,48,48V208A8,8,0,0,1,192,208Z" fill="currentColor"></path></svg>
++          </button>
++          <button onClick={() => setSfxEnabled(!sfxEnabled)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1D5DB' }}>
++            {sfxEnabled ? <SpeakerHigh size={20} weight="fill" /> : <SpeakerSlash size={20} weight="fill" />}
++          </button>
+@@ -753 +808 @@ export default function QuizSessionPage() {
+-        {/* Right Side: Indicators, Audio Controls & Gear */}
++        {/* Main Quiz Content (Centered) */}
+@@ -754,0 +810 @@ export default function QuizSessionPage() {
++          flex: 1,
+@@ -755,0 +812 @@ export default function QuizSessionPage() {
++          flexDirection: 'column',
+@@ -757 +814,3 @@ export default function QuizSessionPage() {
+-          gap: '24px'
++          justifyContent: 'center',
++          padding: '40px 80px',
++          overflowY: 'auto'
+@@ -759,36 +818,117 @@ export default function QuizSessionPage() {
+-          {/* XP Badge */}
+-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: 800, color: '#C4B5FD' }}>
+-            <Sparkle size={18} weight="fill" />
+-            <span>{xp} XP</span>
+-          </div>
+-
+-          {/* Coins Chest Badge */}
+-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: 800, color: '#FFD2A6' }}>
+-            <Key size={18} weight="fill" />
+-            <span>{keys} Coins</span>
+-          </div>
+-
+-          {/* Hearts Badge */}
+-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: 800, color: '#EF4444' }}>
+-            <Heart size={18} weight="fill" />
+-            <span>{hearts}</span>
+-          </div>
+-
+-          <div style={{ height: '20px', width: '1.5px', background: borderCol }} />
+-
+-          {/* Audio Mute Icon */}
+-          <button 
+-            onClick={() => setSfxEnabled(!sfxEnabled)}
+-            title={sfxEnabled ? "Mute sounds" : "Unmute sounds"}
+-            style={{
+-              border: 'none',
+-              background: 'none',
+-              cursor: 'pointer',
+-              padding: '6px',
+-              color: fontColor,
+-              display: 'flex',
+-              alignItems: 'center'
+-            }}
+-          >
+-            {sfxEnabled ? <SpeakerHigh size={20} weight="bold" /> : <SpeakerSlash size={20} weight="bold" />}
+-          </button>
++          {currentQ && (
++            <div style={{ width: '100%', maxWidth: '640px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
++              <p style={{ fontSize: '12px', fontWeight: 600, color: '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px', textAlign: 'center' }}>
++                Question {currentIndex + 1} of {questions.length}
++              </p>
++              <h2 style={{
++                fontSize: '28px',
++                fontWeight: 800,
++                color: fontColor,
++                marginBottom: '12px',
++                textAlign: 'center'
++              }}>
++                {currentQ.question}
++              </h2>
++              {/* Optional sub-text if explanation is shown */}
++              {!submitted && (
++                <p style={{ fontSize: '15px', color: subFontColor, marginBottom: '40px', textAlign: 'center' }}>
++                  Select the correct answer below.
++                </p>
++              )}
++
++
++              {/* Options Grid */}
++              <div className="options-grid" style={{ display: 'grid', gap: '12px', width: '100%' }}>
++                {currentQ.options.map((opt, i) => {
++                  const isSelected = selectedOption === i;
++                  const isCorrectOption = i === correctIdx;
++                  const isEliminated = disabledOptions.includes(i);
++                  const optionText = typeof opt === 'object' ? (opt.text || opt.choice || '') : opt;
++                  
++                  if (isEliminated) return null;
++                  
++                  let optBg = 'transparent';
++                  let optBorder = `2px solid ${isDark ? '#334155' : '#E5E7EB'}`;
++                  let optColor = subFontColor;
++                  
++                  if (submitted) {
++                    if (isCorrectOption) {
++                      optBg = isDark ? 'rgba(34, 197, 94, 0.1)' : '#DCFCE7';
++                      optBorder = '2px solid #22C55E';
++                      optColor = '#166534';
++                    } else if (isSelected) {
++                      optBg = isDark ? 'rgba(239, 68, 68, 0.1)' : '#FEE2E2';
++                      optBorder = '2px solid #EF4444';
++                      optColor = '#991B1B';
++                    }
++                  } else if (isSelected) {
++                    optBg = isDark ? 'rgba(196, 181, 253, 0.1)' : '#F3E8FF';
++                    optBorder = '2px solid #C4B5FD';
++                    optColor = isDark ? '#C4B5FD' : '#6B21A8';
++                  }
++
++                  return (
++                    <button
++                      key={i}
++                      disabled={submitted}
++                      onClick={() => handleSelectOption(i)}
++                      style={{
++                        display: 'flex',
++                        alignItems: 'center',
++                        justifyContent: 'center',
++                        padding: '18px 24px',
++                        borderRadius: '16px',
++                        backgroundColor: optBg,
++                        border: optBorder,
++                        color: optColor,
++                        fontSize: '16px',
++                        fontWeight: 700,
++                        textAlign: 'center',
++                        cursor: submitted ? 'default' : 'pointer',
++                        transition: 'all 0.15s ease',
++                        outline: 'none',
++                        transform: (!submitted && isSelected) ? 'scale(1.01)' : 'none',
++                      }}
++                      onMouseEnter={e => {
++                        if (!submitted && !isSelected) {
++                          e.currentTarget.style.borderColor = '#C4B5FD';
++                          e.currentTarget.style.background = isDark ? '#1E293B' : '#F9FAFB';
++                        }
++                      }}
++                      onMouseLeave={e => {
++                        if (!submitted && !isSelected) {
++                          e.currentTarget.style.borderColor = isDark ? '#334155' : '#E5E7EB';
++                          e.currentTarget.style.background = 'transparent';
++                        }
++                      }}
++                    >
++                      {optionText}
++                    </button>
++                  );
++                })}
++              </div>
++              
++              {submitted && (
++                <div style={{
++                  marginTop: '40px',
++                  marginLeft: '-80px',
++                  marginRight: '-80px',
++                  marginBottom: '-40px',
++                  padding: '24px 80px',
++                  borderTop: `2px solid ${isCorrect ? (isDark ? '#166534' : '#BBF7D0') : (isDark ? '#92400E' : '#FDE68A')}`,
++                  background: isCorrect ? (isDark ? 'rgba(34, 197, 94, 0.05)' : '#F0FDF4') : (isDark ? 'rgba(251, 191, 36, 0.05)' : '#FFFBEB'),
++                  width: 'calc(100% + 160px)',
++                  borderBottomLeftRadius: '32px',
++                  borderBottomRightRadius: '32px'
++                }}>
++                  <p style={{ fontWeight: 'bold', fontSize: '16px', color: isCorrect ? (isDark ? '#4ADE80' : '#15803D') : (isDark ? '#FBBF24' : '#B45309') }}>
++                    {isCorrect ? '✓ Correct!' : '✗ Not quite right.'}
++                  </p>
++                  <p style={{ fontSize: '14px', color: isDark ? '#9CA3AF' : '#4B5563', marginTop: '6px' }}>
++                    {currentQ.explanation}
++                  </p>
++                </div>
++              )}
++            </div>
++          )}
++        </div>
+@@ -796,12 +936,18 @@ export default function QuizSessionPage() {
+-          {/* Settings Trigger */}
+-          <button 
+-            onClick={() => {
+-              playClickSound();
+-              setShowSettingsModal(true);
+-            }}
+-            style={{
+-              border: 'none',
+-              background: 'none',
+-              cursor: 'pointer',
+-              padding: '6px',
+-              color: fontColor,
++        {/* ==========================================
++            BOTTOM FLOATING CONTROLS (Mascot & Chat)
++            ========================================== */}
++        <div style={{
++          position: 'absolute',
++          bottom: '24px',
++          left: '24px',
++          display: 'flex',
++          flexDirection: 'column',
++          alignItems: 'flex-start',
++          gap: '16px',
++          zIndex: 40,
++          width: '320px'
++        }}>
++          
++          {/* Floating Chat History */}
++          {isChatOpen && (
++            <div style={{
+@@ -809,11 +955,93 @@ export default function QuizSessionPage() {
+-              alignItems: 'center'
+-            }}
+-          >
+-            <Gear size={20} weight="bold" />
+-          </button>
+-
+-          {/* Leave Quiz Button */}
+-          <button
+-            onClick={() => navigate(`/workstation/${materialId}?view=quizzes`)}
+-            style={{
+-              padding: '8px 16px',
++              flexDirection: 'column',
++              gap: '12px',
++              width: '100%',
++              maxHeight: '400px',
++              overflowY: 'auto',
++              paddingBottom: '8px',
++              animation: 'fadeIn 0.2s ease-out'
++            }}>
++              {chatMessages.map((msg, idx) => {
++                const isUser = msg.sender === 'user';
++                const isLatestAi = !isUser && idx === chatMessages.length - 1;
++                
++                return (
++                  <div key={idx} style={{
++                    alignSelf: isUser ? 'flex-end' : 'flex-start',
++                    background: isUser ? (isDark ? '#334155' : '#FFFFFF') : (isLatestAi ? (isDark ? 'rgba(16, 185, 129, 0.1)' : '#F0FDF4') : (isDark ? '#1E293B' : '#FFFFFF')),
++                    color: isDark ? '#F3F4F6' : '#374151',
++                    border: `1px solid ${isUser ? (isDark ? '#475569' : '#E5E7EB') : (isLatestAi ? (isDark ? '#047857' : '#A7F3D0') : (isDark ? '#334155' : '#E5E7EB'))}`,
++                    padding: '12px 16px',
++                    borderRadius: '16px',
++                    borderBottomRightRadius: isUser ? '4px' : '16px',
++                    borderBottomLeftRadius: isUser ? '16px' : '4px',
++                    maxWidth: '85%',
++                    fontSize: '14px',
++                    lineHeight: 1.5,
++                    boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
++                  }}>
++                    {msg.text}
++                  </div>
++                );
++              })}
++              {isTyping && (
++                <div style={{ alignSelf: 'flex-start', background: isDark ? 'rgba(16, 185, 129, 0.1)' : '#F0FDF4', padding: '12px 16px', borderRadius: '16px', borderBottomLeftRadius: '4px', color: '#10B981', border: `1px solid ${isDark ? '#047857' : '#A7F3D0'}` }}>
++                  <CircleNotch size={16} className="spin" />
++                </div>
++              )}
++            </div>
++          )}
++
++          {/* Bottom Row: Mascot & Input Pill */}
++          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
++            {/* CSS Mascot */}
++            <button
++              onClick={() => {
++                playClickSound();
++                setIsChatOpen(!isChatOpen);
++              }}
++              style={{
++                width: '48px',
++                height: '48px',
++                position: 'relative',
++                background: 'none',
++                border: 'none',
++                cursor: 'pointer',
++                display: 'flex',
++                alignItems: 'center',
++                justifyContent: 'center',
++                flexShrink: 0,
++                transition: 'transform 0.2s',
++              }}
++              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
++              onMouseLeave={e => e.currentTarget.style.transform = 'none'}
++            >
++              {/* Rotated Green Shape */}
++              <div style={{
++                position: 'absolute',
++                width: '40px',
++                height: '40px',
++                background: '#4ADE80',
++                borderRadius: '12px',
++                transform: 'rotate(45deg)',
++                boxShadow: '0 4px 12px rgba(74, 222, 128, 0.3)'
++              }} />
++              {/* Inner White/Black Shapes */}
++              <div style={{
++                position: 'relative',
++                width: '18px',
++                height: '18px',
++                background: 'white',
++                borderRadius: '4px',
++                display: 'flex',
++                alignItems: 'center',
++                justifyContent: 'center',
++                zIndex: 2
++              }}>
++                <div style={{ width: '8px', height: '8px', background: '#111827', borderRadius: '2px' }} />
++              </div>
++            </button>
++            
++            {/* Chat Input Pill */}
++            <form onSubmit={handleSendChat} style={{
++              flex: 1,
++              background: isDark ? '#1E293B' : '#F3F4F6',
+@@ -821,6 +1049 @@ export default function QuizSessionPage() {
+-              border: `1.5px solid ${borderCol}`,
+-              backgroundColor: cardBg,
+-              color: fontColor,
+-              fontWeight: 800,
+-              fontSize: '13px',
+-              cursor: 'pointer',
++              padding: chatInput ? '6px 6px 6px 12px' : '10px 16px',
+@@ -829,5 +1052,163 @@ export default function QuizSessionPage() {
+-              gap: '6px'
+-            }}
+-          >
+-            Leave Quiz
+-          </button>
++              gap: '8px',
++              border: `1px solid ${isDark ? '#334155' : '#E5E7EB'}`,
++              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
++              transition: 'all 0.2s'
++            }}>
++              {chatInput ? (
++                <>
++                  <button type="button" onClick={() => setChatInput('')} style={{ background: isDark ? '#334155' : '#E5E7EB', border: 'none', color: '#9CA3AF', cursor: 'pointer', display: 'flex', padding: '6px', borderRadius: '50%' }}>
++                    <X size={12} weight="bold" />
++                  </button>
++                  <input 
++                    type="text" 
++                    value={chatInput} 
++                    onChange={e => setChatInput(e.target.value)} 
++                    style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: isDark ? '#F3F4F6' : '#374151', fontSize: '14px', letterSpacing: '4px', fontWeight: 600 }} 
++                  />
++                  <button type="submit" style={{ background: '#5EEAD4', border: 'none', cursor: 'pointer', color: '#064E3B', display: 'flex', padding: '8px', borderRadius: '50%' }}>
++                    <ArrowUp size={16} weight="bold" />
++                  </button>
++                </>
++              ) : (
++                <>
++                  <input 
++                    type="text" 
++                    value={chatInput} 
++                    onChange={e => setChatInput(e.target.value)} 
++                    placeholder="How can I help?" 
++                    onClick={() => setIsChatOpen(true)}
++                    style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: isDark ? '#F3F4F6' : '#374151', fontSize: '14px' }} 
++                  />
++                  <button type="button" style={{ background: 'none', border: 'none', color: '#10B981', display: 'flex' }}>
++                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 256 256"><path d="M216,40H40A16,16,0,0,0,24,56V224a15.84,15.84,0,0,0,9.25,14.5A16.05,16.05,0,0,0,40,240a15.89,15.89,0,0,0,10.25-3.78L84.69,206.5A8,8,0,0,1,89.5,200H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,144H89.5a24,24,0,0,0-14.43,4.8L40,218V56H216Z" fill="currentColor"></path></svg>
++                  </button>
++                  <div style={{ width: '1px', height: '16px', background: isDark ? '#334155' : '#D1D5DB' }} />
++                  <button type="button" style={{ background: 'none', border: 'none', color: '#374151', display: 'flex' }}>
++                    <Microphone size={18} weight="fill" />
++                  </button>
++                </>
++              )}
++            </form>
++          </div>
++        </div>
++
++        {/* Action Buttons (Hint, Reveal) & Check/Continue Button - Bottom Bar Layout */}
++        <div style={{
++          position: 'absolute',
++          bottom: 0,
++          left: 0,
++          right: 0,
++          height: '80px',
++          display: 'flex',
++          alignItems: 'center',
++          padding: '0 32px',
++          zIndex: 30
++        }}>
++          {/* Left spacer for perfect centering */}
++          <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
++
++          </div>
++          
++          {/* Center Check/Continue Buttons */}
++          <div style={{ flex: 'none', display: 'flex', justifyContent: 'center', gap: '16px' }}>
++            {!submitted ? (
++              <button
++                className="btn-3d"
++                onClick={handleConfirm}
++                disabled={selectedOption === null || selectedOption === undefined || selectedOption === ""}
++                style={{
++                  '--btn-bg-color': '#C4B5FD',
++                  '--btn-shadow-color': '#A78BFA',
++                  '--btn-text-color': '#1E1B4B'
++                }}
++              >
++                <span className="btn-3d-face">Check</span>
++              </button>
++            ) : (
++              <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
++                <button
++                  onClick={isCorrect ? handleToggleExplain : () => setIsChatOpen(true)}
++                  style={{
++                    padding: '12px 28px',
++                    borderRadius: '9999px',
++                    border: `1px solid ${isDark ? '#475569' : '#D1D5DB'}`,
++                    background: isDark ? '#1E293B' : '#FFFFFF',
++                    color: isDark ? '#F3F4F6' : '#374151',
++                    fontWeight: 600,
++                    fontSize: '14px',
++                    cursor: 'pointer',
++                    transition: 'all 0.15s'
++                  }}
++                  onMouseEnter={e => e.currentTarget.style.background = isDark ? '#334155' : '#F9FAFB'}
++                  onMouseLeave={e => e.currentTarget.style.background = isDark ? '#1E293B' : '#FFFFFF'}
++                >
++                  {isCorrect ? 'Why?' : 'Get help'}
++                </button>
++                <button
++                  className="btn-3d"
++                  onClick={isCorrect ? handleNext : () => {
++                    setSubmitted(false);
++                    setDisabledOptions(prev => [...prev, selectedOption]);
++                    setSelectedOption(null);
++                  }}
++                  style={{
++                    '--btn-bg-color': isCorrect ? '#10B981' : '#FBBF24',
++                    '--btn-shadow-color': isCorrect ? '#047857' : '#D97706',
++                    '--btn-text-color': isCorrect ? '#FFFFFF' : '#000000'
++                  }}
++                >
++                  <span className="btn-3d-face">{isCorrect ? 'Continue' : 'Try again'}</span>
++                </button>
++              </div>
++            )}
++          </div>
++          
++          {/* Right side Hint/Reveal Actions */}
++          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px' }}>
++            {!submitted && (
++              <>
++                <button
++                  onClick={handleHint}
++                  disabled={keys < 3 || selectedOption !== null}
++                  style={{
++                    background: 'none',
++                    border: 'none',
++                    color: '#6B7280',
++                    fontSize: '14px',
++                    fontWeight: 600,
++                    cursor: (keys < 3 || selectedOption !== null) ? 'not-allowed' : 'pointer',
++                    opacity: (keys < 3 || selectedOption !== null) ? 0.5 : 1,
++                    display: 'flex',
++                    alignItems: 'center',
++                    gap: '6px',
++                    transition: 'color 0.15s'
++                  }}
++                  onMouseEnter={e => e.currentTarget.style.color = '#7C3AED'}
++                  onMouseLeave={e => e.currentTarget.style.color = '#6B7280'}
++                >
++                  <Key size={16} weight="fill" /> Hint
++                </button>
++                <button
++                  onClick={handleReveal}
++                  disabled={keys < 5 || selectedOption !== null}
++                  style={{
++                    background: 'none',
++                    border: 'none',
++                    color: '#6B7280',
++                    fontSize: '14px',
++                    fontWeight: 600,
++                    cursor: (keys < 5 || selectedOption !== null) ? 'not-allowed' : 'pointer',
++                    opacity: (keys < 5 || selectedOption !== null) ? 0.5 : 1,
++                    display: 'flex',
++                    alignItems: 'center',
++                    gap: '6px',
++                    transition: 'color 0.15s'
++                  }}
++                  onMouseEnter={e => e.currentTarget.style.color = '#7C3AED'}
++                  onMouseLeave={e => e.currentTarget.style.color = '#6B7280'}
++                >
++                  <MagnifyingGlass size={16} weight="bold" /> Reveal
++                </button>
++              </>
++            )}
++          </div>
+@@ -839 +1220 @@ export default function QuizSessionPage() {
+-      {/* ==========================================
++{/* ==========================================
+@@ -972,0 +1354,55 @@ export default function QuizSessionPage() {
++        .options-grid {
++          grid-template-columns: 1fr;
++        }
++        @media (min-width: 640px) {
++          .options-grid {
++            grid-template-columns: repeat(2, 1fr);
++          }
++        }
++        
++        .btn-3d {
++          position: relative;
++          display: inline-flex;
++          cursor: pointer;
++          padding: 0;
++          background: transparent;
++          border: none;
++          outline: none;
++          font-family: inherit;
++        }
++        .btn-3d:disabled {
++          cursor: not-allowed;
++          pointer-events: none;
++        }
++        .btn-3d-face {
++          position: relative;
++          display: inline-flex;
++          align-items: center;
++          justify-content: center;
++          padding: 14px 40px;
++          border-radius: 9999px;
++          transform: translateY(-4px);
++          box-shadow: 0 4px 0 0 var(--btn-shadow-color, #D1D5DB);
++          background-color: var(--btn-bg-color, #E5E7EB);
++          color: var(--btn-text-color, #374151);
++          font-weight: 700;
++          font-size: 16px;
++          transition: transform 100ms ease-out, box-shadow 100ms ease-out;
++          width: 100%;
++        }
++        .btn-3d:disabled .btn-3d-face {
++          transform: none;
++          box-shadow: none;
++          background-color: ${isDark ? '#334155' : '#E5E7EB'} !important;
++          color: #9CA3AF !important;
++        }
++        .btn-3d:not(:disabled):active .btn-3d-face {
++          transform: translateY(0);
++          box-shadow: 0 0 0 0 var(--btn-shadow-color, #D1D5DB);
++        }
++        
++        @keyframes slideRight {
++          from { transform: translateX(-100%); }
++          to { transform: translateX(0); }
++        }
++        

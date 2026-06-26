@@ -87,6 +87,47 @@ export default function Dashboard() {
     }
   }, [location.pathname])
 
+  // Handle join query parameter for study sessions
+  useEffect(() => {
+    if (loading || !user?.id) return
+
+    const params = new URLSearchParams(window.location.search)
+    const joinCode = params.get('join')
+    
+    if (joinCode) {
+      const handleJoin = async () => {
+        try {
+          console.log('[Dashboard] Auto-joining shared session with code:', joinCode)
+          const { useSessionStore } = await import('../../store/useSessionStore')
+          const result = await useSessionStore.getState().joinSharedSession(joinCode)
+          
+          if (result.success && result.session) {
+            console.log('[Dashboard] Joined session successfully:', result.session.id)
+            const materialId = params.get('materialId')
+            
+            // Navigate to the appropriate workspace page
+            if (materialId) {
+              navigate(`/workstation/${materialId}?sessionId=${result.session.id}`)
+            } else {
+              navigate(`/session/${result.session.id}`)
+            }
+          } else {
+            alert(result.error || 'Failed to join shared session')
+          }
+        } catch (err) {
+          console.error('[Dashboard] Error auto-joining session:', err)
+        } finally {
+          // Remove the join parameters from URL bar to prevent re-join loop on reload
+          const url = new URL(window.location.href)
+          url.searchParams.delete('join')
+          url.searchParams.delete('materialId')
+          window.history.replaceState({}, document.title, url.pathname + url.search)
+        }
+      }
+      handleJoin()
+    }
+  }, [user?.id, loading, navigate])
+
   useEffect(() => {
     let hb
     let channel
@@ -126,16 +167,42 @@ export default function Dashboard() {
               }
             } catch (error) {
               console.warn('Profile fetch failed:', error.message)
-              if (error.status === 401 || error.code === '401') {
+              const isUnauthorized = 
+                error.status === 401 || 
+                error.status === '401' || 
+                error.code === '401' || 
+                (error.message && error.message.includes('JWT expired')) ||
+                (error.message && error.message.includes('invalid jwt'))
+                
+              if (isUnauthorized) {
                 console.log('🔄 Session appears stale (401), attempting refresh...')
-                const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession()
-                if (!refreshError && refreshedSession) {
-                  const { data: retryP } = await supabase
-                    .from('profiles')
-                    .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium')
-                    .eq('id', refreshedSession.user.id)
-                    .maybeSingle()
-                  if (retryP) setProfile(retryP)
+                try {
+                  const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession()
+                  if (!refreshError && refreshedSession) {
+                    const { data: retryP } = await supabase
+                      .from('profiles')
+                      .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium')
+                      .eq('id', refreshedSession.user.id)
+                      .maybeSingle()
+                    if (retryP) setProfile(retryP)
+                  } else {
+                    throw refreshError || new Error('No session returned after refresh')
+                  }
+                } catch (refreshErr) {
+                  console.error('❌ Token refresh failed, logging out...', refreshErr.message)
+                  try {
+                    await supabase.auth.signOut()
+                  } catch (e) {
+                    console.warn('SignOut failed:', e.message)
+                  }
+                  try { localStorage.removeItem(profileCacheKey) } catch {}
+                  
+                  const url = new URL(window.location.href)
+                  url.searchParams.delete('code')
+                  url.searchParams.delete('error')
+                  const cleanPath = url.pathname + url.search
+                  window.location.href = `${LANDING_URL}/signin?redirect=${encodeURIComponent(cleanPath)}`
+                  return;
                 }
               }
             }

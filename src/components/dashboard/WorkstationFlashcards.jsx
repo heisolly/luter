@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-mo
 import { CaretLeft, CaretRight, ArrowsClockwise, GraduationCap, Users, Sparkle, CircleNotch, PaintBrush, PencilSimple, Trash, Star, FloppyDisk, X, BookOpen, TextAlignLeft, Brain, ArrowUp, MagnifyingGlass, Image as ImageIcon, Paperclip, Link, TextAa, Copy } from '@phosphor-icons/react';
 import { useBroadcastEvent, useEventListener, useOthers, useStorage } from './CollaborationProvider';
 import { MaterialAnalysisService } from '../../services/materialAnalysisService';
+import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService';
 
 export default function WorkstationFlashcards({ items = [], isDark = false, material, user, onViewContext, readOnly = false }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -213,6 +214,12 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
 
   const handleGenerate = async (isNextBatch = false) => {
     if (!material || !user) return;
+    const { ok } = await checkAndDeductCredits(user.id, CREDIT_COSTS.GENERATE_FLASHCARDS, true);
+    if (!ok) {
+      window.alert("You've used up your AI credits for today. They reset daily.");
+      return;
+    }
+
     try {
       setIsGenerating(true);
       
@@ -240,8 +247,12 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
         }
         
         // Save back to DB as fallback
-        const newAnalysis = { ...(material.analysis || {}), flashcards: finalFlashcards };
-        await MaterialAnalysisService.saveAnalysisToSupabase(material.id, newAnalysis, user.id);
+        try {
+          const newAnalysis = { ...(material.analysis || {}), flashcards: finalFlashcards };
+          await MaterialAnalysisService.saveAnalysisToSupabase(material.id, newAnalysis, user.id);
+        } catch (dbErr) {
+          console.warn('[Flashcards] Database fallback save failed:', dbErr);
+        }
         
         if (isNextBatch) {
            setShowSummary(false);
@@ -275,9 +286,13 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
     
     // Save to DB fallback
     if (material && user) {
-      const updatedCards = yFlashcards ? yFlashcards.toArray() : [...cards];
-      const newAnalysis = { ...(material?.analysis || {}), flashcards: updatedCards };
-      await MaterialAnalysisService.saveAnalysisToSupabase(material.id, newAnalysis, user.id);
+      try {
+        const updatedCards = yFlashcards ? yFlashcards.toArray() : [...cards];
+        const newAnalysis = { ...(material?.analysis || {}), flashcards: updatedCards };
+        await MaterialAnalysisService.saveAnalysisToSupabase(material.id, newAnalysis, user.id);
+      } catch (dbErr) {
+        console.warn('[Flashcards] Database fallback save failed:', dbErr);
+      }
     }
   };
 
@@ -297,9 +312,13 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
     
     // Save to DB fallback
     if (material && user) {
-      const updatedCards = yFlashcards ? yFlashcards.toArray() : cards.filter((_, idx) => idx !== currentIndex);
-      const newAnalysis = { ...(material?.analysis || {}), flashcards: updatedCards };
-      await MaterialAnalysisService.saveAnalysisToSupabase(material.id, newAnalysis, user.id);
+      try {
+        const updatedCards = yFlashcards ? yFlashcards.toArray() : cards.filter((_, idx) => idx !== currentIndex);
+        const newAnalysis = { ...(material?.analysis || {}), flashcards: updatedCards };
+        await MaterialAnalysisService.saveAnalysisToSupabase(material.id, newAnalysis, user.id);
+      } catch (dbErr) {
+        console.warn('[Flashcards] Database fallback save failed:', dbErr);
+      }
     }
   };
 
@@ -316,6 +335,14 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
   };
 
   const handleAiAction = async (actionType) => {
+    if (!user) return;
+
+    const { ok } = await checkAndDeductCredits(user.id, CREDIT_COSTS.EXPLAIN_TEXT, false);
+    if (!ok) {
+      window.alert("You've used up your AI credits for today. They reset daily.");
+      return;
+    }
+
     setIsAiLoading(true);
     setAiResponse('');
     
@@ -585,6 +612,13 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
         <button onClick={() => setShowAiHelp(true)} style={{ background: 'linear-gradient(135deg, #A78BFA 0%, #C084FC 100%)', border: 'none', padding: '12px', borderRadius: '16px', cursor: 'pointer', color: '#FFF', display: 'flex', alignItems: 'center', boxShadow: '0 4px 12px rgba(167, 139, 250, 0.4)' }}>
           <Sparkle size={20} weight="fill" />
         </button>
+        <button onClick={() => {
+          if(window.confirm("Are you sure you want to regenerate all flashcards? This will replace the current deck.")) {
+             handleGenerate(false);
+          }
+        }} style={fuldismBtnStyle} title="Regenerate Deck">
+          <ArrowsClockwise size={20} weight="bold" />
+        </button>
         {onViewContext && (
           <button onClick={() => onViewContext(cards[currentIndex]?.front)} style={fuldismBtnStyle} title="Find in Document">
             <MagnifyingGlass size={20} weight="bold" />
@@ -656,19 +690,22 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
       {/* Top Header / Collaboration Sync Status */}
       <div style={{
         position: 'absolute', top: '32px', width: '100%', maxWidth: '800px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', zIndex: 10
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', zIndex: 10, gap: '24px'
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: subTextColor, textTransform: 'uppercase', letterSpacing: '1.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981', boxShadow: '0 0 8px #10B981' }}></span>
-            Live Study Room
-          </span>
-          <span style={{ fontSize: '18px', fontWeight: 700, color: textColor, fontFamily: 'DM Sans, sans-serif' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
+          <span style={{ fontSize: '18px', fontWeight: 700, color: textColor, fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {material?.title || 'Untitled Material'}
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ 
+          display: 'flex', alignItems: 'center', gap: '4px', 
+          backgroundColor: isBrutal ? (isDark ? '#111827' : '#FFFFFF') : (isDark ? 'rgba(31, 41, 55, 0.6)' : 'rgba(255, 255, 255, 0.7)'), 
+          backdropFilter: isBrutal ? 'none' : 'blur(16px)',
+          border: isBrutal ? brutalCardBorder : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.05)'),
+          boxShadow: isBrutal ? brutalCardShadow : (isDark ? '0 4px 12px rgba(0,0,0,0.2)' : '0 4px 12px rgba(0,0,0,0.05)'),
+          padding: '6px', borderRadius: '9999px'
+        }}>
           {!readOnly && material?.id && (
             <button 
               onClick={() => {
@@ -676,19 +713,26 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
                 setCopyFeedback(true);
                 setTimeout(() => setCopyFeedback(false), 2000);
               }}
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'DM Sans, sans-serif', opacity: 0.8 }}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'DM Sans, sans-serif', padding: '8px 16px', borderRadius: '9999px', transition: 'background 0.2s', fontSize: '14px' }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
             >
-               {copyFeedback ? <span style={{color: '#10B981'}}>Copied!</span> : <><Link size={20} weight="bold" /> Share</>}
+               {copyFeedback ? <span style={{color: '#10B981'}}>Copied!</span> : <><Link size={16} weight="bold" /> Share</>}
             </button>
           )}
 
           <div style={{ position: 'relative' }}>
-            <button onClick={() => setShowFontMenu(!showFontMenu)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'DM Sans, sans-serif', opacity: 0.8 }}>
-              <TextAa size={20} weight="bold" /> Font
+            <button 
+              onClick={() => setShowFontMenu(!showFontMenu)} 
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'DM Sans, sans-serif', padding: '8px 16px', borderRadius: '9999px', transition: 'background 0.2s', fontSize: '14px' }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <TextAa size={16} weight="bold" /> Font
             </button>
             {showFontMenu && (
-              <div style={{ position: 'absolute', top: '120%', right: '0', backgroundColor: isDark ? '#1F2937' : '#FFFFFF', padding: '8px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 50, display: 'flex', flexDirection: 'column', gap: '4px', border: isDark ? '1px solid #374151' : '1px solid #E5E7EB', minWidth: '160px' }}>
-                 {[{id: 'system', label: 'Default Theme Font'}, {id: 'dyslexic', label: 'Dyslexia Friendly'}, {id: 'serif', label: 'Reading Serif'}, {id: 'mono', label: 'Monospace'}].map(font => (
+              <div style={{ position: 'absolute', top: '120%', left: '50%', transform: 'translateX(-50%)', backgroundColor: isDark ? '#1F2937' : '#FFFFFF', padding: '8px', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 50, display: 'flex', flexDirection: 'column', gap: '4px', border: isDark ? '1px solid #374151' : '1px solid #E5E7EB', minWidth: '160px' }}>
+                 {[{id: 'system', label: 'Default Font'}, {id: 'dyslexic', label: 'Dyslexia Friendly'}, {id: 'serif', label: 'Reading Serif'}, {id: 'mono', label: 'Monospace'}].map(font => (
                    <div key={font.id} onClick={() => { setSelectedFont(font.id); setShowFontMenu(false); }} style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: '8px', backgroundColor: selectedFont === font.id ? (isDark ? '#374151' : '#F3F4F6') : 'transparent', color: textColor, fontSize: '14px', fontWeight: 600 }}>{font.label}</div>
                  ))}
               </div>
@@ -702,21 +746,20 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
               else if (cardTheme === 'scrapbook') setCardTheme('typographic');
               else setCardTheme('minimal');
             }}
-            style={{ 
-              background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-              color: textColor, fontWeight: 700, fontFamily: 'DM Sans, sans-serif', opacity: 0.8
-            }}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'DM Sans, sans-serif', padding: '8px 16px', borderRadius: '9999px', transition: 'background 0.2s', fontSize: '14px' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
           >
-             <PaintBrush size={20} weight="fill" /> 
-             {cardTheme === 'minimal' ? 'Minimal Theme' : cardTheme === 'brutal' ? 'Brutal Theme' : cardTheme === 'scrapbook' ? 'Scrapbook Theme' : 'Typographic'}
+             <PaintBrush size={16} weight="fill" /> 
+             {cardTheme === 'minimal' ? 'Minimal' : cardTheme === 'brutal' ? 'Brutal' : cardTheme === 'scrapbook' ? 'Scrapbook' : 'Typo'}
           </button>
 
+          <div style={{ width: '1px', height: '24px', backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)', margin: '0 4px' }} />
+
           <div style={{ 
-            padding: '6px 12px', borderRadius: '12px', 
-            backgroundColor: isBrutal ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'),
-            border: isBrutal ? brutalCardBorder : 'none',
-            boxShadow: isBrutal ? (isDark ? '4px 4px 0px rgba(255,255,255,0.9)' : '4px 4px 0px #111827') : 'none',
-            fontSize: '14px', fontWeight: 700, color: textColor, fontFamily: 'monospace'
+            padding: '8px 16px', borderRadius: '9999px', 
+            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+            fontSize: '14px', fontWeight: 800, color: textColor, fontFamily: 'monospace'
           }}>
             {currentIndex + 1} / {totalCards}
           </div>

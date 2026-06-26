@@ -204,9 +204,9 @@ export default function DecksPage() {
 
   const handleOpen = (item) => {
     if (tab === 'flashcards') {
-      navigate('/workstation', { state: { openFlashcard: item.id, materialId: item.material_id } })
+      navigate(`/workstation/${item.material_id}?view=flashcards`);
     } else {
-      navigate('/workstation', { state: { openQuiz: item.id, materialId: item.material_id } })
+      navigate(`/workstation/${item.material_id}?view=quizzes`);
     }
   }
 

@@ -1,0 +1,1419 @@
+1: [] | import React, { useState, useEffect } from 'react';
+2: [] | import { useParams, useNavigate } from 'react-router-dom';
+3: [] | import {
+4: [] | X, Gear, Sparkle, CaretLeft, CaretRight,
+5: [] | CheckCircle, XCircle, Key, MagnifyingGlass, BookOpen,
+6: [] | Heart, Trophy, CircleNotch, SpeakerHigh, SpeakerSlash,
+7: [] | PaperPlaneRight, ArrowsCounterClockwise, Plant, MagicWand, Lightning, Microphone, ArrowUp
+8: [] | } from '@phosphor-icons/react';
+9: [] | import { supabase } from '../../supabaseClient';
+10: [] | 
+11: [] | 
+12: [] | 
+13: [] | 
+14: [] | let audioCtx = null;
+15: [] | let bgMusicInterval = null;
+16: [] | let bgMusicOscs = [];
+17: [] | let isAudioMuted = false;
+18: [] | 
+19: [] | const initAudio = () => {
+20: [] | if (!audioCtx) {
+21: [] | audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+22: [] | }
+23: [] | if (audioCtx.state === 'suspended') {
+24: [] | audioCtx.resume();
+25: [] | }
+26: [] | };
+27: [] | 
+28: [] | const playCorrectSound = () => {
+29: [] | if (isAudioMuted) return;
+30: [] | try {
+31: [] | initAudio();
+32: [] | const t = audioCtx.currentTime;
+33: [] | const osc1 = audioCtx.createOscillator();
+34: [] | const osc2 = audioCtx.createOscillator();
+35: [] | const gainNode = audioCtx.createGain();
+36: [] | 
+37: [] | osc1.type = 'triangle';
+38: [] | osc1.frequency.setValueAtTime(523.25, t);
+39: [] | osc1.frequency.setValueAtTime(659.25, t + 0.1);
+40: [] | 
+41: [] | osc2.type = 'sine';
+42: [] | osc2.frequency.setValueAtTime(1046.50, t);
+43: [] | osc2.frequency.setValueAtTime(1318.51, t + 0.1);
+44: [] | 
+45: [] | gainNode.gain.setValueAtTime(0, t);
+46: [] | gainNode.gain.linearRampToValueAtTime(0.18, t + 0.05);
+47: [] | gainNode.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+48: [] | 
+49: [] | osc1.connect(gainNode);
+50: [] | osc2.connect(gainNode);
+51: [] | gainNode.connect(audioCtx.destination);
+52: [] | 
+53: [] | osc1.start(t);
+54: [] | osc2.start(t);
+55: [] | osc1.stop(t + 0.5);
+56: [] | osc2.stop(t + 0.5);
+57: [] | } catch (err) {
+58: [] | console.warn("Audio play failed:", err);
+59: [] | }
+60: [] | };
+61: [] | 
+62: [] | const playWrongSound = () => {
+63: [] | if (isAudioMuted) return;
+64: [] | try {
+65: [] | initAudio();
+66: [] | const t = audioCtx.currentTime;
+67: [] | const osc = audioCtx.createOscillator();
+68: [] | const gainNode = audioCtx.createGain();
+69: [] | const filter = audioCtx.createBiquadFilter();
+70: [] | 
+71: [] | osc.type = 'sawtooth';
+72: [] | osc.frequency.setValueAtTime(220.00, t);
+73: [] | osc.frequency.setValueAtTime(196.00, t + 0.12);
+74: [] | 
+75: [] | filter.type = 'lowpass';
+76: [] | filter.frequency.setValueAtTime(350, t);
+77: [] | 
+78: [] | gainNode.gain.setValueAtTime(0, t);
+79: [] | gainNode.gain.linearRampToValueAtTime(0.22, t + 0.05);
+80: [] | gainNode.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+81: [] | 
+82: [] | osc.connect(filter);
+83: [] | filter.connect(gainNode);
+84: [] | gainNode.connect(audioCtx.destination);
+85: [] | 
+86: [] | osc.start(t);
+87: [] | osc.stop(t + 0.45);
+88: [] | } catch (err) {
+89: [] | console.warn("Audio play failed:", err);
+90: [] | }
+91: [] | };
+92: [] | 
+93: [] | const playClickSound = () => {
+94: [] | if (isAudioMuted) return;
+95: [] | try {
+96: [] | initAudio();
+97: [] | const t = audioCtx.currentTime;
+98: [] | const osc = audioCtx.createOscillator();
+99: [] | const gainNode = audioCtx.createGain();
+100: [] | 
+101: [] | osc.type = 'sine';
+102: [] | osc.frequency.setValueAtTime(800, t);
+103: [] | osc.frequency.exponentialRampToValueAtTime(450, t + 0.08);
+104: [] | 
+105: [] | gainNode.gain.setValueAtTime(0.06, t);
+106: [] | gainNode.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+107: [] | 
+108: [] | osc.connect(gainNode);
+109: [] | gainNode.connect(audioCtx.destination);
+110: [] | 
+111: [] | osc.start(t);
+112: [] | osc.stop(t + 0.08);
+113: [] | } catch (err) {
+114: [] | console.warn("Audio play failed:", err);
+115: [] | }
+116: [] | };
+117: [] | 
+118: [] | const startBgMusic = () => {
+119: [] | try {
+120: [] | initAudio();
+121: [] | if (bgMusicInterval) return;
+122: [] | 
+123: [] | const chords = [
+124: [] | [130.81, 164.81, 196.00, 246.94],
+125: [] | [146.83, 174.61, 220.00, 261.63],
+126: [] | [110.00, 130.81, 164.81, 196.00],
+127: [] | [174.61, 220.00, 261.63, 329.63]
+128: [] | ];
+129: [] | 
+130: [] | let chordIdx = 0;
+131: [] | 
+132: [] | const playNextChord = () => {
+133: [] | if (isAudioMuted || !audioCtx) return;
+134: [] | const t = audioCtx.currentTime;
+135: [] | const chord = chords[chordIdx];
+136: [] | chordIdx = (chordIdx + 1) % chords.length;
+137: [] | 
+138: [] | bgMusicOscs.forEach(o => {
+139: [] | try { o.stop(t); } catch(e){}
+140: [] | });
+141: [] | bgMusicOscs = [];
+142: [] | 
+143: [] | chord.forEach((freq) => {
+144: [] | const osc = audioCtx.createOscillator();
+145: [] | const gainNode = audioCtx.createGain();
+146: [] | const filter = audioCtx.createBiquadFilter();
+147: [] | 
+148: [] | osc.type = 'triangle';
+149: [] | osc.frequency.value = freq;
+150: [] | 
+151: [] | filter.type = 'lowpass';
+152: [] | filter.frequency.value = 300;
+153: [] | 
+154: [] | gainNode.gain.setValueAtTime(0, t);
+155: [] | gainNode.gain.linearRampToValueAtTime(0.02, t + 1.5);
+156: [] | gainNode.gain.setValueAtTime(0.02, t + 4.5);
+157: [] | gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 6.0);
+158: [] | 
+159: [] | osc.connect(filter);
+160: [] | filter.connect(gainNode);
+161: [] | gainNode.connect(audioCtx.destination);
+162: [] | 
+163: [] | osc.start(t);
+164: [] | osc.stop(t + 6.0);
+165: [] | bgMusicOscs.push(osc);
+166: [] | });
+167: [] | };
+168: [] | 
+169: [] | playNextChord();
+170: [] | bgMusicInterval = setInterval(playNextChord, 5600);
+171: [] | } catch (err) {
+172: [] | console.warn("Background music failed:", err);
+173: [] | }
+174: [] | };
+175: [] | 
+176: [] | const stopBgMusic = () => {
+177: [] | if (bgMusicInterval) {
+178: [] | clearInterval(bgMusicInterval);
+179: [] | bgMusicInterval = null;
+180: [] | }
+181: [] | const t = audioCtx ? audioCtx.currentTime : 0;
+182: [] | bgMusicOscs.forEach(o => {
+183: [] | try { o.stop(t); } catch(e){}
+184: [] | });
+185: [] | bgMusicOscs = [];
+186: [] | };
+187: [] | 
+188: [] | 
+189: [] | 
+190: [] | 
+191: [] | export default function QuizSessionPage() {
+192: [] | const { materialId } = useParams();
+193: [] | const navigate = useNavigate();
+194: [] | 
+195: [] | const [user, setUser] = useState(null);
+196: [] | const [material, setMaterial] = useState(null);
+197: [] | const [questions, setQuestions] = useState([]);
+198: [] | const [loading, setLoading] = useState(true);
+199: [] | 
+200: [] | 
+201: [] | const [isDark, setIsDark] = useState(() => {
+202: [] | return localStorage.getItem('luter-theme') === 'dark';
+203: [] | });
+204: [] | 
+205: [] | 
+206: [] | const [currentIndex, setCurrentIndex] = useState(0);
+207: [] | const [selectedOption, setSelectedOption] = useState(null);
+208: [] | const [submitted, setSubmitted] = useState(false);
+209: [] | const [isCorrect, setIsCorrect] = useState(false);
+210: [] | 
+211: [] | 
+212: [] | const [keys, setKeys] = useState(15);
+213: [] | const [, setHearts] = useState(5);
+214: [] | const [xp, setXp] = useState(0);
+215: [] | const [disabledOptions, setDisabledOptions] = useState([]);
+216: [] | const [showExplain, setShowExplain] = useState(false);
+217: [] | 
+218: [] | 
+219: [] | const [correctCount, setCorrectCount] = useState(0);
+220: [] | const [wrongCount, setWrongCount] = useState(0);
+221: [] | const [isFinished, setIsFinished] = useState(false);
+222: [] | const [, setSavingResult] = useState(false);
+223: [] | 
+224: [] | 
+225: [] | const [sfxEnabled, setSfxEnabled] = useState(true);
+226: [] | const [musicEnabled, setMusicEnabled] = useState(false);
+227: [] | const [showSettingsModal, setShowSettingsModal] = useState(false);
+228: [] | 
+229: [] | 
+230: [] | const [chatMessages, setChatMessages] = useState([]);
+231: [] | const [chatInput, setChatInput] = useState('');
+232: [] | const [isTyping, setIsTyping] = useState(false);
+233: [] | const [isChatOpen, setIsChatOpen] = useState(false);
+234: [] | 
+235: [] | 
+236: [] | useEffect(() => {
+237: [] | isAudioMuted = !sfxEnabled;
+238: [] | }, [sfxEnabled]);
+239: [] | 
+240: [] | 
+241: [] | useEffect(() => {
+242: [] | if (musicEnabled) {
+243: [] | startBgMusic();
+244: [] | } else {
+245: [] | stopBgMusic();
+246: [] | }
+247: [] | return () => stopBgMusic();
+248: [] | }, [musicEnabled]);
+249: [] | 
+250: [] | 
+251: [] | useEffect(() => {
+252: [] | const initData = async () => {
+253: [] | setLoading(true);
+254: [] | try {
+255: [] | const { data: { user: currentUser } } = await supabase.auth.getUser();
+256: [] | if (!currentUser) {
+257: [] | navigate('/signin');
+258: [] | return;
+259: [] | }
+260: [] | setUser(currentUser);
+261: [] | 
+262: [] | const { data: mat, error: matErr } = await supabase
+263: [] | .from('materials')
+264: [] | .select('*')
+265: [] | .eq('id', materialId)
+266: [] | .single();
+267: [] | 
+268: [] | if (matErr || !mat) {
+269: [] | console.error("Error loading material:", matErr);
+270: [] | navigate('/home');
+271: [] | return;
+272: [] | }
+273: [] | setMaterial(mat);
+274: [] | 
+275: [] | const { data: analysis } = await supabase
+276: [] | .from('material_analysis')
+277: [] | .select('*')
+278: [] | .eq('material_id', materialId)
+279: [] | .maybeSingle();
+280: [] | 
+281: [] | if (analysis) {
+282: [] | const quizObj = analysis.quiz || analysis.analysis?.quiz;
+283: [] | const loadedQuestions = Array.isArray(quizObj)
+284: [] | ? quizObj
+285: [] | : (quizObj?.questions || []);
+286: [] | setQuestions(loadedQuestions);
+287: [] | }
+288: [] | } catch (err) {
+289: [] | console.error("Failed to initialize quiz session:", err);
+290: [] | } finally {
+291: [] | setLoading(false);
+292: [] | }
+293: [] | };
+294: [] | 
+295: [] | initData();
+296: [] | }, [materialId, navigate]);
+297: [] | 
+298: [] | 
+299: [] | useEffect(() => {
+300: [] | document.body.classList.toggle('dark-mode', isDark);
+301: [] | document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+302: [] | localStorage.setItem('luter-theme', isDark ? 'dark' : 'light');
+303: [] | }, [isDark]);
+304: [] | 
+305: [] | 
+306: [] | const currentQ = questions[currentIndex];
+307: [] | useEffect(() => {
+308: [] | if (currentQ) {
+309: [] | setChatMessages([
+310: [] | {
+311: [] | id: 'initial',
+312: [] | sender: 'assistant',
+313: [] | text: currentQ.explanation || "Let me know if you would like me to explain this question!"
+314: [] | }
+315: [] | ]);
+316: [] | }
+317: [] | }, [currentIndex, currentQ]);
+318: [] | 
+319: [] | 
+320: [] | const getCorrectIndex = (q) => {
+321: [] | if (!q) return -1;
+322: [] | const ans = q.correctAnswer ?? q.correct_answer ?? q.answer;
+323: [] | if (ans === undefined || ans === null) return -1;
+324: [] | if (typeof ans === 'number') return ans;
+325: [] | 
+326: [] | if (typeof ans === 'string') {
+327: [] | const lower = ans.trim().toLowerCase();
+328: [] | if (lower === 'a') return 0;
+329: [] | if (lower === 'b') return 1;
+330: [] | if (lower === 'c') return 2;
+331: [] | if (lower === 'd') return 3;
+332: [] | if (lower === 'true' || lower === 'yes') return 1;
+333: [] | if (lower === 'false' || lower === 'no') return 0;
+334: [] | 
+335: [] | const parsed = parseInt(lower, 10);
+336: [] | if (!isNaN(parsed)) return parsed;
+337: [] | 
+338: [] | if (q.options) {
+339: [] | const idx = q.options.findIndex(opt => {
+340: [] | const text = (typeof opt === 'object' ? (opt.text || opt.choice || "") : opt).toString().toLowerCase();
+341: [] | return text === lower;
+342: [] | });
+343: [] | if (idx !== -1) return idx;
+344: [] | }
+345: [] | }
+346: [] | return -1;
+347: [] | };
+348: [] | 
+349: [] | const correctIdx = currentQ ? getCorrectIndex(currentQ) : -1;
+350: [] | 
+351: [] | const handleSelectOption = (idx) => {
+352: [] | if (submitted || disabledOptions.includes(idx)) return;
+353: [] | playClickSound();
+354: [] | setSelectedOption(idx);
+355: [] | };
+356: [] | 
+357: [] | 
+358: [] | const playVoiceFeedback = (isCorrectAnswer) => {
+359: [] | if (!sfxEnabled) return;
+360: [] | 
+361: [] | if (!('speechSynthesis' in window)) return;
+362: [] | 
+363: [] | const correctPhrases = [
+364: [] | "Wow, nice try!",
+365: [] | "Nice bro, harder!",
+366: [] | "You're a genius!",
+367: [] | "Spot on! Keep it up bro.",
+368: [] | "Amazing work bro!",
+369: [] | "Yes! You got this bro!"
+370: [] | ];
+371: [] | 
+372: [] | const wrongPhrases = [
+373: [] | "Not quite, but keep up bro.",
+374: [] | "That's why your CGPA keeps dropping faster than your hairline.",
+375: [] | "Are you even trying? Come on bro.",
+376: [] | "Bro, did you even read the question?",
+377: [] | "Wrong! My grandma could have answered that.",
+378: [] | "Ouch... that was painful to watch."
+379: [] | ];
+380: [] | 
+381: [] | const phrases = isCorrectAnswer ? correctPhrases : wrongPhrases;
+382: [] | const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+383: [] | 
+384: [] | 
+385: [] | window.speechSynthesis.cancel();
+386: [] | 
+387: [] | const utterance = new SpeechSynthesisUtterance(randomPhrase);
+388: [] | utterance.rate = 1.0;
+389: [] | utterance.pitch = 1.0;
+390: [] | 
+391: [] | window.speechSynthesis.speak(utterance);
+392: [] | };
+393: [] | 
+394: [] | 
+395: [] | const handleConfirm = () => {
+396: [] | if (selectedOption === null || submitted) return;
+397: [] | 
+398: [] | const correct = selectedOption === correctIdx;
+399: [] | setIsCorrect(correct);
+400: [] | setSubmitted(true);
+401: [] | setShowExplain(true);
+402: [] | 
+403: [] | if (correct) {
+404: [] | playCorrectSound();
+405: [] | setCorrectCount(c => c + 1);
+406: [] | setXp(x => x + 15);
+407: [] | setKeys(k => k + 5);
+408: [] | } else {
+409: [] | playWrongSound();
+410: [] | setWrongCount(w => w + 1);
+411: [] | setHearts(h => Math.max(0, h - 1));
+412: [] | }
+413: [] | 
+414: [] | playVoiceFeedback(correct);
+415: [] | };
+416: [] | 
+417: [] | 
+418: [] | const handleNext = () => {
+419: [] | playClickSound();
+420: [] | if (currentIndex < questions.length - 1) {
+421: [] | setCurrentIndex(idx => idx + 1);
+422: [] | setSelectedOption(null);
+423: [] | setSubmitted(false);
+424: [] | setDisabledOptions([]);
+425: [] | setShowExplain(false);
+426: [] | } else {
+427: [] | handleFinishQuiz();
+428: [] | }
+429: [] | };
+430: [] | 
+431: [] | 
+432: [] | 
+433: [] | const handleHint = () => {
+434: [] | if (submitted || keys < 3 || !currentQ) return;
+435: [] | playClickSound();
+436: [] | 
+437: [] | const incorrectIndices = currentQ.options
+438: [] | .map((_, idx) => idx)
+439: [] | .filter(idx => idx !== correctIdx && !disabledOptions.includes(idx));
+440: [] | 
+441: [] | if (incorrectIndices.length > 0) {
+442: [] | const randomIndex = incorrectIndices[Math.floor(Math.random() * incorrectIndices.length)];
+443: [] | setDisabledOptions(prev => [...prev, randomIndex]);
+444: [] | setKeys(k => Math.max(0, k - 3));
+445: [] | 
+446: [] | if (selectedOption === randomIndex) {
+447: [] | setSelectedOption(null);
+448: [] | }
+449: [] | }
+450: [] | };
+451: [] | 
+452: [] | 
+453: [] | const handleReveal = () => {
+454: [] | if (submitted || keys < 5) return;
+455: [] | playClickSound();
+456: [] | setSelectedOption(correctIdx);
+457: [] | setIsCorrect(true);
+458: [] | setSubmitted(true);
+459: [] | setShowExplain(true);
+460: [] | setCorrectCount(c => c + 1);
+461: [] | setXp(x => x + 5);
+462: [] | setKeys(k => Math.max(0, k - 5));
+463: [] | };
+464: [] | 
+465: [] | const handleToggleExplain = () => {
+466: [] | playClickSound();
+467: [] | setShowExplain(prev => !prev);
+468: [] | };
+469: [] | 
+470: [] | 
+471: [] | const handleFinishQuiz = async () => {
+472: [] | setSavingResult(true);
+473: [] | const finalAccuracy = questions.length > 0
+474: [] | ? Math.round((correctCount / questions.length) * 100)
+475: [] | : 0;
+476: [] | 
+477: [] | try {
+478: [] | if (user && material) {
+479: [] | await supabase
+480: [] | .from('quiz_attempts')
+481: [] | .insert([{
+482: [] | user_id: user.id,
+483: [] | material_id: material.id,
+484: [] | score: correctCount,
+485: [] | total: questions.length,
+486: [] | accuracy: finalAccuracy,
+487: [] | correct: correctCount,
+488: [] | wrong: wrongCount
+489: [] | }]);
+490: [] | }
+491: [] | } catch (e) {
+492: [] | console.error("Failed to save quiz attempt:", e);
+493: [] | } finally {
+494: [] | setSavingResult(false);
+495: [] | setIsFinished(true);
+496: [] | }
+497: [] | };
+498: [] | 
+499: [] | 
+500: [] | const handleSendChat = (e) => {
+501: [] | e.preventDefault();
+502: [] | if (!chatInput.trim()) return;
+503: [] | 
+504: [] | playClickSound();
+505: [] | const userMsg = {
+506: [] | id: Date.now().toString(),
+507: [] | sender: 'user',
+508: [] | text: chatInput.trim()
+509: [] | };
+510: [] | 
+511: [] | setChatMessages(prev => [...prev, userMsg]);
+512: [] | setChatInput('');
+513: [] | setIsTyping(true);
+514: [] | 
+515: [] | setTimeout(() => {
+516: [] | let responseText = `Regarding your question: "${userMsg.text}". Let's take a look. `;
+517: [] | const query = userMsg.text.toLowerCase();
+518: [] | 
+519: [] | if (query.includes('why') || query.includes('explain') || query.includes('reason')) {
+520: [] | responseText += `The core reason here is related to the explanation: "${currentQ.explanation}". Since the correct option is "${currentQ.options[correctIdx]}", any other choice doesn't align with these parameters.`;
+521: [] | } else if (query.includes('how') || query.includes('formula') || query.includes('solve')) {
+522: [] | responseText += `To solve this, analyze the step-by-step breakdown: First identify the definitions or values given. Then, eliminate options that are structurally incorrect. Would you like me to walk through another part of this question?`;
+523: [] | } else if (query.includes('what') || query.includes('mean')) {
+524: [] | responseText += `In this context, the terminology refers to standard concepts in ${material?.name || 'this deck'}. Let me know if you would like definitions of the terms used in the options!`;
+525: [] | } else {
+526: [] | responseText += `I see! That points to the core mechanism in ${material?.name || 'the material'}. Let me know if you want me to expand on why the correct answer is "${currentQ.options[correctIdx]}".`;
+527: [] | }
+528: [] | 
+529: [] | setChatMessages(prev => [...prev, {
+530: [] | id: (Date.now() + 1).toString(),
+531: [] | sender: 'assistant',
+532: [] | text: responseText
+533: [] | }]);
+534: [] | setIsTyping(false);
+535: [] | }, 1100);
+536: [] | };
+537: [] | 
+538: [] | 
+539: [] | const pageBg = isDark ? '#0F172A' : '#F9FAFB';
+540: [] | const cardBg = isDark ? '#1E293B' : '#FFFFFF';
+541: [] | const borderCol = isDark ? '#334155' : '#E2E8F0';
+542: [] | const fontColor = isDark ? '#F9FAFB' : '#333333';
+543: [] | const subFontColor = isDark ? '#94A3B8' : '#64748B';
+544: [] | const gridDotColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)';
+545: [] | 
+546: [] | 
+547: [] | if (loading) {
+548: [] | return (
+549: [div] | <div style={{
+550: [div] | height: '100vh',
+551: [div] | width: '100vw',
+552: [div] | display: 'flex',
+553: [div] | alignItems: 'center',
+554: [div] | justifyContent: 'center',
+555: [div] | background: pageBg,
+556: [div] | fontFamily: 'Outfit, sans-serif'
+557: [div] | }}>
+558: [div] | <CircleNotch size={40} className="spin" color="#C4B5FD" />
+559: [] | </div>
+560: [] | );
+561: [] | }
+562: [] | 
+563: [] | 
+564: [] | if (questions.length === 0) {
+565: [] | return (
+566: [div] | <div style={{
+567: [div] | height: '100vh',
+568: [div] | width: '100vw',
+569: [div] | display: 'flex',
+570: [div] | flexDirection: 'column',
+571: [div] | alignItems: 'center',
+572: [div] | justifyContent: 'center',
+573: [div] | background: pageBg,
+574: [div] | fontFamily: 'Outfit, sans-serif',
+575: [div] | padding: '24px',
+576: [div] | textAlign: 'center'
+577: [div] | }}>
+578: [div] | <XCircle size={64} color="#EF4444" />
+579: [div] | <h2 style={{ fontSize: '24px', fontWeight: 800, marginTop: '20px', color: fontColor }}>No Questions Found</h2>
+580: [div, p] | <p style={{ fontSize: '15px', color: subFontColor, maxWidth: '440px', margin: '8px 0 28px' }}>
+581: [div, p] | This material does not contain any quiz questions. Please generate questions in the workstation workspace first.
+582: [div] | </p>
+583: [div, button] | <button
+584: [div, button] | onClick={() => navigate(`/workstation/${materialId}?view=quizzes`)}
+585: [div, button] | style={{
+586: [div, button] | padding: '14px 28px',
+587: [div, button] | borderRadius: '9999px',
+588: [div, button] | border: 'none',
+589: [div, button] | backgroundColor: '#98FF98',
+590: [div, button] | color: '#14532D',
+591: [div, button] | fontWeight: 800,
+592: [div, button] | fontSize: '15px',
+593: [div, button] | cursor: 'pointer',
+594: [div, button] | boxShadow: '0 4px 14px rgba(152, 255, 152, 0.3)'
+595: [div, button] | }}
+596: [div, button] | >
+597: [div, button] | Go to Workstation
+598: [div] | </button>
+599: [] | </div>
+600: [] | );
+601: [] | }
+602: [] | 
+603: [] | 
+604: [] | if (isFinished) {
+605: [] | const accuracy = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
+606: [] | return (
+607: [div] | <div style={{
+608: [div] | height: '100vh',
+609: [div] | width: '100vw',
+610: [div] | display: 'flex',
+611: [div] | alignItems: 'center',
+612: [div] | justifyContent: 'center',
+613: [div] | backgroundColor: pageBg,
+614: [div] | fontFamily: 'Outfit, sans-serif',
+615: [div] | backgroundImage: `radial-gradient(${gridDotColor} 1px, transparent 1px)`,
+616: [div] | backgroundSize: '24px 24px',
+617: [div] | padding: '24px'
+618: [div] | }}>
+619: [div, div] | <div style={{
+620: [div, div] | background: cardBg,
+621: [div, div] | border: `1px solid ${borderCol}`,
+622: [div, div] | borderRadius: '28px',
+623: [div, div] | padding: '48px 40px',
+624: [div, div] | width: '100%',
+625: [div, div] | maxWidth: '520px',
+626: [div, div] | textAlign: 'center',
+627: [div, div] | boxShadow: isDark ? '0 16px 48px rgba(0, 0, 0, 0.4)' : '0 16px 48px rgba(15, 23, 42, 0.06)'
+628: [div, div] | }}>
+629: [div, div, div] | <div style={{
+630: [div, div, div] | width: '84px',
+631: [div, div, div] | height: '84px',
+632: [div, div, div] | borderRadius: '50%',
+633: [div, div, div] | background: accuracy >= 70 ? 'rgba(152, 255, 152, 0.15)' : 'rgba(239, 68, 68, 0.12)',
+634: [div, div, div] | display: 'flex',
+635: [div, div, div] | alignItems: 'center',
+636: [div, div, div] | justifyContent: 'center',
+637: [div, div, div] | margin: '0 auto 28px',
+638: [div, div, div] | border: `2px solid ${accuracy >= 70 ? '#98FF98' : '#EF4444'}`
+639: [div, div, div] | }}>
+640: [div, div, div] | <Trophy size={42} color={accuracy >= 70 ? '#10B981' : '#F59E0B'} weight="fill" />
+641: [div, div] | </div>
+642: [div, div] | 
+643: [div, div, h2] | <h2 style={{ fontSize: '30px', fontWeight: 900, color: fontColor, margin: '0 0 10px' }}>
+644: [div, div, h2] | {accuracy >= 70 ? 'Excellent job!' : 'Good try!'}
+645: [div, div] | </h2>
+646: [div, div, p] | <p style={{ fontSize: '15px', color: subFontColor, margin: '0 0 36px' }}>
+647: [div, div, p] | You scored {correctCount} out of {questions.length} correct.
+648: [div, div] | </p>
+649: [div, div] | 
+650: [div, div, div] | <div style={{
+651: [div, div, div] | display: 'grid',
+652: [div, div, div] | gridTemplateColumns: '1fr 1fr',
+653: [div, div, div] | gap: '18px',
+654: [div, div, div] | marginBottom: '40px'
+655: [div, div, div] | }}>
+656: [div, div, div, div] | <div style={{
+657: [div, div, div, div] | background: isDark ? '#111827' : '#F8FAFC',
+658: [div, div, div, div] | borderRadius: '20px',
+659: [div, div, div, div] | padding: '20px',
+660: [div, div, div, div] | border: `1.5px solid ${borderCol}`
+661: [div, div, div, div] | }}>
+662: [div, div, div, div] | <div style={{ fontSize: '11px', fontWeight: 800, color: subFontColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Accuracy</div>
+663: [div, div, div, div] | <div style={{ fontSize: '28px', fontWeight: 900, color: fontColor, marginTop: '6px' }}>{accuracy}%</div>
+664: [div, div, div] | </div>
+665: [div, div, div, div] | <div style={{
+666: [div, div, div, div] | background: isDark ? '#111827' : '#F8FAFC',
+667: [div, div, div, div] | borderRadius: '20px',
+668: [div, div, div, div] | padding: '20px',
+669: [div, div, div, div] | border: `1.5px solid ${borderCol}`
+670: [div, div, div, div] | }}>
+671: [div, div, div, div] | <div style={{ fontSize: '11px', fontWeight: 800, color: subFontColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>XP Earned</div>
+672: [div, div, div, div] | <div style={{ fontSize: '28px', fontWeight: 900, color: '#C4B5FD', marginTop: '6px' }}>+{xp} XP</div>
+673: [div, div, div] | </div>
+674: [div, div] | </div>
+675: [div, div] | 
+676: [div, div, button] | <button
+677: [div, div, button] | onClick={() => navigate(`/workstation/${materialId}?view=quizzes`)}
+678: [div, div, button] | style={{
+679: [div, div, button] | width: '100%',
+680: [div, div, button] | padding: '16px',
+681: [div, div, button] | borderRadius: '9999px',
+682: [div, div, button] | border: 'none',
+683: [div, div, button] | backgroundColor: '#C4B5FD',
+684: [div, div, button] | color: '#1E1B4B',
+685: [div, div, button] | fontWeight: 800,
+686: [div, div, button] | fontSize: '16px',
+687: [div, div, button] | cursor: 'pointer',
+688: [div, div, button] | boxShadow: '0 8px 24px rgba(196, 181, 253, 0.35)',
+689: [div, div, button] | transition: 'transform 0.15s ease'
+690: [div, div, button] | }}
+691: [div, div, button] | onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.01)'}
+692: [div, div, button] | onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+693: [div, div, button] | >
+694: [div, div, button] | Close Session
+695: [div, div] | </button>
+696: [div] | </div>
+697: [] | </div>
+698: [] | );
+699: [] | }
+700: [] | 
+701: [] | return (
+702: [div] | <div style={{
+703: [div] | height: '100dvh',
+704: [div] | width: '100vw',
+705: [div] | backgroundColor: isDark ? '#0B0F19' : '#FFFFFF',
+706: [div] | fontFamily: 'Outfit, sans-serif',
+707: [div] | display: 'flex',
+708: [div] | flexDirection: 'column',
+709: [div] | color: fontColor,
+710: [div] | overflow: 'hidden'
+711: [div] | }}>
+712: [div] | 
+713: [div] | {}
+714: [div, div] | <div style={{
+715: [div, div] | height: '64px',
+716: [div, div] | padding: '0 24px',
+717: [div, div] | display: 'flex',
+718: [div, div] | alignItems: 'center',
+719: [div, div] | justifyContent: 'space-between',
+720: [div, div] | flexShrink: 0
+721: [div, div] | }}>
+722: [div, div] | {}
+723: [div, div, div] | <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+724: [div, div, div, button] | <button
+725: [div, div, div, button] | onClick={() => navigate(`/workstation/${materialId}?view=quizzes`)}
+726: [div, div, div, button] | style={{
+727: [div, div, div, button] | background: 'transparent',
+728: [div, div, div, button] | border: 'none',
+729: [div, div, div, button] | cursor: 'pointer',
+730: [div, div, div, button] | color: subFontColor,
+731: [div, div, div, button] | display: 'flex',
+732: [div, div, div, button] | alignItems: 'center',
+733: [div, div, div, button] | justifyContent: 'center',
+734: [div, div, div, button] | padding: '8px'
+735: [div, div, div, button] | }}
+736: [div, div, div, button] | >
+737: [div, div, div, button] | <X size={20} weight="bold" />
+738: [div, div, div] | </button>
+739: [div, div] | </div>
+740: [div, div] | 
+741: [div, div] | {}
+742: [div, div, div] | <div style={{ display: 'flex', flex: 2, alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+743: [div, div, div, div] | <div style={{ width: '100%', maxWidth: '400px', height: '12px', background: isDark ? '#334155' : '#DDD6FE', borderRadius: '999px', overflow: 'hidden' }}>
+744: [div, div, div, div] | <div style={{ width: `${((currentIndex) / questions.length) * 100}%`, height: '100%', background: '#7C3AED', borderRadius: '999px', transition: 'width 0.3s ease' }} />
+745: [div, div, div] | </div>
+746: [div, div, div] | {}
+747: [div, div, div] | <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isDark ? '#334155' : '#F3F4F6' }} />
+748: [div, div, div] | <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isDark ? '#334155' : '#F3F4F6' }} />
+749: [div, div] | </div>
+750: [div, div] | 
+751: [div, div] | {}
+752: [div, div, div] | <div style={{
+753: [div, div, div] | display: 'flex',
+754: [div, div, div] | alignItems: 'center',
+755: [div, div, div] | gap: '12px',
+756: [div, div, div] | flex: 1,
+757: [div, div, div] | justifyContent: 'flex-end'
+758: [div, div, div] | }}>
+759: [div, div, div, div] | <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '16px', fontWeight: 600, color: subFontColor }}>
+760: [div, div, div, div] | <span>{xp}</span>
+761: [div, div, div, div] | <Sparkle size={20} weight="regular" color={subFontColor} />
+762: [div, div, div, div] | <Lightning size={20} weight="fill" color="#FACC15" />
+763: [div, div, div] | </div>
+764: [div, div] | </div>
+765: [div] | </div>
+766: [div] | 
+767: [div] | {}
+768: [div, div] | <div style={{
+769: [div, div] | flex: 1,
+770: [div, div] | margin: '0 24px 24px 24px',
+771: [div, div] | border: submitted
+772: [div, div] | ? `2px solid ${isCorrect ? '#4ADE80' : '#FBBF24'}`
+773: [div, div] | : `2px solid ${isDark ? '#1E293B' : '#E5E7EB'}`,
+774: [div, div] | borderRadius: '32px',
+775: [div, div] | background: isDark ? '#0F172A' : '#FFFFFF',
+776: [div, div] | position: 'relative',
+777: [div, div] | display: 'flex',
+778: [div, div] | flexDirection: 'column',
+779: [div, div] | overflow: 'hidden',
+780: [div, div] | boxShadow: submitted
+781: [div, div] | ? (isCorrect
+782: [div, div] | ? '0 0 0 4px rgba(74, 222, 128, 0.15)'
+783: [div, div] | : '0 0 0 4px rgba(251, 191, 36, 0.15)'
+784: [div, div] | )
+785: [div, div] | : (isDark ? 'none' : '0 10px 40px rgba(0,0,0,0.02)'),
+786: [div, div] | transition: 'border 0.3s ease, box-shadow 0.3s ease',
+787: [div, div] | position: 'relative',
+788: [div, div] | display: 'flex',
+789: [div, div] | flexDirection: 'column',
+790: [div, div] | overflow: 'hidden',
+791: [div, div] | boxShadow: isDark ? 'none' : '0 10px 40px rgba(0,0,0,0.02)'
+792: [div, div] | }}>
+793: [div, div] | 
+794: [div, div] | {}
+795: [div, div, div] | <div style={{ position: 'absolute', top: '24px', left: '24px', display: 'flex', flexDirection: 'column', gap: '20px', zIndex: 20 }}>
+796: [div, div, div, button] | <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1D5DB' }}>
+797: [div, div, div, button, svg] | <svg xmlns="http:
+798: [div, div, div] | </button>
+799: [div, div, div, button] | <button onClick={() => setSfxEnabled(!sfxEnabled)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1D5DB' }}>
+800: [div, div, div, button] | {sfxEnabled ? <SpeakerHigh size={20} weight="fill" /> : <SpeakerSlash size={20} weight="fill" />}
+801: [div, div, div] | </button>
+802: [div, div] | </div>
+803: [div, div] | 
+804: [div, div] | {}
+805: [div, div, div] | <div style={{
+806: [div, div, div] | flex: 1,
+807: [div, div, div] | display: 'flex',
+808: [div, div, div] | flexDirection: 'column',
+809: [div, div, div] | alignItems: 'center',
+810: [div, div, div] | justifyContent: 'center',
+811: [div, div, div] | padding: '40px 80px',
+812: [div, div, div] | overflowY: 'auto'
+813: [div, div, div] | }}>
+814: [div, div, div] | {currentQ && (
+815: [div, div, div, div] | <div style={{ width: '100%', maxWidth: '640px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+816: [div, div, div, div, p] | <p style={{ fontSize: '12px', fontWeight: 600, color: '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px', textAlign: 'center' }}>
+817: [div, div, div, div, p] | Question {currentIndex + 1} of {questions.length}
+818: [div, div, div, div] | </p>
+819: [div, div, div, div, h2] | <h2 style={{
+820: [div, div, div, div, h2] | fontSize: '28px',
+821: [div, div, div, div, h2] | fontWeight: 800,
+822: [div, div, div, div, h2] | color: fontColor,
+823: [div, div, div, div, h2] | marginBottom: '12px',
+824: [div, div, div, div, h2] | textAlign: 'center'
+825: [div, div, div, div, h2] | }}>
+826: [div, div, div, div, h2] | {currentQ.question}
+827: [div, div, div, div] | </h2>
+828: [div, div, div, div] | {}
+829: [div, div, div, div] | {!submitted && (
+830: [div, div, div, div, p] | <p style={{ fontSize: '15px', color: subFontColor, marginBottom: '40px', textAlign: 'center' }}>
+831: [div, div, div, div, p] | Select the correct answer below.
+832: [div, div, div, div] | </p>
+833: [div, div, div, div] | )}
+834: [div, div, div, div] | 
+835: [div, div, div, div] | 
+836: [div, div, div, div] | {}
+837: [div, div, div, div, div] | <div className="options-grid" style={{ display: 'grid', gap: '12px', width: '100%' }}>
+838: [div, div, div, div, div] | {currentQ.options.map((opt, i) => {
+839: [div, div, div, div, div] | const isSelected = selectedOption === i;
+840: [div, div, div, div, div] | const isCorrectOption = i === correctIdx;
+841: [div, div, div, div, div] | const isEliminated = disabledOptions.includes(i);
+842: [div, div, div, div, div] | const optionText = typeof opt === 'object' ? (opt.text || opt.choice || '') : opt;
+843: [div, div, div, div, div] | 
+844: [div, div, div, div, div] | if (isEliminated) return null;
+845: [div, div, div, div, div] | 
+846: [div, div, div, div, div] | let optBg = 'transparent';
+847: [div, div, div, div, div] | let optBorder = `2px solid ${isDark ? '#334155' : '#E5E7EB'}`;
+848: [div, div, div, div, div] | let optColor = subFontColor;
+849: [div, div, div, div, div] | 
+850: [div, div, div, div, div] | if (submitted) {
+851: [div, div, div, div, div] | if (isCorrectOption) {
+852: [div, div, div, div, div] | optBg = isDark ? 'rgba(34, 197, 94, 0.1)' : '#DCFCE7';
+853: [div, div, div, div, div] | optBorder = '2px solid #22C55E';
+854: [div, div, div, div, div] | optColor = '#166534';
+855: [div, div, div, div, div] | } else if (isSelected) {
+856: [div, div, div, div, div] | optBg = isDark ? 'rgba(239, 68, 68, 0.1)' : '#FEE2E2';
+857: [div, div, div, div, div] | optBorder = '2px solid #EF4444';
+858: [div, div, div, div, div] | optColor = '#991B1B';
+859: [div, div, div, div, div] | }
+860: [div, div, div, div, div] | } else if (isSelected) {
+861: [div, div, div, div, div] | optBg = isDark ? 'rgba(196, 181, 253, 0.1)' : '#F3E8FF';
+862: [div, div, div, div, div] | optBorder = '2px solid #C4B5FD';
+863: [div, div, div, div, div] | optColor = isDark ? '#C4B5FD' : '#6B21A8';
+864: [div, div, div, div, div] | }
+865: [div, div, div, div, div] | 
+866: [div, div, div, div, div] | return (
+867: [div, div, div, div, div, button] | <button
+868: [div, div, div, div, div, button] | key={i}
+869: [div, div, div, div, div, button] | disabled={submitted}
+870: [div, div, div, div, div, button] | onClick={() => handleSelectOption(i)}
+871: [div, div, div, div, div, button] | style={{
+872: [div, div, div, div, div, button] | display: 'flex',
+873: [div, div, div, div, div, button] | alignItems: 'center',
+874: [div, div, div, div, div, button] | justifyContent: 'center',
+875: [div, div, div, div, div, button] | padding: '18px 24px',
+876: [div, div, div, div, div, button] | borderRadius: '16px',
+877: [div, div, div, div, div, button] | backgroundColor: optBg,
+878: [div, div, div, div, div, button] | border: optBorder,
+879: [div, div, div, div, div, button] | color: optColor,
+880: [div, div, div, div, div, button] | fontSize: '16px',
+881: [div, div, div, div, div, button] | fontWeight: 700,
+882: [div, div, div, div, div, button] | textAlign: 'center',
+883: [div, div, div, div, div, button] | cursor: submitted ? 'default' : 'pointer',
+884: [div, div, div, div, div, button] | transition: 'all 0.15s ease',
+885: [div, div, div, div, div, button] | outline: 'none',
+886: [div, div, div, div, div, button] | transform: (!submitted && isSelected) ? 'scale(1.01)' : 'none',
+887: [div, div, div, div, div, button] | }}
+888: [div, div, div, div, div, button] | onMouseEnter={e => {
+889: [div, div, div, div, div, button] | if (!submitted && !isSelected) {
+890: [div, div, div, div, div, button] | e.currentTarget.style.borderColor = '#C4B5FD';
+891: [div, div, div, div, div, button] | e.currentTarget.style.background = isDark ? '#1E293B' : '#F9FAFB';
+892: [div, div, div, div, div, button] | }
+893: [div, div, div, div, div, button] | }}
+894: [div, div, div, div, div, button] | onMouseLeave={e => {
+895: [div, div, div, div, div, button] | if (!submitted && !isSelected) {
+896: [div, div, div, div, div, button] | e.currentTarget.style.borderColor = isDark ? '#334155' : '#E5E7EB';
+897: [div, div, div, div, div, button] | e.currentTarget.style.background = 'transparent';
+898: [div, div, div, div, div, button] | }
+899: [div, div, div, div, div, button] | }}
+900: [div, div, div, div, div, button] | >
+901: [div, div, div, div, div, button] | {optionText}
+902: [div, div, div, div, div] | </button>
+903: [div, div, div, div, div] | );
+904: [div, div, div, div, div] | })}
+905: [div, div, div, div] | </div>
+906: [div, div, div, div] | 
+907: [div, div, div, div] | {submitted && (
+908: [div, div, div, div, div] | <div style={{
+909: [div, div, div, div, div] | marginTop: '40px',
+910: [div, div, div, div, div] | marginLeft: '-80px',
+911: [div, div, div, div, div] | marginRight: '-80px',
+912: [div, div, div, div, div] | marginBottom: '-40px',
+913: [div, div, div, div, div] | padding: '24px 80px',
+914: [div, div, div, div, div] | borderTop: `2px solid ${isCorrect ? (isDark ? '#166534' : '#BBF7D0') : (isDark ? '#92400E' : '#FDE68A')}`,
+915: [div, div, div, div, div] | background: isCorrect ? (isDark ? 'rgba(34, 197, 94, 0.05)' : '#F0FDF4') : (isDark ? 'rgba(251, 191, 36, 0.05)' : '#FFFBEB'),
+916: [div, div, div, div, div] | width: 'calc(100% + 160px)',
+917: [div, div, div, div, div] | borderBottomLeftRadius: '32px',
+918: [div, div, div, div, div] | borderBottomRightRadius: '32px'
+919: [div, div, div, div, div] | }}>
+920: [div, div, div, div, div, p] | <p style={{ fontWeight: 'bold', fontSize: '16px', color: isCorrect ? (isDark ? '#4ADE80' : '#15803D') : (isDark ? '#FBBF24' : '#B45309') }}>
+921: [div, div, div, div, div, p] | {isCorrect ? '✓ Correct!' : '✗ Not quite right.'}
+922: [div, div, div, div, div] | </p>
+923: [div, div, div, div, div, p] | <p style={{ fontSize: '14px', color: isDark ? '#9CA3AF' : '#4B5563', marginTop: '6px' }}>
+924: [div, div, div, div, div, p] | {currentQ.explanation}
+925: [div, div, div, div, div] | </p>
+926: [div, div, div, div] | </div>
+927: [div, div, div, div] | )}
+928: [div, div, div] | </div>
+929: [div, div, div] | )}
+930: [div, div] | </div>
+931: [div, div] | 
+932: [div, div] | {}
+933: [div, div, div] | <div style={{
+934: [div, div, div] | position: 'absolute',
+935: [div, div, div] | bottom: '24px',
+936: [div, div, div] | left: '24px',
+937: [div, div, div] | display: 'flex',
+938: [div, div, div] | flexDirection: 'column',
+939: [div, div, div] | alignItems: 'flex-start',
+940: [div, div, div] | gap: '16px',
+941: [div, div, div] | zIndex: 40,
+942: [div, div, div] | width: '320px'
+943: [div, div, div] | }}>
+944: [div, div, div] | 
+945: [div, div, div] | {}
+946: [div, div, div] | {isChatOpen && (
+947: [div, div, div, div] | <div style={{
+948: [div, div, div, div] | display: 'flex',
+949: [div, div, div, div] | flexDirection: 'column',
+950: [div, div, div, div] | gap: '12px',
+951: [div, div, div, div] | width: '100%',
+952: [div, div, div, div] | maxHeight: '400px',
+953: [div, div, div, div] | overflowY: 'auto',
+954: [div, div, div, div] | paddingBottom: '8px',
+955: [div, div, div, div] | animation: 'fadeIn 0.2s ease-out'
+956: [div, div, div, div] | }}>
+957: [div, div, div, div] | {chatMessages.map((msg, idx) => {
+958: [div, div, div, div] | const isUser = msg.sender === 'user';
+959: [div, div, div, div] | const isLatestAi = !isUser && idx === chatMessages.length - 1;
+960: [div, div, div, div] | 
+961: [div, div, div, div] | return (
+962: [div, div, div, div, div] | <div key={idx} style={{
+963: [div, div, div, div, div] | alignSelf: isUser ? 'flex-end' : 'flex-start',
+964: [div, div, div, div, div] | background: isUser ? (isDark ? '#334155' : '#FFFFFF') : (isLatestAi ? (isDark ? 'rgba(16, 185, 129, 0.1)' : '#F0FDF4') : (isDark ? '#1E293B' : '#FFFFFF')),
+965: [div, div, div, div, div] | color: isDark ? '#F3F4F6' : '#374151',
+966: [div, div, div, div, div] | border: `1px solid ${isUser ? (isDark ? '#475569' : '#E5E7EB') : (isLatestAi ? (isDark ? '#047857' : '#A7F3D0') : (isDark ? '#334155' : '#E5E7EB'))}`,
+967: [div, div, div, div, div] | padding: '12px 16px',
+968: [div, div, div, div, div] | borderRadius: '16px',
+969: [div, div, div, div, div] | borderBottomRightRadius: isUser ? '4px' : '16px',
+970: [div, div, div, div, div] | borderBottomLeftRadius: isUser ? '16px' : '4px',
+971: [div, div, div, div, div] | maxWidth: '85%',
+972: [div, div, div, div, div] | fontSize: '14px',
+973: [div, div, div, div, div] | lineHeight: 1.5,
+974: [div, div, div, div, div] | boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+975: [div, div, div, div, div] | }}>
+976: [div, div, div, div, div] | {msg.text}
+977: [div, div, div, div] | </div>
+978: [div, div, div, div] | );
+979: [div, div, div, div] | })}
+980: [div, div, div, div] | {isTyping && (
+981: [div, div, div, div, div] | <div style={{ alignSelf: 'flex-start', background: isDark ? 'rgba(16, 185, 129, 0.1)' : '#F0FDF4', padding: '12px 16px', borderRadius: '16px', borderBottomLeftRadius: '4px', color: '#10B981', border: `1px solid ${isDark ? '#047857' : '#A7F3D0'}` }}>
+982: [div, div, div, div, div] | <CircleNotch size={16} className="spin" />
+983: [div, div, div, div] | </div>
+984: [div, div, div, div] | )}
+985: [div, div, div] | </div>
+986: [div, div, div] | )}
+987: [div, div, div] | 
+988: [div, div, div] | {}
+989: [div, div, div, div] | <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
+990: [div, div, div, div] | {}
+991: [div, div, div, div, button] | <button
+992: [div, div, div, div, button] | onClick={() => {
+993: [div, div, div, div, button] | playClickSound();
+994: [div, div, div, div, button] | setIsChatOpen(!isChatOpen);
+995: [div, div, div, div, button] | }}
+996: [div, div, div, div, button] | style={{
+997: [div, div, div, div, button] | width: '48px',
+998: [div, div, div, div, button] | height: '48px',
+999: [div, div, div, div, button] | position: 'relative',
+1000: [div, div, div, div, button] | background: 'none',
+1001: [div, div, div, div, button] | border: 'none',
+1002: [div, div, div, div, button] | cursor: 'pointer',
+1003: [div, div, div, div, button] | display: 'flex',
+1004: [div, div, div, div, button] | alignItems: 'center',
+1005: [div, div, div, div, button] | justifyContent: 'center',
+1006: [div, div, div, div, button] | flexShrink: 0,
+1007: [div, div, div, div, button] | transition: 'transform 0.2s',
+1008: [div, div, div, div, button] | }}
+1009: [div, div, div, div, button] | onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+1010: [div, div, div, div, button] | onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+1011: [div, div, div, div, button] | >
+1012: [div, div, div, div] | <img src="/mascot.png" alt="Mascot" style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
+1013: [div, div, div, div] | </button>
+1014: [div, div, div, div] | 
+1015: [div, div, div, div] | {}
+1016: [div, div, div, div, form] | <form onSubmit={handleSendChat} style={{
+1017: [div, div, div, div, form] | flex: 1,
+1018: [div, div, div, div, form] | background: isDark ? '#1E293B' : '#F3F4F6',
+1019: [div, div, div, div, form] | borderRadius: '9999px',
+1020: [div, div, div, div, form] | padding: chatInput ? '6px 6px 6px 12px' : '10px 16px',
+1021: [div, div, div, div, form] | display: 'flex',
+1022: [div, div, div, div, form] | alignItems: 'center',
+1023: [div, div, div, div, form] | gap: '8px',
+1024: [div, div, div, div, form] | border: `1px solid ${isDark ? '#334155' : '#E5E7EB'}`,
+1025: [div, div, div, div, form] | boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+1026: [div, div, div, div, form] | transition: 'all 0.2s'
+1027: [div, div, div, div, form] | }}>
+1028: [div, div, div, div, form] | {chatInput ? (
+1029: [div, div, div, div, form] | <>
+1030: [div, div, div, div, form, button] | <button type="button" onClick={() => setChatInput('')} style={{ background: isDark ? '#334155' : '#E5E7EB', border: 'none', color: '#9CA3AF', cursor: 'pointer', display: 'flex', padding: '6px', borderRadius: '50%' }}>
+1031: [div, div, div, div, form, button] | <X size={12} weight="bold" />
+1032: [div, div, div, div, form] | </button>
+1033: [div, div, div, div, form] | <input
+1034: [div, div, div, div, form] | type="text"
+1035: [div, div, div, div, form] | value={chatInput}
+1036: [div, div, div, div, form] | onChange={e => setChatInput(e.target.value)}
+1037: [div, div, div, div, form] | style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: isDark ? '#F3F4F6' : '#374151', fontSize: '14px', letterSpacing: '4px', fontWeight: 600 }}
+1038: [div, div, div, div] | />
+1039: [div, div, div, div, button] | <button type="submit" style={{ background: '#5EEAD4', border: 'none', cursor: 'pointer', color: '#064E3B', display: 'flex', padding: '8px', borderRadius: '50%' }}>
+1040: [div, div, div, div, button] | <ArrowUp size={16} weight="bold" />
+1041: [div, div, div, div] | </button>
+1042: [div, div, div] | </>
+1043: [div, div, div] | ) : (
+1044: [div, div, div] | <>
+1045: [div, div, div] | <input
+1046: [div, div, div] | type="text"
+1047: [div, div, div] | value={chatInput}
+1048: [div, div, div] | onChange={e => setChatInput(e.target.value)}
+1049: [div, div, div] | placeholder="How can I help?"
+1050: [div, div, div] | onClick={() => setIsChatOpen(true)}
+1051: [div, div, div] | style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: isDark ? '#F3F4F6' : '#374151', fontSize: '14px' }}
+1052: [div, div] | />
+1053: [div, div, button] | <button type="button" style={{ background: 'none', border: 'none', color: '#10B981', display: 'flex' }}>
+1054: [div, div, button, svg] | <svg xmlns="http:
+1055: [div, div] | </button>
+1056: [div, div] | <div style={{ width: '1px', height: '16px', background: isDark ? '#334155' : '#D1D5DB' }} />
+1057: [div, div, button] | <button type="button" style={{ background: 'none', border: 'none', color: '#374151', display: 'flex' }}>
+1058: [div, div, button] | <Microphone size={18} weight="fill" />
+1059: [div, div] | </button>
+1060: [div] | </>
+1061: [div] | )}
+1062: [div] | </form>
+1063: [] | </div>
+1064: [] | </div>
+1065: [] | 
+1066: [] | {}
+1067: [div] | <div style={{
+1068: [div] | position: 'absolute',
+1069: [div] | bottom: 0,
+1070: [div] | left: 0,
+1071: [div] | right: 0,
+1072: [div] | height: '80px',
+1073: [div] | display: 'flex',
+1074: [div] | alignItems: 'center',
+1075: [div] | padding: '0 32px',
+1076: [div] | zIndex: 30
+1077: [div] | }}>
+1078: [div] | {}
+1079: [div, div] | <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+1080: [div, div] | 
+1081: [div] | </div>
+1082: [div] | 
+1083: [div] | {}
+1084: [div, div] | <div style={{ flex: 'none', display: 'flex', justifyContent: 'center', gap: '16px' }}>
+1085: [div, div] | {!submitted ? (
+1086: [div, div, button] | <button
+1087: [div, div, button] | className="btn-3d"
+1088: [div, div, button] | onClick={handleConfirm}
+1089: [div, div, button] | disabled={selectedOption === null || selectedOption === undefined || selectedOption === ""}
+1090: [div, div, button] | style={{
+1091: [div, div, button] | '--btn-bg-color': '#C4B5FD',
+1092: [div, div, button] | '--btn-shadow-color': '#A78BFA',
+1093: [div, div, button] | '--btn-text-color': '#1E1B4B'
+1094: [div, div, button] | }}
+1095: [div, div, button] | >
+1096: [div, div, button] | <span className="btn-3d-face">Check</span>
+1097: [div, div] | </button>
+1098: [div, div] | ) : (
+1099: [div, div, div] | <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+1100: [div, div, div, button] | <button
+1101: [div, div, div, button] | onClick={isCorrect ? handleToggleExplain : () => setIsChatOpen(true)}
+1102: [div, div, div, button] | style={{
+1103: [div, div, div, button] | padding: '12px 28px',
+1104: [div, div, div, button] | borderRadius: '9999px',
+1105: [div, div, div, button] | border: `1px solid ${isDark ? '#475569' : '#D1D5DB'}`,
+1106: [div, div, div, button] | background: isDark ? '#1E293B' : '#FFFFFF',
+1107: [div, div, div, button] | color: isDark ? '#F3F4F6' : '#374151',
+1108: [div, div, div, button] | fontWeight: 600,
+1109: [div, div, div, button] | fontSize: '14px',
+1110: [div, div, div, button] | cursor: 'pointer',
+1111: [div, div, div, button] | transition: 'all 0.15s'
+1112: [div, div, div, button] | }}
+1113: [div, div, div, button] | onMouseEnter={e => e.currentTarget.style.background = isDark ? '#334155' : '#F9FAFB'}
+1114: [div, div, div, button] | onMouseLeave={e => e.currentTarget.style.background = isDark ? '#1E293B' : '#FFFFFF'}
+1115: [div, div, div, button] | >
+1116: [div, div, div, button] | {isCorrect ? 'Why?' : 'Get help'}
+1117: [div, div, div] | </button>
+1118: [div, div, div, button] | <button
+1119: [div, div, div, button] | className="btn-3d"
+1120: [div, div, div, button] | onClick={isCorrect ? handleNext : () => {
+1121: [div, div, div, button] | setSubmitted(false);
+1122: [div, div, div, button] | setDisabledOptions(prev => [...prev, selectedOption]);
+1123: [div, div, div, button] | setSelectedOption(null);
+1124: [div, div, div, button] | }}
+1125: [div, div, div, button] | style={{
+1126: [div, div, div, button] | '--btn-bg-color': isCorrect ? '#10B981' : '#FBBF24',
+1127: [div, div, div, button] | '--btn-shadow-color': isCorrect ? '#047857' : '#D97706',
+1128: [div, div, div, button] | '--btn-text-color': isCorrect ? '#FFFFFF' : '#000000'
+1129: [div, div, div, button] | }}
+1130: [div, div, div, button] | >
+1131: [div, div, div, button] | <span className="btn-3d-face">{isCorrect ? 'Continue' : 'Try again'}</span>
+1132: [div, div, div] | </button>
+1133: [div, div] | </div>
+1134: [div, div] | )}
+1135: [div] | </div>
+1136: [div] | 
+1137: [div] | {}
+1138: [div, div] | <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px' }}>
+1139: [div, div] | {!submitted && (
+1140: [div, div] | <>
+1141: [div, div, button] | <button
+1142: [div, div, button] | onClick={handleHint}
+1143: [div, div, button] | disabled={keys < 3 || selectedOption !== null}
+1144: [div, div, button] | style={{
+1145: [div, div, button] | background: 'none',
+1146: [div, div, button] | border: 'none',
+1147: [div, div, button] | color: '#6B7280',
+1148: [div, div, button] | fontSize: '14px',
+1149: [div, div, button] | fontWeight: 600,
+1150: [div, div, button] | cursor: (keys < 3 || selectedOption !== null) ? 'not-allowed' : 'pointer',
+1151: [div, div, button] | opacity: (keys < 3 || selectedOption !== null) ? 0.5 : 1,
+1152: [div, div, button] | display: 'flex',
+1153: [div, div, button] | alignItems: 'center',
+1154: [div, div, button] | gap: '6px',
+1155: [div, div, button] | transition: 'color 0.15s'
+1156: [div, div, button] | }}
+1157: [div, div, button] | onMouseEnter={e => e.currentTarget.style.color = '#7C3AED'}
+1158: [div, div, button] | onMouseLeave={e => e.currentTarget.style.color = '#6B7280'}
+1159: [div, div, button] | >
+1160: [div, div, button] | <Key size={16} weight="fill" /> Hint
+1161: [div, div] | </button>
+1162: [div, div, button] | <button
+1163: [div, div, button] | onClick={handleReveal}
+1164: [div, div, button] | disabled={keys < 5 || selectedOption !== null}
+1165: [div, div, button] | style={{
+1166: [div, div, button] | background: 'none',
+1167: [div, div, button] | border: 'none',
+1168: [div, div, button] | color: '#6B7280',
+1169: [div, div, button] | fontSize: '14px',
+1170: [div, div, button] | fontWeight: 600,
+1171: [div, div, button] | cursor: (keys < 5 || selectedOption !== null) ? 'not-allowed' : 'pointer',
+1172: [div, div, button] | opacity: (keys < 5 || selectedOption !== null) ? 0.5 : 1,
+1173: [div, div, button] | display: 'flex',
+1174: [div, div, button] | alignItems: 'center',
+1175: [div, div, button] | gap: '6px',
+1176: [div, div, button] | transition: 'color 0.15s'
+1177: [div, div, button] | }}
+1178: [div, div, button] | onMouseEnter={e => e.currentTarget.style.color = '#7C3AED'}
+1179: [div, div, button] | onMouseLeave={e => e.currentTarget.style.color = '#6B7280'}
+1180: [div, div, button] | >
+1181: [div, div, button] | <MagnifyingGlass size={16} weight="bold" /> Reveal
+1182: [div, div] | </button>
+1183: [div] | </>
+1184: [div] | )}
+1185: [] | </div>
+1186: [] | </div>
+1187: [] | </div>
+1188: [] | 
+1189: [] | 
+1190: [] | 
+1191: [] | {}
+1192: [] | {showSettingsModal && (
+1193: [div] | <div style={{
+1194: [div] | position: 'fixed',
+1195: [div] | top: 0,
+1196: [div] | left: 0,
+1197: [div] | right: 0,
+1198: [div] | bottom: 0,
+1199: [div] | background: 'rgba(0, 0, 0, 0.5)',
+1200: [div] | display: 'flex',
+1201: [div] | alignItems: 'center',
+1202: [div] | justifyContent: 'center',
+1203: [div] | zIndex: 999,
+1204: [div] | fontFamily: 'Outfit, sans-serif'
+1205: [div] | }}>
+1206: [div, div] | <div style={{
+1207: [div, div] | background: cardBg,
+1208: [div, div] | border: `1.5px solid ${borderCol}`,
+1209: [div, div] | borderRadius: '24px',
+1210: [div, div] | padding: '32px',
+1211: [div, div] | width: '100%',
+1212: [div, div] | maxWidth: '400px',
+1213: [div, div] | boxShadow: '0 20px 48px rgba(0, 0, 0, 0.4)'
+1214: [div, div] | }}>
+1215: [div, div, div] | <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+1216: [div, div, div] | <h3 style={{ fontSize: '20px', fontWeight: 900, color: fontColor, margin: 0 }}>Quiz Settings</h3>
+1217: [div, div, div, button] | <button
+1218: [div, div, div, button] | onClick={() => {
+1219: [div, div, div, button] | playClickSound();
+1220: [div, div, div, button] | setShowSettingsModal(false);
+1221: [div, div, div, button] | }}
+1222: [div, div, div, button] | style={{ border: 'none', background: 'none', cursor: 'pointer', color: fontColor }}
+1223: [div, div, div, button] | >
+1224: [div, div, div, button] | <X size={20} weight="bold" />
+1225: [div, div, div] | </button>
+1226: [div, div] | </div>
+1227: [div, div] | 
+1228: [div, div, div] | <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+1229: [div, div, div] | {}
+1230: [div, div, div, div] | <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+1231: [div, div, div, div] | <span style={{ fontSize: '15px', fontWeight: 800, color: fontColor }}>Dark Mode</span>
+1232: [div, div, div, div] | <input
+1233: [div, div, div, div] | type="checkbox"
+1234: [div, div, div, div] | checked={isDark}
+1235: [div, div, div, div] | onChange={() => {
+1236: [div, div, div, div] | playClickSound();
+1237: [div, div, div, div] | setIsDark(!isDark);
+1238: [div, div, div, div] | }}
+1239: [div, div, div, div] | style={{ width: '40px', height: '20px', cursor: 'pointer' }}
+1240: [div, div, div] | />
+1241: [div, div] | </div>
+1242: [div, div] | 
+1243: [div, div] | {}
+1244: [div, div, div] | <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+1245: [div, div, div] | <span style={{ fontSize: '15px', fontWeight: 800, color: fontColor }}>Sound Effects</span>
+1246: [div, div, div] | <input
+1247: [div, div, div] | type="checkbox"
+1248: [div, div, div] | checked={sfxEnabled}
+1249: [div, div, div] | onChange={() => {
+1250: [div, div, div] | playClickSound();
+1251: [div, div, div] | setSfxEnabled(!sfxEnabled);
+1252: [div, div, div] | }}
+1253: [div, div, div] | style={{ width: '40px', height: '20px', cursor: 'pointer' }}
+1254: [div, div] | />
+1255: [div] | </div>
+1256: [div] | 
+1257: [div] | {}
+1258: [div, div] | <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+1259: [div, div, div] | <div>
+1260: [div, div, div] | <span style={{ fontSize: '15px', fontWeight: 800, color: fontColor, display: 'block' }}>Background Music</span>
+1261: [div, div, div] | <span style={{ fontSize: '11px', color: subFontColor }}>Gentle ambient synth generator</span>
+1262: [div, div] | </div>
+1263: [div, div] | <input
+1264: [div, div] | type="checkbox"
+1265: [div, div] | checked={musicEnabled}
+1266: [div, div] | onChange={() => {
+1267: [div, div] | playClickSound();
+1268: [div, div] | setMusicEnabled(!musicEnabled);
+1269: [div, div] | }}
+1270: [div, div] | style={{ width: '40px', height: '20px', cursor: 'pointer' }}
+1271: [div] | />
+1272: [] | </div>
+1273: [] | 
+1274: [] | <div style={{ height: '1.5px', background: borderCol, margin: '10px 0' }} />
+1275: [] | 
+1276: [] | {}
+1277: [button] | <button
+1278: [button] | onClick={() => {
+1279: [button] | playClickSound();
+1280: [button] | setCurrentIndex(0);
+1281: [button] | setSelectedOption(null);
+1282: [button] | setSubmitted(false);
+1283: [button] | setDisabledOptions([]);
+1284: [button] | setShowExplain(false);
+1285: [button] | setCorrectCount(0);
+1286: [button] | setWrongCount(0);
+1287: [button] | setHearts(5);
+1288: [button] | setXp(0);
+1289: [button] | setShowSettingsModal(false);
+1290: [button] | }}
+1291: [button] | style={{
+1292: [button] | padding: '12px',
+1293: [button] | borderRadius: '9999px',
+1294: [button] | border: `1.5px solid ${borderCol}`,
+1295: [button] | backgroundColor: isDark ? '#111827' : '#F9FAFB',
+1296: [button] | color: '#EF4444',
+1297: [button] | fontWeight: 800,
+1298: [button] | fontSize: '14px',
+1299: [button] | cursor: 'pointer',
+1300: [button] | display: 'flex',
+1301: [button] | alignItems: 'center',
+1302: [button] | justifyContent: 'center',
+1303: [button] | gap: '8px'
+1304: [button] | }}
+1305: [button] | >
+1306: [button] | <ArrowsCounterClockwise size={16} weight="bold" />
+1307: [button] | <span>Restart Session</span>
+1308: [] | </button>
+1309: [] | </div>
+1310: [] | </div>
+1311: [] | </div>
+1312: [] | )}
+1313: [] | 
+1314: [] | {}
+1315: [style] | <style>{`
+1316: [style] | @keyframes fadeIn {
+1317: [style] | from { opacity: 0; transform: translateY(8px); }
+1318: [style] | to { opacity: 1; transform: translateY(0); }
+1319: [style] | }
+1320: [style] | 
+1321: [style] | .options-grid {
+1322: [style] | grid-template-columns: 1fr;
+1323: [style] | }
+1324: [style] | @media (min-width: 640px) {
+1325: [style] | .options-grid {
+1326: [style] | grid-template-columns: repeat(2, 1fr);
+1327: [style] | }
+1328: [style] | }
+1329: [style] | 
+1330: [style] | .btn-3d {
+1331: [style] | position: relative;
+1332: [style] | display: inline-flex;
+1333: [style] | cursor: pointer;
+1334: [style] | padding: 0;
+1335: [style] | background: transparent;
+1336: [style] | border: none;
+1337: [style] | outline: none;
+1338: [style] | font-family: inherit;
+1339: [style] | }
+1340: [style] | .btn-3d:disabled {
+1341: [style] | cursor: not-allowed;
+1342: [style] | pointer-events: none;
+1343: [style] | }
+1344: [style] | .btn-3d-face {
+1345: [style] | position: relative;
+1346: [style] | display: inline-flex;
+1347: [style] | align-items: center;
+1348: [style] | justify-content: center;
+1349: [style] | padding: 14px 40px;
+1350: [style] | border-radius: 9999px;
+1351: [style] | transform: translateY(-4px);
+1352: [style] | box-shadow: 0 4px 0 0 var(--btn-shadow-color, #D1D5DB);
+1353: [style] | background-color: var(--btn-bg-color, #E5E7EB);
+1354: [style] | color: var(--btn-text-color, #374151);
+1355: [style] | font-weight: 700;
+1356: [style] | font-size: 16px;
+1357: [style] | transition: transform 100ms ease-out, box-shadow 100ms ease-out;
+1358: [style] | width: 100%;
+1359: [style] | }
+1360: [style] | .btn-3d:disabled .btn-3d-face {
+1361: [style] | transform: none;
+1362: [style] | box-shadow: none;
+1363: [style] | background-color: ${isDark ? '#334155' : '#E5E7EB'} !important;
+1364: [style] | color: #9CA3AF !important;
+1365: [style] | }
+1366: [style] | .btn-3d:not(:disabled):active .btn-3d-face {
+1367: [style] | transform: translateY(0);
+1368: [style] | box-shadow: 0 0 0 0 var(--btn-shadow-color, #D1D5DB);
+1369: [style] | }
+1370: [style] | 
+1371: [style] | @keyframes slideRight {
+1372: [style] | from { transform: translateX(-100%); }
+1373: [style] | to { transform: translateX(0); }
+1374: [style] | }
+1375: [style] | 
+1376: [style] | .spin {
+1377: [style] | animation: spin 1s linear infinite;
+1378: [style] | }
+1379: [style] | 
+1380: [style] | @keyframes spin {
+1381: [style] | from { transform: rotate(0deg); }
+1382: [style] | to { transform: rotate(360deg); }
+1383: [style] | }
+1384: [style] | 
+1385: [style] | .dot-blink {
+1386: [style] | animation: dotBlink 1.4s infinite both;
+1387: [style] | }
+1388: [style] | @keyframes dotBlink {
+1389: [style] | 0% { opacity: .2; }
+1390: [style] | 20% { opacity: 1; }
+1391: [style] | 100% { opacity: .2; }
+1392: [style] | }
+1393: [style] | 
+1394: [style] | .quiz-option-button:hover:not(:disabled) {
+1395: [style] | transform: translateY(-2px);
+1396: [style] | box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+1397: [style] | }
+1398: [style] | 
+1399: [style] | .chat-input-field:focus {
+1400: [style] | border-color: #C4B5FD !important;
+1401: [style] | box-shadow: 0 0 0 3px rgba(196, 181, 253, 0.25) !important;
+1402: [style] | }
+1403: [style] | 
+1404: [style] | .custom-scrollbar::-webkit-scrollbar {
+1405: [style] | width: 6px;
+1406: [style] | }
+1407: [style] | .custom-scrollbar::-webkit-scrollbar-track {
+1408: [style] | background: transparent;
+1409: [style] | }
+1410: [style] | .custom-scrollbar::-webkit-scrollbar-thumb {
+1411: [style] | background: ${isDark ? '#374151' : '#CBD5E1'};
+1412: [style] | border-radius: 9999px;
+1413: [style] | }
+1414: [] | `}</style>
+1415: [] | 
+1416: [] | </div>
+1417: [] | );
+1418: [] | }
+1419: [] | 

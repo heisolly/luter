@@ -27,6 +27,7 @@ import WorkstationFlashcards from './WorkstationFlashcards';
 import WorkstationQuizzes from './WorkstationQuizzes';
 import MaterialAnalysisService from '../../services/materialAnalysisService';
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService';
+import WorkstationMobileLayout from './WorkstationMobileLayout';
 import './NotesStudioPage.css';
 import './workstation.css';
 
@@ -174,8 +175,8 @@ export default function WorkstationPage() {
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
 
   useEffect(() => {
+    setMaterialAnalysis(null); // Clear previous analysis immediately to prevent bleed-over
     if (!selectedMaterial?.id) {
-      setMaterialAnalysis(null);
       return;
     }
     const loadAnalysis = async () => {
@@ -208,6 +209,29 @@ export default function WorkstationPage() {
       page_summaries: materialAnalysis.page_summaries || materialAnalysis.analysis?.page_summaries || {}
     } : null;
     return { ...selectedMaterial, analysis };
+  }, [selectedMaterial, materialAnalysis]);
+
+  useEffect(() => {
+    if (selectedMaterial) {
+      const text = selectedMaterial.extracted_text || materialAnalysis?.extracted_text || '';
+      try {
+        sessionStorage.setItem('luter-ws-ai-context', JSON.stringify({ 
+          title: selectedMaterial.title || selectedMaterial.name || 'Document', 
+          text: text 
+        }));
+      } catch (err) {
+        console.warn('Could not store full material text in sessionStorage (likely too large):', err);
+        // Fallback: store truncated version
+        try {
+          sessionStorage.setItem('luter-ws-ai-context', JSON.stringify({ 
+            title: selectedMaterial.title || selectedMaterial.name || 'Document', 
+            text: text.slice(0, 10000) 
+          }));
+        } catch (e) {}
+      }
+    } else {
+      sessionStorage.removeItem('luter-ws-ai-context');
+    }
   }, [selectedMaterial, materialAnalysis]);
 
   const runAnalysis = async (type) => {
@@ -356,6 +380,41 @@ export default function WorkstationPage() {
   const xp = stats?.total_xp ?? 0;
   const level = Math.floor(xp / 500) + 1;
 
+  // Study Time / Goal / Streak Tracker
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    // We increment study time every minute
+    const interval = setInterval(async () => {
+      try {
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        console.log('[WorkstationPage] Incrementing study time by 1 minute...');
+        
+        // Update user_gamification study time
+        await supabase.rpc('update_user_gamification', {
+          p_user_id: user.id,
+          p_xp_gain: 5,         // 5 XP per minute studied
+          p_coins_gain: 2,      // 2 coins per minute studied
+          p_study_time_minutes: 1,
+          p_source: 'workstation_timer'
+        });
+
+        // Update or insert the daily study goals entry for the heatmap
+        await supabase.rpc('update_study_time', {
+          p_user_id: user.id,
+          p_minutes: 1,
+          p_date: todayStr
+        });
+        
+      } catch (err) {
+        console.warn('Failed tracking study time:', err);
+      }
+    }, 60000); // every 60 seconds
+
+    return () => clearInterval(interval);
+  }, [user?.id]);
+
   const displayAvatar = localAvatar || profile?.avatar_url;
 
   useEffect(() => {
@@ -386,9 +445,15 @@ export default function WorkstationPage() {
                setNoteName(courseIdParam ? 'Course Workspace' : data[0].title);
                setSelectedMaterial(data[0]);
             }
-          } else if (stateMaterial) {
-             setNoteName(stateMaterial.title);
-             setSelectedMaterial(stateMaterial);
+          } else {
+            setMaterials([]);
+            if (stateMaterial) {
+              setNoteName(stateMaterial.title);
+              setSelectedMaterial(stateMaterial);
+            } else {
+              setNoteName(courseIdParam ? 'Empty Course' : 'Untitled Workspace');
+              setSelectedMaterial(null);
+            }
           }
         } catch (error) {
           console.error("Error initializing materials:", error);
@@ -411,7 +476,7 @@ export default function WorkstationPage() {
 
   const handleCopyLink = () => {
     const materialParam = urlMaterialId || stateMaterial?.id;
-    const link = `${window.location.origin}/dashboard/workstation${materialParam ? '?materialId=' + materialParam : ''}`;
+    const link = `${window.location.origin}/workstation${materialParam ? '?materialId=' + materialParam : ''}`;
     navigator.clipboard.writeText(link);
     setCopiedToast(true);
     setTimeout(() => setCopiedToast(false), 2000);
@@ -479,6 +544,21 @@ export default function WorkstationPage() {
       role: 'editor'
     }}>
       <ReadingSpaceProvider>
+        {isMobile ? (
+          <WorkstationMobileLayout 
+            state={{ 
+              isDark, user, activeMainTab, activeSubTab, activeWorkspaceTool, 
+              isChatOpen, selectedMaterial, urlMaterialId, isCollaborative, 
+              displayName, displayAvatar, roomId, isBoardFullScreen, copiedToast,
+              selectedMaterialWithAnalysis, isAnalysisLoading
+            }} 
+            actions={{ 
+              setActiveMainTab, setActiveSubTab, setActiveWorkspaceTool, 
+              setIsChatOpen, handleCopyLink, setIsBoardFullScreen,
+              runAnalysis 
+            }} 
+          />
+        ) : (
         <div className="ns-page" style={{
         height: '100vh',
         width: '100vw',
@@ -569,10 +649,36 @@ export default function WorkstationPage() {
                   padding: '12px',
                   zIndex: 50
                 }}>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: subTextColor, padding: '4px 8px 8px' }}>
-                    Backpack Materials
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: subTextColor, padding: '4px 8px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Backpack Materials</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '300px', overflowY: 'auto' }}>
+                    <Link
+                      to="/home"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: '#EA580C',
+                        textDecoration: 'none',
+                        transition: 'background-color 0.15s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = isDark ? '#374151' : '#FFF4EA'; 
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      <House size={18} weight="fill" />
+                      <span>Dashboard Home</span>
+                    </Link>
+                    <div style={{ height: '1px', backgroundColor: borderColor, margin: '4px 0' }} />
                     {materials.length === 0 && (
                        <div style={{ padding: '8px', fontSize: '13px', color: subTextColor }}>No materials found.</div>
                     )}
@@ -581,6 +687,10 @@ export default function WorkstationPage() {
                         key={mat.id}
                         onClick={() => {
                           setNoteName(mat.title);
+                          setSelectedMaterial(mat);
+                          const newParams = new URLSearchParams(searchParams);
+                          newParams.set('materialId', mat.id);
+                          setSearchParams(newParams);
                           setIsMenuOpen(false);
                         }}
                         style={{
@@ -959,6 +1069,7 @@ export default function WorkstationPage() {
               {/* Flashcards View */}
               {activeMainTab === 'Flashcards' && (
                 <WorkstationFlashcards 
+                  key={selectedMaterial?.id}
                   material={selectedMaterialWithAnalysis} 
                   items={selectedMaterialWithAnalysis?.analysis?.flashcards || []} 
                   isDark={isDark}
@@ -989,7 +1100,7 @@ export default function WorkstationPage() {
                   )}
 
                   {selectedMaterial && (
-                    <div style={{ flex: 1, display: activeSubTab === 'Notes' ? 'flex' : 'none', flexDirection: 'column', backgroundColor: 'transparent' }}>
+                    <div style={{ flex: 1, display: activeSubTab === 'Notes' ? 'flex' : 'none', flexDirection: 'column', backgroundColor: 'transparent', height: '100%', position: 'relative', minHeight: 0 }}>
                       <RoomProvider
                         id={`luter:notes:${selectedMaterial.id}`}
                         userInfo={{
@@ -1088,6 +1199,7 @@ export default function WorkstationPage() {
               {/* Collaborative Quizzes View */}
               {activeMainTab === 'Quizzes' && (
                 <WorkstationQuizzes 
+                  key={selectedMaterial?.id}
                   material={selectedMaterialWithAnalysis} 
                   isDark={isDark}
                   user={user}
@@ -1334,6 +1446,7 @@ export default function WorkstationPage() {
           </div>
         )}
         </div>
+      )}
       </ReadingSpaceProvider>
     </CollaborationProvider>
   );

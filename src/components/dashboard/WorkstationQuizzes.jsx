@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Trophy, CheckCircle, XCircle, ArrowLeft, 
   Sparkle, CircleNotch, Trash, Play,
-  BookOpen, ChartBar, CalendarBlank
+  BookOpen, ChartBar, CalendarBlank, Key, Heart, MagnifyingGlass, CaretLeft, FastForward, MagicWand, Plant
 } from '@phosphor-icons/react';
 import { supabase } from '../../supabaseClient';
 
@@ -24,10 +24,16 @@ export default function WorkstationQuizzes({
   const [selectedOption, setSelectedOption] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [score, setScore] = useState(0);
+  
+  // Game Economy State
+  const [coins, setCoins] = useState(150);
+  const [hearts] = useState(15);
+  const [eliminatedOptions, setEliminatedOptions] = useState([]);
+  const [isExplaining, setIsExplaining] = useState(false);
 
   // Load history from Supabase on mount or material change
   useEffect(() => {
-    if (material?.id && user?.id) {
+    if (material?.id && user?.id && user.id !== 'undefined') {
       const fetchHistory = async () => {
         setLoading(true);
         try {
@@ -65,7 +71,7 @@ export default function WorkstationQuizzes({
 
   // Save history helper
   const saveHistory = async (newAttempt) => {
-    if (!material?.id || !user?.id) return;
+    if (!material?.id || !user?.id || user.id === 'undefined') return;
     
     try {
       const { data, error } = await supabase
@@ -102,6 +108,7 @@ export default function WorkstationQuizzes({
 
   // Clear history
   const handleClearHistory = async () => {
+    if (!material?.id || !user?.id || user.id === 'undefined') return;
     if (window.confirm("Are you sure you want to clear your quiz history for this document?")) {
       try {
         const { error } = await supabase
@@ -172,16 +179,12 @@ export default function WorkstationQuizzes({
   };
 
   const handleSelectOption = (idx) => {
-    if (showFeedback) return;
+    if (showFeedback || eliminatedOptions.includes(idx)) return;
     setSelectedOption(idx);
-  };
-
-  const handleConfirmAnswer = () => {
-    if (selectedOption === null || showFeedback) return;
     
     const currentQ = questions[currentIndex];
     const correctIdx = getCorrectIndex(currentQ);
-    const isCorrect = selectedOption === correctIdx;
+    const isCorrect = idx === correctIdx;
     
     if (isCorrect) {
       setScore(s => s + 1);
@@ -189,11 +192,42 @@ export default function WorkstationQuizzes({
     setShowFeedback(true);
   };
 
+  const handleHint = () => {
+    if (coins < 10 || showFeedback) return;
+    const currentQ = questions[currentIndex];
+    const correctIdx = getCorrectIndex(currentQ);
+    const availableIncorrects = currentQ.options
+      .map((_, i) => i)
+      .filter(i => i !== correctIdx && !eliminatedOptions.includes(i));
+    
+    if (availableIncorrects.length > 0) {
+      const randomToEliminate = availableIncorrects[Math.floor(Math.random() * availableIncorrects.length)];
+      setCoins(c => c - 10);
+      setEliminatedOptions(prev => [...prev, randomToEliminate]);
+    }
+  };
+
+  const handleReveal = () => {
+    if (coins < 20 || showFeedback) return;
+    const currentQ = questions[currentIndex];
+    const correctIdx = getCorrectIndex(currentQ);
+    setCoins(c => c - 20);
+    setSelectedOption(correctIdx);
+    setScore(s => s + 1);
+    setShowFeedback(true);
+  };
+
+  const handleExplain = () => {
+    setIsExplaining(true);
+  };
+
   const handleNextQuestion = () => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(c => c + 1);
       setSelectedOption(null);
       setShowFeedback(false);
+      setEliminatedOptions([]);
+      setIsExplaining(false);
     } else {
       // Quiz Finished!
       const finalScore = score + (selectedOption === getCorrectIndex(questions[currentIndex]) ? 1 : 0);
@@ -394,214 +428,310 @@ export default function WorkstationQuizzes({
         padding: '0 16px',
         fontFamily: 'Outfit, sans-serif'
       }}>
-        {/* Quiz Header */}
+        {/* Quiz Header (Screenshot 2 style) */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
           <button 
             onClick={() => setView('dashboard')}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              border: 'none',
-              background: 'none',
+              justifyContent: 'center',
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              border: `1.5px solid ${isDark ? '#374151' : '#E2E8F0'}`,
+              background: 'transparent',
               color: isDark ? '#9CA3AF' : '#64748B',
-              fontWeight: 700,
-              fontSize: '14px',
               cursor: 'pointer'
             }}
           >
-            <ArrowLeft size={16} /> Exit Quiz
+            <CaretLeft size={20} weight="bold" />
           </button>
           
-          <span style={{ fontSize: '14px', fontWeight: 700, color: isDark ? '#9CA3AF' : '#64748B' }}>
-            Question {currentIndex + 1} of {questions.length}
-          </span>
-        </div>
-
-        {/* Progress Bar */}
-        <div style={{
-          height: '6px',
-          width: '100%',
-          backgroundColor: isDark ? '#374151' : '#E2E8F0',
-          borderRadius: '9999px',
-          overflow: 'hidden',
-          marginBottom: '32px'
-        }}>
           <div style={{
-            height: '100%',
-            width: `${((currentIndex + (showFeedback ? 1 : 0)) / questions.length) * 100}%`,
-            backgroundColor: '#C4B5FD',
-            borderRadius: 'inherit',
-            transition: 'width 0.3s ease'
-          }} />
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            padding: '8px 20px',
+            borderRadius: '9999px',
+            border: `1.5px solid ${isDark ? '#374151' : '#E2E8F0'}`,
+            background: isDark ? '#1F2937' : '#FFFFFF',
+            fontSize: '15px',
+            fontWeight: 800
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#F59E0B' }}>
+              <Key size={18} weight="fill" /> {coins}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#F43F5E' }}>
+              <Heart size={18} weight="fill" /> {hearts}
+            </div>
+          </div>
+
+          <div style={{
+            padding: '8px 16px',
+            borderRadius: '9999px',
+            border: `1.5px solid ${isDark ? '#374151' : '#E2E8F0'}`,
+            background: isDark ? '#1F2937' : '#FFFFFF',
+            fontSize: '14px',
+            fontWeight: 800,
+            color: isDark ? '#D1D5DB' : '#334155'
+          }}>
+            + 0 XP
+          </div>
+
+          <button 
+            onClick={handleNextQuestion}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              border: `1.5px solid ${isDark ? '#374151' : '#E2E8F0'}`,
+              background: 'transparent',
+              color: isDark ? '#9CA3AF' : '#64748B',
+              cursor: 'pointer'
+            }}
+          >
+            <FastForward size={20} weight="fill" />
+          </button>
         </div>
 
         {/* Question Card */}
         <div style={{
-          background: cardBg,
-          border: cardBorder,
-          borderRadius: cardRadius,
-          padding: '36px',
-          boxShadow: isDark ? '0 12px 40px rgba(0, 0, 0, 0.45)' : '0 16px 48px rgba(15, 23, 42, 0.08)'
+          background: isDark ? '#111827' : '#FFFFFF',
+          border: '3px solid #10B981',
+          borderRadius: '24px',
+          padding: '32px',
+          boxShadow: isDark ? '0 12px 40px rgba(0, 0, 0, 0.45)' : '0 16px 48px rgba(15, 23, 42, 0.08)',
+          marginBottom: '24px',
+          position: 'relative'
         }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            color: '#10B981',
+            fontWeight: 800,
+            fontSize: '14px',
+            marginBottom: '16px'
+          }}>
+            <Plant size={18} weight="bold" /> New
+          </div>
           <h2 style={{
-            fontSize: '20px',
+            fontSize: '22px',
             fontWeight: 800,
             lineHeight: 1.4,
             color: isDark ? '#F9FAFC' : '#0F172A',
-            marginBottom: '28px',
-            marginTop: 0
+            margin: 0
           }}>
             {currentQ.question}
           </h2>
+        </div>
 
-          {/* Options Grid */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-            {currentQ.options.map((opt, i) => {
-              const isSelected = selectedOption === i;
-              const isCorrect = i === correctIdx;
-              const optionText = typeof opt === 'object' ? (opt.text || opt.choice || '') : opt;
-              
-              let optBg = 'transparent';
-              let optBorder = `1.5px solid ${isDark ? '#374151' : '#E2E8F0'}`;
-              let optColor = isDark ? '#D1D5DB' : '#334155';
-              
-              if (showFeedback) {
-                if (isCorrect) {
-                  optBg = isDark ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.08)';
-                  optBorder = '1.5px solid #10B981';
-                  optColor = '#10B981';
-                } else if (isSelected) {
-                  optBg = isDark ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.08)';
-                  optBorder = '1.5px solid #EF4444';
-                  optColor = '#EF4444';
-                }
+        {/* Options Grid */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+          {currentQ.options.map((opt, i) => {
+            const isSelected = selectedOption === i;
+            const isCorrect = i === correctIdx;
+            const isEliminated = eliminatedOptions.includes(i);
+            const optionText = typeof opt === 'object' ? (opt.text || opt.choice || '') : opt;
+            
+            if (isEliminated) return null; // Hide eliminated options
+            
+            let optBg = isDark ? '#1F2937' : '#FFFFFF';
+            let optBorder = `1.5px solid ${isDark ? '#374151' : '#E2E8F0'}`;
+            let optColor = isDark ? '#D1D5DB' : '#334155';
+            
+            if (showFeedback) {
+              if (isCorrect) {
+                optBg = isDark ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.08)';
+                optBorder = '1.5px solid #10B981';
+                optColor = '#10B981';
               } else if (isSelected) {
-                optBg = isDark ? 'rgba(196, 181, 253, 0.12)' : 'rgba(196, 181, 253, 0.08)';
-                optBorder = '1.5px solid #C4B5FD';
-                optColor = isDark ? '#C4B5FD' : '#7C3AED';
+                optBg = isDark ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.08)';
+                optBorder = '1.5px solid #EF4444';
+                optColor = '#EF4444';
               }
+            } else if (isSelected) {
+              optBg = isDark ? 'rgba(196, 181, 253, 0.12)' : 'rgba(196, 181, 253, 0.08)';
+              optBorder = '1.5px solid #C4B5FD';
+              optColor = isDark ? '#C4B5FD' : '#7C3AED';
+            }
 
-              return (
-                <button
-                  key={i}
-                  disabled={showFeedback}
-                  onClick={() => handleSelectOption(i)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '14px',
-                    padding: '16px 20px',
-                    borderRadius: '16px',
-                    backgroundColor: optBg,
-                    border: optBorder,
-                    color: optColor,
-                    fontSize: '15px',
-                    fontWeight: 700,
-                    textAlign: 'left',
-                    cursor: showFeedback ? 'default' : 'pointer',
-                    transition: 'all 0.15s ease',
-                    outline: 'none',
-                    transform: (!showFeedback && isSelected) ? 'translateY(-1px)' : 'none',
-                    boxShadow: (!showFeedback && isSelected) ? '0 4px 12px rgba(15, 23, 42, 0.05)' : 'none'
-                  }}
-                  onMouseEnter={e => {
-                    if (!showFeedback && !isSelected) {
-                      e.currentTarget.style.borderColor = '#C4B5FD';
-                      e.currentTarget.style.background = isDark ? '#374151' : '#F8FAFC';
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!showFeedback && !isSelected) {
-                      e.currentTarget.style.borderColor = isDark ? '#374151' : '#E2E8F0';
-                      e.currentTarget.style.background = 'transparent';
-                    }
-                  }}
-                >
-                  <div style={{
-                    width: '26px',
-                    height: '26px',
-                    borderRadius: '50%',
-                    border: `1.5px solid ${isSelected || (showFeedback && isCorrect) ? 'transparent' : (isDark ? '#4B5563' : '#CBD5E1')}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: showFeedback && isCorrect 
-                      ? '#10B981' 
-                      : (showFeedback && isSelected && !isCorrect ? '#EF4444' : (isSelected ? '#C4B5FD' : 'transparent')),
-                    color: isSelected || showFeedback ? '#FFFFFF' : (isDark ? '#9CA3AF' : '#64748B'),
-                    fontSize: '12px',
-                    fontWeight: 800,
-                    flexShrink: 0
-                  }}>
-                    {showFeedback && isCorrect ? '✓' : (showFeedback && isSelected && !isCorrect ? '✗' : String.fromCharCode(65 + i))}
-                  </div>
-                  <span>{optionText}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Explanation Banner */}
-          {showFeedback && currentQ.explanation && (
-            <div style={{
-              padding: '20px',
-              borderRadius: '16px',
-              backgroundColor: isDark ? 'rgba(196, 181, 253, 0.08)' : '#F5F3FF',
-              border: '1.5px dashed #C4B5FD',
-              color: isDark ? '#D1D5DB' : '#4C1D95',
-              fontSize: '14px',
-              lineHeight: 1.5,
-              fontWeight: 500,
-              marginBottom: '28px'
-            }}>
-              <strong style={{ display: 'block', color: isDark ? '#C4B5FD' : '#6D28D9', marginBottom: '8px', fontWeight: 800 }}>Explanation</strong>
-              {currentQ.explanation}
-            </div>
-          )}
-
-          {/* Action button */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            {!showFeedback ? (
+            return (
               <button
-                onClick={handleConfirmAnswer}
-                disabled={selectedOption === null}
+                key={i}
+                disabled={showFeedback}
+                onClick={() => handleSelectOption(i)}
                 style={{
-                  padding: '12px 28px',
-                  borderRadius: '9999px',
-                  border: 'none',
-                  backgroundColor: selectedOption === null ? (isDark ? '#374151' : '#F1F5F9') : '#98FF98',
-                  color: selectedOption === null ? (isDark ? '#4B5563' : '#94A3B8') : '#14532D',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '20px',
+                  borderRadius: '24px',
+                  backgroundColor: optBg,
+                  border: optBorder,
+                  color: optColor,
+                  fontSize: '16px',
                   fontWeight: 800,
-                  fontSize: '14px',
-                  cursor: selectedOption === null ? 'default' : 'pointer',
-                  boxShadow: selectedOption !== null ? '0 4px 14px rgba(152, 255, 152, 0.3)' : 'none',
-                  transition: 'all 0.15s ease'
+                  textAlign: 'center',
+                  cursor: showFeedback ? 'default' : 'pointer',
+                  transition: 'all 0.15s ease',
+                  outline: 'none',
+                  transform: (!showFeedback && isSelected) ? 'translateY(-1px)' : 'none',
+                  boxShadow: (!showFeedback && isSelected) ? '0 4px 12px rgba(15, 23, 42, 0.05)' : 'none'
+                }}
+                onMouseEnter={e => {
+                  if (!showFeedback && !isSelected) {
+                    e.currentTarget.style.borderColor = '#C4B5FD';
+                    e.currentTarget.style.background = isDark ? '#374151' : '#F8FAFC';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!showFeedback && !isSelected) {
+                    e.currentTarget.style.borderColor = isDark ? '#374151' : '#E2E8F0';
+                    e.currentTarget.style.background = isDark ? '#1F2937' : '#FFFFFF';
+                  }
                 }}
               >
-                Confirm
+                <span>{optionText}</span>
               </button>
-            ) : (
+            );
+          })}
+        </div>
+
+        {/* Action buttons (Hint, Reveal, Explain) */}
+        {!showFeedback ? (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
+            <button
+              onClick={handleHint}
+              disabled={coins < 10}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '14px 28px',
+                borderRadius: '9999px',
+                border: `1.5px solid ${isDark ? '#374151' : '#E2E8F0'}`,
+                background: isDark ? '#1F2937' : '#FFFFFF',
+                color: isDark ? '#D1D5DB' : '#334155',
+                fontSize: '15px',
+                fontWeight: 800,
+                cursor: coins < 10 ? 'not-allowed' : 'pointer',
+                opacity: coins < 10 ? 0.5 : 1
+              }}
+            >
+              <Key size={18} weight="fill" color="#F59E0B" /> Hint
+            </button>
+            <button
+              onClick={handleReveal}
+              disabled={coins < 20}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '14px 28px',
+                borderRadius: '9999px',
+                border: `1.5px solid ${isDark ? '#374151' : '#E2E8F0'}`,
+                background: isDark ? '#1F2937' : '#FFFFFF',
+                color: isDark ? '#D1D5DB' : '#334155',
+                fontSize: '15px',
+                fontWeight: 800,
+                cursor: coins < 20 ? 'not-allowed' : 'pointer',
+                opacity: coins < 20 ? 0.5 : 1
+              }}
+            >
+              <MagnifyingGlass size={18} weight="bold" color="#3B82F6" /> Reveal
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Explanation Banner / Modal */}
+            {isExplaining && currentQ.explanation && (
+              <div style={{
+                padding: '24px',
+                borderRadius: '24px',
+                backgroundColor: isDark ? 'rgba(196, 181, 253, 0.08)' : '#F5F3FF',
+                border: '1.5px solid #C4B5FD',
+                color: isDark ? '#D1D5DB' : '#4C1D95',
+                fontSize: '15px',
+                lineHeight: 1.6,
+                fontWeight: 500,
+                display: 'flex',
+                gap: '16px',
+                marginTop: '16px'
+              }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '12px',
+                  background: '#FDE68A',
+                  border: '2px solid #F59E0B',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '24px'
+                }}>
+                  🤖
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <strong style={{ color: isDark ? '#C4B5FD' : '#6D28D9', fontWeight: 800, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <MagicWand size={16} weight="fill" /> Explanation
+                    </strong>
+                    <button onClick={() => setIsExplaining(false)} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer' }}>
+                      <XCircle size={20} weight="fill" />
+                    </button>
+                  </div>
+                  {currentQ.explanation}
+                </div>
+              </div>
+            )}
+            
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '16px' }}>
+              <button
+                onClick={handleExplain}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '14px 28px',
+                  borderRadius: '9999px',
+                  border: `1.5px solid ${isDark ? '#374151' : '#E2E8F0'}`,
+                  background: isDark ? '#1F2937' : '#FFFFFF',
+                  color: isDark ? '#D1D5DB' : '#334155',
+                  fontSize: '15px',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                <MagicWand size={18} weight="fill" color="#A855F7" /> Explain
+              </button>
               <button
                 onClick={handleNextQuestion}
                 style={{
-                  padding: '12px 28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '14px 40px',
                   borderRadius: '9999px',
                   border: 'none',
                   backgroundColor: '#C4B5FD',
                   color: '#1E1B4B',
                   fontWeight: 800,
-                  fontSize: '14px',
+                  fontSize: '15px',
                   cursor: 'pointer',
-                  transition: 'all 0.15s ease'
+                  boxShadow: '0 4px 14px rgba(196, 181, 253, 0.4)'
                 }}
               >
-                {currentIndex < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
+                {currentIndex < questions.length - 1 ? 'Next' : 'Finish Quiz'}
               </button>
-            )}
+            </div>
           </div>
-
-        </div>
+        )}
       </div>
     );
   }

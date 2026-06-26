@@ -1,8 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import ClassroomSidebar from './ClassroomSidebar';
+import ClassroomCalendar from './ClassroomCalendar';
+import ClassroomToReview from './ClassroomToReview';
+import ClassroomSettings from './ClassroomSettings';
 import { useSessionStore } from '../store/useSessionStore';
+import { SpinnerGap, List, Plus, DotsNine, TrendUp, Folder, DotsThreeVertical } from '@phosphor-icons/react';
 
 const LEVELS = [
   { val: '100', label: '100 Level', desc: 'Introductory course materials' },
@@ -25,6 +29,232 @@ const SCHED_TIME_SLOTS = [
 ];
 
 const CSS_STRING = `
+.cls-layout-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: #ffffff;
+}
+.cls-header {
+  height: 64px;
+  border-bottom: 1px solid #E5E7EB;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+.cls-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.cls-header-left, .cls-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.cls-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #5f6368;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  transition: background 0.2s;
+}
+.cls-icon-btn:hover {
+  background: #f1f3f4;
+}
+.cls-logo-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+.cls-logo-img {
+  height: 24px;
+}
+.cls-logo-text {
+  font-size: 22px;
+  font-weight: 500;
+  color: #5f6368;
+  letter-spacing: -0.5px;
+}
+.cls-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #7a12cc;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.cls-gc-card {
+  border: 1px solid #dadce0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+}
+.cls-gc-card:hover {
+  box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+}
+.cls-gc-banner {
+  height: 100px;
+  padding: 16px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  overflow: hidden;
+}
+.cls-gc-title {
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+  z-index: 2;
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+.cls-gc-subtitle {
+  color: #ffffff;
+  font-size: 14px;
+  margin-top: 4px;
+  z-index: 2;
+  position: relative;
+}
+.cls-gc-content {
+  flex: 1;
+  padding: 0;
+  position: relative;
+  background: #ffffff;
+}
+.cls-gc-avatar-overlap {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  position: absolute;
+  top: -38px;
+  right: 16px;
+  background: #15803d;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  z-index: 5;
+}
+.cls-gc-footer {
+  border: 1px solid #d1d5db;
+  border-top: none;
+  padding: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 20px;
+  background: #ffffff;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+.cls-gc-footer svg {
+  color: #5f6368;
+  cursor: pointer;
+}
+.cls-gc-footer svg:hover {
+  color: #333333;
+}
+
+.cls-sidebar {
+  width: 280px;
+  border-right: 1px solid #E5E7EB;
+  background: #ffffff;
+  transition: width 0.2s;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.cls-sidebar.collapsed {
+  width: 72px;
+}
+.cls-sidebar.hover-expanded {
+  width: 280px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  height: 100%;
+  box-shadow: 4px 0 16px rgba(0,0,0,0.1);
+}
+.cls-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 0;
+}
+.cls-nav-item {
+  display: flex;
+  align-items: center;
+  height: 52px;
+  border-radius: 9999px;
+  cursor: pointer;
+  color: #1f2937;
+  font-weight: 500;
+  font-size: 15px;
+  margin: 0 12px;
+  transition: background 0.1s;
+}
+.cls-nav-item:hover {
+  background: #F1F3F4;
+}
+.cls-nav-item.active {
+  background: #E8F0FE;
+  color: #1967D2;
+}
+.cls-nav-icon {
+  width: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.rv-root {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  background: var(--sb-bg, #F9FAFB);
+  color: var(--sb-text, #111827);
+  overflow: hidden;
+}
+.rv-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
 
 .cls-container {
   display: flex;
@@ -692,6 +922,14 @@ function injectStyles() {
 }
 
 export default function ClassroomDashboard() {
+  const location = useLocation();
+  const [activeNav, setActiveNav] = useState(location.state?.nav || 'home');
+
+  useEffect(() => {
+    if (location.state?.nav) {
+      setActiveNav(location.state.nav);
+    }
+  }, [location.state?.nav]);
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [step, setStep] = useState(1); // 1 to 4 steps
@@ -784,10 +1022,8 @@ export default function ClassroomDashboard() {
   const handleSkipSchedule = async () => {
     if (!roomName.trim()) return;
     setIsCreateOpen(false);
-    const { success, session } = await useSessionStore.getState().createSession(roomName, [], { sessionType: 'classroom', isShared: true });
-    if (success && session) {
-      navigate(`/workstation?sessionId=${session.id}&type=classroom`);
-    }
+    await useSessionStore.getState().createSession(roomName, [], { sessionType: 'classroom', isShared: true });
+    // Don't navigate, just drop back to dashboard
   };
 
   const handleCreateRoomSubmit = async (e) => {
@@ -798,10 +1034,8 @@ export default function ClassroomDashboard() {
     }
     if (!roomName.trim()) return;
     setIsCreateOpen(false);
-    const { success, session } = await useSessionStore.getState().createSession(roomName, [], { sessionType: 'classroom', isShared: true });
-    if (success && session) {
-      navigate(`/workstation?sessionId=${session.id}&type=classroom`);
-    }
+    await useSessionStore.getState().createSession(roomName, [], { sessionType: 'classroom', isShared: true });
+    // Don't navigate, just drop back to dashboard
   };
 
   const getNext5Days = () => {
@@ -830,9 +1064,17 @@ export default function ClassroomDashboard() {
 
   // -- newly added logic for grid --
   const [user, setUser] = useState(null);
-  const { sessions, loadSessions } = useSessionStore();
+  const { sessions, loadSessions, isCreating } = useSessionStore();
   const rooms = sessions.filter(s => s.session_type === 'classroom');
   const [isJoinOpen, setIsJoinOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+
+  const userInitials = (() => {
+    const name = user?.raw_user_meta_data?.name || user?.email || 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  })();
+
+  const GC_COLORS = ['#37474f', '#00796b', '#1976d2', '#d32f2f', '#f57c00', '#7b1fa2'];
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data?.user));
@@ -848,80 +1090,127 @@ export default function ClassroomDashboard() {
   const SEEDS = ['Felix', 'Jasper', 'Luna', 'Milo', 'Abby', 'Buster'];
 
   return (
-    <div className="rv-root">
-      <ClassroomSidebar user={user} activeNav="home" />
-
-      <div className="rv-main" style={{ padding: '32px', overflowY: 'auto' }}>
-        
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: 800 }}>Classrooms</h1>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button 
-              onClick={handleJoinOpen} 
-              style={{ background: 'var(--sb-surface, #ffffff)', border: '1px solid var(--sb-border)', color: 'var(--sb-text)', padding: '10px 16px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
-            >
-              Join Room
-            </button>
-            <button 
-              onClick={handleStartOnboard} 
-              style={{ background: '#7a12cc', border: 'none', color: '#fff', padding: '10px 16px', borderRadius: '8px', fontWeight: 600, display: 'flex', gap: '8px', alignItems: 'center', cursor: 'pointer' }}
-            >
-              Create Room
-            </button>
+    <div className="cls-layout-root">
+      {/* Top Navbar */}
+      <header className="cls-header">
+        <div className="cls-header-left">
+          <button className="cls-icon-btn" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}>
+            <List size={24} weight="regular" />
+          </button>
+          <div className="cls-logo-area">
+            <img src="/Header logo.png" alt="Logo" className="cls-logo-img" />
+            <span className="cls-logo-text">
+              Classroom 
+              {activeNav === 'review' && (
+                <span style={{ fontWeight: 400, color: '#5f6368', marginLeft: '4px' }}>
+                  <span style={{ margin: '0 4px' }}>›</span> To review
+                </span>
+              )}
+              {activeNav === 'settings' && (
+                <span style={{ fontWeight: 400, color: '#5f6368', marginLeft: '4px' }}>
+                  <span style={{ margin: '0 4px' }}>›</span> Settings
+                </span>
+              )}
+            </span>
           </div>
         </div>
-
-        {/* Banner */}
-        <div style={{ background: 'rgba(122, 18, 204, 0.05)', border: '1px solid rgba(122, 18, 204, 0.1)', padding: '24px', borderRadius: '16px', marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <img src="https://api.dicebear.com/7.x/micah/svg?seed=Felix&backgroundColor=transparent" alt="Bemoji" style={{ width: '64px', height: '64px' }} />
-          <div>
-            <h3 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 4px', color: 'var(--sb-text)' }}>Welcome to Luter Classrooms</h3>
-            <p style={{ margin: 0, color: 'var(--sb-text-secondary)', fontSize: '15px' }}>
-              Create a new room for your course or join an existing one to collaborate with peers and teachers.
-            </p>
+        <div className="cls-header-right">
+          <button className="cls-icon-btn" onClick={handleStartOnboard} title="Create or join a class">
+            <Plus size={24} weight="regular" />
+          </button>
+          <div className="cls-avatar">
+            {user?.user_metadata?.avatar_url ? (
+              <img src={user.user_metadata.avatar_url} alt="Profile" style={{width:'100%',height:'100%',borderRadius:'50%',objectFit:'cover'}} />
+            ) : userInitials}
           </div>
         </div>
+      </header>
 
-        {/* Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
-          {rooms.length === 0 ? (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: 'var(--sb-text-secondary)' }}>
-              No classrooms yet. Join or create one to get started!
+      <div className="cls-body" style={{ position: 'relative' }}>
+        <div style={{ width: sidebarCollapsed ? '72px' : '280px', flexShrink: 0, transition: 'width 0.2s' }}>
+          <ClassroomSidebar collapsed={sidebarCollapsed} activeNav={activeNav} setActiveNav={setActiveNav} rooms={rooms} />
+        </div>
+
+        {activeNav === 'calendar' ? (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#ffffff' }}>
+             <ClassroomCalendar />
+          </div>
+        ) : activeNav === 'review' ? (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#ffffff' }}>
+             <ClassroomToReview rooms={rooms} user={user} />
+          </div>
+        ) : activeNav === 'settings' ? (
+          <div style={{ flex: 1, padding: '32px', overflowY: 'auto', background: '#ffffff' }}>
+             <ClassroomSettings user={user} />
+          </div>
+        ) : (
+          <main style={{ flex: 1, padding: '32px', overflowY: 'auto', background: '#ffffff' }}>
+            {rooms.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+              <div className="cls-card">
+                <h2 className="cls-title">Enter your join code</h2>
+                <div className="cls-inputs-container">
+                  {code.map((char, idx) => (
+                    <input
+                      key={idx}
+                      ref={el => inputRefs.current[idx] = el}
+                      type="text"
+                      maxLength={1}
+                      value={char}
+                      onChange={(e) => handleChange(e, idx)}
+                      onKeyDown={(e) => handleKeyDown(e, idx)}
+                      onPaste={handlePaste}
+                      className="cls-input"
+                      placeholder="-"
+                    />
+                  ))}
+                </div>
+                <button 
+                  className="cls-btn-next"
+                  onClick={handleNext}
+                  disabled={code.join('').length !== 6}
+                >
+                  Join Room
+                </button>
+                <button className="cls-create-btn" onClick={handleStartOnboard}>
+                  Create a new classroom instead
+                </button>
+              </div>
             </div>
           ) : (
-            rooms.map((room, idx) => {
-              const bg = PASTEL_COLORS[idx % PASTEL_COLORS.length];
-              const seed = SEEDS[idx % SEEDS.length];
-              return (
-                <div 
-                  key={room.id} 
-                  onClick={() => navigate(`/workstation?sessionId=${room.id}&type=classroom`)}
-                  style={{ 
-                    background: bg, 
-                    borderRadius: '16px', 
-                    padding: '24px', 
-                    cursor: 'pointer', 
-                    position: 'relative', 
-                    minHeight: '180px', 
-                    transition: 'transform 0.2s', 
-                    color: '#111827',
-                    overflow: 'hidden'
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'}
-                  onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-                >
-                  <h3 style={{ fontSize: '22px', fontWeight: 800, margin: '0 0 4px', maxWidth: '80%' }}>{room.session_name}</h3>
-                  <p style={{ fontSize: '14px', fontWeight: 600, opacity: 0.8, margin: 0 }}>Luter Classroom</p>
-                  <img src={`https://api.dicebear.com/7.x/micah/svg?seed=${seed}&backgroundColor=transparent`} alt="Room Bemoji" style={{ position: 'absolute', bottom: '-10px', right: '-10px', width: '100px', pointerEvents: 'none', opacity: 0.9 }} />
-                </div>
-              );
-            })
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px' }}>
+              {rooms.map((room, idx) => {
+                const bg = GC_COLORS[idx % GC_COLORS.length];
+                const seed = SEEDS[idx % SEEDS.length];
+                return (
+                  <div 
+                    key={room.id} 
+                    onClick={() => navigate(`/classrooms/c/${room.id}`)}
+                    className="cls-gc-card"
+                  >
+                    <div className="cls-gc-banner" style={{ backgroundColor: bg }}>
+                      <h3 className="cls-gc-title">{room.session_name}</h3>
+                      <p className="cls-gc-subtitle">Luter Classroom</p>
+                    </div>
+                    <div className="cls-gc-content">
+                      <div className="cls-gc-avatar-overlap">
+                        {room.session_name?.charAt(0)?.toUpperCase() || 'C'}
+                      </div>
+                    </div>
+                    <div className="cls-gc-footer">
+                      <TrendUp size={24} className="cls-footer-icon" />
+                      <Folder size={24} className="cls-footer-icon" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
-        </div>
+        </main>
+        )}
       </div>
 
-      {/* Join Overlay Modal */}
+      {/* Modals for Create and Join */}
       {isJoinOpen && (
         <div className="cls-onboard-overlay">
           <div className="cls-card" style={{ position: 'relative' }}>
@@ -961,7 +1250,6 @@ export default function ClassroomDashboard() {
         </div>
       )}
 
-      {/* Room Creation Onboarding Overlay */}
       {isCreateOpen && (
         <div className="cls-onboard-overlay">
           <div className="cls-onboard-card">
@@ -1117,9 +1405,11 @@ export default function ClassroomDashboard() {
                 <button 
                   type="submit" 
                   className="cls-continue-btn-centered" 
-                  disabled={step === 1 && !roomName.trim()}
+                  disabled={(step === 1 && !roomName.trim()) || isCreating}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 >
-                  {step === 4 ? 'Launch Classroom' : 'Continue'}
+                  {isCreating && step === 4 && <SpinnerGap weight="bold" className="animate-spin" size={20} />}
+                  {step === 4 ? (isCreating ? 'Creating...' : 'Create Classroom') : 'Continue'}
                 </button>
 
                 {/* Skip Step Button */}
@@ -1137,9 +1427,10 @@ export default function ClassroomDashboard() {
                   <button 
                     type="button" 
                     className="cls-skip-btn"
+                    disabled={isCreating}
                     onClick={handleSkipSchedule}
                   >
-                    Skip schedule & launch
+                    {isCreating ? 'Creating...' : 'Skip schedule & create'}
                   </button>
                 )}
               </div>
@@ -1147,7 +1438,6 @@ export default function ClassroomDashboard() {
             </form>
           </div>
 
-          {/* Mascot Footer inside the onboard overlay */}
           <div className="cls-bottom-mascots">
             <img src="https://api.dicebear.com/7.x/micah/svg?seed=Felix&backgroundColor=transparent" alt="Bemoji" className="cls-bemoji" />
             <img src="https://api.dicebear.com/7.x/micah/svg?seed=Jasper&backgroundColor=transparent" alt="Bemoji" className="cls-bemoji" />
@@ -1155,7 +1445,6 @@ export default function ClassroomDashboard() {
             <img src="https://api.dicebear.com/7.x/micah/svg?seed=Luna&backgroundColor=transparent" alt="Bemoji" className="cls-bemoji" />
             <img src="https://api.dicebear.com/7.x/micah/svg?seed=Milo&backgroundColor=transparent" alt="Bemoji" className="cls-bemoji" />
           </div>
-
         </div>
       )}
     </div>

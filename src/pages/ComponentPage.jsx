@@ -696,7 +696,6 @@ const ComponentPage = () => {
           </div>
         </div>
       )}
-      )}
 
       {/* Subscription Plans Overlay */}
       {isPlansOpen && (

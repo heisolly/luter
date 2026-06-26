@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { MagnifyingGlass, House, SidebarSimple, Star, Lightning, Coins, Bell, Sun, Moon } from '@phosphor-icons/react'
 import { supabase } from '../../supabaseClient'
-import { fetchCourseMaterials, uploadMaterial } from '../../services/materialsService'
+import { fetchCourseMaterials, uploadMaterial, deleteMaterial } from '../../services/materialsService'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import { getCreditBalance } from '../../services/creditService'
 import SharedMaterialPreview from '../shared/SharedMaterialPreview'
@@ -141,7 +141,7 @@ export default function BackpackFolderView() {
 
   const handleRemoveItem = async (itemId) => {
     if (window.confirm('Remove this material?')) {
-      await supabase.from('course_materials').delete().eq('id', itemId)
+      await deleteMaterial(itemId)
       loadMaterials()
     }
   }

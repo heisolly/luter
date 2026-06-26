@@ -10,6 +10,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, useScroll } from 'framer-motion';
 import LogoLoop from './LogoLoop';
 import WallOfLove from '../pages/WallOfLove';
+import { supabase } from '../supabaseClient';
 import {
   Calculator,
   Plus,
@@ -508,6 +509,7 @@ const ZIGZAG_FEATURES = [
 export default function LandingPage() {
   const containerRef = useRef(null);
   const { isDark } = useTheme();
+  const navigate = useNavigate();
 
   const logoItems = UNIS.map(u => ({
     node: <UniversityLogoItem name={u.name} domain={u.domain} />,
@@ -515,6 +517,13 @@ export default function LandingPage() {
   }));
 
   useEffect(() => {
+    // Redirect authenticated users to the dashboard instead of showing them the landing page
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate('/home');
+      }
+    });
+
     const ctx = gsap.context(() => {
       // hero animation
       const heroTargets = containerRef.current.querySelectorAll('.hero-content > *, .hero-mockup');

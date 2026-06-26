@@ -23,7 +23,7 @@ export default function ShareSessionModal({ isOpen, onClose, sessionId, session:
   const getInviteLink = () => {
     if (!session?.share_code) return ''
     const materialParam = materialId ? `&materialId=${encodeURIComponent(materialId)}` : ''
-    return `${window.location.origin}/dashboard/sessions?join=${session.share_code}${materialParam}`
+    return `${window.location.origin}/home?join=${session.share_code}${materialParam}`
   }
 
   // Load session from db if not passed, or refresh it

@@ -213,26 +213,201 @@ export function useEventListener() { return () => {}; }
 export function useOthersMapped(selector) { return []; }
 export function useCreateThread() { return () => {}; }
 
-// Dummy exports to fix build until Whiteboard is migrated to Yjs
+// Liveblocks compatibility wrappers backed by Yjs
 export class LiveList {
   constructor(data = []) { this.data = data; }
   push(item) { this.data.push(item); }
   clear() { this.data = []; }
   toArray() { return this.data; }
 }
+
 export class LiveObject {
   constructor(data = {}) { this.data = data; }
   update(newData) { Object.assign(this.data, newData); }
   toObject() { return this.data; }
 }
+
+export class YjsLiveList {
+  constructor(yArray) {
+    this.yArray = yArray;
+  }
+  push(item) {
+    this.yArray.push([item]);
+  }
+  clear() {
+    this.yArray.delete(0, this.yArray.length);
+  }
+  toArray() {
+    return this.yArray.toArray();
+  }
+  get length() {
+    return this.yArray.length;
+  }
+}
+
+export class YjsLiveObject {
+  constructor(yMap) {
+    this.yMap = yMap;
+  }
+  set(key, value) {
+    this.yMap.set(key, value);
+  }
+  delete(key) {
+    this.yMap.delete(key);
+  }
+  get(key) {
+    return this.yMap.get(key);
+  }
+  update(newData) {
+    this.yMap.doc.transact(() => {
+      Object.entries(newData).forEach(([k, v]) => {
+        this.yMap.set(k, v);
+      });
+    });
+  }
+  toObject() {
+    return this.yMap.toJSON();
+  }
+}
+
 export function useStorage(selector) {
-  // Return dummy data so it doesn't block loading
-  if (selector.toString().includes('whiteboardData')) return new LiveList();
-  if (selector.toString().includes('whiteboardAppState')) return new LiveObject();
-  if (selector.toString().includes('whiteboardFiles')) return new LiveObject();
-  return null;
+  const context = useContext(CollaborationContext);
+  const yDoc = context?.yDoc;
+
+  // Trigger component re-render when Yjs doc updates
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!yDoc) return;
+    const handleUpdate = () => {
+      setTick(t => t + 1);
+    };
+    yDoc.on('update', handleUpdate);
+    return () => {
+      yDoc.off('update', handleUpdate);
+    };
+  }, [yDoc]);
+
+  // Whiteboard Yjs live wrappers
+  const selStr = selector.toString();
+  if (selStr.includes('whiteboardData')) {
+    return yDoc ? new YjsLiveList(yDoc.getArray('whiteboardData')) : new LiveList();
+  }
+  if (selStr.includes('whiteboardAppState')) {
+    return yDoc ? new YjsLiveObject(yDoc.getMap('whiteboardAppState')) : new LiveObject();
+  }
+  if (selStr.includes('whiteboardFiles')) {
+    return yDoc ? new YjsLiveObject(yDoc.getMap('whiteboardFiles')) : new LiveObject();
+  }
+
+  if (!yDoc) return null;
+
+  // Create a Liveblocks-compatible root proxy
+  const rootProxy = new Proxy(yDoc, {
+    get(target, prop) {
+      if (prop === 'getArray') {
+        return (name) => target.getArray(name);
+      }
+      if (prop === 'getMap') {
+        return (name) => target.getMap(name);
+      }
+
+      // Check if it is a known Array property in the codebase:
+      // 'messages', 'quizQuestions', 'flashcards'
+      if (prop === 'messages' || prop === 'quizQuestions' || prop === 'flashcards') {
+        const yArray = target.getArray(prop);
+        return yArray.toArray(); // useStorage returns a plain array/object for selection
+      }
+
+      // Check if it is a known Map property in the codebase:
+      // 'quizScores', 'raisedHands', 'syncState'
+      if (prop === 'quizScores' || prop === 'raisedHands' || prop === 'syncState') {
+        const yMap = target.getMap(prop);
+        return yMap.toJSON();
+      }
+
+      // Default: check shared_metadata Map
+      const sharedMetadata = target.getMap('shared_metadata');
+      return sharedMetadata.get(prop);
+    }
+  });
+
+  try {
+    return selector(rootProxy);
+  } catch (e) {
+    console.error("useStorage selector failed:", e);
+    return null;
+  }
 }
+
 export function useMutation(callback, deps) {
-  return () => {};
+  const context = useContext(CollaborationContext);
+  const yDoc = context?.yDoc;
+
+  return useCallback((...args) => {
+    if (!yDoc) return;
+
+    // Create a storage proxy that behaves like Liveblocks root object in mutation context
+    const storageProxy = {
+      get(key) {
+        // Return wrapped LiveList / LiveObject so it has the mutation methods (like push, update, set)
+        if (key === 'messages' || key === 'quizQuestions' || key === 'flashcards' || key === 'whiteboardData') {
+          const yArray = yDoc.getArray(key);
+          return new YjsLiveList(yArray);
+        }
+        if (key === 'quizScores' || key === 'raisedHands' || key === 'syncState' || key === 'whiteboardAppState' || key === 'whiteboardFiles') {
+          const yMap = yDoc.getMap(key);
+          return new YjsLiveObject(yMap);
+        }
+        
+        // Default: return value from shared_metadata map
+        const sharedMetadata = yDoc.getMap('shared_metadata');
+        return sharedMetadata.get(key);
+      },
+      set(key, value) {
+        yDoc.transact(() => {
+          let cleanValue = value;
+          if (value && typeof value.toObject === 'function') {
+            cleanValue = value.toObject();
+          } else if (value && typeof value.toArray === 'function') {
+            cleanValue = value.toArray();
+          }
+
+          if (key === 'messages' || key === 'quizQuestions' || key === 'flashcards' || key === 'whiteboardData') {
+            const yArray = yDoc.getArray(key);
+            yArray.delete(0, yArray.length);
+            if (Array.isArray(cleanValue)) {
+              yArray.push(cleanValue);
+            }
+          } else if (key === 'quizScores' || key === 'raisedHands' || key === 'syncState' || key === 'whiteboardAppState' || key === 'whiteboardFiles') {
+            const yMap = yDoc.getMap(key);
+            yMap.clear();
+            if (cleanValue && typeof cleanValue === 'object') {
+              Object.entries(cleanValue).forEach(([k, v]) => {
+                yMap.set(k, v);
+              });
+            }
+          } else {
+            const sharedMetadata = yDoc.getMap('shared_metadata');
+            sharedMetadata.set(key, cleanValue);
+          }
+        });
+      },
+      delete(key) {
+        yDoc.transact(() => {
+          const sharedMetadata = yDoc.getMap('shared_metadata');
+          sharedMetadata.delete(key);
+        });
+      }
+    };
+
+    const mutationContext = {
+      storage: storageProxy
+    };
+
+    yDoc.transact(() => {
+      callback(mutationContext, ...args);
+    });
+  }, [yDoc, callback, ...(deps || [])]);
 }
+
 

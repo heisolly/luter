@@ -54,22 +54,41 @@ export function AiChatPanel({ isOpen, onClose, mode, setMode, editor, currentNot
     catch { return Math.random().toString(36).substring(2) + Date.now().toString(36) }
   })
 
-  // Detect standalone /ai-chat route â€” no nav to notes, no close/widget buttons
+  // Detect standalone /ai-chat route — no nav to notes, no close/widget buttons
   const location = useLocation()
   const isStandaloneChat = location.pathname.includes('/ai-chat')
 
   // Read workstation material context (set by WorkstationPage before navigating here)
-  const [wsContext] = useState(() => {
+  const [wsContext, setWsContext] = useState(() => {
     try {
       const raw = sessionStorage.getItem('luter-ws-ai-context')
       return raw ? JSON.parse(raw) : null
     } catch { return null }
   })
 
+  // Check periodically or when opening for updated sessionStorage (since AiChatPanel might mount before material loads)
+  useEffect(() => {
+    const checkContext = () => {
+      try {
+        const raw = sessionStorage.getItem('luter-ws-ai-context');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.text && parsed.text !== wsContext?.text) {
+            setWsContext(parsed);
+            setContextEnabled(true);
+          }
+        }
+      } catch {}
+    };
+    checkContext();
+    const interval = setInterval(checkContext, 2000);
+    return () => clearInterval(interval);
+  }, [wsContext?.text]);
+
   // Context is only available when: inside notes editor (editor exists) OR workstation material was passed
   const hasRealContext = Boolean(editor) || Boolean(wsContext?.text)
   const contextLabel = wsContext?.title
-    ? `ðŸ“Ž ${wsContext.title.slice(0, 40)}${wsContext.title.length > 40 ? 'â€¦' : ''}`
+    ? `📎 ${wsContext.title.slice(0, 40)}${wsContext.title.length > 40 ? '…' : ''}`
     : editor
       ? 'Current page'
       : null

@@ -164,7 +164,13 @@ export default function WorkstationMobileLayout({ state, actions }) {
           <WorkstationFlashcards material={selectedMaterial} items={selectedMaterial?.analysis?.flashcards || []} isDark={isDark} user={user} />
         )}
         {activeMainTab === 'Quizzes' && selectedMaterial && (
-          <WorkstationQuizzes material={selectedMaterial} items={selectedMaterial?.analysis?.quizzes || []} isDark={isDark} user={user} />
+          <WorkstationQuizzes 
+            material={actions.selectedMaterialWithAnalysis || state.selectedMaterialWithAnalysis || selectedMaterial} 
+            isDark={isDark} 
+            user={user} 
+            onRegenerateQuiz={() => actions.runAnalysis && actions.runAnalysis('quiz')}
+            isAnalysisLoading={state.isAnalysisLoading}
+          />
         )}
         {activeMainTab === 'Source' && selectedMaterial && (
           <div style={{ display: activeSubTab === 'Document' ? 'block' : 'none', height: '100%', position: 'relative' }}>
@@ -177,7 +183,7 @@ export default function WorkstationMobileLayout({ state, actions }) {
           </div>
         )}
         {activeMainTab === 'Source' && (
-          <div style={{ display: activeSubTab === 'Boards' ? 'block' : 'none', height: '100%' }}>
+          <div style={{ display: activeSubTab === 'Boards' ? 'flex' : 'none', flexDirection: 'column', height: '100%', width: '100%' }}>
             <Whiteboard isCollaborative={isCollaborative} roomId={roomId} />
           </div>
         )}

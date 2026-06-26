@@ -413,6 +413,7 @@ Focus on:
 4. Comparing or contrasting concepts
 
 CRITICAL RULE: DO NOT use repetitive phrasing like "What should you remember about X?". Write natural, varied questions.
+CRITICAL RULE 2: Do NOT put single quotes ('') or double quotes ("") around concepts or terms in the questions or answers. (e.g. write "What is the Account Name?" instead of "What is the 'Account Name'?").
 Examples of GOOD questions: "How does X affect Y?", "What are the three main components of Z?", "Define the term [concept]."
 Examples of BAD questions: "What should you remember about [topic]?", "What is the key idea of [topic]?"
 `
@@ -512,6 +513,7 @@ Create questions that test:
 2. Knowledge of important terms
 3. Application of learning objectives
 4. Critical thinking about the material
+CRITICAL RULE 2: Do NOT put single quotes ('') or double quotes ("") around concepts or terms in the questions, options, or explanations.
 Avoid generic questions like "What is the main topic covered?". Every question must be specific to the material.
 `
 
@@ -806,6 +808,7 @@ Focus on:
 4. Comparing or contrasting concepts
 
 CRITICAL RULE: DO NOT use repetitive phrasing like "What should you remember about X?". Write natural, varied questions.
+CRITICAL RULE 2: Do NOT put single quotes ('') or double quotes ("") around concepts or terms in the questions or answers. (e.g. write "What is the Account Name?" instead of "What is the 'Account Name'?").
 Examples of GOOD questions: "How does X affect Y?", "What are the three main components of Z?", "Define the term [concept]."
 Examples of BAD questions: "What should you remember about [topic]?", "What is the key idea of [topic]?"
 `
@@ -909,6 +912,7 @@ Create questions that test:
 2. Knowledge of important terms
 3. Application of the material
 4. Critical thinking about the content
+CRITICAL RULE 2: Do NOT put single quotes ('') or double quotes ("") around concepts or terms in the questions, options, or explanations.
 Avoid generic questions like "What is the main topic covered?". Each question must name a specific term, process, formula, person, or claim from the source.
 `
 

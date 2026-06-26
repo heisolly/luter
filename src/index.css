@@ -1559,3 +1559,77 @@ body:not(.in-workspace) a[href*="liveblocks.io"] {
     -webkit-background-clip: text;
     animation: shimmer 1.5s ease-in-out infinite;
 }
+
+/* =====================================================
+   CLASSROOM SIDEBAR & NAVIGATION STYLES
+   ===================================================== */
+.cls-sidebar {
+  width: 280px;
+  border-right: 1px solid #E5E7EB;
+  background: #ffffff;
+  transition: width 0.2s, background-color 0.2s;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  height: 100%;
+}
+.cls-sidebar.collapsed {
+  width: 72px;
+}
+.cls-sidebar.hover-expanded {
+  width: 280px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  height: 100%;
+  box-shadow: 4px 0 16px rgba(0,0,0,0.1);
+}
+.cls-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 0;
+}
+.cls-nav-item {
+  display: flex;
+  align-items: center;
+  height: 52px;
+  border-radius: 9999px;
+  cursor: pointer;
+  color: #1f2937;
+  font-weight: 500;
+  font-size: 15px;
+  margin: 0 12px;
+  transition: background 0.1s, color 0.1s;
+}
+.cls-nav-item:hover {
+  background: #F1F3F4;
+}
+.cls-nav-item.active {
+  background: #E8F0FE;
+  color: #1967D2;
+}
+.cls-nav-icon {
+  width: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+body.dark-mode .cls-sidebar {
+  background: #1F2937;
+  border-color: rgba(255,255,255,0.07);
+}
+body.dark-mode .cls-nav-item {
+  color: #E5E7EB;
+}
+body.dark-mode .cls-nav-item:hover {
+  background: rgba(255,255,255,0.06);
+}
+body.dark-mode .cls-nav-item.active {
+  background: rgba(26, 115, 232, 0.2);
+  color: #8ab4f8;
+}
