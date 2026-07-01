@@ -25,6 +25,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/users', icon: UsersThree, label: 'Users' },
       { to: '/courses', icon: Books, label: 'Courses' },
+      { to: '/tasks', icon: GraduationCap, label: 'Tasks Manager' },
       { to: '/syllabus', icon: GraduationCap, label: 'Syllabus manager' },
     ]
   },

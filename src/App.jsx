@@ -38,6 +38,7 @@ const AdminActivity = lazy(() => import('./admin/pages/AdminActivity'));
 const AdminSyllabusManager = lazy(() => import('./admin/pages/AdminSyllabusManager'));
 const AdminAudit = lazy(() => import('./admin/pages/AdminAudit'));
 const AdminConfig = lazy(() => import('./admin/pages/AdminConfig'));
+const AdminTasks = lazy(() => import('./admin/pages/AdminTasks'));
 const FilesPage = lazy(() => import('./components/dashboard/FilesPage'));
 const AssignmentsPage = lazy(() => import('./components/dashboard/AssignmentsPage'));
 const NotesStudioPage = lazy(() => import('./components/dashboard/NotesStudioPage'));
@@ -156,6 +157,7 @@ export default function App() {
                 <Route path="syllabus" element={<AdminSyllabusManager />} />
                 <Route path="audit" element={<AdminAudit />} />
                 <Route path="config" element={<AdminConfig />} />
+                <Route path="tasks" element={<AdminTasks />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </>
@@ -172,6 +174,7 @@ export default function App() {
                 <Route path="syllabus" element={<AdminSyllabusManager />} />
                 <Route path="audit" element={<AdminAudit />} />
                 <Route path="config" element={<AdminConfig />} />
+                <Route path="tasks" element={<AdminTasks />} />
                 <Route path="*" element={<Navigate to="/admin" replace />} />
               </Route>
             </>

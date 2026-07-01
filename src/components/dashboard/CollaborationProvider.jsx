@@ -28,7 +28,12 @@ export function CollaborationProvider({ roomId, id, children, userInfo, initialP
     setProvider(newProvider);
 
     // Initialize offline indexeddb provider
-    const idbProvider = new IndexeddbPersistence(actualRoomId, doc);
+    let idbProvider = null;
+    try {
+      idbProvider = new IndexeddbPersistence(actualRoomId, doc);
+    } catch (error) {
+      console.warn("IndexeddbPersistence failed to initialize:", error);
+    }
 
     // Initialize official y-protocols awareness
     const aw = new Awareness(doc);
@@ -90,7 +95,7 @@ export function CollaborationProvider({ roomId, id, children, userInfo, initialP
       aw.destroy();
       channel.unsubscribe();
       newProvider.destroy();
-      idbProvider.destroy();
+      if (idbProvider) idbProvider.destroy();
       doc.destroy();
     };
   }, [actualRoomId]);

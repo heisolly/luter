@@ -835,7 +835,7 @@ export default function Onboarding() {
 
   const prevStep = () => {
     setStep((p) => {
-      if (p === 9 && purpose !== "University") {
+      if (p === 11 && purpose !== "University") {
         return 5;
       }
       return Math.max(p - 1, 1);
@@ -1232,15 +1232,15 @@ export default function Onboarding() {
                   University
                 </OptionPill>
                 <OptionPill icon={<Ico.School />} selected={purpose === "School"}
-                  onClick={() => { setPurpose("School"); setUniversity("School"); setDegree("School"); setTimeout(() => setStep(9), 180); }}>
+                  onClick={() => { setPurpose("School"); setUniversity("School"); setDegree("School"); setTimeout(() => setStep(11), 180); }}>
                   School
                 </OptionPill>
                 <OptionPill icon={<Ico.Briefcase />} selected={purpose === "Work"}
-                  onClick={() => { setPurpose("Work"); setUniversity("Work"); setDegree("Work"); setTimeout(() => setStep(9), 180); }}>
+                  onClick={() => { setPurpose("Work"); setUniversity("Work"); setDegree("Work"); setTimeout(() => setStep(11), 180); }}>
                   Work
                 </OptionPill>
                 <button
-                  onClick={() => { setPurpose("Other"); setUniversity("Other"); setDegree("Other"); setTimeout(() => setStep(9), 180); }}
+                  onClick={() => { setPurpose("Other"); setUniversity("Other"); setDegree("Other"); setTimeout(() => setStep(11), 180); }}
                   style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "16px", color: C.midGray, padding: "12px 0", fontFamily: "inherit" }}>
                   Other
                 </button>

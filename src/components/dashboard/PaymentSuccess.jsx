@@ -23,27 +23,50 @@ export default function PaymentSuccess() {
     }
 
     let cancelled = false;
-    let pollCount = 0;
-    const MAX_POLLS = 30; // 60 seconds total
+    const verifyPaymentStatus = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
 
-    const pollPaymentStatus = async () => {
-      while (!cancelled && pollCount < MAX_POLLS) {
-        try {
-          const { data: tx, error: txError } = await supabase
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-paystack-payment`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({ reference }),
+          }
+        );
+
+        const resData = await response.json();
+
+        if (response.ok && resData.status === 'completed') {
+          // Fetch the details for the receipt after verification succeeds
+          const { data: tx } = await supabase
             .from('payment_transactions')
             .select('*')
             .eq('reference', reference)
             .maybeSingle();
 
-          if (txError) throw txError;
-
-          if (tx && tx.status === 'completed') {
-            // Fetch profile for name/email
+          if (tx) {
             const { data: profile } = await supabase
               .from('profiles')
               .select('full_name, email')
               .eq('id', tx.user_id)
               .maybeSingle();
+
+            try {
+              localStorage.removeItem(`luter:profile:${tx.user_id}`);
+              const keys = [];
+              for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith('luter:dashboard_prefetch:')) keys.push(k);
+              }
+              keys.forEach(k => localStorage.removeItem(k));
+            } catch (e) {}
 
             if (!cancelled) {
               setPaymentStatus({
@@ -57,23 +80,21 @@ export default function PaymentSuccess() {
               });
               setLoading(false);
             }
-            return;
+          } else {
+             throw new Error('Transaction details not found');
           }
-        } catch (err) {
-          console.warn('Error polling payment status:', err.message);
+        } else {
+          throw new Error(resData.error || 'Payment verification failed');
         }
-
-        pollCount++;
-        await new Promise(r => setTimeout(r, 2000));
-      }
-
-      if (!cancelled) {
-        setErrorMsg('Payment verification timed out. If you were debited, please contact support with reference: ' + reference);
-        setLoading(false);
+      } catch (err) {
+        if (!cancelled) {
+          setErrorMsg('Payment verification failed. If you were debited, please contact support with reference: ' + reference + '. Error: ' + err.message);
+          setLoading(false);
+        }
       }
     };
 
-    pollPaymentStatus();
+    verifyPaymentStatus();
     return () => { cancelled = true; };
   }, [reference]);
 
@@ -101,7 +122,9 @@ export default function PaymentSuccess() {
     }
   };
 
-  const handleGoHome = () => navigate('/home');
+  const handleGoHome = () => {
+    window.location.href = '/home';
+  };
 
   if (errorMsg) {
     return (

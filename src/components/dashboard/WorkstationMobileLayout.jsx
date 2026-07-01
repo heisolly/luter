@@ -7,6 +7,7 @@ import {
 import MaterialRenderer from './MaterialRenderer';
 import { LiveNoteEditor } from './NotesStudioPage';
 import { Whiteboard } from './Whiteboard';
+import { CommentsProvider } from './CommentsProvider';
 import WorkstationFlashcards from './WorkstationFlashcards';
 import WorkstationQuizzes from './WorkstationQuizzes';
 
@@ -19,7 +20,7 @@ export default function WorkstationMobileLayout({ state, actions }) {
 
   const { 
     setActiveMainTab, setActiveSubTab, setActiveWorkspaceTool, 
-    setIsChatOpen, handleCopyLink, setIsBoardFullScreen 
+    setIsChatOpen, handleCopyLink, setIsBoardFullScreen, setMobileSidebarOpen 
   } = actions;
 
   const textColor = isDark ? '#F9FAFB' : '#111827';
@@ -51,7 +52,12 @@ export default function WorkstationMobileLayout({ state, actions }) {
         backgroundColor: isDark ? '#1F2937' : '#FFFFFF'
       }}>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <SidebarSimple size={28} weight="bold" color={textColor} />
+          <button 
+            onClick={() => setMobileSidebarOpen?.(true)}
+            style={{ border: 'none', background: 'transparent', padding: 0, margin: 0, display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+          >
+            <SidebarSimple size={28} weight="bold" color={textColor} />
+          </button>
           <div style={{
             position: 'absolute', top: 0, right: '-4px', width: '8px', height: '8px',
             backgroundColor: '#8B5CF6', borderRadius: '50%'
@@ -79,44 +85,46 @@ export default function WorkstationMobileLayout({ state, actions }) {
         </div>
       </div>
 
-      {/* Tools Row */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 20px', backgroundColor: bgColor
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      {/* DUMMY WHITEBOARD TOOLBAR */}
+      {activeMainTab === 'Source' && activeSubTab === 'Boards' && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '12px 20px', backgroundColor: isDark ? '#111827' : '#F9FAFB'
+        }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '40px', height: '40px', borderRadius: '12px', border: 'none',
+              backgroundColor: '#8B5CF6', color: '#FFFFFF', cursor: 'pointer'
+            }}>
+              <Hand size={22} weight="fill" />
+            </button>
+            <button style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '40px', height: '40px', borderRadius: '12px', border: 'none',
+              backgroundColor: 'transparent', color: subTextColor, cursor: 'pointer'
+            }}>
+              <PencilSimple size={22} weight="bold" />
+            </button>
+            <button style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '40px', height: '40px', borderRadius: '12px', border: 'none',
+              backgroundColor: 'transparent', color: subTextColor, cursor: 'pointer'
+            }}>
+              <SelectionBackground size={22} weight="bold" />
+            </button>
+          </div>
           <button style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: '40px', height: '40px', borderRadius: '12px', border: 'none',
-            backgroundColor: '#8B5CF6', color: '#FFFFFF', cursor: 'pointer'
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '10px 16px', borderRadius: '9999px', border: `1px solid ${borderColor}`,
+            backgroundColor: isDark ? '#1F2937' : '#FFFFFF', color: textColor, fontWeight: 600, fontSize: '14px',
+            cursor: 'pointer'
           }}>
-            <Hand size={22} weight="fill" />
-          </button>
-          <button style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: '40px', height: '40px', borderRadius: '12px', border: 'none',
-            backgroundColor: 'transparent', color: subTextColor, cursor: 'pointer'
-          }}>
-            <PencilSimple size={22} weight="bold" />
-          </button>
-          <button style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: '40px', height: '40px', borderRadius: '12px', border: 'none',
-            backgroundColor: 'transparent', color: subTextColor, cursor: 'pointer'
-          }}>
-            <SelectionBackground size={22} weight="bold" />
+            <GraduationCap size={20} weight="bold" />
+            Study Deck
           </button>
         </div>
-        <button style={{
-          display: 'flex', alignItems: 'center', gap: '8px',
-          padding: '10px 16px', borderRadius: '9999px', border: `1px solid ${borderColor}`,
-          backgroundColor: isDark ? '#1F2937' : '#FFFFFF', color: textColor, fontWeight: 600, fontSize: '14px',
-          cursor: 'pointer'
-        }}>
-          <GraduationCap size={20} weight="bold" />
-          Study Deck
-        </button>
-      </div>
+      )}
 
       {/* Sub Navigation Row */}
       <div style={{
@@ -177,9 +185,17 @@ export default function WorkstationMobileLayout({ state, actions }) {
             <MaterialRenderer material={selectedMaterial} isDark={isDark} urlMaterialId={urlMaterialId} />
           </div>
         )}
-        {activeMainTab === 'Source' && selectedMaterial && (
+        {activeMainTab === 'Source' && (
           <div style={{ display: activeSubTab === 'Notes' ? 'block' : 'none', height: '100%', overflowY: 'auto' }}>
-            <LiveNoteEditor isCollaborative={isCollaborative} roomId={roomId} currentUser={{id: user?.id || 'guest', name: displayName, color: '#C4B5FD'}} material={selectedMaterial} />
+            <CommentsProvider roomId={selectedMaterial ? `luter:notes:${selectedMaterial.id}` : `luter:notes:${roomId}`}>
+              <LiveNoteEditor 
+                title={selectedMaterial?.title || 'Workspace Note'} 
+                roomId={selectedMaterial ? `luter:notes:${selectedMaterial.id}` : `luter:notes:${roomId}`} 
+                displayName={displayName} 
+                user={user} 
+                workstationMode={true} 
+              />
+            </CommentsProvider>
           </div>
         )}
         {activeMainTab === 'Source' && (

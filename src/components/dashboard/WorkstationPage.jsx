@@ -5,7 +5,7 @@ import {
   FileText, Star, Lightning, Cards, CheckSquareOffset, CornersOut, CornersIn,
   CaretDown, Bell, Link as LinkIcon, ShareNetwork, Moon, Sun, User as UserIcon, X as CloseIcon,
   Highlighter, PencilLine, PencilSimple, Chalkboard, Square, PushPin,
-  WhatsappLogo, ChatsCircle, DiscordLogo, RedditLogo, LinkedinLogo, Sparkle, SidebarSimple, ChatTeardropText
+  WhatsappLogo, ChatsCircle, DiscordLogo, RedditLogo, LinkedinLogo, Sparkle, SidebarSimple, ChatTeardropText, House
 } from '@phosphor-icons/react';
 import { fetchUserStandaloneMaterials, joinMaterial, fetchMaterialCollaborators, fetchCourseMaterials } from '../../services/materialsService';
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext';
@@ -99,7 +99,7 @@ const SUB_TABS = [
 ];
 
 export default function WorkstationPage() {
-  const { user } = useOutletContext() || {};
+  const { user, setMobileSidebarOpen } = useOutletContext() || {};
   const { bundle } = useDashboardPrefetch();
   const [isDark, setIsDark] = useDarkMode();
 
@@ -433,6 +433,15 @@ export default function WorkstationPage() {
           }
 
           if (data && data.length > 0) {
+            if (urlMaterialId && !data.find(m => String(m.id) === String(urlMaterialId))) {
+              try {
+                const { data: explicitMaterial } = await supabase.from('materials').select('*').eq('id', urlMaterialId).maybeSingle();
+                if (explicitMaterial) data.unshift(explicitMaterial);
+              } catch (e) {
+                console.warn('Failed to fetch explicit material', e);
+              }
+            }
+
             setMaterials(data);
             let targetMaterial = null;
             if (stateMaterial) targetMaterial = stateMaterial;
@@ -548,13 +557,13 @@ export default function WorkstationPage() {
           <WorkstationMobileLayout 
             state={{ 
               isDark, user, activeMainTab, activeSubTab, activeWorkspaceTool, 
-              isChatOpen, selectedMaterial, urlMaterialId, isCollaborative, 
+              isChatOpen, selectedMaterial, urlMaterialId, isCollaborative: true, 
               displayName, displayAvatar, roomId, isBoardFullScreen, copiedToast,
               selectedMaterialWithAnalysis, isAnalysisLoading
             }} 
             actions={{ 
               setActiveMainTab, setActiveSubTab, setActiveWorkspaceTool, 
-              setIsChatOpen, handleCopyLink, setIsBoardFullScreen,
+              setIsChatOpen, handleCopyLink, setIsBoardFullScreen, setMobileSidebarOpen,
               runAnalysis 
             }} 
           />

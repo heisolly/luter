@@ -168,13 +168,7 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
   // ── Liveblocks mutations ──────────────────────────────────────────
   const updateElements = useMutation(({ storage }, newElements) => {
     if (!storage) return;
-    const data = storage.get('whiteboardData');
-    if (!data || typeof data.clear !== 'function') {
-      storage.set('whiteboardData', new LiveList(newElements));
-      return;
-    }
-    data.clear();
-    newElements.forEach((el) => data.push(el));
+    storage.set('whiteboardData', newElements);
   }, []);
 
   const updateAppState = useMutation(({ storage }, newState) => {
@@ -306,16 +300,20 @@ export const Whiteboard = ({ isCollaborative = true, roomId }) => {
     }
 
     isInitialized.current = true;
-    isRemoteUpdate.current = true;
     const elementsToLoad = storedElements || [];
     const str = JSON.stringify(elementsToLoad);
+    
+    // Prevent infinite loops and clobbering by checking if it matches our last local save
+    if (str === lastSavedElements.current) return;
+    
     lastSavedElements.current = str;
+    isRemoteUpdate.current = true;
 
     excalidrawAPI.updateScene({
       elements: elementsToLoad,
       files: Object.keys(filesToLoad).length > 0 ? filesToLoad : undefined,
     });
-    setTimeout(() => { isRemoteUpdate.current = false; }, 150);
+    setTimeout(() => { isRemoteUpdate.current = false; }, 50);
   }, [storedElements, storedFiles, excalidrawAPI, roomId, isStorageLoaded]);
 
   useEffect(() => {

@@ -121,6 +121,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       url: result.data.authorization_url,
       reference: result.data.reference,
+      access_code: result.data.access_code,
       publicKey: paystackPublicKey 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

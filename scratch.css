@@ -1,0 +1,32 @@
+
+@media (max-width: 640px) {
+  .dhd-header-left {
+    display: none;
+  }
+  .dhd-header-right {
+    justify-content: center;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .dhd-welcome {
+    margin-top: 10px;
+  }
+  .dhd-explore-tasks {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 12px;
+    padding-bottom: 8px;
+    /* hide scrollbar */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .dhd-explore-tasks::-webkit-scrollbar {
+    display: none;
+  }
+  .dhd-explore-task {
+    flex: 0 0 85%;
+    min-width: 280px;
+    margin-bottom: 0;
+  }
+}

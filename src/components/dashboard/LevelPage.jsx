@@ -216,6 +216,18 @@ export default function LevelPage() {
 
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
+  useEffect(() => {
+    if (user?.id) {
+      // Call all loaders concurrently; loadAchievements sets loading to false in finally block
+      Promise.all([
+        loadAvatar(),
+        loadGamificationData(),
+        loadLevelInfo(),
+        loadAchievements()
+      ])
+    }
+  }, [user?.id])
+
   if (loading) {
     return (
       <div style={{ 

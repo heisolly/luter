@@ -372,7 +372,7 @@ body.dark-mode .dhd-placeholder-card {
   background: #ffffff;
   border-radius: 24px;
   padding: 22px 24px 20px;
-  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.05), 0 2px 8px rgba(15, 23, 42, 0.03);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -381,7 +381,7 @@ body.dark-mode .dhd-placeholder-card {
 
 body.dark-mode .dhd-explore-card {
   background: #1F2937;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: none;
 }
 
 .dhd-explore-header {
@@ -562,7 +562,7 @@ body.dark-mode .task-reward-xp {
   background: #98FF98; /* Luter Mint Green */
   color: #052e16;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(152, 255, 152, 0.4);
+  box-shadow: none;
 }
 
 .task-reward-xp.claim-btn:hover {
@@ -591,7 +591,7 @@ body.dark-mode .dhd-explore-task.claimable {
   background: #ffffff;
   border-radius: 24px;
   padding: 20px 20px 16px;
-  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.07), 0 2px 8px rgba(15, 23, 42, 0.04);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -601,7 +601,7 @@ body.dark-mode .dhd-explore-task.claimable {
 
 body.dark-mode .dhd-heatmap-card {
   background: #1F2937;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  box-shadow: none;
 }
 
 /* Stats row at the top */
@@ -757,7 +757,7 @@ body.dark-mode .dhd-heatmap-nav:hover {
   font-size: 11px;
   font-weight: 700;
   color: #0F172A;
-  margin-bottom: 8px;
+  
 }
 
 body.dark-mode .dhd-heatmap-dayname {
@@ -990,13 +990,13 @@ body.dark-mode .dhd-modal-overlay {
   max-width: 480px;
   padding: 40px 32px 32px;
   position: relative;
-  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.15);
+  box-shadow: none;
   text-align: center;
 }
 
 body.dark-mode .dhd-goal-modal {
   background: #1F2937;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+  box-shadow: none;
 }
 
 .bounce-in {
@@ -1099,7 +1099,7 @@ body.dark-mode .dhd-goal-option {
 .dhd-goal-option:hover {
   background: #ffffff;
   border-color: #FFD2A6;
-  box-shadow: 0 8px 24px rgba(255, 210, 166, 0.2);
+  box-shadow: none;
   transform: translateY(-2px);
 }
 
@@ -1149,7 +1149,7 @@ body.dark-mode .dhd-goal-option small {
   border-radius: 10px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+  box-shadow: none;
 }
 
 .dhd-goal-skip {
@@ -1183,9 +1183,9 @@ body.dark-mode .dhd-goal-skip:hover {
 }
 
 @keyframes pulse-claim {
-  0% { box-shadow: 0 0 0 0 rgba(255, 210, 166, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(255, 210, 166, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 210, 166, 0); }
+  0% { box-shadow: none; }
+  70% { box-shadow: none; }
+  100% { box-shadow: none; }
 }
 
 .task-reward-xp.claim-btn {
@@ -1199,7 +1199,7 @@ body.dark-mode .dhd-goal-skip:hover {
   gap: 24px;
   margin-top: 24px;
   margin-bottom: 40px;
-  align-items: stretch;
+  align-items: start;
 }
 
 @media (max-width: 1024px) {
@@ -1581,11 +1581,11 @@ body.dark-mode .dhd-session-card {
 .dhd-session-card:hover {
   transform: translateY(-2px);
   border-color: var(--hover-color, #CBD5E1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
 }
 
 body.dark-mode .dhd-session-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: none;
 }
 
 .dhd-sc-icon {
@@ -1690,4 +1690,48 @@ body.dark-mode .dhd-sc-arrow {
     padding-left: 10px;
     padding-right: 10px;
   }
+}
+
+@media (max-width: 640px) {
+  .dhd-header-left {
+    display: none;
+  }
+  .dhd-header-right {
+    justify-content: center;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .dhd-welcome {
+    margin-top: 10px;
+  }
+  .dhd-explore-tasks {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 12px;
+    padding-bottom: 8px;
+    /* hide scrollbar */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .dhd-explore-tasks::-webkit-scrollbar {
+    display: none;
+  }
+  .dhd-explore-task {
+    flex: 0 0 85%;
+    min-width: 280px;
+    margin-bottom: 0;
+  }
+}
+
+.premium-btn {
+  transition: all 0.05s ease;
+}
+
+.premium-btn:hover {
+  background: linear-gradient(#fff, #fff) padding-box, linear-gradient(86deg, #4A6DFF 0%, #FF52C8 50%, #EAB308 100%) border-box !important;
+}
+
+.dark-mode .premium-btn:hover {
+  background: linear-gradient(#1f2937, #1f2937) padding-box, linear-gradient(86deg, #4A6DFF 0%, #FF52C8 50%, #EAB308 100%) border-box !important;
 }

@@ -166,8 +166,9 @@ export default function DashboardSidebar({
   const credits        = typeof creditsBalance === 'number' ? creditsBalance : profile?.credits ?? 20000
 
   const tier    = (profile?.subscription_tier || profile?.subscription_type || 'free').toLowerCase()
-  const isPaid  = tier === 'premium' || tier === 'pro'
-  const tierLabel = tier === 'premium' ? 'Executive Plan' : tier === 'pro' ? 'Pro Plan' : 'Free Plan'
+  const hasPremiumCredits = creditsBalance >= 2000;
+  const isPaid  = tier === 'premium' || tier === 'pro' || tier === 'beast' || hasPremiumCredits
+  const tierLabel = tier === 'premium' ? 'Executive Plan' : tier === 'pro' || hasPremiumCredits ? 'Pro Plan' : 'Free Plan'
 
   /* courses from prefetch */
   const userCourses = toArray(bundle?.uc)

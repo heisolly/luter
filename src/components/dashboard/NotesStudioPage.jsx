@@ -1994,7 +1994,7 @@ export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSh
 
   return (
     <div
-      className={`ns-page ${aiOpen && !commentsOpen ? 'ns-ai-open' : ''} ${aiMode === 'fullscreen' ? 'ns-ai-fullscreen' : ''}`}
+      className={`ns-page ${aiOpen && !commentsOpen ? 'ns-ai-open' : ''} ${aiMode === 'fullscreen' && aiOpen && !commentsOpen ? 'ns-ai-fullscreen' : ''}`}
       onPointerMove={updateCursorPresence}
       onPointerLeave={clearCursorPresence}
     >

@@ -1,30 +1,40 @@
 import React, { useState } from 'react';
+import StreakHeatmap from '../components/dashboard/StreakHeatmap';
+import CalendarHeatmap from '../components/dashboard/CalendarHeatmap';
+import CourseCardSwiper from '../components/dashboard/CourseCardSwiper';
+import ExploreTasksWidget from '../components/dashboard/ExploreTasksWidget';
+import GamifiedProgressBars from '../components/dashboard/GamifiedProgressBars';
+import ChatBubblesWidget from '../components/dashboard/ChatBubblesWidget';
+import QuitOverlaysWidget from '../components/dashboard/QuitOverlaysWidget';
+
+const CheckIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none" style={{ flexShrink: 0 }}>
+    <rect x="2" y="2" width="24" height="24" rx="12" fill="#FFCC9C"></rect>
+    <rect x="2" y="2" width="24" height="24" rx="12" stroke="url(#ck-grad)" strokeWidth="4"></rect>
+    <path d="M21.0718 10.1095L19.6576 8.69531L11.8794 16.4735L8.3439 12.938L6.92969 14.3522L11.8794 19.302L21.0718 10.1095Z" fill="#291502"></path>
+    <defs>
+      <linearGradient id="ck-grad" x1="1.91667" y1="4" x2="19.4167" y2="21.5" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#FF8D23" stopOpacity="0"></stop>
+        <stop offset="1" stopColor="#FF8D23" stopOpacity="0.2"></stop>
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+const CrossIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0, color: '#B3B3B3' }}>
+    <path fillRule="evenodd" clipRule="evenodd" d="M10 0C4.47715 0 0 4.47715 0 10C0 15.5228 4.47715 20 10 20C15.5228 20 20 15.5228 20 10C20 4.47715 15.5228 0 10 0ZM5.66872 4.4317L9.99979 8.76277L14.3308 4.43178L15.5682 5.66922L11.2372 10.0002L15.5682 14.3312L14.3308 15.5686L9.99979 11.2376L5.66871 15.5687L4.43127 14.3313L8.76235 10.0002L4.43129 5.66914L5.66872 4.4317Z" fill="currentColor"></path>
+  </svg>
+);
 
 const ComponentPage = () => {
   const [isXpOpen, setIsXpOpen] = useState(false);
   const [isKeysOpen, setIsKeysOpen] = useState(false);
   const [isPremiumOpen, setIsPremiumOpen] = useState(false);
   const [isPlansOpen, setIsPlansOpen] = useState(false);
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
 
-  const CheckIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none" style={{ flexShrink: 0 }}>
-      <rect x="2" y="2" width="24" height="24" rx="12" fill="#FFCC9C"></rect>
-      <rect x="2" y="2" width="24" height="24" rx="12" stroke="url(#ck-grad)" strokeWidth="4"></rect>
-      <path d="M21.0718 10.1095L19.6576 8.69531L11.8794 16.4735L8.3439 12.938L6.92969 14.3522L11.8794 19.302L21.0718 10.1095Z" fill="#291502"></path>
-      <defs>
-        <linearGradient id="ck-grad" x1="1.91667" y1="4" x2="19.4167" y2="21.5" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#FF8D23" stopOpacity="0"></stop>
-          <stop offset="1" stopColor="#FF8D23" stopOpacity="0.2"></stop>
-        </linearGradient>
-      </defs>
-    </svg>
-  );
 
-  const CrossIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0, color: '#B3B3B3' }}>
-      <path fillRule="evenodd" clipRule="evenodd" d="M10 0C4.47715 0 0 4.47715 0 10C0 15.5228 4.47715 20 10 20C15.5228 20 20 15.5228 20 10C20 4.47715 15.5228 0 10 0ZM5.66872 4.4317L9.99979 8.76277L14.3308 4.43178L15.5682 5.66922L11.2372 10.0002L15.5682 14.3312L14.3308 15.5686L9.99979 11.2376L5.66871 15.5687L4.43127 14.3313L8.76235 10.0002L4.43129 5.66914L5.66872 4.4317Z" fill="currentColor"></path>
-    </svg>
-  );
   const benefits = [
     { label: 'Daily lesson', free: true, premium: true },
     { label: 'Unlimited learning', free: false, premium: true },
@@ -36,9 +46,10 @@ const ComponentPage = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#F8FAFC',
+      background: isDarkTheme ? '#0F172A' : '#F8FAFC',
       padding: '40px',
-      fontFamily: 'Outfit, sans-serif'
+      fontFamily: 'Outfit, sans-serif',
+      transition: 'background 0.2s ease'
     }}>
       <style>{`
         .premium-btn {
@@ -60,6 +71,53 @@ const ComponentPage = () => {
           opacity: 0.85;
         }
       `}</style>
+
+      {/* Theme Toggle */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+        <button 
+          onClick={() => setIsDarkTheme(!isDarkTheme)}
+          style={{
+             padding: '10px 20px',
+             borderRadius: '8px',
+             background: isDarkTheme ? '#1E293B' : '#fff',
+             color: isDarkTheme ? '#F8FAFC' : '#0F172A',
+             border: `1px solid ${isDarkTheme ? '#334155' : '#E2E8F0'}`,
+             cursor: 'pointer',
+             fontWeight: 600,
+             display: 'flex',
+             alignItems: 'center',
+             gap: '8px'
+          }}>
+          {isDarkTheme ? '☀️ Light Mode' : '🌙 Dark Mode'}
+        </button>
+      </div>
+
+      {/* Calendar Heatmap Section */}
+      <div style={{ display: 'flex', gap: '24px', marginBottom: '40px', alignItems: 'flex-start' }}>
+         <CalendarHeatmap 
+           isDark={isDarkTheme} 
+         />
+      </div>
+
+      {/* Mini Streak and Tasks Section */}
+      <div style={{ display: 'flex', gap: '24px', marginBottom: '40px', alignItems: 'flex-start' }}>
+         <div style={{ maxWidth: '400px', width: '100%' }}>
+            <StreakHeatmap isDark={isDarkTheme} targetStreak={3} />
+         </div>
+         <div style={{ width: '100%', maxWidth: '480px' }}>
+            <ExploreTasksWidget isDark={isDarkTheme} />
+         </div>
+      </div>
+
+      {/* Gamified Progress Bars Section */}
+      <div style={{ display: 'flex', gap: '24px', marginBottom: '40px', alignItems: 'flex-start', justifyContent: 'center' }}>
+         <GamifiedProgressBars isDark={isDarkTheme} />
+      </div>
+
+      {/* Course Cards Swiper Section */}
+      <div style={{ display: 'flex', gap: '24px', marginBottom: '40px', alignItems: 'flex-start', justifyContent: 'center' }}>
+         <CourseCardSwiper isDark={isDarkTheme} />
+      </div>
 
       {/* Header buttons row */}
       <div style={{
@@ -337,6 +395,11 @@ const ComponentPage = () => {
         </div>
       </div>
 
+        {/* NEW CHAT BUBBLES SECTION */}
+        <ChatBubblesWidget />
+
+        {/* NEW QUIT OVERLAYS SECTION */}
+        <QuitOverlaysWidget />
       {/* ── Standalone Button3D Component ── */}
       <div style={{ marginTop: '60px', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'flex-start' }}>
         <span style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Button 3D</span>

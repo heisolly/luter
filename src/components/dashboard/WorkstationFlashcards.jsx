@@ -273,9 +273,14 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
   const handleSaveEdit = async () => {
     const updatedCard = { ...cards[currentIndex], front: editForm.front, back: editForm.back };
     
-    if (yFlashcards) {
+    if (yFlashcards && yFlashcards.length > currentIndex) {
       yFlashcards.delete(currentIndex, 1);
       yFlashcards.insert(currentIndex, [updatedCard]);
+    } else if (yFlashcards) {
+      const updatedCards = [...cards];
+      updatedCards[currentIndex] = updatedCard;
+      yFlashcards.delete(0, yFlashcards.length);
+      yFlashcards.push(updatedCards);
     } else {
       const updatedCards = [...cards];
       updatedCards[currentIndex] = updatedCard;
@@ -299,8 +304,12 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
   const handleDeleteCard = async () => {
     if (!window.confirm("Are you sure you want to delete this flashcard?")) return;
     
-    if (yFlashcards) {
+    if (yFlashcards && yFlashcards.length > currentIndex) {
       yFlashcards.delete(currentIndex, 1);
+    } else if (yFlashcards) {
+      const updatedCards = cards.filter((_, idx) => idx !== currentIndex);
+      yFlashcards.delete(0, yFlashcards.length);
+      yFlashcards.push(updatedCards);
     } else {
       const updatedCards = cards.filter((_, idx) => idx !== currentIndex);
       setGeneratedItems(updatedCards);

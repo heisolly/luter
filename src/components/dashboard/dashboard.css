@@ -2741,6 +2741,7 @@ body.dark-mode .floating-sidebar-dock .dsb-redesign {
     height: auto;
     min-height: 100vh;
     overflow-y: auto;
+    overscroll-behavior-y: none;
   }
 
   .mobile-topbar {

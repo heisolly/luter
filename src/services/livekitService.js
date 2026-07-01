@@ -121,6 +121,20 @@ const detachAllRemoteAudio = () => {
   })
 }
 
+// Browser autoplay policy workaround: resume playback on user interaction
+if (typeof document !== 'undefined') {
+  const resumeBlockedAudio = () => {
+    if (!livekitState.speakerEnabled) return;
+    livekitState.audioElements.forEach((audio) => {
+      if (audio.paused) {
+        audio.play().catch(() => null);
+      }
+    });
+  };
+  document.addEventListener('click', resumeBlockedAudio, { capture: true });
+  document.addEventListener('touchstart', resumeBlockedAudio, { capture: true });
+}
+
 export const livekitService = {
   async getToken({ roomName, userId, username }) {
     try {
