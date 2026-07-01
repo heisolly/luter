@@ -348,12 +348,7 @@ export default function Dashboard() {
     if (subscriptionTier === 'premium' || subscriptionType === 'premium') {
       return { label: 'Executive', color: '#0ea5e9', bg: 'rgba(14, 165, 233, 0.15)' }
     }
-    const stats = bundle?.stats?.data || bundle?.stats
-    const ai_credits_monthly = stats?.ai_credits_monthly ?? 0
-    const ai_credits_used = stats?.ai_credits_used ?? 0
-    const creditsBalance = Math.max(0, ai_credits_monthly - ai_credits_used)
-    const hasPremiumCredits = creditsBalance >= 2000;
-    if (subscriptionTier === 'pro' || subscriptionType === 'pro' || hasPremiumCredits) {
+    if (subscriptionTier === 'pro' || subscriptionType === 'pro') {
       return { label: 'Pro', color: '#7a12cc', bg: 'rgba(122, 18, 204, 0.15)' }
     }
     return null
