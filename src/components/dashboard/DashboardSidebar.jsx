@@ -32,6 +32,7 @@ import './SidebarRedesign.css'
 import HelperWidget from './HelperWidget'
 import ArcadeOverlay from './ArcadeOverlay'
 import { getCreditBalance } from '../../services/creditService'
+import StreakWidget from './StreakWidget'
 
 /* ── dark mode hook ── */
 function useDarkMode() {
@@ -218,6 +219,8 @@ export default function DashboardSidebar({
         }}>
           Luter
         </span>
+
+        {!collapsed && <StreakWidget userId={session?.user?.id} isDark={isDark} />}
 
         {isMobile ? (
           <button

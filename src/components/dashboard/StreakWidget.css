@@ -1,0 +1,142 @@
+.streak-widget-container {
+  position: relative;
+  display: inline-block;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.streak-widget-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  user-select: none;
+}
+
+.streak-widget-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.streak-widget-btn.dark:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Popover Styling */
+.streak-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  transform-origin: top right;
+}
+
+.streak-popover.dark {
+  background: #1f2937;
+  border-color: #374151;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.streak-popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.streak-popover-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.streak-popover.dark .streak-popover-header h3 {
+  color: #f9fafb;
+}
+
+.streak-popover-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #ff9600;
+}
+
+.streak-popover-desc {
+  margin: 0 0 20px 0;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.streak-popover.dark .streak-popover-desc {
+  color: #9ca3af;
+}
+
+/* Week View */
+.streak-week-view {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.streak-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.streak-day-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+.streak-day.today .streak-day-label {
+  color: #111827;
+}
+.streak-popover.dark .streak-day.today .streak-day-label {
+  color: #f9fafb;
+}
+
+.streak-day-circle {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.streak-day-empty {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px dashed #d1d5db;
+}
+
+.streak-popover.dark .streak-day-empty {
+  border-color: #4b5563;
+}
+
+.streak-day.today .streak-day-empty {
+  border: 2px solid #e5e7eb;
+  background: #f3f4f6;
+}
+
+.streak-popover.dark .streak-day.today .streak-day-empty {
+  border-color: #374151;
+  background: #111827;
+}

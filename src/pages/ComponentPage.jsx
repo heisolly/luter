@@ -6,6 +6,7 @@ import ExploreTasksWidget from '../components/dashboard/ExploreTasksWidget';
 import GamifiedProgressBars from '../components/dashboard/GamifiedProgressBars';
 import ChatBubblesWidget from '../components/dashboard/ChatBubblesWidget';
 import QuitOverlaysWidget from '../components/dashboard/QuitOverlaysWidget';
+import StackedStartCard from '../components/dashboard/StackedStartCard';
 
 const CheckIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none" style={{ flexShrink: 0 }}>
@@ -112,6 +113,11 @@ const ComponentPage = () => {
       {/* Gamified Progress Bars Section */}
       <div style={{ display: 'flex', gap: '24px', marginBottom: '40px', alignItems: 'flex-start', justifyContent: 'center' }}>
          <GamifiedProgressBars isDark={isDarkTheme} />
+      </div>
+
+      {/* Stacked Start Card Section */}
+      <div style={{ display: 'flex', gap: '24px', marginBottom: '40px', alignItems: 'flex-start', justifyContent: 'flex-end' }}>
+         <StackedStartCard isDark={isDarkTheme} />
       </div>
 
       {/* Course Cards Swiper Section */}

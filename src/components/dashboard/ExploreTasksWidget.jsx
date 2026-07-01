@@ -269,7 +269,7 @@ export default function ExploreTasksWidget({ isDark = false }) {
             right: 0,
             top: 0,
             height: '32px',
-            background: `linear-gradient(to bottom, ${bgInner}, transparent)`
+            background: `linear-gradient(to bottom, ${isDark ? 'rgba(17,24,39,1)' : 'rgba(255,255,255,1)'}, ${isDark ? 'rgba(17,24,39,0)' : 'rgba(255,255,255,0)'})`
           }} />
           <div style={{
             pointerEvents: 'none',
@@ -278,7 +278,7 @@ export default function ExploreTasksWidget({ isDark = false }) {
             right: 0,
             bottom: 0,
             height: '32px',
-            background: `linear-gradient(to top, ${bgInner}, transparent)`
+            background: `linear-gradient(to top, ${isDark ? 'rgba(17,24,39,1)' : 'rgba(255,255,255,1)'}, ${isDark ? 'rgba(17,24,39,0)' : 'rgba(255,255,255,0)'})`
           }} />
         </div>
       </div>

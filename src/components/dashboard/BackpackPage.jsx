@@ -55,9 +55,17 @@ export default function BackpackPage() {
   const { bundle } = useDashboardPrefetch()
 
   const [tab, setTab] = useState(() => localStorage.getItem('backpackActiveTab') || 'folders')
-  const [folders, setFolders] = useState(() => bundle?.uc?.data || [])
-  const [materials, setMaterials] = useState(() => bundle?.materials?.data || [])
-  const [loading, setLoading] = useState(() => !bundle?.uc?.data && !bundle?.materials?.data)
+  const [folders, setFolders] = useState(() => {
+    return bundle?.uc?.data || getCachedPageData(user?.id, 'courses')?.data || []
+  })
+  const [materials, setMaterials] = useState(() => {
+    return bundle?.materials?.data || getCachedPageData(user?.id, 'materials')?.data || []
+  })
+  const [loading, setLoading] = useState(() => {
+    const hasF = bundle?.uc?.data || getCachedPageData(user?.id, 'courses')?.data;
+    const hasM = bundle?.materials?.data || getCachedPageData(user?.id, 'materials')?.data;
+    return !hasF && !hasM;
+  })
   const [view, setView] = useState('grid')
   const [showUpload, setShowUpload] = useState(false)
   const [showEnroll, setShowEnroll] = useState(false)
@@ -106,18 +114,16 @@ export default function BackpackPage() {
 
   const loadFolders = async () => {
     const cached = getCachedPageData(user.id, 'courses')
-    const offline = typeof navigator !== 'undefined' && !navigator.onLine
-    if (offline && cached?.data) {
+    if (cached?.data) {
       setFolders(cached.data)
       setLoading(false)
-      return
     }
 
     const { data, error } = await courseService.fetchUserCourses(user.id)
     if (!error && data) {
       setFolders(data)
       cachePageData(user.id, 'courses', data)
-    } else if (cached?.data) {
+    } else if (!cached?.data && cached?.data) {
       setFolders(cached.data)
     }
     setLoading(false)
@@ -125,11 +131,9 @@ export default function BackpackPage() {
 
   const loadMaterials = async () => {
     const cached = getCachedPageData(user.id, 'materials')
-    const offline = typeof navigator !== 'undefined' && !navigator.onLine
-    if (offline && cached?.data) {
+    if (cached?.data) {
       setMaterials(cached.data)
       setLoading(false)
-      return
     }
 
     try {

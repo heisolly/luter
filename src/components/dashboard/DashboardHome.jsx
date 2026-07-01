@@ -24,13 +24,13 @@ function useDarkMode() {
 
 const CheckIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none" style={{ flexShrink: 0 }}>
-    <rect x="2" y="2" width="24" height="24" rx="12" fill="#FFCC9C"></rect>
+    <rect x="2" y="2" width="24" height="24" rx="12" fill="#C4B5FD"></rect>
     <rect x="2" y="2" width="24" height="24" rx="12" stroke="url(#ck-grad)" strokeWidth="4"></rect>
-    <path d="M21.0718 10.1095L19.6576 8.69531L11.8794 16.4735L8.3439 12.938L6.92969 14.3522L11.8794 19.302L21.0718 10.1095Z" fill="#291502"></path>
+    <path d="M21.0718 10.1095L19.6576 8.69531L11.8794 16.4735L8.3439 12.938L6.92969 14.3522L11.8794 19.302L21.0718 10.1095Z" fill="#312E81"></path>
     <defs>
       <linearGradient id="ck-grad" x1="1.91667" y1="4" x2="19.4167" y2="21.5" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#FF8D23" stopOpacity="0"></stop>
-        <stop offset="1" stopColor="#FF8D23" stopOpacity="0.2"></stop>
+        <stop stopColor="#C4B5FD" stopOpacity="0"></stop>
+        <stop offset="1" stopColor="#C4B5FD" stopOpacity="0.2"></stop>
       </linearGradient>
     </defs>
   </svg>
@@ -938,20 +938,19 @@ export default function DashboardHome() {
 
           {/* XP Pill */}
           <div style={{ position: 'relative' }}>
-            <button onClick={() => { setIsXpOpen(!isXpOpen); setIsCoinsOpen(false); }} style={{
-                padding: '6px 16px',
+            <button className="dhd-pill-btn" onClick={() => { setIsXpOpen(!isXpOpen); setIsCoinsOpen(false); }} style={{
+                padding: '8px 20px',
                 borderRadius: '9999px',
                 border: `2px solid ${isDark ? '#374151' : '#E2E8F0'}`,
                 background: isDark ? '#1F2937' : '#fff',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '10px',
                 cursor: 'pointer',
                 textDecoration: 'none',
-                transition: 'all 0.2s',
                 outline: 'none'
             }}>
-              <span id="header-xp-display" style={{ fontSize: '15px', fontWeight: 800, color: isDark ? '#F9FAFB' : '#000' }}>{xp}</span>
+              <span id="header-xp-display" style={{ fontSize: '16px', fontWeight: 800, color: isDark ? '#F9FAFB' : '#000' }}>{xp}</span>
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 19 25" fill="none">
                 <path d="M1.27498 12.516L10.1761 1.31828C10.7098 0.646883 11.7966 1.11739 11.6606 1.96094L10.3758 9.92921H15.8888C16.9368 9.92921 17.5236 11.1248 16.8757 11.94L7.97457 23.1377C7.44087 23.8091 6.35401 23.3386 6.49003 22.495L7.7748 14.5268H2.26186C1.21381 14.5268 0.62701 13.3312 1.27498 12.516Z" fill="transparent" stroke="#10B981" strokeWidth="2.5"></path>
               </svg>
@@ -1013,21 +1012,20 @@ export default function DashboardHome() {
 
           {/* Coins Pill */}
           <div style={{ position: 'relative' }}>
-            <button onClick={() => { setIsCoinsOpen(!isCoinsOpen); setIsXpOpen(false); }} style={{
-                padding: '6px 16px',
+            <button className="dhd-pill-btn" onClick={() => { setIsCoinsOpen(!isCoinsOpen); setIsXpOpen(false); }} style={{
+                padding: '8px 20px',
                 borderRadius: '9999px',
                 border: `2px solid ${isDark ? '#374151' : '#E2E8F0'}`,
                 background: isDark ? '#1F2937' : '#fff',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '10px',
                 cursor: 'pointer',
                 textDecoration: 'none',
-                transition: 'all 0.2s',
                 outline: 'none'
             }}>
-              <span style={{ fontSize: '15px', fontWeight: 800, color: isDark ? '#F9FAFB' : '#000' }}>{credits >= 1000 ? `${Math.floor(credits / 1000)}k` : credits}</span>
-              <Coins size={20} weight="fill" color="#F59E0B" />
+              <span style={{ fontSize: '16px', fontWeight: 800, color: isDark ? '#F9FAFB' : '#000' }}>{credits >= 1000 ? `${Math.floor(credits / 1000)}k` : credits}</span>
+              <Coins size={22} weight="fill" color="#F59E0B" />
             </button>
             {isCoinsOpen && (
               <div style={{
@@ -1086,7 +1084,7 @@ export default function DashboardHome() {
             onClick={() => setNotificationsOpen?.(true)}
             title="Notifications"
           >
-            <Bell size={20} weight="regular" />
+            <Bell size={24} weight="regular" />
             <span className="dhd-notif-dot" />
           </button>
 
@@ -1095,7 +1093,7 @@ export default function DashboardHome() {
             onClick={() => setIsDark(!isDark)}
             title="Toggle Dark Mode"
           >
-            {isDark ? <Sun size={20} weight="regular" /> : <Moon size={20} weight="regular" />}
+            {isDark ? <Sun size={24} weight="regular" /> : <Moon size={24} weight="regular" />}
           </button>
         </div>
       </header>
@@ -1106,24 +1104,10 @@ export default function DashboardHome() {
           <span>Welcome @{username || 'scholar'}! 👋</span>
         </h2>
       </section>
-
-      <section className="dhd-main-dashboard">
-        <div className="dhd-col-left">
-          <ExploreLuter bundle={bundle} isPremiumOpen={isPremiumOpen} setIsPremiumOpen={setIsPremiumOpen} />
-        </div>
-        <div className="dhd-col-right">
-          <StreakHeatmap />
-        </div>
-      </section>
-
-      <section className="dhd-secondary-dashboard">
-        <div className="dhd-col-left">
-          <CombinedMaterials bundle={bundle} />
-        </div>
-        <div className="dhd-col-right">
-          <RecentFolders bundle={bundle} />
-        </div>
-      </section>
+      <section style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '24px 0', minHeight: '60vh' }}>
+        {/* BLANK CANVAS FOR REDESIGN */}
+        {/* The Explore, Streak, Your Material, and Recent Folder components have been cleared */}
+      </section>    
 
       <DailyGoalModal stats={stats} />
       {/* Premium Overlay */}

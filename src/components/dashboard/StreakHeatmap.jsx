@@ -58,17 +58,19 @@ const StreakHeatmap = ({
     textTitle: isDark ? '#D1D5DB' : '#6B7280',
     textBody: isDark ? '#F3F4F6' : '#4B5563',
     borderColor: isDark ? '#374151' : '#E5E7EB',
-    streakIconFill: currentStreak > 0 ? '#FFD2A6' : (isDark ? '#4B5563' : '#E5E7EB'),
+    streakIconFill: currentStreak > 0 ? '#C4B5FD' : (isDark ? '#4B5563' : '#E5E7EB'),
     streakIconStroke: currentStreak > 0 ? 'none' : (isDark ? '#374151' : '#E5E7EB'),
   };
 
   const generateDays = () => {
     const dayNames = ['Su', 'M', 'T', 'W', 'Th', 'F', 'Sa'];
     const result = [];
+    const getLocalStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = getLocalStr(d);
       const isCompleted = history.some(h => h.date === dateStr && h.completed);
       
       result.push({
@@ -89,7 +91,7 @@ const StreakHeatmap = ({
       backgroundColor: colors.bgOuter,
       borderRadius: '24px',
       padding: '24px',
-      boxShadow: isDark ? '0 24px 64px rgba(0,0,0,0.4)' : '0 24px 64px rgba(15,23,42,0.1)',
+      boxShadow: 'none',
       fontFamily: 'Inter, system-ui, sans-serif',
       display: 'flex',
       flexDirection: 'column',
@@ -156,7 +158,7 @@ const StreakHeatmap = ({
               border: `1px solid ${colors.borderColor}`,
               borderRadius: '12px',
               padding: '16px',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+              boxShadow: 'none',
               zIndex: 50,
               width: 'max-content',
               display: 'flex',
@@ -179,7 +181,7 @@ const StreakHeatmap = ({
         backgroundColor: colors.bgInner,
         borderRadius: '24px',
         padding: '20px',
-        boxShadow: isDark ? 'inset 0 1px 0 rgba(255,255,255,0.05)' : '0 2px 8px rgba(0,0,0,0.02), inset 0 0 0 1px rgba(0,0,0,0.02)',
+        boxShadow: 'none',
         display: 'flex', 
         justifyContent: 'space-between', 
         width: '100%', 
@@ -192,12 +194,12 @@ const StreakHeatmap = ({
                 width: '34px',
                 height: '34px',
                 borderRadius: '50%',
-                backgroundColor: day.active ? (isDark ? 'rgba(255, 210, 166, 0.15)' : 'rgba(255, 210, 166, 0.3)') : 'transparent',
-                border: day.active ? `2px solid #FFD2A6` : `2px solid ${colors.borderColor}`,
+                backgroundColor: day.active ? (isDark ? 'rgba(196, 181, 253, 0.15)' : '#F5F3FF') : 'transparent',
+                border: day.active ? `2px solid #C4B5FD` : `2px solid ${colors.borderColor}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: day.active ? '0 4px 12px rgba(255, 210, 166, 0.35)' : 'none',
+                boxShadow: 'none',
                 transition: 'all 0.2s ease',
               }}
               onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.1)'; }}
@@ -205,7 +207,7 @@ const StreakHeatmap = ({
             >
               {day.active ? (
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 19 25" fill="none">
-                  <path d="M1.27498 12.516L10.1761 1.31828C10.7098 0.646883 11.7966 1.11739 11.6606 1.96094L10.3758 9.92921H15.8888C16.9368 9.92921 17.5236 11.1248 16.8757 11.94L7.97457 23.1377C7.44087 23.8091 6.35401 23.3386 6.49003 22.495L7.7748 14.5268H2.26186C1.21381 14.5268 0.62701 13.3312 1.27498 12.516Z" fill="#FFD2A6"></path>
+                  <path d="M1.27498 12.516L10.1761 1.31828C10.7098 0.646883 11.7966 1.11739 11.6606 1.96094L10.3758 9.92921H15.8888C16.9368 9.92921 17.5236 11.1248 16.8757 11.94L7.97457 23.1377C7.44087 23.8091 6.35401 23.3386 6.49003 22.495L7.7748 14.5268H2.26186C1.21381 14.5268 0.62701 13.3312 1.27498 12.516Z" fill="#C4B5FD"></path>
                 </svg>
               ) : (
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 19 25" fill="none">

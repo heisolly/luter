@@ -51,7 +51,7 @@ async function fetchDashboardBundle(userId) {
     
     supabase
       .from('user_stats')
-      .select('total_xp, streak_days, user_id, ai_credits_monthly, ai_credits_used, arena_battles_monthly, arena_battles_used, claimed_tasks, daily_goal_minutes')
+      .select('total_xp, streak_days, current_streak, user_id, ai_credits_monthly, ai_credits_used, arena_battles_monthly, arena_battles_used, claimed_tasks, daily_goal_minutes')
       .order('total_xp', { ascending: false })
       .limit(10)
       .then(res => res),

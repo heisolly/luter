@@ -13,6 +13,7 @@ import { DashboardPrefetchProvider } from '../../context/DashboardPrefetchContex
 import NotificationsOverlay from './NotificationsOverlay'
 import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceStore'
 import { LANDING_URL } from '../../utils/urlUtils'
+import StreakWidget from './StreakWidget'
 
 
 
@@ -426,8 +427,10 @@ export default function Dashboard() {
             )}
           </div>
 
-          <div
-            className="mobile-user-avatar"
+          <div className="mobile-right-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <StreakWidget userId={user?.id} />
+            <div
+              className="mobile-user-avatar"
             onClick={() => navigate('/profile')}
             style={{
               width: 32,

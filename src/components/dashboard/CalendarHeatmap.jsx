@@ -3,9 +3,9 @@ import { supabase } from '../../supabaseClient';
 
 const FireIcon = ({ width = 24, height = 24, style = {} }) => (
   <svg width={width} height={height} viewBox="0 0 24 24" fill="none" style={style}>
-    <path d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21Z" fill="#FFD2A6" fillOpacity="0.2"/>
-    <path d="M13.25 13.75C13.25 14.8546 12.3546 15.75 11.25 15.75C10.1454 15.75 9.25 14.8546 9.25 13.75C9.25 12.6454 10.1454 11.75 11.25 11.75C12.3546 11.75 13.25 12.6454 13.25 13.75Z" fill="#FFD2A6"/>
-    <path d="M12 5C12 5 15.5 8 15.5 12C15.5 13.33 14.9 14.51 14 15.33C14.6 14.25 15 13.02 15 11.71C15.93 12.77 16.5 14.2 16.5 15.75C16.5 19.2 14.48 22 12 22C9.52 22 7.5 19.2 7.5 15.75C7.5 12 12 5 12 5Z" fill="#FFD2A6"/>
+    <path d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21Z" fill="#C4B5FD" fillOpacity="0.2"/>
+    <path d="M13.25 13.75C13.25 14.8546 12.3546 15.75 11.25 15.75C10.1454 15.75 9.25 14.8546 9.25 13.75C9.25 12.6454 10.1454 11.75 11.25 11.75C12.3546 11.75 13.25 12.6454 13.25 13.75Z" fill="#C4B5FD"/>
+    <path d="M12 5C12 5 15.5 8 15.5 12C15.5 13.33 14.9 14.51 14 15.33C14.6 14.25 15 13.02 15 11.71C15.93 12.77 16.5 14.2 16.5 15.75C16.5 19.2 14.48 22 12 22C9.52 22 7.5 19.2 7.5 15.75C7.5 12 12 5 12 5Z" fill="#C4B5FD"/>
   </svg>
 );
 
@@ -111,6 +111,8 @@ const CalendarHeatmap = ({ isDark = false }) => {
       });
     }
 
+    const getLocalStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
     // Now compute streaks using global history to handle cross-month streaks
     for (let i = 0; i < calendarDays.length; i++) {
       if (calendarDays[i].type === 'empty') continue;
@@ -120,11 +122,11 @@ const CalendarHeatmap = ({ isDark = false }) => {
          
          const prevD = new Date(currentD);
          prevD.setDate(prevD.getDate() - 1);
-         const prevDateStr = prevD.toISOString().split('T')[0];
+         const prevDateStr = getLocalStr(prevD);
          
          const nextD = new Date(currentD);
          nextD.setDate(nextD.getDate() + 1);
-         const nextDateStr = nextD.toISOString().split('T')[0];
+         const nextDateStr = getLocalStr(nextD);
 
          const prevCompleted = isCompleted(prevDateStr);
          const nextCompleted = isCompleted(nextDateStr);
@@ -136,13 +138,13 @@ const CalendarHeatmap = ({ isDark = false }) => {
             while (true) {
                let testD = new Date(startD);
                testD.setDate(testD.getDate() - 1);
-               if (isCompleted(testD.toISOString().split('T')[0])) {
+               if (isCompleted(getLocalStr(testD))) {
                   startD = testD;
                } else {
                   break;
                }
             }
-            calendarDays[i].group = startD.toISOString().split('T')[0];
+            calendarDays[i].group = getLocalStr(startD);
          }
       }
     }
@@ -165,7 +167,7 @@ const CalendarHeatmap = ({ isDark = false }) => {
       backgroundColor: bgOuter,
       borderRadius: '24px',
       padding: '24px',
-      boxShadow: isDark ? '0 24px 64px rgba(0,0,0,0.4)' : '0 24px 64px rgba(15,23,42,0.1)',
+      boxShadow: 'none',
       fontFamily: 'Inter, system-ui, sans-serif',
       display: 'flex',
       flexDirection: 'column',
@@ -222,7 +224,7 @@ const CalendarHeatmap = ({ isDark = false }) => {
         backgroundColor: bgInner,
         borderRadius: '24px',
         padding: '20px',
-        boxShadow: isDark ? 'inset 0 1px 0 rgba(255,255,255,0.05)' : '0 2px 8px rgba(0,0,0,0.02), inset 0 0 0 1px rgba(0,0,0,0.02)'
+        boxShadow: 'none'
       }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -278,7 +280,7 @@ const CalendarHeatmap = ({ isDark = false }) => {
                   left: `calc(${i % 7} * ((100% - 48px) / 7 + 8px) + (100% - 48px) / 14 - 20px)`,
                   width: `calc(${(len - 1)} * ((100% - 48px) / 7 + 8px) + 40px)`,
                   height: '40px',
-                  background: isDark ? 'rgba(255, 210, 166, 0.15)' : 'rgba(255, 210, 166, 0.3)',
+                  background: isDark ? 'rgba(196, 181, 253, 0.15)' : '#F5F3FF',
                   borderRadius: '20px',
                   zIndex: 0,
                   pointerEvents: 'none'
@@ -303,7 +305,7 @@ const CalendarHeatmap = ({ isDark = false }) => {
             }
             
             let circleBorderColor = borderColor;
-            if (isStreak || isActive) circleBorderColor = '#FFD2A6';
+            if (isStreak || isActive) circleBorderColor = '#C4B5FD';
 
             return (
               <div key={i} className="calendar-day-circle" style={{
@@ -319,7 +321,7 @@ const CalendarHeatmap = ({ isDark = false }) => {
                 margin: '0 auto',
                 zIndex: 1,
                 boxSizing: 'border-box',
-                boxShadow: (isStreak || isActive) ? '0 4px 12px rgba(255, 210, 166, 0.35)' : 'none'
+                boxShadow: 'none'
               }}>
                 {(isStreak || isActive) ? (
                   <FireIcon width={22} height={22} style={{ opacity: 1 }} />
