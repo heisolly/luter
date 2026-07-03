@@ -6,10 +6,11 @@ const http = require('http')
 const { Server } = require('socket.io')
 const cors = require('cors')
 const { v4: uuidv4 } = require('uuid')
+const { Resend } = require('resend')
 
 const app = express()
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: '50mb' }))
 
 const server = http.createServer(app)
 const io = new Server(server, {
@@ -36,6 +37,64 @@ const questionCache = new Map()
 const generateSessionId = () => {
   return `luter_${Math.random().toString(36).substr(2, 9)}`
 }
+
+// Resend Email Marketing Configuration
+const resend = new Resend(process.env.RESEND_API_KEY || 're_GW9dW4Z8_9cWNFutxozVHGJ4nJWn8Ycat')
+
+app.post('/api/send-campaign', async (req, res) => {
+  try {
+    const { subject, html, emails } = req.body
+
+    if (!subject || !html || !emails || !Array.isArray(emails)) {
+      return res.status(400).json({ error: 'Missing required fields: subject, html, or emails array' })
+    }
+
+    if (emails.length === 0) {
+      return res.status(400).json({ error: 'No recipients provided' })
+    }
+
+    console.log(`Preparing to send campaign "${subject}" to ${emails.length} users...`)
+
+    // Resend batch sending (max 100 per batch recommended, but SDK handles arrays up to 50 for free tier usually. 
+    // We will chunk it into arrays of 50).
+    const chunkSize = 50
+    const chunks = []
+    
+    // Filter out null/undefined emails
+    const validEmails = emails.filter(e => e && typeof e === 'string' && e.includes('@'))
+
+    for (let i = 0; i < validEmails.length; i += chunkSize) {
+      chunks.push(validEmails.slice(i, i + chunkSize))
+    }
+
+    let successCount = 0
+    let failCount = 0
+
+    for (const chunk of chunks) {
+      // Create batch payload for Resend
+      const payload = chunk.map(email => ({
+        from: 'Luter <updates@luter.app>', // Note: This needs to be a verified domain in Resend
+        to: [email],
+        subject: subject,
+        html: html
+      }))
+
+      try {
+        const response = await resend.batch.send(payload)
+        successCount += chunk.length
+        console.log(`Successfully sent batch of ${chunk.length}. Total sent: ${successCount}`)
+      } catch (batchErr) {
+        console.error('Batch send failed:', batchErr)
+        failCount += chunk.length
+      }
+    }
+
+    res.json({ success: true, message: `Campaign dispatched. Sent: ${successCount}, Failed: ${failCount}` })
+  } catch (error) {
+    console.error('Error sending campaign:', error)
+    res.status(500).json({ error: 'Internal server error while sending campaign' })
+  }
+})
 
 // AI Question Generation using Groq
 async function generateAIQuestions(subject, difficulty, count = 10) {

@@ -5,8 +5,10 @@ import { ThinkingIndicator } from '../ui/thinking-indicator';
 import { callGroqAPI, GROQ_MODELS, GROQ_PROMPTS } from '../../groqClient';
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService';
 import { supabase } from '../../supabaseClient';
+import { useStreakSync } from '../../hooks/useStreakSync';
 
 export const GroupQuiz = ({ materialText, isPresenter, user, profile }) => {
+  const { triggerStreakUpdate } = useStreakSync(user?.id);
   const quizState   = useStorage((root) => root.quizState)   ?? 'idle';
   // useStorage returns the serialized value of LiveList — a plain array
   const questions   = useStorage((root) => root.quizQuestions) ?? [];
@@ -39,6 +41,7 @@ export const GroupQuiz = ({ materialText, isPresenter, user, profile }) => {
             p_sessions_completed: 1,
             p_source: 'group_quiz'
           });
+          triggerStreakUpdate();
         } catch (err) {
           console.error('[Group Quiz] Failed to update stats:', err);
         }

@@ -18,6 +18,7 @@ import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditServic
 import { usePlanGate } from '../../hooks/usePlanGate'
 import LockedOverlay from '../shared/LockedOverlay'
 import LuterLogo from '../shared/LuterLogo'
+import { useStreakSync } from '../../hooks/useStreakSync'
 
 
 // Sound Effects
@@ -67,6 +68,7 @@ const SAMPLE_COURSE_MATERIALS = {
 export default function MockExamPage() {
   const { user, isMobile, sidebarCollapsed, setSidebarCollapsed, profile } = useOutletContext()
   const navigate = useNavigate()
+  const { triggerStreakUpdate } = useStreakSync(user?.id)
   const { ready, bundle } = useDashboardPrefetch() || { ready: false, bundle: null }
   const location = useLocation()
   const preselectedCourse = location.state?.preselectedCourse
@@ -544,6 +546,9 @@ export default function MockExamPage() {
   const persistResults = async () => {
     setHasPersistedResults(true);
     setIsSavingSession(true);
+    
+    triggerStreakUpdate();
+    
     const courseCode = examCourses[0]?.code;
     const finalScore = score;
     const totalQs = generatedQuestions.length;

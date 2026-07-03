@@ -4,6 +4,12 @@ import { supabase } from '../../supabaseClient'
 import { useOutletContext, Link, useNavigate } from 'react-router-dom'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import { getCreditBalance } from '../../services/creditService'
+import { useStreakSync } from '../../hooks/useStreakSync'
+import { MdHome, MdViewSidebar } from 'react-icons/md'
+import ExploreTasksWidget from './ExploreTasksWidget'
+import CalendarHeatmap from './CalendarHeatmap'
+import StackedStartCard from './StackedStartCard'
+import DashboardWidgetsLayout from './DashboardWidgetsLayout'
 import './dhd.css'
 
 function useDarkMode() {
@@ -43,6 +49,8 @@ const CrossIcon = () => (
 );
 
 function ExploreLuter({ bundle, isPremiumOpen, setIsPremiumOpen }) {
+  const { user } = useOutletContext() || {}
+  const { triggerStreakUpdate } = useStreakSync(user?.id)
   const profile = bundle?.profile?.data || bundle?.profile || {}
   const stats = bundle?.stats?.data || {}
   const materials = bundle?.materials?.data || []
@@ -157,6 +165,7 @@ function ExploreLuter({ bundle, isPremiumOpen, setIsPremiumOpen }) {
               p_xp_amount: task.xp 
             })
           }
+          triggerStreakUpdate()
         } catch (e) {
           console.error("Failed to claim task:", e)
         }
@@ -904,13 +913,14 @@ export default function DashboardHome() {
               className="dhd-sidebar-toggle"
               onClick={() => setSidebarCollapsed(false)}
               title="Toggle Sidebar"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', color: isDark ? '#F9FAFB' : '#000' }}
             >
-              <SidebarSimple size={14} weight="regular" />
+              <SidebarSimple size={24} weight="regular" />
             </button>
           )}
           <div className="dhd-page-title">
-            <House size={16} weight="regular" />
-            <span>Home</span>
+            <House size={24} weight="regular" />
+            <span style={{ fontSize: '18px' }}>Home</span>
           </div>
         </div>
 
@@ -1098,16 +1108,18 @@ export default function DashboardHome() {
         </div>
       </header>
 
-      <section className="dhd-welcome">
-        <h2 className="dhd-welcome-title">
-          <img src="/homecutie.png" alt="Mascot" className="dhd-welcome-avatar" />
+      {/* Welcome message restored */}
+      <section className="dhd-welcome" style={{ padding: '32px 24px 16px' }}>
+        <h2 className="dhd-welcome-title" style={{ fontSize: '28px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <img src="/homecutie.png" alt="Mascot" className="dhd-welcome-avatar" style={{ width: '36px', height: '36px' }} />
           <span>Welcome @{username || 'scholar'}! 👋</span>
         </h2>
       </section>
-      <section style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '24px 0', minHeight: '60vh' }}>
-        {/* BLANK CANVAS FOR REDESIGN */}
-        {/* The Explore, Streak, Your Material, and Recent Folder components have been cleared */}
-      </section>    
+
+      <div style={{ maxWidth: '1100px', margin: '0 auto', width: '100%', padding: '0 24px' }}>
+        
+        <DashboardWidgetsLayout isDark={isDark} />
+      </div>
 
       <DailyGoalModal stats={stats} />
       {/* Premium Overlay */}

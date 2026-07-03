@@ -220,7 +220,7 @@ export default function DashboardSidebar({
           Luter
         </span>
 
-        {!collapsed && <StreakWidget userId={session?.user?.id} isDark={isDark} />}
+        {!collapsed && <StreakWidget userId={user?.id} isDark={isDark} />}
 
         {isMobile ? (
           <button

@@ -9,6 +9,7 @@ import {
   ChartBar,
   ShieldCheck,
   Coins,
+  EnvelopeSimple,
 } from '@phosphor-icons/react'
 import LuterLogo from '../components/shared/LuterLogo'
 import { DASHBOARD_URL, getAdminPath } from '../utils/urlUtils'
@@ -25,6 +26,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/users', icon: UsersThree, label: 'Users' },
       { to: '/courses', icon: Books, label: 'Courses' },
+      { to: '/email-marketing', icon: EnvelopeSimple, label: 'Email Marketing' },
       { to: '/tasks', icon: GraduationCap, label: 'Tasks Manager' },
       { to: '/syllabus', icon: GraduationCap, label: 'Syllabus manager' },
     ]

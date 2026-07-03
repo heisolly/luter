@@ -12,6 +12,8 @@ import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext';
 import AnnotationToolbar from './AnnotationToolbar';
 import { supabase } from '../../supabaseClient';
 import { useSessionStore } from '../../store/useSessionStore';
+import { LuterPageLoader } from '../shared/LuterPageLoader'
+import { useStreakSync } from '../../hooks/useStreakSync';
 import LuterLogo from '../shared/LuterLogo';
 import { CollaborationProvider } from './CollaborationProvider';
 import { ReadingSpaceProvider } from './ReadingSpaceContext';
@@ -381,8 +383,13 @@ export default function WorkstationPage() {
   const level = Math.floor(xp / 500) + 1;
 
   // Study Time / Goal / Streak Tracker
+  const { triggerStreakUpdate } = useStreakSync(user?.id)
+
   useEffect(() => {
     if (!user?.id) return;
+    
+    // Trigger streak for starting a study session
+    triggerStreakUpdate();
     
     // We increment study time every minute
     const interval = setInterval(async () => {

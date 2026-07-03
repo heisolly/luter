@@ -39,6 +39,7 @@ const AdminSyllabusManager = lazy(() => import('./admin/pages/AdminSyllabusManag
 const AdminAudit = lazy(() => import('./admin/pages/AdminAudit'));
 const AdminConfig = lazy(() => import('./admin/pages/AdminConfig'));
 const AdminTasks = lazy(() => import('./admin/pages/AdminTasks'));
+const AdminEmailMarketing = lazy(() => import('./admin/pages/AdminEmailMarketing'));
 const FilesPage = lazy(() => import('./components/dashboard/FilesPage'));
 const AssignmentsPage = lazy(() => import('./components/dashboard/AssignmentsPage'));
 const NotesStudioPage = lazy(() => import('./components/dashboard/NotesStudioPage'));
@@ -119,11 +120,6 @@ function NavigateToWorkstation() {
 export default function App() {
   const offline = useNavigatorOffline()
   const hostname = window.location.hostname;
-  const isAdminHost = import.meta.env.PROD 
-    ? hostname === 'admin.luter.app' 
-    : (hostname === 'admin.luter.app' || hostname.startsWith('admin.') || window.location.search.includes('admin=true') || localStorage.getItem('isAdmin') === 'true');
-
-  // Subdomain logic removed - everything now on luter.app except Admin
   useEffect(() => {
     // Load dynamic credit costs & daily limits from database
     loadPricingConfig().catch(() => {})
@@ -144,10 +140,8 @@ export default function App() {
         <OptionalFeaturebaseProvider>
         <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-transparent"></div>}>
           <Routes>
-          {/* ADMIN HOST SPECIFIC ROUTES */}
-          {isAdminHost ? (
-            <>
-              <Route path="/" element={<AdminLayout />}>
+            {/* Path-based admin access on main domain and localhost */}
+            <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminOverview />} />
                 <Route path="users/:userId" element={<AdminUserDetail />} />
                 <Route path="users" element={<AdminUsers />} />
@@ -157,28 +151,10 @@ export default function App() {
                 <Route path="syllabus" element={<AdminSyllabusManager />} />
                 <Route path="audit" element={<AdminAudit />} />
                 <Route path="config" element={<AdminConfig />} />
-                <Route path="tasks" element={<AdminTasks />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Route>
-            </>
-          ) : (
-            <>
-              {/* Path-based admin access on main domain and localhost */}
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<AdminOverview />} />
-                <Route path="users/:userId" element={<AdminUserDetail />} />
-                <Route path="users" element={<AdminUsers />} />
-                <Route path="courses" element={<AdminCourses />} />
-                <Route path="notifications" element={<AdminNotifications />} />
-                <Route path="activity" element={<AdminActivity />} />
-                <Route path="syllabus" element={<AdminSyllabusManager />} />
-                <Route path="audit" element={<AdminAudit />} />
-                <Route path="config" element={<AdminConfig />} />
+                <Route path="email-marketing" element={<AdminEmailMarketing />} />
                 <Route path="tasks" element={<AdminTasks />} />
                 <Route path="*" element={<Navigate to="/admin" replace />} />
               </Route>
-            </>
-          )}
 
           {/* MAIN APP ROUTES */}
           <Route path="/" element={<LandingPage />} />

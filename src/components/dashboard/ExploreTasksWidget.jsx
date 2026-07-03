@@ -159,7 +159,7 @@ export default function ExploreTasksWidget({ isDark = false }) {
       }}>
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
           
-          <ScrollArea className="h-full w-full absolute inset-0" style={{ flex: 1 }}>
+          <ScrollArea scrollFade={false} className="h-full w-full absolute inset-0" style={{ flex: 1 }}>
             <style>{`
               .etw-item {
                 position: relative;
