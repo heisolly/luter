@@ -217,6 +217,15 @@ export const livekitService = {
     const room = livekitState.room
     if (!room) return () => {}
 
+    // Attach any tracks that were already subscribed before listeners were added
+    room.remoteParticipants.forEach((participant) => {
+      participant.trackPublications.forEach((publication) => {
+        if (publication.track) {
+          attachRemoteAudioTrack(publication.track, publication, participant)
+        }
+      })
+    })
+
     const handleTrackSubscribed = (track, publication, participant) => {
       attachRemoteAudioTrack(track, publication, participant)
       handlers.onParticipantsChanged?.()
@@ -277,11 +286,8 @@ export const livekitService = {
       })
       
       if (enabled) {
-        const localAudioTrack = livekitState.room.localParticipant.getTrackPublication(Track.Source.Microphone)?.audioTrack;
-        if (localAudioTrack) {
-          await localAudioTrack.setProcessor(KrispNoiseFilter());
-          logLiveKit('info', 'AI noise cancellation is live!');
-        }
+        // Disabled KrispNoiseFilter here because it introduces significant latency 
+        // which breaks WebRTC's built-in Acoustic Echo Cancellation (AEC).
       }
     } catch (error) {
       setLastError(error, 'Failed to toggle LiveKit microphone')

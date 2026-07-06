@@ -8,6 +8,7 @@ import { LuterPageLoader } from '../shared/LuterPageLoader'
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion'
 import LuterLogo from '../shared/LuterLogo'
+import UserAvatar from '../shared/UserAvatar'
 import './dashboard.css'
 import { DashboardPrefetchProvider } from '../../context/DashboardPrefetchContext'
 import NotificationsOverlay from './NotificationsOverlay'
@@ -262,7 +263,7 @@ export default function Dashboard() {
             try {
               const { data, error } = await supabase
                 .from('profiles')
-                .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium')
+                .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium, avatar_url')
                 .eq('id', session.user.id)
                 .maybeSingle()
               
@@ -288,7 +289,7 @@ export default function Dashboard() {
                   if (!refreshError && refreshedSession) {
                     const { data: retryP } = await supabase
                       .from('profiles')
-                      .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium')
+                      .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium, avatar_url')
                       .eq('id', refreshedSession.user.id)
                       .maybeSingle()
                     if (retryP) setProfile(retryP)
@@ -574,7 +575,6 @@ export default function Dashboard() {
               width: 32,
               height: 32,
               borderRadius: 10,
-              background: profile?.avatar_url ? 'transparent' : 'linear-gradient(135deg, var(--primary), var(--primary-light))',
               color: 'white',
               display: 'flex',
               alignItems: 'center',
@@ -586,15 +586,12 @@ export default function Dashboard() {
               overflow: 'hidden'
             }}
           >
-            {profile?.avatar_url ? (
-              <img 
-                src={profile.avatar_url} 
-                alt="Profile" 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-              />
-            ) : (
-              profile?.full_name?.slice(0, 1).toUpperCase() || user?.user_metadata?.full_name?.slice(0, 1).toUpperCase() || 'S'
-            )}
+            <UserAvatar 
+              url={profile?.avatar_url} 
+              name={profile?.full_name || 'U'}
+              size={56}
+              style={{ width: '100%', height: '100%' }}
+            />
           </div>
         </div>
       </div>

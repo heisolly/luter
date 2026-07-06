@@ -570,11 +570,12 @@ export default function CleanDocumentViewer({
           flex: 1, 
           overflowY: 'auto', 
           overflowX: 'auto',
-          padding: isMobileView ? '0 0 160px 0' : '12px 80px 120px 20px',
+          padding: isMobileView ? '0 0 160px 0' : '0px 80px 120px 20px',
           scrollBehavior: 'smooth',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
+          justifyContent: 'flex-start',
           position: 'relative',
           WebkitOverflowScrolling: 'touch',
         }}

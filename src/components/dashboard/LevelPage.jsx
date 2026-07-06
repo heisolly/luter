@@ -13,6 +13,8 @@ import {
 import { Lightning, Coins } from '@phosphor-icons/react'
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
+import AvatarEditor from './AvatarEditor'
+import UserAvatar from '../shared/UserAvatar'
 
 export default function LevelPage() {
   const { user, isMobile } = useOutletContext()
@@ -25,8 +27,7 @@ export default function LevelPage() {
   const [achievements, setAchievements] = useState([])
   const [loading, setLoading] = useState(true)
   const [avatarUrl, setAvatarUrl] = useState(null)
-  const [uploading, setUploading] = useState(false)
-  const fileInputRef = useRef(null)
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false)
 
   // Use the synchronized stats
   const gamificationData = {
@@ -45,45 +46,6 @@ export default function LevelPage() {
         .single()
       if (!error && data?.avatar_url) setAvatarUrl(data.avatar_url)
     } catch (e) { console.error('Error loading avatar:', e) }
-  }
-
-  const handleAvatarUpload = async (event) => {
-    try {
-      setUploading(true)
-      const file = event.target.files[0]
-      if (!file) return
-
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg']
-      if (!allowedTypes.includes(file.type)) {
-        alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)')
-        setUploading(false)
-        return
-      }
-      if (file.size > 20 * 1024 * 1024) {
-        alert('Image size must be less than 20MB')
-        setUploading(false)
-        return
-      }
-
-      const fileExt = file.name.split('.').pop().toLowerCase()
-      const filePath = `${user.id}/avatar.${fileExt}`
-
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true })
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath)
-      
-      const { error: updateError } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
-      if (updateError) throw updateError
-
-      setAvatarUrl(`${publicUrl}?v=${Date.now()}`)
-      setTimeout(() => { refresh(); loadAvatar() }, 500)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    } catch (error) {
-      alert(`Failed to upload image: ${error.message}`)
-    } finally {
-      setUploading(false)
-    }
   }
 
   const loadLevelInfo = async () => {
@@ -146,11 +108,29 @@ export default function LevelPage() {
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: isMobile ? '24px 16px 80px' : '48px 24px', display: 'flex', flexDirection: 'column', gap: '32px', fontFamily: "'Outfit', sans-serif" }}>
+    <div style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', position: 'relative' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: isMobile ? '24px 16px 80px' : '48px 24px', display: 'flex', flexDirection: 'column', gap: '32px', fontFamily: "'Outfit', sans-serif" }}>
       
       {/* Main Profile Info */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
         
+        {/* Avatar Editor Modal (Moved outside to prevent clipping) */}
+        <AnimatePresence>
+          {showAvatarPicker && (
+            <AvatarEditor 
+              userId={user?.id} 
+              currentAvatar={avatarUrl}
+              isDark={isDark}
+              onSave={(newConfigString) => {
+                setAvatarUrl(newConfigString);
+                setShowAvatarPicker(false);
+                setTimeout(() => { refresh(); loadAvatar() }, 500);
+              }}
+              onCancel={() => setShowAvatarPicker(false)}
+            />
+          )}
+        </AnimatePresence>
+
         {/* Banner Card */}
         <div style={{ 
           position: 'relative', 
@@ -179,7 +159,7 @@ export default function LevelPage() {
           
           {/* Avatar (overlapping) */}
           <div 
-            onClick={triggerFileInput}
+            onClick={() => setShowAvatarPicker(true)}
             style={{ 
               width: '140px', 
               height: '140px', 
@@ -192,26 +172,21 @@ export default function LevelPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              zIndex: 10
             }}
           >
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              <span style={{ fontSize: 48, fontWeight: 800, color: '#FFF' }}>{fullName.charAt(0)}</span>
-            )}
+            <UserAvatar 
+              url={avatarUrl} 
+              name={fullName || 'U'}
+              size={124}
+              style={{ width: '100%', height: '100%' }}
+            />
             
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', opacity: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'opacity 0.2s', ':hover': { opacity: 1 } }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0}>
               <RiCameraLine size={32} color="#FFF" />
             </div>
-
-            {uploading && (
-              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ width: 30, height: 30, border: '3px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-              </div>
-            )}
           </div>
-          <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} accept="image/*" style={{ display: 'none' }} />
 
           {/* Name & Handle */}
           <div style={{ textAlign: 'center', marginTop: '16px' }}>
@@ -291,6 +266,7 @@ export default function LevelPage() {
         </div>
 
       </div>
+    </div>
     </div>
   )
 }

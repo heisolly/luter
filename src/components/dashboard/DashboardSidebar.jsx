@@ -33,6 +33,7 @@ import HelperWidget from './HelperWidget'
 import ArcadeOverlay from './ArcadeOverlay'
 import { getCreditBalance } from '../../services/creditService'
 import StreakWidget from './StreakWidget'
+import UserAvatar from '../shared/UserAvatar'
 
 import { useTheme } from '../../contexts/ThemeContext'
 
@@ -482,13 +483,12 @@ export default function DashboardSidebar({
           aria-expanded={showPersonal}
         >
           <div className="dsb-avatar-circle">
-            {profile?.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt="Profile"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-              />
-            ) : initials}
+            <UserAvatar 
+              url={profile?.avatar_url} 
+              name={profile?.full_name || 'U'}
+              size={32}
+              style={{ width: '100%', height: '100%' }}
+            />
           </div>
           {!collapsed && (
             <>

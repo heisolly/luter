@@ -145,6 +145,7 @@ export default function StackedStartCard({ isDark = false }) {
 
   const getMaterialUrl = (sourceUrl) => {
     if (!sourceUrl) return null;
+    if (sourceUrl.startsWith('http')) return sourceUrl;
     const { data } = supabase.storage.from('materials').getPublicUrl(sourceUrl);
     return data.publicUrl;
   };
