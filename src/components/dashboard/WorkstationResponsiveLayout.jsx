@@ -231,10 +231,10 @@ export default function WorkstationResponsiveLayout({ state, actions }) {
         )}
         {activeMainTab === 'Source' && (
           <div style={{ display: activeSubTab === 'Notes' ? 'block' : 'none', height: '100%', overflowY: 'auto' }}>
-            <CommentsProvider roomId={selectedMaterial ? `luter:notes:${selectedMaterial.id}` : `luter:notes:${roomId}`}>
+            <CommentsProvider roomId={selectedMaterial ? `luter:notes:${selectedMaterial.id}` : `luter:notes:${roomId?.replace(/^luter-(material-v2|material|session|group|share|course|empty)-/, '')}`}>
               <LiveNoteEditor 
                 title={selectedMaterial?.title || 'Workspace Note'} 
-                roomId={selectedMaterial ? `luter:notes:${selectedMaterial.id}` : `luter:notes:${roomId}`} 
+                roomId={selectedMaterial ? `luter:notes:${selectedMaterial.id}` : `luter:notes:${roomId?.replace(/^luter-(material-v2|material|session|group|share|course|empty)-/, '')}`} 
                 displayName={displayName} 
                 user={user} 
                 workstationMode={true} 
