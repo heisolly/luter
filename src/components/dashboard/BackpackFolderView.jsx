@@ -266,11 +266,15 @@ export default function BackpackFolderView() {
           {/* Visible Share Button */}
           <button 
             className="ss-share-btn" 
-            onClick={() => navigate(`/workstation?courseId=${folderId}`)}
-            title="Share Folder"
+            onClick={() => {
+              const link = `${window.location.origin}/workstation?courseId=${folderId}`;
+              navigator.clipboard.writeText(link);
+              alert('Link copied to clipboard!');
+            }}
+            title="Copy Link to Folder"
           >
             <Share2 size={15} />
-            Share
+            Copy Link
           </button>
 
           <button className="ss-folder-menu-btn" onClick={() => setShowDropdown(!showDropdown)}>

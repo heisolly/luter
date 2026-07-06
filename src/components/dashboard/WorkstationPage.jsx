@@ -495,8 +495,23 @@ export default function WorkstationPage() {
   }, []);
 
   const handleCopyLink = () => {
-    const materialParam = urlMaterialId || stateMaterial?.id;
-    const link = `${window.location.origin}/workstation${materialParam ? '?materialId=' + materialParam : ''}`;
+    const params = new URLSearchParams();
+    
+    if (urlMaterialId || stateMaterial?.id) {
+      params.set('materialId', urlMaterialId || stateMaterial?.id);
+    } else if (courseIdParam) {
+      params.set('courseId', courseIdParam);
+    } else if (groupIdParam) {
+      params.set('groupId', groupIdParam);
+    } else if (sessionIdParam) {
+      params.set('sessionId', sessionIdParam);
+    } else if (shareCodeParam) {
+      params.set('share', shareCodeParam);
+    }
+    
+    const queryString = params.toString();
+    const link = `${window.location.origin}/workstation${queryString ? '?' + queryString : ''}`;
+    
     navigator.clipboard.writeText(link);
     setCopiedToast(true);
     setTimeout(() => setCopiedToast(false), 2000);
@@ -1214,6 +1229,7 @@ export default function WorkstationPage() {
                               profile={profile} 
                               hideHeader={true}
                               workstationMode={true}
+                              isSharedLink={user?.id !== selectedMaterial.user_id}
                               onOpenAiChat={() => setIsChatOpen(true)}
                               updateMaterialProgress={updateMaterialProgress}
                               emptyState={(editor) => (

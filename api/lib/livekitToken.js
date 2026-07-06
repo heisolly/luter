@@ -1,7 +1,7 @@
 import { AccessToken } from 'livekit-server-sdk'
 import { createClient } from '@supabase/supabase-js'
 
-const ROOM_PREFIX_PATTERN = /^luter-(session|group|share|material-v2|material)-([a-zA-Z0-9_-]+)$/
+const ROOM_PREFIX_PATTERN = /^luter-(session|group|share|material-v2|material|course|empty)-([a-zA-Z0-9_-]+)$/
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 function sendJson(res, statusCode, payload) {
@@ -91,6 +91,21 @@ async function canJoinRoom(supabase, roomName) {
       .maybeSingle()
     if (error) throw error
     return Boolean(data)
+  }
+
+  if (roomType === 'course') {
+    if (!UUID_PATTERN.test(roomKey)) return false
+    const { data, error } = await supabase
+      .from('courses')
+      .select('id')
+      .eq('id', roomKey)
+      .maybeSingle()
+    if (error) throw error
+    return Boolean(data)
+  }
+
+  if (roomType === 'empty') {
+    return true
   }
 
   return false
