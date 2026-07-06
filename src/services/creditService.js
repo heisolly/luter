@@ -27,6 +27,8 @@ export const CREDIT_COSTS = {
 export const TIER_LIMITS = {
   free: 200,
   pro: 2000,
+  premium: 2000,
+  executive: 2000,
   beast: Infinity,
 }
 
@@ -75,11 +77,11 @@ export async function checkAndDeductCredits(userId, cost, isPremium) {
   try {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('subscription_tier')
+      .select('subscription_tier, subscription_type')
       .eq('id', userId)
       .maybeSingle()
 
-    tier = (profile?.subscription_tier || 'free').toLowerCase()
+    tier = (profile?.subscription_tier || profile?.subscription_type || 'free').toLowerCase()
   } catch (e) {
     console.warn('[Credits] Failed to sync user limit:', e)
   }

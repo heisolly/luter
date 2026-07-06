@@ -19,9 +19,9 @@ export default function AdminNotifications() {
   const [sending, setSending] = useState(false)
   const [form, setForm] = useState({
     user_id: '',
-    type: 'admin_broadcast',
+    type: 'panel', // 'panel' or 'popup_modal'
     title: '',
-    body: '',
+    message: '',
   })
 
   const load = async () => {
@@ -44,13 +44,13 @@ export default function AdminNotifications() {
     setError(null)
     const { error: err } = await supabase.from('notifications').insert({
       user_id: form.user_id.trim(),
-      type: form.type.trim() || 'admin_broadcast',
+      type: form.type.trim() || 'panel',
       title: form.title.trim(),
-      body: form.body.trim() || null,
+      message: form.message.trim() || null,
     })
     if (err) setError(err.message)
     else {
-      setForm((f) => ({ ...f, title: '', body: '' }))
+      setForm((f) => ({ ...f, title: '', message: '' }))
       await load()
     }
     setSending(false)
@@ -60,13 +60,13 @@ export default function AdminNotifications() {
     <>
       <h1 className="adm-page-title">Notifications</h1>
       <p className="adm-page-desc">
-        Insert rows into <code className="adm-mono">notifications</code>. The student app can subscribe via Realtime (same as match invites).
+        Send real-time alerts. Users will see standard panels or forced UI popups based on the type.
       </p>
 
       {error && <div className="adm-error-banner">{error}</div>}
 
       <div className="adm-card" style={{ padding: 24, marginBottom: 24 }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 800 }}>Send to user</h3>
+        <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 800 }}>Dispatch Alert</h3>
         <form onSubmit={send} style={{ display: 'grid', gap: 12 }}>
           <label className="adm-muted" style={{ fontSize: 12, fontWeight: 700 }}>
             Target user ID (UUID)
@@ -80,13 +80,16 @@ export default function AdminNotifications() {
             />
           </label>
           <label className="adm-muted" style={{ fontSize: 12, fontWeight: 700 }}>
-            Type
-            <input
+            Notification Type
+            <select
               className="adm-input"
               style={{ width: '100%', marginTop: 6, maxWidth: 320 }}
               value={form.type}
               onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-            />
+            >
+              <option value="panel">Panel Alert (Subtle Inbox)</option>
+              <option value="popup_modal">Pop-Up Modal (Forced UI Takeover)</option>
+            </select>
           </label>
           <label className="adm-muted" style={{ fontSize: 12, fontWeight: 700 }}>
             Title
@@ -95,21 +98,24 @@ export default function AdminNotifications() {
               style={{ width: '100%', marginTop: 6 }}
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              placeholder="e.g., Scheduled Maintenance"
               required
             />
           </label>
           <label className="adm-muted" style={{ fontSize: 12, fontWeight: 700 }}>
-            Body
+            Message Content
             <textarea
               className="adm-input"
               style={{ width: '100%', marginTop: 6, minHeight: 88, resize: 'vertical' }}
-              value={form.body}
-              onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
+              value={form.message}
+              onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
+              placeholder="The body of the notification..."
+              required
             />
           </label>
           <div>
             <button type="submit" className="adm-btn adm-btn--primary" disabled={sending}>
-              <PaperPlaneTilt size={16} /> Insert notification
+              <PaperPlaneTilt size={16} /> Send Alert
             </button>
           </div>
         </form>
@@ -118,7 +124,7 @@ export default function AdminNotifications() {
       <div className="adm-card">
         <div className="adm-toolbar">
           <span className="adm-muted" style={{ fontWeight: 600 }}>
-            Recent notifications
+            Recent dispatches
           </span>
           <button type="button" className="adm-btn adm-btn--ghost" onClick={() => load()}>
             <ArrowsClockwise size={16} /> Refresh
@@ -144,14 +150,26 @@ export default function AdminNotifications() {
                   <tr key={r.id}>
                     <td className="adm-muted">{formatTs(r.created_at)}</td>
                     <td>
-                      <Link to={`/users/${r.user_id}`} className="adm-link adm-mono">
+                      <Link to={`/admin/users/${r.user_id}`} className="adm-link adm-mono">
                         {r.user_id?.slice(0, 8)}…
                       </Link>
                     </td>
-                    <td>{r.type}</td>
+                    <td>
+                      <span style={{ 
+                        padding: '4px 8px', 
+                        borderRadius: 12, 
+                        fontSize: 11, 
+                        fontWeight: 700,
+                        backgroundColor: r.type === 'popup_modal' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(122, 18, 204, 0.1)',
+                        color: r.type === 'popup_modal' ? '#ef4444' : '#7a12cc'
+                      }}>
+                        {r.type === 'popup_modal' ? 'MODAL' : 'PANEL'}
+                      </span>
+                    </td>
                     <td>
                       <div style={{ fontWeight: 600 }}>{r.title}</div>
-                      {r.body && <div className="adm-muted" style={{ fontSize: 12, marginTop: 4 }}>{r.body}</div>}
+                      {/* Read both body and message for backwards compatibility before migration */}
+                      <div className="adm-muted" style={{ fontSize: 12, marginTop: 4 }}>{r.message || r.body}</div>
                     </td>
                   </tr>
                 ))}

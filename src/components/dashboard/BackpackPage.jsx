@@ -21,15 +21,15 @@ import {
   CaretDown,
   DotsThreeVertical
 } from '@phosphor-icons/react'
-import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import { courseService } from '../../services/courseService'
-import { fetchUserStandaloneMaterials } from '../../services/materialsService'
+import { fetchUserStandaloneMaterials, permanentlyDeleteMaterial } from '../../services/materialsService'
 import { cachePageData, getCachedPageData } from '../../lib/offlineCache'
 import CourseEnrollmentModal from '../shared/CourseEnrollmentModal'
 import UserUpload from './UserUpload'
 import { usePlanGate } from '../../hooks/usePlanGate'
 import LockedOverlay from '../shared/LockedOverlay'
 import { motion } from 'framer-motion'
+import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import './luterPages.css'
 
 import SharedMaterialPreview from '../shared/SharedMaterialPreview'
@@ -55,6 +55,7 @@ export default function BackpackPage() {
   const { bundle } = useDashboardPrefetch()
 
   const [tab, setTab] = useState(() => localStorage.getItem('backpackActiveTab') || 'folders')
+  const [activeMenuId, setActiveMenuId] = useState(null)
   const [folders, setFolders] = useState(() => {
     return bundle?.uc?.data || getCachedPageData(user?.id, 'courses')?.data || []
   })
@@ -111,6 +112,26 @@ export default function BackpackPage() {
     }
   }
 
+  const handleDeleteMaterial = async (materialId, e) => {
+    e.stopPropagation()
+    setActiveMenuId(null)
+    if (window.confirm('Are you sure you want to permanently delete this file? This cannot be undone.')) {
+      try {
+        await permanentlyDeleteMaterial(materialId)
+        setMaterials(prev => prev.filter(m => m.id !== materialId))
+      } catch (err) {
+        console.error('Failed to delete material:', err)
+        alert('Could not delete the file. Please try again later.')
+      }
+    }
+  }
+
+  // Close menus when clicking outside
+  useEffect(() => {
+    const handleGlobalClick = () => setActiveMenuId(null)
+    window.addEventListener('click', handleGlobalClick)
+    return () => window.removeEventListener('click', handleGlobalClick)
+  }, [])
 
   const loadFolders = async () => {
     const cached = getCachedPageData(user.id, 'courses')
@@ -357,7 +378,52 @@ export default function BackpackPage() {
                       <div className="lp-file-card-top">
                         <span className="lp-file-badge">{typeLabel}</span>
                         {isLocked ? <span style={{ fontSize: 12 }}>🔒</span> : (
-                          <button className="lp-file-menu" onClick={(e) => { e.stopPropagation(); }}><DotsThreeVertical size={20} weight="bold" /></button>
+                          <div style={{ position: 'relative' }}>
+                            <button 
+                              className="lp-file-menu" 
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setActiveMenuId(activeMenuId === material.id ? null : material.id);
+                              }}
+                            >
+                              <DotsThreeVertical size={20} weight="bold" />
+                            </button>
+                            {activeMenuId === material.id && (
+                              <div style={{
+                                position: 'absolute',
+                                right: 0,
+                                top: '100%',
+                                backgroundColor: 'var(--lp-surface)',
+                                border: '1px solid var(--lp-border)',
+                                borderRadius: '8px',
+                                padding: '4px',
+                                zIndex: 10,
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                minWidth: '120px'
+                              }}>
+                                <button 
+                                  onClick={(e) => handleDeleteMaterial(material.id, e)}
+                                  style={{
+                                    display: 'block',
+                                    width: '100%',
+                                    padding: '8px 12px',
+                                    textAlign: 'left',
+                                    color: '#ef4444',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    fontWeight: '500'
+                                  }}
+                                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--lp-border)'}
+                                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                       <div className="lp-file-icon-center" style={{ opacity: isLocked ? 0.6 : 1 }}>
@@ -386,9 +452,55 @@ export default function BackpackPage() {
                       <div className="lp-class-name" style={{ opacity: isLocked ? 0.6 : 1 }}>
                         <FileText size={18} color="var(--lp-muted)" /> {materialLabel(material)}
                       </div>
-                      <div className="lp-class-stats">
+                      <div className="lp-class-stats" style={{ position: 'relative' }}>
                         <span className="lp-file-badge">{typeLabel}</span>
                         {isLocked ? '🔒 Locked' : dateLabel(material.updated_at || material.created_at)}
+                        {!isLocked && (
+                          <button 
+                            style={{ background: 'transparent', border: 'none', color: 'var(--lp-text)', cursor: 'pointer', marginLeft: 8 }}
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setActiveMenuId(activeMenuId === material.id ? null : material.id);
+                            }}
+                          >
+                            <DotsThreeVertical size={20} weight="bold" />
+                          </button>
+                        )}
+                        {activeMenuId === material.id && (
+                          <div style={{
+                            position: 'absolute',
+                            right: 0,
+                            top: '100%',
+                            backgroundColor: 'var(--lp-surface)',
+                            border: '1px solid var(--lp-border)',
+                            borderRadius: '8px',
+                            padding: '4px',
+                            zIndex: 10,
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            minWidth: '120px'
+                          }}>
+                            <button 
+                              onClick={(e) => handleDeleteMaterial(material.id, e)}
+                              style={{
+                                display: 'block',
+                                width: '100%',
+                                padding: '8px 12px',
+                                textAlign: 'left',
+                                color: '#ef4444',
+                                background: 'transparent',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: '500'
+                              }}
+                              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--lp-border)'}
+                              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )

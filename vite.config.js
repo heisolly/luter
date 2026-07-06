@@ -27,6 +27,17 @@ export default defineConfig(async ({ mode }) => {
     server: {
       headers: {
         'Cross-Origin-Opener-Policy': 'same-origin-allow-popups'
+      },
+      // Warmup the most frequently hit files so first-page-load is instant
+      warmup: {
+        clientFiles: [
+          './src/main.jsx',
+          './src/App.jsx',
+          './src/components/dashboard/Dashboard.jsx',
+          './src/components/dashboard/DashboardHome.jsx',
+          './src/components/dashboard/DashboardSidebar.jsx',
+          './src/supabaseClient.js',
+        ]
       }
     },
     plugins: [
@@ -234,10 +245,36 @@ export default defineConfig(async ({ mode }) => {
       dedupe: ['@liveblocks/core', '@liveblocks/client', '@liveblocks/react'],
     },
     optimizeDeps: {
+      // Force Vite to pre-bundle ALL heavy deps once upfront so reloads are instant.
+      // Without this, Vite re-discovers them on every cold start causing 2-min loads.
       include: [
+        // Core React ecosystem
+        'react',
+        'react-dom',
+        'react-dom/client',
+        'react-router-dom',
+        // Animation & UI
+        'framer-motion',
+        'gsap',
+        'lucide-react',
+        '@phosphor-icons/react',
+        // Supabase
+        '@supabase/supabase-js',
+        // Date utilities
+        'date-fns',
+        // Heavy editors & viewers
         '@excalidraw/excalidraw',
         'docx-preview',
-        '@phosphor-icons/react'
+        // State
+        'zustand',
+        // PDF
+        'react-pdf',
+        // Icons / Charts
+        'chart.js',
+      ],
+      // Never try to pre-bundle Node-only or broken CJS deps
+      exclude: [
+        '@e2b/code-interpreter',
       ]
     },
     worker: {

@@ -14,51 +14,135 @@ import NotificationsOverlay from './NotificationsOverlay'
 import { useUniversalWorkspaceStore } from '../../store/useUniversalWorkspaceStore'
 import { LANDING_URL } from '../../utils/urlUtils'
 import StreakWidget from './StreakWidget'
+import NotificationListener from '../NotificationListener'
+import MobileMoreMenu from './MobileMoreMenu'
+import { useTheme } from '../../contexts/ThemeContext'
+import { useNetwork } from '../../hooks/useNetwork'
+import { useTaskManager } from '../../hooks/useTaskManager.jsx' // Forced extension for HMR
 
-
-
-function DashboardMobileBottomNav({ pathname, navigate, onMore }) {
+function DashboardMobileBottomNav({ pathname, navigate, onMore, isDark }) {
   const isActive = (target) => {
     if (target === '/home') return pathname === '/home' || pathname === '/'
     if (target === '/backpack') return pathname.startsWith('/backpack')
     if (target === '/notes') return pathname.startsWith('/notes')
+    if (target === '/decks') return pathname.startsWith('/decks')
     return pathname === target || pathname.startsWith(`${target}/`)
   }
 
   const items = [
     { label: 'Home', path: '/home', icon: House },
-    { label: 'Folders', path: '/backpack', icon: Backpack },
-    { label: 'Notes', path: '/notes', icon: NotePencil },
     { label: 'Decks', path: '/decks', icon: Cards },
+    { label: 'Notes', path: '/notes', icon: NotePencil },
+    { label: 'Backpack', path: '/backpack', icon: Backpack },
   ]
 
+  const bg = isDark ? 'rgba(31, 41, 55, 0.85)' : 'rgba(255, 255, 255, 0.85)';
+  const border = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+  const activeBg = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+  const activeColor = isDark ? '#98FF98' : '#111827';
+  const inactiveColor = isDark ? '#9CA3AF' : '#6B7280';
+
   return (
-    <nav className="dash-mobile-bottom-nav" aria-label="Dashboard quick navigation">
-      {/* eslint-disable-next-line no-unused-vars */}
-      {items.map(({ label, path, icon: Icon }) => {
-        const active = isActive(path)
-        return (
-          <button
-            key={path}
-            type="button"
-            className={`dash-mobile-bottom-item${active ? ' active' : ''}`}
-            onClick={() => navigate(path)}
-            aria-current={active ? 'page' : undefined}
-          >
-            <Icon size={22} weight={active ? 'fill' : 'regular'} />
-            <span>{label}</span>
-          </button>
-        )
-      })}
-      <button
-        type="button"
-        className="dash-mobile-bottom-item dash-mobile-bottom-more"
-        onClick={onMore}
+    <div style={{
+      position: 'fixed',
+      bottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+      left: 16,
+      right: 16,
+      zIndex: 10000,
+      display: 'flex',
+      justifyContent: 'center',
+      pointerEvents: 'none',
+    }}>
+      <nav 
+        aria-label="Dashboard quick navigation"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          backgroundColor: bg,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: `1px solid ${border}`,
+          borderRadius: 999,
+          padding: '8px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+          pointerEvents: 'auto',
+          maxWidth: 400,
+          width: '100%',
+          justifyContent: 'space-between'
+        }}
       >
-        <DotsThree size={26} weight="bold" />
-        <span>More</span>
-      </button>
-    </nav>
+        {items.map(({ label, path, icon: Icon }) => {
+          const active = isActive(path)
+          return (
+            <button
+              key={path}
+              onClick={() => navigate(path)}
+              style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: active ? '10px 16px' : '10px',
+                border: 'none',
+                background: 'transparent',
+                borderRadius: 999,
+                cursor: 'pointer',
+                color: active ? activeColor : inactiveColor,
+                transition: 'color 0.2s',
+                outline: 'none',
+                flex: active ? 2 : 1,
+              }}
+            >
+              {active && (
+                <motion.div
+                  layoutId="mobileNavIndicator"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    backgroundColor: activeBg,
+                    borderRadius: 999,
+                    zIndex: -1,
+                  }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+              <Icon size={24} weight={active ? 'fill' : 'regular'} />
+              <AnimatePresence>
+                {active && (
+                  <motion.span
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: 'auto' }}
+                    exit={{ opacity: 0, width: 0 }}
+                    style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden' }}
+                  >
+                    {label}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
+          )
+        })}
+        <button
+          onClick={onMore}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '10px',
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            color: inactiveColor,
+            flex: 1,
+            outline: 'none',
+          }}
+        >
+          <DotsThree size={28} weight="bold" />
+        </button>
+      </nav>
+    </div>
   )
 }
 
@@ -66,27 +150,49 @@ export default function Dashboard() {
   const navigate = useNavigate()
 
   const { initializeWorkspaces } = useUniversalWorkspaceStore()
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    // Check if this is a brand new user who just signed up
+    const isNewUser = localStorage.getItem('luter_is_new_user')
+    if (isNewUser) {
+      // Remove the flag so it only stays open on their very first visit
+      setTimeout(() => localStorage.removeItem('luter_is_new_user'), 2000)
+      return false // Keep it open for them
+    }
+    
+    // Closed by default for everyone else
+    return true;
+  })
+  
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024)
+  const isOnline = useNetwork()
+  useTaskManager(user?.id)
+  
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
-
-
+  
+  // Unified Notifications Global State
+  const [unreadCount, setUnreadCount] = useState(0)
 
   const location = useLocation()
   
-  // Set initial sidebar state based on page
+  const { isDark } = useTheme()
+  
+  // Note: sidebar collapsed state is user-controlled; however, for deep focus pages 
+  // (like workstation), we want to automatically collapse it.
   useEffect(() => {
-    const openPages = ['/home', '/']
-    if (openPages.includes(location.pathname)) {
-      setSidebarCollapsed(false)
-    } else {
-      setSidebarCollapsed(true)
+    const isFocus = location.pathname.includes('/workstation') || 
+                    location.pathname.includes('/notes/editor') || 
+                    location.pathname.includes('/ai-chat') || 
+                    location.pathname.includes('/mock-exam');
+    
+    if (isFocus && !isMobile) {
+      setSidebarCollapsed(true);
     }
-  }, [location.pathname])
+  }, [location.pathname, isMobile]);
 
   // Handle join query parameter for study sessions
   useEffect(() => {
@@ -311,9 +417,15 @@ export default function Dashboard() {
     }
 
     const handleResize = () => {
-      const mobile = window.innerWidth <= 1024
+      const width = window.innerWidth
+      const mobile = width <= 1024
       setIsMobile(mobile)
       if (!mobile) setMobileSidebarOpen(false)
+      
+      // Auto-manage sidebar on resize based on screen breakpoints
+      if (width < 1000 && !sidebarCollapsed) {
+        setSidebarCollapsed(true)
+      }
     }
 
     window.addEventListener('resize', handleResize)
@@ -374,8 +486,34 @@ export default function Dashboard() {
 
   return (
     <DashboardPrefetchProvider userId={user?.id}>
-    <div className={`dash-root ${isMobile ? 'dash-root--mobile' : ''} ${isFocusPage ? 'ws-mode' : ''}`}>
-      {isMobile && !isWorkstation && (
+      <NotificationListener userId={user?.id} onUnreadCountChange={setUnreadCount}>
+        {!isOnline && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 99999,
+            backgroundColor: '#f59e0b',
+            color: 'white',
+            textAlign: 'center',
+            padding: '8px',
+            fontSize: '14px',
+            fontWeight: '500',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256">
+              <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z"></path>
+            </svg>
+            You are offline. Showing cached data.
+          </div>
+        )}
+        <div className={`dash-root ${isMobile ? 'dash-root--mobile' : ''} ${isFocusPage ? 'ws-mode' : ''}`}>
+          {isMobile && !isWorkstation && (
         <div
           className="mobile-topbar"
           style={{
@@ -462,17 +600,13 @@ export default function Dashboard() {
       </div>
       )}
 
-      <AnimatePresence>
-        {isMobile && mobileSidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="mobile-sidebar-overlay"
-            onClick={() => setMobileSidebarOpen(false)}
-          />
-        )}
-      </AnimatePresence>
+      <MobileMoreMenu 
+        isOpen={isMobile && mobileSidebarOpen} 
+        onClose={() => setMobileSidebarOpen(false)} 
+        user={user} 
+        profile={profile} 
+        isDark={isDark} 
+      />
 
       {!isMobile && sidebarCollapsed && !isClassroomView && (
         <div 
@@ -510,41 +644,34 @@ export default function Dashboard() {
                 onNavigate={() => {
                   setSidebarHovered(false)
                 }}
-                onNotificationsClick={() => setNotificationsOpen(true)}
                 hideToggle={true}
+                unreadCount={unreadCount}
               />
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Structural Sidebar (Pushing or Hidden) */}
-        <div 
-          className={`dsb-container 
-            ${isMobile && mobileSidebarOpen ? 'dsb-container--open' : ''} 
-            ${sidebarCollapsed 
-              ? (isFocusPage ? 'dsb-container--ws-hidden' : 'dsb-container--collapsed')
-              : (isFocusPage ? 'dsb-container--ws-expanded' : 'dsb-container--expanded')}
-          `}
-        >
-          {(mobileSidebarOpen || !sidebarCollapsed) && (
+        {!isMobile && (
+          <div 
+            className={`dsb-container 
+              ${sidebarCollapsed 
+                ? (isFocusPage ? 'dsb-container--ws-hidden' : 'dsb-container--collapsed')
+                : (isFocusPage ? 'dsb-container--ws-expanded' : 'dsb-container--expanded')}
+            `}
+          >
+            {/* Always mounted - visibility controlled via CSS to avoid remount lag on every navigation */}
             <DashboardSidebar 
               user={user}
               isMobile={isMobile}
-              onClose={() => {
-                if (isMobile) {
-                  setMobileSidebarOpen(false)
-                } else {
-                  setSidebarCollapsed(true)
-                }
-              }}
-              onNavigate={() => {
-                if (isMobile) setMobileSidebarOpen(false)
-              }}
-              onNotificationsClick={() => setNotificationsOpen(true)}
+              collapsed={sidebarCollapsed}
+              onClose={() => setSidebarCollapsed(true)}
+              onNavigate={() => {}}
               hideToggle={isWorkstation}
+              unreadCount={unreadCount}
             />
-          )}
-        </div>
+          </div>
+        )}
 
 
 
@@ -558,15 +685,16 @@ export default function Dashboard() {
             paddingBottom: isMobile && !isWorkstation ? 'calc(92px + env(safe-area-inset-bottom, 0px))' : 0,
           }}
         >
-          <AnimatePresence mode="wait">
+          {/* No AnimatePresence mode='wait' — that blocks every navigation until exit is done */}
+          <AnimatePresence>
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.08, ease: 'easeOut' }}
+              style={{ minHeight: '100%' }}
             >
-              <Outlet context={{ user, isMobile, sidebarCollapsed, setSidebarCollapsed, profile, mobileSidebarOpen, setMobileSidebarOpen, setNotificationsOpen }} />
+              <Outlet context={{ user, isMobile, sidebarCollapsed, setSidebarCollapsed, profile, mobileSidebarOpen, setMobileSidebarOpen, setNotificationsOpen, unreadCount }} />
             </motion.div>
           </AnimatePresence>
         </main>
@@ -576,11 +704,13 @@ export default function Dashboard() {
             pathname={location.pathname}
             navigate={navigate}
             onMore={() => setMobileSidebarOpen(true)}
+            isDark={isDark}
           />
         )}
   
-        <NotificationsOverlay isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
-      </div>
+        <NotificationsOverlay isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} userId={user?.id} />
+        </div>
+      </NotificationListener>
     </DashboardPrefetchProvider>
   )
 }

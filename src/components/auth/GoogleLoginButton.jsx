@@ -12,7 +12,7 @@ const GoogleLoginButton = ({ mode }) => {
     setError(null);
     try {
       const queryParams = new URLSearchParams(window.location.search);
-      let redirectPath = queryParams.get('redirect') || (mode === 'signup' ? '/onboarding' : '/home');
+      let redirectPath = queryParams.get('redirect') || '/home';
       if (!redirectPath.startsWith('/')) redirectPath = `/${redirectPath}`;
       
       const { error: authError } = await supabase.auth.signInWithOAuth({

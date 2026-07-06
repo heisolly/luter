@@ -66,6 +66,13 @@ export default function SettingsPage() {
   const [cropImageSrc, setCropImageSrc] = useState(null);
   const [pendingFile, setPendingFile] = useState(null);
   const fileInputRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1000);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1000);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Watch body class for dark mode changes
   useEffect(() => {
@@ -85,18 +92,18 @@ export default function SettingsPage() {
       @keyframes stp-spin { to { transform: rotate(360deg); } }
       .stp-input { width:100%;padding:12px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:14px;font-family:var(--font-body);color:#333;background:#fff;outline:none;transition:border-color 0.2s,box-shadow 0.2s;box-sizing:border-box; }
       body.dark-mode .stp-input { background:#111827;border-color:#374151;color:#F9FAFB; }
-      .stp-input:focus { border-color:#C4B5FD;box-shadow:0 0 0 3px rgba(196,181,253,0.2); }
+      .stp-input:focus { border-color:#98FF98;box-shadow:0 0 0 3px rgba(152,255,152,0.2); }
       .stp-select { width:100%;padding:12px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:14px;font-family:var(--font-body);color:#333;background:#fff;outline:none;transition:border-color 0.2s;box-sizing:border-box; }
       body.dark-mode .stp-select { background:#111827;border-color:#374151;color:#F9FAFB; }
       .stp-label { display:block;font-size:13px;font-weight:700;color:#333;margin-bottom:8px;font-family:var(--font-body); }
       body.dark-mode .stp-label { color:#F9FAFB; }
-      .stp-save-btn { padding:13px 28px;background:#7a12cc;color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font-display);display:inline-flex;align-items:center;gap:8px;transition:all 0.2s; }
-      .stp-save-btn:hover { opacity:0.88;transform:translateY(-1px);box-shadow:0 8px 24px rgba(122,18,204,0.35); }
+      .stp-save-btn { padding:13px 28px;background:#98FF98;color:#111827;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--font-display);display:inline-flex;align-items:center;gap:8px;transition:all 0.2s; }
+      .stp-save-btn:hover { opacity:0.88;transform:translateY(-1px);box-shadow:0 8px 24px rgba(152,255,152,0.35); }
       .stp-save-btn:disabled { opacity:0.5;cursor:not-allowed;transform:none; }
-      .stp-section-title { font-size:17px;font-weight:800;color:#333;margin:0 0 20px;padding-bottom:12px;border-bottom:2px solid #C4B5FD;display:inline-block; }
+      .stp-section-title { font-size:17px;font-weight:800;color:#333;margin:0 0 20px;padding-bottom:12px;border-bottom:2px solid #98FF98;display:inline-block; }
       body.dark-mode .stp-section-title { color:#F9FAFB; }
       .stp-toggle-track { width:44px;height:24px;border-radius:99px;background:#E5E7EB;position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0; }
-      .stp-toggle-track.on { background:#C4B5FD; }
+      .stp-toggle-track.on { background:#98FF98; }
       .stp-toggle-thumb { position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:left 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.2); }
       .stp-toggle-track.on .stp-toggle-thumb { left:23px; }
     `;
@@ -344,149 +351,64 @@ export default function SettingsPage() {
 
   const tabVariants = {
     inactive: { scale: 1, backgroundColor: 'transparent' },
-    active: { scale: 1.05, backgroundColor: 'rgba(151, 24, 251, 0.1)' }
+    active: { scale: 1.05, backgroundColor: 'rgba(152, 255, 152, 0.15)' }
   };
 
-  // shorthand colors
-  const bg = isDark ? '#111827' : '#F9FAFB';
-  const cardBg = isDark ? '#1F2937' : '#ffffff';
+  const font = "'Quicksand', system-ui, sans-serif";
+  const bg = isDark ? '#111827' : '#FFFFFF';
+  const cardBg = isDark ? '#1F2937' : '#FFFFFF';
   const border = isDark ? '#374151' : '#E5E7EB';
-  const textPrimary = isDark ? '#F9FAFB' : '#333333';
-  const textSec = isDark ? '#9CA3AF' : '#6B7280';
+  const textPrimary = isDark ? '#F9FAFB' : '#374151';
+  const textSec = isDark ? '#9CA3AF' : '#9CA3AF';
+  const hoverBg = isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6';
 
   if (loading && !profile) {
     return (
-      <div style={{ fontFamily: 'DM Sans,Inter,sans-serif', minHeight: '100vh', background: bg }}>
-
-        {/* ── Page Header ── */}
-        <div style={{ padding: '28px 40px 20px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(196,181,253,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <GearSix size={24} color="#7a12cc" weight="fill" />
+      <div style={{ fontFamily: font, minHeight: '100vh', background: bg }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column-reverse' : 'row', gap: 32, padding: isMobile ? '24px 16px 80px' : '48px 24px', maxWidth: 1000, margin: '0 auto', alignItems: 'flex-start' }}>
+          
+          {/* Skeleton Left (Form) */}
+          <div style={{ flex: 1, width: '100%' }}>
+            <div style={{ height: '36px', width: '150px', background: isDark ? '#374151' : '#E5E7EB', borderRadius: '8px', marginBottom: '32px', animation: 'pulse 1.5s infinite' }} />
+            <div style={{ height: '400px', background: cardBg, border: `2px solid ${border}`, borderRadius: '16px', animation: 'pulse 1.5s infinite' }} />
           </div>
-          <div>
-            <h1 style={{ fontSize: 32, fontWeight: 900, color: textPrimary, margin: 0, letterSpacing: '-0.03em', lineHeight: 1.1 }}>Settings</h1>
-            <p style={{ fontSize: 14, color: textSec, margin: '3px 0 0', fontWeight: 500 }}>Manage your account and preferences</p>
-          </div>
-        </div>
 
-        <div style={{ padding: '40px' }}>
-          <ContentSkeleton rows={6} height={60} />
+          {/* Skeleton Right (Sidebar) */}
+          <div style={{ width: isMobile ? '100%' : '300px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ height: '240px', background: cardBg, border: `2px solid ${border}`, borderRadius: '16px', animation: 'pulse 1.5s infinite' }} />
+            <div style={{ height: '120px', background: cardBg, border: `2px solid ${border}`, borderRadius: '16px', animation: 'pulse 1.5s infinite' }} />
+            <div style={{ height: '120px', background: cardBg, border: `2px solid ${border}`, borderRadius: '16px', animation: 'pulse 1.5s infinite' }} />
+            <div style={{ height: '56px', background: cardBg, border: `2px solid ${border}`, borderRadius: '16px', animation: 'pulse 1.5s infinite' }} />
+          </div>
+
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ fontFamily: 'DM Sans,Inter,sans-serif', minHeight: '100vh', background: bg, transition: 'background 0.3s' }}>
-
-      {/* ── Page Header ── */}
-      <div style={{ padding: '28px 40px 20px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(196,181,253,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <GearSix size={24} color="#7a12cc" weight="fill" />
-        </div>
-        <div>
-          <h1 style={{ fontSize: 32, fontWeight: 900, color: textPrimary, margin: 0, letterSpacing: '-0.03em', lineHeight: 1.1 }}>Settings</h1>
-          <p style={{ fontSize: 14, color: textSec, margin: '3px 0 0', fontWeight: 500 }}>Manage your account and preferences</p>
-        </div>
-      </div>
-
-      {/* ── Toast ── */}
-      <AnimatePresence>
-        {message.text && (
-          <motion.div
-            initial={{ opacity: 0, y: -50, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -50, scale: 0.95 }}
-            style={{
-              position: 'fixed', top: 20, right: 20, zIndex: 1000,
-              padding: '14px 22px', borderRadius: 14,
-              background: message.type === 'success' ? '#98FF98' : '#EF4444',
-              color: message.type === 'success' ? '#166534' : 'white',
-              fontWeight: 700, fontSize: 14,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-              display: 'flex', alignItems: 'center', gap: 10,
-              fontFamily: 'DM Sans,Inter,sans-serif',
-            }}
-          >
-            {message.type === 'success' ? <Check size={18} /> : <X size={18} />}
-            {message.text}
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div style={{ fontFamily: font, minHeight: '100vh', background: bg, transition: 'background 0.3s' }}>
 
       {/* ── Two-column layout ── */}
-      <div style={{ display: 'flex', gap: 32, padding: '32px 40px', maxWidth: 1100, margin: '0 auto', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column-reverse' : 'row', gap: 24, padding: isMobile ? '24px 16px 80px' : '48px 24px', maxWidth: 1000, margin: '0 auto', alignItems: 'flex-start', fontFamily: font }}>
 
-        {/* ── Left Nav ── */}
-        <div style={{ width: 220, flexShrink: 0 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              if (tab.isLogout) {
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={handleSignOut}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '12px 16px', borderRadius: 12,
-                      border: 'none', background: 'transparent',
-                      color: '#EF4444', fontSize: 14, fontWeight: 600,
-                      cursor: 'pointer', fontFamily: 'inherit',
-                      marginTop: 8, width: '100%', textAlign: 'left',
-                      transition: 'background 0.15s',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.07)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <Icon size={18} />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              }
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '12px 16px', borderRadius: 12,
-                    border: 'none',
-                    background: isActive ? '#C4B5FD' : 'transparent',
-                    color: isActive ? '#333333' : textSec,
-                    fontSize: 14, fontWeight: isActive ? 700 : 500,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                    width: '100%', textAlign: 'left',
-                    transition: 'all 0.18s',
-                  }}
-                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'; }}
-                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
-                >
-                  <Icon size={18} weight={isActive ? 'fill' : 'regular'} color={isActive ? '#7a12cc' : undefined} />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ── Right Content Card ── */}
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, x: 16 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.22 }}
-          style={{
-            flex: 1,
-            background: cardBg,
-            borderRadius: 20,
-            border: `1px solid ${border}`,
-            padding: 36,
-            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-            transition: 'background 0.3s, border-color 0.3s',
-          }}
-        >
+        {/* ── Left Content (Main Form) ── */}
+        <div style={{ flex: 1, width: '100%' }}>
+          <h2 style={{ fontSize: '28px', fontWeight: 800, color: textPrimary, marginBottom: '24px' }}>
+            {activeTab === 'profile' ? 'Profile' : 
+             activeTab === 'account' ? 'Password' : 
+             activeTab === 'notifications' ? 'Notifications' : 
+             activeTab === 'appearance' ? 'Appearance' : 
+             activeTab === 'privacy' ? 'Privacy settings' : 
+             activeTab === 'about' ? 'Help Center' : 'Settings'}
+          </h2>
+            
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, x: -16 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.22 }}
+          >
             {/* Profile Tab */}
             {activeTab === 'profile' && (
               <motion.div
@@ -501,31 +423,30 @@ export default function SettingsPage() {
                   gap: '16px', 
                   marginBottom: '24px',
                   padding: '16px',
-                  background: isUniversityStudent ? 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)' : 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                  borderRadius: '12px',
-                  border: `1px solid ${isUniversityStudent ? '#0ea5e9' : '#f59e0b'}`
+                  background: isDark ? '#1F2937' : '#FFFFFF',
+                  borderRadius: '16px',
+                  border: `2px solid ${border}`
                 }}>
                   <div style={{
                     width: '48px',
                     height: '48px',
                     borderRadius: '12px',
-                    background: '#f3f4f6',
-                    border: '2px solid #e5e7eb',
+                    background: '#98FF98',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}>
                     {isUniversityStudent ? (
-                      <GraduationCap size={24} color="#1a1a2e" />
+                      <GraduationCap size={24} color="#111827" />
                     ) : (
-                      <Backpack size={24} color="#1a1a2e" />
+                      <Backpack size={24} color="#111827" />
                     )}
                   </div>
                   <div>
-                    <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1a1a2e', margin: '0 0 4px' }}>
+                    <h2 style={{ fontSize: '18px', fontWeight: '800', color: textPrimary, margin: '0 0 4px' }}>
                       {isUniversityStudent ? 'University Student' : 'Solo Learner'}
                     </h2>
-                    <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                    <p style={{ fontSize: '14px', color: textSec, margin: 0 }}>
                       {isUniversityStudent ? 'Manage your academic profile and course information' : 'Manage your learning profile and interests'}
                     </p>
                   </div>
@@ -539,25 +460,25 @@ export default function SettingsPage() {
                       width: 120,
                       height: 120,
                       borderRadius: '50%',
-                      background: avatarUrl ? 'transparent' : 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)',
+                      background: avatarUrl ? 'transparent' : '#98FF98',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: 48,
                       fontWeight: 700,
-                      color: 'white',
+                      color: '#111827',
                       cursor: 'pointer',
                       position: 'relative',
                       overflow: 'hidden',
-                      border: '4px solid #e2e8f0',
+                      border: `4px solid ${border}`,
                       transition: 'all 0.2s ease'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#9718fb'
+                      e.currentTarget.style.borderColor = '#98FF98'
                       e.currentTarget.style.transform = 'scale(1.05)'
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = '#e2e8f0'
+                      e.currentTarget.style.borderColor = border
                       e.currentTarget.style.transform = 'scale(1)'
                     }}
                   >
@@ -644,7 +565,7 @@ export default function SettingsPage() {
                           transition: 'all 0.2s ease',
                           outline: 'none'
                         }}
-                        onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                        onFocus={(e) => e.target.style.borderColor = '#98FF98'}
                         onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                       />
                     </div>
@@ -693,7 +614,7 @@ export default function SettingsPage() {
                               transition: 'all 0.2s ease',
                               outline: 'none'
                             }}
-                            onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                            onFocus={(e) => e.target.style.borderColor = '#98FF98'}
                             onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                           />
                         </div>
@@ -715,7 +636,7 @@ export default function SettingsPage() {
                               transition: 'all 0.2s ease',
                               outline: 'none'
                             }}
-                            onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                            onFocus={(e) => e.target.style.borderColor = '#98FF98'}
                             onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                           />
                         </div>
@@ -741,7 +662,7 @@ export default function SettingsPage() {
                               transition: 'all 0.2s ease',
                               outline: 'none'
                             }}
-                            onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                            onFocus={(e) => e.target.style.borderColor = '#98FF98'}
                             onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                           />
                         </div>
@@ -764,7 +685,7 @@ export default function SettingsPage() {
                               transition: 'all 0.2s ease',
                               outline: 'none'
                             }}
-                            onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                            onFocus={(e) => e.target.style.borderColor = '#98FF98'}
                             onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                           />
                         </div>
@@ -795,7 +716,7 @@ export default function SettingsPage() {
                               transition: 'all 0.2s ease',
                               outline: 'none'
                             }}
-                            onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                            onFocus={(e) => e.target.style.borderColor = '#98FF98'}
                             onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                           />
                         </div>
@@ -817,7 +738,7 @@ export default function SettingsPage() {
                               outline: 'none',
                               backgroundColor: 'white'
                             }}
-                            onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                            onFocus={(e) => e.target.style.borderColor = '#98FF98'}
                             onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                           >
                             <option value="">Select Level</option>
@@ -848,7 +769,7 @@ export default function SettingsPage() {
                             transition: 'all 0.2s ease',
                             outline: 'none'
                           }}
-                          onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                          onFocus={(e) => e.target.style.borderColor = '#98FF98'}
                           onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                         />
                         <p style={{ fontSize: '12px', color: '#9ca3af', margin: '4px 0 0 0' }}>
@@ -879,7 +800,7 @@ export default function SettingsPage() {
                         outline: 'none',
                         resize: 'vertical'
                       }}
-                      onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                      onFocus={(e) => e.target.style.borderColor = '#98FF98'}
                       onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                     />
                   </div>
@@ -891,8 +812,8 @@ export default function SettingsPage() {
                     whileTap={{ scale: 0.98 }}
                     style={{
                       padding: '14px 24px',
-                      background: 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)',
-                      color: 'white',
+                      background: '#98FF98',
+                      color: '#111827',
                       border: 'none',
                       borderRadius: '10px',
                       fontSize: '14px',
@@ -964,7 +885,7 @@ export default function SettingsPage() {
                             transition: 'all 0.2s ease',
                             outline: 'none'
                           }}
-                          onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                          onFocus={(e) => e.target.style.borderColor = '#98FF98'}
                           onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                         />
                         <Lock 
@@ -999,7 +920,7 @@ export default function SettingsPage() {
                             transition: 'all 0.2s ease',
                             outline: 'none'
                           }}
-                          onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                          onFocus={(e) => e.target.style.borderColor = '#98FF98'}
                           onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                         />
                         <Key 
@@ -1034,7 +955,7 @@ export default function SettingsPage() {
                             transition: 'all 0.2s ease',
                             outline: 'none'
                           }}
-                          onFocus={(e) => e.target.style.borderColor = '#9718fb'}
+                          onFocus={(e) => e.target.style.borderColor = '#98FF98'}
                           onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                         />
                         <Key 
@@ -1080,8 +1001,8 @@ export default function SettingsPage() {
                       whileTap={{ scale: 0.98 }}
                       style={{
                         padding: '14px 24px',
-                        background: 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)',
-                        color: 'white',
+                        background: '#98FF98',
+                        color: '#111827',
                         border: 'none',
                         borderRadius: '10px',
                         fontSize: '14px',
@@ -1137,7 +1058,7 @@ export default function SettingsPage() {
                     style={{
                       padding: '10px 16px',
                       background: '#f59e0b',
-                      color: 'white',
+                      color: '#111827',
                       border: 'none',
                       borderRadius: '8px',
                       fontSize: '14px',
@@ -1189,7 +1110,7 @@ export default function SettingsPage() {
                           width: '40px',
                           height: '40px',
                           borderRadius: '10px',
-                          background: notifications[item.key] ? 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)' : '#f3f4f6',
+                          background: notifications[item.key] ? '#98FF98' : '#f3f4f6',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center'
@@ -1209,7 +1130,7 @@ export default function SettingsPage() {
                         width: '48px',
                         height: '24px',
                         borderRadius: '12px',
-                        background: notifications[item.key] ? 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)' : '#e5e7eb',
+                        background: notifications[item.key] ? '#98FF98' : '#e5e7eb',
                         position: 'relative',
                         transition: 'all 0.2s ease'
                       }}>
@@ -1253,7 +1174,7 @@ export default function SettingsPage() {
                       onClick={() => setDarkMode(false)}
                       style={{
                         padding: '20px',
-                        border: darkMode ? '2px solid #e5e7eb' : '2px solid #9718fb',
+                        border: darkMode ? '2px solid #e5e7eb' : '2px solid #98FF98',
                         borderRadius: '12px',
                         cursor: 'pointer',
                         background: darkMode ? '#f9fafb' : 'white',
@@ -1261,7 +1182,7 @@ export default function SettingsPage() {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                        <Sun size={24} color={!darkMode ? '#9718fb' : '#9ca3af'} />
+                        <Sun size={24} color={!darkMode ? '#98FF98' : '#9ca3af'} />
                         <span style={{ fontSize: '16px', fontWeight: '600', color: '#1a1a2e' }}>
                           Light Mode
                         </span>
@@ -1277,7 +1198,7 @@ export default function SettingsPage() {
                       onClick={() => setDarkMode(true)}
                       style={{
                         padding: '20px',
-                        border: darkMode ? '2px solid #9718fb' : '2px solid #e5e7eb',
+                        border: darkMode ? '2px solid #98FF98' : '2px solid #e5e7eb',
                         borderRadius: '12px',
                         cursor: 'pointer',
                         background: darkMode ? '#1f2937' : '#f9fafb',
@@ -1285,7 +1206,7 @@ export default function SettingsPage() {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                        <Moon size={24} color={darkMode ? '#9718fb' : '#9ca3af'} />
+                        <Moon size={24} color={darkMode ? '#98FF98' : '#9ca3af'} />
                         <span style={{ fontSize: '16px', fontWeight: '600', color: darkMode ? '#f3f4f6' : '#1a1a2e' }}>
                           Dark Mode
                         </span>
@@ -1302,7 +1223,7 @@ export default function SettingsPage() {
                     Accent Color
                   </h3>
                   <div style={{ display: 'flex', gap: '12px' }}>
-                    {['#9718fb', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'].map((color) => (
+                    {['#98FF98', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'].map((color) => (
                       <motion.div
                         key={color}
                         whileHover={{ scale: 1.1 }}
@@ -1314,7 +1235,7 @@ export default function SettingsPage() {
                           borderRadius: '12px',
                           background: color,
                           cursor: 'pointer',
-                          border: color === '#9718fb' ? '3px solid #1a1a2e' : '3px solid transparent',
+                          border: color === '#98FF98' ? '3px solid #1a1a2e' : '3px solid transparent',
                           transition: 'all 0.2s ease'
                         }}
                       />
@@ -1417,7 +1338,7 @@ export default function SettingsPage() {
                     <button style={{
                       padding: '10px 16px',
                       background: '#f59e0b',
-                      color: 'white',
+                      color: '#111827',
                       border: 'none',
                       borderRadius: '8px',
                       fontSize: '14px',
@@ -1464,7 +1385,7 @@ export default function SettingsPage() {
                     <button style={{
                       padding: '10px 16px',
                       background: '#ef4444',
-                      color: 'white',
+                      color: '#111827',
                       border: 'none',
                       borderRadius: '8px',
                       fontSize: '14px',
@@ -1494,7 +1415,7 @@ export default function SettingsPage() {
                     width: '80px',
                     height: '80px',
                     borderRadius: '20px',
-                    background: 'linear-gradient(135deg, #9718fb 0%, #7c3aed 100%)',
+                    background: '#98FF98',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1522,7 +1443,7 @@ export default function SettingsPage() {
                     alignItems: 'center',
                     gap: '12px'
                   }}>
-                    <Envelope size={20} color="#9718fb" />
+                    <Envelope size={20} color="#98FF98" />
                     <div>
                       <p style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a2e', margin: '0 0 4px' }}>
                         Support
@@ -1541,7 +1462,7 @@ export default function SettingsPage() {
                     alignItems: 'center',
                     gap: '12px'
                   }}>
-                    <Globe2 size={20} color="#9718fb" />
+                    <Globe2 size={20} color="#98FF98" />
                     <div>
                       <p style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a2e', margin: '0 0 4px' }}>
                         Website
@@ -1562,7 +1483,7 @@ export default function SettingsPage() {
                       width: '100%',
                       padding: '14px 24px',
                       background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                      color: 'white',
+                      color: '#111827',
                       border: 'none',
                       borderRadius: '10px',
                       fontSize: '14px',
@@ -1582,8 +1503,144 @@ export default function SettingsPage() {
                 </div>
               </motion.div>
             )}
-        </motion.div>
+          </motion.div>
+        </div>
+
+        {/* ── Right Sidebar (Widget Navigation) ── */}
+        <div style={{ width: isMobile ? '100%' : '300px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          
+          {/* Account Box */}
+          <div style={{ borderRadius: '16px', backgroundColor: cardBg, border: `2px solid ${border}`, padding: '16px 0', overflow: 'hidden' }}>
+            <div style={{ padding: '0 24px', marginBottom: '8px', fontSize: '18px', fontWeight: 800, color: textSec }}>Account</div>
+            {[
+              { id: 'profile', label: 'Profile' },
+              { id: 'account', label: 'Password' },
+              { id: 'notifications', label: 'Notifications' },
+              { id: 'appearance', label: 'Appearance' },
+              { id: 'privacy', label: 'Privacy settings' }
+            ].map(tab => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '12px 24px',
+                    border: 'none',
+                    background: isActive ? hoverBg : 'transparent',
+                    color: textPrimary,
+                    fontSize: '15px',
+                    fontWeight: isActive ? 800 : 700,
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = hoverBg }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent' }}
+                >
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Subscription Box */}
+          <div style={{ borderRadius: '16px', backgroundColor: cardBg, border: `2px solid ${border}`, padding: '16px 0', overflow: 'hidden' }}>
+            <div style={{ padding: '0 24px', marginBottom: '8px', fontSize: '18px', fontWeight: 800, color: textSec }}>Subscription</div>
+            <button
+              onClick={() => window.location.href = '/upgrade'}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '12px 24px',
+                border: 'none',
+                background: 'transparent',
+                color: textPrimary,
+                fontSize: '15px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = hoverBg}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              Choose a plan
+            </button>
+          </div>
+
+          {/* Support Box */}
+          <div style={{ borderRadius: '16px', backgroundColor: cardBg, border: `2px solid ${border}`, padding: '16px 0', overflow: 'hidden' }}>
+            <div style={{ padding: '0 24px', marginBottom: '8px', fontSize: '18px', fontWeight: 800, color: textSec }}>Support</div>
+            <button
+              onClick={() => setActiveTab('about')}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '12px 24px',
+                border: 'none',
+                background: activeTab === 'about' ? hoverBg : 'transparent',
+                color: textPrimary,
+                fontSize: '15px',
+                fontWeight: activeTab === 'about' ? 800 : 700,
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseEnter={e => { if (activeTab !== 'about') e.currentTarget.style.backgroundColor = hoverBg }}
+              onMouseLeave={e => { if (activeTab !== 'about') e.currentTarget.style.backgroundColor = 'transparent' }}
+            >
+              Help Center
+            </button>
+          </div>
+
+          <div style={{ borderRadius: '16px', backgroundColor: cardBg, border: `2px solid ${border}`, overflow: 'hidden' }}>
+            <button 
+              onClick={handleSignOut} 
+              style={{ 
+                background: 'transparent', 
+                border: 'none', 
+                padding: '16px', 
+                width: '100%', 
+                color: '#EF4444', 
+                fontWeight: 800, 
+                fontSize: '15px',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = hoverBg}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              LOG OUT
+            </button>
+          </div>
+
+        </div>
+
       </div>
+
+      {/* ── Toast ── */}
+      <AnimatePresence>
+        {message.text && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.95 }}
+            style={{
+              position: 'fixed', bottom: 40, right: '50%', transform: 'translateX(50%)', zIndex: 1000,
+              padding: '14px 24px', borderRadius: 16,
+              background: message.type === 'success' ? '#1CB0F6' : '#EF4444',
+              color: '#111827',
+              fontWeight: 800, fontSize: 16,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+              display: 'flex', alignItems: 'center', gap: 12,
+              fontFamily: font
+            }}
+          >
+            {message.type === 'success' ? <Check size={20} weight="bold" /> : <X size={20} weight="bold" />}
+            {message.text}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style>{`
         @keyframes spin {

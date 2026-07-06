@@ -52,12 +52,13 @@ const StreakHeatmap = ({
     .filter(r => r.goal_met)
     .map(r => ({ date: r.study_date, completed: true }));
 
+  const font = "'Quicksand', system-ui, sans-serif";
   const colors = {
-    bgOuter: isDark ? '#1F2937' : '#F3F4F6',
+    bgOuter: isDark ? '#1a2234' : '#F3F4F6',
     bgInner: isDark ? '#111827' : '#FFFFFF',
-    textTitle: isDark ? '#D1D5DB' : '#6B7280',
-    textBody: isDark ? '#F3F4F6' : '#4B5563',
-    borderColor: isDark ? '#374151' : '#E5E7EB',
+    textTitle: isDark ? '#9CA3AF' : '#6B7280',
+    textBody: isDark ? '#F9FAFB' : '#111827',
+    borderColor: isDark ? '#2d3a50' : '#EFEFEF',
     streakIconFill: currentStreak > 0 ? '#C4B5FD' : (isDark ? '#4B5563' : '#E5E7EB'),
     streakIconStroke: currentStreak > 0 ? 'none' : (isDark ? '#374151' : '#E5E7EB'),
   };
@@ -90,27 +91,27 @@ const StreakHeatmap = ({
       maxWidth: '420px',
       backgroundColor: colors.bgOuter,
       borderRadius: '24px',
-      padding: '24px',
+      padding: '0',
       boxShadow: 'none',
-      fontFamily: 'Inter, system-ui, sans-serif',
+      fontFamily: font,
       display: 'flex',
       flexDirection: 'column',
-      gap: '20px'
+      overflow: 'hidden'
     }}>
-      {/* Streak Info - Modernized */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Streak Info - Header Area */}
+      <div style={{ padding: '18px 18px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 19 25" fill="none" style={{ opacity: currentStreak > 0 ? 1 : 0.3, filter: currentStreak === 0 ? 'grayscale(100%)' : 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2px' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 19 25" fill="none" style={{ opacity: currentStreak > 0 ? 1 : 0.3, filter: currentStreak === 0 ? 'grayscale(100%)' : 'none' }}>
               <path d="M1.27498 12.516L10.1761 1.31828C10.7098 0.646883 11.7966 1.11739 11.6606 1.96094L10.3758 9.92921H15.8888C16.9368 9.92921 17.5236 11.1248 16.8757 11.94L7.97457 23.1377C7.44087 23.8091 6.35401 23.3386 6.49003 22.495L7.7748 14.5268H2.26186C1.21381 14.5268 0.62701 13.3312 1.27498 12.516Z" fill={colors.streakIconFill} stroke={colors.streakIconStroke} strokeWidth="2"></path>
             </svg>
-            <p style={{ fontSize: '36px', fontWeight: 800, margin: 0, color: colors.textBody, lineHeight: 1, letterSpacing: '-1px' }}>
-              {currentStreak} <span style={{ fontSize: '18px', fontWeight: 600, color: colors.textTitle, letterSpacing: '0' }}>Days</span>
+            <p style={{ fontSize: '28px', fontWeight: 800, margin: 0, color: colors.textBody, lineHeight: 1, letterSpacing: '-0.5px', fontFamily: font }}>
+              {currentStreak} <span style={{ fontSize: '16px', fontWeight: 700, color: colors.textTitle, letterSpacing: '0' }}>Days</span>
             </p>
           </div>
-          <p style={{ margin: 0, fontSize: '14px', color: colors.textTitle, fontWeight: 500 }}>
+          <p style={{ margin: 0, fontSize: '13px', color: colors.textTitle, fontWeight: 600, fontFamily: font }}>
             {currentStreak > 0 ? (
-              <>You're on a <strong style={{ fontWeight: 700, color: colors.textBody }}>streak</strong>!</>
+              <>You're on a <strong style={{ fontWeight: 800, color: colors.textBody }}>streak</strong>!</>
             ) : (
               <>Hit your daily study goal to start a streak!</>
             )}
@@ -179,12 +180,13 @@ const StreakHeatmap = ({
       {/* Heatmap Box */}
       <div style={{
         backgroundColor: colors.bgInner,
-        borderRadius: '24px',
-        padding: '20px',
+        borderRadius: '20px',
+        padding: '16px 20px 20px',
+        margin: '0 4px 4px',
         boxShadow: 'none',
         display: 'flex', 
         justifyContent: 'space-between', 
-        width: '100%', 
+        width: 'auto', 
         boxSizing: 'border-box'
       }}>
         {days.map((day, i) => (

@@ -7,6 +7,11 @@ import GamifiedProgressBars from '../components/dashboard/GamifiedProgressBars';
 import ChatBubblesWidget from '../components/dashboard/ChatBubblesWidget';
 import QuitOverlaysWidget from '../components/dashboard/QuitOverlaysWidget';
 import StackedStartCard from '../components/dashboard/StackedStartCard';
+import TodoListWidget from '../components/dashboard/TodoListWidget';
+import CalendarWidget from '../components/dashboard/CalendarWidget';
+import StudyProgressWidget from '../components/dashboard/StudyProgressWidget';
+import PersonalLibraryWidget from '../components/dashboard/PersonalLibraryWidget';
+import RecentlyStudiedWidget from '../components/dashboard/RecentlyStudiedWidget';
 
 const CheckIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none" style={{ flexShrink: 0 }}>
@@ -93,11 +98,16 @@ const ComponentPage = () => {
         </button>
       </div>
 
-      {/* Calendar Heatmap Section */}
-      <div style={{ display: 'flex', gap: '24px', marginBottom: '40px', alignItems: 'flex-start' }}>
-         <CalendarHeatmap 
-           isDark={isDarkTheme} 
-         />
+      {/* The Calendar and Study Progress widgets are already below, removing the duplicate block */}
+
+      {/* Personal Library Section */}
+      <div style={{ marginBottom: '40px' }}>
+        <PersonalLibraryWidget isDark={isDarkTheme} />
+      </div>
+
+      {/* Recently Studied Section */}
+      <div style={{ marginBottom: '40px' }}>
+        <RecentlyStudiedWidget isDark={isDarkTheme} />
       </div>
 
       {/* Mini Streak and Tasks Section */}
@@ -118,6 +128,19 @@ const ComponentPage = () => {
       {/* Stacked Start Card Section */}
       <div style={{ display: 'flex', gap: '24px', marginBottom: '40px', alignItems: 'flex-start', justifyContent: 'flex-end' }}>
          <StackedStartCard isDark={isDarkTheme} />
+      </div>
+
+      {/* Todo List, Calendar, and Study Progress Section */}
+      <div style={{ display: 'flex', gap: '24px', marginBottom: '40px', alignItems: 'flex-start', justifyContent: 'center', flexWrap: 'wrap' }}>
+         <div style={{ width: '100%', maxWidth: '480px' }}>
+            <TodoListWidget isDark={isDarkTheme} />
+         </div>
+         <div style={{ width: '100%', maxWidth: '480px' }}>
+            <CalendarWidget isDark={isDarkTheme} />
+         </div>
+         <div style={{ width: '100%', maxWidth: '480px' }}>
+            <StudyProgressWidget isDark={isDarkTheme} />
+         </div>
       </div>
 
       {/* Course Cards Swiper Section */}

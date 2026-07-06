@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Coins,
   EnvelopeSimple,
+  HardDrives
 } from '@phosphor-icons/react'
 import LuterLogo from '../components/shared/LuterLogo'
 import { DASHBOARD_URL, getAdminPath } from '../utils/urlUtils'
@@ -38,6 +39,7 @@ const NAV_GROUPS = [
       { to: '/audit', icon: ChartBar, label: 'Health Audit' },
       { to: '/notifications', icon: Bell, label: 'Notifications' },
       { to: '/activity', icon: Pulse, label: 'Live activity' },
+      { to: '/storage', icon: HardDrives, label: 'Storage Manager' },
     ]
   }
 ]

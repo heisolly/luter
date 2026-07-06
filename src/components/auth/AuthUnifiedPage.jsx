@@ -59,7 +59,7 @@ export default function AuthUnifiedPage({ initialMode = 'signin' }) {
   const [successEmail, setSuccessEmail] = useState('');
 
   const queryParams = new URLSearchParams(window.location.search);
-  const redirectPath = queryParams.get('redirect') || (mode === 'signup' ? '/onboarding' : '/home');
+  const redirectPath = queryParams.get('redirect') || '/home'; // Changed: Removed /onboarding to skip the tour guide for new users
 
   const switchMode = (nextMode, path) => {
     setMode(nextMode);
@@ -87,6 +87,7 @@ export default function AuthUnifiedPage({ initialMode = 'signin' }) {
     }
 
     if (data?.session) {
+      localStorage.removeItem('luter_is_new_user'); // Ensure it's closed for returning users
       clearLuterCaches();
       if (redirectPath.startsWith('http')) {
         window.location.href = redirectPath;
@@ -114,6 +115,9 @@ export default function AuthUnifiedPage({ initialMode = 'signin' }) {
     }
 
     if (data?.session) {
+      // Flag the user as new so the dashboard sidebar stays open for them on their first visit
+      localStorage.setItem('luter_is_new_user', 'true');
+      
       clearLuterCaches();
       if (redirectPath.startsWith('http')) {
         window.location.href = redirectPath;

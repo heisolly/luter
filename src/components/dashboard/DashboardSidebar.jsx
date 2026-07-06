@@ -34,44 +34,12 @@ import ArcadeOverlay from './ArcadeOverlay'
 import { getCreditBalance } from '../../services/creditService'
 import StreakWidget from './StreakWidget'
 
+import { useTheme } from '../../contexts/ThemeContext'
+
 /* ── dark mode hook ── */
 function useDarkMode() {
-  const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('luter-theme')
-    if (saved) return saved === 'dark'
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-  })
-
-  useEffect(() => {
-    if (isDark) {
-      document.body.classList.add('dark-mode')
-      document.documentElement.setAttribute('data-theme', 'dark')
-    } else {
-      document.body.classList.remove('dark-mode')
-      document.documentElement.setAttribute('data-theme', 'light')
-    }
-    
-    const handleStorage = (e) => {
-      if (e.key === 'luter-theme') setIsDark(e.newValue === 'dark')
-    }
-    const handleCustom = (e) => setIsDark(e.detail === 'dark')
-    
-    window.addEventListener('storage', handleStorage)
-    window.addEventListener('theme-change', handleCustom)
-    
-    return () => {
-      window.removeEventListener('storage', handleStorage)
-      window.removeEventListener('theme-change', handleCustom)
-    }
-  }, [isDark])
-
-  const setGlobalDark = (newDark) => {
-    setIsDark(newDark)
-    localStorage.setItem('luter-theme', newDark ? 'dark' : 'light')
-    window.dispatchEvent(new CustomEvent('theme-change', { detail: newDark ? 'dark' : 'light' }))
-  }
-
-  return [isDark, setGlobalDark]
+  const { isDark, setTheme } = useTheme();
+  return [isDark, (d) => setTheme(d ? 'dark' : 'light')];
 }
 
 /* ── active check ── */
@@ -103,6 +71,7 @@ export default function DashboardSidebar({
   onClose,
   onNavigate,
   hideToggle,
+  unreadCount,
 }) {
   const { bundle } = useDashboardPrefetch()
   const location   = useLocation()
@@ -224,6 +193,7 @@ export default function DashboardSidebar({
 
         {isMobile ? (
           <button
+            className="dsb-mobile-close-btn"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sb-muted)', padding: 4 }}
             onClick={onClose}
           >
@@ -231,7 +201,7 @@ export default function DashboardSidebar({
           </button>
         ) : !hideToggle && !collapsed && (
           <button
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sb-muted)', padding: 4 }}
+            className="dsb-toggle-btn"
             onClick={onClose}
             title="Collapse sidebar"
           >
@@ -307,10 +277,12 @@ export default function DashboardSidebar({
 
 
 
+
+
         {/* Notes */}
         <button
           id="nav-notes"
-          className={`dsb-nav-pill${isNavActive(pathname, '/notes') || isNavActive(pathname, '/notes') ? ' active' : ''}`}
+          className={`dsb-nav-pill${isNavActive(pathname, '/notes') ? ' active' : ''}`}
           onClick={() => go('/notes')}
         >
           <div className="dsb-icon">

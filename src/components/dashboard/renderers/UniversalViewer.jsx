@@ -240,9 +240,13 @@ export default function UniversalViewer({
     )
   }
 
-  // ─── 3. PPTX — show skeleton while converting, or error if failed ───────
-  if (type === 'pptx') {
-    return <ConversionSkeleton type="pptx" failed={conversionFailed} onRetry={() => setConversionFailed(false)} />
+  // ─── 3. POLLING FOR CONVERSION ─────────────────────────────────────────────
+  if ((type === 'pptx' || type === 'docx') && !hasConvertedPdf(effectiveMaterial)) {
+    if (!conversionFailed) {
+      return <ConversionSkeleton type={type} failed={false} />
+    }
+    // If conversion failed, we fall through to the native renderer (Microsoft/Google)
+    // as a fallback, because it might work if the URL is publicly accessible.
   }
 
   // ─── 4. MISSING SOURCE URL ────────────────────────────────────────────────
@@ -265,6 +269,10 @@ export default function UniversalViewer({
   // ─── 5. EVERYTHING ELSE → native renderer ───────────────────────────────
   if (type === 'docx') {
     return <DocxRenderer fileUrl={fileUrl} title={material.title} />
+  }
+
+  if (type === 'pptx') {
+    return <PptxRenderer fileUrl={fileUrl} title={material.title} />
   }
 
   if (type === 'excel') {

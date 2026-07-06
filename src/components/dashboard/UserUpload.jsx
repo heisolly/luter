@@ -209,8 +209,17 @@ export default function UserUpload() {
       setStatus({ type: 'error', message: errorMessage })
     } finally {
       setUploading(false)
-      setUploadStage('idle')
-      setUploadProgress(0)
+      setUploadProgress(100)
+      toast.success('Document uploaded successfully!')
+      
+      window.dispatchEvent(new CustomEvent('luter-task-complete', {
+        detail: { taskId: 4, xp: 15, title: "Upload a PDF to Backpack", isDynamic: false }
+      }))
+      
+      setTimeout(() => {
+        setUploadStage('idle')
+        setUploadProgress(0)
+      }, 2000)
     }
   }
 

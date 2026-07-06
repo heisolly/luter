@@ -12,9 +12,16 @@ export default function WorkstationQuizzes({
   isDark, 
   onRegenerateQuiz, 
   isAnalysisLoading, 
-  user 
+  user,
+  updateMaterialProgress
 }) {
   const navigate = useNavigate();
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 1024);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 1024);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
   const [view, setView] = useState('dashboard'); // 'dashboard' | 'quiz'
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -239,8 +246,14 @@ export default function WorkstationQuizzes({
         correct: finalScore,
         wrong: questions.length - finalScore
       };
-      
       saveHistory(newAttempt);
+      
+      if (updateMaterialProgress) {
+        // Find highest accuracy across all history including the new attempt
+        const maxAccuracy = Math.max(finalAccuracy, ...(history || []).map(h => h.accuracy || 0));
+        updateMaterialProgress('quizzes', maxAccuracy);
+      }
+      
       setView('dashboard');
     }
   };
@@ -423,10 +436,12 @@ export default function WorkstationQuizzes({
     return (
       <div style={{
         maxWidth: '680px',
-        margin: '40px auto',
+        margin: isMobile ? '0 auto' : '40px auto',
         width: '100%',
-        padding: '0 16px',
-        fontFamily: 'Outfit, sans-serif'
+        padding: isMobile ? '16px 12px 100px' : '0 16px',
+        fontFamily: 'Outfit, sans-serif',
+        overflowY: 'auto',
+        height: isMobile ? '100%' : 'auto'
       }}>
         {/* Quiz Header (Screenshot 2 style) */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
@@ -740,10 +755,12 @@ export default function WorkstationQuizzes({
   return (
     <div style={{
       maxWidth: '1100px',
-      margin: '24px auto',
+      margin: isMobile ? '0' : '24px auto',
       width: '100%',
-      padding: '0 24px',
-      fontFamily: 'Outfit, sans-serif'
+      padding: isMobile ? '16px 12px 100px' : '0 24px',
+      fontFamily: 'Outfit, sans-serif',
+      overflowY: 'auto',
+      height: isMobile ? '100%' : 'auto'
     }}>
       
       {/* Top Banner */}
@@ -751,13 +768,13 @@ export default function WorkstationQuizzes({
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        marginBottom: '28px',
+        marginBottom: isMobile ? '16px' : '28px',
         flexWrap: 'wrap',
-        gap: '16px'
+        gap: '12px'
       }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 900, color: isDark ? '#F9FAFC' : '#0F172A', margin: '0 0 4px 0' }}>Quiz Room</h1>
-          <p style={{ fontSize: '13px', color: isDark ? '#9CA3AF' : '#64748B', margin: 0 }}>Review performance diagnostics and master your recall</p>
+          <h1 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 900, color: isDark ? '#F9FAFC' : '#0F172A', margin: '0 0 4px 0' }}>Quiz Room</h1>
+          {!isMobile && <p style={{ fontSize: '13px', color: isDark ? '#9CA3AF' : '#64748B', margin: 0 }}>Review performance diagnostics and master your recall</p>}
         </div>
 
         {questions.length > 0 && (
@@ -797,8 +814,8 @@ export default function WorkstationQuizzes({
       {/* Main Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 360px',
-        gap: '24px',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 360px',
+        gap: isMobile ? '16px' : '24px',
         alignItems: 'start'
       }}>
         

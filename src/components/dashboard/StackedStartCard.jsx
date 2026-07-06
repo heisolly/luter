@@ -127,18 +127,20 @@ export default function StackedStartCard({ isDark = false }) {
     }
   };
 
+  const font = "'Quicksand', system-ui, sans-serif";
+
   const colors = {
-    bgOuter: isDark ? '#1F2937' : '#F3F4F6',
+    bgOuter: isDark ? '#1a2234' : '#F3F4F6',
     bgInner: isDark ? '#111827' : '#FFFFFF',
-    textTitle: isDark ? '#D1D5DB' : '#6B7280',
-    textBody: isDark ? '#F3F4F6' : '#4B5563',
-    borderColor: isDark ? '#374151' : '#E5E7EB',
+    textTitle: isDark ? '#9CA3AF' : '#6B7280',
+    textBody: isDark ? '#F9FAFB' : '#111827',
+    borderColor: isDark ? '#2d3a50' : '#EFEFEF',
     tabBg: isDark ? '#374151' : '#E5E7EB',
     
-    // Purple accents
-    accentBg: isDark ? 'rgba(196, 181, 253, 0.15)' : '#F5F3FF', // Lighter than C4B5FD for backgrounds
-    accentText: isDark ? '#C4B5FD' : '#7C3AED', // Stronger purple for text/icons
-    accentBorder: isDark ? 'rgba(196, 181, 253, 0.3)' : '#E0D4FC',
+    // Purple accents matching TodoListWidget
+    accentBg: isDark ? 'rgba(124,92,252,0.15)' : '#EEE9FF',
+    accentText: isDark ? '#C4B5FD' : '#7C5CFC',
+    accentBorder: isDark ? 'rgba(124,92,252,0.3)' : '#E0D4FC',
   };
 
   const getMaterialUrl = (sourceUrl) => {
@@ -154,10 +156,10 @@ export default function StackedStartCard({ isDark = false }) {
       minWidth: '320px',
       backgroundColor: colors.bgOuter,
       borderRadius: '24px',
-      padding: '24px',
+      padding: '20px',
       display: 'flex',
       flexDirection: 'column',
-      fontFamily: 'Inter, system-ui, sans-serif'
+      fontFamily: font
     }}>
       <style>{`
         .continue-btn {
@@ -218,7 +220,7 @@ export default function StackedStartCard({ isDark = false }) {
             maxWidth: activeTab === 'files' ? '120px' : '0px',
             opacity: activeTab === 'files' ? 1 : 0,
           }}>
-            <span style={{ fontWeight: 600, fontSize: '14px' }}>Recent Files</span>
+            <span style={{ fontWeight: 700, fontSize: '15px', fontFamily: font }}>Recent Files</span>
           </div>
         </button>
 
@@ -237,7 +239,7 @@ export default function StackedStartCard({ isDark = false }) {
             maxWidth: activeTab === 'folders' ? '140px' : '0px',
             opacity: activeTab === 'folders' ? 1 : 0,
           }}>
-            <span style={{ fontWeight: 600, fontSize: '14px' }}>Recent Folders</span>
+            <span style={{ fontWeight: 700, fontSize: '15px', fontFamily: font }}>Recent Folders</span>
           </div>
         </button>
       </div>

@@ -128,7 +128,8 @@ export default function CleanDocumentViewer({
   annotationToolType
 }) {
   const [numPages, setNumPages] = useState(null);
-  const [scale, setScale] = useState(1.0);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
+  const [scale, setScale] = useState(isMobile ? 1.0 : 1.0);
   const [containerWidth, setContainerWidth] = useState(null);
   const updateMyPresence = useUpdateMyPresence();
   
@@ -338,11 +339,14 @@ export default function CleanDocumentViewer({
     const pageNum = Number(pageWrapper.dataset.pageNumber);
     const wrapperRect = pageWrapper.getBoundingClientRect();
 
+    const widthScale = pageWidth ? (pageWidth / 1000) : 1;
+    const renderScale = scale * widthScale;
+
     const unscaledRects = rects.map((r) => ({
-      x: (r.x - wrapperRect.left) / scale,
-      y: (r.y - wrapperRect.top) / scale,
-      width: r.width / scale,
-      height: r.height / scale,
+      x: (r.x - wrapperRect.left) / renderScale,
+      y: (r.y - wrapperRect.top) / renderScale,
+      width: r.width / renderScale,
+      height: r.height / renderScale,
     }));
 
     const newHighlight = {
@@ -511,7 +515,11 @@ export default function CleanDocumentViewer({
 
   // --- RENDERING ---
   const fileSource = material?.converted_url || material?.source_url;
-  const pageWidth = containerWidth ? Math.min(containerWidth - 80, 1200) : undefined;
+  // On mobile: fill the full container width (edge-to-edge). On desktop: cap at 1200px with margins.
+  const isMobileView = containerWidth ? containerWidth < 1024 : (typeof window !== 'undefined' && window.innerWidth < 1024);
+  const pageWidth = containerWidth
+    ? (isMobileView ? containerWidth : Math.min(containerWidth - 80, 1200))
+    : undefined;
   
   const fileToLoad = React.useMemo(() => fileSource, [fileSource]);
   
@@ -562,12 +570,13 @@ export default function CleanDocumentViewer({
           flex: 1, 
           overflowY: 'auto', 
           overflowX: 'auto',
-          padding: '40px 20px',
+          padding: isMobileView ? '0 0 160px 0' : '12px 80px 120px 20px',
           scrollBehavior: 'smooth',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           position: 'relative',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         {/* Remote Cursors Layer */}
@@ -687,16 +696,17 @@ export default function CleanDocumentViewer({
       {/* Vertical Page & Zoom Sidebar */}
       <div style={{
         position: 'absolute',
-        top: '50%',
-        right: '24px',
-        transform: 'translateY(-50%)',
+        top: isMobileView ? 'auto' : '50%',
+        bottom: isMobileView ? '150px' : 'auto',
+        right: isMobileView ? '12px' : '24px',
+        transform: isMobileView ? 'none' : 'translateY(-50%)',
         backgroundColor: isDark ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)',
         borderRadius: '16px',
-        padding: '12px 8px',
+        padding: isMobileView ? '8px 6px' : '12px 8px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '12px',
+        gap: isMobileView ? '8px' : '12px',
         boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.4)' : '0 8px 32px rgba(0,0,0,0.1)',
         border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
         backdropFilter: 'blur(12px)',

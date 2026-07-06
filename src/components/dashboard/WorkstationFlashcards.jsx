@@ -5,7 +5,14 @@ import { useBroadcastEvent, useEventListener, useOthers, useStorage } from './Co
 import { MaterialAnalysisService } from '../../services/materialAnalysisService';
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService';
 
-export default function WorkstationFlashcards({ items = [], isDark = false, material, user, onViewContext, readOnly = false }) {
+export default function WorkstationFlashcards({ items = [], isDark = false, material, user, onViewContext, readOnly = false, updateMaterialProgress }) {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 1024);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 1024);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [direction, setDirection] = useState(0); // 1 for right, -1 for left
@@ -157,10 +164,18 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
     if (!cardId) return;
     
     // Save locally
-    setCardProgress(prev => ({
-      ...prev,
-      [cardId]: { ...prev[cardId], mastery_score: score }
-    }));
+    setCardProgress(prev => {
+      const nextProgress = { ...prev, [cardId]: { ...prev[cardId], mastery_score: score } };
+      
+      // Calculate overall flashcard progress based on mastery score (e.g., score >= 3 is Known)
+      if (updateMaterialProgress && totalCards > 0) {
+        const masteredCount = Object.values(nextProgress).filter(p => p.mastery_score >= 3).length;
+        const progressPercentage = (masteredCount / totalCards) * 100;
+        updateMaterialProgress('flashcards', progressPercentage);
+      }
+      
+      return nextProgress;
+    });
     
     // Update stats
     if (score === 2) {
@@ -698,11 +713,12 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
       
       {/* Top Header / Collaboration Sync Status */}
       <div style={{
-        position: 'absolute', top: '32px', width: '100%', maxWidth: '800px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', zIndex: 10, gap: '24px'
+        position: 'absolute', top: isMobile ? '16px' : '32px', width: '100%', maxWidth: isMobile ? '100%' : '800px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: isMobile ? '0 12px' : '0 24px', zIndex: 10, gap: '8px'
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: '18px', fontWeight: 700, color: textColor, fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span style={{ fontSize: isMobile ? '14px' : '18px', fontWeight: 700, color: textColor, fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {material?.title || 'Untitled Material'}
           </span>
         </div>
@@ -715,68 +731,95 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
           boxShadow: isBrutal ? brutalCardShadow : (isDark ? '0 4px 12px rgba(0,0,0,0.2)' : '0 4px 12px rgba(0,0,0,0.05)'),
           padding: '6px', borderRadius: '9999px'
         }}>
-          {!readOnly && material?.id && (
-            <button 
-              onClick={() => {
-                navigator.clipboard.writeText(`${window.location.origin}/view/${material.id}`);
-                setCopyFeedback(true);
-                setTimeout(() => setCopyFeedback(false), 2000);
-              }}
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'DM Sans, sans-serif', padding: '8px 16px', borderRadius: '9999px', transition: 'background 0.2s', fontSize: '14px' }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-               {copyFeedback ? <span style={{color: '#10B981'}}>Copied!</span> : <><Link size={16} weight="bold" /> Share</>}
-            </button>
-          )}
-
-          <div style={{ position: 'relative' }}>
-            <button 
-              onClick={() => setShowFontMenu(!showFontMenu)} 
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'DM Sans, sans-serif', padding: '8px 16px', borderRadius: '9999px', transition: 'background 0.2s', fontSize: '14px' }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              <TextAa size={16} weight="bold" /> Font
-            </button>
-            {showFontMenu && (
-              <div style={{ position: 'absolute', top: '120%', left: '50%', transform: 'translateX(-50%)', backgroundColor: isDark ? '#1F2937' : '#FFFFFF', padding: '8px', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 50, display: 'flex', flexDirection: 'column', gap: '4px', border: isDark ? '1px solid #374151' : '1px solid #E5E7EB', minWidth: '160px' }}>
-                 {[{id: 'system', label: 'Default Font'}, {id: 'dyslexic', label: 'Dyslexia Friendly'}, {id: 'serif', label: 'Reading Serif'}, {id: 'mono', label: 'Monospace'}].map(font => (
-                   <div key={font.id} onClick={() => { setSelectedFont(font.id); setShowFontMenu(false); }} style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: '8px', backgroundColor: selectedFont === font.id ? (isDark ? '#374151' : '#F3F4F6') : 'transparent', color: textColor, fontSize: '14px', fontWeight: 600 }}>{font.label}</div>
-                 ))}
+          {/* On mobile: only show counter + theme toggle */}
+          {isMobile ? (
+            <>
+              <button 
+                onClick={() => {
+                  if (cardTheme === 'minimal') setCardTheme('brutal');
+                  else if (cardTheme === 'brutal') setCardTheme('scrapbook');
+                  else if (cardTheme === 'scrapbook') setCardTheme('typographic');
+                  else setCardTheme('minimal');
+                }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: textColor, padding: '8px 10px', borderRadius: '9999px' }}
+              >
+                <PaintBrush size={16} weight="fill" />
+              </button>
+              <div style={{ width: '1px', height: '20px', backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' }} />
+              <div style={{ 
+                padding: '6px 12px', borderRadius: '9999px', 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                fontSize: '13px', fontWeight: 800, color: textColor, fontFamily: 'monospace'
+              }}>
+                {currentIndex + 1} / {totalCards}
               </div>
-            )}
-          </div>
+            </>
+          ) : (
+            <>
+              {!readOnly && material?.id && (
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/view/${material.id}`);
+                    setCopyFeedback(true);
+                    setTimeout(() => setCopyFeedback(false), 2000);
+                  }}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'DM Sans, sans-serif', padding: '8px 16px', borderRadius: '9999px', transition: 'background 0.2s', fontSize: '14px' }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                   {copyFeedback ? <span style={{color: '#10B981'}}>Copied!</span> : <><Link size={16} weight="bold" /> Share</>}
+                </button>
+              )}
 
-          <button 
-            onClick={() => {
-              if (cardTheme === 'minimal') setCardTheme('brutal');
-              else if (cardTheme === 'brutal') setCardTheme('scrapbook');
-              else if (cardTheme === 'scrapbook') setCardTheme('typographic');
-              else setCardTheme('minimal');
-            }}
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'DM Sans, sans-serif', padding: '8px 16px', borderRadius: '9999px', transition: 'background 0.2s', fontSize: '14px' }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-          >
-             <PaintBrush size={16} weight="fill" /> 
-             {cardTheme === 'minimal' ? 'Minimal' : cardTheme === 'brutal' ? 'Brutal' : cardTheme === 'scrapbook' ? 'Scrapbook' : 'Typo'}
-          </button>
+              <div style={{ position: 'relative' }}>
+                <button 
+                  onClick={() => setShowFontMenu(!showFontMenu)} 
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'DM Sans, sans-serif', padding: '8px 16px', borderRadius: '9999px', transition: 'background 0.2s', fontSize: '14px' }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <TextAa size={16} weight="bold" /> Font
+                </button>
+                {showFontMenu && (
+                  <div style={{ position: 'absolute', top: '120%', left: '50%', transform: 'translateX(-50%)', backgroundColor: isDark ? '#1F2937' : '#FFFFFF', padding: '8px', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 50, display: 'flex', flexDirection: 'column', gap: '4px', border: isDark ? '1px solid #374151' : '1px solid #E5E7EB', minWidth: '160px' }}>
+                     {[{id: 'system', label: 'Default Font'}, {id: 'dyslexic', label: 'Dyslexia Friendly'}, {id: 'serif', label: 'Reading Serif'}, {id: 'mono', label: 'Monospace'}].map(font => (
+                       <div key={font.id} onClick={() => { setSelectedFont(font.id); setShowFontMenu(false); }} style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: '8px', backgroundColor: selectedFont === font.id ? (isDark ? '#374151' : '#F3F4F6') : 'transparent', color: textColor, fontSize: '14px', fontWeight: 600 }}>{font.label}</div>
+                     ))}
+                  </div>
+                )}
+              </div>
 
-          <div style={{ width: '1px', height: '24px', backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)', margin: '0 4px' }} />
+              <button 
+                onClick={() => {
+                  if (cardTheme === 'minimal') setCardTheme('brutal');
+                  else if (cardTheme === 'brutal') setCardTheme('scrapbook');
+                  else if (cardTheme === 'scrapbook') setCardTheme('typographic');
+                  else setCardTheme('minimal');
+                }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 700, fontFamily: 'DM Sans, sans-serif', padding: '8px 16px', borderRadius: '9999px', transition: 'background 0.2s', fontSize: '14px' }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                 <PaintBrush size={16} weight="fill" /> 
+                 {cardTheme === 'minimal' ? 'Minimal' : cardTheme === 'brutal' ? 'Brutal' : cardTheme === 'scrapbook' ? 'Scrapbook' : 'Typo'}
+              </button>
 
-          <div style={{ 
-            padding: '8px 16px', borderRadius: '9999px', 
-            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-            fontSize: '14px', fontWeight: 800, color: textColor, fontFamily: 'monospace'
-          }}>
-            {currentIndex + 1} / {totalCards}
-          </div>
+              <div style={{ width: '1px', height: '24px', backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)', margin: '0 4px' }} />
+
+              <div style={{ 
+                padding: '8px 16px', borderRadius: '9999px', 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                fontSize: '14px', fontWeight: 800, color: textColor, fontFamily: 'monospace'
+              }}>
+                {currentIndex + 1} / {totalCards}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
       {/* Visual Stack Background Cards */}
-      <div style={{ position: 'absolute', width: '100%', maxWidth: '640px', height: '420px', marginTop: '-40px' }}>
+      <div style={{ position: 'absolute', width: isMobile ? 'calc(100% - 32px)' : '100%', maxWidth: isMobile ? '100%' : '640px', height: isMobile ? '48vh' : '420px', marginTop: isMobile ? '-20px' : '-40px' }}>
         {currentIndex < totalCards - 1 && (
            <div style={{
              position: 'absolute', width: '100%', height: '100%', 
@@ -801,9 +844,12 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
 
       {/* Main Draggable Card */}
       <div style={{
-        perspective: '1200px', width: '100%', maxWidth: '640px', height: '420px',
+        perspective: '1200px',
+        width: isMobile ? 'calc(100% - 32px)' : '100%',
+        maxWidth: isMobile ? '100%' : '640px',
+        height: isMobile ? '48vh' : '420px',
         position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        marginTop: '-40px', zIndex: 10
+        marginTop: isMobile ? '-20px' : '-40px', zIndex: 10
       }}>
         <AnimatePresence mode="popLayout" custom={direction}>
           <motion.div
@@ -830,7 +876,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
             {/* Front Side */}
             <div style={{
               position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden',
-              backgroundColor: cardBg, borderRadius: isScrapbook ? '4px' : (isTypo ? '0px' : '32px'), padding: '48px', backdropFilter: 'none',
+              backgroundColor: cardBg, borderRadius: isScrapbook ? '4px' : (isTypo ? '0px' : (isMobile ? '24px' : '32px')), padding: isMobile ? '28px 20px' : '48px', backdropFilter: 'none',
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               boxShadow: cardShadow, border: cardBorder,
               backgroundImage: isScrapbook ? `repeating-linear-gradient(transparent, transparent 31px, ${isDark ? '#4B5563' : '#E5E7EB'} 31px, ${isDark ? '#4B5563' : '#E5E7EB'} 32px)` : 'none'
@@ -849,7 +895,7 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
             {/* Back Side */}
             <div style={{
               position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden',
-              backgroundColor: cardBg, borderRadius: isScrapbook ? '4px' : (isTypo ? '0px' : '32px'), padding: '48px', backdropFilter: 'none',
+              backgroundColor: cardBg, borderRadius: isScrapbook ? '4px' : (isTypo ? '0px' : (isMobile ? '24px' : '32px')), padding: isMobile ? '28px 20px' : '48px', backdropFilter: 'none',
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               boxShadow: cardShadow, border: cardBorder,
               backgroundImage: isScrapbook ? `repeating-linear-gradient(transparent, transparent 31px, ${isDark ? '#4B5563' : '#E5E7EB'} 31px, ${isDark ? '#4B5563' : '#E5E7EB'} 32px)` : 'none',
@@ -950,70 +996,119 @@ export default function WorkstationFlashcards({ items = [], isDark = false, mate
       </div>
 
       {/* Floating Control Toolbar */}
-      <div style={{
-        position: 'absolute', bottom: '48px', left: '50%', transform: 'translateX(-50%)',
-        display: 'flex', alignItems: 'center', gap: '16px', zIndex: 40,
-      }}>
-        
-        <button 
-          onClick={() => handleMastery(1)} 
-          style={{ background: isBrutal ? '#FFD2A6' : '#FEE2E2', color: isBrutal ? '#111827' : '#EF4444', border: isBrutal ? '2px solid #111827' : 'none', borderRadius: '16px', padding: '12px 24px', fontWeight: 800, cursor: 'pointer', fontFamily: '"Nunito", "Quicksand", "Comic Sans MS", sans-serif', boxShadow: isBrutal ? '4px 4px 0px #111827' : '0 4px 12px rgba(239, 68, 68, 0.2)' }}
-        >
-          Needs Work
-        </button>
-
-        {/* Navigation & Flip Dock */}
+      {isMobile ? (
+        /* Mobile: stacked layout */
         <div style={{
-          display: 'flex', alignItems: 'center', gap: '8px',
-          background: toolbarBg, backdropFilter: 'none', padding: '8px', borderRadius: '9999px',
-          border: isBrutal ? brutalCardBorder : `1px solid ${toolbarBorder}`, boxShadow: toolbarShadow
+          position: 'absolute', bottom: '16px', left: '16px', right: '16px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', zIndex: 40,
+        }}>
+          {/* Flip + Nav row */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px', width: '100%', justifyContent: 'center',
+            background: toolbarBg, padding: '6px', borderRadius: '9999px',
+            border: isBrutal ? brutalCardBorder : `1px solid ${toolbarBorder}`, boxShadow: toolbarShadow
+          }}>
+            <button 
+              onClick={handlePrev} disabled={currentIndex === 0}
+              style={{ width: '48px', height: '48px', borderRadius: '50%', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: currentIndex === 0 ? 'transparent' : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'), color: currentIndex === 0 ? (isDark ? '#334155' : '#CBD5E1') : textColor, cursor: currentIndex === 0 ? 'not-allowed' : 'pointer' }}
+            >
+              <CaretLeft size={22} weight="bold" />
+            </button>
+            <button 
+              onClick={handleFlip}
+              style={{ flex: 1, height: '48px', borderRadius: '9999px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', backgroundColor: isDark ? '#334155' : '#F1F5F9', color: textColor, fontWeight: 800, fontSize: '14px', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+            >
+              <ArrowsClockwise size={18} weight="bold" />
+              {isFlipped ? 'Question' : 'Reveal'}
+            </button>
+            <button 
+              onClick={() => handleNext(1)} disabled={currentIndex === totalCards - 1}
+              style={{ width: '48px', height: '48px', borderRadius: '50%', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: currentIndex === totalCards - 1 ? 'transparent' : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'), color: currentIndex === totalCards - 1 ? (isDark ? '#334155' : '#CBD5E1') : textColor, cursor: currentIndex === totalCards - 1 ? 'not-allowed' : 'pointer' }}
+            >
+              <CaretRight size={22} weight="bold" />
+            </button>
+          </div>
+          {/* Mastery row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
+            <button 
+              onClick={() => handleMastery(1)} 
+              style={{ flex: 1, height: '52px', background: isBrutal ? '#FFD2A6' : '#FEE2E2', color: isBrutal ? '#111827' : '#EF4444', border: isBrutal ? '2px solid #111827' : 'none', borderRadius: '16px', fontWeight: 800, fontSize: '15px', cursor: 'pointer', boxShadow: isBrutal ? '4px 4px 0px #111827' : '0 4px 12px rgba(239,68,68,0.2)', fontFamily: 'DM Sans, sans-serif' }}
+            >
+              😅 Hard
+            </button>
+            <button 
+              onClick={() => handleMastery(2)} 
+              style={{ flex: 1, height: '52px', background: isBrutal ? '#98FF98' : '#D1FAE5', color: isBrutal ? '#111827' : '#10B981', border: isBrutal ? '2px solid #111827' : 'none', borderRadius: '16px', fontWeight: 800, fontSize: '15px', cursor: 'pointer', boxShadow: isBrutal ? '4px 4px 0px #111827' : '0 4px 12px rgba(16,185,129,0.2)', fontFamily: 'DM Sans, sans-serif' }}
+            >
+              ✅ Got It!
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{
+          position: 'absolute', bottom: '48px', left: '50%', transform: 'translateX(-50%)',
+          display: 'flex', alignItems: 'center', gap: '16px', zIndex: 40,
         }}>
           <button 
-            onClick={handlePrev} disabled={currentIndex === 0}
-            style={{
-              width: '56px', height: '56px', borderRadius: '50%', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              backgroundColor: currentIndex === 0 ? 'transparent' : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'),
-              color: currentIndex === 0 ? (isDark ? '#334155' : '#CBD5E1') : textColor, cursor: currentIndex === 0 ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
-            }}
+            onClick={() => handleMastery(1)} 
+            style={{ background: isBrutal ? '#FFD2A6' : '#FEE2E2', color: isBrutal ? '#111827' : '#EF4444', border: isBrutal ? '2px solid #111827' : 'none', borderRadius: '16px', padding: '12px 24px', fontWeight: 800, cursor: 'pointer', fontFamily: '"Nunito", "Quicksand", "Comic Sans MS", sans-serif', boxShadow: isBrutal ? '4px 4px 0px #111827' : '0 4px 12px rgba(239, 68, 68, 0.2)' }}
           >
-            <CaretLeft size={24} weight="bold" />
-          </button>
-          
-          <button 
-            onClick={handleFlip}
-            style={{
-              padding: '0 32px', height: '56px', borderRadius: '9999px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-              backgroundColor: isDark ? '#334155' : '#F1F5F9', color: textColor, fontWeight: 800, fontSize: '15px', cursor: 'pointer', transition: 'all 0.2s',
-              fontFamily: 'DM Sans, sans-serif'
-            }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? '#475569' : '#E2E8F0'}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#F1F5F9'}
-            onMouseDown={e => e.currentTarget.style.transform = 'scale(0.95)'}
-            onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
-          >
-            <ArrowsClockwise size={20} weight="bold" />
-            {isFlipped ? 'Show Question' : 'Reveal Answer'}
+            Needs Work
           </button>
 
+          {/* Navigation & Flip Dock */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            background: toolbarBg, backdropFilter: 'none', padding: '8px', borderRadius: '9999px',
+            border: isBrutal ? brutalCardBorder : `1px solid ${toolbarBorder}`, boxShadow: toolbarShadow
+          }}>
+            <button 
+              onClick={handlePrev} disabled={currentIndex === 0}
+              style={{
+                width: '56px', height: '56px', borderRadius: '50%', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                backgroundColor: currentIndex === 0 ? 'transparent' : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'),
+                color: currentIndex === 0 ? (isDark ? '#334155' : '#CBD5E1') : textColor, cursor: currentIndex === 0 ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
+              }}
+            >
+              <CaretLeft size={24} weight="bold" />
+            </button>
+            
+            <button 
+              onClick={handleFlip}
+              style={{
+                padding: '0 32px', height: '56px', borderRadius: '9999px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                backgroundColor: isDark ? '#334155' : '#F1F5F9', color: textColor, fontWeight: 800, fontSize: '15px', cursor: 'pointer', transition: 'all 0.2s',
+                fontFamily: 'DM Sans, sans-serif'
+              }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? '#475569' : '#E2E8F0'}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#F1F5F9'}
+              onMouseDown={e => e.currentTarget.style.transform = 'scale(0.95)'}
+              onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <ArrowsClockwise size={20} weight="bold" />
+              {isFlipped ? 'Show Question' : 'Reveal Answer'}
+            </button>
+
+            <button 
+              onClick={() => handleNext(1)} disabled={currentIndex === totalCards - 1}
+              style={{
+                width: '56px', height: '56px', borderRadius: '50%', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                backgroundColor: currentIndex === totalCards - 1 ? 'transparent' : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'),
+                color: currentIndex === totalCards - 1 ? (isDark ? '#334155' : '#CBD5E1') : textColor, cursor: currentIndex === totalCards - 1 ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
+              }}
+            >
+              <CaretRight size={24} weight="bold" />
+            </button>
+          </div>
+
           <button 
-            onClick={() => handleNext(1)} disabled={currentIndex === totalCards - 1}
-            style={{
-              width: '56px', height: '56px', borderRadius: '50%', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              backgroundColor: currentIndex === totalCards - 1 ? 'transparent' : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'),
-              color: currentIndex === totalCards - 1 ? (isDark ? '#334155' : '#CBD5E1') : textColor, cursor: currentIndex === totalCards - 1 ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
-            }}
+            onClick={() => handleMastery(2)} 
+            style={{ background: isBrutal ? '#98FF98' : '#D1FAE5', color: isBrutal ? '#111827' : '#10B981', border: isBrutal ? '2px solid #111827' : 'none', borderRadius: '16px', padding: '12px 24px', fontWeight: 800, cursor: 'pointer', fontFamily: '"Nunito", "Quicksand", "Comic Sans MS", sans-serif', boxShadow: isBrutal ? '4px 4px 0px #111827' : '0 4px 12px rgba(16, 185, 129, 0.2)' }}
           >
-            <CaretRight size={24} weight="bold" />
+            Got It!
           </button>
         </div>
-
-        <button 
-          onClick={() => handleMastery(2)} 
-          style={{ background: isBrutal ? '#98FF98' : '#D1FAE5', color: isBrutal ? '#111827' : '#10B981', border: isBrutal ? '2px solid #111827' : 'none', borderRadius: '16px', padding: '12px 24px', fontWeight: 800, cursor: 'pointer', fontFamily: '"Nunito", "Quicksand", "Comic Sans MS", sans-serif', boxShadow: isBrutal ? '4px 4px 0px #111827' : '0 4px 12px rgba(16, 185, 129, 0.2)' }}
-        >
-          Got It!
-        </button>
-      </div>
+      )}
     </div>
   );
 }

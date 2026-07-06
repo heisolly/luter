@@ -1586,10 +1586,33 @@ function NativeDocumentToolbar({ editor, workstationMode = false }) {
 }
 
 // ─── Live Note Editor ──────────────────────────────────────────────────────────
-export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSharedLink = false, hideHeader = false, workstationMode = false, emptyState = null, onOpenAiChat }) {
+export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSharedLink = false, hideHeader = false, workstationMode = false, emptyState = null, onOpenAiChat, updateMaterialProgress }) {
   const location = useLocation()
   const navigate = useNavigate()
   const isAiChatRoute = location.pathname.includes('/ai-chat')
+
+  // Scroll depth tracking
+  const maxScrollRef = useRef(0);
+  const scrollTimeoutRef = useRef(null);
+
+  const handleScroll = (e) => {
+    if (!updateMaterialProgress) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    let percentage = 100;
+    if (scrollHeight > clientHeight + 10) {
+      percentage = Math.round((scrollTop / (scrollHeight - clientHeight)) * 100);
+    }
+    
+    if (percentage > maxScrollRef.current) {
+      maxScrollRef.current = percentage;
+      
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        updateMaterialProgress('notes', maxScrollRef.current);
+      }, 1000);
+    }
+  };
 
   const status = useStatus()
   const isStorageReady = status === 'connected' || status === 'reconnecting'
@@ -2117,7 +2140,7 @@ export function LiveNoteEditor({ title, roomId, displayName, user, profile, isSh
       <div className={`ns-body-row${aiOpen && !commentsOpen && aiMode === 'sidebar' ? ' ns-ai-sidebar-open' : ''} ${workstationMode ? 'workstation-mode' : ''}`}>
         <div className="ns-body">
           {/* Editor */}
-          <main className="ns-main" style={{ paddingRight: aiOpen && !commentsOpen && aiMode === 'sidebar' ? 0 : undefined }}>
+          <main className="ns-main" style={{ paddingRight: aiOpen && !commentsOpen && aiMode === 'sidebar' ? 0 : undefined }} onScroll={handleScroll}>
             <div className="ns-editor-wrap">
               {noteCover && (
                 <div className="ns-page-cover" style={{ backgroundImage: `url(${noteCover})` }}></div>

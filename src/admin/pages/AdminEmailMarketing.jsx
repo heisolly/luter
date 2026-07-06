@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../../supabaseClient'
 import EmailEditor from 'react-email-editor'
-import { PaperPlaneTilt, FloppyDisk, CaretLeft, CircleNotch, List, MagnifyingGlass, Funnel, X } from '@phosphor-icons/react'
+import { PaperPlaneTilt, FloppyDisk, CaretLeft, CircleNotch, List, MagnifyingGlass, Funnel, X, CheckSquareOffset, Square } from '@phosphor-icons/react'
 import { Link } from 'react-router-dom'
 
 export default function AdminEmailMarketing() {
@@ -14,51 +14,23 @@ export default function AdminEmailMarketing() {
   const [editingCampaign, setEditingCampaign] = useState(null)
   const [saving, setSaving] = useState(false)
   const [sending, setSending] = useState(false)
-  const [editorLoaded, setEditorLoaded] = useState(false)
   
   // Editor Form State
   const [subject, setSubject] = useState('')
   const [audienceFilter, setAudienceFilter] = useState('all') // 'all' | 'active' | 'specific'
-  const [selectedUsers, setSelectedUsers] = useState([]) // Array of { id, name, email }
-  const [userSearchQ, setUserSearchQ] = useState('')
-  const [userSearchResults, setUserSearchResults] = useState([])
-  const [isSearchingUsers, setIsSearchingUsers] = useState(false)
+  const [selectedUsers, setSelectedUsers] = useState([]) // Array of user IDs
+  const [allUsers, setAllUsers] = useState([])
+
   const emailEditorRef = useRef(null)
 
-  // Live user search for "specific" audience filter
+  // Fetch all users for the specific filter
   useEffect(() => {
-    if (audienceFilter !== 'specific' || !userSearchQ.trim()) {
-      setUserSearchResults([])
-      return
+    async function fetchAllUsers() {
+      const { data } = await supabase.from('profiles').select('id, full_name').order('full_name')
+      if (data) setAllUsers(data)
     }
-    const handler = setTimeout(async () => {
-      setIsSearchingUsers(true)
-      try {
-        // Query profiles for id and name. The backend RPC will resolve the emails via id.
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .ilike('full_name', `%${userSearchQ}%`)
-          .limit(5)
-        if (!error && data) setUserSearchResults(data)
-      } catch (err) {
-        console.error('Error searching users:', err)
-      } finally {
-        setIsSearchingUsers(false)
-      }
-    }, 300)
-    return () => clearTimeout(handler)
-  }, [userSearchQ, audienceFilter])
-
-  const toggleUserSelection = (user) => {
-    if (selectedUsers.find(u => u.id === user.id)) {
-      setSelectedUsers(selectedUsers.filter(u => u.id !== user.id))
-    } else {
-      setSelectedUsers([...selectedUsers, user])
-    }
-    setUserSearchQ('')
-    setUserSearchResults([])
-  }
+    fetchAllUsers()
+  }, [])
 
   useEffect(() => {
     if (view === 'list') {
@@ -84,7 +56,6 @@ export default function AdminEmailMarketing() {
     setSubject('')
     setAudienceFilter('all')
     setSelectedUsers([])
-    setEditorLoaded(false)
     setView('editor')
   }
 
@@ -92,24 +63,43 @@ export default function AdminEmailMarketing() {
     setEditingCampaign(campaign)
     setSubject(campaign.subject || '')
     setAudienceFilter(campaign.audience_filter?.type || 'all')
-    setSelectedUsers(campaign.audience_filter?.userIds ? campaign.audience_filter.users || [] : [])
-    setEditorLoaded(false)
+    setSelectedUsers(campaign.audience_filter?.userIds || [])
     setView('editor')
   }
 
-  const onEditorLoad = () => {
-    if (editingCampaign && editingCampaign.design_json) {
-      emailEditorRef.current.editor.loadDesign(editingCampaign.design_json)
+  const toggleUserSelection = (userId) => {
+    if (selectedUsers.includes(userId)) {
+      setSelectedUsers(selectedUsers.filter(id => id !== userId))
+    } else {
+      setSelectedUsers([...selectedUsers, userId])
     }
-    // Fallback if onReady doesn't fire for some reason
-    setTimeout(() => setEditorLoaded(true), 1500)
   }
 
-  const saveDraft = async () => {
+  const selectAllUsers = () => {
+    if (selectedUsers.length === allUsers.length) {
+      setSelectedUsers([])
+    } else {
+      setSelectedUsers(allUsers.map(u => u.id))
+    }
+  }
+
+  const onEditorLoad = () => {
+    if (editingCampaign?.design_json && emailEditorRef.current?.editor) {
+      emailEditorRef.current.editor.loadDesign(editingCampaign.design_json)
+    }
+  }
+
+  const onEditorReady = () => {
+    // Fired when editor is fully ready
+  }
+
+  const saveDraft = () => {
     if (!subject.trim()) {
       alert("Please enter a subject line before saving.")
       return
     }
+
+    if (!emailEditorRef.current?.editor) return
 
     setSaving(true)
     emailEditorRef.current.editor.exportHtml(async (data) => {
@@ -121,90 +111,96 @@ export default function AdminEmailMarketing() {
         html_body: html,
         audience_filter: { 
           type: audienceFilter,
-          userIds: audienceFilter === 'specific' ? selectedUsers.map(u => u.id) : null,
-          users: audienceFilter === 'specific' ? selectedUsers : null
+          userIds: audienceFilter === 'specific' ? selectedUsers : null
         },
         status: 'draft',
       }
 
-      let res
-      if (editingCampaign?.id) {
-        res = await supabase.from('email_campaigns').update(payload).eq('id', editingCampaign.id).select().single()
-      } else {
-        res = await supabase.from('email_campaigns').insert(payload).select().single()
-      }
+      try {
+        let res
+        if (editingCampaign?.id) {
+          res = await supabase.from('email_campaigns').update(payload).eq('id', editingCampaign.id).select().single()
+        } else {
+          res = await supabase.from('email_campaigns').insert(payload).select().single()
+        }
 
-      if (res.error) {
-        alert("Failed to save draft: " + res.error.message)
-      } else {
+        if (res.error) throw new Error(res.error.message)
+        
         setEditingCampaign(res.data)
         alert("Draft saved successfully!")
+      } catch (err) {
+        alert("Failed to save draft: " + err.message)
+      } finally {
+        setSaving(false)
       }
-      setSaving(false)
     })
   }
 
-  const triggerSend = async () => {
+  const triggerSend = () => {
     if (!editingCampaign?.id) {
       alert("Please save as a draft first before sending.")
       return
     }
+    
     if (!confirm("Are you sure you want to send this email to the selected audience? This cannot be undone.")) return
-    
+
+    if (!emailEditorRef.current?.editor) return
+
     setSending(true)
-    
-    // Securely query user emails via RPC function (only accessible by admins)
-    const { data: users, error: fetchErr } = await supabase.rpc('get_target_emails', {
-      p_audience_filter: audienceFilter,
-      p_specific_user_ids: audienceFilter === 'specific' ? selectedUsers.map(u => u.id) : null
-    })
-
-    if (fetchErr) {
-      alert("Failed to fetch target audience: " + fetchErr.message + ". Make sure you have pushed the latest database migrations.")
-      setSending(false)
-      return
-    }
-
-    // Since RPC returns SETOF TEXT, data is an array of strings
-    const emails = users.filter(Boolean)
-
-    if (emails.length === 0) {
-      alert("No users found for this audience filter.")
-      setSending(false)
-      return
-    }
-
-    try {
-      // Post to our local Express/Battle server which handles the Resend API
-      const BATTLE_SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'
-      const response = await fetch(`${BATTLE_SERVER_URL}/api/send-campaign`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          subject: editingCampaign.subject,
-          html: editingCampaign.html_body,
-          emails: emails
-        })
+    emailEditorRef.current.editor.exportHtml(async (data) => {
+      const { html } = data
+      
+      // Securely query user emails via RPC function (only accessible by admins)
+      const { data: users, error: fetchErr } = await supabase.rpc('get_target_emails', {
+        p_audience_filter: audienceFilter,
+        p_specific_user_ids: audienceFilter === 'specific' ? selectedUsers : null
       })
 
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.error || "Failed to send campaign")
+      if (fetchErr) {
+        alert("Failed to fetch target audience: " + fetchErr.message + ". Make sure you have pushed the latest database migrations.")
+        setSending(false)
+        return
+      }
 
-      // Update status to 'sent'
-      const { error } = await supabase
-        .from('email_campaigns')
-        .update({ status: 'sent', sent_at: new Date().toISOString() })
-        .eq('id', editingCampaign.id)
+      const emails = users.filter(Boolean)
 
-      if (error) throw error
-      
-      alert(`Campaign dispatched successfully! Sent to ${emails.length} users.`)
-      setView('list')
-    } catch (err) {
-      alert("Error sending campaign: " + err.message)
-    }
-    
-    setSending(false)
+      if (emails.length === 0) {
+        alert("No users found for this audience filter.")
+        setSending(false)
+        return
+      }
+
+      try {
+        const BATTLE_SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'
+        const response = await fetch(`${BATTLE_SERVER_URL}/api/send-campaign`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            subject: editingCampaign.subject,
+            html: html,
+            emails: emails
+          })
+        })
+
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || "Failed to send campaign")
+
+        // Update status to 'sent'
+        const { error } = await supabase
+          .from('email_campaigns')
+          .update({ status: 'sent', sent_at: new Date().toISOString() })
+          .eq('id', editingCampaign.id)
+
+        if (error) throw error
+        
+        alert(`Campaign dispatched successfully! Sent to ${emails.length} users.`)
+        setView('list')
+      } catch (err) {
+        alert("Error sending campaign: " + err.message)
+      } finally {
+        setSending(false)
+      }
+    })
   }
 
   if (view === 'editor') {
@@ -245,8 +241,8 @@ export default function AdminEmailMarketing() {
           </div>
         </div>
 
-        <div className="adm-card" style={{ padding: 16, marginBottom: 16, display: 'flex', gap: 24, flexShrink: 0 }}>
-          <label style={{ flex: 1 }}>
+        <div className="adm-card" style={{ padding: 16, marginBottom: 16, display: 'flex', gap: 24, flexShrink: 0, flexWrap: 'wrap' }}>
+          <label style={{ flex: '1 1 300px' }}>
             <span className="adm-muted" style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Subject Line</span>
             <input 
               className="adm-input" 
@@ -257,8 +253,8 @@ export default function AdminEmailMarketing() {
             />
           </label>
           
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <label style={{ width: 250 }}>
+          <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <label style={{ width: '100%' }}>
               <span className="adm-muted" style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Target Audience</span>
               <select className="adm-input" style={{ width: '100%' }} value={audienceFilter} onChange={e => setAudienceFilter(e.target.value)}>
                 <option value="all">All Users</option>
@@ -269,91 +265,52 @@ export default function AdminEmailMarketing() {
             </label>
 
             {audienceFilter === 'specific' && (
-              <div style={{ position: 'relative', width: 250 }}>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    className="adm-input"
-                    style={{ width: '100%', paddingLeft: 32 }}
-                    placeholder="Search users to add..."
-                    value={userSearchQ}
-                    onChange={(e) => setUserSearchQ(e.target.value)}
-                  />
-                  <MagnifyingGlass size={16} color="var(--adm-text-muted)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-                  {isSearchingUsers && <CircleNotch size={14} className="animate-spin" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)' }} />}
+              <div style={{ 
+                border: '1px solid var(--adm-border)', 
+                borderRadius: 8, 
+                background: 'white', 
+                overflow: 'hidden',
+                display: 'flex', 
+                flexDirection: 'column',
+                maxHeight: 200
+              }}>
+                <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--adm-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--adm-bg)' }}>
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>{selectedUsers.length} Selected</span>
+                  <button onClick={selectAllUsers} className="adm-btn adm-btn--ghost" style={{ padding: '4px 8px', fontSize: 11, minHeight: 24 }}>
+                    {selectedUsers.length === allUsers.length ? 'Deselect All' : 'Select All'}
+                  </button>
                 </div>
-
-                {userSearchResults.length > 0 && (
-                  <div style={{
-                    position: 'absolute', top: '100%', left: 0, right: 0,
-                    background: 'white', border: '1px solid var(--adm-border)',
-                    borderRadius: 8, marginTop: 4, zIndex: 1000,
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    maxHeight: 200, overflowY: 'auto'
-                  }}>
-                    {userSearchResults.map(u => (
-                      <div
-                        key={u.id}
-                        onClick={() => toggleUserSelection(u)}
-                        style={{
-                          padding: '8px 12px', fontSize: 13, cursor: 'pointer',
-                          borderBottom: '1px solid var(--adm-border)',
-                          background: selectedUsers.find(su => su.id === u.id) ? 'var(--adm-bg)' : 'white'
-                        }}
-                      >
-                        {u.full_name}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-                {selectedUsers.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                    {selectedUsers.map(u => (
-                      <span key={u.id} style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                        padding: '4px 8px', background: 'var(--adm-accent-light, #e0e7ff)',
-                        color: 'var(--adm-accent-dark, #4338ca)', borderRadius: 16, fontSize: 12, fontWeight: 500
-                      }}>
-                        {u.full_name?.split(' ')[0]}
-                        <X size={12} weight="bold" style={{ cursor: 'pointer' }} onClick={() => toggleUserSelection(u)} />
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <div style={{ overflowY: 'auto', flex: 1, padding: 8 }}>
+                  {allUsers.map(u => (
+                    <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', cursor: 'pointer', borderRadius: 4 }}>
+                      {selectedUsers.includes(u.id) ? 
+                        <CheckSquareOffset size={18} weight="fill" color="var(--adm-accent, #7a12cc)" /> : 
+                        <Square size={18} color="var(--adm-text-muted)" />
+                      }
+                      <span style={{ fontSize: 13, userSelect: 'none' }}>{u.full_name}</span>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedUsers.includes(u.id)}
+                        onChange={() => toggleUserSelection(u.id)}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                  ))}
+                  {allUsers.length === 0 && <div style={{ padding: 12, fontSize: 12, textAlign: 'center', color: 'var(--adm-text-muted)' }}>No users found.</div>}
+                </div>
               </div>
             )}
           </div>
         </div>
 
-        <div className="adm-card" style={{ flex: 1, overflow: 'hidden', border: '1px solid var(--adm-border)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ flex: 1, position: 'relative' }}>
-            {!editorLoaded && (
-              <div style={{
-                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'rgba(248, 250, 252, 0.8)', zIndex: 10,
-                backdropFilter: 'blur(4px)', flexDirection: 'column', gap: 12
-              }}>
-                <CircleNotch size={32} className="animate-spin" color="var(--adm-accent, #7a12cc)" />
-                <span style={{ fontWeight: 600, color: 'var(--adm-text)' }}>Initializing Editor...</span>
-              </div>
-            )}
-            <EmailEditor
-              ref={emailEditorRef}
-              onLoad={onEditorLoad}
-              onReady={() => setEditorLoaded(true)}
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: editorLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
-              options={{
-              features: {
-                imageEditor: true, // Requires paid unlayer plan for advanced features, but basic is fine
-              },
-              appearance: {
-                theme: 'light',
-              }
-            }}
+        <div style={{ flex: 1, overflow: 'hidden', borderRadius: 12 }}>
+          <EmailEditor
+            ref={emailEditorRef}
+            onLoad={onEditorLoad}
+            onReady={onEditorReady}
+            minHeight="100%"
+            style={{ border: 'none' }}
           />
-          </div>
         </div>
       </div>
     )

@@ -210,6 +210,10 @@ export default function NotesDashboardPage() {
       return
     }
 
+    toast.success('Note created successfully!')
+    window.dispatchEvent(new CustomEvent('luter-task-complete', {
+      detail: { taskId: 5, xp: 12, title: "Write your first Note", isDynamic: false }
+    }))
     navigate(`/notes/editor?note=${newId}`)
   }, [creating, navigate, user?.id])
 

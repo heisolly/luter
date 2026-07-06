@@ -8,7 +8,7 @@ const ThemeContext = createContext({
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('theme') || 'system';
+    return localStorage.getItem('luter-theme') || localStorage.getItem('theme') || 'system';
   });
 
   const [systemDark, setSystemDark] = useState(() => {
@@ -27,10 +27,21 @@ export const ThemeProvider = ({ children }) => {
 
   const isDark = theme === 'dark' || (theme === 'system' && systemDark);
 
+  useEffect(() => {
+    if (isDark) {
+      document.body.classList.add('dark-mode');
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.body.classList.remove('dark-mode');
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  }, [isDark]);
+
   const value = {
     theme,
     setTheme: (newTheme) => {
       localStorage.setItem('theme', newTheme);
+      localStorage.setItem('luter-theme', newTheme);
       setTheme(newTheme);
     },
     isDark,

@@ -11,6 +11,12 @@
   overflow-x: hidden;
 }
 
+@media (max-width: 768px) {
+  .dhd-root {
+    padding: 16px 0;
+  }
+}
+
 .dhd-header {
   display: flex;
   justify-content: space-between;
@@ -1474,17 +1480,100 @@ body.dark-mode .dhd-ptc-item.done {
   color: #F8FAFC;
 }
 
-body.dark-mode .dhd-ptc-item {
-  color: #475569;
+.dhd-widgets-grid {
+  display: grid;
+  gap: 32px;
+  padding: 16px 40px 0 40px;
+  width: 100%;
+  position: relative;
+  z-index: 10;
+  min-height: 600px;
+  /* Desktop: 3 columns */
+  grid-template-columns: 1fr 1.4fr 1fr;
 }
 
-.dhd-ptc-check {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  flex-shrink: 0;
+.dhd-widget-explore { grid-column: 1 / 2; }
+.dhd-widget-todo { grid-column: 2 / 3; }
+.dhd-widget-heatmap { grid-column: 3 / 4; }
+.dhd-widget-progress { grid-column: 1 / -1; }
+.dhd-widget-calendar { grid-column: 1 / -1; }
+
+/* Tablets: 1024px and below - 2 COLUMNS */
+@media (max-width: 1024px) {
+  .dhd-widgets-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    padding: 16px 32px 0 32px;
+    min-height: auto;
+  }
+
+  /* Todo featured on top, full width */
+  .dhd-widget-todo {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+
+  /* Explore on left, Heatmap on right */
+  .dhd-widget-explore {
+    grid-column: 1 / 2;
+  }
+  .dhd-widget-heatmap {
+    grid-column: 2 / 3;
+  }
 }
+
+/* Mobile: 768px and below - SINGLE COLUMN */
+@media (max-width: 768px) {
+  .dhd-widgets-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 16px 20px 0 20px;
+    min-height: auto;
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+  }
+
+  .dhd-widgets-grid > div {
+    grid-column: 1 / -1 !important;
+    order: unset !important;
+    width: 100%;
+  }
+}
+
+/* Extra small mobile: 480px and below */
+@media (max-width: 480px) {
+  .dhd-widgets-grid {
+    gap: 16px;
+    padding: 12px 16px 0 16px;
+  }
+}
+
+/* Content sections responsive */
+.dhd-content-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 40px 0;
+  margin-top: -60px;
+  position: relative;
+  z-index: 5;
+}
+
+@media (max-width: 1024px) {
+  .dhd-content-sections {
+    padding: 30px 0;
+    margin-top: -40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dhd-content-sections {
+    padding: 20px 0;
+    margin-top: -20px;
+    gap: 30px;
+  }
+}
+
 
 /* Footer navigation */
 .dhd-ptc-footer {

@@ -5,27 +5,26 @@ import { useOutletContext, Link, useNavigate } from 'react-router-dom'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import { getCreditBalance } from '../../services/creditService'
 import { useStreakSync } from '../../hooks/useStreakSync'
+import { useNetwork } from '../../hooks/useNetwork'
 import { MdHome, MdViewSidebar } from 'react-icons/md'
-import ExploreTasksWidget from './ExploreTasksWidget'
-import CalendarHeatmap from './CalendarHeatmap'
-import StackedStartCard from './StackedStartCard'
-import DashboardWidgetsLayout from './DashboardWidgetsLayout'
+import TodoListWidget from "./TodoListWidget";
+import CalendarWidget from "./CalendarWidget";
+import WidgetCustomizer from './WidgetCustomizer'
 import './dhd.css'
 
+// Widget imports
+import CalendarHeatmap from './CalendarHeatmap'
+import ExploreTasksWidget from './ExploreTasksWidget'
+import StreakWidget from './StreakWidget'
+import StudyProgressWidget from './StudyProgressWidget'
+import PersonalLibraryWidget from './PersonalLibraryWidget'
+import RecentlyStudiedWidget from './RecentlyStudiedWidget'
+
+import { useTheme } from '../../contexts/ThemeContext'
+
 function useDarkMode() {
-  const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('luter-theme')
-    if (saved) return saved === 'dark'
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-  })
-
-  useEffect(() => {
-    document.body.classList.toggle('dark-mode', isDark)
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light')
-    localStorage.setItem('luter-theme', isDark ? 'dark' : 'light')
-  }, [isDark])
-
-  return [isDark, setIsDark]
+  const { isDark, setTheme } = useTheme();
+  return [isDark, (d) => setTheme(d ? 'dark' : 'light')];
 }
 
 const CheckIcon = () => (
@@ -68,12 +67,43 @@ function ExploreLuter({ bundle, isPremiumOpen, setIsPremiumOpen }) {
     }
   }, [stats?.claimed_tasks])
 
-  const [dynamicTasks, setDynamicTasks] = useState([])
-  const [dbUserProgress, setDbUserProgress] = useState([])
-  const [loadingTasks, setLoadingTasks] = useState(true)
+  const [activeWidgets, setActiveWidgets] = useState(() => {
+    try {
+      const saved = localStorage.getItem('luter_dhd_widgets')
+      if (saved) return JSON.parse(saved)
+    } catch { /* ignore */ }
+    return {
+      explore: true,
+      todo: true,
+      heatmap: true,
+      study: true,
+      decks: true,
+      files: true
+    }
+  })
+
+  const [dynamicTasks, setDynamicTasks] = useState(() => {
+    try {
+      const cached = localStorage.getItem('luter_dynamic_tasks')
+      return cached ? JSON.parse(cached) : []
+    } catch { return [] }
+  })
+  const [dbUserProgress, setDbUserProgress] = useState(() => {
+    try {
+      const cached = localStorage.getItem('luter_user_progress')
+      return cached ? JSON.parse(cached) : []
+    } catch { return [] }
+  })
+  const [loadingTasks, setLoadingTasks] = useState(dynamicTasks.length === 0)
+  const isOnline = useNetwork()
 
   useEffect(() => {
     async function loadDynamicTasks() {
+      if (!isOnline) {
+        setLoadingTasks(false)
+        return
+      }
+
       const { data: tasksData, error: tasksError } = await supabase
         .from('explore_tasks')
         .select('*')
@@ -82,6 +112,7 @@ function ExploreLuter({ bundle, isPremiumOpen, setIsPremiumOpen }) {
 
       if (!tasksError && tasksData) {
         setDynamicTasks(tasksData)
+        localStorage.setItem('luter_dynamic_tasks', JSON.stringify(tasksData))
       }
 
       if (profile?.id) {
@@ -90,13 +121,15 @@ function ExploreLuter({ bundle, isPremiumOpen, setIsPremiumOpen }) {
           .select('*')
           .eq('user_id', profile.id)
         if (progressData) {
-          setDbUserProgress(progressData.map(p => p.task_id))
+          const progressIds = progressData.map(p => p.task_id)
+          setDbUserProgress(progressIds)
+          localStorage.setItem('luter_user_progress', JSON.stringify(progressIds))
         }
       }
       setLoadingTasks(false)
     }
     loadDynamicTasks()
-  }, [profile?.id])
+  }, [profile?.id, isOnline])
 
   const [bonusXp, setBonusXp] = useState(0)
   
@@ -145,35 +178,31 @@ function ExploreLuter({ bundle, isPremiumOpen, setIsPremiumOpen }) {
       window.dispatchEvent(new Event('show-daily-goal'))
       return
     }
-    if (task.done) {
-      if (!claimedTasks.includes(task.id)) {
-        const newClaimed = [...claimedTasks, task.id]
-        setClaimedTasks(newClaimed)
-        localStorage.setItem('luter_claimed_tasks', JSON.stringify(newClaimed))
-        setBonusXp(prev => prev + task.xp)
-        
-        try {
-          if (task.isDynamic) {
-            await supabase.from('user_task_progress').insert([{
-              user_id: profile.id,
-              task_id: task.id,
-              status: 'claimed'
-            }])
-          } else {
-            await supabase.rpc('claim_explore_task', { 
-              p_task_id: task.id, 
-              p_xp_amount: task.xp 
-            })
-          }
-          triggerStreakUpdate()
-        } catch (e) {
-          console.error("Failed to claim task:", e)
-        }
-      }
-    } else if (task.path && navigate) {
+    // Only navigate if not done
+    if (!task.done && task.path && navigate) {
       navigate(task.path)
     }
   }
+
+  // Auto-claim tasks that become done
+  useEffect(() => {
+    if (loadingTasks || !visibleTasks) return;
+
+    visibleTasks.forEach(task => {
+      const isLocallyClaimed = claimedTasks.includes(task.id) || (task.isDynamic && dbUserProgress.includes(task.id));
+      if (task.done && !isLocallyClaimed) {
+        // Strip HTML from label for the toast
+        const cleanTitle = task.label.replace(/<[^>]+>/g, '');
+        
+        window.dispatchEvent(new CustomEvent('luter-task-complete', {
+          detail: { taskId: task.id, xp: task.xp, title: cleanTitle, isDynamic: !!task.isDynamic }
+        }));
+        
+        setClaimedTasks(prev => [...prev, task.id]);
+        setBonusXp(prev => prev + task.xp);
+      }
+    });
+  }, [loadingTasks, visibleTasks, claimedTasks, dbUserProgress]);
 
   useEffect(() => {
     if (bonusXp > 0) {
@@ -205,29 +234,30 @@ function ExploreLuter({ bundle, isPremiumOpen, setIsPremiumOpen }) {
           <div className="p-4 text-center text-gray-500 text-sm">Loading tasks...</div>
         ) : (
           visibleTasks.map(task => {
-            const isClaimed = claimedTasks.includes(task.id) || (task.isDynamic && dbUserProgress.includes(task.id))
-            const canClaim = task.done && !isClaimed
+            // Because of auto-claiming, if it's done, it's virtually claimed.
+            const isClaimed = task.done || claimedTasks.includes(task.id) || (task.isDynamic && dbUserProgress.includes(task.id))
 
             return (
               <div 
                 key={task.id} 
-                className={`dhd-explore-task ${isClaimed ? 'done' : ''} ${canClaim ? 'claimable' : ''}`}
+                className={`dhd-explore-task ${isClaimed ? 'done' : ''}`}
                 onClick={() => handleTaskClick(task)}
+                style={{ cursor: isClaimed ? 'default' : 'pointer' }}
               >
                 <div className="task-left">
                   {isClaimed ? (
-                    <CheckCircle size={22} weight="fill" className="task-icon done" />
+                    <CheckCircle size={22} weight="fill" className="task-icon done" color="#059669" />
                   ) : (
-                    <Circle size={22} weight={canClaim ? "fill" : "regular"} className={`task-icon ${canClaim ? 'text-peach' : ''}`} />
+                    <Circle size={22} weight="regular" className="task-icon text-gray-400" />
                   )}
-                  <span className="task-label" dangerouslySetInnerHTML={{ __html: task.label }}></span>
+                  <span className="task-label" dangerouslySetInnerHTML={{ __html: task.label }} style={{ color: isClaimed ? '#6b7280' : 'inherit' }}></span>
                 </div>
                 
                 <div className="task-right">
                   {task.xp > 0 && !isClaimed && (
-                    <div className={`task-reward-xp ${canClaim ? 'claim-btn' : ''}`}>
+                    <div className="task-reward-xp" style={{ background: '#FEF3C7', color: '#B45309', padding: '4px 8px', borderRadius: '999px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
                       <Lightning size={14} weight="fill" />
-                      <span>{canClaim ? `Claim ${task.xp}` : task.xp}</span>
+                      <span>{task.xp}</span>
                     </div>
                   )}
                 </div>
@@ -235,192 +265,6 @@ function ExploreLuter({ bundle, isPremiumOpen, setIsPremiumOpen }) {
             )
           })
         )}
-      </div>
-    </div>
-  )
-}
-
-function StreakHeatmap() {
-  const DAY_LABELS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
-  const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
-
-  const [heatmapData, setHeatmapData] = useState([]) // array of { study_date, minutes_spent, goal_minutes, goal_met }
-  const [loading, setLoading] = useState(true)
-  const [viewDate, setViewDate] = useState(() => {
-    const now = new Date()
-    return new Date(now.getFullYear(), now.getMonth(), 1)
-  })
-
-  useEffect(() => {
-    let mounted = true
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      setLoading(false)
-      return () => { mounted = false }
-    }
-
-    supabase.rpc('get_user_heatmap_data')
-      .then(({ data, error }) => {
-        if (!mounted) return
-        if (!error && data) setHeatmapData(data)
-        setLoading(false)
-      })
-
-    return () => { mounted = false }
-  }, [])
-
-  const year = viewDate.getFullYear()
-  const month = viewDate.getMonth()
-  const monthLabel = `${MONTH_NAMES[month]} ${year}`
-
-  // Build a date→status lookup
-  const dataMap = {}
-  heatmapData.forEach(row => {
-    dataMap[row.study_date] = row
-  })
-
-  // Get the first day of the month (0=Sun…6=Sat) — convert to Mon-first (0=Mon…6=Sun)
-  const firstDayOfMonth = new Date(year, month, 1)
-  const rawFirstDow = firstDayOfMonth.getDay() // 0=Sun
-  const firstDow = rawFirstDow === 0 ? 6 : rawFirstDow - 1 // Mon-first offset
-
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const totalCells = Math.ceil((firstDow + daysInMonth) / 7) * 7
-
-  // Build grid: null = padding, number = day of month
-  const cells = []
-  for (let i = 0; i < totalCells; i++) {
-    const dayNum = i - firstDow + 1
-    if (dayNum < 1 || dayNum > daysInMonth) cells.push(null)
-    else cells.push(dayNum)
-  }
-
-  // Get status for each cell
-  const cellStatuses = cells.map(day => {
-    if (!day) return 'pad'
-    const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-    const row = dataMap[dateStr]
-    if (!row) return 'empty'
-    if (row.goal_met) return 'streak'
-    if (row.minutes_spent > 0) return 'done'
-    return 'empty'
-  })
-
-  // Compute stats
-  const today = new Date()
-  const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month
-  const goalDays = heatmapData.filter(r => r.goal_met).length
-  const totalMinutes = heatmapData.reduce((sum, r) => sum + (r.minutes_spent || 0), 0)
-  const totalHours = Math.floor(totalMinutes / 60)
-
-  // Calculate current streak
-  const sortedGoalDates = heatmapData
-    .filter(r => r.goal_met)
-    .map(r => r.study_date)
-    .sort()
-    .reverse()
-
-  let currentStreak = 0
-  const checkDate = new Date()
-  for (const dateStr of sortedGoalDates) {
-    const d = new Date(dateStr)
-    const diffDays = Math.round((checkDate - d) / (1000 * 60 * 60 * 24))
-    if (diffDays <= 1) {
-      currentStreak++
-      checkDate.setDate(checkDate.getDate() - 1)
-    } else break
-  }
-
-  const goToPrev = () => setViewDate(new Date(year, month - 1, 1))
-  const goToNext = () => {
-    const next = new Date(year, month + 1, 1)
-    if (next <= new Date()) setViewDate(next)
-  }
-  const canGoNext = new Date(year, month + 1, 1) <= new Date()
-
-  return (
-    <div className="dhd-heatmap-card">
-      {/* Header */}
-      <div className="dhd-heatmap-top">
-        <div className="dhd-heatmap-streak-badge">
-          <Fire size={18} weight="fill" className="dhd-streak-fire-icon" />
-          <span>{currentStreak}</span>
-          <small>day streak</small>
-        </div>
-        <div className="dhd-heatmap-stats">
-          <div className="dhd-heatmap-stat">
-            <span className="stat-value">{goalDays}</span>
-            <span className="stat-label">goals met</span>
-          </div>
-          <div className="dhd-heatmap-stat-divider" />
-          <div className="dhd-heatmap-stat">
-            <span className="stat-value">{totalHours}h</span>
-            <span className="stat-label">total time</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="dhd-heatmap-divider" />
-
-      {/* Month Nav */}
-      <div className="dhd-heatmap-header">
-        <button className="dhd-heatmap-nav" onClick={goToPrev}><CaretLeft size={14} weight="bold" /></button>
-        <span className="dhd-heatmap-month">{monthLabel}</span>
-        <button className="dhd-heatmap-nav" onClick={goToNext} disabled={!canGoNext} style={{ opacity: canGoNext ? 1 : 0.3 }}>
-          <CaretRight size={14} weight="bold" />
-        </button>
-      </div>
-
-      {/* Grid */}
-      {loading ? (
-        <div className="dhd-heatmap-loading">
-          <div className="dhd-heatmap-loading-spinner" />
-        </div>
-      ) : (
-        <div className="dhd-heatmap-grid" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
-          {DAY_LABELS.map(day => (
-            <div key={day} className="dhd-heatmap-dayname">{day}</div>
-          ))}
-
-          {cellStatuses.map((status, idx) => {
-            if (status === 'pad') return <div key={idx} className="dhd-heatmap-cell pad" />
-
-            const isStreakStart = status === 'streak' && (idx % 7 === 0 || cellStatuses[idx - 1] !== 'streak')
-            const isStreakEnd = status === 'streak' && (idx % 7 === 6 || cellStatuses[idx + 1] !== 'streak')
-            const day = cells[idx]
-            const isToday = isCurrentMonth && day === today.getDate()
-
-            return (
-              <div
-                key={idx}
-                className={[
-                  'dhd-heatmap-cell',
-                  status,
-                  isStreakStart ? 'streak-start' : '',
-                  isStreakEnd ? 'streak-end' : '',
-                  isToday ? 'is-today' : '',
-                ].join(' ')}
-                title={day ? `Day ${day}` : ''}
-              >
-                {status === 'streak' ? (
-                  <div className="dhd-heatmap-fire">
-                    <Fire size={14} weight="fill" />
-                  </div>
-                ) : status === 'done' ? (
-                  <div className="dhd-heatmap-done-dot" />
-                ) : (
-                  <div className={`dhd-heatmap-empty-dot${isToday ? ' today-dot' : ''}`} />
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {/* Legend */}
-      <div className="dhd-heatmap-legend">
-        <div className="legend-item"><div className="legend-dot empty-dot" /><span>No activity</span></div>
-        <div className="legend-item"><div className="legend-dot done-dot" /><span>Studied</span></div>
-        <div className="legend-item"><div className="legend-dot streak-dot"><Fire size={8} weight="fill" /></div><span>Goal met! 🔥</span></div>
       </div>
     </div>
   )
@@ -888,6 +732,21 @@ export default function DashboardHome() {
   const [isCoinsOpen, setIsCoinsOpen] = useState(false)
   const [isPremiumOpen, setIsPremiumOpen] = useState(false)
   
+  // Widget state management
+  const [activeWidgets, setActiveWidgets] = useState({
+    heatmap: true,
+    explore: true,
+    todo: true,
+    studyProgress: false,
+    streak: false,
+    calendar: false,
+  });
+
+  const [activeContent, setActiveContent] = useState({
+    recent: true,
+    library: true,
+  });
+  
   useEffect(() => {
     if (!user?.id) return
     getCreditBalance(user.id).then(b => {
@@ -1057,7 +916,7 @@ export default function DashboardHome() {
                     <div style={{ background: isDark ? '#374151' : '#F1F5F9', borderRadius: '12px', padding: '12px', width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <span style={{ fontSize: '14px', color: isDark ? '#9CA3AF' : '#64748B', fontWeight: 700 }}>How to earn coins:</span>
                       <span style={{ fontSize: '14px', color: isDark ? '#D1D5DB' : '#334155', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle size={16} color="#10B981" /> Explore Luter materials</span>
-                      <span style={{ fontSize: '14px', color: isDark ? '#D1D5DB' : '#334155', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle size={16} color="#10B981" /> Complete Quizzes & Flashcards</span>
+                      <span style={{ fontSize: '14px', color: isDark ? '#D1D5DB' : '#334155', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle size={16} color="#10B981" /> Complete Quizzes &amp; Flashcards</span>
                     </div>
 
                     <span style={{ fontSize: '14px', color: isDark ? '#9CA3AF' : '#64748B', fontWeight: 500, margin: 0, textAlign: 'center', marginTop: '4px' }}>Use coins to unlock premium tools and exclusive store items!</span>
@@ -1116,9 +975,93 @@ export default function DashboardHome() {
         </h2>
       </section>
 
-      <div style={{ maxWidth: '1100px', margin: '0 auto', width: '100%', padding: '0 24px' }}>
+      <div style={{ maxWidth: '100%', margin: '0 auto', width: '100%', padding: '0 0px' }}>
         
-        <DashboardWidgetsLayout isDark={isDark} />
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+          <WidgetCustomizer 
+            isDark={isDark} 
+            activeWidgets={activeWidgets}
+            setActiveWidgets={setActiveWidgets}
+            activeContent={activeContent}
+            setActiveContent={setActiveContent}
+          />
+        </div>
+
+        {/* DASHBOARD WIDGETS - TODO FEATURED LAYOUT */}
+        <section className="dhd-widgets-grid">
+          {/* Column 1: Explore Luter */}
+          {activeWidgets.explore && (
+            <div className="dhd-widget-explore" style={{ 
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              <ExploreTasksWidget isDark={isDark} />
+            </div>
+          )}
+
+          {/* Column 2: Todo List - FEATURED/HERO */}
+          {activeWidgets.todo && (
+            <div className="dhd-widget-todo" style={{ 
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              <TodoListWidget isDark={isDark} />
+            </div>
+          )}
+
+          {/* Column 3: Calendar Heatmap - EXTENDS DOWN */}
+          {activeWidgets.heatmap && (
+            <div className="dhd-widget-heatmap" style={{ 
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+              marginBottom: '80px'
+            }}>
+              <CalendarHeatmap isDark={isDark} />
+              {/* Mini Streak below heatmap */}
+              {activeWidgets.streak && (
+                <div>
+                  <StreakWidget userId={user?.id} isDark={isDark} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Study Progress Widget - Full Width Below */}
+          {activeWidgets.studyProgress && (
+            <div className="dhd-widget-progress" style={{ 
+              marginTop: '32px'
+            }}>
+              <StudyProgressWidget isDark={isDark} />
+            </div>
+          )}
+
+          {/* Calendar Widget - Full Width or Right Side */}
+          {activeWidgets.calendar && !activeWidgets.heatmap && (
+            <div className="dhd-widget-calendar" style={{ 
+              marginTop: '32px'
+            }}>
+              <CalendarWidget isDark={isDark} />
+            </div>
+          )}
+        </section>
+
+        {/* CONTENT SECTIONS */}
+        <section className="dhd-content-sections">
+          {/* Recently Studied */}
+          {activeContent.recent && (
+            <div>
+              <RecentlyStudiedWidget isDark={isDark} />
+            </div>
+          )}
+
+          {/* Personal Library */}
+          {activeContent.library && (
+            <div>
+              <PersonalLibraryWidget isDark={isDark} />
+            </div>
+          )}
+        </section>
       </div>
 
       <DailyGoalModal stats={stats} />

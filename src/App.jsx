@@ -38,8 +38,9 @@ const AdminActivity = lazy(() => import('./admin/pages/AdminActivity'));
 const AdminSyllabusManager = lazy(() => import('./admin/pages/AdminSyllabusManager'));
 const AdminAudit = lazy(() => import('./admin/pages/AdminAudit'));
 const AdminConfig = lazy(() => import('./admin/pages/AdminConfig'));
-const AdminTasks = lazy(() => import('./admin/pages/AdminTasks'));
 const AdminEmailMarketing = lazy(() => import('./admin/pages/AdminEmailMarketing'));
+const AdminTasks = lazy(() => import('./admin/pages/AdminTasks'));
+const AdminStorageManager = lazy(() => import('./admin/pages/AdminStorageManager'));
 const FilesPage = lazy(() => import('./components/dashboard/FilesPage'));
 const AssignmentsPage = lazy(() => import('./components/dashboard/AssignmentsPage'));
 const NotesStudioPage = lazy(() => import('./components/dashboard/NotesStudioPage'));
@@ -153,6 +154,7 @@ export default function App() {
                 <Route path="config" element={<AdminConfig />} />
                 <Route path="email-marketing" element={<AdminEmailMarketing />} />
                 <Route path="tasks" element={<AdminTasks />} />
+                <Route path="storage" element={<AdminStorageManager />} />
                 <Route path="*" element={<Navigate to="/admin" replace />} />
               </Route>
 

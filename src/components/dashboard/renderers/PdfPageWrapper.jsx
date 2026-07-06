@@ -171,8 +171,15 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
-    // Clear canvas
+    // Clear canvas and apply DPR scaling for high-DPI screens
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    const dpr = window.devicePixelRatio || 1;
+    ctx.scale(dpr, dpr);
+
+    const widthScale = pageWidth ? (pageWidth / 1000) : 1;
+    const renderScale = scale * widthScale;
 
     // Draw saved pen strokes
     strokes.forEach(stroke => {
@@ -180,13 +187,13 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
       
       ctx.beginPath();
       ctx.strokeStyle = stroke.color;
-      ctx.lineWidth = stroke.width * scale;
+      ctx.lineWidth = stroke.width * renderScale;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
 
       stroke.points.forEach((point, i) => {
-        const x = point.x * scale;
-        const y = point.y * scale;
+        const x = point.x * renderScale;
+        const y = point.y * renderScale;
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       });
@@ -197,23 +204,23 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
     if (currentStroke && currentStroke.tool === 'pen') {
       ctx.beginPath();
       ctx.strokeStyle = currentStroke.color;
-      ctx.lineWidth = currentStroke.width * scale;
+      ctx.lineWidth = currentStroke.width * renderScale;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
 
       currentStroke.points.forEach((point, i) => {
-        const x = point.x * scale;
-        const y = point.y * scale;
+        const x = point.x * renderScale;
+        const y = point.y * renderScale;
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       });
       ctx.stroke();
     }
-  }, [strokes, currentStroke, scale, activeTool]);
+  }, [strokes, currentStroke, scale, activeTool, pageWidth]);
 
   useEffect(() => {
     drawEverything();
-  }, [strokes, currentStroke, scale, activeTool, drawEverything]);
+  }, [strokes, currentStroke, scale, activeTool, pageWidth, drawEverything]);
 
   const getCanvasCoords = (e) => {
     const canvas = canvasRef.current;
@@ -222,10 +229,13 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     
-    // Unscaled coords
+    const widthScale = pageWidth ? (pageWidth / 1000) : 1;
+    const renderScale = scale * widthScale;
+
+    // Unscaled coords normalized to base 1000px width
     return {
-      x: (clientX - rect.left) / scale,
-      y: (clientY - rect.top) / scale,
+      x: (clientX - rect.left) / renderScale,
+      y: (clientY - rect.top) / renderScale,
     };
   };
 
@@ -308,7 +318,9 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
     const coords = getCanvasCoords(e);
     if (!coords) return;
     
-    const eraserRadius = 15 / scale; // Radius in unscaled coords
+    const widthScale = pageWidth ? (pageWidth / 1000) : 1;
+    const renderScale = scale * widthScale;
+    const eraserRadius = 15 / renderScale; // Radius in unscaled coords
 
     // Find first stroke that intersects with eraser
     const strokeToRemove = strokes.find(stroke => {
@@ -338,13 +350,13 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
       }}
       style={{ 
         position: 'relative', 
-        marginBottom: '32px', 
-        borderRadius: '16px',
+        marginBottom: (pageWidth && pageWidth >= 1024) ? '32px' : '4px', 
+        borderRadius: (pageWidth && pageWidth >= 1024) ? '16px' : '0',
         overflow: 'hidden',
-        boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
+        boxShadow: (pageWidth && pageWidth >= 1024) ? '0 20px 40px rgba(0,0,0,0.08)' : 'none',
         backgroundColor: isDark ? '#1a1a1a' : 'white',
         cursor: activeTool === 'pin' ? 'crosshair' : 'default',
-        minHeight: isLoaded ? undefined : (pageWidth ? `${pageWidth * 0.75}px` : '800px'),
+        minHeight: isLoaded ? undefined : (pageWidth ? `${pageWidth * 1.41}px` : '800px'),
         width: pageWidth ? `${pageWidth}px` : '100%',
       }}
       data-page-number={pageNumber}
@@ -393,6 +405,9 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
         }}
       >
         {highlights.map(h => {
+          const widthScale = pageWidth ? (pageWidth / 1000) : 1;
+          const renderScale = scale * widthScale;
+
           const minX = Math.min(...h.rects.map(r => r.x));
           const minY = Math.min(...h.rects.map(r => r.y));
           const maxX = Math.max(...h.rects.map(r => r.x + r.width));
@@ -406,8 +421,8 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
                 key={h.id}
                 style={{
                   position: 'absolute',
-                  left: rect.x * scale,
-                  top: rect.y * scale,
+                  left: rect.x * renderScale,
+                  top: rect.y * renderScale,
                   transform: 'translate(-50%, -100%)', // Point of pin is at the coordinate
                   cursor: 'pointer',
                   pointerEvents: 'auto',
@@ -449,10 +464,10 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
               {h.rects.map((rect, i) => {
                 let rectStyle = {
                   position: 'absolute',
-                  left: rect.x * scale,
-                  top: rect.y * scale,
-                  width: rect.width * scale,
-                  height: rect.height * scale,
+                  left: rect.x * renderScale,
+                  top: rect.y * renderScale,
+                  width: rect.width * renderScale,
+                  height: rect.height * renderScale,
                   cursor: 'pointer',
                   pointerEvents: 'auto'
                 };
@@ -480,10 +495,10 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
                 <div
                   style={{
                     position: 'absolute',
-                    left: minX * scale - 2,
-                    top: minY * scale - 2,
-                    width: (maxX - minX) * scale + 4,
-                    height: (maxY - minY) * scale + 4,
+                    left: minX * renderScale - 2,
+                    top: minY * renderScale - 2,
+                    width: (maxX - minX) * renderScale + 4,
+                    height: (maxY - minY) * renderScale + 4,
                     border: '2px solid #3B82F6',
                     pointerEvents: 'none',
                     zIndex: 11
@@ -494,8 +509,8 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
                 <div
                   style={{
                     position: 'absolute',
-                    left: minX * scale - 12,
-                    top: minY * scale - 12,
+                    left: minX * renderScale - 12,
+                    top: minY * renderScale - 12,
                     width: 24, height: 24,
                     borderRadius: '50%',
                     backgroundColor: '#FEF08A',
@@ -531,6 +546,9 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
         }}
       >
         {strokes.filter(s => s.tool === 'occlusion').map(s => {
+          const widthScale = pageWidth ? (pageWidth / 1000) : 1;
+          const renderScale = scale * widthScale;
+
           const p1 = s.points[0];
           const p2 = s.points[1];
           const x = Math.min(p1.x, p2.x);
@@ -543,10 +561,10 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
               key={s.id}
               style={{
                 position: 'absolute',
-                left: x * scale,
-                top: y * scale,
-                width: w * scale,
-                height: h * scale,
+                left: x * renderScale,
+                top: y * renderScale,
+                width: w * renderScale,
+                height: h * renderScale,
                 backgroundColor: s.color,
                 pointerEvents: 'auto',
                 cursor: 'pointer'
@@ -556,19 +574,23 @@ const PdfPageWrapper = React.memo(function PdfPageWrapper({
           );
         })}
         {/* Drawing current occlusion box */}
-        {currentStroke && currentStroke.tool === 'occlusion' && currentStroke.points.length === 2 && (
-          <div
-            style={{
-              position: 'absolute',
-              left: Math.min(currentStroke.points[0].x, currentStroke.points[1].x) * scale,
-              top: Math.min(currentStroke.points[0].y, currentStroke.points[1].y) * scale,
-              width: Math.abs(currentStroke.points[0].x - currentStroke.points[1].x) * scale,
-              height: Math.abs(currentStroke.points[0].y - currentStroke.points[1].y) * scale,
-              backgroundColor: currentStroke.color,
-              opacity: 0.8
-            }}
-          />
-        )}
+        {currentStroke && currentStroke.tool === 'occlusion' && currentStroke.points.length === 2 && (() => {
+          const widthScale = pageWidth ? (pageWidth / 1000) : 1;
+          const renderScale = scale * widthScale;
+          return (
+            <div
+              style={{
+                position: 'absolute',
+                left: Math.min(currentStroke.points[0].x, currentStroke.points[1].x) * renderScale,
+                top: Math.min(currentStroke.points[0].y, currentStroke.points[1].y) * renderScale,
+                width: Math.abs(currentStroke.points[0].x - currentStroke.points[1].x) * renderScale,
+                height: Math.abs(currentStroke.points[0].y - currentStroke.points[1].y) * renderScale,
+                backgroundColor: currentStroke.color,
+                opacity: 0.8
+              }}
+            />
+          );
+        })()}
       </div>
 
       {/* Annotation Canvas */}

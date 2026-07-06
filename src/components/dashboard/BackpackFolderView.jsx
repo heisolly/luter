@@ -7,27 +7,18 @@ import {
 } from 'lucide-react'
 import { MagnifyingGlass, House, SidebarSimple, Star, Lightning, Coins, Bell, Sun, Moon } from '@phosphor-icons/react'
 import { supabase } from '../../supabaseClient'
-import { fetchCourseMaterials, uploadMaterial, deleteMaterial } from '../../services/materialsService'
+import { fetchCourseMaterials, uploadMaterial, permanentlyDeleteMaterial } from '../../services/materialsService'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
 import { getCreditBalance } from '../../services/creditService'
 import SharedMaterialPreview from '../shared/SharedMaterialPreview'
 import './StudySession.css'
 import './dhd.css'
 
+import { useTheme } from '../../contexts/ThemeContext'
+
 function useDarkMode() {
-  const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('luter-theme')
-    if (saved) return saved === 'dark'
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-  })
-
-  useEffect(() => {
-    document.body.classList.toggle('dark-mode', isDark)
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light')
-    localStorage.setItem('luter-theme', isDark ? 'dark' : 'light')
-  }, [isDark])
-
-  return [isDark, setIsDark]
+  const { isDark, setTheme } = useTheme();
+  return [isDark, (d) => setTheme(d ? 'dark' : 'light')];
 }
 
 function materialLabel(material) {
@@ -140,9 +131,14 @@ export default function BackpackFolderView() {
   const handleDrop = (e) => { e.preventDefault(); setIsDragging(false); handleAddMaterial(Array.from(e.dataTransfer.files)) }
 
   const handleRemoveItem = async (itemId) => {
-    if (window.confirm('Remove this material?')) {
-      await deleteMaterial(itemId)
-      loadMaterials()
+    if (window.confirm('Are you sure you want to permanently delete this file? This cannot be undone.')) {
+      try {
+        await permanentlyDeleteMaterial(itemId)
+        loadMaterials()
+      } catch (err) {
+        console.error('Failed to delete material:', err)
+        alert('Could not delete the file. Please try again later.')
+      }
     }
   }
 

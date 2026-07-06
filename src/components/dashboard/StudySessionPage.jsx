@@ -16,20 +16,11 @@ import SessionMembersList from './SessionMembersList'
 import './StudySession.css'
 import './dhd.css'
 
+import { useTheme } from '../../contexts/ThemeContext'
+
 function useDarkMode() {
-  const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('luter-theme')
-    if (saved) return saved === 'dark'
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-  })
-
-  useEffect(() => {
-    document.body.classList.toggle('dark-mode', isDark)
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light')
-    localStorage.setItem('luter-theme', isDark ? 'dark' : 'light')
-  }, [isDark])
-
-  return [isDark, setIsDark]
+  const { isDark, setTheme } = useTheme();
+  return [isDark, (d) => setTheme(d ? 'dark' : 'light')];
 }
 
 export default function StudySessionPage() {

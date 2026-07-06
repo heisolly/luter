@@ -42,11 +42,11 @@ const CalendarHeatmap = ({ isDark = false }) => {
   }, []);
 
   const history = heatmapData
-    .filter(r => r.goal_met)
+    .filter(r => r.goal_met || r.minutes_spent > 0)
     .map(r => ({ date: r.study_date, completed: true }));
 
   const sortedGoalDates = heatmapData
-    .filter(r => r.goal_met)
+    .filter(r => r.goal_met || r.minutes_spent > 0)
     .map(r => r.study_date)
     .sort()
     .reverse();
@@ -154,11 +154,12 @@ const CalendarHeatmap = ({ isDark = false }) => {
 
   const { currentMonthLabel, calendarDays: data } = generateCalendarData();
 
-  const bgOuter = isDark ? '#1F2937' : '#F3F4F6';
+  const bgOuter = isDark ? '#1a2234' : '#F3F4F6';
   const bgInner = isDark ? '#111827' : '#FFFFFF';
-  const textTitle = isDark ? '#D1D5DB' : '#6B7280';
-  const textBody = isDark ? '#F3F4F6' : '#4B5563';
-  const borderColor = isDark ? '#374151' : '#E5E7EB';
+  const textTitle = isDark ? '#9CA3AF' : '#6B7280';
+  const textBody = isDark ? '#F9FAFB' : '#111827';
+  const borderColor = isDark ? '#2d3a50' : '#EFEFEF';
+  const font = "'Quicksand', system-ui, sans-serif";
 
   return (
     <div style={{
@@ -166,12 +167,12 @@ const CalendarHeatmap = ({ isDark = false }) => {
       maxWidth: '420px',
       backgroundColor: bgOuter,
       borderRadius: '24px',
-      padding: '24px',
+      padding: '0',
       boxShadow: 'none',
-      fontFamily: 'Inter, system-ui, sans-serif',
+      fontFamily: font,
       display: 'flex',
       flexDirection: 'column',
-      gap: '20px'
+      overflow: 'hidden'
     }}>
       <style>{`
         .calendar-btn {
@@ -200,16 +201,16 @@ const CalendarHeatmap = ({ isDark = false }) => {
         }
       `}</style>
 
-      {/* Streak Info - Modernized */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Streak Info - Header Area */}
+      <div style={{ padding: '18px 18px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-            <FireIcon width={28} height={28} style={{ opacity: currentStreak > 0 ? 1 : 0.3, filter: currentStreak === 0 ? 'grayscale(100%)' : 'none' }} />
-            <p style={{ fontSize: '36px', fontWeight: 800, margin: 0, color: textBody, lineHeight: 1, letterSpacing: '-1px' }}>
-              {currentStreak} <span style={{ fontSize: '18px', fontWeight: 600, color: textTitle, letterSpacing: '0' }}>Days</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2px' }}>
+            <FireIcon width={24} height={24} style={{ opacity: currentStreak > 0 ? 1 : 0.3, filter: currentStreak === 0 ? 'grayscale(100%)' : 'none' }} />
+            <p style={{ fontSize: '28px', fontWeight: 800, margin: 0, color: textBody, lineHeight: 1, letterSpacing: '-0.5px', fontFamily: font }}>
+              {currentStreak} <span style={{ fontSize: '16px', fontWeight: 700, color: textTitle, letterSpacing: '0' }}>Days</span>
             </p>
           </div>
-          <p style={{ margin: 0, fontSize: '14px', color: textTitle, fontWeight: 500 }}>
+          <p style={{ margin: 0, fontSize: '13px', color: textTitle, fontWeight: 600, fontFamily: font }}>
             {currentStreak > 0 ? (
               <>Come back tomorrow to keep it going!</>
             ) : (
@@ -222,8 +223,9 @@ const CalendarHeatmap = ({ isDark = false }) => {
       {/* Calendar Box */}
       <div style={{
         backgroundColor: bgInner,
-        borderRadius: '24px',
-        padding: '20px',
+        borderRadius: '20px',
+        padding: '16px 20px 20px',
+        margin: '0 4px 4px',
         boxShadow: 'none'
       }}>
         {/* Header */}
@@ -233,7 +235,7 @@ const CalendarHeatmap = ({ isDark = false }) => {
               <path d="M10 2L2 10L10 18" />
             </svg>
           </button>
-          <h3 style={{ fontSize: '15px', fontWeight: 700, color: textBody, margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 800, color: textBody, margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: font }}>
             {currentMonthLabel}
           </h3>
           <button className="calendar-btn" onClick={handleNextMonth}>

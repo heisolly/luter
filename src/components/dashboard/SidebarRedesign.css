@@ -78,6 +78,31 @@ body.dark-mode {
   object-fit: contain;
 }
 
+.dsb-toggle-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--sb-muted);
+  padding: 4px;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.dsb-logo-area:hover .dsb-toggle-btn {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.dsb-toggle-btn:hover {
+  background: var(--sb-border-subtle);
+  color: var(--sb-text);
+}
+
 /* ── Quick Create ── */
 .dsb-quick-create-wrap {
   position: relative;

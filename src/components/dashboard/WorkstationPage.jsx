@@ -29,7 +29,7 @@ import WorkstationFlashcards from './WorkstationFlashcards';
 import WorkstationQuizzes from './WorkstationQuizzes';
 import MaterialAnalysisService from '../../services/materialAnalysisService';
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService';
-import WorkstationMobileLayout from './WorkstationMobileLayout';
+import WorkstationResponsiveLayout from './WorkstationResponsiveLayout';
 import './NotesStudioPage.css';
 import './workstation.css';
 
@@ -367,8 +367,12 @@ export default function WorkstationPage() {
 
   // Mobile responsiveness
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isTablet, setIsTablet] = useState(window.innerWidth > 768 && window.innerWidth <= 1024);
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+      setIsTablet(window.innerWidth > 768 && window.innerWidth <= 1024);
+    };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -544,6 +548,58 @@ export default function WorkstationPage() {
     }
   };
 
+  const updateMaterialProgress = async (type, rawProgress) => {
+    if (!selectedMaterial?.id || !user?.id) return;
+    
+    const materialId = selectedMaterial.id;
+    
+    try {
+      const { data: currentMat, error: fetchErr } = await supabase
+        .from('materials')
+        .select('analysis, progress')
+        .eq('id', materialId)
+        .single();
+        
+      if (fetchErr) throw fetchErr;
+      
+      const currentAnalysis = currentMat?.analysis || {};
+      const subProgress = currentAnalysis.progress || {};
+      
+      const newSubProgress = { ...subProgress, [type]: Math.round(rawProgress) };
+      
+      const types = Object.keys(newSubProgress);
+      const sum = types.reduce((acc, key) => acc + newSubProgress[key], 0);
+      const overallProgress = Math.round(sum / types.length);
+      
+      const { error: updateErr } = await supabase
+        .from('materials')
+        .update({
+          progress: overallProgress,
+          last_accessed: new Date().toISOString(),
+          analysis: { ...currentAnalysis, progress: newSubProgress }
+        })
+        .eq('id', materialId);
+        
+      if (updateErr) throw updateErr;
+      
+      window.dispatchEvent(new CustomEvent("yjs-local-sync-progress", {
+        detail: {
+          roomId: `user_${user.id}_study_progress`,
+          update: null 
+        }
+      }));
+      
+      setSelectedMaterial(prev => ({
+        ...prev,
+        progress: overallProgress,
+        analysis: { ...currentAnalysis, progress: newSubProgress }
+      }));
+      
+    } catch (err) {
+      console.error('Failed to update material progress:', err);
+    }
+  };
+
   const headerBg = isDark ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.8)';
   const textColor = isDark ? '#F3F4F6' : '#111827';
   const subTextColor = isDark ? '#9CA3AF' : '#6B7280';
@@ -560,19 +616,21 @@ export default function WorkstationPage() {
       role: 'editor'
     }}>
       <ReadingSpaceProvider>
-        {isMobile ? (
-          <WorkstationMobileLayout 
-            state={{ 
+        {isMobile || isTablet ? (
+          <WorkstationResponsiveLayout 
+            state={{
               isDark, user, activeMainTab, activeSubTab, activeWorkspaceTool, 
               isChatOpen, selectedMaterial, urlMaterialId, isCollaborative: true, 
               displayName, displayAvatar, roomId, isBoardFullScreen, copiedToast,
-              selectedMaterialWithAnalysis, isAnalysisLoading
-            }} 
-            actions={{ 
+              selectedMaterialWithAnalysis, isAnalysisLoading,
+              drawMode, strokeColor, strokeSize
+            }}
+            actions={{
               setActiveMainTab, setActiveSubTab, setActiveWorkspaceTool, 
-              setIsChatOpen, handleCopyLink, setIsBoardFullScreen, setMobileSidebarOpen,
-              runAnalysis 
-            }} 
+              setIsChatOpen, handleCopyLink, setIsBoardFullScreen,
+              runAnalysis, setMobileSidebarOpen,
+              setDrawMode, setStrokeColor, setStrokeSize
+            }}
           />
         ) : (
         <div className="ns-page" style={{
@@ -1090,12 +1148,13 @@ export default function WorkstationPage() {
                   items={selectedMaterialWithAnalysis?.analysis?.flashcards || []} 
                   isDark={isDark}
                   user={user}
+                  updateMaterialProgress={updateMaterialProgress}
                 />
               )}
 
               {/* Document/Notes Placeholder */}
               {activeMainTab === 'Source' && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', height: '100%', minHeight: 0 }}>
+                <div style={{ flex: activeSubTab === 'Boards' && !isBoardFullScreen ? 0 : 1, display: activeSubTab === 'Boards' && !isBoardFullScreen ? 'none' : 'flex', flexDirection: 'column', position: 'relative', height: '100%', minHeight: 0 }}>
                   {selectedMaterial && (
                     <div style={{ flex: 1, display: activeSubTab === 'Document' ? 'flex' : 'none', flexDirection: 'column', position: 'relative', height: '100%', minHeight: 0 }}>
                       <MaterialRenderer
@@ -1156,6 +1215,7 @@ export default function WorkstationPage() {
                               hideHeader={true}
                               workstationMode={true}
                               onOpenAiChat={() => setIsChatOpen(true)}
+                              updateMaterialProgress={updateMaterialProgress}
                               emptyState={(editor) => (
                                 <WorkstationEmptyState 
                                   editor={editor} 
@@ -1221,6 +1281,7 @@ export default function WorkstationPage() {
                   user={user}
                   onRegenerateQuiz={() => runAnalysis('quiz')}
                   isAnalysisLoading={isAnalysisLoading}
+                  updateMaterialProgress={updateMaterialProgress}
                 />
               )}
 
@@ -1268,7 +1329,7 @@ export default function WorkstationPage() {
                         onMouseLeave={e => { if(!isActive) e.currentTarget.style.transform = 'scale(1)' }}
                       >
                         <ToolIcon size={22} weight={isActive ? "fill" : "bold"} />
-                        {!isMobile && <span>{tool.label}</span>}
+                        {!(isMobile || isTablet) && <span>{tool.label}</span>}
                       </button>
                     )
                   })}
