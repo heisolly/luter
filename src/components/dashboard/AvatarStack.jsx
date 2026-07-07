@@ -1,5 +1,5 @@
-import React from 'react';
 import { useAvatarStack } from '../../hooks/usePresenceFeatures';
+import UserAvatar from '../shared/UserAvatar';
 
 function initials(name = 'Peer') {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'P';
@@ -25,7 +25,7 @@ export default function AvatarStack() {
           style={{ marginLeft: index === 0 ? 0 : -8, zIndex: visible.length - index }}
         >
           {user.avatar ? (
-            <img src={user.avatar} alt={user.name} />
+            <UserAvatar url={user.avatar} name={user.name} style={{ width: '100%', height: '100%' }} />
           ) : (
             <span style={{ background: user.color }}>{initials(user.name)}</span>
           )}

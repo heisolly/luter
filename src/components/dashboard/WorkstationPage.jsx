@@ -30,6 +30,7 @@ import WorkstationQuizzes from './WorkstationQuizzes';
 import MaterialAnalysisService from '../../services/materialAnalysisService';
 import { checkAndDeductCredits, CREDIT_COSTS } from '../../services/creditService';
 import WorkstationResponsiveLayout from './WorkstationResponsiveLayout';
+import UserAvatar from '../shared/UserAvatar';
 import './NotesStudioPage.css';
 import './workstation.css';
 
@@ -976,7 +977,7 @@ export default function WorkstationPage() {
                   }}
                 >
                   {displayAvatar ? (
-                    <img src={displayAvatar} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <UserAvatar url={displayAvatar} name={displayName} size={34} style={{ width: '100%', height: '100%' }} />
                   ) : (
                     <UserIcon size={20} weight="bold" color={textColor} />
                   )}
@@ -998,7 +999,7 @@ export default function WorkstationPage() {
                         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
                       }}>
                         {displayAvatar ? (
-                          <img src={displayAvatar} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <UserAvatar url={displayAvatar} name={displayName} size={56} style={{ width: '100%', height: '100%' }} />
                         ) : (
                           <UserIcon size={28} color={subTextColor} />
                         )}
@@ -1457,8 +1458,8 @@ export default function WorkstationPage() {
                   {/* Owner */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <div style={{ width: '42px', height: '42px', borderRadius: '50%', overflow: 'hidden', backgroundColor: isDark ? '#374151' : '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {displayAvatar ? <img src={displayAvatar} style={{width:'100%', height:'100%', objectFit: 'cover'}} alt="You"/> : <UserIcon size={24} color={subTextColor} weight="fill"/>}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: '50%', backgroundColor: isDark ? '#374151' : '#F3F4F6', overflow: 'hidden' }}>
+                        {displayAvatar ? <UserAvatar url={displayAvatar} name={displayName} size={32} style={{ width: '100%', height: '100%' }} /> : <UserIcon size={24} color={subTextColor} weight="fill"/>}
                       </div>
                       <div>
                         <div style={{ fontSize: '15px', fontWeight: 600 }}>{displayName} <span style={{ color: subTextColor, fontSize: '14px', fontWeight: 500 }}>(you)</span></div>
