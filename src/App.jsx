@@ -141,7 +141,27 @@ export default function App() {
         <OptionalFeaturebaseProvider>
         <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-transparent"></div>}>
           <Routes>
+            {/* Subdomain-based admin access */}
+            {hostname.startsWith('admin') && (
+              <Route path="/" element={<AdminLayout />}>
+                <Route index element={<AdminOverview />} />
+                <Route path="users/:userId" element={<AdminUserDetail />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="courses" element={<AdminCourses />} />
+                <Route path="notifications" element={<AdminNotifications />} />
+                <Route path="activity" element={<AdminActivity />} />
+                <Route path="syllabus" element={<AdminSyllabusManager />} />
+                <Route path="audit" element={<AdminAudit />} />
+                <Route path="config" element={<AdminConfig />} />
+                <Route path="email-marketing" element={<AdminEmailMarketing />} />
+                <Route path="tasks" element={<AdminTasks />} />
+                <Route path="storage" element={<AdminStorageManager />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
+            )}
+
             {/* Path-based admin access on main domain and localhost */}
+            {!hostname.startsWith('admin') && (
             <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminOverview />} />
                 <Route path="users/:userId" element={<AdminUserDetail />} />
@@ -157,6 +177,7 @@ export default function App() {
                 <Route path="storage" element={<AdminStorageManager />} />
                 <Route path="*" element={<Navigate to="/admin" replace />} />
               </Route>
+            )}
 
           {/* MAIN APP ROUTES */}
           <Route path="/" element={<LandingPage />} />
