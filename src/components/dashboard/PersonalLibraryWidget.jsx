@@ -20,6 +20,7 @@ export default function PersonalLibraryWidget({ isDark = false }) {
   const bgCard = isDark ? "#1F2937" : "#F9FAFB";
   const bgCardHover = isDark ? "#374151" : "#F3F4F6";
   const borderCard = isDark ? "#374151" : "#E5E7EB";
+  const borderCardHover = isDark ? "#4B5563" : "#D1D5DB";
   const textTitle = isDark ? "#F9FAFB" : "#111827";
   const textBody = isDark ? "#9CA3AF" : "#4B5563";
   const bgPill = isDark ? "#111827" : "#F3F4F6";

@@ -203,11 +203,13 @@ export default function WorkstationResponsiveLayout({ state, actions }) {
         {activeMainTab === 'Quizzes' && selectedMaterial && (
           <div style={{ height: '100%', overflowY: 'auto' }}>
             <WorkstationQuizzes 
-              material={actions.selectedMaterialWithAnalysis || state.selectedMaterialWithAnalysis || selectedMaterial} 
-              isDark={isDark} 
-              user={user} 
-              onRegenerateQuiz={() => actions.runAnalysis && actions.runAnalysis('quiz')}
+              material={state.selectedMaterialWithAnalysis}
+              isDark={state.isDark}
+              user={state.user}
+              userTier={state.profile?.subscription_tier}
+              onRegenerateQuiz={(config) => actions.runAnalysis('quiz', config)}
               isAnalysisLoading={state.isAnalysisLoading}
+              updateMaterialProgress={actions.updateMaterialProgress}
             />
           </div>
         )}

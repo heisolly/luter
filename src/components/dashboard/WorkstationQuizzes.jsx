@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Trophy, CheckCircle, XCircle, ArrowLeft, 
   Sparkle, CircleNotch, Trash, Play,
-  BookOpen, ChartBar, CalendarBlank, Key, Heart, MagnifyingGlass, CaretLeft, FastForward, MagicWand, Plant
+  BookOpen, ChartBar, CalendarBlank, Key, Heart, MagnifyingGlass, CaretLeft, FastForward, MagicWand, Plant, Gear
 } from '@phosphor-icons/react';
 import { supabase } from '../../supabaseClient';
+import QuizSetupOverlay from './QuizSetupOverlay';
 
 export default function WorkstationQuizzes({ 
   material, 
@@ -13,6 +14,7 @@ export default function WorkstationQuizzes({
   onRegenerateQuiz, 
   isAnalysisLoading, 
   user,
+  userTier,
   updateMaterialProgress
 }) {
   const navigate = useNavigate();
@@ -37,6 +39,25 @@ export default function WorkstationQuizzes({
   const [hearts] = useState(15);
   const [eliminatedOptions, setEliminatedOptions] = useState([]);
   const [isExplaining, setIsExplaining] = useState(false);
+
+  // Setup Overlay State
+  const [isSetupOpen, setIsSetupOpen] = useState(false);
+  const [quizConfig, setQuizConfig] = useState({
+    source: material?.title || 'Document',
+    pageRange: 'All Pages',
+    language: 'Auto Detect',
+    questionTypes: ['Multiple Choice', 'True/False'],
+    difficulty: 'Medium',
+    questionCount: 5,
+    timer: 30,
+    examSize: 'Standard',
+    shuffleQuestions: true,
+    shuffleAnswers: true,
+    focusImportant: true,
+    avoidDuplicates: true,
+    showExplanations: true,
+    showCorrectAnswer: true
+  });
 
   // Load history from Supabase on mount or material change
   useEffect(() => {
@@ -448,70 +469,67 @@ export default function WorkstationQuizzes({
           <button 
             onClick={() => setView('dashboard')}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              border: `1.5px solid ${isDark ? '#374151' : '#E2E8F0'}`,
-              background: 'transparent',
-              color: isDark ? '#9CA3AF' : '#64748B',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '40px', height: '40px', borderRadius: '50%',
+              background: isDark ? '#1E293B' : '#F1F5F9',
+              border: 'none', color: isDark ? '#9CA3AF' : '#64748B',
               cursor: 'pointer'
             }}
           >
-            <CaretLeft size={20} weight="bold" />
+            <ArrowLeft size={20} weight="bold" />
           </button>
           
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            padding: '8px 20px',
-            borderRadius: '9999px',
-            border: `1.5px solid ${isDark ? '#374151' : '#E2E8F0'}`,
-            background: isDark ? '#1F2937' : '#FFFFFF',
-            fontSize: '15px',
-            fontWeight: 800
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#F59E0B' }}>
-              <Key size={18} weight="fill" /> {coins}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ 
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '6px 12px', borderRadius: '9999px',
+              background: isDark ? 'rgba(239, 68, 68, 0.1)' : '#FEE2E2',
+              color: '#EF4444', fontWeight: 800, fontSize: '13px'
+            }}>
+              <Heart size={16} weight="fill" /> {hearts}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#F43F5E' }}>
-              <Heart size={18} weight="fill" /> {hearts}
-            </div>
-          </div>
 
-          <div style={{
-            padding: '8px 16px',
-            borderRadius: '9999px',
-            border: `1.5px solid ${isDark ? '#374151' : '#E2E8F0'}`,
-            background: isDark ? '#1F2937' : '#FFFFFF',
-            fontSize: '14px',
-            fontWeight: 800,
-            color: isDark ? '#D1D5DB' : '#334155'
-          }}>
-            + 0 XP
+            <button 
+              onClick={handleNextQuestion}
+              title="Skip Question"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '40px', height: '40px', borderRadius: '50%',
+                background: isDark ? '#1E293B' : '#F1F5F9',
+                border: 'none', color: isDark ? '#9CA3AF' : '#64748B',
+                cursor: 'pointer', transition: 'background 0.2s'
+              }}
+            >
+              <FastForward size={20} weight="fill" />
+            </button>
+            
+            <button
+              onClick={() => setIsSetupOpen(true)}
+              title="Quiz Settings"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '40px', height: '40px', borderRadius: '50%',
+                background: isDark ? '#1E293B' : '#F1F5F9',
+                border: 'none', color: isDark ? '#F9FAFC' : '#0F172A',
+                cursor: 'pointer', transition: 'background 0.2s'
+              }}
+            >
+              <Gear size={20} weight="fill" />
+            </button>
           </div>
-
-          <button 
-            onClick={handleNextQuestion}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              border: `1.5px solid ${isDark ? '#374151' : '#E2E8F0'}`,
-              background: 'transparent',
-              color: isDark ? '#9CA3AF' : '#64748B',
-              cursor: 'pointer'
-            }}
-          >
-            <FastForward size={20} weight="fill" />
-          </button>
         </div>
+
+        {isSetupOpen && (
+          <QuizSetupOverlay 
+            isOpen={isSetupOpen} 
+            onClose={() => setIsSetupOpen(false)} 
+            isDark={isDark} 
+            config={quizConfig}
+            onUpdateConfig={setQuizConfig}
+            isRuntime={true}
+            userTier={userTier || 'free'}
+          />
+        )}
 
         {/* Question Card */}
         <div style={{
@@ -974,7 +992,7 @@ export default function WorkstationQuizzes({
 
                 {questions.length === 0 ? (
                   <button
-                    onClick={onRegenerateQuiz}
+                    onClick={() => setIsSetupOpen(true)}
                     disabled={isAnalysisLoading}
                     style={{
                       padding: '10px 20px',
@@ -1081,6 +1099,25 @@ export default function WorkstationQuizzes({
         </div>
 
       </div>
+
+      {!view || view === 'dashboard' ? (
+        isSetupOpen && (
+          <QuizSetupOverlay 
+            isOpen={isSetupOpen} 
+            onClose={() => setIsSetupOpen(false)} 
+            isDark={isDark} 
+            config={quizConfig}
+            onUpdateConfig={setQuizConfig}
+            isRuntime={false}
+            isGenerating={isAnalysisLoading}
+            userTier={userTier || 'free'}
+            onStartQuiz={() => {
+              setIsSetupOpen(false);
+              onRegenerateQuiz(quizConfig);
+            }}
+          />
+        )
+      ) : null}
 
     </div>
   );

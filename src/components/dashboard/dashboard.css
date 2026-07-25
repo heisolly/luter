@@ -263,7 +263,7 @@ input { font-family: var(--font); }
   height: 100vh;
   flex-shrink: 0;
   width: var(--dsb-w);
-  overflow: hidden; /* Key for smooth clipping */
+  overflow: hidden; /* Key for smooth clipping during transition */
   background: var(--bg);
   z-index: 100;
   transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -276,6 +276,7 @@ input { font-family: var(--font); }
 
 .dsb-container--expanded {
   width: var(--dsb-w);
+  overflow: visible; /* CRITICAL: allows the quick create popover to overflow */
 }
 
 /* Floating Dock for Edge Peek */
@@ -301,7 +302,7 @@ input { font-family: var(--font); }
   -webkit-backdrop-filter: blur(24px);
   border-radius: 20px;
   box-shadow: none;
-  overflow: hidden;
+  overflow: visible; /* CRITICAL: allows the quick create popover to overflow */
 }
 
 body.dark-mode .floating-sidebar-dock .dsb,
@@ -320,6 +321,7 @@ body.dark-mode .floating-sidebar-dock .dsb-redesign {
 
 .dsb-container--ws-expanded {
   width: var(--dsb-w);
+  overflow: visible;
 }
 
 .dsb-container--ws-expanded .dsb {

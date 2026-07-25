@@ -237,7 +237,7 @@ export default function WorkstationPage() {
     }
   }, [selectedMaterial, materialAnalysis]);
 
-  const runAnalysis = async (type) => {
+  const runAnalysis = async (type, config) => {
     if (type !== 'quiz' || isAnalysisLoading || !selectedMaterial) return;
     setIsAnalysisLoading(true);
     try {
@@ -284,7 +284,9 @@ export default function WorkstationPage() {
       const { ok } = await checkAndDeductCredits(user?.id, CREDIT_COSTS.GENERATE_QUIZ, false);
       if (!ok) { setIsAnalysisLoading(false); return; }
 
-      const qRes = await MaterialAnalysisService.generateQuiz(currentAnalysisRow, 5, 'medium', selectedMaterial);
+      const questionCount = config?.questionCount || 5;
+      const difficulty = config?.difficulty?.toLowerCase() || 'medium';
+      const qRes = await MaterialAnalysisService.generateQuiz(currentAnalysisRow, questionCount, difficulty, selectedMaterial);
       const finalResult = qRes.success ? qRes.quiz : null;
 
       const questionsList = Array.isArray(finalResult)
@@ -635,7 +637,7 @@ export default function WorkstationPage() {
         {isMobile || isTablet ? (
           <WorkstationResponsiveLayout 
             state={{
-              isDark, user, activeMainTab, activeSubTab, activeWorkspaceTool, 
+              isDark, user, profile, activeMainTab, activeSubTab, activeWorkspaceTool, 
               isChatOpen, selectedMaterial, urlMaterialId, isCollaborative: true, 
               displayName, displayAvatar, roomId, isBoardFullScreen, copiedToast,
               selectedMaterialWithAnalysis, isAnalysisLoading,
@@ -1296,7 +1298,8 @@ export default function WorkstationPage() {
                   material={selectedMaterialWithAnalysis} 
                   isDark={isDark}
                   user={user}
-                  onRegenerateQuiz={() => runAnalysis('quiz')}
+                  userTier={profile?.subscription_tier}
+                  onRegenerateQuiz={(config) => runAnalysis('quiz', config)}
                   isAnalysisLoading={isAnalysisLoading}
                   updateMaterialProgress={updateMaterialProgress}
                 />

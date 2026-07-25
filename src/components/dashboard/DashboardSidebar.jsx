@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { useDashboardPrefetch } from '../../context/DashboardPrefetchContext'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   House,
   Cards,
@@ -27,6 +28,8 @@ import {
   Question,
   Lightning,
   ArrowRight,
+  FilePdf,
+  FolderPlus,
 } from '@phosphor-icons/react'
 import './SidebarRedesign.css'
 import HelperWidget from './HelperWidget'
@@ -156,9 +159,9 @@ export default function DashboardSidebar({
   }
 
   const CREATE_OPTIONS = [
-    { id: 'note',    emoji: '📝', title: 'New Note',    desc: 'Write and organize your thoughts',  path: '/notes?new=1' },
-    { id: 'upload',  emoji: '📄', title: 'Upload PDF',  desc: 'Study from any document',           path: '/upload' },
-    { id: 'folder',  emoji: '📁', title: 'New Folder',  desc: 'Organize files into folders',       path: '/backpack?new=1' },
+    { id: 'note',    icon: NotePencil, title: 'New Note',    desc: 'Write and organize your thoughts',  path: '/notes?new=1' },
+    { id: 'upload',  icon: FilePdf,    title: 'Upload PDF',  desc: 'Study from any document',           path: '/upload' },
+    { id: 'folder',  icon: FolderPlus, title: 'New Folder',  desc: 'Organize files into folders',       path: '/backpack?new=1' },
   ]
 
   const handleSignOut = async () => {
@@ -220,46 +223,48 @@ export default function DashboardSidebar({
           <Plus size={18} weight="bold" />
           {!collapsed && <span>New</span>}
         </button>
+
+        <AnimatePresence>
+          {showQuickCreate && (
+            <>
+              {/* Invisible backdrop */}
+              <div 
+                style={{ position: 'fixed', inset: 0, zIndex: 1000 }}
+                onClick={(e) => { e.stopPropagation(); setShowQuickCreate(false); setSelectedOption(null); }}
+              />
+              <motion.div 
+                className={`dsb-create-popover ${collapsed ? 'collapsed' : ''}`}
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
+              >
+                <div className="dsb-create-popover-header">
+                  <span className="dsb-create-popover-title">Create New</span>
+                </div>
+                <div className="dsb-create-options-list">
+                  {CREATE_OPTIONS.map(opt => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className="dsb-create-popover-item"
+                      onClick={() => go(opt.path)}
+                    >
+                      <div className="dsb-create-item-icon">
+                        <opt.icon size={20} weight="duotone" color="currentColor" />
+                      </div>
+                      <div className="dsb-create-item-text">
+                        <span className="dsb-create-item-title">{opt.title}</span>
+                        <span className="dsb-create-item-desc">{opt.desc}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
-
-      {showQuickCreate && createPortal(
-        <div className="dsb-create-overlay" onClick={() => { setShowQuickCreate(false); setSelectedOption(null) }}>
-          <div className="dsb-create-modal" onClick={e => e.stopPropagation()}>
-            <p className="dsb-create-modal-title">What do you want to create?</p>
-            <p className="dsb-create-modal-subtitle">Pick an option to get started</p>
-
-            <div className="dsb-create-options">
-              {CREATE_OPTIONS.map(opt => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  className={`dsb-create-option${selectedOption === opt.id ? ' selected' : ''}`}
-                  onClick={() => setSelectedOption(opt.id)}
-                >
-                  <div className="dsb-create-option-icon">{opt.emoji}</div>
-                  <div className="dsb-create-option-text">
-                    <span className="dsb-create-option-title">{opt.title}</span>
-                    <span className="dsb-create-option-desc">{opt.desc}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              className="dsb-create-continue-btn"
-              disabled={!selectedOption}
-              onClick={() => {
-                const opt = CREATE_OPTIONS.find(o => o.id === selectedOption)
-                if (opt) go(opt.path)
-              }}
-            >
-              Continue
-            </button>
-          </div>
-        </div>,
-        document.body
-      )}
 
       {/* ── Main Nav ── */}
       <nav className="dsb-nav-list" aria-label="Main navigation">

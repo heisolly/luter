@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CaretRight, CaretLeft, X, Check } from '@phosphor-icons/react';
 import StreakHeatmap from '../components/dashboard/StreakHeatmap';
 import CalendarHeatmap from '../components/dashboard/CalendarHeatmap';
 import CourseCardSwiper from '../components/dashboard/CourseCardSwiper';
@@ -12,6 +14,7 @@ import CalendarWidget from '../components/dashboard/CalendarWidget';
 import StudyProgressWidget from '../components/dashboard/StudyProgressWidget';
 import PersonalLibraryWidget from '../components/dashboard/PersonalLibraryWidget';
 import RecentlyStudiedWidget from '../components/dashboard/RecentlyStudiedWidget';
+import QuizSetupOverlay from '../components/dashboard/QuizSetupOverlay';
 
 const CheckIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none" style={{ flexShrink: 0 }}>
@@ -33,14 +36,106 @@ const CrossIcon = () => (
   </svg>
 );
 
+// ── IOS Toggle Switch ──
+const IOSToggle = ({ checked, onChange }) => (
+  <div 
+    onClick={(e) => { e.stopPropagation(); onChange(!checked); }}
+    style={{
+      width: '51px', height: '31px', borderRadius: '31px',
+      background: checked ? '#98FF98' : '#E5E5EA',
+      position: 'relative', cursor: 'pointer',
+      transition: 'background 0.3s ease',
+      flexShrink: 0
+    }}
+  >
+    <div style={{
+      width: '27px', height: '27px', borderRadius: '50%',
+      background: '#fff',
+      position: 'absolute', top: '2px', left: checked ? '22px' : '2px',
+      boxShadow: '0 3px 8px rgba(0,0,0,0.15), 0 1px 1px rgba(0,0,0,0.16), 0 3px 1px rgba(0,0,0,0.1)',
+      transition: 'left 0.3s cubic-bezier(0.2, 0.85, 0.32, 1.2)'
+    }} />
+  </div>
+);
+
+// ── Settings Section ──
+const SettingsSection = ({ title, children, isDark }) => (
+  <div style={{ marginBottom: '24px' }}>
+    {title && (
+      <div style={{ 
+        paddingLeft: '16px', marginBottom: '6px', 
+        fontSize: '13px', fontWeight: 600, color: isDark ? '#9CA3AF' : '#6B7280',
+        textTransform: 'uppercase', letterSpacing: '0.5px'
+      }}>
+        {title}
+      </div>
+    )}
+    <div style={{
+      background: isDark ? '#1E293B' : '#FFFFFF',
+      borderRadius: '12px',
+      overflow: 'hidden'
+    }}>
+      {children}
+    </div>
+  </div>
+);
+
+// ── Settings Row ──
+const SettingsRow = ({ label, value, type, onClick, onChange, checked, isLast, isDark }) => (
+  <div 
+    onClick={type === 'drilldown' ? onClick : undefined}
+    style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '12px 16px',
+      borderBottom: isLast ? 'none' : `1px solid ${isDark ? '#334155' : '#F3F4F6'}`,
+      cursor: type === 'drilldown' ? 'pointer' : 'default',
+      background: 'transparent',
+      transition: 'background 0.2s ease'
+    }}
+    onMouseEnter={(e) => { if (type === 'drilldown') e.currentTarget.style.background = isDark ? '#334155' : '#F8FAFC' }}
+    onMouseLeave={(e) => { if (type === 'drilldown') e.currentTarget.style.background = 'transparent' }}
+  >
+    <span style={{ fontSize: '16px', fontWeight: 500, color: isDark ? '#F9FAFB' : '#111827' }}>
+      {label}
+    </span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {type === 'drilldown' && (
+        <>
+          <span style={{ fontSize: '16px', color: isDark ? '#9CA3AF' : '#6B7280' }}>{value}</span>
+          <CaretRight size={18} weight="bold" color={isDark ? '#6B7280' : '#9CA3AF'} />
+        </>
+      )}
+      {type === 'toggle' && (
+        <IOSToggle checked={checked} onChange={onChange} />
+      )}
+    </div>
+  </div>
+);
+
 const ComponentPage = () => {
   const [isXpOpen, setIsXpOpen] = useState(false);
   const [isKeysOpen, setIsKeysOpen] = useState(false);
   const [isPremiumOpen, setIsPremiumOpen] = useState(false);
   const [isPlansOpen, setIsPlansOpen] = useState(false);
+  const [isQuizSetupOpen, setIsQuizSetupOpen] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
-
+  const [config, setConfig] = useState({
+    source: 'Biology Chapter 1.pdf',
+    pageRange: 'Pages 1–26',
+    language: 'Auto Detect',
+    questionTypes: ['Multiple Choice', 'True/False'],
+    difficulty: 'Medium',
+    questionCount: 20,
+    timer: 30,
+    examSize: 'Standard',
+    shuffleQuestions: true,
+    shuffleAnswers: true,
+    focusImportant: true,
+    avoidDuplicates: true,
+    showExplanations: true,
+    showCorrectAnswer: true
+  });
   const benefits = [
     { label: 'Daily lesson', free: true, premium: true },
     { label: 'Unlimited learning', free: false, premium: true },
@@ -96,7 +191,34 @@ const ComponentPage = () => {
           }}>
           {isDarkTheme ? '☀️ Light Mode' : '🌙 Dark Mode'}
         </button>
+        <button 
+          onClick={() => setIsQuizSetupOpen(true)}
+          style={{
+             marginLeft: '12px',
+             padding: '10px 20px',
+             borderRadius: '8px',
+             background: '#98FF98',
+             color: '#000',
+             border: 'none',
+             cursor: 'pointer',
+             fontWeight: 600,
+             display: 'flex',
+             alignItems: 'center',
+             gap: '8px'
+          }}>
+          Open Quiz Setup
+        </button>
       </div>
+
+      {isQuizSetupOpen && (
+        <QuizSetupOverlay 
+          isOpen={isQuizSetupOpen} 
+          onClose={() => setIsQuizSetupOpen(false)} 
+          isDark={isDarkTheme} 
+          config={config}
+          onUpdateConfig={setConfig}
+        />
+      )}
 
       {/* The Calendar and Study Progress widgets are already below, removing the duplicate block */}
 
