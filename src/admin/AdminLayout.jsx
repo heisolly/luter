@@ -20,6 +20,7 @@ export default function AdminLayout() {
   const [profile, setProfile] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
+  const [loggingIn, setLoggingIn] = useState(false)
 
   // Dark mode state matching standard Luter dark theme handling
   const [isDark, setIsDark] = useState(() => {
@@ -127,12 +128,29 @@ export default function AdminLayout() {
   }
 
   if (!isAuthenticated) {
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
       e.preventDefault()
       setAuthError(false)
       if (password === '242424') {
-        setIsAuthenticated(true)
-        sessionStorage.setItem('admin_authenticated', 'true')
+        setLoggingIn(true)
+        try {
+          const { error } = await supabase.auth.signInWithPassword({
+            email: 'admin@luter.app',
+            password: 'luteradmin242424'
+          })
+          if (error) {
+            console.error('Supabase admin login failed:', error.message)
+            setAuthError(true)
+          } else {
+            setIsAuthenticated(true)
+            sessionStorage.setItem('admin_authenticated', 'true')
+          }
+        } catch (err) {
+          console.error('Auth error:', err)
+          setAuthError(true)
+        } finally {
+          setLoggingIn(false)
+        }
       } else {
         setAuthError(true)
       }
@@ -146,7 +164,7 @@ export default function AdminLayout() {
               <ShieldCheck size={36} color="#fb923c" weight="duotone" />
             </div>
           </div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, textAlign: 'center', marginBottom: 8, color: 'var(--adm-text, #0f172a)', letterSpacing: '-0.02em' }}>Admin Access</h2>
+          <h2 style={{ fontSize: 24, fontSpread: 'normal', fontWeight: 800, textAlign: 'center', marginBottom: 8, color: 'var(--adm-text, #0f172a)', letterSpacing: '-0.02em' }}>Admin Access</h2>
           <p style={{ fontSize: 15, color: 'var(--adm-text-secondary, #475569)', textAlign: 'center', marginBottom: 32 }}>Enter master password to continue</p>
           
           <input
@@ -158,6 +176,7 @@ export default function AdminLayout() {
               setPassword(e.target.value)
               setAuthError(false)
             }}
+            disabled={loggingIn}
             className="adm-input"
             style={{ 
               width: '100%', 
@@ -169,11 +188,12 @@ export default function AdminLayout() {
           />
 
           {authError && (
-            <p style={{ color: '#ef4444', fontSize: 13, textAlign: 'center', marginBottom: 20, fontWeight: 600 }}>Invalid password. Please try again.</p>
+            <p style={{ color: '#ef4444', fontSize: 13, textAlign: 'center', marginBottom: 20, fontWeight: 600 }}>Invalid password or connection error. Please try again.</p>
           )}
 
           <button
             type="submit"
+            disabled={loggingIn}
             className="adm-btn adm-btn--primary"
             style={{
               width: '100%',
@@ -181,10 +201,12 @@ export default function AdminLayout() {
               padding: '14px',
               fontSize: 15,
               borderRadius: 12,
-              letterSpacing: '0.01em'
+              letterSpacing: '0.01em',
+              opacity: loggingIn ? 0.7 : 1,
+              cursor: loggingIn ? 'not-allowed' : 'pointer'
             }}
           >
-            Access Dashboard
+            {loggingIn ? 'Connecting to Supabase...' : 'Access Dashboard'}
           </button>
         </form>
       </div>
