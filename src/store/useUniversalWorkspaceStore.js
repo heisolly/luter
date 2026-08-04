@@ -107,6 +107,7 @@ export const useUniversalWorkspaceStore = create(
           faculty: state.programName,
           level: state.levelGrade,
           role_preference: state.userRole,
+          onboarding_complete: true,
           onboarding_completed: true,
           first_action: state.firstAction,
           updated_at: new Date().toISOString()

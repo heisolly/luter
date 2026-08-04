@@ -257,13 +257,21 @@ export default function Dashboard() {
             // Fast boot: load cache first regardless of network status
             try {
               const raw = localStorage.getItem(profileCacheKey)
-              if (raw) setProfile(JSON.parse(raw))
+              if (raw) {
+                const parsed = JSON.parse(raw)
+                setProfile(parsed)
+                if (parsed && !parsed.onboarding_complete && !parsed.onboarding_completed) {
+                  console.log('🔄 Cached profile indicates onboarding is not completed. Redirecting...')
+                  navigate('/onboarding')
+                  return
+                }
+              }
             } catch { /* ignore cache parse errors */ }
 
             try {
               const { data, error } = await supabase
                 .from('profiles')
-                .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium, avatar_url')
+                .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium, avatar_url, onboarding_complete, onboarding_completed')
                 .eq('id', session.user.id)
                 .maybeSingle()
               
@@ -272,6 +280,16 @@ export default function Dashboard() {
               if (data) {
                 setProfile(data)
                 try { localStorage.setItem(profileCacheKey, JSON.stringify(data)) } catch { /* ignore cache write errors */ }
+                
+                if (!data.onboarding_complete && !data.onboarding_completed) {
+                  console.log('🔄 Profile from database indicates onboarding is not completed. Redirecting...')
+                  navigate('/onboarding')
+                  return
+                }
+              } else {
+                console.log('🔄 No profile found. Redirecting to onboarding...')
+                navigate('/onboarding')
+                return
               }
             } catch (error) {
               console.warn('Profile fetch failed:', error.message)
@@ -289,10 +307,22 @@ export default function Dashboard() {
                   if (!refreshError && refreshedSession) {
                     const { data: retryP } = await supabase
                       .from('profiles')
-                      .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium, avatar_url')
+                      .select('full_name, is_university_user, role, subscription_tier, subscription_type, subscription_expires_at, is_premium, avatar_url, onboarding_complete, onboarding_completed')
                       .eq('id', refreshedSession.user.id)
                       .maybeSingle()
-                    if (retryP) setProfile(retryP)
+                    if (retryP) {
+                      setProfile(retryP)
+                      try { localStorage.setItem(profileCacheKey, JSON.stringify(retryP)) } catch { /* ignore cache write errors */ }
+                      if (!retryP.onboarding_complete && !retryP.onboarding_completed) {
+                        console.log('🔄 Profile from database (after refresh) indicates onboarding is not completed. Redirecting...')
+                        navigate('/onboarding')
+                        return
+                      }
+                    } else {
+                      console.log('🔄 No profile found after session refresh. Redirecting to onboarding...')
+                      navigate('/onboarding')
+                      return
+                    }
                   } else {
                     throw refreshError || new Error('No session returned after refresh')
                   }

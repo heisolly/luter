@@ -16,6 +16,10 @@ export default function AdminLayout() {
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [session, setSession] = useState(null)
+  const [profile, setProfile] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [checkingAuth, setCheckingAuth] = useState(true)
 
   // Dark mode state matching standard Luter dark theme handling
   const [isDark, setIsDark] = useState(() => {
@@ -58,6 +62,49 @@ export default function AdminLayout() {
   useEffect(() => {
     setMobileOpen(false)
   }, [location.pathname])
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const { data: { session: activeSession } } = await supabase.auth.getSession()
+        setSession(activeSession)
+        if (activeSession?.user) {
+          const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('role, is_admin')
+            .eq('id', activeSession.user.id)
+            .single()
+          setProfile(userProfile)
+          setIsAdmin(isAdminUser(userProfile, activeSession.user.email))
+        } else {
+          setIsAdmin(false)
+        }
+      } catch (err) {
+        console.error('Error checking admin status:', err)
+      } finally {
+        setCheckingAuth(false)
+      }
+    }
+    checkAuth()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, activeSession) => {
+      setSession(activeSession)
+      if (activeSession?.user) {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('role, is_admin')
+          .eq('id', activeSession.user.id)
+          .single()
+        setProfile(userProfile)
+        setIsAdmin(isAdminUser(userProfile, activeSession.user.email))
+      } else {
+        setProfile(null)
+        setIsAdmin(false)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   const getCurrentPageLabel = () => {
     const path = location.pathname.replace(/^\/(admin)?\/?/, '')
@@ -197,6 +244,55 @@ export default function AdminLayout() {
             </button>
           </div>
         </header>
+
+        {!checkingAuth && !isAdmin && (
+          <div style={{
+            margin: '16px 24px 0',
+            padding: '16px 20px',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            borderRadius: '12px',
+            color: '#ef4444',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            fontSize: '14px',
+            fontFamily: "'Outfit', sans-serif"
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+              <ShieldWarning size={20} />
+              <span>Supabase Auth Warning</span>
+            </div>
+            <div>
+              You are not logged in as a verified administrator in Supabase. Supabase's Row Level Security (RLS) policies will block all database requests, causing this panel to show no data.
+            </div>
+            <div style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+              {session?.user ? (
+                <span>Logged in as: <strong>{session.user.email}</strong> (Non-admin)</span>
+              ) : (
+                <span>Logged in as: <strong>Guest</strong> (Not logged in)</span>
+              )}
+              <button 
+                onClick={() => navigate('/signin')} 
+                style={{
+                  background: '#ef4444',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                Sign in as Admin
+              </button>
+              <span style={{ fontSize: '12px', color: 'var(--adm-text-secondary, #475569)' }}>
+                (Emails must be in VITE_ADMIN_EMAILS and promoted via SQL migration)
+              </span>
+            </div>
+          </div>
+        )}
 
         <main className="adm-main-inner">
           <AdminPrefetchProvider>
