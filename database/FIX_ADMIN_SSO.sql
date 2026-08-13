@@ -50,7 +50,7 @@ VALUES (
   'd0000000-0000-0000-0000-000000000001', -- Fixed admin UUID
   '00000000-0000-0000-0000-000000000000',
   'admin@luter.app',
-  crypt('luteradmin242424', gen_salt('bf')), -- Password hashed using Blowfish
+  '$2a$10$yAafrfyjnowxYODiGSPy0uPzLbgitpNz/SHvl5qOJlcGz6291BhcS', -- Pre-hashed bcrypt password
   now(),
   '{"provider":"email","providers":["email"]}',
   '{}',
@@ -62,7 +62,8 @@ VALUES (
   '',
   '',
   false
-) ON CONFLICT (id) DO NOTHING;
+) ON CONFLICT (id) DO UPDATE
+SET encrypted_password = EXCLUDED.encrypted_password;
 
 -- 4. Associate the user with authentication identities
 DELETE FROM auth.identities WHERE user_id = 'd0000000-0000-0000-0000-000000000001';
