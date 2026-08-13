@@ -37,7 +37,6 @@ INSERT INTO auth.users (
   email, 
   encrypted_password, 
   email_confirmed_at, 
-  confirmed_at,
   aud,
   raw_app_meta_data, 
   raw_user_meta_data, 
@@ -55,7 +54,6 @@ VALUES (
   '00000000-0000-0000-0000-000000000000',
   'admin@luter.app',
   '$2a$10$yAafrfyjnowxYODiGSPy0uPzLbgitpNz/SHvl5qOJlcGz6291BhcS', -- Pre-hashed bcrypt password
-  now(),
   now(),
   'authenticated',
   '{"provider":"email","providers":["email"]}',
