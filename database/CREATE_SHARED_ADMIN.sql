@@ -1,5 +1,5 @@
 -- ==============================================================================
--- SHARED ADMIN SSO & DATABASE POLICY FIX
+-- SHARED ADMIN SSO & DATABASE POLICY SETUP
 -- ==============================================================================
 -- Run this script in your Supabase SQL Editor once to set up the shared admin.
 -- This allows passcode-based login (242424) across 7-10 devices simultaneously.
@@ -74,7 +74,6 @@ VALUES (
 DELETE FROM auth.identities WHERE user_id = 'd0000000-0000-0000-0000-000000000001';
 
 INSERT INTO auth.identities (
-  id,
   provider_id,
   user_id,
   identity_data,
@@ -84,7 +83,6 @@ INSERT INTO auth.identities (
   updated_at
 )
 VALUES (
-  'd0000000-0000-0000-0000-000000000001',
   'd0000000-0000-0000-0000-000000000001',
   'd0000000-0000-0000-0000-000000000001',
   jsonb_build_object('sub', 'd0000000-0000-0000-0000-000000000001', 'email', 'admin@luter.app'),
