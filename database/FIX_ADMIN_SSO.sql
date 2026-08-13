@@ -26,9 +26,11 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 -- Grant execute permissions to standard roles
 GRANT EXECUTE ON FUNCTION public.luter_is_admin() TO authenticated, anon;
 
--- 3. Create the shared admin user in auth.users if not exists
+-- 3. Create the shared admin user in auth.users
 -- Username / Email: admin@luter.app
 -- Password: luteradmin242424
+DELETE FROM auth.users WHERE email = 'admin@luter.app';
+
 INSERT INTO auth.users (
   id, 
   instance_id, 
@@ -62,8 +64,7 @@ VALUES (
   '',
   '',
   false
-) ON CONFLICT (id) DO UPDATE
-SET encrypted_password = EXCLUDED.encrypted_password;
+);
 
 -- 4. Associate the user with authentication identities
 DELETE FROM auth.identities WHERE user_id = 'd0000000-0000-0000-0000-000000000001';
